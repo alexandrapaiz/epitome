@@ -89,3 +89,22 @@ chooses; no epito.me feature may require a specific third-party
 product to exist. Scope note: this governs the product. The org's own
 PM board on Linear (ADR-5) is an ops tool of this company, not a
 product dependency, and stands until the owner says otherwise.
+
+## ADR-7: Slack accepted as integration #2; WhatsApp and WeChat enter the map
+
+Owner's verdict (2026-09-19) on the market seat's rev-2 re-rank:
+"yes i love slack for agents." Slack is integration #2 — the
+SlackProvider mints a per-agent app via `apps.manifest.create`
+(structurally the GitHub provider's manifest-conversion flow), bot
+user as the principal, workspace OAuth install, manifest scope
+grammar `slack:chat.write` settling v0.2's second-platform question.
+Distribution stays optional per ranking law 4 (unlisted per-workspace
+install is self-serve). The PM shapes the pitch for the cycle-2
+betting table; no mid-cycle bet (ADR-5 circuit rules).
+
+Owner addition, same breath: "id even consider whatsapp group chats
+too and wechat for international markets." Both enter the market
+seat's research queue for the next brief revision: WhatsApp Business
+Platform (group-chat agents) and WeChat (official accounts /
+mini-programs) as international-market surfaces, evaluated under the
+four ranking laws like everything else. Ledger entries carry them.
