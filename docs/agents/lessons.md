@@ -138,3 +138,30 @@ once elsewhere, it never reached HQ (HQ incident 1, with the interim
 same-session sync rule).
 
 **Binds:** engineer, pm, chair.
+
+## L7 — Exemplar first: study what she approved before drafting
+
+**Trigger (2026-09-19)**, the owner, abandoning the architecture deck
+after its fifth revision: "highly dissatisfied with the presentation
+still we will abandon for now. ursa did a much better job."
+
+**Rule.** When the owner has approved an artifact of the same genre
+anywhere in the portfolio, work on a new one starts by reading that
+exemplar in full, before the first draft. Iterating on described
+feedback converges on the description, not on what she approved: each
+of the five revisions added exactly what she named (toolchain, then
+infrastructure, then the connective stack) and the artifact was
+abandoned anyway, because the exemplar's whole-shape properties were
+never studied — a plan of record roughly three times deeper than ours,
+real payloads from a real run, verbatim quotes as evidence, diagrams
+specified node by node with typed edge labels, and a "Done when" per
+milestone. The known exemplar for plans and decks is Ursa
+docs/design/product-plan.md with docs/presentations/product-plan/.
+Second half of the rule: check against the standard's checklist, not
+against the last piece of feedback — the abandoned artifact literally
+failed engineering-artifacts.md requirements 1 and 3 through all five
+revisions and nobody ran the list. Full record: epitome incident 1;
+portfolio rule: HQ lessons L-A7 and L-E5.
+
+**Binds:** every seat producing owner-facing artifacts (engineer, pm,
+market, exo, chair).
