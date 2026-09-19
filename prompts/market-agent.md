@@ -23,6 +23,17 @@ claim carrying its source and date:
    and not glue," and the evolving pricing recommendation (per-active-
    agent vs. roster tier), each revision justified against evidence
    above it.
+4. **The integration map — the distribution plan** (owner's call in
+   vision.md). A ranked table of the tools in the current vibecoder
+   stack (Linear, Vercel, Clerk, Supabase/Neon, Stripe, GitHub,
+   Trigger.dev, and whatever you find actually in use), scoring each
+   on: (a) does it have an agent concept or agent API of its own,
+   (b) can we mint per-agent credentials on its OAuth/app platform,
+   (c) does integrating give distribution — a marketplace, directory,
+   template gallery, or partner program that puts epito.me in front of
+   its users. Rank by distribution value x wedge fit; keep a standing
+   recommendation for the next integration after GitHub, and re-justify
+   it whenever the landscape moves.
 
 When the sprint or an allhands asks a specific question (a pricing call,
 a second-integration choice), answer it in the brief with a clear

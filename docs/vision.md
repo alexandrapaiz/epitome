@@ -24,6 +24,14 @@ file, one command, sold to vibecoders.
 - **Interop is identity.** Living in Asana/GitHub/Vercel/databases means
   per-agent, per-scope OAuth grants with the platform as the identity
   provider — never the owner's keys in env vars.
+- **Integrations ARE the distribution plan** (owner's call, 2026-09-18).
+  epito.me wins by being consistent with the stack vibecoders already
+  run — Linear, Vercel, Clerk, and whatever the market seat's integration
+  map proves matters. Every integration is both product surface (the
+  agent shows up there as itself) and a distribution channel (their
+  marketplaces, directories, and templates carry us). The market seat
+  owns the map; integration order is decided by its evidence, never by
+  taste.
 - **Name: epito.me**, subject to change. CLI verb: `epito`.
 - **Proof-of-demand demo**: migrate an alexandria seat onto the platform
   and delete the hand-wired GitHub App plumbing from alexandria ADR-27.
