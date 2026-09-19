@@ -165,3 +165,46 @@ portfolio rule: HQ lessons L-A7 and L-E5.
 
 **Binds:** every seat producing owner-facing artifacts (engineer, pm,
 market, exo, chair).
+
+## L8 — A presentation is seat-authored, in the alexandria register, and ends in direction
+
+**Trigger (2026-09-19)**, the owner, on the market-gap presentation:
+"the comtent you previously shaed was great the presentations suck.
+they dont effectively relay the information as i want, they still look
+like marketing. the major key identified is the market gap:every major
+vendor mints agent identity inside its own wall (Entra, AWS AgentCore,
+Google SPIFFE, Slack, Notion, Asana). Not one issues an identity that
+follows the agent across platforms or belongs to the user. this
+presentation was supposed to be done by market agent. lots of jargon
+on there. the presentation i ssupposed to guide the pm and owner on
+where to direct the project. i am big fan of alexandria presentations,
+i hate almost all presentations by epitome."
+
+**Rule.** Three parts, from her words and the exemplar she loves
+(alexandria docs/sales/pitch-deck.md, now the named portfolio
+exemplar for presentations).
+
+1. Seat authorship: a presentation belongs to the seat whose work it
+   presents. That seat writes the content document in the exemplar's
+   form — Copy (verbatim slide words), Speaker notes (sourcing by
+   file-line or link, confidence levels), Visual direction. The chair
+   renders and never authors; the chair authoring a seat's
+   presentation is the violation that just recurred.
+2. The register: one declarative statement or one real quote per
+   slide, whitespace over density, zero internal jargon in Copy — ADR
+   numbers, tier names, protocol verbs live in notes only — and
+   confidence levels carried into the Copy, never smoothed.
+3. Direction: the presentation exists to guide the owner and PM on
+   where to direct the project, so it ends with recommendations she
+   can accept or reject one by one, never with a summary.
+
+Honest pattern note: this is the fourth register correction, and the
+standards kept being necessary-but-insufficient because each fix
+encoded the previous failure, not the loved exemplar. The durable rule
+is render the exemplar the owner loves — the alexandria deck for
+presentations, the Ursa product plan for engineering plans (L7).
+Codified at HQ: documents.md §2b and checklist items 10-12; lessons
+L-A8.
+
+**Binds:** every seat producing presentations (market, pm, engineer,
+exo); the chair, as renderer only.

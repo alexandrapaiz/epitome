@@ -49,6 +49,12 @@ EPI-4's route decision (App-per-agent vs shared App) shapes `mint`'s
 internals and the Principal record; the interface above survives
 either answer — that is deliberate.
 
+Inside the runtime leg the model is routable (ADR-8): the agent IS
+the identity, `[runtime].model` names today's brain, manifest v0.2
+may take a routing policy in its place, and no provider, mapping, or
+roster surface ever keys on the model. The audit line records which
+model executed under the identity.
+
 ## Data model
 
 ```ts
