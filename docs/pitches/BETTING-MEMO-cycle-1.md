@@ -47,5 +47,8 @@ on record from day one, and so the owner has one page to veto from.
   owner prefers wedge depth over distribution this cycle; the PM's
   reasoning against it is the dependency, not the pitch's worth.
 
-Linear mirror: skipped this run — no LINEAR_API_KEY yet (owner-only
-backlog item); the repo remains the source of truth.
+Linear mirror: done via the chair's connected Linear session
+(2026-09-18) — team "epitome", project "epito"; bets EPI-1/EPI-2,
+declined bet EPI-3, scopes EPI-4..12 as sub-issues, backlog
+EPI-13..23. The LINEAR_API_KEY secret is still owed for the seat's own
+scheduled runs; the repo remains the source of truth.

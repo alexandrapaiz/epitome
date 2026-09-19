@@ -9,9 +9,11 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   the three alexandria seat shapes (daily builder, weekly writer,
   event-driven responder); every field either earns its place or goes.
   Seat: engineer. (Draft shipped founding night.)
-- [ ] **`epito init` + `epito validate` polished** — errors a vibecoder
-  can act on; `epito me` alias; ship to npm under the epitomes name once
-  stable. Seat: engineer. (v0 shipped founding night.)
+- [ ] **`epito init` + `epito validate` error polish** — errors a
+  vibecoder can act on; `epito me` alias. Seat: engineer. (v0 shipped
+  founding night.)
+- [ ] **Ship the CLI to npm** under the epitomes name once init/validate
+  are stable. Seat: engineer.
 - [ ] **`epito deploy` v0, GitHub target** — provision a GitHub App
   principal from [identity].scopes, store nothing personal, mint
   short-lived tokens per run, wire [trigger].cron to the runtime, write
@@ -23,16 +25,21 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   users already have), containerized image as the second step. Seat:
   engineer. *Shaped (docs/pitches/runtime-v0-actions.md), not bet in
   cycle 1 — depends on the identity slice; re-bet cycle 2.*
-- [ ] **Dogfood migration** — one alexandria seat runs on epito.me;
-  delete its ADR-27 hand-wiring; write the before/after. This is the
-  launch post. Seat: engineer + owner.
+- [ ] **Dogfood migration, step 1** — one alexandria seat runs on
+  epito.me. Seat: engineer + owner.
+- [ ] **Dogfood migration, step 2** — delete that seat's ADR-27
+  hand-wiring from alexandria. Seat: engineer.
+- [ ] **Dogfood migration, step 3** — write the before/after; this is
+  the launch post. Seat: engineer + owner.
 
 ## Next
 
 - [ ] **OKR seat stood up** (playbook order: purpose before planning) —
   mission → objectives + benchmark. Seat: okr. Owner prerequisite:
   CLAUDE_CODE_OAUTH_TOKEN secret.
-- [ ] **PM/COO seat** — sprints, board, this backlog. Seat: pm.
+- [ ] **PM/COO seat on schedule** — cycles, board, this backlog;
+  live-convened since 2026-09-18, cron pending the owner's token.
+  Seat: pm.
 - [ ] **ExO seat** — incident register live before the builders multiply.
   Seat: exo.
 - [ ] **Market seat brief #1: pricing** — per-active-agent pricing vs.
