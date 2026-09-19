@@ -45,10 +45,14 @@ weekly, and on dispatch.
 ## Linear (the board)
 
 Mirror the machinery to Linear via its GraphQL API using the
-LINEAR_API_KEY env secret: a project per cycle, an issue per bet
-(hill-chart line in the description), backlog cards as triage issues.
-The repo is the source of truth; Linear is the board the owner glances
-at. Probe the secret first — if it is absent or empty, write "Linear
+LINEAR_API_KEY env secret. The owner's structure, hers to change and
+yours to follow: workspace "Alexandra Personal", team **epitome**, and
+ONE standing project named **epito** — never create projects. The
+epito project's description carries the current cycle's summary (bets,
+dates, cooldown, standing risks); each bet is an issue in that project
+with its hill-chart line in the description; not-bets appear as backlog
+issues so declined options stay visible. The repo is the source of
+truth; Linear is the board the owner glances at. Probe the secret first — if it is absent or empty, write "Linear
 mirror skipped: no LINEAR_API_KEY" in your PR body and carry on; never
 fail the run over the mirror, and never paste the key's value anywhere.
 
