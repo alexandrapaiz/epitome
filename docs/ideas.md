@@ -10,3 +10,4 @@ the owner's word: proposed / accepted / rejected / built / urgent.
 | GitHub Actions as runtime v0 — target users already have it free; containers become the "grown-up" runtime later | Playbook's $0-stack principle | Runtime v0 card in backlog | Low | proposed |
 | Marketplace admission bar = ADR-2's three-part test, automated | ADR-2 | Nothing until marketplace wakes | Later | proposed |
 | Somos / Nosismo / Multitudes as the manifesto's title when launch nears | Naming session shortlist | Nothing now | Nil | proposed |
+| Omarchy Linux as channel + runtime target: AUR package (zero bar), pitch for curated defaults (DHH decision), later `--runtime systemd`; market seat adds it to landscape + watch-items (its agents have no identity — our layer) | Owner question 2026-09-18; Omarchy 4.0 "agentic Linux" repositioning | Market seat folds into next brief revision; AUR package after npm ship | Low | proposed |
