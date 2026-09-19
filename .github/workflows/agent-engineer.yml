@@ -1,0 +1,44 @@
+name: engineer-agent
+
+on:
+  # schedule:
+  #   - cron: "6 11 * * *"   # enable only after a supervised smoke run (ADR-4)
+  workflow_dispatch:
+    inputs:
+      owner_instructions:
+        description: "Owner instructions for this run (binding for this run)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are epito.me's engineer seat, running in GitHub Actions with
+            this repository checked out. Read prompts/engineer-agent.md; it is
+            your full charter. Within your first turns, create a branch
+            engineer/YYYY-MM-DD-slug (today's date) and open a DRAFT pull
+            request with `gh pr create --draft`, committing into it as you
+            work — a died run must still ship its partial work. Open exactly
+            one PR. Never merge your own PR, never push to main, never touch
+            secrets, never edit charters. If the charter file is missing,
+            stop and fail loudly instead of improvising.
+            Owner instructions for this dispatch, binding for this run
+            (empty on scheduled runs):
+            ${{ inputs.owner_instructions }}
+          claude_args: "--max-turns 150 --permission-mode bypassPermissions --model claude-opus-5"
