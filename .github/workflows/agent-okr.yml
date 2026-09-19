@@ -20,12 +20,37 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
+      OPENROUTE: ${{ secrets.OPENROUTE_API_KEY }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: anthropics/claude-code-action@v1
+      - name: Seat run (open-routed)
+        if: env.OPENROUTE != ''
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: ${{ secrets.OPENROUTE_BASE_URL }}
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.OPENROUTE_API_KEY }}
+        with:
+          anthropic_api_key: ${{ secrets.OPENROUTE_API_KEY }}
+          prompt: |
+            You are epito.me's okr seat, running in GitHub Actions with
+            this repository checked out. Read prompts/okr-agent.md; it is
+            your full charter. Within your first turns, create a branch
+            okr/YYYY-MM-DD-slug (today's date) and open a DRAFT pull
+            request with `gh pr create --draft`, committing into it as you
+            work — a died run must still ship its partial work. Open exactly
+            one PR. Never merge your own PR, never push to main, never touch
+            secrets, never edit charters. If the charter file is missing,
+            stop and fail loudly instead of improvising.
+            Owner instructions for this dispatch, binding for this run
+            (empty on scheduled runs):
+            ${{ inputs.owner_instructions }}
+          claude_args: "--max-turns 80 --permission-mode bypassPermissions --model ${{ vars.OPENROUTE_MODEL || 'kimi-k2.7-code' }}"
+      - name: Seat run (Claude)
+        if: env.OPENROUTE == ''
+        uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
