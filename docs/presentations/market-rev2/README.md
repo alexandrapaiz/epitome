@@ -1,6 +1,6 @@
 # Market Brief Rev 2 — presentation sources
 
-Rendered from `docs/market.md` rev 2 (2026-09-19). Every slide traces
+Content authored by the MARKET SEAT in deck-content.md (Copy / Speaker notes / Visual direction, per the alexandria exemplar and HQ documents standard §2b); the chair renders Copy verbatim into the slide files here. Every slide traces
 to the brief; where a slide and the brief disagree, the brief wins.
 Published deck: https://claude.ai/artifact/GLjp562JRrDrgsHZdRADh8
 

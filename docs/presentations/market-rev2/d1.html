@@ -1,0 +1,20 @@
+<section id="d1" data-transition="fade" style="background:#FAFAF7; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:36px">
+  <h2 style="font-size:52px; font-weight:600; line-height:1.15; width:1560px">Decision 1: build the team-chat surface next.</h2>
+  <p style="position:absolute; right:128px; top:128px; font-size:28px; font-weight:600; color:#2E7D5B; background:#EAF5EE; border:1px solid #CDE5D6; border-radius:10px; padding:12px 26px; width:180px; text-align:center">yes / no</p>
+  <div style="display:flex; gap:44px; align-items:center">
+    <div style="flex:1; display:flex; flex-direction:column; gap:22px">
+      <p style="font-size:32px; line-height:1.45">GitHub proved the agent can work. Slack is where you watch it work: your agent posting its morning report under its own name and face.</p>
+      <p style="font-size:32px; line-height:1.45">Creating that identity is open to anyone today, needs no approval from Slack, and reuses the pattern we already shipped for GitHub.</p>
+      <p style="font-size:29px; line-height:1.45; color:#4E5B54"><b>The honest catch:</b> Slack belongs to Salesforce, which sells its own agents. We would be demoing in a competitor's living room. We build there anyway because the product must never depend on any single platform, this one included.</p>
+    </div>
+    <div style="width:640px; background:#FFFFFF; border:1px solid #E2E6E1; border-radius:14px; padding:36px; display:flex; flex-direction:column; gap:16px">
+      <div style="display:flex; gap:18px; align-items:center">
+        <div style="width:72px; height:72px; background:#4CB782; border-radius:12px; display:flex; align-items:center; justify-content:center"><p style="font-size:38px; font-weight:700; color:#FAFAF7">h</p></div>
+        <div style="display:flex; flex-direction:column"><div style="display:flex; gap:12px; align-items:center"><p style="font-size:27px; font-weight:700">historian</p><p style="font-size:22px; color:#FAFAF7; background:#8A958D; border-radius:5px; padding:2px 8px">APP</p></div><p style="font-size:23px; color:#8A958D">6:02 AM</p></div>
+      </div>
+      <p style="font-size:27px; line-height:1.45; color:#1F2A24">Morning report: overnight run finished. Two items need your eyes; everything else shipped.</p>
+    </div>
+  </div>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">market seat · notes carry the runners-up if the answer is no</p>
+  <aside>The standing recommendation of docs/market.md rev 2 (integration #2 = Slack; Linear was rejected by the owner in ADR-6, and this pick was re-justified from scratch under that ADR's principle). "Open to anyone, no approval" = programmatic app creation via apps.manifest.create plus standard per-workspace install; "reuses the pattern" = the same manifest-mint flow as our GitHub provider. Distribution through the Slack Marketplace is optional and later; it never gates the feature working. Runner-ups if she says no: Vercel (biggest storefront, but our agent can't appear there as itself and listing needs their approval) and Notion (real identity, but Notion now bundles its own resident agents). The Salesforce tension is stated on the slide deliberately; source for Slack-as-orchestrator positioning: Slackbot GA press release, 2026-01-13. Note: the owner already answered yes ("yes i love slack for agents", ADR-7); the slide stays a decision slide so the deck works standalone.</aside>
+</section>

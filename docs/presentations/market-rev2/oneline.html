@@ -1,0 +1,8 @@
+<section id="oneline" data-transition="fade" style="background:#FAFAF7; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; justify-content:center; gap:48px">
+  <div style="display:flex; flex-direction:column; gap:36px">
+    <h1 style="font-size:68px; font-weight:600; line-height:1.25; width:1560px">One file describes the agent.</h1>
+    <h1 style="font-size:68px; font-weight:600; line-height:1.25; width:1560px">One command gives it a real identity, a schedule, and a home on your own machine.</h1>
+    <h1 style="font-size:68px; font-weight:600; line-height:1.25; width:1560px; color:#2E7D5B">The identity is yours to limit and yours to cancel.</h1>
+  </div>
+  <aside>This is ADR-1 and ADR-2 (docs/decisions.md) in plain words: the manifest (agent.toml) mints identity + trigger + runtime. "Yours to limit and yours to cancel" translates scoped and revocable. "On your own machine" is the phase-2 daemon (docs/architecture.md, epitod): a persistent container per agent, woken on a schedule or an event, no human session needed. Do not say manifest, principal, container, or cron on the slide.</aside>
+</section>
