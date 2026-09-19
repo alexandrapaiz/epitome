@@ -59,7 +59,9 @@ Principal  = { agent, provider: "github-app",
                createdAt }                          // NEVER contains secrets
 Credential = { token, expiresAt, scopes }           // in-memory only, never persisted
 AuditEntry = { ts, agent, action: "deploy"|"mint"|"revoke",
-               scopes, provider }                   // append-only
+               scopes, provider, model }            // append-only; model
+               // = which brain executed, per ADR-8 (identity acts,
+               // model is recorded)
 ```
 
 On-disk store, three files at three trust levels:

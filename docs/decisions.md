@@ -108,3 +108,29 @@ seat's research queue for the next brief revision: WhatsApp Business
 Platform (group-chat agents) and WeChat (official accounts /
 mini-programs) as international-market surfaces, evaluated under the
 four ranking laws like everything else. Ledger entries carry them.
+
+## ADR-8: The agent is the identity, not the model
+
+Owner's doctrine (2026-09-19), verbatim: "im a big fan of agent
+routing, so agents should not be models necessarily but the
+identities." An agent's self is its identity — its principal, scopes,
+name, and audit trail — and the model is a routable runtime parameter
+beneath it. The same agent may run on different models per task,
+cost, or escalation policy (the playbook's routing levers, HQ
+ADR-015's open-source routing) without changing who it is anywhere it
+acts.
+
+Design consequences, binding:
+1. `[runtime].model` names today's brain, never the agent's identity;
+   manifest v0.2 may accept a routing policy in its place (e.g. a
+   model list with an escalation rule). Identity fields never move
+   with it.
+2. The audit entry gains a `model` field: every action attributes to
+   the identity AND records which model executed it, so routing
+   changes stay visible in the trail.
+3. No provider, platform mapping, or roster surface may key on the
+   model; everything keys on the principal. A model swap is invisible
+   to every integration.
+
+This sharpens ADR-2 rather than amending it: identity + trigger +
+runtime define the agent; the model is a detail of the runtime leg.
