@@ -35,8 +35,14 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **Market seat brief #1: pricing** — per-active-agent pricing vs.
   roster tier; who pays today for Clerk/Fly/Trigger.dev glue and what do
   they pay. Before any public pricing. Seat: market.
-- [ ] **Second integration decided by demand, not taste** — Vercel, Asana,
-  or Postgres; the market seat brings evidence. Seat: market.
+- [ ] **Second integration: owner's verdict pending** — the market
+  seat's standing recommendation (docs/market.md, 2026-09-18) is
+  **Linear** (agents are first-class "app users" there; directory
+  distribution; dogfoods ADR-5), runners-up Vercel then Supabase. One
+  word from the owner accepts or rejects. Seat: market → owner.
+- [ ] **`epito` MCP server + Claude Code/Cursor skill** — the market
+  map's near-zero-cost distribution side-bet: reach every editor
+  session. Shape as a pitch. Seat: pm.
 
 ## Later (features that emerge from accumulated manifests)
 
