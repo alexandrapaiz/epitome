@@ -134,3 +134,39 @@ Design consequences, binding:
 
 This sharpens ADR-2 rather than amending it: identity + trigger +
 runtime define the agent; the model is a detail of the runtime leg.
+
+## ADR-9: Messaging is a category; we are the car, not the driver
+
+Owner's direction (2026-09-19), verbatim: "slack is one option. we
+can have several messaging platforms. additionally, the point is
+integration: how can we help integrate all companies that make
+agents? we dont necessarily want to be agent builders, we want agent
+cars. also open claw is a big think to look into as well as gpt
+astra."
+
+Three effects:
+
+1. **Messaging is a provider family, not a pick.** Slack (ADR-7) is
+   the FIRST MessagingProvider, not the only one; WhatsApp, WeChat,
+   Discord and kin are siblings evaluated by the same laws. The
+   manifest's scope grammar for messaging should generalize across
+   the family rather than hardcode Slack.
+2. **Positioning: the vehicle layer for everyone else's agents.** We
+   do not compete with companies that build agents; we integrate
+   them. Any agent built anywhere (OpenClaw's, OpenAI's, a CrewAI or
+   LangGraph crew, another company's product) should be able to get
+   its identity, containment, and platform presence from epito.me —
+   the car its driver rides in. This raises agent-framework
+   integrations to first-class roadmap material and elevates A2A
+   agent-card interop from someday to a tracked consideration
+   (agents made by others must be able to carry our identity).
+3. **Research dispatched**: OpenClaw as a big opportunity (its crisis
+   is precisely our product's absence — can epito.me be the identity
+   and containment layer FOR OpenClaw agents, and what would that
+   integration or channel look like); and "GPT Astra" (identify what
+   the owner is pointing at — verify against OpenAI surfaces and
+   Google's Project Astra — and assess under the ranking laws).
+
+ADR-6 still governs: every framework we integrate is a surface,
+never a dependency, and ADR-2's triad test still defines what counts
+as an agent regardless of who built it.
