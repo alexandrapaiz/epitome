@@ -51,6 +51,10 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] Register **epito.me** (verified available 2026-09-18; a few
   dollars; .me is Montenegro's registry — dictionary-adjacent names can
   be premium-priced, confirm at checkout).
+- [ ] **LINEAR_API_KEY repo secret** (personal API key from Linear
+  settings) + name the Linear team/workspace the PM mirrors to (ADR-5).
+  Optional until the PM's first run; the seat skips the mirror cleanly
+  without it.
 - [ ] `claude setup-token` → CLAUDE_CODE_OAUTH_TOKEN repo secret, when
   ready to stand up seats.
 - [ ] Decide public vs. private repo before any seats run on schedule

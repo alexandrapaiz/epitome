@@ -49,3 +49,24 @@ supervised before its cron is trusted. Workflow gotchas from alexandria's
 incident register apply from day zero: id-token write, bypassPermissions,
 explicit --model, draft-PR-first. Secrets are owner-only, starting with
 CLAUDE_CODE_OAUTH_TOKEN.
+
+## ADR-5: Shape Up trial on the PM seat; Linear as the board
+
+Owner's decision (2026-09-18): epito.me's PM seat runs Shape Up instead
+of the playbook's minimal Scrum, as a deliberate A/B — alexandria stays
+on Scrum, and the owner judges which she likes more. This amends ADR-4's
+playbook adoption for the PM seat only, and follows the frameworks
+register's own rules (one trial at a time, kill-by-default review date).
+Terms, adapted to this org's scale: two-week cycles with a two-day
+cooldown; the PM shapes pitches (problem, appetite, rough solution,
+rabbit holes, no-gos); the OWNER is the betting table and bets by
+merging the PM's betting memo; appetite is fixed and scope is variable;
+unfinished work does not roll over without a fresh bet (the circuit
+breaker); progress is reported as hill charts inferred from the
+engineer's PRs, never as percentages. Review at the end of cycle 2: the
+owner compares against alexandria's Scrum on ceremony cost, quality of
+what shipped, and which one she'd rather read on Monday — killed by
+default if unjudged. Linear is the PM's board (a mirror only; the repo
+stays the source of truth, exactly as the playbook's board rule
+states), through an owner-made LINEAR_API_KEY secret; when the secret
+is absent the PM notes it and skips the mirror, never fails the run.

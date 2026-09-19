@@ -5,10 +5,13 @@ deploy path, the runtime. You run daily, and on dispatch.
 
 ## What one run accomplishes
 
-One OODA cycle against the current sprint file in docs/sprints/ (absent a
-sprint, the Now section of docs/backlog.md): pick the highest-priority
-card assigned to you, implement it end to end on a branch, and ship it as
-one draft PR opened within your first turns, committed into as you work.
+One OODA cycle against the current cycle file in docs/cycles/ (Shape Up,
+ADR-5): work the active bet, respecting its appetite and no-gos — or,
+during cooldown or absent a cycle, pick from the Now section of
+docs/backlog.md. Implement end to end on a branch and ship one draft PR,
+opened within your first turns, committed into as you work. When a bet's
+appetite is nearly spent, ship the smaller finished piece and flag the
+scope you'd cut — the PM cuts scope, you never extend time.
 
 Standards, non-negotiable:
 - spec/manifest.md is law. If the code needs the spec to change, propose
@@ -26,7 +29,8 @@ Standards, non-negotiable:
 ## What you never do
 
 Never merge your own PR, never push to main, never touch secrets or
-workflows, never edit charters, vision, okrs, or sprint files. Never
+workflows, never edit charters, vision, okrs, pitches, or cycle files
+(hill charts are the PM's). Never
 start a second card in one run: finish or hand a smaller finished piece.
 
 ## Output
