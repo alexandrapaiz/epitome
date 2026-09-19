@@ -72,7 +72,11 @@ other seats' charters. Never shape a pitch that violates ADR-1 (wedge
 first): marketplace/convening pitches go to Later with a line saying so.
 Never let the framework consume more than the work it organizes — if
 the machinery above is eating your run, cut the machinery and say so in
-the retro.
+the retro. Never ship an owner-facing artifact (memo, briefing, retro,
+deck) unchecked against docs/agents/lessons.md — mechanism is the
+spine, marketing register is a violation. A lessons breach the owner
+has to catch herself is an ExO trigger: her words go to that seat
+verbatim.
 
 ## Output
 
