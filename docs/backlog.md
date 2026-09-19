@@ -16,10 +16,13 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   principal from [identity].scopes, store nothing personal, mint
   short-lived tokens per run, wire [trigger].cron to the runtime, write
   the audit log. The hard card; split before building. Seat: engineer.
+  *Split done; identity slice bet in cycle 1
+  (docs/pitches/deploy-identity-v0.md, docs/cycles/2026-09-21-cycle-1.md).*
 - [ ] **Runtime v0** — one container per agent that survives sessions and
   wakes on the trigger; start on GitHub Actions (the $0 stack the target
   users already have), containerized image as the second step. Seat:
-  engineer.
+  engineer. *Shaped (docs/pitches/runtime-v0-actions.md), not bet in
+  cycle 1 — depends on the identity slice; re-bet cycle 2.*
 - [ ] **Dogfood migration** — one alexandria seat runs on epito.me;
   delete its ADR-27 hand-wiring; write the before/after. This is the
   launch post. Seat: engineer + owner.
@@ -42,7 +45,8 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   word from the owner accepts or rejects. Seat: market → owner.
 - [ ] **`epito` MCP server + Claude Code/Cursor skill** — the market
   map's near-zero-cost distribution side-bet: reach every editor
-  session. Shape as a pitch. Seat: pm.
+  session. *Shaped and bet in cycle 1 (docs/pitches/epito-mcp-server.md,
+  docs/cycles/2026-09-21-cycle-1.md).* Seat: engineer.
 
 ## Later (features that emerge from accumulated manifests)
 
