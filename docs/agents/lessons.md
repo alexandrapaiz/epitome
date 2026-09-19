@@ -26,6 +26,10 @@ annotate the mechanism; it may never stand in for it. When she says
 **Binds:** every seat producing owner-facing artifacts (pm, market,
 engineer PR bodies, exo, chair).
 
+*Superseded by inclusion (2026-09-19) in the HQ standard,
+alexandra-systems standards/documents.md §2 — kept here for history;
+apply the standard.*
+
 ## L2 — "Architecture" means system design unless she says otherwise
 
 **Trigger (2026-09-18)**, on the first architecture document: "i want
@@ -41,6 +45,10 @@ documents, and the one called architecture is the system one.
 
 **Binds:** pm, engineer, chair; any seat titling a document
 "architecture."
+
+*Superseded by inclusion (2026-09-19) in the HQ standard,
+alexandra-systems standards/documents.md §2 — kept here for history;
+apply the standard.*
 
 ## L3 — Comprehensive means an engineer could start work from it
 
@@ -60,6 +68,10 @@ it does not call itself comprehensive or a plan.
 **Binds:** pm, engineer, chair; any seat labeling an artifact a plan,
 spec, or architecture.
 
+*Superseded by inclusion (2026-09-19) in the HQ standard,
+alexandra-systems standards/documents.md §2 and §3 — kept here for
+history; apply the standard.*
+
 ## L4 — A repeated correction is a register defect, not a bad artifact
 
 **Trigger (2026-09-18)**: corrections 1 and 3 above are the same axis
@@ -74,3 +86,24 @@ a charter patch proposed as a diff. Fixing only the artifact is a
 charter violation for the ExO seat.
 
 **Binds:** exo.
+
+## L5 — Document standards are HQ-owned; cross-project recurrence goes up
+
+**Trigger (2026-09-19)**, the owner, on a presentation exhibiting the
+same register defect already corrected in Ursa: "redo the presentation
+with the fies i did to engineering agent on URSA. i believe alexandra
+sys. company should be doing agent hqs because i have the same
+dissatisfaction with this presenattion."
+
+**Rule.** Document and presentation standards are owned at the
+holding-company level: alexandra-systems standards/documents.md, which
+merges the Ursa CLAUDE.md structural exemplar with this register's
+L1–L3 and carries the pre-ship checklist every owner-facing artifact
+runs before shipping. Products adopt it by vendoring; deviations go in
+the product's decisions file. The general form: a register defect that
+recurs across projects is always an HQ candidate — L4 escalated one
+level. Fixing it per product a second time is the same failure L4
+names.
+
+**Binds:** exo; every seat producing owner-facing artifacts, via the
+vendored standard.
