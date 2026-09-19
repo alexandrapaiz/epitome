@@ -170,3 +170,34 @@ Three effects:
 ADR-6 still governs: every framework we integrate is a surface,
 never a dependency, and ADR-2's triad test still defines what counts
 as an agent regardless of who built it.
+
+## ADR-10: Portability for all agents, never a better agent
+
+Owner's law (2026-09-19), verbatim: "the biggest problem would be to
+try to generalize or centralize agents because new agent inventions
+are going to be made and all the companies are going to release
+their agents. So we don't want to make our version of that. And
+propose a better agent. That's not what we want to do. We want
+portability for all the agents every company does."
+
+Binding consequences:
+
+1. epito.me never defines what an agent's insides should be: no agent
+   framework, no orchestration library, no opinion on brains, tools,
+   memory, or prompting. The manifest is an ENVELOPE (identity,
+   trigger, runtime) around whatever the maker built, never a format
+   for the agent itself.
+2. The adapter runtime (proposal C) runs foreign agents UNMODIFIED —
+   that property is the point, not a convenience.
+3. The passport (proposal B) binds identities without requiring our
+   runtime, our manifest internals, or anyone's migration.
+4. Any feature that only works if the agent was "built the epito way"
+   is a violation and dies in review. New agent inventions appearing
+   is the expected environment, not a threat: each one is a future
+   passenger.
+
+Owner's signal on the proposals, recorded without forcing a ranking:
+B (the passport) is her favorite ("already adopted... I like the
+concept of an agent passport"); C also liked. The PM sequences all
+four at the cycle-2 betting table; B's prototype is pulled forward
+in priority per this signal.
