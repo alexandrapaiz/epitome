@@ -374,6 +374,156 @@ and the Atlassian `rovo-agent-connector` external-agent path (EAP
 docs only).*
 
 ---
+
+## 7. Rev 2 addendum (2026-09-19, second dispatch): agent makers, OpenClaw, GPT Astra
+
+Convened on ADR-9 ("we dont necessarily want to be agent builders, we
+want agent cars... open claw is a big think to look into as well as
+gpt astra"). Three answers, each ending in a recommendation the owner
+can accept or reject in one word. All sources accessed 2026-09-19.
+
+### 7.1 OpenClaw as opportunity, not just evidence
+
+**What it is now, post-crisis.** The project survived and changed
+hands. The CVSS 8.8 RCE was patched in `v2026.1.29` on 2026-01-30,
+with three security advisories the same day ([Prime Rogue](https://primerogueinc.com/blog/openclaw-security-crisis-structurally-broken-in-february-2026-what-naive-deployers-need-to-know-before-its-too-late/)).
+On 2026-02-14 creator Peter Steinberger joined OpenAI to lead
+personal-agent development and the project moved to an independent,
+OpenAI-sponsored foundation ([Conscia](https://conscia.com/blog/the-openclaw-security-crisis/)).
+The `2026.4` line shipped origin validation, sandbox-by-default, and
+encrypted credential storage, after 13 patch releases in March alone
+([Nebius hardening guide](https://nebius.com/blog/posts/openclaw-security)).
+OpenClaw 2.0 (`v2026.8.1`, 2026-08-30) added a redesigned UI and a
+plugin/integration hub ([release docs](https://docs.openclaw.ai/releases/2026.8.1/plugins-and-integrations)).
+September is a declared "fix the foundation" phase: systemic P0s
+(event loop starvation, session drift) are being worked ahead of
+feature work, patch `2026.9.5` ([ecosystem digest, 2026-09-19](https://github.com/duanyytop/agents-radar/issues/3358)).
+Reading: stabilizing under new governance, not dying, but not stable.
+
+**How its agents authenticate today, and where we slot in.** The
+architecture is kernel-plugin: a Gateway control plane authenticates
+all inbound connections, and each agent's auth profiles live in
+`openclaw-agent.sqlite`, with a built-in secret store, the option to
+mount external vault tokens, and locally stored OAuth refresh tokens
+treated as canonical ([Gateway auth docs](https://docs.openclaw.ai/gateway/authentication); [OAuth docs](https://docs.openclaw.ai/concepts/oauth); [TeamPassword guide](https://teampassword.com/blog/securing-openclaw-guide)).
+That is the owner-credential pattern this company exists to replace:
+the agent holds the owner's refresh tokens, encrypted now, but still
+the owner's. The integration point exists twice over: the external
+vault mount (epito as the credential backend that hands an OpenClaw
+agent its own scoped platform token instead of the owner's) and the
+2.0 plugin hub, which installs plugins and vetted MCP connectors
+(an `epito` MCP connector reaches every OpenClaw install without
+their approval). Their own roadmap fixed credential *storage*; it has
+not touched credential *identity*. The gap we fill is untouched.
+
+**The channel.** The community is large and locatable: the OpenClaw
+Discord passed 100,000 members in roughly six weeks from a January
+2026 founding ([openclaw.report](https://openclaw.report/news/openclaw-discord-100k-members))
+and stands at ~176,000 ([community listing](https://openclaw-ai.net/en/community)),
+with 13,000+ ClawHub skills and a 43k-star curated list
+([ClawTrust](https://clawtrust.ai/blog/best-openclaw-skills)). A
+working identity connector demonstrated there reaches more resident-
+agent users than every platform marketplace in §5 combined.
+
+**The honest risks.** The brand is radioactive in security circles:
+at least four academic security papers dissect it by name and the
+crisis is its own genre of coverage. Association helps only if we are
+unmistakably the fix, never a partner sharing blame; the positioning
+is "your OpenClaw agents, given real identities," not co-branding.
+Platform risk is real and specific: the foundation is OpenAI-
+sponsored and its creator now builds personal agents inside OpenAI,
+so native identity could arrive from above. And ClawHub's 12%
+malicious rate means listing there needs our own signing story told
+loudly, or the channel taints the product.
+
+**Recommendation (accept/reject: OpenClaw yes/no).** Tier:
+**build-next, first of the agent-maker track**, behind Slack. Shape:
+a research-to-prototype spike (an `epito` MCP connector serving
+per-agent platform tokens to OpenClaw agents), scoped only after the
+Slack provider ships, gated on the foundation still standing at spike
+time. Not a platform surface; the first MAKER integration (§7.3).
+
+### 7.2 GPT Astra, identified
+
+**The name matches one real thing.** "GPT Astra" is **GPT-6 Astra**,
+OpenAI's flagship model: limited release 2026-09-03, general
+availability the next day, positioned on long-horizon agentic tasks,
+computer use, and browsing, distributed via the OpenAI API, Azure,
+and AWS Bedrock ([openai.com](https://openai.com/index/gpt-6-astra/); [Al Jazeera, 2026-09-04](https://www.aljazeera.com/economy/2026/9/4/openai-unveils-gpt-6-astra-amid-rising-scrutiny-and-safety)).
+It is OpenAI's first model rated Critical for cybersecurity
+capability under its own Preparedness Framework ([safety overview](https://openai.com/index/safety-overview-gpt-6-astra/)).
+Name collision noted plainly: Google DeepMind also runs a "Project
+Astra" assistant-research effort; given the owner wrote "gpt astra"
+the model is the near-certain referent, and Google's Astra was not
+researched this run (flagged).
+
+**What it means for us.** Astra is a model, not an agent maker and
+not a platform: it has no identity primitive and no integration
+surface beyond the API. Under ADR-8 it is exactly a routable brain:
+`[runtime].model = "gpt-6-astra"`, swappable without changing who the
+agent is. The strategic content is second-order and favors the wedge:
+a Critical-rated cyber-capable model running long-horizon agents makes
+the owner-credential pattern strictly more dangerous (rev 2 §2's
+demand quotes, now with a sharper model behind them), and Astra ships
+into ChatGPT and Codex agents that still act as their user. One more
+thread ties the owner's two names together: OpenClaw's creator now
+leads personal agents at OpenAI, and OpenClaw's foundation is
+OpenAI-sponsored. Both names point at the same axis, OpenAI's
+personal-agent push, which is a maker to integrate, never a surface
+to depend on.
+
+**Recommendation (accept/reject: Astra-as-runtime yes/no).** Tier:
+**watch, as model supplier**. Action: `gpt-6-astra` joins the routing
+examples in manifest v0.2 docs; no integration slot exists to build.
+
+### 7.3 The agent-maker landscape (the new map dimension)
+
+ADR-9 splits the map into two kinds of target. A **surface** is where
+an agent acts (§5's table). A **maker** is what builds and runs the
+agent's brain and loop; under "we are the car, not the driver," every
+maker's agent is a candidate rider. The question per maker: how do
+its agents authenticate to outside services today, and where does an
+identity layer slot in.
+
+| Maker | How its agents authenticate today | Where our identity layer slots | Tier |
+|---|---|---|---|
+| **OpenClaw** | Owner's OAuth refresh tokens + secret store, per-agent profiles in `openclaw-agent.sqlite` (docs cited in §7.1) | External vault mount + 2.0 plugin/MCP hub; §7.1's spike | **Build-next** (first maker) |
+| **LangGraph / LangChain** | Tools read API keys from env/config; 100+ prebuilt tools, no identity layer ([langchain.com](https://www.langchain.com/resources/ai-agent-frameworks); [comparison](https://levelup.gitconnected.com/langgraph-vs-crewai-vs-autogen-which-agent-framework-should-you-actually-use-in-2026-b8b2c84f1229)) | `epito token <name>` handed into tool constructors; the shape is a thin community package, cheap because the CLI already emits scoped tokens | **Build-next** (SDK-level, after OpenClaw proves the pattern) |
+| **CrewAI** | Same env-key pattern, ~20 bundled tools (same sources) | Same token-handoff shape as LangGraph | Watch (follows LangGraph work for free) |
+| **OpenAI Agents SDK / AgentKit** | Developer API keys + Connector Registry; Agent Builder retires 2026-11-30, Agents SDK canonical with native sandbox execution since April 2026 ([openai.com](https://openai.com/index/the-next-evolution-of-the-agents-sdk/), accessed 2026-09-19) | Token handoff into SDK tools is possible today; note OpenAI is absorbing the runtime leg (sandboxes), identity still owner-side | Watch |
+| **AutoGen / Microsoft Agent Framework** | Enterprise direction: Entra-anchored, A2A built in ([glukhov A2A survey](https://www.glukhov.org/ai-systems/comparisons/a2a-protocol-2026-adoption/)) | Via A2A card interop, not a bespoke integration | Watch |
+| **Google ADK** | A2A native, Google-cloud anchored (same survey) | Same: A2A interop | Watch |
+
+**A2A agent cards: yes, this is the consolidating interop standard.**
+v1.0 shipped April 2026, 150+ organizations, Linux Foundation
+governance; built-in support in Google ADK, Microsoft Agent
+Framework, and BeeAI, plus Azure AI Foundry, Copilot Studio, and
+Bedrock AgentCore Runtime ([glukhov](https://www.glukhov.org/ai-systems/comparisons/a2a-protocol-2026-adoption/); [Go Micro](https://go-micro.dev/blog/2026/06/18/agents-across-frameworks-a2a.html)).
+The card is a JSON document served at `/.well-known/agent-card.json`
+([implementation guide](https://atlan.com/know/mcp/a2a-protocol-implementation-guide/)),
+which is to say: it is a document our daemon can emit per agent for
+roughly the cost of a template. Emitting a card makes every epito
+agent discoverable by every A2A framework without adopting anyone's
+runtime, which is the ADR-6-compliant way to ride the standard.
+Trap T1 (§6) still stands unchanged for the enterprise A2A
+*marketplaces*; the card itself is interop, not a marketplace.
+
+**Recommendation (accept/reject: makers-track yes/no).** Adopt MAKERS
+as a standing second dimension of this map, ranked by the same laws
+plus one maker-specific test: does the maker hand credentials to its
+agents in a way we can replace without forking it. And promote A2A
+agent-card emission from "someday" to a tracked manifest v0.2
+consideration, per ADR-9's third effect.
+
+*Charter compliance note (addendum): research only; nothing posted,
+no one contacted. Flagged: Google Project Astra not researched this
+run; OpenClaw Discord member count from a community listing
+(secondary); the deck at docs/presentations/market-rev2/ was left
+untouched, since no finding falsifies a slide's copy (slide 5's
+OpenClaw numbers remain true as stated; the opportunity reading lives
+here).*
+
+---
 ---
 
 # REV 1 (2026-09-18) — superseded by rev 2 above, kept verbatim
