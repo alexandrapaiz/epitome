@@ -170,6 +170,56 @@ Owner's credentials → structurally absent; that's the product.
 Standing rule: a control in this table absent from the code is an
 incident (security seat's biweekly sweep audits it).
 
+## Infrastructure, end to end (rev 4, owner fine-tune 2026-09-19)
+
+Per phase — compute, containers, data storage, secrets — with named
+proposals, never TBDs:
+
+- **Phase 1 (now).** Compute: GitHub Actions runners, ephemeral, on
+  the user's account. Containers: none; the runner image is the
+  environment. Data: `.epito/` three-trust-level store (principals
+  .json, keys/, audit.jsonl). Secrets: PEM 0600 local; GitHub repo
+  secrets carry `[runtime].env` names.
+- **Phase 2 (epitod).** Compute: the user's machine, systemd user
+  units + timers. Containers: rootless podman 5.x, one OCI image per
+  agent, base image on GHCR (docker rejected: root daemon);
+  DynamicUser as the no-container fallback. Data: local store +
+  journald with an adapter into audit.jsonl. Secrets proposal: OS
+  keychain (libsecret / macOS Keychain) replaces bare PEM files.
+- **Phase 3 (plane).** Compute: Vercel functions for api + ingress;
+  agent runtimes STAY user-side (hosted runners a later paid option).
+  Containers: the same per-agent OCI images from GHCR. Data: Supabase
+  Postgres 16 — orgs → agents (manifest snapshots) → principals →
+  grants → audit; chosen over bare Neon because it buys the OAuth 2.1
+  server (a future per-agent database IdentityProvider) and catalog
+  distribution, while remaining plain Postgres and therefore
+  swappable under constraint 1. Secrets: App keys to a KMS — AWS KMS
+  proposed, libsodium-sealed columns the fallback, decided at the
+  phase-3 pitch. Local mode keeps working regardless (constraint 4).
+- **Cost shape:** phases 1-2 cost the company zero by design; the
+  first infrastructure bill arrives with phase 3, after demand.
+
+## The connective stack — distribution is engineering (owner doctrine)
+
+Owner's words (2026-09-19): "distribution is a part of engineering...
+a whole connective stack is our infrastructure plan I mean
+distribution." The stack we build on is the stack we distribute
+through; every layer is chosen twice, once as infrastructure and once
+as a channel:
+
+| Layer | Tool | Role in the system | Distribution value |
+|---|---|---|---|
+| Cloud | Vercel | phase-3 control plane (api + ingress) | Marketplace AI-agents listing |
+| Data | Supabase Postgres | phase-3 DB; OAuth 2.1 → future per-agent DB identity | partner catalog at revenue |
+| Human auth | Clerk | control-plane sign-in for owners/orgs (humans only — agents use OUR identity layer) | vibecoder auth default, template ecosystem |
+| Work surfaces | GitHub, Linear | IdentityProvider targets (App; app-user pending ADR-6 re-rank) | agents demo the product in-situ, as themselves |
+| Models | Anthropic Claude, OpenAI | `[runtime].model` is provider-agnostic; owner's key as a named secret in `[runtime].env`; gateway option phase 3 | model-agnostic = every lab's users addressable |
+| Editors | Claude Code, Cursor | MCP server + skill (bet 2) | zero-listing-bar channel |
+| OS | Omarchy / Arch | epitod + systemd providers (phase 2) | AUR package; curated-defaults pitch |
+
+Constraint 1 governs every row: a surface or a swappable backend,
+never a load-bearing dependency.
+
 ## Sequencing (the one ops paragraph)
 
 Phase 1 = bets 1-2 as bet (GitHub providers, local store). Phase 2 =

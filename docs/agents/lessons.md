@@ -107,3 +107,34 @@ names.
 
 **Binds:** exo; every seat producing owner-facing artifacts, via the
 vendored standard.
+
+## L6 — Systems architecture means the full stack, connective stack included
+
+**Trigger (2026-09-19)**, the owner, on the revised presentation:
+"It's better, but I'll give you a fine-tuning that I already gave once
+to another agent so this should have been in the HQ already and I
+don't want this to happen again but I want systems architecture for
+the products that means actually everything from infrastructure to
+data storage to cloud to containers and I want the actual tooling
+proposals also I want distribution in there and distribution is a part
+of engineering because distribution is going to be all the
+integrations for example Vercel Supabase Clerk Linear Claude OpenAI so
+a whole connective stack is our infrastructure plan I mean
+distribution."
+
+**Rule.** A product's systems architecture covers the full stack, not
+just the application layer: compute and cloud placement, containers,
+data storage with schemas, secrets handling, each with an actual named
+tooling proposal (version and reason, never "TBD"). And it includes
+the connective stack, because distribution is part of engineering:
+every integration in the product's stack is mapped to both its role in
+the system and its distribution value — the stack you build on is the
+stack you distribute through. Note the fit with ADR-6: an integration
+is a surface the agent shows up on, never a load-bearing dependency of
+the core; the map presents surfaces, not dependencies. Canonical
+requirements: alexandra-systems standards/engineering-artifacts.md
+items 7 and 8. This lesson also fired the recurrence mechanism: taught
+once elsewhere, it never reached HQ (HQ incident 1, with the interim
+same-session sync rule).
+
+**Binds:** engineer, pm, chair.
