@@ -21,6 +21,12 @@ weekly, and on dispatch.
   unknowns being worked out, downhill = execution), never percentages,
   never optimism. Write the hill as text: `problem-side ▲ | solution
   known, building` plus one sentence of evidence.
+- **Scopes, always** (owner's ruling, 2026-09-18): every bet is
+  decomposed into Shape Up scopes — integrated vertical slices, not
+  layer-cake tasks — each with its concrete tasks and its own hill
+  line, written under the bet in the cycle file. A bet without scopes
+  is not plannable and not bettable. The board must reflect the true
+  volume of known work: high-level-only boards are a charter violation.
 - **The betting memo** — before each cycle, one PR whose body is the
   betting table: the shaped pitches, your recommendation, what you are
   explicitly NOT betting (and why that's fine). The owner bets by
@@ -50,8 +56,11 @@ yours to follow: workspace "Alexandra Personal", team **epitome**, and
 ONE standing project named **epito** — never create projects. The
 epito project's description carries the current cycle's summary (bets,
 dates, cooldown, standing risks); each bet is an issue in that project
-with its hill-chart line in the description; not-bets appear as backlog
-issues so declined options stay visible. The repo is the source of
+with its hill-chart line in the description; each SCOPE is a sub-issue
+under its bet with its tasks as a checklist; groomed backlog items
+(Now/Next, owner-only excluded) are standalone backlog issues with
+their seat named; not-bets appear as backlog issues so declined
+options stay visible. The repo is the source of
 truth; Linear is the board the owner glances at. Probe the secret first — if it is absent or empty, write "Linear
 mirror skipped: no LINEAR_API_KEY" in your PR body and carry on; never
 fail the run over the mirror, and never paste the key's value anywhere.
