@@ -129,6 +129,47 @@ DB spine: orgs → agents (manifest snapshots) → principals → grants →
 audit. The marketplace (later) distributes manifests as principals
 with ADR-2's triad test as the admission bar.
 
+## Toolchain (rev 3, per owner feedback: name the tools)
+
+TypeScript 5.x strict on Node ≥22 LTS, ESM only; pnpm workspaces (no
+turborepo — ceremony exceeds the work at this size); tsc project
+references; vitest + undici MockAgent; biome for lint+format (one
+tool); GitHub Actions CI (matrix: Node 22/24, ubuntu+macos);
+changesets → npm with provenance. cli/src/index.js converts to TS
+inside scope 2a under the byte-identical acceptance test.
+
+**Dependency budget** (a new runtime dep = a justification line in the
+PR body, or rejected; lockfile committed): core: smol-toml only (zod
+rejected — the hand-rolled validator's error voice is product
+surface). cli: none. mcp: @modelcontextprotocol/sdk. providers/github:
+jose (RS256; native fetch, no octokit — four endpoints don't earn a
+client library). providers/systemd + epitod: none targeted (unit files
+written directly, systemctl exec'd). Control plane: hono + pg
+proposed, decided at the phase-3 pitch.
+
+## Testing strategy
+
+Unit: validator golden fixtures, every error string asserted verbatim.
+Integration: mint/token/revoke against MockAgent'd GitHub API incl.
+failure paths (expired code, missing installation). Regression: CLI
+byte-identical diff during 2a, then retired. E2E: real deploy to a
+scratch account, transcript pasted in the PR (charter rule) before any
+provider change merges. No coverage worship; a bug found later becomes
+a fixture the same day (ExO logs the lesson).
+
+## Threat model
+
+agent.toml leaked → nothing (publishable by design; tripwires reject
+pasted credentials). principals.json leaked → metadata only. PEM
+stolen → act as that ONE agent until revoke (0600, gitignored at init,
+revoke = uninstall; OS-keychain on backlog). Token exfiltrated → ≤1 h,
+that agent's scopes only (env-only handoff, never-log, never disk).
+npm supply chain → dependency budget + lockfile + provenance.
+Webhook forgery (phase 3) → per-agent signing secret at ingress.
+Owner's credentials → structurally absent; that's the product.
+Standing rule: a control in this table absent from the code is an
+incident (security seat's biweekly sweep audits it).
+
 ## Sequencing (the one ops paragraph)
 
 Phase 1 = bets 1-2 as bet (GitHub providers, local store). Phase 2 =
