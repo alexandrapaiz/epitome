@@ -23,7 +23,8 @@ packages/
                + RuntimeProvider(Actions job)          [v1, bet 1]
     systemd/   TriggerProvider(timers) + RuntimeProvider(units)
                                                        [phase 2]
-    linear/    IdentityProvider(app user)   [pending owner verdict]
+    <next>/    second identity target — Linear rejected (ADR-6);
+               market re-justifies the ranking 10-02, owner rules
   cli/         epito — thin mouth: argv → core, no logic
   mcp/         stdio MCP server — thin mouth: tools → core  [bet 2]
   epitod/      local daemon                             [phase 2]

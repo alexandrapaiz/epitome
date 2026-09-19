@@ -45,11 +45,10 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **Market seat brief #1: pricing** — per-active-agent pricing vs.
   roster tier; who pays today for Clerk/Fly/Trigger.dev glue and what do
   they pay. Before any public pricing. Seat: market.
-- [ ] **Second integration: owner's verdict pending** — the market
-  seat's standing recommendation (docs/market.md, 2026-09-18) is
-  **Linear** (agents are first-class "app users" there; directory
-  distribution; dogfoods ADR-5), runners-up Vercel then Supabase. One
-  word from the owner accepts or rejects. Seat: market → owner.
+- [x] **Second integration verdict: Linear REJECTED** (owner,
+  2026-09-18 — ADR-6: integrations are surfaces, never dependencies).
+  Market re-justifies the ranking under ADR-6 in the 10-02 map
+  refresh; owner rules again on the new recommendation. Seat: market.
 - [ ] **`epito` MCP server + Claude Code/Cursor skill** — the market
   map's near-zero-cost distribution side-bet: reach every editor
   session. *Shaped and bet in cycle 1 (docs/pitches/epito-mcp-server.md,

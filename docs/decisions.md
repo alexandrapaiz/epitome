@@ -70,3 +70,22 @@ default if unjudged. Linear is the PM's board (a mirror only; the repo
 stays the source of truth, exactly as the playbook's board rule
 states), through an owner-made LINEAR_API_KEY secret; when the secret
 is absent the PM notes it and skips the mirror, never fails the run.
+
+## ADR-6: Integrations are surfaces, never dependencies; Linear rejected as #2
+
+Owner's ruling (2026-09-18): "i dont think we should depend on
+linear." Two effects. First, the verdict on the market seat's standing
+recommendation: Linear is REJECTED as integration #2. The runner-up
+(Vercel) does not inherit the slot automatically — the market seat
+re-justifies the ranking under this ADR's principle in its 10-02
+integration-map refresh, and the owner rules again. Second, and
+larger, the principle the ruling encodes, now product law: **an
+integration is a surface the agent shows up on, never a load-bearing
+dependency of the core.** The provider architecture already embodies
+this (platforms exist only behind the three seams) and this ADR pins
+it: core, the CLI, the MCP server, and epitod must work with zero
+integrations installed beyond whichever identity target the USER
+chooses; no epito.me feature may require a specific third-party
+product to exist. Scope note: this governs the product. The org's own
+PM board on Linear (ADR-5) is an ops tool of this company, not a
+product dependency, and stands until the owner says otherwise.
