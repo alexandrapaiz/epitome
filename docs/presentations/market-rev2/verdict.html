@@ -1,0 +1,26 @@
+<section id="verdict" data-transition="fade" style="background:#FAFAF7; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:30px">
+  <div style="display:flex; flex-direction:column; gap:12px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">2 · The verdict: Slack is integration #2 — owner accepted (ADR-7)</p>
+    <h2 style="font-size:56px; font-weight:600; line-height:1.1">Slack passes all four laws; nothing else does.</h2>
+  </div>
+  <div style="display:flex; gap:26px">
+    <div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:30px 34px; border:1px solid #E2E6E1; border-radius:14px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; font-weight:600; color:#2E7D5B">self-serve mint, today</p>
+      <p style="font-size:25px; line-height:1.45; color:#4E5B54">App created programmatically via <span style="font-family:'JetBrains Mono', Courier New, monospace">apps.manifest.create</span>, installed per workspace by standard OAuth — structurally the same manifest-mint flow the GitHub provider already implements. The provider is a variation on shipped code.</p>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:30px 34px; border:1px solid #E2E6E1; border-radius:14px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; font-weight:600; color:#2E7D5B">a first-class someone</p>
+      <p style="font-size:25px; line-height:1.45; color:#4E5B54">Its own bot user, granular scopes (<span style="font-family:'JetBrains Mono', Courier New, monospace">chat:write</span>, <span style="font-family:'JetBrains Mono', Courier New, monospace">assistant:write</span>), its own name and avatar on every message, revoked by uninstall. Settles manifest v0.2's scope grammar: <span style="font-family:'JetBrains Mono', Courier New, monospace">slack:chat.write</span>.</p>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:30px 34px; border:1px solid #E2E6E1; border-radius:14px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; font-weight:600; color:#2E7D5B">the visibility surface</p>
+      <p style="font-size:25px; line-height:1.45; color:#4E5B54">GitHub proves the agent works; Slack is where a human watches it work. A cron-woken agent posting its own standup under its own face is the product demo, in-situ, daily.</p>
+    </div>
+  </div>
+  <div style="display:flex; gap:26px">
+    <div style="flex:1; background:#FFF7EE; border:1px solid #E8D9C4; border-radius:12px; padding:22px 32px"><p style="font-size:25px"><b>Honest tension:</b> Slack is Salesforce property, and Slackbot is positioned as the orchestrator fronting third-party agents. We build our best demo surface in a competitor family's living room. Mitigation is law 1: one surface of many; the provider dies gracefully if the walls close.</p></div>
+    <div style="width:520px; background:#EAF5EE; border:1px solid #CDE5D6; border-radius:12px; padding:22px 32px"><p style="font-size:25px"><b>Runners-up:</b> Vercel (biggest storefront, but the bar gates the value) and Notion (real identity, 1M+ agents built, but Notion bundles residency itself).</p></div>
+  </div>
+  <p style="font-size:26px; color:#1F2A24"><b>Owner additions, same verdict:</b> WhatsApp group chats and WeChat enter the research queue as international surfaces, evaluated under the same four laws next revision.</p>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">traces to: market.md, Standing recommendation · ADR-7</p>
+</section>
