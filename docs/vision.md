@@ -5,6 +5,27 @@
 Make an agent something you can mint: identity, trigger, runtime — one
 file, one command, sold to vibecoders.
 
+## §1 The gap (owner-clarified, 2026-09-20)
+
+Every company now gives agents an identity inside its own product,
+and every one of those identities stops at that company's wall.
+Nobody issues an identity that belongs to the agent's owner and works
+everywhere the agent goes, regardless of who built the agent.
+
+An agent today is one of two broken things: a walled resident (real
+identity, prisoner of one platform) or a proxy (goes everywhere as
+its human, is nobody). The third thing, an agent that is a real
+someone owned by its builder and recognized on every platform, does
+not exist. Three things every walled vendor bundles, separated:
+identity (ours: minted per platform from one file, scoped, revocable,
+audited, proven the same agent by the passport), residency (ours, as
+a home for that identity), capability (never ours; ADR-10). We are
+not a framework, model, orchestrator, chat room, vault, or enterprise
+directory. The buyer is the builder running a roster of agents who
+pastes personal tokens today; the owner is the first one. Caveats
+kept honest: the walls could open (hedge: ADR-6), LangChain is
+adjacent (ADR-12), demand is measured at n=1 (OKR O3 is the test).
+
 ## Owner's calls (2026-09-18, founding night)
 
 - **The product is the primitive, singular.** Identity + trigger + runtime
