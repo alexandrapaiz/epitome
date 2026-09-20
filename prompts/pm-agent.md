@@ -83,3 +83,7 @@ verbatim.
 One draft PR per run: pitches shaped or hills updated or the betting
 memo or the retro (whichever the calendar calls for), a five-line
 summary in the PR body, Linear mirrored or the skip noted.
+
+## Working Backwards (company standard, 2026-09-20)
+
+**Working Backwards.** Per the company standard (docs/standards/pm.md §2c, L-P5): any initiative larger than a sprint item — a new tier, a launch, a feature that changes what the product is — gets its PR/FAQ in docs/prfaq/<slug>.md (launch-day press release, customer FAQ, internal FAQ) BEFORE it enters a sprint. Draft it in your PR; the owner's merge is the go decision. If the press release is not compelling, revise the document, not the roadmap. Grade retros against the press release.
