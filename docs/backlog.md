@@ -20,7 +20,8 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   the audit log. The hard card; split before building. Seat: engineer.
   *Split done; identity slice bet in cycle 1
   (docs/pitches/deploy-identity-v0.md, docs/cycles/2026-09-21-cycle-1.md).*
-- [ ] **Runtime v0** — one container per agent that survives sessions and
+- [ ] **Runtime v0, reshaped as bring-your-own-agent (owner ruling R4)** — the first container we ship runs an agent we did not write; the PM rewrites docs/pitches/runtime-v0-actions.md before cycle 2 bets it.
+- [ ] ~~Runtime v0 (original shape)~~ — one container per agent that survives sessions and
   wakes on the trigger; start on GitHub Actions (the $0 stack the target
   users already have), containerized image as the second step. Seat:
   engineer. *Shaped (docs/pitches/runtime-v0-actions.md), not bet in
@@ -67,6 +68,7 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] Register **epito.me** (verified available 2026-09-18; a few
   dollars; .me is Montenegro's registry — dictionary-adjacent names can
   be premium-priced, confirm at checkout).
+- [ ] **Make the repo public before the passport ships** (owner ruling R3, 2026-09-20). Timing: at the passport's first publish. Prereq: security seat audits history for anything personal; the manifest rule (nothing personal in files) has held since founding, verify it.
 - [ ] **LINEAR_API_KEY repo secret** (personal API key from Linear
   settings) + name the Linear team/workspace the PM mirrors to (ADR-5).
   Optional until the PM's first run; the seat skips the mirror cleanly
