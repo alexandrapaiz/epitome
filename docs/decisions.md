@@ -278,3 +278,37 @@ Register note: LangSmith joins Cloudflare Agents SDK and Anthropic
 Managed Agents as a wedge-adjacent watch item, but is the only one
 with a pre-authorized out-of-cycle response, because it is the only
 one already shipping credential features monthly.
+
+## ADR-13: Two buyers — the builder with a roster, and the agent-maker itself
+
+Owner's direction (2026-09-20), verbatim: "i want a product that
+would serve companies even like langchain."
+
+The gap (vision §1) is unchanged; the buyer set doubles. Buyer 1 is
+the builder running a roster of agents (vibecoder, HQ, the owner
+herself). Buyer 2 is the agent-maker: the company that hosts or
+frameworks other people's agents (LangChain, OpenClaw's foundation,
+the hosted builders) and must answer how those agents authenticate to
+the outside world without building a cross-platform identity system
+of its own. epito supplies that answer as embeddable infrastructure.
+
+Consequences:
+1. **The issuer is a product, not a phase-3 afterthought.** Buyer 2
+   needs a callable service: mint a principal for this agent, hand it
+   a short-lived token, verify its passport. The all-hands engineer
+   counsel (no token server before phase 3) stands for buyer 1's
+   local-first path; the issuer for buyer 2 is sequenced by the PM as
+   its own pitch once the passport mechanism exists, because the
+   passport is what a platform embeds first.
+2. **ADR-12 gains a third arm: supply.** Integrate (langchain-epito),
+   outdo (the passport), and supply (be the provider their Connections
+   resolve to, so their agents get outside principals through us
+   rather than by their own build). The tripwire stays.
+3. **The passport must be an open spec with a reference
+   implementation**, adoptable by a platform without depending on
+   this company (ADR-6 pointed at ourselves). Trust is the hard part
+   of buyer 2; a standard earns it, a startup does not.
+4. Market seat adds a column to the universe map: for each
+   agent-maker, "as customer" alongside "as surface." Pricing rev 2
+   must price buyer 2 (platform/issuer tier) separately from roster
+   tiers.
