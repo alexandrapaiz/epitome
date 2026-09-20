@@ -34,13 +34,15 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "$ORIGIN" "$ROSTER/pm" "$ROSTER/okr" "$STATE" "$STUB"
+mkdir -p "$ORIGIN" "$ROSTER/pm" "$ROSTER/okr" "$ROSTER/ghost" "$STATE" "$STUB"
 
 step "fixture: a local repo standing in for github.com/acme/roster"
 seed="$ROOT/seed"
 mkdir -p "$seed/prompts"
 printf '# pm\n\nYou are pm. One run: open a draft PR.\n' > "$seed/prompts/pm.md"
 printf '# okr\n\nYou are okr. One run: open a draft PR.\n' > "$seed/prompts/okr.md"
+# ghost's manifest points at prompts/ghost.md, which this repo does not have:
+# the runtime must refuse that run rather than improvise a prompt.
 git -c init.defaultBranch=main init -q "$seed"
 git -C "$seed" add -A
 git -C "$seed" -c user.name=smoke -c user.email=smoke@epito.me commit -qm "charters"
@@ -49,7 +51,7 @@ git clone -q --bare "$seed" "$ORIGIN/acme/roster.git"
 export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="url.file://$ORIGIN/.insteadOf" GIT_CONFIG_VALUE_0="https://github.com/"
 echo "  origin: $ORIGIN/acme/roster.git"
 
-for a in pm okr; do
+for a in pm okr ghost; do
   slack_env=""
   [ "$a" = pm ] && slack_env=', "SLACK_WEBHOOK_URL"'
   cat > "$ROSTER/$a/agent.toml" <<TOML
@@ -100,11 +102,15 @@ step "1+4: POST /window/open {scope:all} opens a window on both seats and fires 
 code=$(post /window/open '{"scope":"all","text":"Agenda: cycle 1 hill check."}'); echo "  $code $(body)"
 node "$CLI/test/wait-for.mjs" runs pm 1
 node "$CLI/test/wait-for.mjs" runs okr 1
-check "both windows opened" "[ \$(grep -c '\"action\":\"window.open\"' .epito/audit.jsonl) = 2 ]"
-check "each seat ran exactly once" "[ \$(grep -c '\"action\":\"run.end\"' .epito/audit.jsonl) = 2 ]"
+node "$CLI/test/wait-for.mjs" runs ghost 1
+check "a window opened on every seat in scope" "[ \$(grep -c '\"action\":\"window.open\"' .epito/audit.jsonl) = 3 ]"
+check "each seat ran exactly once" "[ \$(grep -c '\"action\":\"run.end\"' .epito/audit.jsonl) = 3 ]"
 check "the window instruction reached the executor" "grep -q 'synchronous mode' \"$STUB\"/*.jsonl"
 check "the agenda reached the executor" "grep -q 'cycle 1 hill check' \"$STUB\"/*.jsonl"
-check "a session is held for pm" "[ \$(grep -c '\"action\":\"session.hold\"' .epito/audit.jsonl) = 2 ]"
+check "a session is held for the two seats that ran" "[ \$(grep -c '\"action\":\"session.hold\"' .epito/audit.jsonl) = 2 ]"
+check "the seat with no charter refused, by name" "grep -q '\"agent\":\"ghost\",\"action\":\"run.end\",\"trigger\":\"window\",\"model\":\"claude-sonnet-5\",\"exit\":\"charter-missing\"' .epito/audit.jsonl"
+check "a refused run holds no session, even with its window open" "node -e 'const a=JSON.parse(require(\"fs\").readFileSync(\".epito/state.json\",\"utf8\")).agents.ghost;process.exit(a.window&&a.session===null?0:1)'"
+check "and leaves no clone behind" "[ \$(ls -d \${TMPDIR:-/tmp}/epito-ghost-* 2>/dev/null | wc -l) = 0 ]"
 SESSION=$(node -e 'const s=require("fs").readFileSync(".epito/state.json","utf8");console.log(JSON.parse(s).agents.pm.session.id)')
 echo "  pm session: $SESSION"
 check "the PR the run opened was parsed" "grep -q '\"pr\":\"https://github.com/alexandrapaiz/epitome/pull/999\"' .epito/audit.jsonl"
@@ -143,6 +149,17 @@ check "the ingress says so, with the fix" "grep -q 'open a window first' '$ROOT/
 node "$CLI/test/wait-for.mjs" runs pm 3
 check "it ran without a resume" "[ \$(grep -c '\"trigger\":\"message\",\"model\":\"claude-sonnet-5\",\"window\":false' .epito/audit.jsonl) = 1 ]"
 check "the message text reached the fresh run as payload" "grep -rq 'treat me as an event' \"$STUB\""
+
+step "the CLI wrappers speak to the same ingress"
+node "$CLI/src/index.js" window open okr | sed 's/^/  /'
+node "$CLI/src/index.js" message okr "what did you open?" | sed 's/^/  /'
+node "$CLI/test/wait-for.mjs" runs okr 2
+check "epito message resumed okr's held session" "node '$CLI/src/index.js' message okr 'again' | grep -q 'in held session'"
+node "$CLI/test/wait-for.mjs" runs okr 3
+node "$CLI/src/index.js" window close okr | sed 's/^/  /'
+check "epito window close discarded okr's session" "node -e 'const a=JSON.parse(require(\"fs\").readFileSync(\".epito/state.json\",\"utf8\")).agents.okr;process.exit(a.window===null&&a.session===null?0:1)'"
+check "a wrong secret is refused in the client's voice too" "(EPITO_HOOK_SECRET=wrong node '$CLI/src/index.js' message okr hi 2>&1 || true) | grep -q 'x-epito-secret header missing or wrong'"
+check "no daemon at the port is named, with the fix" "(EPITO_PORT=1 node '$CLI/src/index.js' message okr hi 2>&1 || true) | grep -q 'is EPITO_PORT right'"
 
 step "3 (windows expire on the clock): open pm with a 3s window"
 code=$(post /window/open '{"scope":"pm","ttl_ms":3000}'); echo "  $code $(body)"
