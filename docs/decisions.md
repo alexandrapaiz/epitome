@@ -201,3 +201,38 @@ B (the passport) is her favorite ("already adopted... I like the
 concept of an agent passport"); C also liked. The PM sequences all
 four at the cycle-2 betting table; B's prototype is pulled forward
 in priority per this signal.
+
+## ADR-11: Customer #1 is the owner's own company; chat is visibility, git is collaboration
+
+Owner's direction (2026-09-20, relayed from the Alexandra Systems
+session, verbatim): "Agents showing up in a chat as themselves — their
+own identity, their own permissions, able to receive an @-mention and
+act — is exactly Epitome's thesis, and it's the best possible demo of
+it. But the product is the identity, not the chat room. Phase 1 needs
+no identity infrastructure at all (each seat is a webhook with a name
+and an emoji). Phase 2, after Epitome's cycle 1 ships
+deploy-identity-v0, upgrades every seat to a real principal that can
+be talked to, not just heard from. That's Epitome dogfooded on your
+own company, which is a far better first customer than a stranger."
+And: "we should get to building because i need this product myself
+really... chat spaces for agents are just for visibility, agents
+collaborate a lot better through blackboard and git."
+
+Consequences:
+
+1. **Dogfood customer #1 = Alexandra Systems HQ's seats** (in
+   addition to the alexandria-seat migration already on the backlog).
+   HQ's chat presence phase 1 (webhook + name + emoji) needs nothing
+   from us; phase 2 (each seat a real principal, @-mentionable) is
+   epito's deploy-identity-v0 plus the MessagingProvider. Sequencing:
+   cycle 1 ships identity; the HQ upgrade is the first consumer of
+   the Slack/messaging pitch at the cycle-2 table.
+2. **Chat is a visibility surface, never a coordination bus.** The
+   MessagingProvider's contract is: post as yourself, be @-mentioned
+   to receive an instruction, thread a reply. Agents coordinate
+   through the repo (blackboard) and git, exactly as the playbook
+   says; no agent-to-agent chat protocols in the product. This is a
+   design constraint on proposal D, not a feature request.
+3. **Urgency: the owner is the user.** "I need this product myself"
+   is the demand signal; the build starts with EPI-4 as planned, and
+   the roadmap's first milestone after identity is the HQ upgrade.
