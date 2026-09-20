@@ -12,6 +12,10 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
   epito validate      check agent.toml against spec v0.1
   epito run <dir>     resident runtime: host every agent.toml under <dir>
   epito ps            roster of the running daemon (reads .epito/state.json)
+  epito window open|close [scope] [text]
+                      open (default 4h) or close work windows on the daemon
+  epito message <name> "..."
+                      speak to an agent in the session its window holds
   epito deploy        provision the agent (not yet: platform in progress)
 `;
 
@@ -74,6 +78,14 @@ if (cmd === "run") {
 } else if (cmd === "ps") {
   const { ps } = await import("./run.js");
   ps();
+  process.exit(0);
+} else if (cmd === "window") {
+  const { windowCmd } = await import("./run.js");
+  await windowCmd(args[0], args[1], args[2]);
+  process.exit(0);
+} else if (cmd === "message") {
+  const { message } = await import("./run.js");
+  await message(args[0], args.slice(1).join(" "));
   process.exit(0);
 }
 
