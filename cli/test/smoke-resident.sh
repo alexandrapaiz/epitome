@@ -98,7 +98,7 @@ check "empty message -> 400 with the fix in it" "[ '$code' = 400 ] && grep -q 'n
 code=$(post /window/open '{"scope":"nope"}'); echo "  $(body)"
 check "bad scope -> 400 listing the roster" "[ '$code' = 400 ] && grep -q 'scope names no agent' '$ROOT/body.json'"
 
-step "1+4: POST /window/open {scope:all} opens a window on both seats and fires each once"
+step "1+4: POST /window/open {scope:all} opens a window on every seat and fires each once"
 code=$(post /window/open '{"scope":"all","text":"Agenda: cycle 1 hill check."}'); echo "  $code $(body)"
 node "$CLI/test/wait-for.mjs" runs pm 1
 node "$CLI/test/wait-for.mjs" runs okr 1
