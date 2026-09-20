@@ -68,3 +68,55 @@ jobs:
             (empty on scheduled runs):
             ${{ inputs.owner_instructions }}
           claude_args: "--max-turns 100 --permission-mode bypassPermissions --model claude-sonnet-5"
+      # The no-ship tripwire. Runs have worked for dozens of turns, reported
+      # success, and lost everything at teardown because nothing was pushed
+      # (alexandria's register; incident numbering differs per repo). A green
+      # conclusion is not evidence of shipping.
+      - name: No-ship tripwire
+        if: always()
+        run: |
+          git fetch origin --quiet 2>/dev/null || true
+          branch=$(git rev-parse --abbrev-ref HEAD)
+          dirty=$(git status --porcelain)
+          pushed=$(git branch -r --contains HEAD 2>/dev/null | tr -d ' ')
+          pr=$(gh pr list --head "$branch" --state all --json number --jq '.[0].number' 2>/dev/null || true)
+          {
+            echo "### Did this run ship anything?"
+            echo ""
+            echo "- branch: \`$branch\`"
+            echo "- pushed to a remote branch: ${pushed:-NO}"
+            echo "- pull request: ${pr:-none}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$dirty" ]; then
+            echo "::warning::Uncommitted changes were left in the sandbox and are lost at teardown."
+            printf '%s\n' "$dirty" | head -20
+          fi
+          if [ -z "$pushed" ]; then
+            echo "::error::This run made commits that were never pushed, so the work dies with the sandbox. See the 'Ship first, then work' rule in the pm standard (§8) and in this seat's charter."
+            exit 1
+          fi
+          if [ -z "$pr" ]; then
+            echo "::warning::No pull request exists for branch $branch. A run with nothing to ship must say so in a draft PR and close it, rather than ending silently."
+          fi
+      # Visibility window (standards/operating-modes.md §3): the seat's run
+      # report goes to the team's channel when the owner has created one.
+      # Seats never read the channel; it is the owner's window only.
+      - name: Post run report
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          # The guard lives in the script, not in the step's `if`: a step
+          # cannot read its own `env:` block from its `if` condition, and the
+          # `secrets` context is not available there either, so gating in YAML
+          # would either always skip or leak the webhook into the job env that
+          # the seat itself can read.
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "No SLACK_WEBHOOK_URL configured; the visibility window is not open yet."
+            exit 0
+          fi
+          branch=$(git rev-parse --abbrev-ref HEAD)
+          pr=$(gh pr list --head "$branch" --state all --json number,title,url --jq '.[0]' 2>/dev/null)
+          title=$(echo "$pr" | jq -r '.title // "no PR opened"'); url=$(echo "$pr" | jq -r '.url // ""')
+          curl -s -X POST -H 'Content-type: application/json' "$SLACK_WEBHOOK_URL" \
+            --data "$(jq -nc --arg t "${{ github.workflow }} · ${{ job.status }} · $title" --arg u "$url" '{text: ($t + (if $u != "" then "\n" + $u else "" end))}')" >/dev/null || true
