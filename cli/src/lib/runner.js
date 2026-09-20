@@ -63,10 +63,11 @@ export async function runAgent({ agent, trigger, hookBody, executor = "claude", 
     return { exit, durationMs: Date.now() - started, log: logPath, pr: null, ...extra };
   };
 
-  write(`# epito run ${name} ${runId}\n# trigger=${trigger} model=${rt.model} repo=${rt.repo} executor=${executor}\n`);
+  write(`# epito run ${name} ${runId}\n# trigger=${trigger} model=${rt.model} repo=${rt.repo} ref=${rt.ref ?? "(default)"} executor=${executor}\n`);
   const url = `https://github.com/${rt.repo}.git`;
-  const clone = await sh("git", ["clone", "--depth", "1", "--quiet", url, work]);
-  write(`$ git clone --depth 1 ${url}\n${clone.out}`);
+  const refArgs = rt.ref ? ["--branch", rt.ref] : [];
+  const clone = await sh("git", ["clone", "--depth", "1", "--quiet", ...refArgs, url, work]);
+  write(`$ git clone --depth 1 ${refArgs.join(" ")} ${url}\n${clone.out}`);
   if (clone.code !== 0) { log(`${name}: clone of ${rt.repo} failed (exit ${clone.code}); see ${logPath}`); return finish("clone"); }
 
   const charterPath = join(work, rt.entry);

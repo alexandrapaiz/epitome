@@ -35,6 +35,8 @@ entry = "prompts/historian.md"          # required: the charter file, path in re
 repo  = "owner/historian"               # PROPOSED (v0.1, epitod v0): the GitHub repository
                                         # the resident runtime clones fresh for every run;
                                         # `entry` is a path inside it. Required by `epito run`.
+ref   = "main"                          # PROPOSED, optional: branch or tag the runtime checks
+                                        # out; unset = the repository's default branch
 image = "default"                       # optional: container image; "default" = platform base
 max_turns = 100                         # optional: run cap, default 100
 env = []                                # optional: names of secrets the runtime injects;
@@ -68,6 +70,10 @@ env = []                                # optional: names of secrets the runtime
   validate time on disk. Absent `repo`, `epito run` refuses the manifest
   and says so; `epito validate` stays silent (Actions-era manifests
   remain valid).
+- `[runtime].ref`, optional. Which branch or tag the run checks out
+  (`git clone --branch <ref>`); unset means the default branch, which
+  is what every HQ seat wants. Exists so a charter can be staged on a
+  branch and run before it merges (this PR's own smoke test needs it).
 
 ## Open questions (settle before v0.2)
 
