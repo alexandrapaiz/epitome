@@ -236,3 +236,45 @@ Consequences:
 3. **Urgency: the owner is the user.** "I need this product myself"
    is the demand signal; the build starts with EPI-4 as planned, and
    the roadmap's first milestone after identity is the HQ upgrade.
+
+## ADR-12: LangSmith is a standing watch — integrate or outdo, never ignore
+
+Owner's ruling (2026-09-20), verbatim: "thats why we need to observe
+langsmith then. we cant pretend it doesnt exist. we either find a way
+to integrate or outdo."
+
+Context: market §8 found LangChain building a credential layer inside
+its hosted runtime at speed (Fleet agent identity 2026-03, Agent Auth
+beta, per-caller identity 2026-08, Connections 2026-09-09). Every
+piece still resolves to a stored shared key or the invoking human's
+OAuth — no agent gets its own principal on outside platforms — so the
+whitespace stands, but their own words call it "the basis for future
+credential patterns."
+
+Decision: LangSmith/LangChain moves from a tiered integration target
+to a **named strategic watch**, the first of its kind, with two arms
+that run in parallel rather than as alternatives:
+
+1. **Integrate** (the surface arm, proposal A): `langchain-epito` and
+   the OTLP attribution export ship as planned — build-next behind
+   Slack. Their OSS LangGraph is a passenger; their hosted runtime
+   gets recipes, never dependency (ADR-6).
+2. **Outdo** (the moat arm, proposal B): the passport — signed,
+   cross-platform identity binding — is the thing LangChain's
+   vault-shaped design cannot produce without abandoning the vault.
+   Its prototype is pulled forward to sit alongside the Slack work,
+   not behind it: the outdo arm must be visible before their next
+   credential release, not after.
+
+Decision rule (tripwire, market seat owns it, checked every Friday
+run): if LangChain ships any mechanism where a LangSmith-deployed
+agent acts on GitHub, Slack, or any outside platform under its OWN
+principal (not a shared key, not the human's OAuth), the market seat
+escalates to the owner within the same run and the betting table
+convenes out of cycle — the one exception to ADR-5's no-mid-cycle
+rule, granted here in advance.
+
+Register note: LangSmith joins Cloudflare Agents SDK and Anthropic
+Managed Agents as a wedge-adjacent watch item, but is the only one
+with a pre-authorized out-of-cycle response, because it is the only
+one already shipping credential features monthly.

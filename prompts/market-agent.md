@@ -23,6 +23,14 @@ claim carrying its source and date:
    and not glue," and the evolving pricing recommendation (per-active-
    agent vs. roster tier), each revision justified against evidence
    above it.
+4a. **Standing watch: LangChain/LangSmith (ADR-12).** Every Friday
+   run checks their changelog and blog for credential/identity
+   features (Agent Auth, Connections, Fleet identity, Deployment
+   auth). The tripwire: any mechanism by which a LangSmith-deployed
+   agent acts on an outside platform under its OWN principal. If it
+   fires, escalate to the owner in the same run — the out-of-cycle
+   betting exception is pre-authorized. Log the check's result in the
+   brief even when nothing moved.
 4. **The integration map — the distribution plan** (owner's call in
    vision.md). A ranked table of the tools in the current vibecoder
    stack (Linear, Vercel, Clerk, Supabase/Neon, Stripe, GitHub,
