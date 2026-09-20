@@ -32,6 +32,9 @@ webhook = true                          # deploy returns a per-agent signed URL
 model = "claude-sonnet-5"               # required: explicit, never defaulted (an unset model
                                         # is silently under-modeled — alexandria incident 9)
 entry = "prompts/historian.md"          # required: the charter file, path in repo
+repo  = "owner/historian"               # PROPOSED (v0.1, epitod v0): the GitHub repository
+                                        # the resident runtime clones fresh for every run;
+                                        # `entry` is a path inside it. Required by `epito run`.
 image = "default"                       # optional: container image; "default" = platform base
 max_turns = 100                         # optional: run cap, default 100
 env = []                                # optional: names of secrets the runtime injects;
@@ -51,6 +54,20 @@ env = []                                # optional: names of secrets the runtime
    silently: model, scopes, and triggers have no defaults.
 4. **One manifest, one principal.** Deploying the same file twice updates
    the same agent; renaming creates a new one. Identity follows `name`.
+
+## Proposed in-band (epitod v0, cycle 1 bet 1)
+
+- `[runtime].repo = "owner/name"`. The resident runtime (`epito run`)
+  needs to know which repository a run happens in: it clones it into a
+  fresh temp dir, reads `entry` inside the clone, and hands the clone to
+  the agent as its working directory. In the Actions runtime the repo
+  was implicit (the workflow lives in it); in a resident daemon that
+  hosts many agents from one directory it must be explicit. `epito
+  validate` accepts the field when present (owner/name grammar) and, when
+  it is set, checks `entry` at run time inside the clone instead of at
+  validate time on disk. Absent `repo`, `epito run` refuses the manifest
+  and says so; `epito validate` stays silent (Actions-era manifests
+  remain valid).
 
 ## Open questions (settle before v0.2)
 
