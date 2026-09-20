@@ -65,5 +65,6 @@ a principal you grant scopes to.
 
 - `spec/manifest.md` — the agent.toml spec (v0.1)
 - `cli/` — the `epito` CLI
+- `deploy/` — `provision-host.sh`: one always-on host for the runtime
 - `docs/` — vision, decisions (ADRs), backlog, ideas ledger, press release
 - `prompts/` — seat charters (this company is itself run as an agent org)

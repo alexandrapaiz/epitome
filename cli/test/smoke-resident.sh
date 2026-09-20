@@ -132,7 +132,6 @@ node "$CLI/src/index.js" ps | sed 's/^/  /'
 check "ps prints the held session" "node '$CLI/src/index.js' ps | grep -q \"\${SESSION:0:8}\""
 
 step "window close by hand: the session is discarded and the clone deleted"
-CLONE=$(node -e 'const s=require("fs").readFileSync(".epito/state.json","utf8");console.log(JSON.parse(s).agents.pm.session?"held":"none")')
 code=$(post /window/close '{"scope":"pm"}'); echo "  $code $(body)"
 check "close reports the discarded session" "grep -q '\"session\":\"$SESSION\"' '$ROOT/body.json'"
 check "pm has no window or session" "node -e 'const a=JSON.parse(require(\"fs\").readFileSync(\".epito/state.json\",\"utf8\")).agents.pm;process.exit(a.window===null&&a.session===null?0:1)'"
