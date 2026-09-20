@@ -3,7 +3,9 @@
 Cards are readable, self-sufficient, and name a seat. Anyone adds;
 the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
-## Now (the wedge)
+## Now
+
+- [ ] Owner-directed (2026-09-20): runtime v0 resident — presence for epitod per docs/pitches/runtime-v0-resident.md; HQ's manifests are the acceptance test (the wedge)
 
 - [ ] **Manifest spec v0.1 frozen** — spec/manifest.md reviewed against
   the three alexandria seat shapes (daily builder, weekly writer,

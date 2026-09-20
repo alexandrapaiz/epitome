@@ -1,5 +1,9 @@
 # Pitch: runtime v0 on GitHub Actions
 
+> Superseded 2026-09-20 by runtime-v0-resident.md (owner-directed: the
+> runtime is resident epitod on an always-on host, not Actions). Kept
+> for the record; the Actions runtime remains HQ's async heartbeat.
+
 Shaped 2026-09-18 by the PM seat. NOT bet for cycle 1 (depends on the
 identity slice landing first — see BETTING-MEMO-cycle-1.md).
 
