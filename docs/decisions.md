@@ -312,3 +312,22 @@ Consequences:
    agent-maker, "as customer" alongside "as surface." Pricing rev 2
    must price buyer 2 (platform/issuer tier) separately from roster
    tiers.
+
+## ADR-14: Mission signed; the Omarchy craft standard
+
+Owner (2026-09-20): "lets adopt the mission." Vision §0 now reads
+"Give every agent, whoever built it, a self its owner holds and every
+platform honors." All-hands ruling R1 closed; the OKR seat grades Q4
+against it from today.
+
+Same breath, the craft bar: "epito isnt supposed to be only
+vibecoders at the loveable level. i want a true piece of
+engineering... most programmers today are vibecoders. i want
+something on the level of omarchy." Recorded in vision §0b as the
+standard every layer is judged by: serious systems engineering that a
+newcomer installs in one command and can understand by reading —
+easy from craft, never from a veneer. Omarchy is the named exemplar
+(and, per the ideas ledger, a channel and runtime target). This
+retires "sold to vibecoders" as the mission's closing phrase without
+retiring vibecoders as the audience: they are most programmers now,
+and they deserve real engineering.

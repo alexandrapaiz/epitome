@@ -2,8 +2,39 @@
 
 ## §0 Mission
 
-Make an agent something you can mint: identity, trigger, runtime — one
-file, one command, sold to vibecoders.
+**Give every agent, whoever built it, a self its owner holds and every
+platform honors.**
+
+Signed by the owner 2026-09-20 (all-hands R1). Proposed by the OKR
+seat from the evidence of ADRs 1-13; the founding candidate's second
+clause ("and every person a workforce") was dropped because it reads
+as orchestration, which ADR-10 forbids. Held quarterly by the OKR
+seat; no seat edits this line.
+
+## §0b The craft standard (owner, 2026-09-20)
+
+Owner's words: "epito isnt supposed to be only vibecoders at the
+loveable level. i want a true piece of engineering... most
+programmers today are vibecoders. i want something on the level of
+omarchy."
+
+Read precisely: the AUDIENCE is most programmers, who are vibecoders
+now; the BAR is real systems engineering. Those are not in tension.
+Omarchy is the exemplar because it is serious engineering (a desktop
+shell rebuilt as text an agent can drive, systemd and Arch underneath,
+opinionated defaults, no toy abstractions) that a newcomer can install
+in one command and understand by reading it. That is the standard for
+every layer of epito: the CLI, the daemon, the passport, the specs.
+Easy comes from craft, never from lowering the bar. Consequences:
+- No "no-code" veneer over weak plumbing. Every abstraction must be
+  explainable by pointing at the real mechanism beneath it (a GitHub
+  App, a systemd unit, a signed card), the way Omarchy's config is the
+  real Hyprland config.
+- Specs are written to be implemented by others (ADR-13's open
+  passport spec is the first).
+- The tooling and threat model in docs/architecture.md are floors,
+  not aspirations; "vibecoder-friendly" is judged by first-run
+  experience, never by hiding the machine.
 
 ## §1 The gap (owner-clarified, 2026-09-20)
 
