@@ -5,10 +5,14 @@
 //      --model <model> --max-turns <n>` with cwd = the clone
 //   4. capture stdout+stderr to .epito/logs/<agent>/<runId>.log
 //   5. kill the whole process group on timeout; rm -rf the clone after
-// The env the child sees is ONLY: PATH, HOME (the claude CLI needs its own
-// config dir), the names listed in [runtime].env (values read from the
-// daemon's environment), and git author/committer set to the agent's name.
-// Nothing else from the daemon's environment leaks into the run.
+// The env the child sees is ONLY: PATH, HOME and USER (the claude CLI keeps
+// its config under HOME and, on macOS, reads its OAuth token from the login
+// keychain it finds by USER; on a server the token arrives as
+// CLAUDE_CODE_OAUTH_TOKEN listed in [runtime].env), the names listed in
+// [runtime].env (values read from the daemon's environment), and git
+// author/committer set to the agent's name. Nothing else from the daemon's
+// environment leaks into the run: the smoke test found this the honest way,
+// with a "Not logged in" exit until USER was added.
 import { spawn } from "node:child_process";
 import { mkdtempSync, mkdirSync, rmSync, existsSync, openSync, closeSync, writeSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -79,7 +83,7 @@ export async function runAgent({ agent, trigger, hookBody, executor = "claude", 
 
   const prompt = buildPrompt({ name, entry: rt.entry, trigger, date, hookBody });
   const args = ["-p", prompt, "--permission-mode", "bypassPermissions", "--model", rt.model, "--max-turns", String(rt.max_turns ?? 100)];
-  const env = { PATH: process.env.PATH, HOME: process.env.HOME };
+  const env = { PATH: process.env.PATH, HOME: process.env.HOME, USER: process.env.USER };
   for (const k of rt.env ?? []) if (process.env[k] !== undefined) env[k] = process.env[k];
   const email = `${name}@agents.epito.me`;
   Object.assign(env, { GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_COMMITTER_NAME: name, GIT_COMMITTER_EMAIL: email });
