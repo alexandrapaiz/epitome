@@ -524,6 +524,228 @@ OpenClaw numbers remain true as stated; the opportunity reading lives
 here).*
 
 ---
+
+## 8. LangSmith (2026-09-20, third dispatch): observability, deployment, and a competitor's credential layer
+
+Convened on the owner's ask (2026-09-20): "see how our product could
+work together with langsmith, like an integration." Four answers:
+what LangSmith exposes, the coupling in both directions, the
+distribution path, and a tiered verdict. This section amends the
+§7.3 LangGraph row. All sources accessed 2026-09-20; event dates as
+the source states them.
+
+### 8.1 Surfaces: what LangSmith exposes today
+
+LangSmith is no longer one product. It is a tracing/evals SaaS, a
+hosted agent runtime (LangSmith Deployment, formerly LangGraph
+Platform), a no-code agent workspace (Fleet, the March 2026 rename of
+Agent Builder), and a newer opinionated hosted harness (Managed Deep
+Agents, public beta 2026-08-07). Each has a different opening for us.
+
+| Surface | What it exposes | The opening for an identity layer |
+|---|---|---|
+| **Tracing SDK** | Arbitrary `metadata` dict and string `tags` on any run, set by `@traceable(metadata=...)`, `langsmith_extra=`, `ls.tracing_context(metadata=...)` (context propagates to child spans), or `rt.metadata[k]=v` at runtime ([add metadata and tags](https://docs.langchain.com/langsmith/add-metadata-tags)). UI filter `metadata.<key>:<value>`, numeric `metadata.retries:>=3` ([filter traces](https://docs.langchain.com/langsmith/filter-traces)); SDK/REST filter `and(eq(metadata_key, "k"), eq(metadata_value, "v"))` on `client.list_runs()` ([trace query syntax](https://docs.langchain.com/langsmith/trace-query-syntax)). The only special key documented is `thread_id`, which groups traces into threads ([concepts](https://docs.langchain.com/langsmith/observability-concepts)). | **There is no agent-identity field.** Attribution in LangSmith is by project, API key, and thread. A principal fits only as user-defined metadata, which is exactly enough: metadata is filterable, exact-match, and persisted with the run. |
+| **OTLP ingest** | `OTEL_EXPORTER_OTLP_ENDPOINT=https://api.smith.langchain.com/otel`, header `x-api-key`, optional `Langsmith-Project`; span attributes `langsmith.metadata.{key}` become metadata and `langsmith.span.tags` become tags. "Arbitrary span attributes do not automatically become filterable metadata." ([trace with OpenTelemetry](https://docs.langchain.com/langsmith/trace-with-opentelemetry); [OTel launch post](https://blog.langchain.com/opentelemetry-langsmith/)) | epitod's own audit emitter could ship spans here with **zero LangChain code in the agent**. This is the door that costs nothing and depends on nothing. |
+| **LangSmith Deployment** (cloud) | Plus plan or above; Serverless (scale-to-zero) or Dedicated; env vars and secrets entered at deployment configuration via UI or the `env` field of `langgraph.json` ([deploy to cloud](https://docs.langchain.com/langsmith/deploy-to-cloud)). No runtime hook to an external secret manager is documented; the cloud env-var page lists only server tunables (Datadog, OTel, pool sizes) ([env vars](https://docs.langchain.com/langsmith/env-var-cloud)). | Secrets are pasted at deploy time. That is the stored-owner-key pattern, and it is the reason a credential slot matters here. |
+| **Custom auth** | `@auth.authenticate` runs on every request, may call external services (`await fetch_user_tokens(api_key)`), and its returned dict lands in `config["configurable"]["langgraph_auth_user"]` for every node; "supported for all plans"; not available to the bare OSS library ([custom auth](https://docs.langchain.com/langsmith/custom-auth); [auth overview](https://docs.langchain.com/langsmith/auth)). Whether a cron-triggered run gets an auth context is **not documented** (checked [cron jobs](https://docs.langchain.com/langsmith/cron-jobs) and the auth pages). | A request-time hook that can fetch a token from anywhere and hand it to the graph. Designed for per-USER delegation; usable for per-agent minting. |
+| **Agent Auth (beta)** | `client.create_oauth_provider(client_id, client_secret, auth_url, token_url)` for any OAuth 2.0 provider; `client.authenticate(provider, scopes, user_id, agent_id=...)`; "By default, tokens are scoped to the calling agent using the Assistant ID parameter"; "We store and refresh OAuth tokens" ([agent auth](https://docs.langchain.com/langgraph-platform/agent-auth)). | The first place LangSmith names an `agent_id`. Tokens are user-delegated and live in LangSmith's vault, but the provider is pluggable: an epito OAuth endpoint could be registered as a provider. |
+| **Agent Server / assistants** | Assistant = "an instance of a graph with a specific configuration," versioned; threads, runs, crons (`client.crons.create(assistant_id, schedule, input)`); default auth is a LangSmith API key in `x-api-key` ([assistants](https://docs.langchain.com/langsmith/assistants); [agent server](https://docs.langchain.com/langsmith/agent-server)). **No owner, creator, or identity field on the assistant object** is documented. | Assistants are configurations, not someones. Identity is whoever holds the workspace key. |
+| **Workspace auth** | Two key kinds: Personal Access Tokens (inherit the user; deleted with the user) and Service Keys ("service principals with administrator privileges") ([API keys](https://docs.langchain.com/langsmith/create-account-api-key); [RBAC](https://blog.langchain.com/access-control-updates-for-langsmith/)). | No per-agent key exists. Every deployed agent authenticates to LangSmith as the workspace. |
+| **Fleet** (no-code, 2026-03-19) | "Agent identity" defined as "whose credentials the agent uses": **Claws** use "the same API keys and OAuth tokens, regardless of user"; **Assistants** use each invoking user's OAuth. "Once an agent identity is set, it cannot be changed." Tool keys live as workspace secrets, `FLEET_`-prefixed ([agent identity](https://docs.langchain.com/langsmith/fleet/agent-identity); [workspace admin](https://docs.langchain.com/langsmith/fleet/workspace-admin); [launch post](https://www.langchain.com/blog/introducing-langsmith-fleet)). Permissions: clone / run / edit. | Their word "identity" means credential mode, not principal. Neither mode gives the agent its own account on GitHub or Slack. |
+| **Managed Deep Agents** (public beta 2026-08-07) + **Connections** (2026-09-09) | `mda init/dev/deploy`; identity = who may call the deployment (LangSmith API key or Supabase JWT) ([identity](https://docs.langchain.com/langsmith/javascript/managed-deep-agents-identity)). Connections: named credentials in the workspace, owner axis agent-owned vs user-owned, type axis static secret vs OAuth grant; catalog of 23+ services incl. GitHub; custom providers via `--authorize-url`/`--token-url`/`--scope`; `connections.get(slug, {type})` returns the raw credential string; rotation by re-running `create`, effective next run, no redeploy; no REST API documented ([connections docs](https://docs.langchain.com/langsmith/javascript/managed-deep-agents-connections); [Connections post](https://www.langchain.com/blog/connections-managed-credentials-and-per-caller-identity-for-managed-deep-agents); [MDA beta post](https://www.langchain.com/blog/managed-deep-agents-is-now-in-public-beta)). | A credential store with a custom-OAuth slot, eleven days old. The agent-owned mode is a static secret; the user-owned mode makes the human the actor: "the issue lands in GitHub opened by the person who asked. `user.login` in the response is their handle, not a bot's." |
+| **Evals, annotation queues** | Present in the product; not researched beyond confirming they operate on the same run metadata (flagged: no deeper read this run). | Whatever principal we put in metadata is available to slice eval datasets by agent. No identity-specific opening. |
+
+### 8.2 The coupling, both directions
+
+**(a) epito → LangSmith: "which agent did this" as a filter dimension.**
+Feasible today, cheap, needs nobody's permission. Two routes:
+
+1. *Inside a LangGraph agent*: an `epito.langsmith_context(agent)` helper
+   wraps `ls.tracing_context(metadata={...})` so every span in the run
+   carries a flat principal record (flat keys, because filter matching is
+   exact and type-sensitive):
+
+   ```python
+   {"epito_agent": "historian",
+    "epito_manifest_sha": "3f9c...",
+    "epito_github": "historian-epito[bot]",
+    "epito_slack": "B0HISTORIAN",
+    "epito_model": "claude-opus-5"}        # ADR-8: model recorded, never the key
+   ```
+
+   A LangSmith user then filters `metadata.epito_agent:historian` in the
+   UI or `and(eq(metadata_key,"epito_agent"), eq(metadata_value,"historian"))`
+   in the SDK, and gets exactly the slice our local audit trail calls the
+   same name. LangSmith has no native equivalent: its attribution stops at
+   project, API key, and `thread_id`. Cost: one helper of roughly fifty
+   lines in `@epito/langchain`, documented as a convention.
+2. *Outside any agent code*: epitod's audit emitter exports OTLP spans
+   with `langsmith.metadata.epito_agent` etc. to the `/otel` endpoint.
+   Every epito agent's actions, on any framework or none, appear in the
+   user's LangSmith project attributed to the real principal. The user
+   supplies the LangSmith API key in the manifest's optional
+   `[observability]` block; if absent, nothing changes (ADR-6).
+
+Limit, stated plainly: metadata is a convention, not a schema. Nothing
+stops a LangSmith user from writing `epito_agent: "whatever"`; the
+proof that a trace really belongs to the principal is the passport
+(proposal B), not the metadata. Route 2 is the honest one: it is our
+signed audit stream landing in their viewer.
+
+**(b) LangSmith → epito: hosted agents consuming per-agent, short-lived
+credentials instead of pasted keys.** Three doors, all reachable without
+LangChain's cooperation, none frictionless:
+
+| Door | Mechanism | Works without LangChain | Friction |
+|---|---|---|---|
+| **D1: `@epito/langchain` inside the graph** (proposal A, as written) | `EpitoCredentials("historian")` passed where env keys go; calls `epito token` or an epito HTTP endpoint; refreshes on expiry | Yes, on any runtime: OSS LangGraph, self-hosted, or LangSmith Deployment | A hosted deployment cannot reach a local epitod. Needs a network path: a tunnel, or a hosted token endpoint. This is the tension the architecture seat must rule on. |
+| **D2: custom-auth handler** | `@auth.authenticate` calls epito at request time, returns `{"identity": "historian", "github_token": <1h installation token>}` into `langgraph_auth_user`; nodes read it from config | Yes, all LangSmith plans | Fires per inbound request; cron runs' auth context is undocumented, so the autonomous case (our whole premise) is unproven here. Same network-path issue as D1. |
+| **D3: register epito as an OAuth provider** in Agent Auth (beta) or an MDA Connection (`--authorize-url`/`--token-url`) | epito exposes a standard OAuth 2.0 authorize/token pair that issues short-lived per-agent tokens; LangSmith's vault holds the grant | Yes; the provider slots are explicitly generic | Their vault stores and refreshes the grant, which reintroduces a middleman (§6 G1); Agent Auth scopes by `user_id` first and `assistant_id` second, so the agent is still a delegate of a human in their model. Beta surfaces; may move. |
+
+Practical reading: D1 is the product; D2 is a documentation recipe on
+top of D1; D3 is a hypothesis worth one afternoon once B's OAuth-ish key
+handling exists, not a build.
+
+**Does LangSmith already have an agent-identity notion that overlaps?**
+Yes, and it is the important finding of this run. In six months
+LangChain shipped Fleet identity (March), Agent Auth (beta),
+per-caller identity in MDA (August), and Connections (September 9).
+All four are answers to the same question we answer, inside their
+walls, and all four resolve to one of two owner-credential modes: a
+shared stored key ("every action showing up under a service account,"
+their own description of the old state) or the invoking human's OAuth
+(so the action is the human's, not the agent's). None issues the agent
+its own principal on the platform where it acts; none is portable
+outside LangSmith; the Connections post itself frames identity as "the
+basis for scoped memory and future credential patterns," which is a
+roadmap sentence. Independent confirmation of the gap: a
+cross-framework study (arXiv:2606.28679, cited via a [dev.to
+post](https://dev.to/roxdavirox/agent-identity-spoofing-in-multi-agent-systems-your-orchestrator-has-no-idea-who-it-is-talking-to-1l3j);
+secondary, not read directly this run) reports that across LangChain,
+LangGraph, LlamaIndex, and Stripe's toolkit "shared credentials are the
+norm; per-agent identity is not." Under ADR-10 this is the right shape
+of neighbor: they build the driver and the car interior; we mint the
+license plate that works on every road. Under ADR-6 it is also the
+risk: they are visibly building toward credentials-as-a-feature, and
+the day they add "agent-owned OAuth as a bot user" for GitHub and
+Slack, the LangSmith-hosted slice of our market closes from inside.
+
+### 8.3 Distribution: the listing, the reach, the buyer
+
+**The listing path is open and cheap.** New integrations are not
+accepted as PRs to LangChain repos; they ship as independent PyPI
+packages (`langchain-epito`) implementing `langchain-core`
+interfaces and passing the standard test suite. Under 50,000 monthly
+downloads, a listing issue gets an automated YAML row in the
+integrations table linking to our docs; at 50,000+ downloads or by
+maintainer feature, a hosted guide page ([contributing integrations](https://docs.langchain.com/oss/python/contributing/integrations-langchain);
+[integrations overview](https://docs.langchain.com/oss/python/integrations/providers/overview)).
+Tools and toolkits are an explicitly encouraged category. There is no
+LangSmith plugin directory or marketplace to list on; the only
+storefront is the OSS integrations table. Law 2 and law 4 are
+satisfied: nothing gates the package working, only the guide tier.
+
+**The reach is the largest in the maker track.** LangChain reports
+100M+ monthly downloads and 139k+ GitHub stars (June 2026, via
+[gitnux](https://gitnux.org/langchain-statistics/), secondary);
+LangGraph at roughly 38.8M monthly PyPI downloads, "the most installed
+agent framework by a wide margin" ([dev.to comparison](https://dev.to/jamilxt/langgraph-vs-crewai-vs-openai-agents-sdk-picking-your-agent-framework-in-2026-2heo),
+secondary; [pypistats](https://pypistats.org/packages/langgraph) is the
+primary counter). Company: $125M Series B led by IVP at $1.25B
+(2025-10), ~$16M ARR for 2025 ([Sacra](https://sacra.com/c/langchain/);
+[getlatka](https://getlatka.com/companies/langchain), secondary),
+production users named as Uber, LinkedIn, Klarna, JPMorgan
+([LangChain 1.0 post](https://www.langchain.com/blog/langchain-langgraph-1dot0)).
+
+**The buyer splits in two, and only one is ours.** The OSS LangGraph
+developer runs locally or self-hosts and pays LangChain nothing; that
+is our vibecoder, and `langchain-epito` reaches them for free. The
+LangSmith Deployment / Fleet / MDA customer pays $39 per seat per
+month on Plus, needs Plus to deploy at all, and meters LCUs at $1.50
+([pricing breakdowns](https://inference.net/content/langsmith-pricing/);
+[truefoundry](https://www.truefoundry.com/blog/langgraph-pricing);
+LCU pricing effective for new usage 2026-07-15, existing orgs
+2026-10-01 per the [Fleet essentials](https://docs.langchain.com/langsmith/fleet/essentials)).
+That buyer is a team with a platform budget, whose credential story is
+now sold to them by LangChain itself. We reach them only through the
+recipe (D2) and only if they want the agent to be a someone rather than
+a proxy for a human. Demand for that specific thing inside the
+LangChain community was not evidenced this run: no forum thread or
+issue asking for a bot identity per agent surfaced in a first-pass
+search (flagged, one search only; the hoop.dev "service account
+sprawl for LangGraph" content marketing is a vendor's framing, not a
+user's complaint).
+
+### 8.4 Verdict
+
+**Tier: build-next, confirmed and reshaped.** One sentence why: the
+package is cheap, the trace convention is nearly free, and the reach
+is the largest of any maker, but LangChain is building its own
+credential layer in its hosted runtime, so the value concentrates on
+the OSS LangGraph developer, not the LangSmith customer.
+
+Reshaped, in three parts the owner can accept or reject separately:
+
+1. **`langchain-epito` (proposal A, door D1): build-next, unchanged
+   position behind Slack.** One package over `langchain-core`, no
+   dependency on LangSmith, works on OSS LangGraph anywhere. Listed via
+   the YAML row the week it is on PyPI.
+2. **The trace-metadata convention (8.2a): fold into the same package
+   and into epitod's audit emitter as an optional OTLP sink.** Roughly
+   fifty lines each; it gives every LangSmith user a "which agent"
+   filter that LangSmith does not have, and it costs no dependency.
+3. **LangSmith Deployment coupling (doors D2, D3): watch, and write the
+   D2 recipe as a docs page only after D1 ships.** Do not build a
+   product surface on their custom-auth or Connections hooks; both are
+   surfaces LangChain owns and is actively iterating.
+
+**Plain-words recommendation:** yes to LangGraph, no to LangSmith as a
+platform bet. Ship the credential object and the trace tag for people
+who write LangGraph code; write a recipe for people who host on
+LangSmith; do not build anything that only works if LangSmith keeps a
+hook open. Accept/reject: **langchain-epito yes/no; OTLP sink yes/no;
+LangSmith recipe yes/no.**
+
+**The honest tensions, ranked.**
+
+1. **LangChain sells the hosted runtime and is now selling credentials
+   with it.** Fleet identity, Agent Auth, MDA identity, and Connections
+   arrived in six months; the last one eleven days ago. On their cloud
+   we would be a provider plugged into their vault, which is G1's
+   middleman reintroduced. ADR-6 holds only if the product is the OSS
+   package and the hosted couplings are recipes; the moment a feature
+   depends on `@auth.authenticate` or `--token-url` staying open, it is
+   a dependency, and they can close it in a release.
+2. **Local-first runtime versus their cloud.** epitod lives on the
+   user's machine; a LangSmith deployment is on theirs. Every door in
+   8.2b needs a network path from their container to our token
+   issuer. Either we accept a hosted token endpoint (an architecture
+   decision not yet made) or the hosted case is out of scope and the
+   coupling is OSS-only. This document does not decide it; it flags it
+   for the architecture seat.
+3. **Our differentiator on LangSmith is narrow.** Their "Assistants"
+   mode already gives per-human attribution with a real audit trail.
+   What we add is the agent-as-itself (a `[bot]` on GitHub, a bot user
+   on Slack, one passport across both). Teams that want the agent to be
+   a proxy for a person do not need us there; teams that want the agent
+   to be a someone do. Which is more common among LangSmith payers is
+   unmeasured.
+4. **The trace convention is unsigned.** Metadata proves nothing;
+   anyone can write it. The value is real only when route 2 (our own
+   signed audit stream over OTLP) or proposal B backs it. Selling the
+   convention alone would be selling a label.
+
+*Charter compliance note (§8): research only; nothing posted, no one
+contacted, no LangSmith account created, no package published. Flagged
+secondary or unverified: download and star counts (gitnux, dev.to),
+ARR (getlatka/Sacra), the arXiv:2606.28679 finding (via dev.to, whose
+own date predates the paper id, so the post was likely updated; not
+read directly), cron-run auth context on LangSmith Deployment
+(undocumented, treated as unproven), and the LangChain-community demand
+signal for bot identity per agent (one search, none found). Evals and
+annotation queues were confirmed present and not researched further.*
+
+---
 ---
 
 # REV 1 (2026-09-18) — superseded by rev 2 above, kept verbatim
