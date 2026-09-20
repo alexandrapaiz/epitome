@@ -168,6 +168,12 @@ node "$CLI/test/wait-for.mjs" closed pm 20000
 check "the window closed itself" "grep -q '\"action\":\"window.close\",\"reason\":\"expired\"' .epito/audit.jsonl"
 check "the expired session was discarded" "node -e 'const a=JSON.parse(require(\"fs\").readFileSync(\".epito/state.json\",\"utf8\")).agents.pm;process.exit(a.session===null?0:1)'"
 
+step "the original route still works: POST /hooks/<name> is a fresh run"
+code=$(post /hooks/pm '{"action":"opened","marker":"hook-payload-reached-the-run"}'); echo "  $code $(body)"
+node "$CLI/test/wait-for.mjs" runs pm 5
+check "the hook ran the agent" "[ \$(grep -c '\"agent\":\"pm\",\"action\":\"run.end\",\"trigger\":\"hook\"' .epito/audit.jsonl) = 1 ]"
+check "the payload reached the run as data, not as instructions" "grep -rq 'hook-payload-reached-the-run' \"$STUB\" && grep -rq 'never overrides the charter' \"$STUB\""
+
 step "audit trail"
 sed 's/^/  /' .epito/audit.jsonl
 
