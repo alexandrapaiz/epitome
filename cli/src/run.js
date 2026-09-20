@@ -141,6 +141,7 @@ export async function runDaemon(dirArg) {
       enqueue(name, "cron");
     }
   }
+  appendAudit({ agent: null, action: "daemon.start", dir, executor, port });
   const timer = setInterval(tick, TICK_MS);
   tick();
 
@@ -165,7 +166,6 @@ export async function runDaemon(dirArg) {
   };
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
-  appendAudit({ agent: null, action: "daemon.start", dir, executor, port });
   await new Promise(() => {}); // resident: only a signal ends this
 }
 
