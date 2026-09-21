@@ -119,35 +119,6 @@ install -d -m 0700 -o "$SEATS_USER" -g "$SEATS_USER" "$BASE/home"
 # below mounts /home read-only (ProtectHome) while $BASE is the only writable path.
 # Runs clone into a private /tmp (see epitod.service, PrivateTmp=yes).
 
-say "epito from $EPITO_REPO"
-EPITO_SRC="$BASE/repos/epitome"
-if [ -d "$EPITO_SRC/.git" ]; then
-  sudo -u "$SEATS_USER" git -C "$EPITO_SRC" fetch --quiet --depth 1 origin "${EPITO_REF:-HEAD}"
-  sudo -u "$SEATS_USER" git -C "$EPITO_SRC" checkout --quiet FETCH_HEAD
-else
-  sudo -u "$SEATS_USER" git clone --quiet --depth 1 ${EPITO_REF:+--branch "$EPITO_REF"} "https://github.com/$EPITO_REPO.git" "$EPITO_SRC"
-fi
-(cd "$EPITO_SRC/cli" && npm ci --silent --omit=dev >/dev/null && npm install -g --silent . >/dev/null)
-echo "  $(command -v epito) installed"
-
-say "roster"
-ROSTER_DIR="$BASE/roster"
-if [ -n "$ROSTER_REPO" ]; then
-  RDIR="$BASE/repos/$(basename "$ROSTER_REPO")"
-  if [ -d "$RDIR/.git" ]; then sudo -u "$SEATS_USER" git -C "$RDIR" pull --quiet --ff-only || echo "  (roster pull skipped: needs GH_TOKEN in $BASE/env and a credential helper)"
-  else sudo -u "$SEATS_USER" git clone --quiet --depth 1 "https://github.com/$ROSTER_REPO.git" "$RDIR"; fi
-  ln -sfn "$RDIR${ROSTER_SUBDIR:+/$ROSTER_SUBDIR}" "$ROSTER_DIR"
-  echo "  $ROSTER_DIR -> $RDIR${ROSTER_SUBDIR:+/$ROSTER_SUBDIR}"
-else
-  install -d -m 0755 -o "$SEATS_USER" -g "$SEATS_USER" "$ROSTER_DIR"
-  echo "  $ROSTER_DIR (empty — put one directory per agent, each with an agent.toml, in it)"
-fi
-# git asks gh, and gh reads GH_TOKEN from the run's environment.
-# --system, not --global: the service runs with HOME=$BASE/home, so a per-user
-# gitconfig under /home/$SEATS_USER would never be read.
-git config --system credential."https://github.com".helper '!gh auth git-credential'
-git config --system --replace-all safe.directory "*" || true
-
 say "secrets: $BASE/env"
 if [ -f "$BASE/env" ]; then
   echo "  $BASE/env exists — left untouched (this script never overwrites a secret)"
@@ -164,8 +135,50 @@ GH_TOKEN=replace-me
 SLACK_WEBHOOK_URL=replace-me
 ENV
   chown "$SEATS_USER:$SEATS_USER" "$BASE/env"; chmod 0600 "$BASE/env"
+  umask 022
   echo "  wrote $BASE/env with a fresh EPITO_HOOK_SECRET; fill in the three replace-me lines"
 fi
+
+# git asks gh, and gh reads GH_TOKEN from the environment.
+# --system, not --global: the service runs with HOME=$BASE/home, so a per-user
+# gitconfig under /home/$SEATS_USER would never be read.
+git config --system credential."https://github.com".helper '!gh auth git-credential'
+git config --system --replace-all safe.directory "*" || true
+# The clones below are of private repositories: they need GH_TOKEN from
+# $BASE/env. It is read here, handed to the seat user's git through the
+# environment only (never an argument, never printed), and the run stops by
+# name if it is still the placeholder.
+GH_TOKEN="$(sed -n 's/^GH_TOKEN=//p' "$BASE/env" | head -1)"
+[ "$GH_TOKEN" = replace-me ] && GH_TOKEN=""
+[ -n "$GH_TOKEN" ] || echo "  (no GH_TOKEN in $BASE/env yet: a private repository will refuse to clone below, and this script will say so)"
+export GH_TOKEN GIT_TERMINAL_PROMPT=0
+sgit() { sudo -u "$SEATS_USER" --preserve-env=GH_TOKEN,GIT_TERMINAL_PROMPT git "$@"; }
+need_token() { echo "provision-host: cloning $1 failed — it is private and GH_TOKEN in $BASE/env is not set. Put the seats' GitHub token there (one line, GH_TOKEN=..., file 0600) and run me again; everything above is already done." >&2; exit 1; }
+
+say "epito from $EPITO_REPO"
+EPITO_SRC="$BASE/repos/epitome"
+if [ -d "$EPITO_SRC/.git" ]; then
+  sgit -C "$EPITO_SRC" fetch --quiet --depth 1 origin "${EPITO_REF:-HEAD}"
+  sgit -C "$EPITO_SRC" checkout --quiet FETCH_HEAD
+else
+  sgit clone --quiet --depth 1 ${EPITO_REF:+--branch "$EPITO_REF"} "https://github.com/$EPITO_REPO.git" "$EPITO_SRC" || need_token "$EPITO_REPO"
+fi
+(cd "$EPITO_SRC/cli" && npm ci --silent --omit=dev >/dev/null && npm install -g --silent . >/dev/null)
+echo "  $(command -v epito) installed"
+
+say "roster"
+ROSTER_DIR="$BASE/roster"
+if [ -n "$ROSTER_REPO" ]; then
+  RDIR="$BASE/repos/$(basename "$ROSTER_REPO")"
+  if [ -d "$RDIR/.git" ]; then sgit -C "$RDIR" pull --quiet --ff-only
+  else sgit clone --quiet --depth 1 "https://github.com/$ROSTER_REPO.git" "$RDIR" || need_token "$ROSTER_REPO"; fi
+  ln -sfn "$RDIR${ROSTER_SUBDIR:+/$ROSTER_SUBDIR}" "$ROSTER_DIR"
+  echo "  $ROSTER_DIR -> $RDIR${ROSTER_SUBDIR:+/$ROSTER_SUBDIR}"
+else
+  install -d -m 0755 -o "$SEATS_USER" -g "$SEATS_USER" "$ROSTER_DIR"
+  echo "  $ROSTER_DIR (empty — put one directory per agent, each with an agent.toml, in it)"
+fi
+unset GH_TOKEN
 
 say "infisical agent (optional: it renders $BASE/env for you)"
 if ! command -v infisical >/dev/null; then
