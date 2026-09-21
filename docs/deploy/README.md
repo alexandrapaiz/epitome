@@ -110,7 +110,7 @@ Oracle Cloud Always Free A1 instance, but nothing in it is Oracle-specific:
 
 ```sh
 ssh ubuntu@host 'sudo bash -s' -- --domain epitod.example.com \
-    --email ops@example.com --roster alexandra-systems/runtime < deploy/provision-host.sh
+    --email ops@example.com --roster alexandrapaiz/alexandra-systems --roster-subdir runtime/agents < deploy/provision-host.sh
 ```
 
 It installs Node 22, `gh`, `git` and the `claude` executor; creates the

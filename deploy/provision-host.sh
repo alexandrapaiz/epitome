@@ -12,7 +12,7 @@
 # acts and no step overwrites a secret:
 #
 #   ssh ubuntu@host 'sudo bash -s' -- --domain epitod.example.com \
-#       --email ops@example.com --roster alexandra-systems/runtime < deploy/provision-host.sh
+#       --email ops@example.com --roster alexandrapaiz/alexandra-systems --roster-subdir runtime/agents < deploy/provision-host.sh
 #
 # What you get:
 #   user seats           the unprivileged principal every agent run is
@@ -113,6 +113,10 @@ echo "  claude $(claude --version 2>/dev/null || echo '(installed)')"
 say "user $SEATS_USER and $BASE"
 id -u "$SEATS_USER" >/dev/null 2>&1 || useradd --system --create-home --home-dir "/home/$SEATS_USER" --shell /usr/sbin/nologin "$SEATS_USER"
 install -d -m 0755 -o "$SEATS_USER" -g "$SEATS_USER" "$BASE" "$BASE/repos" "$BASE/state"
+install -d -m 0700 -o "$SEATS_USER" -g "$SEATS_USER" "$BASE/home"
+# HOME for the daemon and every run is $BASE/home, not /home/$SEATS_USER: the
+# claude executor writes its config and held sessions under HOME, and the unit
+# below mounts /home read-only (ProtectHome) while $BASE is the only writable path.
 # Runs clone into a private /tmp (see epitod.service, PrivateTmp=yes).
 
 say "epito from $EPITO_REPO"
@@ -139,8 +143,10 @@ else
   echo "  $ROSTER_DIR (empty — put one directory per agent, each with an agent.toml, in it)"
 fi
 # git asks gh, and gh reads GH_TOKEN from the run's environment.
-sudo -u "$SEATS_USER" git config --global credential."https://github.com".helper '!gh auth git-credential'
-sudo -u "$SEATS_USER" git config --global --replace-all safe.directory "$BASE/repos/*" || true
+# --system, not --global: the service runs with HOME=$BASE/home, so a per-user
+# gitconfig under /home/$SEATS_USER would never be read.
+git config --system credential."https://github.com".helper '!gh auth git-credential'
+git config --system --replace-all safe.directory "*" || true
 
 say "secrets: $BASE/env"
 if [ -f "$BASE/env" ]; then
@@ -241,7 +247,7 @@ Group=$SEATS_USER
 WorkingDirectory=$BASE/state
 EnvironmentFile=$BASE/env
 Environment=EPITO_PORT=$PORT
-Environment=HOME=/home/$SEATS_USER
+Environment=HOME=$BASE/home
 ExecStart=/usr/bin/env epito run $ROSTER_DIR
 Restart=always
 RestartSec=5
@@ -281,7 +287,7 @@ Description=epitod daily health post
 [Service]
 Type=oneshot
 User=$SEATS_USER
-Environment=HOME=/home/$SEATS_USER
+Environment=HOME=$BASE/home
 ExecStart=/usr/local/bin/epitod-health
 UNIT
 cat > /etc/systemd/system/epitod-health.timer <<'UNIT'
