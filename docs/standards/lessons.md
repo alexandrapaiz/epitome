@@ -1,7 +1,7 @@
-<!-- vendored-from: standards/lessons.md @ 47779de6640b4f97945a52e0c11de1fdfe7ece0b -->
+<!-- vendored-from: standards/lessons.md @ 9605e550a39742ea583ea93a796c1e49e05fd578 -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `47779de`,
-> vendored 2026-09-20. Changes to a company standard are HQ
+> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `9605e55`,
+> vendored 2026-09-21. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
 <!-- end vendored header -->
@@ -141,7 +141,75 @@ captured).
   authors a presentation, and this one governs what a brief can take
   away.)
 
+- **L-A16 — Configured is not in effect.** A capability counts as live
+  only when a run log, a listing, or a response proves it served a real
+  turn. Configuration states intent, and the gap between intent and
+  effect is silent by construction, because a well-built fallback makes
+  the run succeed anyway. A decision that is accepted but not active is
+  recorded as dormant in the product's decisions file, with what would
+  turn it on. Silence does not close the gap. (Atelier incident I2,
+  2026-09-19: commit 89bbf8e routed the pm seat to an open model, run
+  35463415653 skipped the open-routed step because `OPENROUTE_API_KEY`
+  was unset, the Claude fallback served the run, and the log's
+  `modelUsage` showed `claude-haiku-4-5-20251001` and `claude-sonnet-5`.
+  Reading the workflow alone would have told you the seat ran on an open
+  model. Companion to L-A12, which checks location by looking, and to
+  L-X3, which asserts models from run logs.)
+- **L-A17 — A failure whose diagnosis took more than a minute gets an
+  entry.** L-A4 covers the correction that repeats. This one covers the
+  first occurrence that was diagnosed and fixed so fast it felt too
+  small to write down, which is the kind that gets rediscovered. The
+  entry is owed whether or not the failure repeats, and whether or not
+  it is already fixed in the tree. A fix that lives only in one
+  session's memory is a fix the org has not learned. Writing it down
+  costs five minutes once and rediscovering it costs a run. (alexandria,
+  2026-09-19, the containerization postmortem: the chair diagnosed and
+  fixed two environment-migration failures between 01:54 and 02:14 UTC,
+  shipped on, and recorded neither, and the owner asked for them to be
+  registered properly.)
+- **L-A18 — An identifier comes from the register's own tail, and a
+  register that cites a record contains it.** Two integrity failures,
+  both cheap to prevent and expensive to find later. First, a seat
+  appending to a register reads its tail and takes the next free
+  identifier, because a reused ID is two rules answering to one name
+  with no way to tell which a charter meant. A collision already
+  shipped is repaired by renumbering the newer entry, with the old ID
+  recorded in the survivor, never silently. Second, a rule cites only
+  records reachable where it says they are. A citation pointing into an
+  unmerged branch reads as evidence and is not one. (Ursa learning log,
+  2026-09-19, which flagged its Incident 3 colliding with the inherited
+  "Incident 3, the ship-first rule" and asked for a rename before a
+  third collision. The same defect at HQ in the same week: L-A9 was
+  issued three times, and HQ's incident register runs 1, 2, 3, 5 while
+  L-A14 cites incident 4, whose record is still sitting in unmerged HQ
+  PR #15. Two products, one defect, so the fix is owed here under
+  L-A11.)
+
 ## engineer
+
+- **L-E0 — The bar is Omarchy or higher.** Owner, 2026-09-20: "high
+  grade engineering level. omarchy standard of engineering or higher."
+  Rule: opinionated defaults with escape hatches; one command to a
+  working state; consistency across every surface; agents as
+  first-class citizens of anything we build (they can read its state,
+  diagnose it, extend it); professional maintenance. A deliverable
+  that would embarrass Omarchy's maintainers is not done. The bar does
+  not bend to the audience. Owner again on epitome, 2026-09-20: "epito
+  isnt supposed to be only vibecoders at the loveable level. i want a
+  true piece of engineering... most porgrammers today are vibecoders. i
+  want something on the level of omarchy." So "vibecoder-friendly"
+  names who the product is for, which is most programmers now, and
+  never a lower standard of what it is. Every abstraction is
+  explainable by pointing at the real mechanism beneath it, specs are
+  written to be implemented by someone else, and first-run ease is the
+  output of craft rather than of omission. Binds engineer and pm seats
+  portfolio-wide, and most sharply when a product is described as being
+  for vibecoders or indie builders. (Two sources, one rule: HQ
+  vision.md §0, 2026-09-20, and epitome vision §0b with ADR-14,
+  2026-09-20. The epitome half was filed at HQ on 2026-09-20 as a
+  second L-A9, an ID already spent twice. Merged here and that
+  duplicate retired, per L-A18. It had reached no product, so no
+  vendored copy carried it.)
 
 - **L-E1 — No UI annotations.** Never append explanatory subtitles to
   headings in her interfaces: bare nouns, units in note slots.
@@ -238,6 +306,24 @@ captured).
   release is not compelling, revise the document, not the roadmap.
   Full procedure: standards/pm.md §2c.
 
+## okr
+
+- **L-O1 — A declared scope is scored by a real query from a real user,
+  and the portfolio supplies the first ones.** Coverage measured against
+  internal counts measures the pipeline, not the promise. The score that
+  counts is what a genuine user with a genuine question got back, and in
+  this portfolio the nearest genuine user is a sibling product's seat. A
+  failure of that kind enters the next grading as a named baseline case,
+  not as a support ticket. Detection that worked only because the owner
+  relayed it is a detection failure, the same finding L-R1 names for
+  research territory. (alexandria incident 21, 2026-09-19,
+  owner-reported: an epitome session ran two semantic searches over the
+  claim corpus for agent identity, portability and credential security,
+  all inside scope alexandria had declared on 2026-09-18, got a best
+  match of 0.69 on unrelated papers, recorded "alexandria: searched, not
+  useful for this" and went to plain web research instead. The owner:
+  "remember the okr mission. we are not achieving it.")
+
 ## mba
 
 - **L-M1 — Frameworks are applied with real inputs or not at all.** A
@@ -292,6 +378,14 @@ captured).
   awesome-list PRs, launch posts: prepared to the last field; the owner
   submits. Agents never create accounts, post, or contact anyone.
 
+- **L-D3 — Agents go where agents are allowed to live.** Owner,
+  2026-09-20: "all apps that have a place for 'apps' or agentic or any
+  integration, we can work agents in." Rule: the shelves registry
+  carries agent shelves (platforms where an agent can be a principal),
+  ranked with evidence; epitome-minted agents and company seats are
+  the deployments. LangGraph is a runtime target and a shelf, not the
+  org layer for seats (a seat is an employee, not a flowchart).
+
 ## marketing
 
 - **L-K1 — Publishing is the owner's authority until she grants it.**
@@ -299,6 +393,26 @@ captured).
   autonomous-within-merged-campaign); the default is prepare-only.
 - **L-K2 — Real product surfaces only.** No fabricated screenshots or
   invented numbers in any post; the house voice holds on TikTok.
+
+- **L-K3 — Public copy is plain, serious, and sells the outcome.** Four
+  rules from the owner's line-by-line verdicts on the alexandria site,
+  binding on every seat that writes public-surface copy, which includes
+  the writer, frontend, marketing and sales seats. One, plain short
+  sentences. Her words: "avoid sentence structures with lots of commas".
+  Two, the register is serious. Cute asides, diminutives and colon-led
+  constructions read as "millenial/condescending/unserious/vibecoded"
+  and are rejected on sight. Three, "no more technical. we want to
+  sell": public copy states the outcome and does not explain the
+  mechanism. Four, every line reaches her in chat before it is set on
+  the surface, and a taste ruling is dated, so the newest verdict
+  governs even when it reverses an approval she gave the day before.
+  The scope boundary matters: this rule governs public sales surfaces
+  only. Inside technical and owner-facing artifacts L-A1 and L-E2 still
+  hold, and there the mechanism is the deliverable. (alexandria
+  docs/voice/taste.md, round-one site verdicts recorded 2026-09-20:
+  three lines approved, five rejected with reasons, including the
+  reversal of "One library, two readers." which she had approved on
+  2026-09-19.)
 
 ## exo
 
@@ -392,6 +506,65 @@ captured).
   timeouts, container config, and a new seat's workflow. Companion to
   L-X1, which says a fix is closed only in the tree: this one says what
   to do when the tree is not reachable from the seat.)
+
+- **L-X8 — A runtime change is smoke-tested before it reaches a seat
+  doing real work.** Every change to the ground a seat stands on, which
+  means the container, the runner, the image, the permission mode, the
+  token, the model route or the workflow shape, is fired on purpose on a
+  throwaway branch and watched, before any scheduled seat executes under
+  it. The class this catches is the one where the agent and its charter
+  are both correct and the ground under them moved, so no amount of
+  charter review finds it. The method costs a few red runs nobody
+  depended on. Skipping it costs a scheduled seat dying on a stderr line
+  nobody is watching for, and sitting dead until someone reads the log.
+  (alexandria, 2026-09-19, the Stage 1 containerization: two deliberate
+  smoke tests caught that Claude Code refuses
+  `--dangerously-skip-permissions` under uid 0, and that the container
+  user must match the host's uid 1001 to write the Actions runner's own
+  state files, for a total cost of two red runs and one 12-turn
+  verification. The owner asked whether this should be standing law and
+  the recorded answer was yes. Procedure: alexandria
+  docs/agents/runtime-changes.md.)
+- **L-X9 — A seat's lane is bounded by its token, not by its charter.**
+  Where the two disagree the token wins, and it wins silently until
+  something tries to write. So a charter that names a lane names the
+  credential that reaches it, and a seat that cannot reach part of its
+  own lane files that as an incident rather than shipping a quiet
+  workaround. Where the boundary is deliberate, it is recorded as
+  deliberate, with the reason. (HQ incident 5, 2026-09-20: the engineer
+  seat found nine HQ seat workflows missing the visibility post step
+  that an ADR recorded as shipped, fixed all of it, and could not push,
+  because the Actions `GITHUB_TOKEN` is never granted the `workflows`
+  scope and the workflow `permissions:` block has no key with which to
+  grant it. The charter had named the company's machinery as that seat's
+  lane, so the collision was waiting from the first day. The fix shipped
+  as a tool the owner runs, which is the round trip the design existed
+  to avoid. Companion to L-X4, which proves reach by a write.)
+- **L-X10 — One rule, one owning document, and the dispatch prompt
+  defers to the charter.** L-A10 gives every file one owning charter.
+  One level up, every rule has one owning document, and when a rule
+  appears in both a charter and the dispatch prompt that launches the
+  seat, the prompt wins silently, because the seat reads it first. That
+  makes a duplicated rule a coin flip on which file a seat happens to
+  trust. A workflow prompt therefore states no rule the charter owns and
+  points at the charter instead. The safe form for the commonest case,
+  copied verbatim (L-A14):
+
+  ```
+  Within your first turns, create a branch named by your charter's
+  branch convention and open a DRAFT pull request with
+  `gh pr create --draft`, committing into it as you work — a died
+  run must still ship its partial work.
+  ```
+
+  (Atelier incident I3, 2026-09-19: the pm charter fixed the branch
+  convention at `pm/sprint-YYYY-MM-DD`, the workflow prompt said
+  `pm/YYYY-MM-DD-slug`, and PR #1 branched
+  `pm/2026-09-19-pending-tracker`. The branch name is the cheap
+  instance. Any rule landing in only one of the two binds or fails to
+  bind by accident. HQ's own standards/workflow-template.yml still
+  carried the hardcoded branch line at the time of this harvest, which
+  is the same defect one level up.)
 
 ## security
 
