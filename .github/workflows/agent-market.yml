@@ -26,8 +26,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      # Open routing is best-effort: Moonshot's prepaid tier allows almost no
+      # concurrency, and three runs (2026-09-21 x2, 2026-09-24) died at turn one
+      # while another Kimi run was in progress. If this step fails, the Claude
+      # step below runs instead on the subscription (HQ Incident 4).
       - name: Seat run (open-routed)
+        id: openrouted
         if: env.OPENROUTE != ''
+        continue-on-error: true
         uses: anthropics/claude-code-action@v1
         env:
           ANTHROPIC_BASE_URL: ${{ secrets.OPENROUTE_BASE_URL }}
@@ -49,7 +55,7 @@ jobs:
             ${{ inputs.owner_instructions }}
           claude_args: "--max-turns 100 --permission-mode bypassPermissions --model ${{ vars.OPENROUTE_MODEL || 'kimi-k2.7-code' }}"
       - name: Seat run (Claude)
-        if: env.OPENROUTE == ''
+        if: env.OPENROUTE == '' || steps.openrouted.outcome != 'success'
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
