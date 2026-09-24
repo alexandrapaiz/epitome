@@ -378,5 +378,5 @@ cat <<NEXT
      with [runtime].repo set), then: systemctl restart epitod
   3. watch it: journalctl -u epitod -f   |   sudo -u $SEATS_USER sh -c 'cd $BASE/state && epito ps'
   4. speak to it (the secret is in $BASE/env):
-     curl -X POST -H "x-epito-secret: \$EPITO_HOOK_SECRET" ${DOMAIN:+https://$DOMAIN}${DOMAIN:-http://127.0.0.1:$PORT}/window/open -d '{"scope":"all"}'
+     curl -X POST -H "x-epito-secret: \$EPITO_HOOK_SECRET" $([ -n "$DOMAIN" ] && echo "https://$DOMAIN" || echo "http://127.0.0.1:$PORT")/window/open -d '{"scope":"all"}'
 NEXT
