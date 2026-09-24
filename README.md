@@ -29,10 +29,20 @@ entry = "prompts/historian.md"
 ```
 
 ```bash
-epito init      # scaffold an agent (alias: `epito me`)
-epito validate  # check the manifest
-epito deploy    # mint identity, wire trigger, start runtime  (platform, WIP)
+epito init          # scaffold an agent (alias: `epito me`)
+epito validate      # check the manifest
+epito token <name>  # mint that agent's own short-lived GitHub token
+epito run <dir>     # the resident runtime: host a whole roster, wake it on
+                    # cron and on POST /hooks/<name>
+epito deploy        # one command for all three  (platform, WIP)
 ```
+
+Today `epito run` is the runtime leg and `epito token` is the identity leg;
+`epito deploy` — which provisions the principal for you instead of asking
+you to create a GitHub App by hand — is what still says "in progress".
+[docs/deploy/README.md](docs/deploy/README.md) is the operator's version of
+both: how a roster runs on one box, and how an agent gets its own identity
+so its PRs open as `<name>[bot]` instead of as you.
 
 What the platform provisions on deploy, so you never do:
 

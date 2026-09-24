@@ -22,7 +22,9 @@ Environment the daemon reads:
 | `EPITO_EXECUTOR` | the binary spawned per run, default `claude`; `echo` is the stub for smoke tests |
 | `EPITO_RUN_TIMEOUT_MS` | per-run cap, default 3600000 (60 min) |
 | `CLAUDE_CODE_OAUTH_TOKEN` / `ANTHROPIC_API_KEY` | the executor's auth, only if a manifest lists it |
-| `GH_TOKEN` | clone/push/`gh pr create` for now (bet 2 replaces it with a per-agent App token) |
+| `GH_TOKEN` | the roster-wide fallback for clone/push/`gh pr create`, used only by agents that have no App principal of their own (below) |
+| `EPITO_APP_ID_<NAME>` / `EPITO_APP_KEY_<NAME>` | one agent's own GitHub App, so its PRs open as `<name>[bot]` (below); `EPITO_APP_KEY_FILE_<NAME>` points at the `.pem` instead |
+| `EPITO_GITHUB_API` | where tokens are minted, default `https://api.github.com`; exists for GitHub Enterprise and for the smoke test's local stub |
 | `SLACK_WEBHOOK_URL` | where the one-line post after each run goes, for agents that list it |
 
 ## The ingress
@@ -44,6 +46,60 @@ epito window open all "Agenda: cycle 1 hill check."
 epito message pm "which PR did you open?"
 epito window close pm
 ```
+
+## Giving an agent its own identity
+
+Without this, every seat on the box pushes with the same `GH_TOKEN` and
+every PR is opened by whoever owns it. With it, a seat is a principal:
+its PR says `<name>[bot]`, its commits carry the App's own noreply
+address, and its reach is exactly `[identity].scopes` on exactly
+`[runtime].repo`, for one hour at a time. One App per agent (ADR-15).
+
+Once per agent, by hand (the one-click creation flow is not built yet):
+
+1. GitHub → Settings → Developer settings → GitHub Apps → **New GitHub
+   App**. Name it for the agent; App names are globally unique on GitHub,
+   so expect to add a suffix.
+2. Give it the repository permissions the agent's scopes map to —
+   `epito token <name> --dry-run` prints exactly that list. Nothing more:
+   the App's own permissions are the outer ceiling, and the manifest can
+   only narrow them.
+3. **Install** it on the agent's `[runtime].repo` alone (Only select
+   repositories). An App that is installed nowhere mints nothing.
+4. Generate a private key; GitHub downloads a `.pem` once.
+5. Put both on the box, in the daemon's secrets file at 0600:
+
+```sh
+# /etc/epito/env  (or $BASE/env — see provision-host.sh)
+EPITO_APP_ID_PM=1234567
+EPITO_APP_KEY_FILE_PM=/etc/epito/keys/pm.pem
+```
+
+`<NAME>` is `[agent].name` upper-cased with `-` as `_`: the agent
+`daily-builder` reads `EPITO_APP_ID_DAILY_BUILDER`. A one-line
+`EPITO_APP_KEY_PM="-----BEGIN RSA PRIVATE KEY-----\n..."` works too —
+literal `\n` is expanded — but a `.pem` file at 0600 is easier to rotate.
+
+Then prove it before a schedule depends on it:
+
+```sh
+epito token pm --dry-run     # the mapping only: no network, no secret
+epito token pm               # the real mint; the token goes to stdout alone
+```
+
+Three rules the runtime keeps:
+
+- **Per run, never stored.** Each run mints its own token and forgets it.
+  It reaches the run as `GH_TOKEN`/`GITHUB_TOKEN` in the child's
+  environment and is never written to the clone, the state file or a log.
+  `.epito/audit.jsonl` records every mint — agent, scopes, permissions,
+  installation, expiry — and never the token.
+- **The minted token wins.** If `[runtime].env` also names `GH_TOKEN`, the
+  agent's own credential is used instead and the run log says so.
+- **No silent fallback.** An agent with no App configured runs on the
+  shared `GH_TOKEN` exactly as before. An agent that has one and cannot
+  mint refuses the run (`exit=identity` in the audit, with the reason):
+  a PR opened by the wrong identity is worse than a PR not opened.
 
 ## Presence: what a window actually holds
 

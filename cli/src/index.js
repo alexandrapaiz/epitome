@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { parseManifest, validateManifest, NAME_RE } from "./lib/manifest.js";
+import { SCOPE_MAP } from "./lib/identity.js";
 
 const [, , cmdRaw, ...args] = process.argv;
 // `epito me` is `epito init`: mint an epitome of yourself.
@@ -70,6 +71,16 @@ if (cmd === "validate") {
     process.exit(1);
   }
   console.log(`✓ ${a.name} is an agent: identity (${m.identity.scopes.length} scope${m.identity.scopes.length > 1 ? "s" : ""}), trigger, runtime`);
+
+  // What those scopes will actually mint. A scope epito cannot map is not a
+  // broken manifest — it is a deploy that will fail later — so it is said
+  // here, now, rather than at 06:00 from a run log.
+  const unmapped = m.identity.scopes.filter((s) => !SCOPE_MAP[s]);
+  const mapped = m.identity.scopes.filter((s) => SCOPE_MAP[s]);
+  if (mapped.length) console.log(`  github: ${mapped.map((s) => `${SCOPE_MAP[s][0]}:${SCOPE_MAP[s][1]}`).join(", ")}, metadata:read`);
+  if (unmapped.length) {
+    console.log(`  ⚠ ${unmapped.map((s) => `"${s}"`).join(", ")} ${unmapped.length > 1 ? "have" : "has"} no GitHub App permission in spec v0.1, so \`epito token ${a.name}\` will refuse to mint. Spec v0.1 maps ${Object.keys(SCOPE_MAP).filter((s) => !s.endsWith(".read")).join(", ")} (suffix .read for read-only).`);
+  }
   process.exit(0);
 }
 

@@ -75,6 +75,55 @@ env = []                                # optional: names of secrets the runtime
   is what every HQ seat wants. Exists so a charter can be staged on a
   branch and run before it merges (this PR's own smoke test needs it).
 
+## Proposed in-band (the identity slice, cycle 1 bet 2)
+
+The scope map. `[identity].scopes` promised that "the deploy target maps
+these to fine-grained App permissions; anything unmapped fails deploy
+loudly," without saying what the map is. It is this, and it is the whole
+map for v0.1:
+
+| scope | GitHub App permission |
+|---|---|
+| `github:contents` | `contents: write` |
+| `github:pull_requests` | `pull_requests: write` |
+| `github:issues` | `issues: write` |
+| `github:metadata` | `metadata: read` |
+
+- **A bare scope means write.** The manifest's own example is a seat that
+  opens pull requests, and a token that can only read them cannot do its
+  charter. Rule 3 (explicit beats defaulted) is honoured the other way:
+  ask for less by saying so.
+- **`.read` asks for less.** `github:contents.read`,
+  `github:pull_requests.read`, `github:issues.read` map to `read`. The
+  suffix is part of the existing `platform:permission` grammar, so no
+  change to `epito validate`'s parser.
+- **`metadata: read` is always requested**, because GitHub grants it to
+  every installation anyway; naming it keeps the token request an honest
+  description of what the token can do.
+- **Unmapped fails at the mint, loudly, naming every offending scope**
+  (`epito token <name>`, and every run the resident runtime starts).
+  `epito validate` does not fail on it — a manifest with a scope epito
+  cannot map is still a well-formed manifest, and a stricter validator
+  would refuse a running roster at startup over a word. It prints what
+  each scope will mint and warns about the ones that will not, so the
+  failure is discovered at `validate` time rather than at 06:00.
+- Widest wins if both forms of one permission appear: declaring
+  `github:issues` and `github:issues.read` is redundant, not a downgrade.
+
+Two things this map is not. It is not the ceiling: the App's own granted
+permissions are the outer ceiling, and GitHub refuses (422) a token
+asking past them — `[identity].scopes` can only ever narrow. And it is
+not the grammar for other platforms; that is still the open question
+below, to be settled with the second integration.
+
+Where the key lives (deploy-side, not manifest-side, and recorded here
+because rule 1 depends on it): the agent's GitHub App id and private key
+sit on the runtime box as `EPITO_APP_ID_<NAME>` and
+`EPITO_APP_KEY_<NAME>` (or `EPITO_APP_KEY_FILE_<NAME>`), where `<NAME>`
+is `[agent].name` upper-cased with `-` as `_`. The manifest names
+neither, and stays publishable without redaction. See ADR-15 for why the
+App is per agent, and docs/deploy/README.md for the operator's version.
+
 ## Open questions (settle before v0.2)
 
 - Scope grammar for non-GitHub platforms (`asana:tasks.write`?
