@@ -350,6 +350,16 @@ say "firewall and fail2ban"
 ufw allow 22/tcp >/dev/null
 if [ "$SKIP_CADDY" = 0 ]; then ufw allow 443/tcp >/dev/null; fi
 ufw --force enable >/dev/null
+# Oracle's Ubuntu images ship a vendor iptables chain that ACCEPTs 22 and then
+# REJECTs everything, ahead of ufw's chains — so ufw's 443 rule never sees a
+# packet. Insert an ACCEPT for 443 right after the vendor's 22 rule (mirroring
+# it, not removing it) and persist, so Caddy is reachable after a reboot too.
+if [ "$SKIP_CADDY" = 0 ] && iptables -S INPUT | grep -q -- '-j REJECT --reject-with icmp-host-prohibited'; then
+  iptables -C INPUT -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT 2>/dev/null \
+    || iptables -I INPUT "$(( $(iptables -S INPUT | grep -n -- '--dport 22 -j ACCEPT' | cut -d: -f1 | head -1) ))" -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT
+  if command -v netfilter-persistent >/dev/null; then netfilter-persistent save >/dev/null 2>&1; else install -d /etc/iptables && iptables-save > /etc/iptables/rules.v4; fi
+  echo "  vendor iptables chain found (Oracle image): 443 ACCEPT inserted ahead of its REJECT and persisted"
+fi
 install -d -m 0755 /etc/fail2ban/jail.d
 cat > /etc/fail2ban/jail.d/epitod.local <<'JAIL'
 [sshd]
