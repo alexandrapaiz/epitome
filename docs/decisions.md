@@ -331,3 +331,68 @@ easy from craft, never from a veneer. Omarchy is the named exemplar
 retires "sold to vibecoders" as the mission's closing phrase without
 retiring vibecoders as the audience: they are most programmers now,
 and they deserve real engineering.
+
+## ADR-15: One GitHub App per agent — proposed, owner rules (EPI-4 route spike)
+
+Engineer seat, 2026-09-24, from building the identity slice (cycle 1
+bet 2, PR #9). Status: **proposed**; owner ratifies by merging or
+objects by editing. R2 asked for both routes measured before a ruling.
+
+The question the cycle raised (scope 1a): does an epito agent get its
+own GitHub App, or do all agents share one epito-owned App with
+per-repository installations?
+
+**What the build measured.** Both routes end in the same API call —
+`POST /app/installations/{id}/access_tokens` with a permissions object
+and one repository — and so they share every line of
+`cli/src/lib/identity.js` except the credential lookup: per-agent is
+`EPITO_APP_ID_<NAME>` / `EPITO_APP_KEY_<NAME>`, shared would be one
+`EPITO_APP_ID`. That is the finding. The shared App was shaped as the
+"worse story, simpler build" fallback (deploy-identity-v0.md); the
+build is not simpler. It is about six lines of environment lookup
+either way, because GitHub's scoping mechanism is the installation, and
+an installation exists in both routes.
+
+With build cost equal, the difference is entirely in what the user
+sees and what the box holds:
+
+| | App per agent | One shared App |
+|---|---|---|
+| PR author | `<agent>[bot]`, its own name and avatar | `epito[bot]` for every agent everywhere |
+| Revoke one agent | uninstall its App; nothing else moves | uninstall the repo, taking every agent on it |
+| Permission ceiling | per agent, set at its App | one ceiling, the union of every agent's needs |
+| Audit at GitHub's end | per agent, in GitHub's own log | one actor for the whole roster |
+| Secrets on the box | one key per agent | one key total |
+| Setup cost | one App created per agent | one App, ever |
+| Ceiling | 100 Apps per account (GitHub limit) | none |
+| Name collisions | App names are globally unique on GitHub | one name to claim |
+
+**Recommendation: App per agent.** The market brief's demand quotes and
+ADR-1 both say the credentialed principal *is* the wedge; a shared bot
+badge deletes the wedge to save six lines and a click. The union-ceiling
+row is the sharper argument: a shared App must hold every permission any
+agent on the roster needs, so the weakest agent's token is issued from
+the strongest agent's App — exactly the blast radius spec rule 2 exists
+to prevent. The 100-App limit is real but distant, and it is an argument
+about an org's roster size, not about v0.
+
+**What is deliberately not decided here.** The *provisioning* route —
+GitHub's one-click app-manifest flow with a localhost callback (pitch
+step 1) versus the owner creating an App by hand — is still open, and
+this PR builds neither: v0 asks for an App created by hand and two
+environment variables on the box. That is the cut, taken knowingly:
+minting is the leg the runtime consumes, and an unmintable token makes
+a creation flow worthless. The manifest flow is shaped for the next run
+and does not change anything in this ADR, since either way the agent
+ends up with its own App.
+
+**Consequences.**
+1. A roster of N agents means N Apps and N keys on the runtime box, at
+   0600, named by convention. `deploy/provision-host.sh` and
+   docs/deploy/README.md carry that convention.
+2. Onboarding an agent gains a manual step until the app-manifest flow
+   lands. `epito token <name> --dry-run` exists so that step can be
+   verified before a schedule depends on it.
+3. If the owner rules the other way, the change is confined to
+   `readAppCredentials` in cli/src/lib/identity.js. Nothing else in the
+   runtime knows which route it is on.
