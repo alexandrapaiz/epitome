@@ -16,12 +16,52 @@ Environment the daemon reads:
 
 | name | meaning |
 |---|---|
-| `EPITO_HOOK_SECRET` | shared secret for `POST /hooks/<name>` (header `x-epito-secret`); hooks answer 503 until set |
-| `EPITO_PORT` | hook server port, default 4747 |
+| `EPITO_HOOK_SECRET` | shared secret for every POST route (header `x-epito-secret`); the ingress answers 503 until set |
+| `EPITO_PORT` | ingress port, default 4747 |
+| `EPITO_WINDOW_MS` | how long a work window stays open, default 14400000 (4h) |
 | `EPITO_EXECUTOR` | the binary spawned per run, default `claude`; `echo` is the stub for smoke tests |
 | `EPITO_RUN_TIMEOUT_MS` | per-run cap, default 3600000 (60 min) |
 | `CLAUDE_CODE_OAUTH_TOKEN` / `ANTHROPIC_API_KEY` | the executor's auth, only if a manifest lists it |
 | `GH_TOKEN` | clone/push/`gh pr create` for now (bet 2 replaces it with a per-agent App token) |
+| `SLACK_WEBHOOK_URL` | where the one-line post after each run goes, for agents that list it |
+
+## The ingress
+
+| route | what it does |
+|---|---|
+| `POST /hooks/<name>` | an event wakes the agent; the body is payload, never instructions |
+| `POST /message/<name>` `{"text"}` | speaks to the agent inside the session its window holds; with no window open it falls back to a fresh run carrying the text |
+| `POST /window/open` `{"scope"?, "text"?, "ttl_ms"?}` | opens a work window (4h default) on every agent in scope and fires each once with the synchronous instruction plus your agenda — this is the all-hands call |
+| `POST /window/close` `{"scope"?}` | closes them; the held session id and its clone are discarded |
+| `GET /healthz` | liveness, no secret |
+
+`scope` is `"all"` (or absent) or a comma-separated list of `[agent].name`
+values. Two thin CLI wrappers POST the same routes to the daemon this shell
+can see, so nobody has to hand-write a curl with a secret in it:
+
+```sh
+epito window open all "Agenda: cycle 1 hill check."
+epito message pm "which PR did you open?"
+epito window close pm
+```
+
+## Presence: what a window actually holds
+
+Between triggers an agent is nothing — a fresh clone, a fresh context. A
+**window** is the exception, and it is deliberately small:
+
+- opening one fires the agent once; the executor's `session_id` from that
+  run is kept, along with **the clone it ran in** (the executor stores a
+  conversation per project directory, so a resumed run must return to the
+  same directory);
+- `POST /message/<name>` continues that conversation with `--resume`;
+- closing the window — by hand, by the 4h clock, or by the daemon stopping —
+  discards the id and deletes the clone.
+
+Nothing else survives. The PRs are the record (ADR-2); `epito ps` shows the
+window's remaining time and the held session's first eight characters, and
+`.epito/audit.jsonl` carries `window.open`, `window.refresh`, `window.close`,
+`session.hold`, `session.lost` and `slack.post` lines.
 
 The roster directory holds one folder per agent with an `agent.toml`
 (see spec/manifest.md; `[runtime].repo` is required by `epito run`).
@@ -62,6 +102,29 @@ fly logs
 fly ssh console -C "epito ps"      # WorkingDirectory is /var/lib/epito, where state.json lives
 curl -X POST -H "x-epito-secret: ..." https://epitod.fly.dev/hooks/<name>
 ```
+
+## An always-on host, in one command (Ubuntu 24.04 arm64)
+
+`deploy/provision-host.sh` provisions the whole box — the target is an
+Oracle Cloud Always Free A1 instance, but nothing in it is Oracle-specific:
+
+```sh
+ssh ubuntu@host 'sudo bash -s' -- --domain epitod.example.com \
+    --email ops@example.com --roster alexandrapaiz/alexandra-systems --roster-subdir runtime/agents < deploy/provision-host.sh
+```
+
+It installs Node 22, `gh`, `git` and the `claude` executor; creates the
+unprivileged user `seats` and `/srv/asc/{repos,roster,state,env}`; writes
+`epitod.service` (Restart=always, secrets from `/srv/asc/env` at 0600);
+puts Caddy in front with TLS on 443 and no plaintext listener at all;
+enables ufw (22/443) and fail2ban; and adds a daily `epito ps` posted to
+Slack, which doubles as the keepalive an Always Free instance wants to see.
+It is idempotent and it never overwrites a secret — re-run it to upgrade.
+Optionally it drops an Infisical agent config that renders `/srv/asc/env`
+and restarts epitod when a secret rotates.
+
+`bash deploy/test-provision.sh` exercises it in a throwaway container with
+the package managers and init system stubbed, and asserts on what it wrote.
 
 ## Any VPS (systemd user unit)
 
