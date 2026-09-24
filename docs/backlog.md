@@ -5,7 +5,7 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
-- [ ] Owner-directed (2026-09-20): runtime v0 resident — presence for epitod per docs/pitches/runtime-v0-resident.md; HQ's manifests are the acceptance test (the wedge)
+- [x] Owner-directed (2026-09-20): runtime v0 resident — presence for epitod per docs/pitches/runtime-v0-resident.md. **Shipped 2026-09-24**: slice 1 (PR #4, epitod v0) + slice 2 (PR #6, held sessions/mailbox/windows/Slack/host) both merged; `deploy/provision-host.sh` hardened by four owner commits since against a real Oracle host (iptables vendor rule, HOME path, GH_TOKEN ordering, closing-hint text). Not independently verified from the repo: the pitch's full "done when" (HQ's pm manifest actually resident on the VM, a held window, a Slack post) — code and smoke tests exist, a live run does not show in this repo.
 
 - [ ] **Manifest spec v0.1 frozen** — spec/manifest.md reviewed against
   the three alexandria seat shapes (daily builder, weekly writer,
@@ -21,13 +21,21 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   short-lived tokens per run, wire [trigger].cron to the runtime, write
   the audit log. The hard card; split before building. Seat: engineer.
   *Split done; identity slice bet in cycle 1
-  (docs/pitches/deploy-identity-v0.md, docs/cycles/2026-09-21-cycle-1.md).*
-- [ ] **Runtime v0, reshaped as bring-your-own-agent (owner ruling R4)** — the first container we ship runs an agent we did not write; the PM rewrites docs/pitches/runtime-v0-actions.md before cycle 2 bets it.
-- [ ] ~~Runtime v0 (original shape)~~ — one container per agent that survives sessions and
-  wakes on the trigger; start on GitHub Actions (the $0 stack the target
-  users already have), containerized image as the second step. Seat:
-  engineer. *Shaped (docs/pitches/runtime-v0-actions.md), not bet in
-  cycle 1 — depends on the identity slice; re-bet cycle 2.*
+  (docs/pitches/deploy-identity-v0.md, docs/cycles/2026-09-21-cycle-1.md),
+  then reduced by the owner's 2026-09-20 amendment to just the
+  token-minting slice the runtime consumes (`epito token <name>`).
+  As of 2026-09-24: no code for it in cli/src — zero visible engineer
+  time this cycle, which ends 2026-10-02.*
+- [x] ~~Runtime v0, reshaped as bring-your-own-agent (owner ruling R4)~~
+  — overtaken by events: the owner didn't wait for a cycle-2 rewrite,
+  she re-bet cycle 1 to the resident runtime directly (the amendment,
+  2026-09-20). `docs/pitches/runtime-v0-actions.md` is marked
+  superseded by runtime-v0-resident.md, not rewritten — see below.
+- [x] ~~Runtime v0 (original shape, GitHub Actions)~~ — superseded, not
+  re-bet: `docs/pitches/runtime-v0-actions.md` now heads itself
+  "Superseded 2026-09-20 by runtime-v0-resident.md"; the Actions
+  runtime lives on only as HQ's own async heartbeat (its seats still
+  run as Actions jobs, per .github/workflows/agent-*.yml).
 - [ ] **Dogfood migration, step 1** — one alexandria seat runs on
   epito.me. Seat: engineer + owner.
 - [ ] **Dogfood migration, step 2** — delete that seat's ADR-27
@@ -37,17 +45,21 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Next
 
-- [ ] **OKR seat stood up** (playbook order: purpose before planning) —
-  mission → objectives + benchmark. Seat: okr. Owner prerequisite:
-  CLAUDE_CODE_OAUTH_TOKEN secret.
-- [ ] **PM/COO seat on schedule** — cycles, board, this backlog;
-  live-convened since 2026-09-18, cron pending the owner's token.
+- [x] **OKR seat stood up** (playbook order: purpose before planning) —
+  mission → objectives + benchmark. Seat: okr. `.github/workflows/agent-okr.yml`
+  live, docs/allhands/2026-09-20-okr.md shipped.
+- [x] **PM/COO seat on schedule** — cycles, board, this backlog;
+  `.github/workflows/agent-pm.yml` live (this run is one of its firings).
   Seat: pm.
-- [ ] **ExO seat** — incident register live before the builders multiply.
-  Seat: exo.
+- [x] **ExO seat** — incident register live before the builders multiply.
+  `.github/workflows/agent-exo.yml` live; docs/agents/incidents.md and
+  lessons.md exist; PRs #2, #7 are its lesson syncs. Seat: exo.
 - [ ] **Market seat brief #1: pricing** — per-active-agent pricing vs.
   roster tier; who pays today for Clerk/Fly/Trigger.dev glue and what do
-  they pay. Before any public pricing. Seat: market.
+  they pay. Before any public pricing. Seat: market. *Rev 1 shipped
+  2026-09-18 (docs/market.md §3, "Positioning and pricing"). Rev 2 still
+  open: ADR-13 (2026-09-20) requires pricing buyer 2 (the agent-maker/
+  platform tier) separately from the roster tiers — not yet done.*
 - [x] **Second integration verdict: Linear REJECTED** (owner,
   2026-09-18 — ADR-6: integrations are surfaces, never dependencies).
   Market re-justifies the ranking under ADR-6 in the 10-02 map
@@ -74,8 +86,12 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **LINEAR_API_KEY repo secret** (personal API key from Linear
   settings) + name the Linear team/workspace the PM mirrors to (ADR-5).
   Optional until the PM's first run; the seat skips the mirror cleanly
-  without it.
-- [ ] `claude setup-token` → CLAUDE_CODE_OAUTH_TOKEN repo secret, when
-  ready to stand up seats.
+  without it. *Still absent as of 2026-09-24 — this run skipped the
+  mirror per charter.*
+- [x] `claude setup-token` → CLAUDE_CODE_OAUTH_TOKEN repo secret, when
+  ready to stand up seats. Present and working: pm/okr/exo/market/engineer
+  all run on schedule (5 workflows in .github/workflows/).
 - [ ] Decide public vs. private repo before any seats run on schedule
-  (public = unlimited Actions minutes, per the playbook).
+  (public = unlimited Actions minutes, per the playbook). *Seats are
+  running on schedule now (line above) — this decision is overdue, not
+  just pending.*
