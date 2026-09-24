@@ -41,3 +41,17 @@ it was the sure bet, and the owner's pain is elsewhere).
 Appetite unchanged: 2026-09-21 → 2026-10-02. Circuit breaker
 unchanged. Betting delegated per the founding minutes; this
 amendment is the owner's own re-bet, recorded by the chair.
+
+## Hill update — 2026-09-20 evening (chair, from PR #4)
+
+- **Bet 1, epitod v0**: `solution known, building ▼ | slice 1 shipped
+  as PR #4 (+738/-48, zero new deps), smoke-tested with the real
+  claude executor: cron fire, 401 on wrong secret, hook coalescing,
+  clean shutdown` — next: slice 2, one HQ seat on a cloud machine.
+  Unknowns to retire on the machine: headless auth via
+  CLAUDE_CODE_OAUTH_TOKEN on Alpine, Dockerfile build, unit start.
+- **Bet 2, identity slice**: `problem-side ▲ | not started; EPI-4 spike
+  measures both App routes` — unchanged.
+- Manifest v0.1 gains two proposed fields in-band: `[runtime].repo`
+  (required by the resident runtime) and `[runtime].ref` (optional).
+  Owner ratifies by merging PR #4.

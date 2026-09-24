@@ -1,0 +1,32 @@
+# epitod v0 as a systemd user unit: the same `epito run` the Dockerfile runs,
+# on any box with node, git, gh, and the claude CLI on PATH.
+#
+#   mkdir -p ~/.config/systemd/user ~/epito/agents ~/epito/state
+#   cp docs/deploy/epitod.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload && systemctl --user enable --now epitod
+#   journalctl --user -u epitod -f
+#
+# Secrets come from /etc/epito/env (root:root 0600, one KEY=value per line):
+# EPITO_HOOK_SECRET, CLAUDE_CODE_OAUTH_TOKEN, GH_TOKEN. The manifest lists
+# the names an agent may see; epito passes only those into each run.
+[Unit]
+Description=epitod v0 - epito resident runtime (epito run)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/epito/state
+EnvironmentFile=/etc/epito/env
+Environment=EPITO_PORT=4747
+ExecStart=/usr/bin/env epito run %h/epito/agents
+Restart=always
+RestartSec=5
+# Runs write clones under $TMPDIR; give the unit its own so cleanup is local.
+PrivateTmp=yes
+NoNewPrivileges=yes
+KillMode=mixed
+TimeoutStopSec=90
+
+[Install]
+WantedBy=default.target
