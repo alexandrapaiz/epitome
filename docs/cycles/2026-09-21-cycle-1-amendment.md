@@ -55,3 +55,7 @@ amendment is the owner's own re-bet, recorded by the chair.
 - Manifest v0.1 gains two proposed fields in-band: `[runtime].repo`
   (required by the resident runtime) and `[runtime].ref` (optional).
   Owner ratifies by merging PR #4.
+
+*Next hill update: 2026-09-21-cycle-1.md's "Hill update — 2026-09-24"
+section — kept there rather than duplicated here so there is one
+current hill per bet, not two files disagreeing.*
