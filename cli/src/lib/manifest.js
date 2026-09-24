@@ -3,8 +3,8 @@
 // with the same rules `epito validate` applies. The error strings are product
 // surface (spec: "name the rule broken, in the product's own vocabulary, with
 // the fix in the message") and must not drift between the two commands.
-import { readFileSync, existsSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
+import { dirname, resolve, join } from "node:path";
 import { parse } from "smol-toml";
 
 export const NAME_RE = /^[a-z0-9-]{1,40}$/;
@@ -81,4 +81,20 @@ export function loadManifest(path) {
   const { manifest, parseError } = parseManifest(path);
   if (parseError) return { manifest: null, errors: [`agent.toml is not valid TOML: ${parseError}`], raw, dir: dirname(path) };
   return { manifest, errors: validateManifest(manifest, { raw, baseDir: dirname(resolve(path)) }), raw, dir: dirname(resolve(path)) };
+}
+
+// Where a roster lives: every agent.toml under a directory, four levels deep.
+// `epito run` hosts them all; `epito token` picks one out by [agent].name.
+// One definition so a name that runs is a name that mints.
+const SKIP = new Set(["node_modules", ".git", ".epito"]);
+
+export function findManifests(dir, depth = 0, out = []) {
+  for (const ent of readdirSync(dir)) {
+    if (SKIP.has(ent)) continue;
+    const p = join(dir, ent);
+    const st = statSync(p);
+    if (st.isDirectory() && depth < 4) findManifests(p, depth + 1, out);
+    else if (ent === "agent.toml") out.push(p);
+  }
+  return out;
 }

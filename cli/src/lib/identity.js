@@ -199,6 +199,20 @@ export async function mintToken(manifest, { env = process.env } = {}) {
     throw new IdentityError(`${name}: GitHub answered ${inst.status} looking up the installation on ${repo} — ${(inst.json?.message ?? inst.text ?? "").slice(0, 200)}`);
   }
 
+  // The bot user behind the App: `app_slug` comes free with the installation,
+  // and the numeric id turns it into the noreply address GitHub links back to
+  // the App's avatar. Best-effort — a run whose commits say
+  // <name>@agents.epito.me is still the agent's run, so a failure here is a
+  // log line, not a refusal.
+  const slug = inst.json.app_slug ?? null;
+  let bot = null;
+  if (slug) {
+    const who = await gh(`${api()}/users/${encodeURIComponent(`${slug}[bot]`)}`, { token: jwt, name });
+    if (who.status === 200 && who.json?.id) {
+      bot = { login: `${slug}[bot]`, email: `${who.json.id}+${slug}[bot]@users.noreply.github.com` };
+    }
+  }
+
   const [, repoName] = repo.split("/");
   const mint = await gh(`${api()}/app/installations/${inst.json.id}/access_tokens`, {
     token: jwt, method: "POST", name,
@@ -219,6 +233,7 @@ export async function mintToken(manifest, { env = process.env } = {}) {
     requested: permissions,
     installationId: inst.json.id,
     appId: creds.appId,
+    slug, bot,
     repo,
   };
 }
@@ -230,6 +245,7 @@ export function mintAudit({ agent, scopes, result, trigger }) {
     agent, action: "token.mint",
     ...(trigger ? { trigger } : {}),
     scopes, repo: result.repo, app: result.appId,
+    ...(result.bot ? { as: result.bot.login } : {}),
     installation: result.installationId,
     permissions: result.permissions,
     expires: result.expiresAt,

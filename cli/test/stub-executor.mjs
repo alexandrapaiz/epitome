@@ -10,7 +10,7 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 
 const argv = process.argv.slice(2);
 const flag = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : null; };
@@ -24,7 +24,15 @@ const prompt = flag("-p") ?? "";
 const transcript = join(dir, `${sessionId}.jsonl`);
 
 const prior = existsSync(transcript) ? readFileSync(transcript, "utf8").trim().split("\n").filter(Boolean) : [];
-writeFileSync(transcript, [...prior, JSON.stringify({ ts: new Date().toISOString(), cwd: process.cwd(), resumed: Boolean(resume), prompt })].join("\n") + "\n");
+// The identity smoke test needs to prove WHICH credential reached the run
+// without ever writing one down: a fingerprint is enough to compare against
+// the token the API stub issued.
+const fingerprint = (v) => (v ? createHash("sha256").update(v).digest("hex").slice(0, 12) : null);
+writeFileSync(transcript, [...prior, JSON.stringify({
+  ts: new Date().toISOString(), cwd: process.cwd(), resumed: Boolean(resume), prompt,
+  gh_token: fingerprint(process.env.GH_TOKEN), github_token: fingerprint(process.env.GITHUB_TOKEN),
+  author: process.env.GIT_AUTHOR_NAME ?? null, author_email: process.env.GIT_AUTHOR_EMAIL ?? null,
+})].join("\n") + "\n");
 
 // First turn of a session opens a PR; a resumed turn refers back to it, which
 // is exactly the continuity the window is for.
