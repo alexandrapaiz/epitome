@@ -14,9 +14,11 @@
 # the token reaches no file on disk; the audit line records the mint without
 # it; the key can live in the environment or in .epito/keys; an unmapped scope
 # fails before any network call; a missing principal, an uninstalled App, a
-# corrupt key, a refused permission set and an unknown agent each fail with a
-# message that names the rule and the fix; and the resident runtime injects a
-# freshly minted token into the run it spawns.
+# corrupt key, a refused permission set, a path that is not a roster and an
+# unknown agent each fail with a message that names the rule and the fix; the
+# resident runtime injects a freshly minted token into the run it spawns; a run
+# log survives a child that prints the credential it was handed; and a mint
+# that would ask GitHub for every permission fails closed instead.
 set -euo pipefail
 
 CLI="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -59,7 +61,7 @@ entry = "prompts/pm.md"
 repo = "acme/roster"
 # GH_TOKEN is listed the pre-identity way, and deliberately holds a value that
 # is not this agent's: the run must override it with the token it mints.
-env = ["EPITO_STUB_DIR", "GH_TOKEN"]
+env = ["EPITO_STUB_DIR", "EPITO_STUB_ECHO_TOKEN", "GH_TOKEN"]
 TOML
 
 seed="$ROOT/seed"; mkdir -p "$seed/prompts"
@@ -163,6 +165,9 @@ try "an unmapped scope is refused, by name, with the mapped ones listed" \
 check "and it refused before calling GitHub at all" '[ ! -s "$REQLOG" ]'
 mv "$ROSTER/pm/agent.toml.bak" "$ROSTER/pm/agent.toml"
 
+try "a directory with no roster in it says so instead of throwing ENOENT" \
+  'is not a directory' bash -c "cd '$STATE' && node '$CLI/src/index.js' token pm '$ROOT/no-such-roster'"
+
 try "an agent with no principal names both places a key can live" \
   'no principal in .epito/principals.json' \
   env -u EPITO_APP_ID_PM -u EPITO_APP_KEY_PM bash -c "cd '$STATE' && node '$CLI/src/index.js' token pm '$ROSTER'"
@@ -214,6 +219,33 @@ check "the minted token reached the agent process as GH_TOKEN" 'grep -q "\"gh_to
 check "GITHUB_TOKEN carries the same credential" 'grep -q "\"github_token_matches\":true" "$TRANSCRIPT"'
 check "the agent's own token outranks the GH_TOKEN it inherited" '! grep -q "ghp_inhe" "$TRANSCRIPT"'
 check "the run's mint is on the audit trail, token-free" '[ "$(grep -c "\"action\":\"mint\"" "$STATE/.epito/audit.jsonl")" -ge 3 ] && ! grep -q "ghs_STUBTOKEN" "$STATE/.epito/audit.jsonl"'
+
+step "a child that prints its credential: the run log is scrubbed, not trusted"
+start_stub ok
+rm -rf "$ROOT/stub2"
+set +e
+LEAKOUT="$(cd "$STATE" && MANIFEST_PATH="$ROSTER/pm/agent.toml" RUNNER_PATH="$CLI/src/lib/runner.js" \
+  MANIFEST_LIB="$CLI/src/lib/manifest.js" EPITO_EXECUTOR="$CLI/test/stub-executor.mjs" \
+  EPITO_STUB_DIR="$ROOT/stub2" EPITO_STUB_ECHO_TOKEN=1 \
+  node "$ROOT/run-once.mjs" 2>"$ROOT/leak-err.txt")"
+set -e
+printf '  %s\n' "$LEAKOUT"
+LEAKLOG="$(find "$STATE/.epito/logs/pm" -name '*.log' | sort | tail -1)"
+printf '  run log tail: %s\n' "$(grep -F 'authentication failed' "$LEAKLOG" || echo '(the leak line never reached the log)')"
+check "the run still succeeded" 'echo "$LEAKOUT" | grep -q "\"exit\":0"'
+check "the leaked line reached the log with the token redacted out of it" \
+  "grep -qF \"authentication failed with token [redacted: this run's token]\" '$LEAKLOG'"
+check "and the token itself is in no file under the working dir" '! grep -rq "ghs_STUBTOKEN" "$STATE"'
+
+step "a mint that would ask GitHub for everything is refused (spec rule 2, failing closed)"
+EMPTY="$(cd "$STATE" && node -e '
+  const { permissionsFor } = await import(process.argv[1]);
+  try { const p = permissionsFor([]); console.log("MINTED " + JSON.stringify(p)); }
+  catch (e) { console.log("REFUSED " + e.message); }
+' --input-type=module "$CLI/src/lib/identity.js" 2>&1 || true)"
+printf '  %s\n' "$EMPTY"
+check "no scopes mints nothing, rather than an all-permissions token" \
+  'echo "$EMPTY" | grep -q "^REFUSED" && echo "$EMPTY" | grep -q "everything this installation can do"'
 
 step "a principal that cannot mint fails the run — it never falls back to a human's token"
 start_stub bad-app

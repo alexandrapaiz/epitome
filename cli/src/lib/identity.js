@@ -57,6 +57,18 @@ export function permissionsFor(scopes) {
       `Fix: remove the scope from agent.toml, or open a card to map it.`
     );
   }
+  // GitHub reads an omitted-or-empty `permissions` as "everything this
+  // installation has" — the exact inverse of rule 2. `epito validate` already
+  // refuses an empty [identity].scopes, so this is unreachable through the
+  // CLI; it is here because the one place the ceiling is enforced is the one
+  // place that must not fail open.
+  if (Object.keys(permissions).length === 0) {
+    throw new Error(
+      `[identity].scopes mapped to no GitHub permission at all, so there is nothing to mint. ` +
+      `GitHub reads an empty permission request as "everything this installation can do", which would hand the agent more than its manifest declares — scopes are the ceiling, so the mint refuses instead. ` +
+      `Fix: declare at least one mintable scope in agent.toml (${Object.keys(SCOPE_MAP).map((s) => `"${s}"`).join(", ")}).`
+    );
+  }
   return permissions;
 }
 

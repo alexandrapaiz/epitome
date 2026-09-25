@@ -37,6 +37,14 @@ writeFileSync(transcript, [...prior, JSON.stringify({
   github_token_matches: Boolean(ghToken) && process.env.GITHUB_TOKEN === ghToken,
 })].join("\n") + "\n");
 
+// A child that prints the credential it was handed is the case the run log has
+// to survive — `gh` has error paths that do exactly this — so the stub can be
+// asked to misbehave on purpose, and smoke-token.sh proves the log is scrubbed
+// rather than trusting a subprocess epito does not control to be discreet.
+if (process.env.EPITO_STUB_ECHO_TOKEN && ghToken) {
+  process.stderr.write(`stub: authentication failed with token ${ghToken}\n`);
+}
+
 // First turn of a session opens a PR; a resumed turn refers back to it, which
 // is exactly the continuity the window is for.
 const pr = process.env.EPITO_STUB_PR || "https://github.com/alexandrapaiz/epitome/pull/999";

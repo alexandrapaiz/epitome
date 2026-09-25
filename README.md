@@ -57,9 +57,15 @@ GH_TOKEN="$(epito token pm agents/)" gh pr create --draft ...
 ```
 
 `epito run` does this itself, once per run, and hands the result to the agent
-process as `GH_TOKEN`/`GITHUB_TOKEN` — which is how a run's commits and pull
-request come from `pm[bot]` rather than from you. Agents with no App of their
-own keep running on the secrets their manifest names.
+process as `GH_TOKEN`/`GITHUB_TOKEN` — which is how a run's pull request is
+opened by `pm[bot]` rather than by you. Agents with no App of their own keep
+running on the secrets their manifest names.
+
+One half of the identity is still short: the *push* and the *PR* are the
+agent's, but the commits inside them are authored as `pm <pm@agents.epito.me>`,
+an address GitHub cannot link to the App, so the commit list shows a name
+without an account. Linking it needs the App's bot user id, which is two more
+API calls; it is logged in `docs/ideas.md` rather than guessed at here.
 
 The App id and private key live in one of two places, never in the manifest:
 

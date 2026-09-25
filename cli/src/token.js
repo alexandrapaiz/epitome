@@ -9,6 +9,7 @@
 // token is never written anywhere: not the audit line, not the log, not a
 // cache. Minting again is cheap; leaking once is not.
 import { resolve } from "node:path";
+import { existsSync, statSync } from "node:fs";
 import { loadManifest } from "./lib/manifest.js";
 import { findManifests } from "./run.js";
 import { loadPrincipal, mintToken, noPrincipalMessage } from "./lib/identity.js";
@@ -21,14 +22,20 @@ const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
 // agent the daemon would run.
 export function findAgent(name, dirArg = ".") {
   const dir = resolve(dirArg);
+  // Say so in the product's voice: a bad path is the likeliest typo here, and
+  // an ENOENT stack trace names no rule and offers no fix.
+  if (!existsSync(dir) || !statSync(dir).isDirectory()) {
+    die(`${dir} is not a directory, so there is no roster there to mint from — \`epito token <name> [dir]\` searches a directory of manifests. Fix: pass the directory the agent's agent.toml lives in, or run this from it.`);
+  }
+  const manifests = findManifests(dir);
   const found = [];
-  for (const p of findManifests(dir)) {
+  for (const p of manifests) {
     const { manifest, errors } = loadManifest(p);
     if (manifest?.agent?.name !== name) continue;
     found.push({ path: p, manifest, errors });
   }
   if (found.length === 0) {
-    const names = findManifests(dir).map((p) => loadManifest(p).manifest?.agent?.name).filter(Boolean);
+    const names = manifests.map((p) => loadManifest(p).manifest?.agent?.name).filter(Boolean);
     die(`no agent named "${name}" under ${dir}${names.length ? ` — the roster there is: ${names.join(", ")}` : " — there is no agent.toml there at all"}. Fix: run this from the directory holding the manifests, or pass it: \`epito token ${name} <dir>\``);
   }
   if (found.length > 1) die(`"${name}" is declared by ${found.length} manifests under ${dir} (${found.map((f) => f.path).join(", ")}) — one manifest, one principal. Fix: delete or rename the duplicate.`);

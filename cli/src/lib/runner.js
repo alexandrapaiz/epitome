@@ -104,7 +104,15 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
   const reused = Boolean(workDir);
   const work = workDir ?? mkdtempSync(join(tmpdir(), `epito-${name}-`));
   const fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
-  const write = (s) => { if (fd !== null) writeSync(fd, s); };
+  // epito never prints this run's token, but the log captures everything the
+  // child prints, and `gh` has error paths that echo the credential it was
+  // handed. So the token is scrubbed on its way to disk: the promise "the
+  // token is written nowhere" has to survive a subprocess we do not control.
+  // Honest limit: a token split across two read boundaries would slip through
+  // this, so it is the second line of defence, not the first.
+  let runToken = null;
+  const scrub = (s) => (runToken ? String(s).split(runToken).join("[redacted: this run's token]") : String(s));
+  const write = (s) => { if (fd !== null) writeSync(fd, scrub(s)); };
   // A clone handed to us belongs to the window, not to this run, so it
   // survives however the run ends. A clone we made is kept only when a window
   // asked for it AND the run got far enough to have a session worth resuming.
@@ -148,8 +156,11 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
 
   // Identity (cycle 1 bet 2). When this agent has a GitHub App of its own, the
   // run gets a token minted for THIS run, scoped to the manifest's
-  // [identity].scopes and to [runtime].repo, so its commits and PR are the
-  // agent's own (`<name>[bot]`) rather than a human's. It overrides whatever
+  // [identity].scopes and to [runtime].repo, so the push and the PR are the
+  // agent's own (`<name>[bot]`) rather than a human's. The commits inside them
+  // are not yet: the git author below is still <name>@agents.epito.me, which
+  // GitHub cannot link to the App without its bot user id (see docs/ideas.md).
+  // It overrides whatever
   // GH_TOKEN arrived through [runtime].env on purpose: the agent's own
   // identity outranks the shared one.
   //
@@ -165,6 +176,7 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
       const minted = await mintToken({ name, scopes: agent.identity?.scopes ?? [], repo: rt.repo, principal });
       env.GH_TOKEN = minted.token;
       env.GITHUB_TOKEN = minted.token;
+      runToken = minted.token;
       identity = { installation: minted.installationId, permissions: minted.permissions, expiresAt: minted.expiresAt, source: principal.source };
       write(`# identity: minted an installation token for ${name} (installation ${minted.installationId}, ${Object.entries(minted.permissions).map(([k, v]) => `${k}:${v}`).join(", ")} on ${minted.repo}, expires ${minted.expiresAt})\n`);
       appendAudit({ agent: name, action: "mint", provider: "github-app", scopes: agent.identity?.scopes ?? [], permissions: minted.permissions, repo: minted.repo, installation: minted.installationId, expiresAt: minted.expiresAt, model: rt.model, run: runId, source: principal.source });
@@ -185,7 +197,7 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
     catch (e) { write(`spawn failed: ${e.message}\n`); return resolve(finish("spawn")); }
     onSpawn?.(child);
     let tail = "";
-    const onData = (d) => { write(d); tail = (tail + d).slice(-64 * 1024); };
+    const onData = (d) => { const s = scrub(d); write(s); tail = (tail + s).slice(-64 * 1024); };
     child.stdout.on("data", onData);
     child.stderr.on("data", onData);
     let timedOut = false;
