@@ -24,8 +24,14 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   (docs/pitches/deploy-identity-v0.md, docs/cycles/2026-09-21-cycle-1.md),
   then reduced by the owner's 2026-09-20 amendment to just the
   token-minting slice the runtime consumes (`epito token <name>`).
-  As of 2026-09-24: no code for it in cli/src — zero visible engineer
-  time this cycle, which ends 2026-10-02.*
+  As of 2026-09-25 the token-minting slice is built and smoke-tested
+  (`epito token <name>`, cli/src/lib/identity.js, injected into `epito
+  run`) — in a draft PR, not merged. Independently built TWICE, by the
+  2026-09-24 and 2026-09-25 engineer runs, because neither could see
+  the other's branch: PR #10 is the one carried forward, PR #9 is the
+  duplicate to close. The remaining half of the card is App creation
+  (`epito deploy`), which needs a browser flow only the owner can
+  drive; ADR-15 proposes the route.*
 - [x] ~~Runtime v0, reshaped as bring-your-own-agent (owner ruling R4)~~
   — overtaken by events: the owner didn't wait for a cycle-2 rewrite,
   she re-bet cycle 1 to the resident runtime directly (the amendment,
