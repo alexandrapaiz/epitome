@@ -7,6 +7,12 @@
 //
 //   EPITO_STUB_DIR   where transcripts live (default $TMPDIR/epito-stub)
 //   EPITO_STUB_PR    a PR url the first run of a session "opens"
+//
+// The transcript records whether a GH_TOKEN reached this child and its first
+// eight characters, which is how smoke-token.sh proves the runtime injected a
+// freshly minted credential rather than passing through an inherited one.
+// Eight characters of a fixture token from the local API stub; a real token
+// never reaches this file, because the real executor is `claude`.
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -24,7 +30,12 @@ const prompt = flag("-p") ?? "";
 const transcript = join(dir, `${sessionId}.jsonl`);
 
 const prior = existsSync(transcript) ? readFileSync(transcript, "utf8").trim().split("\n").filter(Boolean) : [];
-writeFileSync(transcript, [...prior, JSON.stringify({ ts: new Date().toISOString(), cwd: process.cwd(), resumed: Boolean(resume), prompt })].join("\n") + "\n");
+const ghToken = process.env.GH_TOKEN ?? null;
+writeFileSync(transcript, [...prior, JSON.stringify({
+  ts: new Date().toISOString(), cwd: process.cwd(), resumed: Boolean(resume), prompt,
+  gh_token_prefix: ghToken ? ghToken.slice(0, 8) : null,
+  github_token_matches: Boolean(ghToken) && process.env.GITHUB_TOKEN === ghToken,
+})].join("\n") + "\n");
 
 // First turn of a session opens a PR; a resumed turn refers back to it, which
 // is exactly the continuity the window is for.

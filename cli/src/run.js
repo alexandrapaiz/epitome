@@ -38,7 +38,7 @@ const SKIP = new Set(["node_modules", ".git", ".epito"]);
 const ts = () => new Date().toISOString();
 const log = (msg) => console.log(`${ts()} ${msg}`);
 
-function findManifests(dir, depth = 0, out = []) {
+export function findManifests(dir, depth = 0, out = []) {
   for (const ent of readdirSync(dir)) {
     if (SKIP.has(ent)) continue;
     const p = join(dir, ent);

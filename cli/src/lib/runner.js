@@ -9,8 +9,9 @@
 // its config under HOME and, on macOS, reads its OAuth token from the login
 // keychain it finds by USER; on a server the token arrives as
 // CLAUDE_CODE_OAUTH_TOKEN listed in [runtime].env), the names listed in
-// [runtime].env (values read from the daemon's environment), and git
-// author/committer set to the agent's name. Nothing else from the daemon's
+// [runtime].env (values read from the daemon's environment), GH_TOKEN and
+// GITHUB_TOKEN when the agent has a GitHub App principal to mint from
+// (lib/identity.js), and git author/committer set to the agent's name. Nothing else from the daemon's
 // environment leaks into the run: the smoke test found this the honest way,
 // with a "Not logged in" exit until USER was added.
 //
@@ -27,7 +28,8 @@ import { spawn } from "node:child_process";
 import { mkdtempSync, mkdirSync, rmSync, existsSync, openSync, closeSync, writeSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { EPITO_DIR } from "./audit.js";
+import { EPITO_DIR, appendAudit } from "./audit.js";
+import { loadPrincipal, mintToken } from "./identity.js";
 
 const PR_URL_RE = /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/\d+/g;
 
@@ -110,7 +112,7 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
     if (fd !== null) closeSync(fd);
     const hold = reused || (keepWork && typeof exit === "number" && Boolean(extra.sessionId));
     if (!hold) rmSync(work, { recursive: true, force: true });
-    return { exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null, ...extra, workDir: hold ? work : null };
+    return { exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null, identity: null, ...extra, workDir: hold ? work : null };
   };
 
   write(`# epito run ${name} ${runId}\n# trigger=${trigger} model=${rt.model} repo=${rt.repo} ref=${rt.ref ?? "(default)"} executor=${executor}${resume ? ` resume=${resume}` : ""}${reused ? ` workdir=${work} (held)` : ""}\n`);
@@ -143,6 +145,36 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
   if (resume) args.push("--resume", resume);
   const env = { PATH: process.env.PATH, HOME: process.env.HOME, USER: process.env.USER };
   for (const k of rt.env ?? []) if (process.env[k] !== undefined) env[k] = process.env[k];
+
+  // Identity (cycle 1 bet 2). When this agent has a GitHub App of its own, the
+  // run gets a token minted for THIS run, scoped to the manifest's
+  // [identity].scopes and to [runtime].repo, so its commits and PR are the
+  // agent's own (`<name>[bot]`) rather than a human's. It overrides whatever
+  // GH_TOKEN arrived through [runtime].env on purpose: the agent's own
+  // identity outranks the shared one.
+  //
+  // No principal = the pre-identity behaviour, unchanged: the seat runs on the
+  // secrets its manifest names. A principal that FAILS to mint is fatal,
+  // though — an operator who configured an App asked for the agent to act as
+  // itself, and quietly falling back to a human's credential is precisely the
+  // thing this product exists to delete.
+  let identity = null;
+  try {
+    const principal = loadPrincipal(name);
+    if (principal) {
+      const minted = await mintToken({ name, scopes: agent.identity?.scopes ?? [], repo: rt.repo, principal });
+      env.GH_TOKEN = minted.token;
+      env.GITHUB_TOKEN = minted.token;
+      identity = { installation: minted.installationId, permissions: minted.permissions, expiresAt: minted.expiresAt, source: principal.source };
+      write(`# identity: minted an installation token for ${name} (installation ${minted.installationId}, ${Object.entries(minted.permissions).map(([k, v]) => `${k}:${v}`).join(", ")} on ${minted.repo}, expires ${minted.expiresAt})\n`);
+      appendAudit({ agent: name, action: "mint", provider: "github-app", scopes: agent.identity?.scopes ?? [], permissions: minted.permissions, repo: minted.repo, installation: minted.installationId, expiresAt: minted.expiresAt, model: rt.model, run: runId, source: principal.source });
+    }
+  } catch (e) {
+    write(`identity mint failed: ${e.message}\n`);
+    log(`${name}: could not mint this run's identity — ${e.message}`);
+    return finish("mint");
+  }
+
   const email = `${name}@agents.epito.me`;
   Object.assign(env, { GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_COMMITTER_NAME: name, GIT_COMMITTER_EMAIL: email });
   write(`$ ${executor} ${args.map((a) => (a.includes("\n") ? "<prompt>" : a)).join(" ")}\n# env passed: ${Object.keys(env).join(", ")}\n---\n`);
@@ -165,7 +197,7 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
       const pr = prs ? prs[prs.length - 1] : null;
       const { sessionId, turns } = parseExecutorResult(tail);
       write(`\n---\n# exit=${timedOut ? "timeout" : code ?? signal} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}\n`);
-      resolve(finish(timedOut ? "timeout" : (code ?? signal), { pr, sessionId, turns }));
+      resolve(finish(timedOut ? "timeout" : (code ?? signal), { pr, sessionId, turns, identity }));
     });
   });
 }
