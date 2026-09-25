@@ -73,5 +73,8 @@ export async function tokenCmd(name, dirArg = ".") {
   });
 
   console.error(`epito: minted for ${name} — ${Object.entries(minted.permissions).map(([k, v]) => `${k}:${v}`).join(", ")} on ${minted.repo}, installation ${minted.installationId}, expires ${minted.expiresAt}`);
-  process.stdout.write(minted.token + "\n");
+  // Awaited, not fire-and-forget: the caller is `GH_TOKEN="$(epito token pm)"`,
+  // so stdout is a pipe, and a pipe write that has not drained when
+  // process.exit runs is a token that never arrives.
+  await new Promise((done) => process.stdout.write(minted.token + "\n", done));
 }
