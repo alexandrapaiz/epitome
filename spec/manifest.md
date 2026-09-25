@@ -75,6 +75,36 @@ env = []                                # optional: names of secrets the runtime
   is what every HQ seat wants. Exists so a charter can be staged on a
   branch and run before it merges (this PR's own smoke test needs it).
 
+## Proposed in-band (identity slice, cycle 1 bet 2)
+
+Additive clarifications the mint (`epito token <name>`, cli/src/lib/identity.js)
+forced into the open. Neither changes a rule; both write down an answer the
+spec left to the implementation, which is exactly the kind of thing that
+drifts if it stays unwritten.
+
+- **A mapped scope grants write.** v0.1 says scopes map to fine-grained App
+  permissions but never says at which access level. The mint reads them as:
+
+  | scope | GitHub App permission |
+  | --- | --- |
+  | `github:contents` | `contents: write` |
+  | `github:pull_requests` | `pull_requests: write` |
+  | `github:issues` | `issues: write` |
+
+  Write, because every one of the three seat shapes commits, opens PRs, or
+  comments; a read-only agent is a reader, and nothing in v0.1 can express
+  one yet (see the open question below). `metadata: read` is absent because
+  GitHub grants it to every installation implicitly. Anything outside the
+  table fails the mint loudly, naming the scope and the mapped set — the
+  behaviour v0.1 already requires of deploy, now real.
+
+- **`[runtime].repo` bounds the credential, not just the clone.** A minted
+  token is scoped to exactly one repository, and `repo` is what says which.
+  The field is already PROPOSED above as the resident runtime's clone
+  target; this is a second, independent reason it is required in practice.
+  `epito validate` still stays silent when it is absent (Actions-era
+  manifests remain valid); `epito run` and `epito token` both refuse.
+
 ## Open questions (settle before v0.2)
 
 - Scope grammar for non-GitHub platforms (`asana:tasks.write`?
@@ -82,6 +112,12 @@ env = []                                # optional: names of secrets the runtime
   before, per the backlog.
 - Whether `[trigger]` combinations compose (cron + events on one agent)
   or v1 forces exactly one.
+- **Access levels in the scope grammar.** Every mapped scope grants write
+  today (above), so a manifest cannot describe a read-only agent. The
+  grammar already admits a modifier — `github:contents.read` parses — but
+  inventing one before a real read-only agent exists is a guess. Decide with
+  the second integration, alongside the non-GitHub grammar question above,
+  so the two answers are designed together rather than in sequence.
 - Team/roster fields stay OUT of the manifest (a roster references
   manifests, not the reverse) — confirm this survives contact with the
   dogfood migration.

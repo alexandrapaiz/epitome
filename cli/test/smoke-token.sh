@@ -139,6 +139,14 @@ check "signs as the App id from principals.json" 'grep -q "\"iss\":\"998877\"" "
 check "skips discovery when the principal records the installation" '! grep -q "/repos/acme/roster/installation" "$REQLOG"'
 rm -rf "$STATE/.epito/keys" "$STATE/.epito/principals.json"
 
+step "a key written with \\n escapes on one line (what an EnvironmentFile holds)"
+start_stub ok
+ESCAPED="$(node -e 'process.stdout.write(require("fs").readFileSync(process.argv[1],"utf8").replace(/\n/g,"\\n"))' "$KEYS/pm.pem")"
+set +e
+OUT3="$(EPITO_APP_KEY_PM="$ESCAPED" bash -c "cd '$STATE' && node '$CLI/src/index.js' token pm '$ROSTER'" 2>/dev/null)"; RC3=$?
+set -e
+check "mints from a one-line PEM, which is how deploy/provision-host.sh says to store it" "[ $RC3 -eq 0 ] && [ -n \"\$OUT3\" ]"
+
 step "refusals: each names the rule broken and the fix"
 try() { # $1 label, $2 grep, then the command
   local label="$1" want="$2"; shift 2

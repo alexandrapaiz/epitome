@@ -133,6 +133,13 @@ EPITO_PORT=$PORT
 CLAUDE_CODE_OAUTH_TOKEN=replace-me
 GH_TOKEN=replace-me
 SLACK_WEBHOOK_URL=replace-me
+# Per-agent GitHub App identity (optional; \`epito token <name>\`). Two lines per
+# agent, its name uppercased with - as _. When they are here, every run of that
+# agent mints its own short-lived token and its PRs come from <name>[bot]
+# instead of from GH_TOKEN's owner. The key is the .pem GitHub generated,
+# newlines and all, so write it with \n escapes on one line:
+#   EPITO_APP_ID_PM=123456
+#   EPITO_APP_KEY_PM=-----BEGIN RSA PRIVATE KEY-----\nMIIE...\n-----END RSA PRIVATE KEY-----\n
 ENV
   chown "$SEATS_USER:$SEATS_USER" "$BASE/env"; chmod 0600 "$BASE/env"
   umask 022
