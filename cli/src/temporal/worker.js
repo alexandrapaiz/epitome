@@ -15,13 +15,22 @@ import { appendAudit } from "../lib/audit.js";
 
 const require = createRequire(import.meta.url);
 
+// The native connection reports transport failures as a nested Rust error
+// string. An operator needs the reason, not the struct, so pull the sentence
+// out of it and fall back to the whole thing only when there isn't one.
+function connectReason(e) {
+  const raw = String(e?.cause?.message ?? e?.message ?? e);
+  const m = /message: "([^"]+)"/.exec(raw) || /ConnectError\("([^"]+)"/.exec(raw);
+  return m ? m[1] : (e?.cause?.code ?? raw);
+}
+
 export async function runWorker({ env = process.env } = {}) {
   const cfg = temporalEnv(env);
   let connection;
   try {
     connection = await NativeConnection.connect({ address: cfg.address, connectTimeout: "10s" });
   } catch (e) {
-    console.error(`epito: no Temporal server answering at ${cfg.address} (${e.cause?.code ?? e.message}) — start it on the host with runtime/temporal/install.sh, or locally with \`temporal server start-dev\`, and set TEMPORAL_ADDRESS if it is not 127.0.0.1:7233`);
+    console.error(`epito: no Temporal server answering at ${cfg.address} (${connectReason(e)}) — start it on the host with runtime/temporal/install.sh, or locally with \`temporal server start-dev\`, and set TEMPORAL_ADDRESS if it is not 127.0.0.1:7233`);
     process.exit(1);
   }
 
