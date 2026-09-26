@@ -97,7 +97,10 @@ jobs:
             exit 0
           fi
           branch=$(git rev-parse --abbrev-ref HEAD)
-          pr=$(gh pr list --head "$branch" --state all --json number,title,url --jq '.[0]' 2>/dev/null)
+          pr=$(gh pr list --head "$branch" --state all --json number,title,url,body --jq '.[0]' 2>/dev/null)
           title=$(echo "$pr" | jq -r '.title // "no PR opened"'); url=$(echo "$pr" | jq -r '.url // ""')
+          # Prose, not a log line (owner, 2026-09-26: "communications are pretty dead on slack"):
+          # the report is the PR description's opening — its first paragraphs, up to ~900 chars.
+          summary=$(echo "$pr" | jq -r '.body // ""' | sed -e 's/^#\+ *//' -e '/^🤖/d' -e '/^$/N;/^\n$/D' | tr -s '\n' | head -c 900)
           curl -s -X POST -H 'Content-type: application/json' "$SLACK_WEBHOOK_URL" \
-            --data "$(jq -nc --arg t "${{ github.workflow }} · ${{ job.status }} · $title" --arg u "$url" '{text: ($t + (if $u != "" then "\n" + $u else "" end))}')" >/dev/null || true
+            --data "$(jq -nc --arg t "*${{ github.workflow }}* · ${{ job.status }} · $title" --arg s "$summary" --arg u "$url" '{text: ($t + (if $s != "" then "\n" + $s else "" end) + (if $u != "" then "\n" + $u else "" end))}')" >/dev/null || true
