@@ -5,6 +5,17 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Owner-directed (2026-09-26, synchronous session): four
+  priorities, in order** — 1) the task manager/board replacing Linear
+  (own store; seats cannot create views; run reports live on the
+  board; docs/prfaq/task-board-v0.md), 2) Temporal as the runtime
+  engine (HQ ADR-036; server live on the host) — **already in flight**,
+  PR #11, 3) the LangGraph implementation with tracing (Phoenix
+  installed), 4) the router. Own-model hosting (vLLM) is dropped —
+  not a card, a closed question. Seat: engineer, one at a time
+  (WIP limit already in force per the hard-stop on dispatching a seat
+  whose last PR is still open).
+
 - [x] Owner-directed (2026-09-20): runtime v0 resident — presence for epitod per docs/pitches/runtime-v0-resident.md. **Shipped 2026-09-24**: slice 1 (PR #4, epitod v0) + slice 2 (PR #6, held sessions/mailbox/windows/Slack/host) both merged; `deploy/provision-host.sh` hardened by four owner commits since against a real Oracle host (iptables vendor rule, HOME path, GH_TOKEN ordering, closing-hint text). Not independently verified from the repo: the pitch's full "done when" (HQ's pm manifest actually resident on the VM, a held window, a Slack post) — code and smoke tests exist, a live run does not show in this repo.
 
 - [ ] **Manifest spec v0.1 frozen** — spec/manifest.md reviewed against
@@ -83,11 +94,12 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   dollars; .me is Montenegro's registry — dictionary-adjacent names can
   be premium-priced, confirm at checkout).
 - [ ] **Make the repo public before the passport ships** (owner ruling R3, 2026-09-20). Timing: at the passport's first publish. Prereq: security seat audits history for anything personal; the manifest rule (nothing personal in files) has held since founding, verify it.
-- [ ] **LINEAR_API_KEY repo secret** (personal API key from Linear
-  settings) + name the Linear team/workspace the PM mirrors to (ADR-5).
-  Optional until the PM's first run; the seat skips the mirror cleanly
-  without it. *Still absent as of 2026-09-24 — this run skipped the
-  mirror per charter.*
+- [x] ~~LINEAR_API_KEY repo secret~~ — **superseded, 2026-09-26**: owner
+  directive tonight (synchronous session, priority 1 of four) replaces
+  Linear with an owned task manager/board (own store; seats cannot
+  create views; run reports live on the board). See
+  docs/prfaq/task-board-v0.md. No owner action needed on the Linear
+  key; ADR-5's Linear-mirror clause is superseded pending that build.
 - [x] `claude setup-token` → CLAUDE_CODE_OAUTH_TOKEN repo secret, when
   ready to stand up seats. Present and working: pm/okr/exo/market/engineer
   all run on schedule (5 workflows in .github/workflows/).
