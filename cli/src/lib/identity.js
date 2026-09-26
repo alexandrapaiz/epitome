@@ -240,9 +240,11 @@ export async function installationFor(jwt, repo) {
 // — which needs two facts that are in neither the manifest nor the App key:
 // the App's slug (GET /app, as the App) and the bot user's numeric id
 // (GET /users/<slug>[bot], as the installation; a JWT is not accepted there).
-// Both are fixed for the life of the App, so they are read once per App per
-// process. Without this the commits carry `<name>@agents.epito.me`, an
-// address that belongs to nobody and links to nothing.
+// Neither changes unless the App is renamed, so they are read once per App per
+// process — a worker restarts often enough that a rename catches up, and the
+// cost of being a day late on an avatar is smaller than two API calls on every
+// mint. Without this the commits carry `<name>@agents.epito.me`, an address
+// that belongs to nobody and links to nothing.
 const botCache = new Map();
 
 export async function commitIdentityFor({ appId, jwt, token }) {
@@ -295,7 +297,7 @@ export async function mintToken({ name, scopes, repo, principal, log }) {
   let commit = null;
   try { commit = await commitIdentityFor({ appId: principal.appId, jwt, token: res.token }); }
   catch (e) {
-    log?.(`${name}: minted, but could not read this App's bot identity (${e.message}) — the run opens its PR as the bot either way, and its commits fall back to ${name}@agents.epito.me, which GitHub cannot link to the App`);
+    log?.(`minted, but could not read this App's bot identity (${e.message}) — the run opens its PR as the bot either way, and its commits fall back to ${name}@agents.epito.me, which GitHub cannot link to the App`);
   }
   return { token: res.token, expiresAt: res.expires_at, permissions, repo, installationId, commit };
 }
