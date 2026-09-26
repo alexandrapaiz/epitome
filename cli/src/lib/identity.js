@@ -77,7 +77,15 @@ export function permissionsFor(scopes) {
 // daemon can host a roster without any of them sharing a credential.
 export const envNames = (name) => {
   const slug = name.toUpperCase().replace(/-/g, "_");
-  return { id: `EPITO_APP_ID_${slug}`, key: `EPITO_APP_KEY_${slug}`, installation: `EPITO_INSTALLATION_ID_${slug}` };
+  return {
+    id: `EPITO_APP_ID_${slug}`,
+    key: `EPITO_APP_KEY_${slug}`,
+    // A PEM is multi-line and a systemd EnvironmentFile is not, so the value
+    // form has to be escaped by hand. Pointing at the .pem GitHub downloaded
+    // is the form an operator can rotate without re-escaping anything.
+    keyFile: `EPITO_APP_KEY_FILE_${slug}`,
+    installation: `EPITO_INSTALLATION_ID_${slug}`,
+  };
 };
 
 // Where an agent's credentials come from, in order:
@@ -112,7 +120,16 @@ export function loadPrincipal(name, { env = process.env, dir = "." } = {}) {
 
   const n = envNames(name);
   const appId = env[n.id];
+  const keyFile = env[n.keyFile];
   const key = env[n.key];
+  if (appId && keyFile) {
+    let pem;
+    try { pem = readFileSync(keyFile, "utf8"); }
+    catch (e) {
+      throw new Error(`$${n.keyFile} points at ${keyFile}, which this machine cannot read (${e.code ?? e.message}) — that file is "${name}"'s GitHub App private key, and without it the agent has no identity to mint from. Fix: put the .pem GitHub downloaded there (0600, readable by the user the runtime runs as), or unset $${n.keyFile} and use $${n.key} instead.`);
+    }
+    return { appId: String(appId), privateKey: pem, installationId: env[n.installation] ?? null, source: `$${n.id}/$${n.keyFile}` };
+  }
   if (appId && key) {
     return {
       appId: String(appId),
@@ -129,8 +146,8 @@ export function loadPrincipal(name, { env = process.env, dir = "." } = {}) {
 // message, so `epito token` and `epito run` never disagree about the fix.
 export function noPrincipalMessage(name) {
   const n = envNames(name);
-  return `"${name}" has no identity to mint from: no principal in ${PRINCIPALS_PATH} with a key at ${KEYS_DIR}/${name}.pem, and no $${n.id} + $${n.key} in the environment. ` +
-    `Fix: put the agent's GitHub App id and private key on this machine under those two names (0600, or a systemd EnvironmentFile), or run \`epito deploy\` once the mint lands to create them.`;
+  return `"${name}" has no identity to mint from: no principal in ${PRINCIPALS_PATH} with a key at ${KEYS_DIR}/${name}.pem, and no $${n.id} with either $${n.keyFile} or $${n.key} in the environment. ` +
+    `Fix: put the agent's GitHub App id and private key on this machine under those names (the key as a .pem at 0600 named by $${n.keyFile}, or escaped into $${n.key}), or run \`epito deploy\` once the mint lands to create them.`;
 }
 
 const b64url = (buf) => Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");

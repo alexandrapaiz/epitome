@@ -34,6 +34,7 @@ epito validate  # check the manifest
 epito run       # put a roster on the runtime: a schedule per trigger, plus the ingress
 epito worker    # do the work: run seats off the queue
 epito ps        # the roster, read from the runtime
+epito token     # mint one agent's own short-lived GitHub token
 epito deploy    # mint identity, wire trigger, start runtime  (platform, WIP)
 ```
 

@@ -15,7 +15,7 @@ import { webhookName } from "../src/lib/slack.js";
 import { isCloneDir, cloneDirPrefix, executeAgent } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP } from "../src/lib/identity.js";
 import { generateKeyPairSync, createVerify } from "node:crypto";
-import { readFileSync, mkdtempSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { seatOfWorkflowId, scheduleId, runId, windowId } from "../src/temporal/env.js";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -206,9 +206,30 @@ test("appJwt refuses a key that is not an RSA PEM, in the product's voice", () =
 });
 
 test("one agent, one App key: the env names are per agent and slug-safe", () => {
-  assert.deepEqual(envNames("pm"),
-    { id: "EPITO_APP_ID_PM", key: "EPITO_APP_KEY_PM", installation: "EPITO_INSTALLATION_ID_PM" });
+  assert.deepEqual(envNames("pm"), {
+    id: "EPITO_APP_ID_PM", key: "EPITO_APP_KEY_PM",
+    keyFile: "EPITO_APP_KEY_FILE_PM", installation: "EPITO_INSTALLATION_ID_PM",
+  });
   assert.equal(envNames("run-reports").key, "EPITO_APP_KEY_RUN_REPORTS");
+});
+
+test("a key can be a .pem on disk, which is what a systemd EnvironmentFile needs", () => {
+  const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const pem = privateKey.export({ type: "pkcs1", format: "pem" }).toString();
+  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const keyPath = join(dir, "pm.pem");
+  writeFileSync(keyPath, pem, { mode: 0o600 });
+  const p = loadPrincipal("pm", { env: { EPITO_APP_ID_PM: "7", EPITO_APP_KEY_FILE_PM: keyPath }, dir });
+  assert.equal(p.privateKey, pem);
+  assert.equal(p.source, "$EPITO_APP_ID_PM/$EPITO_APP_KEY_FILE_PM", "the audit line says where the key came from");
+  // A key file that is named and missing is a misconfiguration, not a reason
+  // to fall through to somebody else's credential.
+  assert.throws(() => loadPrincipal("pm", { env: { EPITO_APP_ID_PM: "7", EPITO_APP_KEY_FILE_PM: join(dir, "gone.pem") }, dir }),
+    (e) => {
+      assert.match(e.message, /cannot read/);
+      assert.match(e.message, /Fix:/);
+      return true;
+    });
 });
 
 test("loadPrincipal reads a PEM whose newlines arrived escaped, and is null with no App", () => {

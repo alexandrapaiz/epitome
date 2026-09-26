@@ -124,6 +124,9 @@ say "user $SEATS_USER and $BASE"
 id -u "$SEATS_USER" >/dev/null 2>&1 || useradd --system --create-home --home-dir "/home/$SEATS_USER" --shell /usr/sbin/nologin "$SEATS_USER"
 install -d -m 0755 -o "$SEATS_USER" -g "$SEATS_USER" "$BASE" "$BASE/repos" "$BASE/state"
 install -d -m 0700 -o "$SEATS_USER" -g "$SEATS_USER" "$BASE/home"
+# Where a per-agent GitHub App private key goes. 0700, so a .pem dropped here
+# is unreadable by anyone but the runtime even if its own mode is wrong.
+install -d -m 0700 -o "$SEATS_USER" -g "$SEATS_USER" "$BASE/keys"
 # HOME for the daemon and every run is $BASE/home, not /home/$SEATS_USER: the
 # claude executor writes its config and held sessions under HOME, and the unit
 # below mounts /home read-only (ProtectHome) while $BASE is the only writable path.
@@ -150,10 +153,20 @@ GH_TOKEN=replace-me
 # The default webhook, which is #hq. A seat that wants its own channel names a
 # different variable in [runtime].slack_webhook_env and it is added here.
 SLACK_WEBHOOK_URL=replace-me
+# Per-agent identity (optional; docs/deploy/README.md, "Giving an agent its own
+# identity"). Two lines per agent, its [agent].name uppercased with - as _.
+# When they are here, every run of that agent mints its own short-lived token
+# and its PRs open as <name>[bot] instead of as GH_TOKEN's owner; when they are
+# not, nothing changes. A key is a .pem at $BASE/keys/<agent>.pem, 0600, seats-
+# owned -- an EnvironmentFile has no multi-line values, which is exactly the
+# problem the FILE form exists to avoid.
+#   EPITO_APP_ID_PM=123456
+#   EPITO_APP_KEY_FILE_PM=$BASE/keys/pm.pem
 ENV
   chown "$SEATS_USER:$SEATS_USER" "$BASE/env"; chmod 0600 "$BASE/env"
   umask 022
   echo "  wrote $BASE/env with a fresh EPITO_HOOK_SECRET; fill in the three replace-me lines"
+  echo "  $BASE/keys/ is where a per-agent GitHub App .pem goes (0600); no agent needs one to run"
   echo "  TEMPORAL_ADDRESS=127.0.0.1:7233 TEMPORAL_NAMESPACE=asc assumed: change them if the engine is elsewhere"
 fi
 

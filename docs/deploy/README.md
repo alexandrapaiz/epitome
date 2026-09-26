@@ -40,7 +40,12 @@ a second copy of what is running is a second copy that can be wrong.
 | `EPITO_MAX_CONCURRENT_RUNS` | `4` | how many seat runs one worker will hold at once |
 | `EPITO_EXECUTOR` | `claude` | the binary the `execute` activity spawns |
 | `CLAUDE_CODE_OAUTH_TOKEN` / `ANTHROPIC_API_KEY` | — | the executor's auth, only if a manifest lists it |
-| `GH_TOKEN` | — | clone/push/`gh pr create` for now (bet 2 replaces it with a per-agent App token) |
+| `GH_TOKEN` | — | the roster-wide credential: the worker clones with it, and a seat that has no App of its own pushes and opens PRs with it |
+| `EPITO_APP_ID_<NAME>` | — | one agent's own GitHub App, so its PRs open as `<name>[bot]` — see below |
+| `EPITO_APP_KEY_FILE_<NAME>` | — | path to that App's `.pem` (0600). Preferred: an `EnvironmentFile` has no multi-line values |
+| `EPITO_APP_KEY_<NAME>` | — | the PEM inline instead, newlines written `\n` |
+| `EPITO_INSTALLATION_ID_<NAME>` | — | optional: skip the installation lookup when you already know the id |
+| `EPITO_GITHUB_API` | `https://api.github.com` | where tokens are minted; for GitHub Enterprise, and for the smoke test's local stub |
 | `SLACK_WEBHOOK_URL` | — | the default webhook, which is `#hq` |
 | `SLACK_WEBHOOK_URL_<PRODUCT>` | — | a per-seat webhook, named by that seat's `[runtime].slack_webhook_env` |
 
@@ -49,6 +54,66 @@ argument in plain text, so the manifests carry secret *names* and the worker's
 own environment carries the values. Both units still read the same
 `EnvironmentFile` on the company host, because one file is easier to rotate
 than two, but nothing in the design requires the ingress to hold a token.
+
+## Giving an agent its own identity
+
+Without this, every seat on the box pushes with the same `GH_TOKEN` and every
+PR is opened by whoever owns it. With it, a seat is a principal: its PR opens
+as `<name>[bot]`, and its reach is exactly `[identity].scopes` on exactly
+`[runtime].repo`, for one hour at a time.
+
+Once per agent, by hand — the one-click creation flow is `epito deploy`, which
+is not built yet:
+
+1. GitHub → Settings → Developer settings → GitHub Apps → **New GitHub App**.
+   Name it for the agent; App names are globally unique on GitHub, so expect
+   to add a suffix.
+2. Give it the repository permissions the agent's scopes map to. `epito token
+   <name> --dry-run` prints exactly that list and asks GitHub nothing. Nothing
+   more than that list: the App's own permissions are the outer ceiling, and
+   the manifest can only narrow them.
+3. **Install** it on the agent's `[runtime].repo` alone (Only select
+   repositories). An App installed nowhere mints nothing, however valid its
+   key — and the mint says exactly that if you skip this.
+4. Generate a private key. GitHub downloads the `.pem` once.
+5. Put the id and the key on the box, in the same `EnvironmentFile` the units
+   already read:
+
+```sh
+install -m 600 -o seats -g seats ~/Downloads/pm.2026-09-26.private-key.pem /srv/asc/keys/pm.pem
+printf 'EPITO_APP_ID_PM=1234567\nEPITO_APP_KEY_FILE_PM=/srv/asc/keys/pm.pem\n' >> /srv/asc/env
+systemctl restart epitod-worker        # the WORKER mints; the ingress never sees a key
+```
+
+`<NAME>` is `[agent].name` upper-cased with `-` as `_`: the agent
+`daily-builder` reads `EPITO_APP_ID_DAILY_BUILDER`. Then prove it before a
+schedule depends on it:
+
+```sh
+epito token pm /srv/asc/agents --dry-run   # the mapping only: no network, no key
+epito token pm /srv/asc/agents             # the real mint; the token is stdout, alone
+```
+
+Three rules the runtime keeps, each asserted in `cli/test/smoke-temporal.sh`:
+
+- **Per run, never stored.** Each run mints its own token inside the `execute`
+  activity and forgets it. It reaches the run as `GH_TOKEN`/`GITHUB_TOKEN` in
+  the child's environment and is written nowhere: not the clone, not the run
+  log (which scrubs it, because `gh` echoes what it was handed), and not
+  Temporal — an activity that *returned* a token would be an activity that
+  filed it in the engine's database in plain text. `.epito/audit.jsonl` records
+  every mint — agent, scopes, permissions, installation, expiry — and never
+  the token.
+- **The minted token wins.** If `[runtime].env` also names `GH_TOKEN`, the
+  agent's own credential is used instead, and the run log says so by name.
+- **No silent fallback.** An agent with no App runs on the shared `GH_TOKEN`
+  exactly as it did before. An agent that *has* one and cannot mint stops, and
+  the run is recorded `exit=mint` with the reason. A PR opened by the wrong
+  identity is worse than a PR not opened.
+
+The commits inside those PRs are a separate question and are **not** solved
+here: the git author is still `<name>@agents.epito.me`, which GitHub cannot
+link to the App without the bot user's own id. See `docs/ideas.md`.
 
 ## The ingress
 
