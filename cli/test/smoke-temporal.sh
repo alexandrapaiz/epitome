@@ -254,8 +254,13 @@ check "both turns ran in the SAME clone" "[ \$(node -e 'const l=require(\"fs\").
 check "the agent answered in context (it names its own PR)" "grep -q 'my PR is still' .epito/logs/pm/*.log"
 
 step "4: IDENTITY — pm's runs minted their own credential, and the log never saw it"
-audit "both pm runs minted, and the audit line carries everything but the token" '{"agent":"pm","action":"mint","provider":"github-app","installation":"4242","repo":"acme/roster"}' 2
-audit "the permissions minted are exactly what [identity].scopes maps to" '{"agent":"pm","action":"mint","permissions":{"contents":"write","pull_requests":"write"}}' 2
+# Three mints for two runs, and that is the design: law 7 forbids a token
+# crossing an activity boundary, so the clone and the run each ask for their
+# own. The resumed run borrows the open window's clone, so it mints once.
+audit "every pm mint carries everything about the credential except the credential" '{"agent":"pm","action":"mint","provider":"github-app","installation":"4242","repo":"acme/roster"}' 3
+audit "the permissions minted are exactly what [identity].scopes maps to" '{"agent":"pm","action":"mint","permissions":{"contents":"write","pull_requests":"write"}}' 3
+audit "the fresh run minted once for its clone" '{"agent":"pm","action":"mint","phase":"clone"}' 1
+audit "and once for the run itself — both runs, including the resumed one" '{"agent":"pm","action":"mint","phase":"run"}' 2
 check "no audit line anywhere contains a token" "! grep -q '$STUB_TOKEN' .epito/audit.jsonl"
 check "the child was handed the MINTED token, not the shared one" "grep -q 'GH_TOKEN=\[redacted' .epito/logs/pm/*.log"
 check "and the run log holds no copy of it, though the child printed one" "! grep -q '$STUB_TOKEN' .epito/logs/pm/*.log"
@@ -264,6 +269,24 @@ check "the log says which identity won, by name" "grep -qF 'GH_TOKEN from [runti
 printf '  github stub saw:\n'; sed 's/^/    /' "$GH_LOG"
 check "GitHub verified the JWT epito signed, against the App's public key" "node '$CLI/test/gh-asked.mjs' jwt '$GH_LOG' 1234"
 check "every mint asked for those permissions on THAT ONE repository" "node '$CLI/test/gh-asked.mjs' mint '$GH_LOG' contents:write,pull_requests:write roster"
+
+step "4 (the clone): the git clone in front of the run is the agent's too"
+# The box's own helper (deploy/provision-host.sh wires it to the roster-wide
+# human GH_TOKEN) is reset for the clone of a seat that has an App. Proved
+# against a server that demands the credential in cli/test/unit.mjs — "the
+# clone authenticates as the agent, over the box's own helper"; here the claim
+# is that the runtime actually takes that path, and says which one it took.
+check "pm's clone ran on pm's own minted token" "grep -qF \"clone credential: this run's own minted token\" .epito/logs/pm/*.log"
+check "and the clone log holds no copy of it" "! grep -q '$STUB_TOKEN' .epito/logs/pm/*.log"
+check "a seat with no App clones exactly as it did before the slice" "grep -qF 'clone credential: this machine' .epito/logs/clock/*.log"
+none "and clock still minted nothing, for the clone either" '{"agent":"clock","action":"mint"}'
+
+step "4 (the commits): a PR that opens as the bot, with commits GitHub links to it"
+check "GET /app was asked as the App and GET /users as the INSTALLATION" "node '$CLI/test/gh-asked.mjs' bot '$GH_LOG' 'epito-seat-1234[bot]'"
+audit "the audit line records the address the commits were authored with" '{"agent":"pm","action":"mint","commit":{"name":"epito-seat-1234[bot]","email":"99001+epito-seat-1234[bot]@users.noreply.github.com"}}' 3
+check "pm's run committed as the App's own bot user" "grep -qF 'commits authored as epito-seat-1234[bot] <99001+epito-seat-1234[bot]@users.noreply.github.com>' .epito/logs/pm/*.log"
+check "and the log says why that address is the one that links" "grep -qF 'GitHub links every commit in the PR to the agent' .epito/logs/pm/*.log"
+check "a seat with no App keeps the old convention, and is told it links to nothing" "grep -qF 'commits authored as clock <clock@agents.epito.me>' .epito/logs/clock/*.log && grep -qF 'links to no account' .epito/logs/clock/*.log"
 
 step "4 (no silent fallback): an agent that HAS an App and cannot mint does not run"
 code=$(post /window/open '{"scope":"badkey"}'); echo "  $code $(body)"
@@ -280,6 +303,7 @@ TOKEN_OUT=$(node "$CLI/src/index.js" token pm "$ROSTER" 2> "$ROOT/token.err"); r
 printf '  stdout> %s\n  stderr> %s\n' "$TOKEN_OUT" "$(cat "$ROOT/token.err")"
 check "it exits 0 and stdout is the token ALONE, so \$(epito token pm) works" "[ $rc = 0 ] && [ \"$TOKEN_OUT\" = '$STUB_TOKEN' ]"
 check "the human summary went to stderr, naming installation and expiry" "grep -q 'minted for pm' '$ROOT/token.err' && grep -q 'installation 4242' '$ROOT/token.err'"
+check "and it hands back the commit address, so a scripted \`gh pr create\` can match it" "grep -qF 'GIT_AUTHOR_EMAIL=\"99001+epito-seat-1234[bot]@users.noreply.github.com\"' '$ROOT/token.err'"
 check "stderr holds no token either" "! grep -q '$STUB_TOKEN' '$ROOT/token.err'"
 node "$CLI/src/index.js" token pm "$ROSTER" --dry-run | sed 's/^/  /'
 check "--dry-run says what it would ask for, with no request to GitHub" "before=\$(wc -l < '$GH_LOG'); node '$CLI/src/index.js' token pm '$ROSTER' --dry-run | grep -q 'pull_requests: write' && [ \$(wc -l < '$GH_LOG') = \$before ]"

@@ -8,6 +8,8 @@
 //
 // modes: ok (default) | not-installed (404 on installation lookup)
 //        | bad-app (401 on installation lookup) | refuse-perms (422 on mint)
+//        | no-bot (404 on GET /app, so the commit-identity lookup fails and
+//                 the run must degrade loudly instead of stopping)
 import { createServer } from "node:http";
 import { createVerify } from "node:crypto";
 import { readFileSync, appendFileSync } from "node:fs";
@@ -17,6 +19,9 @@ const pub = readFileSync(pubPath, "utf8");
 const record = (o) => appendFileSync(logPath, JSON.stringify(o) + "\n");
 
 const unb64 = (s) => Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64");
+
+// The token this stub mints, and the only installation credential it honours.
+const INSTALLATION_TOKEN = "ghs_STUBTOKEN0000000000000000000000000000";
 
 // Returns { ok: true, claims } or { ok: false, why }.
 function verifyJwt(auth) {
@@ -45,8 +50,30 @@ createServer((req, res) => {
   req.on("end", () => {
     const send = (code, obj) => { res.writeHead(code, { "content-type": "application/json" }); res.end(JSON.stringify(obj)); };
     const jwt = verifyJwt(req.headers.authorization);
+
+    // GET /users/<login> is the one endpoint the mint reaches as the
+    // INSTALLATION rather than as the App — GitHub does not accept an App JWT
+    // there, so neither does this. Checking it here is the point: it is what
+    // proves epito sends the right kind of credential to the right endpoint.
+    const user = /^\/users\/(.+)$/.exec(req.url);
+    if (req.method === "GET" && user) {
+      const asInstallation = req.headers.authorization === `Bearer ${INSTALLATION_TOKEN}`;
+      record({ method: req.method, url: req.url, jwtOk: false, why: asInstallation ? null : "not the installation token", iss: null, body: null });
+      if (!asInstallation) return send(401, { message: "stub: /users wants the installation token, not the App JWT" });
+      const login = decodeURIComponent(user[1]);
+      return send(200, { login, id: 99001, type: "Bot" });
+    }
+
     record({ method: req.method, url: req.url, jwtOk: jwt.ok, why: jwt.why ?? null, iss: jwt.claims?.iss ?? null, body: body || null });
     if (!jwt.ok) return send(401, { message: `stub rejected the JWT: ${jwt.why}` });
+
+    // GET /app: who this App is. The slug is what names the bot user, so it
+    // is derived from the App id the JWT claims rather than fixed — a roster
+    // with two Apps must not look like one.
+    if (req.method === "GET" && req.url === "/app") {
+      if (mode === "no-bot") return send(404, { message: "Not Found" });
+      return send(200, { id: Number(jwt.claims.iss), slug: `epito-seat-${jwt.claims.iss}`, name: `epito seat ${jwt.claims.iss}` });
+    }
 
     const inst = /^\/repos\/([^/]+)\/([^/]+)\/installation$/.exec(req.url);
     if (req.method === "GET" && inst) {
@@ -60,7 +87,7 @@ createServer((req, res) => {
       if (mode === "refuse-perms") return send(422, { message: "There is at least one repository that does not exist or is not accessible to the parent installation" });
       const asked = JSON.parse(body || "{}");
       return send(201, {
-        token: "ghs_STUBTOKEN0000000000000000000000000000",
+        token: INSTALLATION_TOKEN,
         expires_at: new Date(Date.now() + 3600_000).toISOString(),
         permissions: asked.permissions ?? {},
         repository_selection: asked.repositories ? "selected" : "all",
@@ -68,4 +95,8 @@ createServer((req, res) => {
     }
     send(404, { message: `stub has no route for ${req.method} ${req.url}` });
   });
-}).listen(Number(port), "127.0.0.1", () => console.log(`github-stub on ${port} (${mode})`));
+}).listen(Number(port), "127.0.0.1", function () {
+  // The BOUND port, not the asked-for one, so a caller may pass 0 and read the
+  // real one back off this line instead of racing for a fixed port.
+  console.log(`github-stub on ${this.address().port} (${mode})`);
+});
