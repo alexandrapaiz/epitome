@@ -65,6 +65,20 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
     if (r.env && Array.isArray(r.env)) for (const e of r.env) {
       if (typeof e !== "string" || /[=:]/.test(e)) errors.push(`[runtime].env carries secret NAMES only, and "${e}" doesn't look like one — values never appear in the manifest`);
     }
+    // Per-agent Slack routing: the name of the webhook secret this agent
+    // posts to, so a product seat can speak in its own channel instead of
+    // #hq. It is a NAME like every other secret reference, and the same rule
+    // applies: a name the manifest does not list under [runtime].env is never
+    // injected into a run, so a webhook name that isn't listed can never
+    // resolve to a value.
+    if (r.slack_webhook_env !== undefined) {
+      const w = r.slack_webhook_env;
+      if (typeof w !== "string" || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(w)) {
+        errors.push(`[runtime].slack_webhook_env "${w}" must be the NAME of an environment variable (letters, digits, underscore) — the webhook URL itself never appears in the manifest`);
+      } else if (!(Array.isArray(r.env) && r.env.includes(w))) {
+        errors.push(`[runtime].slack_webhook_env names "${w}", so "${w}" must also be listed in [runtime].env — the runtime injects only the names the manifest lists, so an unlisted webhook can never resolve to a value`);
+      }
+    }
   }
 
   // Rule 1: nothing personal in the file — cheap tripwires for pasted credentials.

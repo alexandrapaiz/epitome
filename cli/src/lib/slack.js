@@ -3,8 +3,14 @@
 //
 // An agent opts in by listing SLACK_WEBHOOK_URL under [runtime].env — the
 // same rule that governs every other secret name: the manifest names it, the
-// daemon's environment holds the value, and an agent that doesn't list it
+// runtime's environment holds the value, and an agent that doesn't list it
 // gets no post. No dependency: node's global fetch does it.
+//
+// Per-agent routing: [runtime].slack_webhook_env names a DIFFERENT webhook
+// secret, so a product seat can post to its own channel while the default
+// SLACK_WEBHOOK_URL keeps going to #hq. The validator already refuses a
+// slack_webhook_env that isn't also listed under [runtime].env, which is what
+// makes "the manifest names every secret it can see" stay true here.
 //
 // The line reads like a status board, not a paragraph:
 //   pm · message · 3 turns · 12s · https://github.com/owner/repo/pull/6
@@ -27,11 +33,20 @@ export function formatLine({ agent, trigger, turns, pr, durationMs, exit }) {
 
 // Returns { posted: true } or { posted: false, reason }. Never throws: a Slack
 // outage must not take a run down with it.
-export async function postToSlack({ agent, manifest, env = process.env, fetchImpl = globalThis.fetch, ...line }) {
+// The secret name this agent's line goes to, or null if it opted out.
+export function webhookName(manifest) {
   const names = manifest?.runtime?.env ?? [];
-  if (!Array.isArray(names) || !names.includes("SLACK_WEBHOOK_URL")) return { posted: false, reason: "not listed in [runtime].env" };
-  const url = env.SLACK_WEBHOOK_URL;
-  if (!url) return { posted: false, reason: "SLACK_WEBHOOK_URL is listed in [runtime].env but unset in the daemon's environment" };
+  if (!Array.isArray(names)) return null;
+  const routed = manifest?.runtime?.slack_webhook_env;
+  if (typeof routed === "string" && routed) return names.includes(routed) ? routed : null;
+  return names.includes("SLACK_WEBHOOK_URL") ? "SLACK_WEBHOOK_URL" : null;
+}
+
+export async function postToSlack({ agent, manifest, env = process.env, fetchImpl = globalThis.fetch, ...line }) {
+  const name = webhookName(manifest);
+  if (!name) return { posted: false, reason: "not listed in [runtime].env" };
+  const url = env[name];
+  if (!url) return { posted: false, reason: `${name} is listed in [runtime].env but unset in the runtime's environment` };
   const text = formatLine({ agent, ...line });
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), TIMEOUT_MS);

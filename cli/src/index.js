@@ -10,13 +10,21 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
 
   epito init [name]   scaffold agent.toml and a charter (alias: epito me)
   epito validate      check agent.toml against spec v0.1
-  epito run <dir>     resident runtime: host every agent.toml under <dir>
-  epito ps            roster of the running daemon (reads .epito/state.json)
+  epito run <dir>     put every agent.toml under <dir> on the runtime: one
+                      schedule per [trigger].cron, then serve the ingress
+                      (--dry-run prints the schedule changes and stops)
+  epito worker        do the work: poll the \`seats\` task queue and run seats
+  epito ps [dir]      the roster, read from the runtime
   epito window open|close [scope] [text]
-                      open (default 4h) or close work windows on the daemon
+                      open (default 4h) or close work windows
   epito message <name> "..."
                       speak to an agent in the session its window holds
   epito deploy        provision the agent (not yet: platform in progress)
+
+The runtime is two processes and one engine: \`epito run\` reconciles and
+serves the ingress, \`epito worker\` executes, and Temporal (self-hosted,
+TEMPORAL_ADDRESS, default 127.0.0.1:7233) is what makes a run survive a
+reboot. See docs/prfaq/epitod-v1-temporal.md.
 `;
 
 const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
@@ -71,13 +79,19 @@ if (cmd === "validate") {
 }
 
 if (cmd === "run") {
-  const dir = args[0];
-  if (!dir) die("run needs a directory: `epito run <dir>` hosts every agent.toml under <dir>");
+  const dir = args.find((a) => !a.startsWith("-"));
+  if (!dir) die("run needs a directory: `epito run <dir>` puts every agent.toml under <dir> on the runtime");
   const { runDaemon } = await import("./run.js");
-  await runDaemon(dir);
+  // The engine being unreachable is an operating condition, not a crash: it
+  // gets the same one-line treatment as a broken manifest, never a stack.
+  try { await runDaemon(dir, { dryRun: args.includes("--dry-run") }); } catch (e) { die(e.message); }
+} else if (cmd === "worker") {
+  const { runWorker } = await import("./temporal/worker.js");
+  try { await runWorker(); } catch (e) { die(e.message); }
+  process.exit(0);
 } else if (cmd === "ps") {
-  const { ps } = await import("./run.js");
-  ps();
+  const { psCmd } = await import("./temporal/ps.js");
+  try { await psCmd(args[0]); } catch (e) { die(e.message); }
   process.exit(0);
 } else if (cmd === "window") {
   const { windowCmd } = await import("./run.js");

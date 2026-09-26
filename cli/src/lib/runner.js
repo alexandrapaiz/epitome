@@ -1,32 +1,39 @@
-// One run of one agent. The mechanism, in order:
-//   1. git clone --depth 1 of [runtime].repo into a fresh temp dir
-//   2. read the charter at [runtime].entry inside that clone
-//   3. spawn `claude -p <prompt> --permission-mode bypassPermissions
-//      --model <model> --max-turns <n> --output-format json` with cwd = the clone
-//   4. capture stdout+stderr to .epito/logs/<agent>/<runId>.log
-//   5. kill the whole process group on timeout; rm -rf the clone after
+// One run of one agent, split at the boundary the engine needs (epitod v1,
+// docs/prfaq/epitod-v1-temporal.md): `cloneAgentRepo` is the `clone` activity's
+// body and is safe to retry, `executeAgent` is the `execute` activity's body
+// and is deliberately never retried, because an execution that half-ran has
+// already pushed commits. epitod v0 did both inside one `runAgent`; the
+// mechanism below is that code, unchanged in behavior, cut in two.
+//
+//   cloneAgentRepo:  git clone --depth 1 of [runtime].repo into a fresh temp
+//                    dir, then assert [runtime].entry exists inside it
+//   executeAgent:    spawn `claude -p <prompt> --permission-mode
+//                    bypassPermissions --model <model> --max-turns <n>
+//                    --output-format json` with cwd = the clone, capture
+//                    stdout+stderr to .epito/logs/<agent>/<runId>.log, and
+//                    kill the whole process group on timeout or cancellation
+//
 // The env the child sees is ONLY: PATH, HOME and USER (the claude CLI keeps
 // its config under HOME and, on macOS, reads its OAuth token from the login
 // keychain it finds by USER; on a server the token arrives as
 // CLAUDE_CODE_OAUTH_TOKEN listed in [runtime].env), the names listed in
-// [runtime].env (values read from the daemon's environment), and git
-// author/committer set to the agent's name. Nothing else from the daemon's
-// environment leaks into the run: the smoke test found this the honest way,
-// with a "Not logged in" exit until USER was added.
+// [runtime].env (values read from the worker's own environment, never from a
+// workflow input — law 7), and git author/committer set to the agent's name.
+// Nothing else leaks into the run: the v0 smoke test found this the honest
+// way, with a "Not logged in" exit until USER was added.
 //
-// Presence (runtime-v0-resident): `--output-format json` makes the executor
-// print one result object, and `session_id` in it is the handle to that
-// conversation. While an agent's window is open the daemon holds that id and
-// passes it back as `--resume <id>`, so a follow-up continues the same
-// conversation instead of starting a stranger. A resumed run must run in the
-// SAME directory as the run that created the session — the executor stores a
-// transcript per project directory — so `workDir`/`keepWork` let the caller
-// keep one clone alive for the length of a window. That is the only reason
-// the clone outlives a run; closing the window deletes it.
+// Presence: `--output-format json` makes the executor print one result object,
+// and `session_id` in it is the handle to that conversation. While an agent's
+// window is open the SeatWindow workflow holds that id and passes it back as
+// `--resume <id>`, so a follow-up continues the same conversation instead of
+// starting a stranger. A resumed run must run in the SAME directory as the run
+// that created the session — the executor stores a transcript per project
+// directory — which is why a window owns its clone and the workflow, not the
+// activity, decides when that clone dies.
 import { spawn } from "node:child_process";
 import { mkdtempSync, mkdirSync, rmSync, existsSync, openSync, closeSync, writeSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { EPITO_DIR } from "./audit.js";
 
 const PR_URL_RE = /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/\d+/g;
@@ -62,13 +69,13 @@ export function buildPrompt({ name, entry, trigger, date, hookBody, instruction 
 }
 
 function sh(cmd, args, opts = {}) {
-  return new Promise((resolve) => {
+  return new Promise((res) => {
     const p = spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"], ...opts });
     let out = "";
     p.stdout.on("data", (d) => (out += d));
     p.stderr.on("data", (d) => (out += d));
-    p.on("close", (code) => resolve({ code, out }));
-    p.on("error", (e) => resolve({ code: -1, out: e.message }));
+    p.on("close", (code) => res({ code, out }));
+    p.on("error", (e) => res({ code: -1, out: e.message }));
   });
 }
 
@@ -88,52 +95,83 @@ export function parseExecutorResult(out) {
   return { sessionId: m ? m[1] : null, turns: null, result: null };
 }
 
-// Returns { exit, durationMs, pr, log, sessionId, turns, workDir }. exit is the
-// child's exit code, or a string naming the failure stage ("clone",
-// "charter-missing", "timeout", "spawn", "workdir-gone").
-export async function runAgent({ agent, trigger, hookBody, text, instruction, resume = null, workDir = null, keepWork = false, executor = "claude", timeoutMs, log = console.log, onSpawn }) {
+export function runLogPath(name, runId) {
+  return join(EPITO_DIR, "logs", name, `${runId}.log`);
+}
+
+// A clone belongs to one agent and lives under the system temp dir. Both the
+// maker and the remover check that, so `cleanup` can never be handed a path
+// that deletes something else (the activity takes its path from a workflow
+// input, and a workflow input is not a trusted source).
+export function cloneDirPrefix(name) { return join(tmpdir(), `epito-${name}-`); }
+
+export function isCloneDir(name, dir) {
+  if (typeof dir !== "string" || !dir) return false;
+  const abs = resolve(dir);
+  const prefix = cloneDirPrefix(name);
+  return abs.startsWith(prefix) && abs.length > prefix.length && !abs.slice(prefix.length).includes(sep);
+}
+
+// The `clone` activity's body. Returns { workDir } or throws with a message
+// already in the product's voice; `permanent` marks the failures retrying
+// cannot help. Safe to retry: every attempt makes its own directory.
+export async function cloneAgentRepo({ agent, runId, log = console.log }) {
   const { name } = agent.agent;
   const rt = agent.runtime;
-  const started = Date.now();
-  const date = new Date().toISOString().slice(0, 10);
-  const runId = `${new Date().toISOString().replace(/[:.]/g, "-")}-${trigger}`;
+  const logPath = runLogPath(name, runId);
   mkdirSync(join(EPITO_DIR, "logs", name), { recursive: true });
-  const logPath = join(EPITO_DIR, "logs", name, `${runId}.log`);
-  const reused = Boolean(workDir);
-  const work = workDir ?? mkdtempSync(join(tmpdir(), `epito-${name}-`));
   const fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
   const write = (s) => { if (fd !== null) writeSync(fd, s); };
-  // A clone handed to us belongs to the window, not to this run, so it
-  // survives however the run ends. A clone we made is kept only when a window
-  // asked for it AND the run got far enough to have a session worth resuming.
-  const finish = (exit, extra = {}) => {
-    if (fd !== null) closeSync(fd);
-    const hold = reused || (keepWork && typeof exit === "number" && Boolean(extra.sessionId));
-    if (!hold) rmSync(work, { recursive: true, force: true });
-    return { exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null, ...extra, workDir: hold ? work : null };
-  };
-
-  write(`# epito run ${name} ${runId}\n# trigger=${trigger} model=${rt.model} repo=${rt.repo} ref=${rt.ref ?? "(default)"} executor=${executor}${resume ? ` resume=${resume}` : ""}${reused ? ` workdir=${work} (held)` : ""}\n`);
-
-  if (reused) {
-    if (!existsSync(work)) {
-      write(`held work directory ${work} is gone\n`);
-      log(`${name}: the held work directory for this window no longer exists; close the window and start a fresh run`);
-      return finish("workdir-gone");
-    }
-  } else {
+  const work = mkdtempSync(cloneDirPrefix(name));
+  try {
     const url = `https://github.com/${rt.repo}.git`;
     const refArgs = rt.ref ? ["--branch", rt.ref] : [];
     const clone = await sh("git", ["clone", "--depth", "1", "--quiet", ...refArgs, url, work]);
     write(`$ git clone --depth 1 ${refArgs.join(" ")} ${url}\n${clone.out}`);
-    if (clone.code !== 0) { log(`${name}: clone of ${rt.repo} failed (exit ${clone.code}); see ${logPath}`); return finish("clone"); }
-
-    const charterPath = join(work, rt.entry);
-    if (!existsSync(charterPath)) {
-      write(`charter ${rt.entry} not found in ${rt.repo}\n`);
-      log(`${name}: [runtime].entry "${rt.entry}" does not exist in ${rt.repo}; the run refuses to improvise`);
-      return finish("charter-missing");
+    if (clone.code !== 0) {
+      rmSync(work, { recursive: true, force: true });
+      const err = new Error(`${name}: clone of ${rt.repo} failed (exit ${clone.code}); see ${logPath}`);
+      err.stage = "clone";
+      throw err;
     }
+    if (!existsSync(join(work, rt.entry))) {
+      write(`charter ${rt.entry} not found in ${rt.repo}\n`);
+      rmSync(work, { recursive: true, force: true });
+      const err = new Error(`${name}: [runtime].entry "${rt.entry}" does not exist in ${rt.repo}; the run refuses to improvise`);
+      err.stage = "charter-missing";
+      err.permanent = true;   // a missing charter is not a blip; retrying it insults the operator
+      throw err;
+    }
+    log(`${name}: cloned ${rt.repo}${rt.ref ? `@${rt.ref}` : ""} into ${work}`);
+    return { workDir: work, log: logPath };
+  } finally { if (fd !== null) closeSync(fd); }
+}
+
+// The `execute` activity's body. `workDir` is required: cloning is somebody
+// else's job now. Returns { exit, durationMs, pr, log, sessionId, turns }.
+// `exit` is the child's exit code, or a string naming the failure stage
+// ("timeout", "spawn", "cancelled", "workdir-gone").
+export async function executeAgent({ agent, trigger, runId, workDir, hookBody, text, instruction, resume = null,
+                                     executor = "claude", timeoutMs, log = console.log, onSpawn, onOutput }) {
+  const { name } = agent.agent;
+  const rt = agent.runtime;
+  const started = Date.now();
+  const date = new Date().toISOString().slice(0, 10);
+  const logPath = runLogPath(name, runId);
+  mkdirSync(join(EPITO_DIR, "logs", name), { recursive: true });
+  const fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
+  const write = (s) => { if (fd !== null) writeSync(fd, s); };
+  const finish = (exit, extra = {}) => {
+    if (fd !== null) closeSync(fd);
+    return { exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null, ...extra };
+  };
+
+  write(`# epito run ${name} ${runId}\n# trigger=${trigger} model=${rt.model} repo=${rt.repo} ref=${rt.ref ?? "(default)"} executor=${executor}${resume ? ` resume=${resume}` : ""} workdir=${workDir}\n`);
+
+  if (!existsSync(workDir)) {
+    write(`work directory ${workDir} is gone\n`);
+    log(`${name}: the work directory for this run no longer exists; close the window and start a fresh run`);
+    return finish("workdir-gone");
   }
 
   // A resumed run continues a conversation: the message is the whole prompt.
@@ -147,25 +185,40 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
   Object.assign(env, { GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_COMMITTER_NAME: name, GIT_COMMITTER_EMAIL: email });
   write(`$ ${executor} ${args.map((a) => (a.includes("\n") ? "<prompt>" : a)).join(" ")}\n# env passed: ${Object.keys(env).join(", ")}\n---\n`);
 
-  return new Promise((resolve) => {
+  return new Promise((res) => {
     let child;
-    try { child = spawn(executor, args, { cwd: work, env, stdio: ["ignore", "pipe", "pipe"], detached: true }); }
-    catch (e) { write(`spawn failed: ${e.message}\n`); return resolve(finish("spawn")); }
+    try { child = spawn(executor, args, { cwd: workDir, env, stdio: ["ignore", "pipe", "pipe"], detached: true }); }
+    catch (e) { write(`spawn failed: ${e.message}\n`); return res(finish("spawn")); }
     onSpawn?.(child);
     let tail = "";
-    const onData = (d) => { write(d); tail = (tail + d).slice(-64 * 1024); };
+    const onData = (d) => { write(d); tail = (tail + d).slice(-64 * 1024); onOutput?.(); };
     child.stdout.on("data", onData);
     child.stderr.on("data", onData);
     let timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; try { process.kill(-child.pid, "SIGKILL"); } catch {} }, timeoutMs);
-    child.on("error", (e) => { clearTimeout(timer); write(`spawn failed: ${e.message}\n`); resolve(finish("spawn")); });
+    const timer = setTimeout(() => { timedOut = true; killGroup(child); }, timeoutMs);
+    child.on("error", (e) => { clearTimeout(timer); write(`spawn failed: ${e.message}\n`); res(finish("spawn")); });
     child.on("close", (code, signal) => {
       clearTimeout(timer);
       const prs = tail.match(PR_URL_RE);
       const pr = prs ? prs[prs.length - 1] : null;
       const { sessionId, turns } = parseExecutorResult(tail);
       write(`\n---\n# exit=${timedOut ? "timeout" : code ?? signal} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}\n`);
-      resolve(finish(timedOut ? "timeout" : (code ?? signal), { pr, sessionId, turns }));
+      res(finish(timedOut ? "timeout" : (code ?? signal), { pr, sessionId, turns }));
     });
   });
+}
+
+// Kill the child AND everything it spawned: `claude` starts subprocesses, and
+// killing only the parent leaves them holding the clone open.
+export function killGroup(child) {
+  if (!child?.pid) return;
+  try { process.kill(-child.pid, "SIGKILL"); } catch { try { child.kill("SIGKILL"); } catch {} }
+}
+
+// Delete a clone, refusing any path that is not one of this agent's clones.
+export function removeClone(name, dir) {
+  if (!isCloneDir(name, dir)) {
+    throw new Error(`refusing to delete "${dir}": a clone for "${name}" lives directly under ${tmpdir()} and is named epito-${name}-*`);
+  }
+  rmSync(dir, { recursive: true, force: true });
 }

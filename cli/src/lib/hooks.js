@@ -45,11 +45,22 @@ export function parseJsonBody(raw, route) {
 
 // onRequest({ route, name, raw, json }) -> { status, body } | Promise thereof.
 // Returns the server.
-export function startHookServer({ port, host = "0.0.0.0", secret, onRequest, log = console.log }) {
+// `onHealth` lets the caller say more than "this process is up". In epitod v1
+// the interesting question is whether the ENGINE is reachable, because an
+// ingress that answers 200 while Temporal is down is a liveness check that
+// lies. It stays secret-free: a health probe that needs a credential is a
+// health probe nobody wires up.
+export function startHookServer({ port, host = "0.0.0.0", secret, onRequest, onHealth, log = console.log }) {
   const server = createServer((req, res) => {
     const reply = (status, obj) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(obj) + "\n"); };
     const url = (req.url ?? "").split("?")[0];
-    if (url === "/healthz") return reply(200, { ok: true });
+    if (url === "/healthz") {
+      if (!onHealth) return reply(200, { ok: true });
+      return Promise.resolve()
+        .then(() => onHealth())
+        .then((h) => reply(h.ok ? 200 : 503, h))
+        .catch((e) => reply(503, { ok: false, error: e.message }));
+    }
     const hit = ROUTES.map((r) => ({ ...r, m: r.re.exec(url) })).find((r) => r.m);
     if (!hit) return reply(404, { error: `not found: the routes are ${ROUTE_LIST}` });
     if (req.method !== hit.method) return reply(405, { error: `${url} is ${hit.method} only` });
