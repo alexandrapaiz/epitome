@@ -26,13 +26,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      # Open routing is best-effort: Moonshot's prepaid tier allows almost no
-      # concurrency, and three runs (2026-09-21 x2, 2026-09-24) died at turn one
-      # while another Kimi run was in progress. If this step fails, the Claude
-      # step below runs instead on the subscription (HQ Incident 4).
+      # Open routing is opt-in and best-effort. It runs ONLY when the repo
+      # variable OPEN_ROUTING is "on", because every Kimi attempt so far has
+      # died at turn one (2026-09-21 x2, 2026-09-24 epitome pm) and each doomed
+      # attempt burned ~3 minutes before the Claude fallback took over.
+      # Flip it on:  gh variable set OPEN_ROUTING --body on
+      # Flip it off: gh variable set OPEN_ROUTING --body off   (or delete it)
+      # The secret stays stored either way (HQ Incident 4).
       - name: Seat run (open-routed)
         id: openrouted
-        if: env.OPENROUTE != ''
+        if: vars.OPEN_ROUTING == 'on' && env.OPENROUTE != ''
         continue-on-error: true
         uses: anthropics/claude-code-action@v1
         env:
@@ -55,7 +58,7 @@ jobs:
             ${{ inputs.owner_instructions }}
           claude_args: "--max-turns 80 --permission-mode bypassPermissions --model ${{ vars.OPENROUTE_MODEL || 'kimi-k2.7-code' }}"
       - name: Seat run (Claude)
-        if: env.OPENROUTE == '' || steps.openrouted.outcome != 'success'
+        if: vars.OPEN_ROUTING != 'on' || env.OPENROUTE == '' || steps.openrouted.outcome != 'success'
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -82,22 +85,35 @@ jobs:
         run: |
           git fetch origin --quiet 2>/dev/null || true
           branch=$(git rev-parse --abbrev-ref HEAD)
+          base="${GITHUB_REF_NAME:-main}"
           dirty=$(git status --porcelain)
-          pushed=$(git branch -r --contains HEAD 2>/dev/null | tr -d ' ')
+          commits=0
+          if git rev-parse "origin/$base" >/dev/null 2>&1; then
+            commits=$(git rev-list --count "origin/$base..HEAD" 2>/dev/null || echo 0)
+          fi
+          # Remote branches containing HEAD, EXCLUDING the base branch itself. A run
+          # that never branched leaves HEAD on origin/$base, which used to satisfy
+          # this check trivially: epitome run 35956231272 (2026-09-24) died at turn
+          # one, produced nothing, and the tripwire still reported success.
+          pushed=$(git branch -r --contains HEAD 2>/dev/null | tr -d ' ' | grep -v "^origin/$base$" || true)
           pr=$(gh pr list --head "$branch" --state all --json number --jq '.[0].number' 2>/dev/null || true)
           {
             echo "### Did this run ship anything?"
             echo ""
-            echo "- branch: \`$branch\`"
-            echo "- pushed to a remote branch: ${pushed:-NO}"
+            echo "- branch: \`$branch\` ($commits commit(s) ahead of $base)"
+            echo "- pushed to a seat branch: ${pushed:-NO}"
             echo "- pull request: ${pr:-none}"
           } >> "$GITHUB_STEP_SUMMARY"
           if [ -n "$dirty" ]; then
             echo "::warning::Uncommitted changes were left in the sandbox and are lost at teardown."
             printf '%s\n' "$dirty" | head -20
           fi
-          if [ -z "$pushed" ]; then
-            echo "::error::This run made commits that were never pushed, so the work dies with the sandbox. See the 'Ship first, then work' rule in the pm standard (§8) and in this seat's charter."
+          if [ "$commits" = "0" ] && [ -z "$pr" ] && [ -z "$dirty" ]; then
+            echo "::error::This run produced nothing at all: no commit, no seat branch, no pull request. A green model step is not evidence of work; read the seat run step's own outcome."
+            exit 1
+          fi
+          if [ "$commits" != "0" ] && [ -z "$pushed" ]; then
+            echo "::error::This run made commits that were never pushed, so the work dies with the sandbox. See the 'Ship first, then work' rule in the pm standard (section 8) and in this seat's charter."
             exit 1
           fi
           if [ -z "$pr" ]; then
