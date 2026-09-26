@@ -57,10 +57,11 @@ than two, but nothing in the design requires the ingress to hold a token.
 
 ## Giving an agent its own identity
 
-Without this, every seat on the box pushes with the same `GH_TOKEN` and every
-PR is opened by whoever owns it. With it, a seat is a principal: its PR opens
-as `<name>[bot]`, and its reach is exactly `[identity].scopes` on exactly
-`[runtime].repo`, for one hour at a time.
+Without this, every seat on the box clones and pushes with the same
+`GH_TOKEN`, and every PR is opened by whoever owns it. With it, a seat is a
+principal: it clones as itself, its commits are authored by its own bot user,
+its PR opens as `<name>[bot]`, and its reach is exactly `[identity].scopes` on
+exactly `[runtime].repo`, for one hour at a time.
 
 Once per agent, by hand — the one-click creation flow is `epito deploy`, which
 is not built yet:
@@ -96,24 +97,67 @@ epito token pm /srv/asc/agents             # the real mint; the token is stdout,
 
 Three rules the runtime keeps, each asserted in `cli/test/smoke-temporal.sh`:
 
-- **Per run, never stored.** Each run mints its own token inside the `execute`
-  activity and forgets it. It reaches the run as `GH_TOKEN`/`GITHUB_TOKEN` in
-  the child's environment and is written nowhere: not the clone, not the run
-  log (which scrubs it, because `gh` echoes what it was handed), and not
-  Temporal — an activity that *returned* a token would be an activity that
-  filed it in the engine's database in plain text. `.epito/audit.jsonl` records
-  every mint — agent, scopes, permissions, installation, expiry — and never
-  the token.
+- **Per run, never stored.** A run mints its own tokens and forgets them. They
+  reach the run as `GH_TOKEN`/`GITHUB_TOKEN` in the child's environment, and
+  git gets one through an inline credential helper reading an environment
+  variable — never an argument, because `/proc/<pid>/cmdline` is world-
+  readable, and never `.git/config`, because that outlives the run. They are
+  written nowhere else: not the run log (which scrubs them, because `gh` and
+  `git` both echo what they were handed), and not Temporal — an activity that
+  *returned* a token would be an activity that filed it in the engine's
+  database in plain text. `.epito/audit.jsonl` records every mint — agent,
+  scopes, permissions, installation, expiry, and which half of the run asked —
+  and never the token.
+
+  **Two mints per fresh run**, and that is the design rather than an
+  oversight. The same rule that keeps a token out of the engine's database
+  keeps it from travelling between the `clone` activity and the `execute`
+  activity, so each asks for its own; `phase` in the audit line says which.
+  A run that resumes a held window borrows that window's clone and mints once.
 - **The minted token wins.** If `[runtime].env` also names `GH_TOKEN`, the
   agent's own credential is used instead, and the run log says so by name.
 - **No silent fallback.** An agent with no App runs on the shared `GH_TOKEN`
-  exactly as it did before. An agent that *has* one and cannot mint stops, and
-  the run is recorded `exit=mint` with the reason. A PR opened by the wrong
-  identity is worse than a PR not opened.
+  exactly as it did before — clone included. An agent that *has* one and
+  cannot mint stops, and the run is recorded `exit=mint` with the reason. A PR
+  opened by the wrong identity is worse than a PR not opened.
 
-The commits inside those PRs are a separate question and are **not** solved
-here: the git author is still `<name>@agents.epito.me`, which GitHub cannot
-link to the App without the bot user's own id. See `docs/ideas.md`.
+### What the box's own `GH_TOKEN` is still for
+
+`provision-host.sh` installs a system-wide credential helper —
+`credential.https://github.com.helper = !gh auth git-credential` — and `gh`
+answers it with the `GH_TOKEN` in `/srv/asc/env`. A seat that has an App no
+longer uses it: for that seat's clone the helper list is **reset** for the one
+`git` invocation, so the box's credential cannot win by having been configured
+first, and the agent's own token is the only one git can offer.
+
+It is still needed for two things, so do not delete it yet:
+
+- **provisioning itself** — `provision-host.sh` clones the roster and the seat
+  repos before any agent exists to mint for them;
+- **every seat that has no App.** Give all of them one and the line becomes
+  dead weight; until then it is the fallback, honestly.
+
+### The commits inside the PR
+
+An installation token opens the PR as `<name>[bot]` and does nothing at all
+for the commits inside it: GitHub links a commit to an account by the author's
+email and by nothing else. So the mint also reads the App's slug (`GET /app`,
+as the App) and its bot user's numeric id (`GET /users/<slug>[bot]`, as the
+installation) and the run commits as
+
+```
+<bot user id>+<slug>[bot]@users.noreply.github.com
+```
+
+which is the address that links. `epito token <name>` prints it on stderr in
+the form you would paste, for scripting a `gh pr create` by hand.
+
+This one degrades rather than refuses. If GitHub will not describe the App,
+the run says so and falls back to `<name>@agents.epito.me` — an address that
+belongs to no account. "No silent fallback" is a rule about acting as the
+wrong *principal*; an unlinked commit is still the agent, only less legibly,
+and losing a whole run over an avatar is the wrong trade. The audit line
+records `commit: null` in that case rather than a guess.
 
 ## The ingress
 

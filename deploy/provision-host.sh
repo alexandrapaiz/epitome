@@ -155,9 +155,10 @@ GH_TOKEN=replace-me
 SLACK_WEBHOOK_URL=replace-me
 # Per-agent identity (optional; docs/deploy/README.md, "Giving an agent its own
 # identity"). Two lines per agent, its [agent].name uppercased with - as _.
-# When they are here, every run of that agent mints its own short-lived token
-# and its PRs open as <name>[bot] instead of as GH_TOKEN's owner; when they are
-# not, nothing changes. A key is a .pem at $BASE/keys/<agent>.pem, 0600, seats-
+# When they are here, every run of that agent mints its own short-lived tokens
+# -- one for the clone, one for the run -- clones and pushes as itself, commits
+# as its own bot user, and opens its PRs as <name>[bot] instead of as
+# GH_TOKEN's owner; when they are not, nothing changes. A key is a .pem at $BASE/keys/<agent>.pem, 0600, seats-
 # owned -- an EnvironmentFile has no multi-line values, which is exactly the
 # problem the FILE form exists to avoid.
 #   EPITO_APP_ID_PM=123456
@@ -170,7 +171,12 @@ ENV
   echo "  TEMPORAL_ADDRESS=127.0.0.1:7233 TEMPORAL_NAMESPACE=asc assumed: change them if the engine is elsewhere"
 fi
 
-# git asks gh, and gh reads GH_TOKEN from the environment.
+# git asks gh, and gh reads GH_TOKEN from the environment. This is the box's
+# shared credential and it is the FALLBACK, not the default: a seat that has a
+# GitHub App below clones on its own minted token, with this helper list reset
+# for that one `git` invocation so the shared credential cannot win by having
+# been configured first (cli/src/lib/runner.js, gitEnvFor). It is still needed
+# for the clones this script makes, and for every seat that has no App yet.
 # --system, not --global: the service runs with HOME=$BASE/home, so a per-user
 # gitconfig under /home/$SEATS_USER would never be read.
 git config --system credential."https://github.com".helper '!gh auth git-credential'
