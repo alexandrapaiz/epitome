@@ -82,6 +82,69 @@ function sh(cmd, args, opts = {}) {
   });
 }
 
+// epito prints no token, but these logs capture everything a subprocess
+// prints, and `git` and `gh` both have error paths that echo the credential
+// they were handed. Every secret given here is replaced on its way to the
+// file. Honest limit: a secret split across two read boundaries slips
+// through, so this is the second line of defence, not the first. The
+// 8-character floor keeps an empty or absurd entry from redacting a log into
+// confetti.
+export function redactor(secrets = []) {
+  const real = secrets.filter((x) => typeof x === "string" && x.length >= 8);
+  if (real.length === 0) return String;
+  return (s) => {
+    let out = String(s);
+    for (const secret of real) out = out.split(secret).join("[redacted: this run's token]");
+    return out;
+  };
+}
+
+// The name the inline credential helper reads the run's token out of.
+export const GIT_TOKEN_ENV = "EPITO_GIT_TOKEN";
+
+// The environment ONE `git` invocation runs in when the run has a credential
+// of its own. Three rules, each asserted in cli/test/unit.mjs:
+//
+//   1. The token never reaches argv. `git clone https://x-access-token:$T@...`
+//      puts a live credential in /proc/<pid>/cmdline, readable by every user
+//      on the box, and then writes it into the clone's .git/config where it
+//      outlives the run. It arrives in the environment instead, and an inline
+//      credential helper reads it from there. `git -c` would leak it the same
+//      way argv does, and `git clone -c` additionally persists what it is
+//      given into the new repository's config, which is why the config comes
+//      through GIT_CONFIG_* rather than through flags.
+//
+//   2. The box's own helper is reset first. deploy/provision-host.sh installs
+//      a system-wide `credential.https://github.com.helper = !gh auth
+//      git-credential`, and `gh` answers with the roster-wide human GH_TOKEN.
+//      An empty credential.helper clears every helper accumulated before it;
+//      ours is appended after, so the agent's own token is the only credential
+//      git can offer for this clone. That reset is the whole point of the
+//      card: without it the box's human credential silently wins, because it
+//      was configured first.
+//
+//   3. Whatever GIT_CONFIG_* the operator already set survives. Those are
+//      indexed rather than named, so this appends at the next two indices
+//      instead of overwriting from zero — an operator's proxy or insteadOf
+//      rule is not ours to drop.
+export function gitEnvFor(token, base = process.env) {
+  // Always: a git that cannot authenticate should fail in seconds with a
+  // message, not block on a username prompt until the run timeout kills it.
+  // epitod v0 had no terminal to prompt at and waited anyway.
+  const env = { ...base, GIT_TERMINAL_PROMPT: "0" };
+  if (!token) return env;
+  const declared = Number.parseInt(base.GIT_CONFIG_COUNT ?? "0", 10);
+  const at = Number.isInteger(declared) && declared >= 0 ? declared : 0;
+  env[`GIT_CONFIG_KEY_${at}`] = "credential.helper";
+  env[`GIT_CONFIG_VALUE_${at}`] = "";                       // rule 2: reset the list
+  env[`GIT_CONFIG_KEY_${at + 1}`] = "credential.helper";
+  env[`GIT_CONFIG_VALUE_${at + 1}`] =
+    `!f() { if [ "$1" = get ]; then printf 'username=x-access-token\npassword=%s\n' "$${GIT_TOKEN_ENV}"; fi; }; f`;
+  env.GIT_CONFIG_COUNT = String(at + 2);
+  env[GIT_TOKEN_ENV] = token;                               // rule 1: the only place the value appears
+  return env;
+}
+
 // `--output-format json` is one object on stdout, but stderr and any stray
 // line share the stream, so read from the end: whole text first, then the
 // last line that parses, then the field itself. A session id we cannot read
@@ -118,18 +181,23 @@ export function isCloneDir(name, dir) {
 // The `clone` activity's body. Returns { workDir } or throws with a message
 // already in the product's voice; `permanent` marks the failures retrying
 // cannot help. Safe to retry: every attempt makes its own directory.
-export async function cloneAgentRepo({ agent, runId, log = console.log }) {
+export async function cloneAgentRepo({ agent, runId, token = null, log = console.log }) {
   const { name } = agent.agent;
   const rt = agent.runtime;
   const logPath = runLogPath(name, runId);
   mkdirSync(join(EPITO_DIR, "logs", name), { recursive: true });
   const fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
-  const write = (s) => { if (fd !== null) writeSync(fd, s); };
+  const scrub = redactor(token ? [token] : []);
+  const write = (s) => { if (fd !== null) writeSync(fd, scrub(s)); };
   const work = mkdtempSync(cloneDirPrefix(name));
   try {
     const url = `https://github.com/${rt.repo}.git`;
     const refArgs = rt.ref ? ["--branch", rt.ref] : [];
-    const clone = await sh("git", ["clone", "--depth", "1", "--quiet", ...refArgs, url, work]);
+    // The credential is in the environment, never in these arguments.
+    const clone = await sh("git", ["clone", "--depth", "1", "--quiet", ...refArgs, url, work], { env: gitEnvFor(token) });
+    write(`# clone credential: ${token
+      ? "this run's own minted token, and the box's credential helper is reset for this one invocation"
+      : "this machine's git credentials — this agent has no App of its own, so nothing changed for it"}\n`);
     write(`$ git clone --depth 1 ${refArgs.join(" ")} ${url}\n${clone.out}`);
     if (clone.code !== 0) {
       rmSync(work, { recursive: true, force: true });
@@ -156,7 +224,7 @@ export async function cloneAgentRepo({ agent, runId, log = console.log }) {
 // ("timeout", "spawn", "cancelled", "workdir-gone").
 export async function executeAgent({ agent, trigger, runId, workDir, hookBody, text, instruction, resume = null,
                                      executor = "claude", timeoutMs, log = console.log, onSpawn, onOutput,
-                                     inject = null, redact = [] }) {
+                                     inject = null, redact = [], commitIdentity = null }) {
   const { name } = agent.agent;
   const rt = agent.runtime;
   const started = Date.now();
@@ -164,20 +232,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   const logPath = runLogPath(name, runId);
   mkdirSync(join(EPITO_DIR, "logs", name), { recursive: true });
   const fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
-  // epito never prints a minted token, but this log captures everything the
-  // child prints, and `gh` has error paths that echo the credential it was
-  // handed. So every secret in `redact` is replaced on its way to the file:
-  // "the token is written nowhere" has to survive a subprocess we do not
-  // control. Honest limit — a secret split across two read boundaries would
-  // slip through, so this is the second line of defence, not the first. The
-  // 8-character floor keeps an empty or absurd entry from redacting the log
-  // into confetti.
-  const secrets = (redact ?? []).filter((s) => typeof s === "string" && s.length >= 8);
-  const scrub = secrets.length === 0 ? String : (s) => {
-    let out = String(s);
-    for (const secret of secrets) out = out.split(secret).join("[redacted: this run's token]");
-    return out;
-  };
+  const scrub = redactor(redact ?? []);
   const write = (s) => { if (fd !== null) writeSync(fd, scrub(s)); };
   const finish = (exit, extra = {}) => {
     if (fd !== null) closeSync(fd);
@@ -208,8 +263,20 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     if (rt.env?.includes(k) && process.env[k] !== undefined) write(`# identity: ${k} from [runtime].env is overridden by this run's own minted credential\n`);
     env[k] = v;
   }
-  const email = `${name}@agents.epito.me`;
-  Object.assign(env, { GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_COMMITTER_NAME: name, GIT_COMMITTER_EMAIL: email });
+  // Who the commits belong to. An installation token makes the PR open as
+  // `<name>[bot]`; it does nothing at all for the commits inside it, because
+  // GitHub links a commit to an account by the author's email and by nothing
+  // else. Given the App's bot user we can write the address that links; given
+  // no App we keep epito's old convention, which is honest about being a
+  // convention: it belongs to no account and links to nothing.
+  const commit = commitIdentity ?? { name, email: `${name}@agents.epito.me` };
+  Object.assign(env, {
+    GIT_AUTHOR_NAME: commit.name, GIT_AUTHOR_EMAIL: commit.email,
+    GIT_COMMITTER_NAME: commit.name, GIT_COMMITTER_EMAIL: commit.email,
+  });
+  write(`# commits authored as ${commit.name} <${commit.email}>${commitIdentity
+    ? " — the App's own bot user, so GitHub links every commit in the PR to the agent"
+    : " — epito's convention; this agent has no App, so the address links to no account"}\n`);
   write(`$ ${executor} ${args.map((a) => (a.includes("\n") ? "<prompt>" : a)).join(" ")}\n# env passed: ${Object.keys(env).join(", ")}\n---\n`);
 
   return new Promise((res) => {

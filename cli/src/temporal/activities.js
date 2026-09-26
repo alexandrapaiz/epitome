@@ -20,13 +20,55 @@ import { temporalEnv } from "./env.js";
 
 const HEARTBEAT_MIN_MS = 5_000;
 
+// --- the mint, as both activities need it ---------------------------------
+// A fresh run mints TWICE: once here for the clone, once inside `execute` for
+// the run itself. That is a consequence of law 7 rather than an oversight —
+// a token may not cross an activity boundary, so every activity that needs
+// one asks for its own. Two credentials, each scoped to the same single
+// repository, each living and dying inside one activity invocation, is a
+// cheaper trade than one credential written to the engine's database in plain
+// text. (A run that resumes a held window skips `clone` and so mints once;
+// the audit's `phase` field is what tells the two apart afterwards.)
+//
+// `retryable` differs because the activities differ: `clone` is retried, so a
+// mint that failed on a blip should be retried along with it — but only for
+// the failures that can pass. identity.js marks the ones that never will (a
+// key that is not a PEM, a scope with no mapping, an App installed nowhere),
+// and those stop the run on the first attempt rather than four times slower.
+// `execute` is never retried, so every failure there is final regardless.
+async function mintFor({ name, manifest, runId, phase, retryable }) {
+  let minted = null;
+  try {
+    minted = await mintForRun({ name, manifest, log: (m) => console.log(`${name}: ${m}`) });
+  } catch (e) {
+    const msg = `${name}: this run has an identity it could not mint, so it did not start — ${e.message}`;
+    throw retryable && !e.permanent
+      ? ApplicationFailure.retryable(msg, "mint")
+      : ApplicationFailure.nonRetryable(msg, "mint");
+  }
+  // The audit line carries every fact about the credential except the
+  // credential: which App, which installation, which permissions, until when,
+  // and which half of the run asked for it. That is what makes "who pushed
+  // this" answerable later.
+  if (minted) appendAudit({ agent: name, action: "mint", provider: "github-app", runId, phase, ...minted.meta });
+  return minted;
+}
+
 // --- clone ----------------------------------------------------------------
 // Retried: a clone fails for reasons that pass (a network blip, GitHub
 // throttling). A missing charter is not one of them, so that one is thrown
 // nonRetryable with the message the operator needs.
+//
+// The clone runs on the agent's OWN credential when it has one. Before this
+// it ran on whatever the box's git credential helper answered with, which
+// deploy/provision-host.sh wires to the roster-wide human GH_TOKEN — so a
+// machine hosting a roster needed one human credential that could read every
+// seat's repository, which is the thing this leg of the product exists to
+// delete. An agent with no App still clones exactly as it did before.
 export async function clone({ name, manifest, runId }) {
+  const minted = await mintFor({ name, manifest, runId, phase: "clone", retryable: true });
   try {
-    const { workDir } = await cloneAgentRepo({ agent: manifest, runId, log: (m) => console.log(m) });
+    const { workDir } = await cloneAgentRepo({ agent: manifest, runId, token: minted?.token, log: (m) => console.log(m) });
     return { workDir };
   } catch (e) {
     if (e.permanent) throw ApplicationFailure.nonRetryable(e.message, e.stage ?? "clone");
@@ -68,18 +110,7 @@ export async function execute({ name, manifest, runId, workDir, trigger, payload
   // on the secrets its manifest names. A principal that cannot mint stops the
   // run, non-retryably — "identity failed, so I opened the PR as a human
   // instead" is not a recovery.
-  let minted = null;
-  try {
-    minted = await mintForRun({ name, manifest, log: (m) => console.log(`${name}: ${m}`) });
-  } catch (e) {
-    throw ApplicationFailure.nonRetryable(`${name}: this run has an identity it could not mint, so it did not start — ${e.message}`, "mint");
-  }
-  if (minted) {
-    // The audit line carries every fact about the credential except the
-    // credential: which App, which installation, which permissions, until
-    // when. That is what makes "who pushed this" answerable later.
-    appendAudit({ agent: name, action: "mint", provider: "github-app", runId, ...minted.meta });
-  }
+  const minted = await mintFor({ name, manifest, runId, phase: "run", retryable: false });
 
   const result = await executeAgent({
     agent: manifest, trigger, runId, workDir, resume,
@@ -88,6 +119,10 @@ export async function execute({ name, manifest, runId, workDir, trigger, payload
     timeoutMs: timeoutMs ?? cfg.runTimeoutMs,
     inject: minted ? { GH_TOKEN: minted.token, GITHUB_TOKEN: minted.token } : null,
     redact: minted ? [minted.token] : [],
+    // Not a secret, so it travels on the meta side: the bot user's login and
+    // noreply address, which are what make the commits inside the PR the
+    // agent's rather than an unlinked address nobody owns.
+    commitIdentity: minted?.meta?.commit ?? null,
     log: (m) => console.log(m),
     onSpawn: (c) => { child = c; },
     onOutput: () => {

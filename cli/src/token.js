@@ -90,11 +90,20 @@ export async function tokenCmd(name, dirArg = ".", { dryRun = false } = {}) {
     repo: minted.repo,
     installation: minted.installationId,
     expiresAt: minted.expiresAt,
+    commit: minted.commit,
     model: manifest.runtime.model ?? null,
     source: principal.source,
   });
 
   console.error(`epito: minted for ${name} — ${Object.entries(minted.permissions).map(([k, v]) => `${k}:${v}`).join(", ")} on ${minted.repo}, installation ${minted.installationId}, expires ${minted.expiresAt}`);
+  // A human scripting `GH_TOKEN="$(epito token pm)" gh pr create` gets a PR
+  // that opens as the bot and commits that do not, unless they are told the
+  // address that links. So tell them, in the form they would paste.
+  if (minted.commit) {
+    console.error(`epito: commits authored as this App's bot user — GIT_AUTHOR_NAME="${minted.commit.name}" GIT_AUTHOR_EMAIL="${minted.commit.email}" (same for GIT_COMMITTER_*); \`epito run\` sets these itself`);
+  } else {
+    console.error(`epito: could not read this App's bot user, so there is no commit address to report — the token is good and the PR will still open as the bot`);
+  }
   // Awaited, not fire-and-forget: the caller is `GH_TOKEN="$(epito token pm)"`,
   // so stdout is a pipe, and a pipe write that has not drained when
   // process.exit runs is a token that never arrives.

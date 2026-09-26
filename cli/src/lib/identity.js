@@ -26,6 +26,14 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { EPITO_DIR } from "./audit.js";
 
+// A mint failure is either the kind that passes (GitHub throttling, a network
+// blip) or the kind that never will (a key that is not a PEM, a scope with no
+// mapping, an App installed nowhere). The `clone` activity retries, so it has
+// to be able to tell them apart; `execute` never retries, so it does not care.
+// Same convention runner.js already uses for a missing charter: `permanent`
+// on the error, set only where we are sure.
+const permanent = (msg) => Object.assign(new Error(msg), { permanent: true });
+
 export const KEYS_DIR = join(EPITO_DIR, "keys");
 export const PRINCIPALS_PATH = join(EPITO_DIR, "principals.json");
 export const GITHUB_API = process.env.EPITO_GITHUB_API || "https://api.github.com";
@@ -51,7 +59,7 @@ export function permissionsFor(scopes) {
     Object.assign(permissions, mapped);
   }
   if (unmapped.length) {
-    throw new Error(
+    throw permanent(
       `[identity].scopes has ${unmapped.length === 1 ? "a scope" : "scopes"} this deploy target cannot mint: ${unmapped.map((s) => `"${s}"`).join(", ")}. ` +
       `v0.1 maps ${Object.keys(SCOPE_MAP).map((s) => `"${s}"`).join(", ")} to GitHub App permissions and refuses the rest rather than minting a token narrower than the manifest promises. ` +
       `Fix: remove the scope from agent.toml, or open a card to map it.`
@@ -63,7 +71,7 @@ export function permissionsFor(scopes) {
   // CLI; it is here because the one place the ceiling is enforced is the one
   // place that must not fail open.
   if (Object.keys(permissions).length === 0) {
-    throw new Error(
+    throw permanent(
       `[identity].scopes mapped to no GitHub permission at all, so there is nothing to mint. ` +
       `GitHub reads an empty permission request as "everything this installation can do", which would hand the agent more than its manifest declares — scopes are the ceiling, so the mint refuses instead. ` +
       `Fix: declare at least one mintable scope in agent.toml (${Object.keys(SCOPE_MAP).map((s) => `"${s}"`).join(", ")}).`
@@ -106,7 +114,7 @@ export function loadPrincipal(name, { env = process.env, dir = "." } = {}) {
       const all = JSON.parse(readFileSync(principalsPath, "utf8"));
       record = (Array.isArray(all) ? all : all.principals ?? []).find((p) => p.agent === name);
     } catch (e) {
-      throw new Error(`${principalsPath} is not readable JSON (${e.message}) — it is the record of which App is which agent. Fix: repair the file, or delete it and re-run \`epito deploy\`.`);
+      throw permanent(`${principalsPath} is not readable JSON (${e.message}) — it is the record of which App is which agent. Fix: repair the file, or delete it and re-run \`epito deploy\`.`);
     }
     if (record) {
       return {
@@ -126,7 +134,7 @@ export function loadPrincipal(name, { env = process.env, dir = "." } = {}) {
     let pem;
     try { pem = readFileSync(keyFile, "utf8"); }
     catch (e) {
-      throw new Error(`$${n.keyFile} points at ${keyFile}, which this machine cannot read (${e.code ?? e.message}) — that file is "${name}"'s GitHub App private key, and without it the agent has no identity to mint from. Fix: put the .pem GitHub downloaded there (0600, readable by the user the runtime runs as), or unset $${n.keyFile} and use $${n.key} instead.`);
+      throw permanent(`$${n.keyFile} points at ${keyFile}, which this machine cannot read (${e.code ?? e.message}) — that file is "${name}"'s GitHub App private key, and without it the agent has no identity to mint from. Fix: put the .pem GitHub downloaded there (0600, readable by the user the runtime runs as), or unset $${n.keyFile} and use $${n.key} instead.`);
     }
     return { appId: String(appId), privateKey: pem, installationId: env[n.installation] ?? null, source: `$${n.id}/$${n.keyFile}` };
   }
@@ -158,10 +166,10 @@ export function appJwt(appId, privateKeyPem, now = Math.floor(Date.now() / 1000)
   let key;
   try { key = createPrivateKey(privateKeyPem); }
   catch (e) {
-    throw new Error(`the private key for this agent is not a readable PEM (${e.message}) — GitHub hands you a PKCS#1 "BEGIN RSA PRIVATE KEY" file when you create the App. Fix: store that file's exact contents, newlines included.`);
+    throw permanent(`the private key for this agent is not a readable PEM (${e.message}) — GitHub hands you a PKCS#1 "BEGIN RSA PRIVATE KEY" file when you create the App. Fix: store that file's exact contents, newlines included.`);
   }
   if (key.asymmetricKeyType !== "rsa") {
-    throw new Error(`the private key for this agent is ${key.asymmetricKeyType}, and a GitHub App signs with RSA. Fix: use the .pem GitHub generated for the App, not another key.`);
+    throw permanent(`the private key for this agent is ${key.asymmetricKeyType}, and a GitHub App signs with RSA. Fix: use the .pem GitHub generated for the App, not another key.`);
   }
   const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const payload = b64url(JSON.stringify({ iat: now - 60, exp: now + 540, iss: appId }));
@@ -170,14 +178,17 @@ export function appJwt(appId, privateKeyPem, now = Math.floor(Date.now() / 1000)
   return `${header}.${payload}.${b64url(signer.sign(key))}`;
 }
 
-async function gh(path, { method = "GET", jwt, body } = {}) {
+// `jwt` authenticates as the App (only /app* accepts it); `token` as one
+// installation (everything else). Both are Bearer to GitHub; the distinction
+// is which endpoints will answer.
+async function gh(path, { method = "GET", jwt, token, body } = {}) {
   const url = `${GITHUB_API}${path}`;
   let res;
   try {
     res = await fetch(url, {
       method,
       headers: {
-        authorization: `Bearer ${jwt}`,
+        authorization: `Bearer ${jwt ?? token}`,
         accept: "application/vnd.github+json",
         "x-github-api-version": "2022-11-28",
         "user-agent": "epito",
@@ -209,16 +220,44 @@ export async function installationFor(jwt, repo) {
     return String(inst.id);
   } catch (e) {
     if (e.status === 404) {
-      throw new Error(`this agent's GitHub App is not installed on ${repo} — an App with no installation there can mint nothing, however valid its key. Fix: install the App on ${repo} (its owner does this once), then mint again.`);
+      throw permanent(`this agent's GitHub App is not installed on ${repo} — an App with no installation there can mint nothing, however valid its key. Fix: install the App on ${repo} (its owner does this once), then mint again.`);
     }
     if (e.status === 401) {
-      throw new Error(`GitHub rejected this agent's App credentials (401). Either the App id and the private key are not from the same App, or the key has been revoked. Fix: re-copy both from the App's settings page.`);
+      throw permanent(`GitHub rejected this agent's App credentials (401). Either the App id and the private key are not from the same App, or the key has been revoked. Fix: re-copy both from the App's settings page.`);
     }
     throw e;
   }
 }
 
-// Mint. Returns { token, expiresAt, permissions, repo, installationId } and
+// --- the agent's commit identity ------------------------------------------
+// A PR opened with an installation token opens as `<slug>[bot]`. The commits
+// inside it do not follow: git takes author and committer from its
+// environment, and GitHub links a commit to an account by email alone. The
+// address that links is the bot user's own noreply —
+//
+//     <bot user id>+<slug>[bot]@users.noreply.github.com
+//
+// — which needs two facts that are in neither the manifest nor the App key:
+// the App's slug (GET /app, as the App) and the bot user's numeric id
+// (GET /users/<slug>[bot], as the installation; a JWT is not accepted there).
+// Both are fixed for the life of the App, so they are read once per App per
+// process. Without this the commits carry `<name>@agents.epito.me`, an
+// address that belongs to nobody and links to nothing.
+const botCache = new Map();
+
+export async function commitIdentityFor({ appId, jwt, token }) {
+  if (botCache.has(appId)) return botCache.get(appId);
+  const app = await gh("/app", { jwt });
+  if (!app?.slug) throw new Error(`GitHub described this App without a slug, so its bot user has no name to look up`);
+  const login = `${app.slug}[bot]`;
+  const user = await gh(`/users/${encodeURIComponent(login)}`, { token });
+  if (!user?.id) throw new Error(`GitHub described ${login} without a numeric id, and the id is the half of the address that does the linking`);
+  const identity = { name: login, email: `${user.id}+${login}@users.noreply.github.com` };
+  botCache.set(appId, identity);
+  return identity;
+}
+
+// Mint. Returns { token, expiresAt, permissions, repo, installationId, commit } and
 // never persists any of it: the credential is in-memory only
 // (architecture.md's data model says so, and rule 1 is why).
 export async function mintToken({ name, scopes, repo, principal, log }) {
@@ -239,15 +278,26 @@ export async function mintToken({ name, scopes, repo, principal, log }) {
     });
   } catch (e) {
     if (e.status === 422) {
-      throw new Error(`GitHub refused the permissions this manifest asks for (422${e.githubMessage ? `: ${e.githubMessage}` : ""}). An installation can only hand out permissions the App was granted. Fix: grant the App ${Object.entries(permissions).map(([k, v]) => `${k}:${v}`).join(", ")} and accept the request on ${repo}.`);
+      throw permanent(`GitHub refused the permissions this manifest asks for (422${e.githubMessage ? `: ${e.githubMessage}` : ""}). An installation can only hand out permissions the App was granted. Fix: grant the App ${Object.entries(permissions).map(([k, v]) => `${k}:${v}`).join(", ")} and accept the request on ${repo}.`);
     }
     if (e.status === 404) {
-      throw new Error(`installation ${installationId} does not exist for this App, or it cannot see ${repo} (404). Fix: check the installation id, or drop it and let epito discover the installation from the manifest's [runtime].repo.`);
+      throw permanent(`installation ${installationId} does not exist for this App, or it cannot see ${repo} (404). Fix: check the installation id, or drop it and let epito discover the installation from the manifest's [runtime].repo.`);
     }
     throw e;
   }
   log?.(`minted for ${name}: installation ${installationId}, ${Object.keys(permissions).length} permission${Object.keys(permissions).length > 1 ? "s" : ""} on ${repo}`);
-  return { token: res.token, expiresAt: res.expires_at, permissions, repo, installationId };
+
+  // Deliberately NOT fatal. "No silent fallback" is a rule about acting as the
+  // wrong principal, and committing as `<name>@agents.epito.me` is not acting
+  // as a human — it is the agent, less legibly. Losing a whole run over an
+  // avatar would be the wrong trade, so this degrades loudly instead: the run
+  // says so, and the audit line records `commit: null` rather than a guess.
+  let commit = null;
+  try { commit = await commitIdentityFor({ appId: principal.appId, jwt, token: res.token }); }
+  catch (e) {
+    log?.(`${name}: minted, but could not read this App's bot identity (${e.message}) — the run opens its PR as the bot either way, and its commits fall back to ${name}@agents.epito.me, which GitHub cannot link to the App`);
+  }
+  return { token: res.token, expiresAt: res.expires_at, permissions, repo, installationId, commit };
 }
 
 // One run's identity, as the run path wants it: null when this agent has no
@@ -270,7 +320,7 @@ export async function mintForRun({ name, manifest, dir = ".", env = process.env,
   const principal = loadPrincipal(name, { env, dir });
   if (!principal) return null;
   if (!repo) {
-    throw new Error(`"${name}" has a GitHub App but no [runtime].repo, and a token is scoped to exactly one repository — there is nothing to scope this mint to. Fix: add repo = "owner/name" to [runtime] in this agent's agent.toml.`);
+    throw permanent(`"${name}" has a GitHub App but no [runtime].repo, and a token is scoped to exactly one repository — there is nothing to scope this mint to. Fix: add repo = "owner/name" to [runtime] in this agent's agent.toml.`);
   }
   const minted = await mintToken({ name, scopes, repo, principal, log });
   return {
@@ -282,6 +332,10 @@ export async function mintForRun({ name, manifest, dir = ".", env = process.env,
       expiresAt: minted.expiresAt,
       source: principal.source,
       scopes,
+      // Safe on the meta side of the split: a bot's login and noreply address
+      // are public facts about the App, and the audit line is where "who
+      // authored this commit" stops being a guess.
+      commit: minted.commit,
     },
   };
 }
