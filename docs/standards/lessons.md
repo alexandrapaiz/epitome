@@ -1,11 +1,3 @@
-<!-- vendored-from: standards/lessons.md @ 9605e550a39742ea583ea93a796c1e49e05fd578 -->
-> **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `9605e55`,
-> vendored 2026-09-21. Changes to a company standard are HQ
-> ADRs (standards/README.md). Deviations for this product belong in this
-> repo's own decisions file, not in this copy.
-<!-- end vendored header -->
-
 # Company Lessons Register
 
 The owner's corrections, generalized into standing law and distributed
@@ -610,3 +602,13 @@ captured).
   because postmortem literature enters no arXiv category, and the owner
   had to report it herself. Catalog: the research role's canonical
   charter carries this check.)
+
+### L-P6 — Presence is a cadence, not a duty (portable: yes, role: pm) — 2026-09-23
+Between weekly runs the owner is the only actor present, so every gap lands on her. A PM that runs daily, reads state and dispatches by written criteria removes that default. The premise that blocked it ("a run's token cannot start a run") was a rule misread; test the mechanism with a two-line probe before designing around a limitation (HQ dispatch-probe, ADR-033).
+
+### L-K3 — Open routing is best-effort; the subscription is the floor (portable: yes, role: engineer, pm) — 2026-09-24
+A seat workflow's open-routed step is `continue-on-error` with an id, and the Claude step runs when it did not succeed. Never let a cheap provider's concurrency ceiling become a failed run (HQ Incident 4).
+
+### L-P7 — In sync mode the PM directs; the owner steers through it (portable: yes, role: pm, chair) — 2026-09-26
+A rule meant to prevent two dispatchers racing ("never dispatch while the owner is present") made every PM passive exactly when the owner was present, and the owner ended up prompting seats herself. Sync mode means: the chair opens PM windows first, relays the owner's words to the PMs as agenda and messages, and the PMs dispatch under the ceilings. The chair's job in sync mode is to direct the PMs, not the seats.
+
