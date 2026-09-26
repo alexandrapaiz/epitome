@@ -51,8 +51,12 @@ export async function psCmd(dirArg) {
       const name = seatOfScheduleId(sch.id);
       const s = seat(name);
       s.cron = sch.shape?.cron ?? s.cron;
-      s.schedule = sch.raw?.state?.paused ? "paused" : "ok";
-      s.next = sch.raw?.info?.nextActionTimes?.[0] ?? null;
+      s.paused = Boolean(sch.raw?.state?.paused);
+      s.schedule = s.paused ? "paused" : "ok";
+      // Temporal still reports when a paused schedule WOULD fire. Printing
+      // that in a column headed NEXT tells an operator a seat is about to
+      // run when it is not, so a paused seat has no next fire.
+      s.next = s.paused ? null : (sch.raw?.info?.nextActionTimes?.[0] ?? null);
     }
 
     const recent = [];

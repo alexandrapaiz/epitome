@@ -321,8 +321,9 @@ flows. Names appear as they appear on disk.
    reads the roster directory. This is what makes the worker stateless
    and a schedule's payload auditable.
 4. **Workflows are deterministic; all input and output lives in
-   activities.** No `fs`, no `spawn`, no `Date.now()`, no `fetch` in
-   `workflows.js`.
+   activities.** No `fs`, no `spawn`, no `fetch`, no randomness in
+   `workflows.js`. `Date.now()` is allowed and used: the workflow sandbox
+   replaces it with workflow time, which replays identically.
 5. **Retries and timeouts are declared, never implied.** Every activity
    names its `RetryPolicy` and its `startToCloseTimeout` at the call
    site in the workflow. `execute` is `maximumAttempts: 1`.
@@ -388,6 +389,14 @@ export async function SeatRun(input /* SeatRunInput */) { ... }
 
 // signals
 export const followUp = defineSignal/* <[SeatRunInput]> */("followUp");
+
+// Every trigger carries a `token`, and a run has its own token in `seen`
+// before that handler exists. This is not belt-and-braces. The ingress
+// reaches a run with `signalWithStart`, which delivers the signal even on
+// the call that STARTS the workflow, so without the token every fresh hook
+// and message would execute twice: once from the input, once from its own
+// signal. The smoke test found exactly that, which is the argument for
+// smoke-testing against a real engine rather than a fake one.
 
 // A work window. Holds the session id and the clone for `ttlMs`, runs a
 // child SeatRun per message, and cleans the clone up on the way out.
@@ -573,15 +582,25 @@ namespace.
   golden error strings, asserted verbatim, as every other error string in
   this repo is.
 - **Smoke, against a real engine.** `cli/test/smoke-temporal.sh` starts
-  `temporal server start-dev --headless` on an ephemeral port, runs the
-  real worker with `EPITO_EXECUTOR=test/stub-executor.mjs` and
-  `url.<local>.insteadOf https://github.com/`, and proves the three
-  things the directive names: **a schedule fires a run**, **a window
-  holds a session and a message resumes it in the same clone**, and
-  **`epito ps` reads Temporal**. It spends no tokens and touches no
-  network. If the `temporal` CLI is absent it exits 0 after printing the
-  reason and the one-line install command, so it never fails a machine
-  that simply lacks the binary.
+  `temporal server start-dev --headless` in its own SQLite file on its own
+  port, runs the real worker and the real ingress with
+  `EPITO_EXECUTOR=test/stub-executor.mjs` and
+  `url.<local>.insteadOf https://github.com/`, and proves the three things
+  the directive names: **a schedule fires a run** (on the real clock, not
+  by a hand trigger), **a window holds a session and a message resumes it
+  in the same clone**, and **`epito ps` reads Temporal**. It also covers
+  what v0 had and must not lose: reconcile idempotence in both directions,
+  per-agent Slack routing to two separate sinks, a seat with no charter
+  refusing loudly and leaving no clone behind, and the four ingress
+  refusals. 59 assertions, no tokens spent, no network touched. If the
+  `temporal` CLI is absent it exits 0 after printing the reason and the
+  one-line install command — an unrun test rather than a failing one, said
+  in those words so nobody reads the skip as a pass.
+- **Audit assertions match by JSON predicate, not by substring**
+  (`cli/test/audit-has.mjs`). A substring match against a serialized object
+  is really an assertion about key order, and key order is not a promise
+  this runtime makes. Three of the first assertions written here were
+  passing or failing for that reason rather than for a real one.
 - **Not yet done, and named:** workflow replay tests against recorded
   histories, which are the regression suite that makes changing
   `workflows.js` safe. `@temporalio/testing`'s replayer is the tool.

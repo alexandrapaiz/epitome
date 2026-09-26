@@ -153,6 +153,10 @@ check "the schedule is seat:clock, in UTC, with its model and repo" "grep -qF '+
 check "temporal itself lists it" "'$TEMPORAL_BIN' schedule list --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -q seat:clock"
 audit "the audit log records the registration" '{"agent":"clock","action":"schedule.create","schedule":"seat:clock"}'
 check "/healthz reports the engine it depends on" "curl -fs http://127.0.0.1:$PORT/healthz | grep -q '\"temporal\":\"127.0.0.1:$GRPC_PORT\"'"
+# Read the schedule back through `epito ps` while it is still live: a paused
+# schedule is asserted separately, after the fire.
+node "$CLI/src/index.js" ps "$ROSTER" | sed 's/^/  /'
+check "epito ps shows clock's cron, its next fire, and a healthy schedule" "node '$CLI/src/index.js' ps '$ROSTER' | grep clock | grep -qE '\* \* \* \* \* +[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}Z +ok'"
 
 post() { curl -s -o "$ROOT/body.json" -w '%{http_code}' -X POST -H "x-epito-secret: $SECRET" -H 'content-type: application/json' --data "$2" "http://127.0.0.1:$PORT$1"; }
 body() { cat "$ROOT/body.json"; }
@@ -186,6 +190,7 @@ check "and the clone it ran in is gone" "[ \$(ls -d \${TMPDIR:-/tmp}/epito-clock
 # a pause is a thing to wait for rather than to read once.
 for _ in $(seq 1 40); do node "$CLI/src/index.js" ps 2>/dev/null | grep clock | grep -q paused && break; sleep 0.5; done
 check "epito ps shows the schedule as paused, read from the engine" "node '$CLI/src/index.js' ps | grep clock | grep -q paused"
+check "and a paused seat advertises no next fire" "node '$CLI/src/index.js' ps | grep clock | grep -qvE '[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}Z +paused'"
 
 step "2: a WINDOW holds a session, and a message resumes THAT session in the same clone"
 code=$(post /window/open '{"scope":"pm","text":"Agenda: cycle 2 hill check."}'); echo "  $code $(body)"
@@ -210,7 +215,7 @@ step "3: \`epito ps\` reads TEMPORAL — schedules, running workflows, and the w
 node "$CLI/src/index.js" ps "$ROSTER" | sed 's/^/  /'
 PS=$(node "$CLI/src/index.js" ps "$ROSTER")
 check "ps names the engine it read" "printf '%s' \"\$PS\" | grep -q 'epitod on 127.0.0.1:$GRPC_PORT namespace=$NS queue=seats'"
-check "ps shows clock's cron and its next fire, from the schedule" "printf '%s' \"\$PS\" | grep -E 'clock .*\* \* \* \* \*' | grep -qE '[0-9]{4}-[0-9]{2}-[0-9]{2}T'"
+check "ps still shows clock's cron, and that its schedule is paused" "printf '%s' \"\$PS\" | grep clock | grep -qE '\* \* \* \* \* +- +paused'"
 check "ps shows pm's open window, queried from the window workflow" "printf '%s' \"\$PS\" | grep pm | grep -q 'left'"
 check "ps shows the held session's first eight characters" "printf '%s' \"\$PS\" | grep -q \"\${SESSION:0:8}\""
 check "ps read no state.json, because there is none" "[ ! -e .epito/state.json ]"
