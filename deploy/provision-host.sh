@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
-# Provision one always-on host for epitod — the resident runtime that holds
-# agents between triggers (docs/pitches/runtime-v0-resident.md).
+# Provision one always-on host for epitod — the runtime that holds agents
+# between triggers (epitod v1, docs/prfaq/epitod-v1-temporal.md).
+#
+# epitod v1 runs on Temporal, self-hosted. This script does NOT install the
+# Temporal server: that is HQ's runtime/temporal/install.sh, which brings up
+# temporalio/auto-setup and temporalio/ui in docker on the host's Postgres,
+# bound to loopback. Run that first, or run this and fill in TEMPORAL_ADDRESS
+# afterwards — the units below wait for a server they can reach and say so
+# when they cannot.
 #
 # Target: Ubuntu 24.04 LTS, arm64, an Oracle Cloud Always Free A1 instance
 # (4 OCPU / 24 GB is the free ceiling; epitod is idle between runs and the
@@ -18,9 +25,12 @@
 #   user seats           the unprivileged principal every agent run is
 #   /srv/asc/repos       epito's source and the roster repo
 #   /srv/asc/roster      -> the directory of agent.toml files epitod hosts
-#   /srv/asc/state       epitod's working dir: .epito/{audit.jsonl,state.json,logs}
-#   /srv/asc/env         the daemon's secrets, 0600 seats:seats
-#   epitod.service       systemd, Restart=always, EnvironmentFile=/srv/asc/env
+#   /srv/asc/state       epitod's working dir: .epito/{audit.jsonl,logs}
+#   /srv/asc/env         the runtime's secrets, 0600 seats:seats
+#   epitod.service       reconcile the roster onto Temporal + serve the ingress
+#   epitod-worker.service  the process that actually runs seats (task queue
+#                        `seats`); separate so reloading the roster cannot
+#                        interrupt a seat that is mid-run
 #   Caddy                TLS in front of 127.0.0.1:4747 (the ingress has one
 #                        shared secret; TLS is what keeps it off the wire)
 #   ufw 22/443, fail2ban
@@ -29,7 +39,7 @@ set -euo pipefail
 
 DOMAIN=""; EMAIL=""; ROSTER_REPO=""; ROSTER_SUBDIR=""
 EPITO_REPO="${EPITO_REPO:-alexandrapaiz/epitome}"; EPITO_REF=""
-SEATS_USER="seats"; BASE="/srv/asc"; PORT="4747"; SKIP_CADDY=0
+SEATS_USER="seats"; BASE="/srv/asc"; PORT="4747"; SKIP_CADDY=0; TASK_QUEUE="seats"
 
 usage() {
   sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'
@@ -130,13 +140,21 @@ else
 # agent's [runtime].env — the manifest names it, this file holds it.
 EPITO_HOOK_SECRET=$(openssl rand -hex 24)
 EPITO_PORT=$PORT
+# The engine. Self-hosted Temporal on loopback, installed separately by HQ's
+# runtime/temporal/install.sh. Never Temporal Cloud.
+TEMPORAL_ADDRESS=127.0.0.1:7233
+TEMPORAL_NAMESPACE=asc
+EPITO_TASK_QUEUE=seats
 CLAUDE_CODE_OAUTH_TOKEN=replace-me
 GH_TOKEN=replace-me
+# The default webhook, which is #hq. A seat that wants its own channel names a
+# different variable in [runtime].slack_webhook_env and it is added here.
 SLACK_WEBHOOK_URL=replace-me
 ENV
   chown "$SEATS_USER:$SEATS_USER" "$BASE/env"; chmod 0600 "$BASE/env"
   umask 022
   echo "  wrote $BASE/env with a fresh EPITO_HOOK_SECRET; fill in the three replace-me lines"
+  echo "  TEMPORAL_ADDRESS=127.0.0.1:7233 TEMPORAL_NAMESPACE=asc assumed: change them if the engine is elsewhere"
 fi
 
 # git asks gh, and gh reads GH_TOKEN from the environment.
@@ -242,15 +260,54 @@ else
   echo "  already configured or unavailable — skipping"
 fi
 
-say "epitod.service"
-cat > /etc/systemd/system/epitod.service <<UNIT
-# epitod v0, the resident runtime, as a system unit. This is docs/deploy/
-# epitod.service with the seat user made explicit: one host, one roster, one
-# unprivileged principal. Secrets come from $BASE/env; each run sees only the
-# names its own agent.toml lists under [runtime].env.
+say "epitod-worker.service (the process that runs seats)"
+cat > /etc/systemd/system/epitod-worker.service <<UNIT
+# epitod v1 worker. Polls the \`$TASK_QUEUE\` task queue on Temporal and runs the
+# activities: clone the seat's repository, spawn the executor in it, append the
+# audit line, post the Slack line. This is the ONLY process that sees a secret
+# value: Temporal persists every workflow argument in plain text, so the
+# manifests carry secret NAMES and this unit's environment carries the values.
 [Unit]
-Description=epitod - epito resident runtime (epito run)
-After=network-online.target
+Description=epitod v1 worker - runs seats off the Temporal task queue
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=$SEATS_USER
+Group=$SEATS_USER
+WorkingDirectory=$BASE/state
+EnvironmentFile=$BASE/env
+Environment=HOME=$BASE/home
+Environment=EPITO_TASK_QUEUE=$TASK_QUEUE
+ExecStart=/usr/bin/env epito worker
+Restart=always
+RestartSec=5
+# Runs write clones under \$TMPDIR; give the unit its own so cleanup is local.
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=$BASE
+# A seat run is minutes to an hour, and \`epito worker\` drains on SIGTERM: it
+# stops taking new work and lets what is in flight finish.
+KillMode=mixed
+TimeoutStopSec=300
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+say "epitod.service (reconcile the roster, then serve the ingress)"
+cat > /etc/systemd/system/epitod.service <<UNIT
+# epitod v1: reconcile + ingress. It makes Temporal's schedules match the
+# roster (one schedule per [trigger].cron, id seat:<name>) and serves the
+# ingress. It does NOT execute seats — epitod-worker.service does, and the
+# split is the point: \`systemctl reload epitod\` picks up a roster change
+# without interrupting a seat that is mid-run.
+[Unit]
+Description=epitod v1 - reconcile the roster onto Temporal, and serve the ingress
+After=network-online.target docker.service epitod-worker.service
 Wants=network-online.target
 
 [Service]
@@ -262,23 +319,26 @@ EnvironmentFile=$BASE/env
 Environment=EPITO_PORT=$PORT
 Environment=HOME=$BASE/home
 ExecStart=/usr/bin/env epito run $ROSTER_DIR
+# SIGHUP re-reads the roster and reconciles, without dropping the ingress.
+ExecReload=/bin/kill -HUP \$MAINPID
 Restart=always
 RestartSec=5
-# Runs write clones under \$TMPDIR; give the unit its own so cleanup is local.
 PrivateTmp=yes
 NoNewPrivileges=yes
 ProtectSystem=full
 ProtectHome=read-only
 ReadWritePaths=$BASE
 KillMode=mixed
-TimeoutStopSec=90
+TimeoutStopSec=30
 
 [Install]
 WantedBy=multi-user.target
 UNIT
 systemctl daemon-reload
+systemctl enable --quiet epitod-worker
 systemctl enable --quiet epitod
-echo "  enabled (start it once $BASE/env is filled in: systemctl restart epitod)"
+echo "  both enabled (start them once $BASE/env is filled in and Temporal is up:"
+echo "   systemctl restart epitod-worker epitod)"
 
 say "daily health: epito ps to Slack (also the keepalive Oracle wants to see)"
 cat > /usr/local/bin/epitod-health <<HEALTH
@@ -372,11 +432,24 @@ ufw status | sed 's/^/  /'
 
 say "done"
 cat <<NEXT
-  1. fill in $BASE/env (CLAUDE_CODE_OAUTH_TOKEN, GH_TOKEN, SLACK_WEBHOOK_URL)
+  1. the engine: make sure Temporal is up and reachable at the TEMPORAL_ADDRESS
+     in $BASE/env (HQ runtime/temporal/install.sh brings it up in docker on
+     loopback). Check it, and that the namespace exists:
+       temporal operator cluster health --address 127.0.0.1:7233
+       temporal operator namespace describe -n asc --address 127.0.0.1:7233
+     If the namespace is missing: temporal operator namespace create asc
+  2. fill in $BASE/env (CLAUDE_CODE_OAUTH_TOKEN, GH_TOKEN, SLACK_WEBHOOK_URL)
      — or point the Infisical agent at your project and let it render the file
-  2. put the roster in $ROSTER_DIR (one directory per agent, each an agent.toml
-     with [runtime].repo set), then: systemctl restart epitod
-  3. watch it: journalctl -u epitod -f   |   sudo -u $SEATS_USER sh -c 'cd $BASE/state && epito ps'
-  4. speak to it (the secret is in $BASE/env):
+  3. put the roster in $ROSTER_DIR (one directory per agent, each an agent.toml
+     with [runtime].repo set), then start the worker first and the ingress second:
+       systemctl restart epitod-worker
+       systemctl restart epitod
+     A seat with no [trigger].cron registers no schedule, so a presence-only
+     roster starts quiet on purpose. Adding a cron later needs no restart:
+       systemctl reload epitod
+  4. watch it: journalctl -u epitod-worker -u epitod -f
+     the roster:  sudo -u $SEATS_USER sh -c 'cd $BASE/state && epito ps $ROSTER_DIR'
+     the history: ssh -L 8080:127.0.0.1:8080 this-host, then open localhost:8080
+  5. speak to it (the secret is in $BASE/env):
      curl -X POST -H "x-epito-secret: \$EPITO_HOOK_SECRET" $([ -n "$DOMAIN" ] && echo "https://$DOMAIN" || echo "http://127.0.0.1:$PORT")/window/open -d '{"scope":"all"}'
 NEXT

@@ -331,3 +331,65 @@ easy from craft, never from a veneer. Omarchy is the named exemplar
 retires "sold to vibecoders" as the mission's closing phrase without
 retiring vibecoders as the audience: they are most programmers now,
 and they deserve real engineering.
+
+## ADR-15: Temporal self-hosted is the runtime engine; epitod is its face
+
+Status: proposed 2026-09-26 by the engineer seat, on the owner's
+directive of 2026-09-25 recorded at HQ as ADR-036 ("i need the runtimes
+to be working ... for all four companies ... and the seats active.
+almost fully autonomous"). The owner ratifies by merging the
+implementing PR. The full argument, written Working Backwards before
+the code, is docs/prfaq/epitod-v1-temporal.md.
+
+**Decision.** The durable-execution engine under epitod is Temporal,
+self-hosted on the company host at `127.0.0.1:7233`. epitod is the
+face: manifests, agent identity, and the vocabulary an owner reads.
+Temporal Cloud is rejected permanently.
+
+**Why.** epitod v0 hand-built four things inside one Node process
+(`cli/src/run.js`): a cron scheduler, a per-seat mutex with coalescing,
+a retry story, and a crash story. Those four things are a workflow
+engine, and the version we wrote had one silent defect that mattered
+more than the rest — a run in flight when the host rebooted was simply
+gone, with nothing in the system aware it had existed. The mapping to
+Temporal is one-to-one, which is why this was a port and not a rewrite:
+`[trigger].cron` is a Schedule, the mutex is
+`ScheduleOverlapPolicy.BUFFER_ONE`, a run is a workflow over four
+activities with declared retries, and presence is a long-running
+workflow holding a session id.
+
+**Consequences.**
+
+1. **The dependency budget for epitod changed**, from "none targeted"
+   to four `@temporalio/*` packages plus a server we operate. The
+   justification line is in docs/architecture.md, as that document's own
+   rule requires. This is the first load-bearing runtime dependency the
+   product has taken, and it is taken knowingly.
+2. **ADR-6 is honored by construction, not by promise.** The engine is
+   a swappable backend, and the test that it stayed swappable is
+   mechanical: `.epito/audit.jsonl` and `cli/src/temporal/activities.js`
+   carry no Temporal type, and the manifest spec carries no Temporal
+   concept. If a future ADR replaces the engine, the product's record
+   survives it unchanged.
+3. **No Temporal word may reach a product-facing string.** An owner
+   reads about seats, runs, windows and manifests. `schedule`, `signal`
+   and `task queue` live in `cli/src/temporal/` and in the design doc.
+   A violation of this is an ExO trigger, not a style note.
+4. **The runtime leg still costs zero dollars**, which was a condition
+   of the directive. The server is two containers on the host's existing
+   Postgres.
+5. **A new security rule, because the engine persists its inputs.**
+   Temporal writes every workflow and activity argument to its database
+   in plain text. No secret value may ever be one. The manifest — which
+   spec rule 1 already makes publishable without redaction — is what
+   crosses that boundary, and the worker process reads secret values
+   from its own environment at the last moment. This is why the manifest
+   being publishable turned out to be load-bearing twice: once for the
+   future marketplace, once for the engine's database.
+6. **The Node SDK, not Python**, because the `execute` activity's whole
+   job is to wrap `cli/src/lib/runner.js`, which already works. The
+   Python alternative is named in the PR/FAQ along with what it would
+   cost, and the cost is confined to `cli/src/temporal/`. Revisit when a
+   second executor arrives, not before.
+7. **`.epito/state.json` is retired.** `epito ps` reads the engine. Two
+   copies of what is running is one copy that can be wrong.

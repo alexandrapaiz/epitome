@@ -1,159 +1,217 @@
-# Deploying epitod v0
+# Deploying epitod v1
 
-`epito run <dir>` is one process. It needs four things on PATH: `node`
-(>= 18), `git`, `gh`, and `claude` (the executor it spawns per run). It
-reads secrets from its own environment and passes each run only the names
-that run's `agent.toml` lists under `[runtime].env`. Everything it writes
-goes under `.epito/` in its working directory:
+epitod v1 is **two processes and one engine** (the design:
+docs/prfaq/epitod-v1-temporal.md).
+
+| Process | What it does | systemd |
+|---|---|---|
+| `epito run <roster>` | makes Temporal's schedules match the roster, then serves the ingress as a thin client | `epitod.service` |
+| `epito worker` | polls the `seats` task queue and does the work: clone, execute, record, notify | `epitod-worker.service` |
+| Temporal server + UI | the engine. Self-hosted, `temporalio/auto-setup` on `127.0.0.1:7233` and `temporalio/ui` on `127.0.0.1:8080`, on the host's Postgres | docker, via HQ `runtime/temporal/install.sh` |
+
+Two units and not one, deliberately: reloading the roster must not interrupt a
+seat that is mid-run, and with the worker in its own unit it does not.
+`systemctl reload epitod` is safe at any time.
+
+Both epitod processes need four things on PATH: `node` (>= 18), `git`, `gh`,
+and `claude` (the executor the `execute` activity spawns). Everything the
+product writes goes under `.epito/` in the working directory, which **both
+processes must share** so there is one ledger:
 
 ```
 .epito/audit.jsonl        one JSON line per event, append-only
-.epito/state.json         the roster snapshot `epito ps` prints
 .epito/logs/<agent>/*.log stdout+stderr of every run
 ```
 
-Environment the daemon reads:
+There is no `.epito/state.json` any more. `epito ps` asks Temporal, because
+a second copy of what is running is a second copy that can be wrong.
 
-| name | meaning |
-|---|---|
-| `EPITO_HOOK_SECRET` | shared secret for every POST route (header `x-epito-secret`); the ingress answers 503 until set |
-| `EPITO_PORT` | ingress port, default 4747 |
-| `EPITO_WINDOW_MS` | how long a work window stays open, default 14400000 (4h) |
-| `EPITO_EXECUTOR` | the binary spawned per run, default `claude`; `echo` is the stub for smoke tests |
-| `EPITO_RUN_TIMEOUT_MS` | per-run cap, default 3600000 (60 min) |
-| `CLAUDE_CODE_OAUTH_TOKEN` / `ANTHROPIC_API_KEY` | the executor's auth, only if a manifest lists it |
-| `GH_TOKEN` | clone/push/`gh pr create` for now (bet 2 replaces it with a per-agent App token) |
-| `SLACK_WEBHOOK_URL` | where the one-line post after each run goes, for agents that list it |
+## Environment
+
+| name | default | meaning |
+|---|---|---|
+| `TEMPORAL_ADDRESS` | `127.0.0.1:7233` | the engine's gRPC endpoint |
+| `TEMPORAL_NAMESPACE` | `default` | the namespace; the company host sets `asc` |
+| `EPITO_TASK_QUEUE` | `seats` | the queue the worker polls and the schedules target |
+| `EPITO_HOOK_SECRET` | — | shared secret for every POST route (header `x-epito-secret`); the ingress answers 503 until set |
+| `EPITO_PORT` | `4747` | ingress port |
+| `EPITO_WINDOW_MS` | `14400000` | how long a work window stays open (4h) |
+| `EPITO_RUN_TIMEOUT_MS` | `3600000` | per-run cap: the `execute` activity's timeout and the workflow's run timeout |
+| `EPITO_MAX_CONCURRENT_RUNS` | `4` | how many seat runs one worker will hold at once |
+| `EPITO_EXECUTOR` | `claude` | the binary the `execute` activity spawns |
+| `CLAUDE_CODE_OAUTH_TOKEN` / `ANTHROPIC_API_KEY` | — | the executor's auth, only if a manifest lists it |
+| `GH_TOKEN` | — | clone/push/`gh pr create` for now (bet 2 replaces it with a per-agent App token) |
+| `SLACK_WEBHOOK_URL` | — | the default webhook, which is `#hq` |
+| `SLACK_WEBHOOK_URL_<PRODUCT>` | — | a per-seat webhook, named by that seat's `[runtime].slack_webhook_env` |
+
+Only the **worker** needs the secret values. Temporal persists every workflow
+argument in plain text, so the manifests carry secret *names* and the worker's
+own environment carries the values. Both units still read the same
+`EnvironmentFile` on the company host, because one file is easier to rotate
+than two, but nothing in the design requires the ingress to hold a token.
 
 ## The ingress
 
 | route | what it does |
 |---|---|
-| `POST /hooks/<name>` | an event wakes the agent; the body is payload, never instructions |
-| `POST /message/<name>` `{"text"}` | speaks to the agent inside the session its window holds; with no window open it falls back to a fresh run carrying the text |
-| `POST /window/open` `{"scope"?, "text"?, "ttl_ms"?}` | opens a work window (4h default) on every agent in scope and fires each once with the synchronous instruction plus your agenda — this is the all-hands call |
-| `POST /window/close` `{"scope"?}` | closes them; the held session id and its clone are discarded |
-| `GET /healthz` | liveness, no secret |
+| `POST /hooks/<name>` | an event wakes the agent: starts `SeatRun`, or delivers a `followUp` to the run already going |
+| `POST /message/<name>` `{"text"}` | speaks to the agent inside the session its window holds; with no window open it falls back to a fresh run carrying the text, and says so |
+| `POST /window/open` `{"scope"?, "text"?, "ttl_ms"?}` | starts `SeatWindow` on every agent in scope and fires each once with the synchronous instruction plus your agenda — this is the all-hands call. A window already open has its deadline moved |
+| `POST /window/close` `{"scope"?}` | signals the window closed; the held session and its clone are discarded |
+| `GET /healthz` | liveness, no secret. It answers 503 when the **engine** is unreachable, because an ingress that says 200 while Temporal is down is a health check that lies |
 
 `scope` is `"all"` (or absent) or a comma-separated list of `[agent].name`
-values. Two thin CLI wrappers POST the same routes to the daemon this shell
+values. Two thin CLI wrappers POST the same routes to the ingress this shell
 can see, so nobody has to hand-write a curl with a secret in it:
 
 ```sh
-epito window open all "Agenda: cycle 1 hill check."
+epito window open all "Agenda: cycle 2 hill check."
 epito message pm "which PR did you open?"
 epito window close pm
+```
+
+## Schedules: what `epito run` actually does
+
+```sh
+epito run /srv/asc/roster --dry-run     # print the schedule changes and stop
+epito run /srv/asc/roster               # reconcile, then serve the ingress
+systemctl reload epitod                 # SIGHUP: re-read the roster, reconcile again
+```
+
+The desired state is a pure function of the roster, so this is idempotent:
+
+- a manifest with `[trigger].cron` gets one schedule, id `seat:<name>`, the
+  expression in **UTC**, overlap policy `BUFFER_ONE` (a fire arriving while the
+  seat is still running is coalesced into a single follow-up, never dropped and
+  never stacked);
+- a manifest **without** `[trigger].cron` gets no schedule. A presence-only
+  roster starts quiet on purpose;
+- a seat that loses its cron, or leaves the roster, loses its schedule;
+- a schedule whose id is not `seat:<name>` is left alone. It was not registered
+  by epito, so it is not epito's to delete.
+
+Every create, update and delete is a line in `audit.jsonl` as well as a change
+on the engine. The schedule's payload is the **manifest snapshot**, which is
+why changing a seat's model or entry is an update rather than a no-op, and why
+it is safe to persist: a manifest is publishable by design.
+
+Because `seat:<name>` is an ordinary Temporal schedule, the stock tools operate
+it:
+
+```sh
+temporal schedule describe --schedule-id seat:engineer
+temporal schedule toggle   --schedule-id seat:engineer --pause --reason "cooldown"
+temporal schedule trigger  --schedule-id seat:engineer     # fire it now, by hand
 ```
 
 ## Presence: what a window actually holds
 
 Between triggers an agent is nothing — a fresh clone, a fresh context. A
-**window** is the exception, and it is deliberately small:
+**window** is the exception, and in v1 it is a workflow rather than a `Map` in
+somebody's memory:
 
-- opening one fires the agent once; the executor's `session_id` from that
-  run is kept, along with **the clone it ran in** (the executor stores a
-  conversation per project directory, so a resumed run must return to the
-  same directory);
-- `POST /message/<name>` continues that conversation with `--resume`;
-- closing the window — by hand, by the 4h clock, or by the daemon stopping —
-  discards the id and deletes the clone.
+- `SeatWindow` opens, fires the seat once as a child `SeatRun`, and holds two
+  things from that run: the executor's `session_id` and **the clone it ran in**
+  (the executor stores a conversation per project directory, so a resumed run
+  must return to the same directory);
+- a `message` signal runs another child `SeatRun` with `--resume` in that same
+  clone;
+- `close`, the TTL timer, or a terminated workflow all end the same way: the
+  clone is deleted and a `window.close` line is appended. The `cleanup`
+  activity runs non-cancellable, so this happens even on the way out.
 
-Nothing else survives. The PRs are the record (ADR-2); `epito ps` shows the
-window's remaining time and the held session's first eight characters, and
-`.epito/audit.jsonl` carries `window.open`, `window.refresh`, `window.close`,
-`session.hold`, `session.lost` and `slack.post` lines.
+Nothing else survives. The PRs are the record (ADR-2). `epito ps` shows the
+window's remaining time and the held session's first eight characters by
+**querying the window workflow**, which is the thing that knows.
 
-The roster directory holds one folder per agent with an `agent.toml`
-(see spec/manifest.md; `[runtime].repo` is required by `epito run`).
+One worker host, in v1: a window holds a filesystem path, so the child run
+must land on the host that made the clone. A second host needs host-pinned task
+queues.
 
-## Local (no deploy)
+## Local, with no host at all
 
 ```sh
-cd cli && npm ci && npm link            # puts `epito` on PATH
+# the engine
+temporal server start-dev --namespace epito            # 127.0.0.1:7233, UI on 8233
+
+# the runtime
+cd cli && npm ci && npm link                           # puts `epito` on PATH
 mkdir -p ~/epito/agents/smoke ~/epito/state
-cp ../smoke/agent.toml ~/epito/agents/smoke/   # or write one
 cd ~/epito/state
-EPITO_HOOK_SECRET=$(openssl rand -hex 16) epito run ~/epito/agents
-# in another shell, same directory:
-epito ps
-curl -s -X POST -H "x-epito-secret: $EPITO_HOOK_SECRET" localhost:4747/hooks/smoke
-tail -f .epito/audit.jsonl
-```
-
-## Fly Machine (first cloud target)
-
-Nothing here touches an account; run it yourself. The Dockerfile at the
-repo root is the image; the roster is baked in by copying `agents/` next
-to it or mounted from a volume.
-
-```sh
-# one time
-fly launch --no-deploy --name epitod --dockerfile Dockerfile --internal-port 4747 --vm-size shared-cpu-1x
-fly volumes create epito_state --size 1
-fly secrets set EPITO_HOOK_SECRET=$(openssl rand -hex 16) CLAUDE_CODE_OAUTH_TOKEN=... GH_TOKEN=...
-# fly.toml: add
-#   [mounts]
-#   source = "epito_state"
-#   destination = "/var/lib/epito"
-#   [[services]]  (or http_service) internal_port = 4747
-# roster: COPY agents/ /agents in a one-line Dockerfile layer, or `fly ssh sftp` them onto the volume
-fly deploy
-fly logs
-fly ssh console -C "epito ps"      # WorkingDirectory is /var/lib/epito, where state.json lives
-curl -X POST -H "x-epito-secret: ..." https://epitod.fly.dev/hooks/<name>
+export TEMPORAL_ADDRESS=127.0.0.1:7233 TEMPORAL_NAMESPACE=epito
+export EPITO_HOOK_SECRET=$(openssl rand -hex 16)
+epito worker &                                         # one shell
+epito run ~/epito/agents                               # another
+epito ps ~/epito/agents                                # a third
 ```
 
 ## An always-on host, in one command (Ubuntu 24.04 arm64)
 
-`deploy/provision-host.sh` provisions the whole box — the target is an
-Oracle Cloud Always Free A1 instance, but nothing in it is Oracle-specific:
+Install the engine first, then the runtime. `deploy/provision-host.sh`
+provisions everything except the engine — the target is an Oracle Cloud Always
+Free A1 instance, but nothing in it is Oracle-specific:
 
 ```sh
+# 1. the engine (HQ's script; docker, loopback only, on the host's Postgres)
+ssh ubuntu@host 'sudo bash -s' < runtime/temporal/install.sh     # alexandra-systems
+
+# 2. the runtime
 ssh ubuntu@host 'sudo bash -s' -- --domain epitod.example.com \
-    --email ops@example.com --roster alexandrapaiz/alexandra-systems --roster-subdir runtime/agents < deploy/provision-host.sh
+    --email ops@example.com --roster alexandrapaiz/alexandra-systems \
+    --roster-subdir runtime/agents < deploy/provision-host.sh
+
+# 3. start the worker first, the ingress second
+ssh ubuntu@host 'sudo systemctl restart epitod-worker && sudo systemctl restart epitod'
+ssh ubuntu@host 'journalctl -u epitod-worker -u epitod -f'
 ```
 
 It installs Node 22, `gh`, `git` and the `claude` executor; creates the
-unprivileged user `seats` and `/srv/asc/{repos,roster,state,env}`; writes
-`epitod.service` (Restart=always, secrets from `/srv/asc/env` at 0600);
-puts Caddy in front with TLS on 443 and no plaintext listener at all;
-enables ufw (22/443) and fail2ban; and adds a daily `epito ps` posted to
-Slack, which doubles as the keepalive an Always Free instance wants to see.
-It is idempotent and it never overwrites a secret — re-run it to upgrade.
-Optionally it drops an Infisical agent config that renders `/srv/asc/env`
-and restarts epitod when a secret rotates.
+unprivileged user `seats` and `/srv/asc/{repos,roster,state,env}`; writes both
+units (`Restart=always`, secrets from `/srv/asc/env` at 0600, `TEMPORAL_ADDRESS`
+and `TEMPORAL_NAMESPACE` among them); puts Caddy in front with TLS on 443 and
+no plaintext listener at all; enables ufw (22/443) and fail2ban; and adds a
+daily `epito ps` posted to Slack, which doubles as the keepalive an Always Free
+instance wants to see. It is idempotent and it never overwrites a secret.
 
-`bash deploy/test-provision.sh` exercises it in a throwaway container with
-the package managers and init system stubbed, and asserts on what it wrote.
+`bash deploy/test-provision.sh` exercises it in a throwaway container with the
+package managers and init system stubbed, and asserts on what it wrote.
 
-## Any VPS (systemd user unit)
+The Temporal UI is on `127.0.0.1:8080` and stays there. Workflow history shows
+prompts, so reach it over a tunnel and never publish it:
 
 ```sh
-# on the box, as the user that will run agents
-sudo apt install -y git gh nodejs npm      # node >= 18
-npm install -g @anthropic-ai/claude-code
-git clone https://github.com/alexandrapaiz/epitome && cd epitome/cli && npm ci && npm link
-mkdir -p ~/epito/agents ~/epito/state ~/.config/systemd/user
-cp ../docs/deploy/epitod.service ~/.config/systemd/user/
-sudo install -d -m 0700 /etc/epito
-sudo sh -c 'printf "EPITO_HOOK_SECRET=%s\nCLAUDE_CODE_OAUTH_TOKEN=...\nGH_TOKEN=...\n" "$(openssl rand -hex 16)" > /etc/epito/env' && sudo chmod 0600 /etc/epito/env
-gh auth setup-git                          # git asks gh (which reads GH_TOKEN) for credentials
-sudo loginctl enable-linger "$USER"        # user units survive logout
-systemctl --user daemon-reload && systemctl --user enable --now epitod
-journalctl --user -u epitod -f
-(cd ~/epito/state && epito ps)
+ssh -L 8080:127.0.0.1:8080 ubuntu@host     # then open localhost:8080
 ```
-
-To expose hooks put a reverse proxy with TLS in front of 4747 (caddy:
-`reverse_proxy localhost:4747`) or keep them on a private network; the
-shared secret is the only auth in v0.
 
 ## Docker anywhere
 
+One image, run twice. Both containers need the same state volume so there is
+one audit log, and both need to reach the engine.
+
 ```sh
 docker build -t epitod .
-docker run -d --name epitod --restart always -p 4747:4747 \
+docker run -d --name epitod-worker --restart always --network host \
+  -v epito_state:/var/lib/epito \
+  -e TEMPORAL_ADDRESS=127.0.0.1:7233 -e TEMPORAL_NAMESPACE=asc \
+  -e CLAUDE_CODE_OAUTH_TOKEN=... -e GH_TOKEN=... epitod worker
+docker run -d --name epitod --restart always --network host \
   -v "$PWD/agents:/agents:ro" -v epito_state:/var/lib/epito \
-  -e EPITO_HOOK_SECRET=... -e CLAUDE_CODE_OAUTH_TOKEN=... -e GH_TOKEN=... epitod
+  -e TEMPORAL_ADDRESS=127.0.0.1:7233 -e TEMPORAL_NAMESPACE=asc \
+  -e EPITO_HOOK_SECRET=... epitod run /agents
 docker exec epitod epito ps
 ```
+
+## Testing what you deployed
+
+```sh
+cd cli
+node --test test/unit.mjs              # the reconcile diff and the validator, no server
+bash test/smoke-temporal.sh            # the whole runtime against a local dev server
+```
+
+The smoke test spends no tokens and touches no network: the executor is a stub,
+`github.com` is rewritten to a local bare repo, and Slack is two local sinks.
+It proves a schedule fires a run on its own clock, a window holds a session and
+a message resumes it in the same clone, and `epito ps` reads Temporal. Without
+the `temporal` CLI installed it exits 0 after saying so — that is an unrun
+test, not a passing one.

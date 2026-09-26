@@ -31,6 +31,9 @@ entry = "prompts/historian.md"
 ```bash
 epito init      # scaffold an agent (alias: `epito me`)
 epito validate  # check the manifest
+epito run       # put a roster on the runtime: a schedule per trigger, plus the ingress
+epito worker    # do the work: run seats off the queue
+epito ps        # the roster, read from the runtime
 epito deploy    # mint identity, wire trigger, start runtime  (platform, WIP)
 ```
 
@@ -43,8 +46,11 @@ What the platform provisions on deploy, so you never do:
 - **Trigger** — cron, webhook, and event subscriptions. Agents are
   autonomous and triggered, not prompted. (If it only runs when prompted
   inside someone else's identity, it's a skill, not an agent.)
-- **Runtime** — a container that persists. Agents live outside their
-  sandboxes.
+- **Runtime** — a process that outlives the machine it started on.
+  epitod runs on Temporal, self-hosted, for nothing: a schedule per
+  manifest, a run as a workflow with its retries declared, and a work
+  window you can speak into while it is open. A reboot mid-run no longer
+  loses the run. See docs/prfaq/epitod-v1-temporal.md.
 
 ## Who it's for
 

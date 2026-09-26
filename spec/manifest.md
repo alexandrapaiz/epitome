@@ -41,6 +41,13 @@ image = "default"                       # optional: container image; "default" =
 max_turns = 100                         # optional: run cap, default 100
 env = []                                # optional: names of secrets the runtime injects;
                                         # values never appear in the manifest, ever
+slack_webhook_env = "SLACK_WEBHOOK_URL_EPITOME"
+                                        # PROPOSED (v0.1, epitod v1), optional: the NAME of
+                                        # the webhook secret this agent's one-line post goes
+                                        # to, so a product seat speaks in its own channel.
+                                        # Must also appear in `env`. Unset = the runtime's
+                                        # default SLACK_WEBHOOK_URL, or no post if that is
+                                        # not listed in `env` either.
 ```
 
 ## Rules
@@ -56,6 +63,23 @@ env = []                                # optional: names of secrets the runtime
    silently: model, scopes, and triggers have no defaults.
 4. **One manifest, one principal.** Deploying the same file twice updates
    the same agent; renaming creates a new one. Identity follows `name`.
+
+## Proposed in-band (epitod v1, cycle 2 bet)
+
+- `[runtime].slack_webhook_env`, optional. The name of the environment
+  variable holding the Slack webhook this agent posts its one line to.
+  It exists because four companies now share one runtime and one
+  `SLACK_WEBHOOK_URL` that goes to `#hq`: a product seat needs to be
+  able to speak in its own channel without the runtime growing a
+  routing table. Rule 1 governs it exactly as it governs `env`: the
+  manifest carries the NAME, never the URL. `epito validate` refuses a
+  value that looks like a URL rather than a variable name, and refuses
+  a name that is not also listed in `[runtime].env`, because the
+  runtime injects only the names the manifest lists and an unlisted
+  webhook could never resolve to a value. Absent the field, behavior
+  is exactly what it was: `SLACK_WEBHOOK_URL` if `env` lists it, no
+  post otherwise. Every existing manifest is therefore unaffected,
+  which is the compatibility bar epitod v1 had to clear.
 
 ## Proposed in-band (epitod v0, cycle 1 bet 1)
 
