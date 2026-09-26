@@ -19,6 +19,10 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       open (default 4h) or close work windows
   epito message <name> "..."
                       speak to an agent in the session its window holds
+  epito token <name> [dir]
+                      mint this agent's own short-lived GitHub token on
+                      stdout (--dry-run says what it would ask for, and
+                      touches neither the network nor a key)
   epito deploy        provision the agent (not yet: platform in progress)
 
 The runtime is two processes and one engine: \`epito run\` reconciles and
@@ -28,6 +32,15 @@ reboot. See docs/prfaq/epitod-v1-temporal.md.
 `;
 
 const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
+
+// Add one line to .gitignore if it is not already covered. Never rewrites what
+// is there: an existing .gitignore belongs to the repo, not to us.
+const ignore = (line) => {
+  const existing = existsSync(".gitignore") ? readFileSync(".gitignore", "utf8") : "";
+  if (existing.split("\n").some((l) => l.trim() === line || l.trim() === line.replace(/\/$/, ""))) return;
+  const sep = existing === "" || existing.endsWith("\n") ? "" : "\n";
+  writeFileSync(".gitignore", `${existing}${sep}${existing ? "" : "# epito: the agent's credentials and run state, never committed\n"}${line}\n`);
+};
 
 if (!cmd || cmd === "help" || cmd === "--help") {
   console.log(HELP);
@@ -53,6 +66,11 @@ cron = "0 6 * * *"
 model = "claude-sonnet-5"
 entry = "${charter}"
 `);
+  // An agent's App key lands in .epito/keys/ and its ledger in
+  // .epito/audit.jsonl. The manifest is publishable by design and that
+  // directory is not, so init makes the difference structural rather than a
+  // thing the reader has to remember (spec rule 1).
+  ignore(".epito/");
   mkdirSync("prompts", { recursive: true });
   if (!existsSync(charter)) {
     writeFileSync(charter, `# ${name}\n\nYou are ${name}. This file is your charter: who you are, what one\nrun accomplishes, and what you never do. Everything worth remembering\nlives in a file, because every run is a fresh context.\n`);
@@ -96,6 +114,11 @@ if (cmd === "run") {
 } else if (cmd === "window") {
   const { windowCmd } = await import("./run.js");
   await windowCmd(args[0], args[1], args[2]);
+  process.exit(0);
+} else if (cmd === "token") {
+  const { tokenCmd } = await import("./token.js");
+  const rest = args.filter((a) => !a.startsWith("-"));
+  await tokenCmd(rest[0], rest[1] ?? ".", { dryRun: args.includes("--dry-run") });
   process.exit(0);
 } else if (cmd === "message") {
   const { message } = await import("./run.js");

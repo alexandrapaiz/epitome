@@ -232,3 +232,39 @@ export async function mintToken({ name, scopes, repo, principal, log }) {
   log?.(`minted for ${name}: installation ${installationId}, ${Object.keys(permissions).length} permission${Object.keys(permissions).length > 1 ? "s" : ""} on ${repo}`);
   return { token: res.token, expiresAt: res.expires_at, permissions, repo, installationId };
 }
+
+// One run's identity, as the run path wants it: null when this agent has no
+// App of its own (the pre-identity behaviour, unchanged — the seat runs on
+// the secrets its manifest names), a minted credential when it has one, and a
+// thrown Error in the product's voice when it has one and the mint failed.
+// That third case is deliberately not a fallback: an operator who gave an
+// agent an App asked for the agent to act as itself, and quietly acting as a
+// human instead is the precise thing this product exists to delete.
+//
+// The return value is split into `token` and `meta` because of law 7
+// (docs/prfaq/epitod-v1-temporal.md): Temporal writes every activity argument
+// and result to its database in plain text, so `meta` is the half that may be
+// returned to a workflow and `token` is the half that may not. Splitting it
+// here rather than at the call site is the point — a caller cannot leak the
+// secret by spreading the object it was handed.
+export async function mintForRun({ name, manifest, dir = ".", env = process.env, log } = {}) {
+  const repo = manifest?.runtime?.repo;
+  const scopes = manifest?.identity?.scopes ?? [];
+  const principal = loadPrincipal(name, { env, dir });
+  if (!principal) return null;
+  if (!repo) {
+    throw new Error(`"${name}" has a GitHub App but no [runtime].repo, and a token is scoped to exactly one repository — there is nothing to scope this mint to. Fix: add repo = "owner/name" to [runtime] in this agent's agent.toml.`);
+  }
+  const minted = await mintToken({ name, scopes, repo, principal, log });
+  return {
+    token: minted.token,
+    meta: {
+      installation: minted.installationId,
+      permissions: minted.permissions,
+      repo: minted.repo,
+      expiresAt: minted.expiresAt,
+      source: principal.source,
+      scopes,
+    },
+  };
+}

@@ -18,9 +18,12 @@
 // keychain it finds by USER; on a server the token arrives as
 // CLAUDE_CODE_OAUTH_TOKEN listed in [runtime].env), the names listed in
 // [runtime].env (values read from the worker's own environment, never from a
-// workflow input — law 7), and git author/committer set to the agent's name.
-// Nothing else leaks into the run: the v0 smoke test found this the honest
-// way, with a "Not logged in" exit until USER was added.
+// workflow input — law 7), whatever the caller `inject`s (the run's own
+// GH_TOKEN/GITHUB_TOKEN when the agent has a GitHub App to mint from, which
+// the `execute` activity mints and this file never fetches), and git
+// author/committer set to the agent's name. Nothing else leaks into the run:
+// the v0 smoke test found this the honest way, with a "Not logged in" exit
+// until USER was added.
 //
 // Presence: `--output-format json` makes the executor print one result object,
 // and `session_id` in it is the handle to that conversation. While an agent's
@@ -152,7 +155,8 @@ export async function cloneAgentRepo({ agent, runId, log = console.log }) {
 // `exit` is the child's exit code, or a string naming the failure stage
 // ("timeout", "spawn", "cancelled", "workdir-gone").
 export async function executeAgent({ agent, trigger, runId, workDir, hookBody, text, instruction, resume = null,
-                                     executor = "claude", timeoutMs, log = console.log, onSpawn, onOutput }) {
+                                     executor = "claude", timeoutMs, log = console.log, onSpawn, onOutput,
+                                     inject = null, redact = [] }) {
   const { name } = agent.agent;
   const rt = agent.runtime;
   const started = Date.now();
@@ -160,7 +164,21 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   const logPath = runLogPath(name, runId);
   mkdirSync(join(EPITO_DIR, "logs", name), { recursive: true });
   const fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
-  const write = (s) => { if (fd !== null) writeSync(fd, s); };
+  // epito never prints a minted token, but this log captures everything the
+  // child prints, and `gh` has error paths that echo the credential it was
+  // handed. So every secret in `redact` is replaced on its way to the file:
+  // "the token is written nowhere" has to survive a subprocess we do not
+  // control. Honest limit — a secret split across two read boundaries would
+  // slip through, so this is the second line of defence, not the first. The
+  // 8-character floor keeps an empty or absurd entry from redacting the log
+  // into confetti.
+  const secrets = (redact ?? []).filter((s) => typeof s === "string" && s.length >= 8);
+  const scrub = secrets.length === 0 ? String : (s) => {
+    let out = String(s);
+    for (const secret of secrets) out = out.split(secret).join("[redacted: this run's token]");
+    return out;
+  };
+  const write = (s) => { if (fd !== null) writeSync(fd, scrub(s)); };
   const finish = (exit, extra = {}) => {
     if (fd !== null) closeSync(fd);
     return { exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null, ...extra };
@@ -181,6 +199,15 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   if (resume) args.push("--resume", resume);
   const env = { PATH: process.env.PATH, HOME: process.env.HOME, USER: process.env.USER };
   for (const k of rt.env ?? []) if (process.env[k] !== undefined) env[k] = process.env[k];
+  // The agent's own credential, minted for this one run by the caller, goes in
+  // LAST and on purpose: it outranks a shared GH_TOKEN inherited through
+  // [runtime].env. An agent that has an identity acts as itself, and the log
+  // says so by name rather than leaving an operator to wonder which token the
+  // PR was opened with.
+  for (const [k, v] of Object.entries(inject ?? {})) {
+    if (rt.env?.includes(k) && process.env[k] !== undefined) write(`# identity: ${k} from [runtime].env is overridden by this run's own minted credential\n`);
+    env[k] = v;
+  }
   const email = `${name}@agents.epito.me`;
   Object.assign(env, { GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_COMMITTER_NAME: name, GIT_COMMITTER_EMAIL: email });
   write(`$ ${executor} ${args.map((a) => (a.includes("\n") ? "<prompt>" : a)).join(" ")}\n# env passed: ${Object.keys(env).join(", ")}\n---\n`);
@@ -191,7 +218,11 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     catch (e) { write(`spawn failed: ${e.message}\n`); return res(finish("spawn")); }
     onSpawn?.(child);
     let tail = "";
-    const onData = (d) => { write(d); tail = (tail + d).slice(-64 * 1024); onOutput?.(); };
+    // Scrubbed before it reaches either the log or the tail: `tail` is what
+    // the PR URL and the session id are read out of, and a 64KB window of the
+    // child's output is exactly the kind of thing that ends up in an error
+    // message somewhere else.
+    const onData = (d) => { const s = scrub(d); write(s); tail = (tail + s).slice(-64 * 1024); onOutput?.(); };
     child.stdout.on("data", onData);
     child.stderr.on("data", onData);
     let timedOut = false;

@@ -7,6 +7,13 @@
 //
 //   EPITO_STUB_DIR   where transcripts live (default $TMPDIR/epito-stub)
 //   EPITO_STUB_PR    a PR url the first run of a session "opens"
+//   EPITO_STUB_ECHO_TOKEN
+//                    print the GH_TOKEN this child was handed, in its result.
+//                    The identity slice's whole claim is about which
+//                    credential reaches this process, so a test has to be able
+//                    to read it — and printing a credential into stdout is
+//                    also precisely what a real `gh` error path does, which is
+//                    what the run log's scrubbing is there to survive.
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -29,9 +36,12 @@ writeFileSync(transcript, [...prior, JSON.stringify({ ts: new Date().toISOString
 // First turn of a session opens a PR; a resumed turn refers back to it, which
 // is exactly the continuity the window is for.
 const pr = process.env.EPITO_STUB_PR || "https://github.com/alexandrapaiz/epitome/pull/999";
-const result = prior.length === 0
+const base = prior.length === 0
   ? `Opened a draft PR: ${pr}`
   : `Continuing session ${sessionId} (turn ${prior.length + 1}); my PR is still ${pr}`;
+const result = process.env.EPITO_STUB_ECHO_TOKEN
+  ? `${base} [GH_TOKEN=${process.env.GH_TOKEN ?? "(none)"} GITHUB_TOKEN=${process.env.GITHUB_TOKEN ?? "(none)"}]`
+  : base;
 
 process.stdout.write(JSON.stringify({
   type: "result", subtype: "success", is_error: false,

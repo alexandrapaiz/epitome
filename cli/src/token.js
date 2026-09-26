@@ -11,8 +11,8 @@
 import { resolve } from "node:path";
 import { existsSync, statSync } from "node:fs";
 import { loadManifest } from "./lib/manifest.js";
-import { findManifests } from "./run.js";
-import { loadPrincipal, mintToken, noPrincipalMessage } from "./lib/identity.js";
+import { findManifests } from "./lib/roster.js";
+import { loadPrincipal, mintToken, noPrincipalMessage, permissionsFor } from "./lib/identity.js";
 import { appendAudit } from "./lib/audit.js";
 
 const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
@@ -42,7 +42,7 @@ export function findAgent(name, dirArg = ".") {
   return found[0];
 }
 
-export async function tokenCmd(name, dirArg = ".") {
+export async function tokenCmd(name, dirArg = ".", { dryRun = false } = {}) {
   if (!name) die("token needs an agent: `epito token <name>` mints a short-lived credential for the agent of that name");
 
   const { path, manifest, errors } = findAgent(name, dirArg);
@@ -53,6 +53,21 @@ export async function tokenCmd(name, dirArg = ".") {
   }
   const repo = manifest.runtime.repo;
   if (!repo) die(`[runtime].repo is required to mint for "${name}": a token is scoped to one repository, and the manifest is what says which. Fix: add repo = "owner/name" to [runtime] in ${path}.`);
+
+  // What would this mint? Answered without a network call and without
+  // touching a key, because the scope map is where a manifest goes wrong and
+  // 06:00 on a cron is the wrong time to find that out.
+  if (dryRun) {
+    let permissions;
+    try { permissions = permissionsFor(manifest.identity.scopes); }
+    catch (e) { die(e.message); }
+    const principal = (() => { try { return loadPrincipal(name); } catch { return null; } })();
+    console.log(`${name} would mint on ${repo}:`);
+    for (const [k, v] of Object.entries(permissions)) console.log(`  ${k}: ${v}`);
+    console.log(`  from ${manifest.identity.scopes.join(", ")} in ${path}`);
+    console.log(principal ? `  using the App in ${principal.source}` : `  no App on this machine yet — a real mint would refuse: ${noPrincipalMessage(name)}`);
+    return;
+  }
 
   // .epito/ is read from the working directory, the same place audit.jsonl and
   // state.json are written — one store per machine, not one per manifest.

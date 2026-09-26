@@ -12,7 +12,10 @@ import assert from "node:assert/strict";
 import { reconcilePlan, scheduleShape } from "../src/temporal/schedules.js";
 import { validateManifest } from "../src/lib/manifest.js";
 import { webhookName } from "../src/lib/slack.js";
-import { isCloneDir, cloneDirPrefix } from "../src/lib/runner.js";
+import { isCloneDir, cloneDirPrefix, executeAgent } from "../src/lib/runner.js";
+import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP } from "../src/lib/identity.js";
+import { generateKeyPairSync, createVerify } from "node:crypto";
+import { readFileSync, mkdtempSync } from "node:fs";
 import { seatOfWorkflowId, scheduleId, runId, windowId } from "../src/temporal/env.js";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -145,4 +148,138 @@ test("a workflow id names the seat it belongs to, including a schedule's stamped
   assert.equal(seatOfWorkflowId("run:pm:message:3"), "pm");
   assert.equal(seatOfWorkflowId(windowId("okr")), "okr");
   assert.equal(seatOfWorkflowId("something-else"), null);
+});
+
+
+// --- identity: the ceiling ------------------------------------------------
+// Spec rule 2 says scopes are the ceiling, and the mint is the one place that
+// is enforced, so these are the tests that hold the rule up.
+
+test("permissionsFor maps the three v0.1 scopes and nothing else", () => {
+  assert.deepEqual(permissionsFor(["github:contents"]), { contents: "write" });
+  assert.deepEqual(permissionsFor(["github:contents", "github:pull_requests"]),
+    { contents: "write", pull_requests: "write" });
+  assert.deepEqual(permissionsFor(["github:issues"]), { issues: "write" });
+  // Every key the map can emit, so a new scope cannot widen a token silently.
+  const emitted = new Set(Object.values(SCOPE_MAP).flatMap((p) => Object.keys(p)));
+  assert.deepEqual([...emitted].sort(), ["contents", "issues", "pull_requests"]);
+});
+
+test("an unmapped scope refuses the mint, names the scope and offers the fix", () => {
+  assert.throws(() => permissionsFor(["github:contents", "github:packages"]), (e) => {
+    assert.match(e.message, /"github:packages"/, "names the offending scope");
+    assert.match(e.message, /Fix:/, "offers a fix");
+    assert.doesNotMatch(e.message, /undefined|\[object/, "product voice, not a stack");
+    return true;
+  });
+});
+
+test("no mintable scope refuses rather than asking GitHub for everything", () => {
+  // GitHub reads an empty `permissions` as "all this installation has", which
+  // is the exact inverse of the rule, so this path must fail closed.
+  assert.throws(() => permissionsFor([]), /scopes are the ceiling/);
+});
+
+test("appJwt signs RS256, under GitHub's 10-minute ceiling, backdated for skew", () => {
+  const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const pem = privateKey.export({ type: "pkcs1", format: "pem" });
+  const now = 1_800_000_000;
+  const jwt = appJwt("123456", pem, now);
+  const [h, p, sig] = jwt.split(".");
+  const un = (x) => JSON.parse(Buffer.from(x.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());
+  assert.equal(un(h).alg, "RS256");
+  const claims = un(p);
+  assert.equal(claims.iss, "123456");
+  assert.equal(claims.iat, now - 60, "backdated 60s: GitHub rejects an iat ahead of its clock");
+  assert.ok(claims.exp - claims.iat <= 600, "GitHub's maximum App JWT lifetime is 10 minutes");
+  const v = createVerify("RSA-SHA256");
+  v.update(`${h}.${p}`);
+  assert.ok(v.verify(publicKey.export({ type: "spki", format: "pem" }),
+    Buffer.from(sig.replace(/-/g, "+").replace(/_/g, "/"), "base64")), "signature verifies");
+});
+
+test("appJwt refuses a key that is not an RSA PEM, in the product's voice", () => {
+  assert.throws(() => appJwt("1", "not a pem"), /not a readable PEM/);
+  const { privateKey } = generateKeyPairSync("ed25519");
+  assert.throws(() => appJwt("1", privateKey.export({ type: "pkcs8", format: "pem" })),
+    /a GitHub App signs with RSA/);
+});
+
+test("one agent, one App key: the env names are per agent and slug-safe", () => {
+  assert.deepEqual(envNames("pm"),
+    { id: "EPITO_APP_ID_PM", key: "EPITO_APP_KEY_PM", installation: "EPITO_INSTALLATION_ID_PM" });
+  assert.equal(envNames("run-reports").key, "EPITO_APP_KEY_RUN_REPORTS");
+});
+
+test("loadPrincipal reads a PEM whose newlines arrived escaped, and is null with no App", () => {
+  const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const pem = privateKey.export({ type: "pkcs1", format: "pem" }).toString();
+  const env = { EPITO_APP_ID_PM: 99, EPITO_APP_KEY_PM: pem.replace(/\n/g, "\\n") };
+  const p = loadPrincipal("pm", { env, dir: mkdtempSync(join(tmpdir(), "epito-unit-")) });
+  assert.equal(p.appId, "99", "an App id from the environment is a string");
+  assert.equal(p.privateKey, pem, "a single-line PEM is unescaped before use");
+  assert.equal(p.installationId, null, "discovered from [runtime].repo when unnamed");
+  assert.equal(loadPrincipal("okr", { env, dir: "." }), null, "no App is not an error here");
+});
+
+// --- identity: the token reaches the child and not the log ----------------
+
+test("a minted token is injected into the run and scrubbed out of its log", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const cwd = process.cwd();
+  process.chdir(dir);                              // .epito/logs/<agent>/ is relative
+  try {
+    const token = "ghs_UNITTESTTOKEN00000000000000000000";
+    const work = mkdtempSync(cloneDirPrefix("pm"));
+    const agent = {
+      agent: { name: "pm" },
+      runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["GH_TOKEN", "EPITO_STUB_ECHO_TOKEN", "EPITO_STUB_DIR"] },
+    };
+    // The shared credential a box has today, which the agent's own must beat.
+    process.env.GH_TOKEN = "the-operators-shared-token";
+    process.env.EPITO_STUB_ECHO_TOKEN = "1";
+    process.env.EPITO_STUB_DIR = join(dir, "stub");
+    const r = await executeAgent({
+      agent, trigger: "cron", runId: "r1", workDir: work, timeoutMs: 30_000, log: () => {},
+      executor: new URL("./stub-executor.mjs", import.meta.url).pathname,
+      inject: { GH_TOKEN: token, GITHUB_TOKEN: token }, redact: [token],
+    });
+    assert.equal(r.exit, 0);
+    const logged = readFileSync(r.log, "utf8");
+    // The stub printed the credential it was handed, the way a `gh` error does.
+    assert.match(logged, /GH_TOKEN=\[redacted: this run's token\]/, "the child DID get the minted token");
+    assert.doesNotMatch(logged, /ghs_UNITTESTTOKEN/, "and it is written nowhere, including this log");
+    assert.doesNotMatch(logged, /the-operators-shared-token/, "the shared token never reached the child");
+    assert.match(logged, /GH_TOKEN from \[runtime\]\.env is overridden/, "the log names which identity won");
+  } finally {
+    process.chdir(cwd);
+    delete process.env.GH_TOKEN; delete process.env.EPITO_STUB_ECHO_TOKEN; delete process.env.EPITO_STUB_DIR;
+  }
+});
+
+test("with no App, the run is exactly what it was before the identity slice", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const cwd = process.cwd();
+  process.chdir(dir);
+  try {
+    const work = mkdtempSync(cloneDirPrefix("okr"));
+    const agent = {
+      agent: { name: "okr" },
+      runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["GH_TOKEN", "EPITO_STUB_ECHO_TOKEN", "EPITO_STUB_DIR"] },
+    };
+    process.env.GH_TOKEN = "the-operators-shared-token";
+    process.env.EPITO_STUB_ECHO_TOKEN = "1";
+    process.env.EPITO_STUB_DIR = join(dir, "stub");
+    const r = await executeAgent({
+      agent, trigger: "cron", runId: "r1", workDir: work, timeoutMs: 30_000, log: () => {},
+      executor: new URL("./stub-executor.mjs", import.meta.url).pathname,
+    });
+    assert.equal(r.exit, 0);
+    const logged = readFileSync(r.log, "utf8");
+    assert.match(logged, /GH_TOKEN=the-operators-shared-token/, "no principal: the seat runs on the secrets its manifest names");
+    assert.doesNotMatch(logged, /overridden/, "and nothing claims an identity it does not have");
+  } finally {
+    process.chdir(cwd);
+    delete process.env.GH_TOKEN; delete process.env.EPITO_STUB_ECHO_TOKEN; delete process.env.EPITO_STUB_DIR;
+  }
 });
