@@ -3,7 +3,10 @@
 # It spends no tokens and touches no network: the engine is a local
 # `temporal server start-dev`, the executor is test/stub-executor.mjs,
 # "github.com" is rewritten to a local bare repo with git's
-# url.<base>.insteadOf, and "Slack" is two test/slack-sink.mjs on localhost.
+# url.<base>.insteadOf, "Slack" is two test/slack-sink.mjs on localhost, and
+# "api.github.com" is test/github-stub.mjs, which verifies the App JWT epito
+# signs against a throwaway public key this script generates — so the mint is
+# proved against a real signature check, not against a yes-man.
 #
 #   bash test/smoke-temporal.sh          # from cli/
 #
@@ -13,6 +16,9 @@
 #   1. a SCHEDULE fires a run           (a real clock tick, not a hand trigger)
 #   2. a WINDOW holds a session and a message RESUMES it in the same clone
 #   3. `epito ps` reads TEMPORAL        (schedules, running workflows, queries)
+#   4. a run MINTS ITS OWN IDENTITY     (cycle 1 bet 2: the token reaches the
+#                                        child, the log does not get it, and an
+#                                        agent that cannot mint does not run)
 #   + reconcile is idempotent, and deletes the schedule of a seat that loses
 #     its cron; per-agent Slack routing sends each seat's line to its own
 #     webhook; a seat with no charter refuses loudly and leaves no clone; the
@@ -51,9 +57,14 @@ PORT="${EPITO_TEST_PORT:-47471}"
 SLACK_HQ_PORT="${EPITO_TEST_SLACK_PORT:-47472}"
 SLACK_PRODUCT_PORT="${EPITO_TEST_SLACK2_PORT:-47473}"
 GRPC_PORT="${EPITO_TEST_TEMPORAL_PORT:-47811}"
+GH_PORT="${EPITO_TEST_GITHUB_PORT:-47474}"
 NS="epito-smoke"
 SECRET="smoke-secret-not-a-real-one"
 SLACK_HQ="$ROOT/slack-hq.log"; SLACK_PRODUCT="$ROOT/slack-product.log"
+GH_LOG="$ROOT/github-requests.jsonl"
+# The credential the box has today, and which an agent's own must beat.
+SHARED_TOKEN="shared-operator-token-not-a-real-one"
+STUB_TOKEN="ghs_STUBTOKEN0000000000000000000000000000"
 pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
 bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
@@ -62,10 +73,13 @@ check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 # predicate, not by substring: a substring match on a serialized object is an
 # assertion about key order, which is not a promise this runtime makes.
 audit(){ label="$1"; shift; if node "$CLI/test/audit-has.mjs" "$@" >/dev/null 2>&1; then ok "$label"; else bad "$label"; node "$CLI/test/audit-has.mjs" "$@" 2>&1 | sed 's/^/       /'; fi; }
+# The absence of a line is an assertion too: "this seat minted nothing" is half
+# of what the identity slice promises.
+none(){ n=$(node "$CLI/test/audit-has.mjs" --count "$2"); if [ "$n" = 0 ]; then ok "$1"; else bad "$1 (found $n)"; fi; }
 step() { printf '\n== %s\n' "$1"; }
 
 cleanup() {
-  for pid in ${INGRESS_PID:-} ${WORKER_PID:-} ${SINK1_PID:-} ${SINK2_PID:-} ${SERVER_PID:-}; do
+  for pid in ${INGRESS_PID:-} ${WORKER_PID:-} ${SINK1_PID:-} ${SINK2_PID:-} ${GH_PID:-} ${SERVER_PID:-}; do
     kill "$pid" 2>/dev/null
   done
   sleep 1
@@ -88,7 +102,7 @@ echo "  $("$TEMPORAL_BIN" --version | head -1)"
 
 step "fixture: a local repo standing in for github.com/acme/roster"
 seed="$ROOT/seed"; mkdir -p "$seed/prompts"
-for a in clock pm okr; do printf '# %s\n\nYou are %s. One run: open a draft PR.\n' "$a" "$a" > "$seed/prompts/$a.md"; done
+for a in clock pm okr badkey; do printf '# %s\n\nYou are %s. One run: open a draft PR.\n' "$a" "$a" > "$seed/prompts/$a.md"; done
 # ghost's manifest points at prompts/ghost.md, which this repo does not have:
 # the runtime must refuse that run rather than improvise a prompt.
 git -c init.defaultBranch=main init -q "$seed"
@@ -108,11 +122,14 @@ write_manifest() { # name cron slack_env
     printf '[trigger]\n'
     if [ -n "$2" ]; then printf 'cron = "%s"\n' "$2"; else printf 'webhook = true\n'; fi
     printf '\n[runtime]\nmodel = "claude-sonnet-5"\nentry = "prompts/%s.md"\nrepo = "acme/roster"\nmax_turns = 5\n' "$1"
+    # GH_TOKEN is listed on purpose: it is the shared credential a box has
+    # today, and the identity slice's claim is that an agent's OWN token beats
+    # it. EPITO_STUB_ECHO_TOKEN makes the stub print which one it got.
     if [ -n "$3" ]; then
       printf 'slack_webhook_env = "%s"\n' "$3"
-      printf 'env = ["EPITO_STUB_DIR", "%s"]\n' "$3"
+      printf 'env = ["EPITO_STUB_DIR", "EPITO_STUB_ECHO_TOKEN", "GH_TOKEN", "%s"]\n' "$3"
     else
-      printf 'env = ["EPITO_STUB_DIR"]\n'
+      printf 'env = ["EPITO_STUB_DIR", "EPITO_STUB_ECHO_TOKEN", "GH_TOKEN"]\n'
     fi
   } > "$ROSTER/$1/agent.toml"
 }
@@ -120,13 +137,31 @@ write_manifest clock "* * * * *" "SLACK_WEBHOOK_URL"
 write_manifest pm    ""          "SLACK_WEBHOOK_URL"
 write_manifest okr   ""          "SLACK_WEBHOOK_URL_EPITOME"   # per-agent routing: its own channel
 write_manifest ghost ""          ""
-echo "  clock (cron * * * * *), pm, okr (own webhook), ghost (no charter)"
+write_manifest badkey ""         ""
+echo "  clock (cron * * * * *), pm (its own GitHub App), okr (own webhook), ghost (no charter), badkey (an App it cannot sign with)"
 
 step "every manifest still passes \`epito validate\` — spec v0.1 stays compatible"
-for a in clock pm okr ghost; do
+for a in clock pm okr ghost badkey; do
   out=$(cd "$ROSTER/$a" && node "$CLI/src/index.js" validate 2>&1); rc=$?
   check "validate $a: $out" "[ $rc = 0 ]"
 done
+
+step "identity fixture: one throwaway RSA App for pm, and a stand-in api.github.com"
+# Generated here and thrown away with $ROOT: nothing personal ever enters a
+# fixture (the engineer charter's rule), and the stub verifies the signature
+# against the public half, so the JWT epito hand-builds is checked for real.
+node -e '
+const { generateKeyPairSync } = require("node:crypto"); const { writeFileSync } = require("node:fs");
+const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+writeFileSync(process.argv[1], privateKey.export({ type: "pkcs1", format: "pem" }));
+writeFileSync(process.argv[2], publicKey.export({ type: "spki", format: "pem" }));
+' "$ROOT/pm-app.pem" "$ROOT/pm-app.pub.pem"
+chmod 600 "$ROOT/pm-app.pem"
+node "$CLI/test/github-stub.mjs" "$GH_PORT" "$ROOT/pm-app.pub.pem" "$GH_LOG" ok > "$ROOT/github-stub.log" 2>&1 & GH_PID=$!
+for _ in $(seq 1 60); do grep -q 'github-stub on' "$ROOT/github-stub.log" && break; sleep 0.2; done
+check "the stand-in GitHub API is up" "grep -q 'github-stub on $GH_PORT (ok)' '$ROOT/github-stub.log'"
+echo "  pm: App 1234, key $ROOT/pm-app.pem (2048-bit, thrown away with this run)"
+echo "  badkey: App 99, and a key that is not a PEM — the refusal path"
 
 step "start: two slack sinks, the worker, then the reconciler + ingress"
 node "$CLI/test/slack-sink.mjs" "$SLACK_HQ_PORT" "$SLACK_HQ" > "$ROOT/sink1.log" 2>&1 & SINK1_PID=$!
@@ -135,6 +170,10 @@ cd "$STATE"
 export TEMPORAL_ADDRESS="127.0.0.1:$GRPC_PORT" TEMPORAL_NAMESPACE="$NS" \
        EPITO_HOOK_SECRET="$SECRET" EPITO_PORT="$PORT" EPITO_STUB_DIR="$STUB" \
        EPITO_EXECUTOR="$CLI/test/stub-executor.mjs" EPITO_WINDOW_MS=600000 \
+       EPITO_STUB_ECHO_TOKEN=1 GH_TOKEN="$SHARED_TOKEN" \
+       EPITO_GITHUB_API="http://127.0.0.1:$GH_PORT" \
+       EPITO_APP_ID_PM=1234 EPITO_APP_KEY_PM="$(cat "$ROOT/pm-app.pem")" \
+       EPITO_APP_ID_BADKEY=99 EPITO_APP_KEY_BADKEY="this is not a pem, and no amount of retrying will make it one" \
        SLACK_WEBHOOK_URL="http://127.0.0.1:$SLACK_HQ_PORT/hook" \
        SLACK_WEBHOOK_URL_EPITOME="http://127.0.0.1:$SLACK_PRODUCT_PORT/hook"
 node "$CLI/src/index.js" worker > "$ROOT/worker.log" 2>&1 & WORKER_PID=$!
@@ -148,7 +187,7 @@ sed 's/^/  /' "$ROOT/ingress.log"
 
 step "1: reconcile registered ONE schedule — the three presence-only seats got none"
 check "one schedule created, nothing else" "grep -q 'reconciled: 1 created, 0 updated, 0 deleted, 0 unchanged' '$ROOT/ingress.log'"
-check "the presence-only seats are named as such" "grep -qF 'presence-only (no [trigger].cron, so no schedule): ghost, okr, pm' '$ROOT/ingress.log'"
+check "the presence-only seats are named as such" "grep -qF 'presence-only (no [trigger].cron, so no schedule): badkey, ghost, okr, pm' '$ROOT/ingress.log'"
 check "the schedule is seat:clock, in UTC, with its model and repo" "grep -qF '+ seat:clock  * * * * * UTC  claude-sonnet-5  acme/roster' '$ROOT/ingress.log'"
 check "temporal itself lists it" "'$TEMPORAL_BIN' schedule list --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -q seat:clock"
 audit "the audit log records the registration" '{"agent":"clock","action":"schedule.create","schedule":"seat:clock"}'
@@ -175,6 +214,9 @@ step "1 (the point): the SCHEDULE fires a run on its own clock — waiting for t
 node "$CLI/test/wait-for.mjs" runs clock 1 95000 || { echo "no scheduled run inside 95s"; tail -40 "$ROOT/worker.log"; }
 audit "the scheduled run ended, on trigger cron" '{"agent":"clock","action":"run.end","trigger":"cron","exit":0}'
 audit "it recorded its model, its turns, and the PR it opened" '{"agent":"clock","action":"run.end","model":"claude-sonnet-5","turns":1,"pr":"https://github.com/alexandrapaiz/epitome/pull/999"}'
+# clock has no App of its own, so the identity slice must be invisible to it.
+check "a seat with no App ran on the shared credential, exactly as before" "grep -q 'GH_TOKEN=$SHARED_TOKEN' .epito/logs/clock/*.log"
+none "and it minted nothing" '{"agent":"clock","action":"mint"}'
 check "nobody started it by hand: the workflow id carries the scheduled time" "'$TEMPORAL_BIN' workflow list --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -qE 'run:clock-[0-9]{4}-[0-9]{2}-[0-9]{2}T'"
 # Every-minute is a test fixture, not a seat anyone would write. Pause it now
 # so the rest of the run is not racing a fresh clone every 60 seconds.
@@ -210,6 +252,41 @@ check "the transcript has two turns in ONE session" "[ \$(wc -l < \"$STUB/$SESSI
 check "the second turn was a --resume" "grep -q '\"resumed\":true' \"$STUB/$SESSION.jsonl\""
 check "both turns ran in the SAME clone" "[ \$(node -e 'const l=require(\"fs\").readFileSync(process.argv[1],\"utf8\").trim().split(\"\\n\").map(JSON.parse);console.log(new Set(l.map(x=>x.cwd)).size)' \"$STUB/$SESSION.jsonl\") = 1 ]"
 check "the agent answered in context (it names its own PR)" "grep -q 'my PR is still' .epito/logs/pm/*.log"
+
+step "4: IDENTITY — pm's runs minted their own credential, and the log never saw it"
+audit "both pm runs minted, and the audit line carries everything but the token" '{"agent":"pm","action":"mint","provider":"github-app","installation":"4242","repo":"acme/roster"}' 2
+audit "the permissions minted are exactly what [identity].scopes maps to" '{"agent":"pm","action":"mint","permissions":{"contents":"write","pull_requests":"write"}}' 2
+check "no audit line anywhere contains a token" "! grep -q '$STUB_TOKEN' .epito/audit.jsonl"
+check "the child was handed the MINTED token, not the shared one" "grep -q 'GH_TOKEN=\[redacted' .epito/logs/pm/*.log"
+check "and the run log holds no copy of it, though the child printed one" "! grep -q '$STUB_TOKEN' .epito/logs/pm/*.log"
+check "the shared GH_TOKEN never reached pm's run" "! grep -q '$SHARED_TOKEN' .epito/logs/pm/*.log"
+check "the log says which identity won, by name" "grep -qF 'GH_TOKEN from [runtime].env is overridden' .epito/logs/pm/*.log"
+printf '  github stub saw:\n'; sed 's/^/    /' "$GH_LOG"
+check "GitHub verified the JWT epito signed, against the App's public key" "node '$CLI/test/gh-asked.mjs' jwt '$GH_LOG' 1234"
+check "every mint asked for those permissions on THAT ONE repository" "node '$CLI/test/gh-asked.mjs' mint '$GH_LOG' contents:write,pull_requests:write roster"
+
+step "4 (no silent fallback): an agent that HAS an App and cannot mint does not run"
+code=$(post /window/open '{"scope":"badkey"}'); echo "  $code $(body)"
+node "$CLI/test/wait-for.mjs" action badkey run.end 1
+audit "the run ended at the mint, and is recorded as such" '{"agent":"badkey","action":"run.end","trigger":"window","exit":"mint"}'
+audit "the refusal is recorded in the product voice, not as \"Activity task failed\"" '{"agent":"badkey","action":"run.end","detail":"~this run has an identity it could not mint, so it did not start"}'
+audit "and the key it choked on is described, never printed" '{"agent":"badkey","action":"run.end","detail":"~not a readable PEM"}'
+check "no token was handed to it instead" "! ls .epito/logs/badkey/*.log >/dev/null 2>&1 || ! grep -q 'GH_TOKEN=$SHARED_TOKEN' .epito/logs/badkey/*.log"
+check "and no clone was left behind" "[ \$(ls -d \${TMPDIR:-/tmp}/epito-badkey-* 2>/dev/null | wc -l) = 0 ]"
+node "$CLI/test/wait-for.mjs" closed badkey
+
+step "4 (the CLI): \`epito token <name>\` is the same mint, on stdout"
+TOKEN_OUT=$(node "$CLI/src/index.js" token pm "$ROSTER" 2> "$ROOT/token.err"); rc=$?
+printf '  stdout> %s\n  stderr> %s\n' "$TOKEN_OUT" "$(cat "$ROOT/token.err")"
+check "it exits 0 and stdout is the token ALONE, so \$(epito token pm) works" "[ $rc = 0 ] && [ \"$TOKEN_OUT\" = '$STUB_TOKEN' ]"
+check "the human summary went to stderr, naming installation and expiry" "grep -q 'minted for pm' '$ROOT/token.err' && grep -q 'installation 4242' '$ROOT/token.err'"
+check "stderr holds no token either" "! grep -q '$STUB_TOKEN' '$ROOT/token.err'"
+node "$CLI/src/index.js" token pm "$ROSTER" --dry-run | sed 's/^/  /'
+check "--dry-run says what it would ask for, with no request to GitHub" "before=\$(wc -l < '$GH_LOG'); node '$CLI/src/index.js' token pm '$ROSTER' --dry-run | grep -q 'pull_requests: write' && [ \$(wc -l < '$GH_LOG') = \$before ]"
+out=$(node "$CLI/src/index.js" token okr "$ROSTER" 2>&1 || true); echo "  $out"
+check "an agent with no App is told so, with the two env names to set" "printf '%s' \"\$out\" | grep -q 'EPITO_APP_ID_OKR' && printf '%s' \"\$out\" | grep -q 'EPITO_APP_KEY_OKR'"
+out=$(node "$CLI/src/index.js" token nobody "$ROSTER" 2>&1 || true); echo "  $out"
+check "an unknown agent is told the roster it searched" "printf '%s' \"\$out\" | grep -q 'the roster there is'"
 
 step "3: \`epito ps\` reads TEMPORAL — schedules, running workflows, and the window's own answer"
 node "$CLI/src/index.js" ps "$ROSTER" | sed 's/^/  /'

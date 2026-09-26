@@ -15,7 +15,7 @@ import { webhookName } from "../src/lib/slack.js";
 import { isCloneDir, cloneDirPrefix, executeAgent } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP } from "../src/lib/identity.js";
 import { generateKeyPairSync, createVerify } from "node:crypto";
-import { readFileSync, mkdtempSync } from "node:fs";
+import { readFileSync, mkdtempSync, rmSync } from "node:fs";
 import { seatOfWorkflowId, scheduleId, runId, windowId } from "../src/temporal/env.js";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -228,9 +228,9 @@ test("a minted token is injected into the run and scrubbed out of its log", asyn
   const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
   const cwd = process.cwd();
   process.chdir(dir);                              // .epito/logs/<agent>/ is relative
+  const work = mkdtempSync(cloneDirPrefix("pm"));
   try {
     const token = "ghs_UNITTESTTOKEN00000000000000000000";
-    const work = mkdtempSync(cloneDirPrefix("pm"));
     const agent = {
       agent: { name: "pm" },
       runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["GH_TOKEN", "EPITO_STUB_ECHO_TOKEN", "EPITO_STUB_DIR"] },
@@ -253,6 +253,10 @@ test("a minted token is injected into the run and scrubbed out of its log", asyn
     assert.match(logged, /GH_TOKEN from \[runtime\]\.env is overridden/, "the log names which identity won");
   } finally {
     process.chdir(cwd);
+    // A clone this test made is a clone this test removes: smoke-temporal.sh
+    // asserts that no epito-<agent>-* directory survives a run, and a unit
+    // test that litters $TMPDIR fails it from the outside.
+    rmSync(work, { recursive: true, force: true });
     delete process.env.GH_TOKEN; delete process.env.EPITO_STUB_ECHO_TOKEN; delete process.env.EPITO_STUB_DIR;
   }
 });
@@ -261,8 +265,8 @@ test("with no App, the run is exactly what it was before the identity slice", as
   const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
   const cwd = process.cwd();
   process.chdir(dir);
+  const work = mkdtempSync(cloneDirPrefix("okr"));
   try {
-    const work = mkdtempSync(cloneDirPrefix("okr"));
     const agent = {
       agent: { name: "okr" },
       runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["GH_TOKEN", "EPITO_STUB_ECHO_TOKEN", "EPITO_STUB_DIR"] },
@@ -280,6 +284,10 @@ test("with no App, the run is exactly what it was before the identity slice", as
     assert.doesNotMatch(logged, /overridden/, "and nothing claims an identity it does not have");
   } finally {
     process.chdir(cwd);
+    // A clone this test made is a clone this test removes: smoke-temporal.sh
+    // asserts that no epito-<agent>-* directory survives a run, and a unit
+    // test that litters $TMPDIR fails it from the outside.
+    rmSync(work, { recursive: true, force: true });
     delete process.env.GH_TOKEN; delete process.env.EPITO_STUB_ECHO_TOKEN; delete process.env.EPITO_STUB_DIR;
   }
 });

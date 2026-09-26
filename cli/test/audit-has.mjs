@@ -9,7 +9,9 @@
 //   node test/audit-has.mjs --count '{"agent":"clock"}'     # print, never fail
 //
 // A value of true in the pattern means "this key is present and truthy"; a
-// string value beginning with "~" is a substring match on that field.
+// string value beginning with "~" is a substring match on that field; an
+// object value is compared by shape, so a nested `permissions` can be asserted
+// without asserting its key order either.
 import { readFileSync, existsSync } from "node:fs";
 
 const args = process.argv.slice(2);
@@ -27,6 +29,11 @@ const matches = (line) => Object.entries(pattern).every(([k, want]) => {
   const got = line[k];
   if (want === true) return Boolean(got);
   if (typeof want === "string" && want.startsWith("~")) return typeof got === "string" && got.includes(want.slice(1));
+  if (want && typeof want === "object") {
+    if (!got || typeof got !== "object") return false;
+    const w = Object.entries(want), g = Object.entries(got);
+    return w.length === g.length && w.every(([k, v]) => got[k] === v);
+  }
   return got === want;
 });
 
