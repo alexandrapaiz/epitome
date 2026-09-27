@@ -44,7 +44,10 @@ adapter = "claude"                      # PROPOSED (v0.1, the adapter slice), op
                                         # before this field means) or "langgraph".
 graph = "agent"                         # PROPOSED, optional: which graph in the
                                         # agent's own langgraph.json this seat runs.
-                                        # Only the langgraph adapter reads it.
+                                        # Only the langgraph adapter reads it, and
+                                        # `epito validate` refuses it beside any
+                                        # other adapter — the two lines above are a
+                                        # catalogue of fields, not a manifest to copy.
 image = "default"                       # optional: container image; "default" = platform base
 max_turns = 100                         # optional: run cap, default 100
 env = []                                # optional: names of secrets the runtime injects;
