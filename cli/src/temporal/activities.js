@@ -15,6 +15,7 @@ import {
 } from "../lib/runner.js";
 import { postToSlack } from "../lib/slack.js";
 import { appendAudit } from "../lib/audit.js";
+import { appendBoard } from "../lib/board.js";
 import { mintForRun } from "../lib/identity.js";
 import { temporalEnv } from "./env.js";
 
@@ -149,12 +150,45 @@ export async function execute({ name, manifest, runId, workDir, trigger, payload
 // history: `runId` is on every line, so a duplicate is identifiable rather
 // than invisible. Never throws a retryable error for a full disk, because a
 // retry loop on a full disk is worse than a lost line.
+//
+// Two files, one call, because they answer two different questions. The audit
+// log answers "what exactly happened, including the six lines nobody reads
+// until something is wrong" — every window opened, every session held, every
+// Slack post that failed. The board answers the owner's question, which is
+// "what have the seats been doing", and it holds run reports only. Filing a
+// run in both from one activity is what makes them agree.
 export async function record(entry) {
   const { name, action, runId, ...rest } = entry;
   const line = { agent: name ?? null, action: action ?? "run.end", ...(runId ? { runId } : {}), ...rest };
   for (const k of Object.keys(line)) if (line[k] === undefined) delete line[k];
   try { appendAudit(line); } catch (e) { console.error(`epito: could not append to the audit log (${e.message})`); }
+  if (line.action === "run.end") fileOnBoard(line);
   return {};
+}
+
+// The run report, on the board (owner directive 2026-09-26, priority 1). A
+// board that refuses a line must never take a run down with it, so this
+// catches everything: the run already happened, and the record of it is the
+// audit log's job first.
+function fileOnBoard(line) {
+  try {
+    appendBoard({
+      agent: line.agent,
+      trigger: line.trigger ?? null,
+      runId: line.runId ?? null,
+      model: line.model ?? null,
+      // The board speaks outcomes, not exit codes: "ok", or the name of the
+      // stage that stopped the run ("mint", "clone", "charter-missing").
+      outcome: line.exit === 0 ? "ok" : String(line.exit ?? "failed"),
+      turns: line.turns ?? null,
+      pr: line.pr ?? null,
+      seconds: line.durationMs != null ? Math.max(1, Math.round(line.durationMs / 1000)) : null,
+      detail: line.detail ?? null,
+      source: "epitod",
+    });
+  } catch (e) {
+    console.error(`epito: the run is recorded, but the board would not take it (${e.message})`);
+  }
 }
 
 // --- notify ---------------------------------------------------------------

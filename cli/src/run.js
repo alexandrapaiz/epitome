@@ -13,6 +13,8 @@
 //     which is idempotent, so a restart reconciles rather than duplicates
 //   - serve POST /hooks/<name>, /message/<name>, /window/open, /window/close
 //     and GET /healthz, turning each into a workflow start or a signal
+//   - serve the board: POST /board files a run report from a seat anywhere
+//     (a GitHub Actions job, a laptop), GET /board reads it back
 //   - SIGHUP re-reads the roster and reconciles again, so adding a seat does
 //     not need a restart
 //
@@ -26,6 +28,7 @@ import { loadRoster } from "./lib/roster.js";
 import { startHookServer } from "./lib/hooks.js";
 import { windowInstruction } from "./lib/runner.js";
 import { appendAudit, AUDIT_PATH } from "./lib/audit.js";
+import { appendBoard, readBoard, foldBoard, renderBoard, BOARD_PATH } from "./lib/board.js";
 import { connect } from "./temporal/client.js";
 import { reconcile } from "./temporal/schedules.js";
 import { temporalEnv, runId, windowId, DEFAULT_PORT } from "./temporal/env.js";
@@ -142,7 +145,32 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
       try { await connection.workflowService.getSystemInfo({}); return { ok: true, temporal: cfg.address, namespace: cfg.namespace }; }
       catch (e) { return { ok: false, error: `Temporal at ${cfg.address} is not answering (${e.cause?.code ?? e.message}) — triggers will be refused until it is back` }; }
     },
-    onRequest: async ({ route, name, raw, json }) => {
+    onRequest: async ({ route, name, raw, json, query }) => {
+      // The board is the one surface that is not about a workflow, which is
+      // why it is served here and not through Temporal: a seat that runs in
+      // GitHub Actions has no workflow on this engine and still has a run
+      // report to file. The roster does not gate it either — the board holds
+      // the reports of seats this runtime has never hosted, and that is the
+      // point of there being one board.
+      if (route === "board.write") {
+        let event;
+        try { event = appendBoard({ ...json, source: json.source ?? "ingress" }); }
+        catch (e) { return { status: 400, body: { error: e.message } }; }
+        log(`${event.agent}: ${event.kind} filed on the board${event.pr ? ` (${event.pr})` : ""}`);
+        return { status: 202, body: { filed: event } };
+      }
+
+      if (route === "board.read") {
+        const { events, unreadable } = readBoard();
+        const fold = foldBoard(events, {
+          agent: query.agent || null,
+          kind: query.kind || null,
+          limit: Number(query.limit) > 0 ? Number(query.limit) : 20,
+        });
+        if (query.format === "text") return { status: 200, text: renderBoard(fold, { unreadable }) };
+        return { status: 200, body: { ...fold, unreadable, path: BOARD_PATH } };
+      }
+
       if ((route === "hook" || route === "message") && !roster.has(name)) {
         return { status: 404, body: { error: `no agent named "${name}" in this roster — it hosts: ${[...roster.keys()].join(", ")}` } };
       }
@@ -186,7 +214,7 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
     },
   });
 
-  log(`epito run: ${roster.size} seat${roster.size === 1 ? "" : "s"} from ${dir}; audit=${AUDIT_PATH}`);
+  log(`epito run: ${roster.size} seat${roster.size === 1 ? "" : "s"} from ${dir}; audit=${AUDIT_PATH}; board=${BOARD_PATH}`);
   for (const [name, a] of roster) log(`  ${name}: repo=${a.manifest.runtime.repo} model=${a.manifest.runtime.model} cron=${a.manifest.trigger.cron ?? "-"}`);
   log(`windows default to ${Math.round(cfg.windowMs / 60000)} minutes (EPITO_WINDOW_MS)`);
   log(`the work happens in the worker: \`epito worker\` on queue ${cfg.taskQueue} (systemd: epitod-worker.service)`);
@@ -218,10 +246,11 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
 }
 
 // --- the client side of the ingress ---------------------------------------
-// `epito message` / `epito window` are thin: they POST to the ingress this
-// shell can see (EPITO_PORT, EPITO_HOOK_SECRET), so an operator on the host
-// never has to hand-write a curl with a secret in it.
-async function callIngress(path, body) {
+// `epito message` / `epito window` / `epito report` are thin: they POST to the
+// ingress this shell can see (EPITO_HOST, EPITO_PORT, EPITO_HOOK_SECRET), so
+// neither an operator on the host nor a CI job somewhere else ever has to
+// hand-write a curl with a secret in it.
+export async function callIngress(path, body) {
   const secret = process.env.EPITO_HOOK_SECRET || "";
   if (!secret) { console.error("epito: EPITO_HOOK_SECRET is not set in this shell — the ingress needs it, and it is the same value `epito run` was started with"); process.exit(1); }
   const port = Number(process.env.EPITO_PORT) || DEFAULT_PORT;

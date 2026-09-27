@@ -4,6 +4,8 @@
 //   POST /message/<name>   {"text": "..."} speaks to an agent in its held session
 //   POST /window/open      {"scope": "...", "text": "..."} opens work windows
 //   POST /window/close     {"scope": "..."} closes them
+//   POST /board            a seat files a run report or a note on the board
+//   GET  /board            the board (JSON, or ?format=text for the table)
 //   GET  /healthz
 //
 // The compare is constant-time (crypto.timingSafeEqual over equal-length
@@ -23,9 +25,13 @@ const ROUTES = [
   { route: "message", method: "POST", re: new RegExp(`^/message/(${NAME})$`) },
   { route: "window.open", method: "POST", re: /^\/window\/open$/ },
   { route: "window.close", method: "POST", re: /^\/window\/close$/ },
+  // The board is the one path that answers to two methods: a seat anywhere
+  // files onto it, and anyone with the secret reads it back.
+  { route: "board.write", method: "POST", re: /^\/board$/ },
+  { route: "board.read", method: "GET", re: /^\/board$/ },
 ];
 
-const ROUTE_LIST = "POST /hooks/<name>, POST /message/<name>, POST /window/open, POST /window/close, GET /healthz";
+const ROUTE_LIST = "POST /hooks/<name>, POST /message/<name>, POST /window/open, POST /window/close, POST /board, GET /board, GET /healthz";
 
 export function secretsMatch(given, expected) {
   if (typeof given !== "string" || typeof expected !== "string" || !expected) return false;
@@ -61,9 +67,12 @@ export function startHookServer({ port, host = "0.0.0.0", secret, onRequest, onH
         .then((h) => reply(h.ok ? 200 : 503, h))
         .catch((e) => reply(503, { ok: false, error: e.message }));
     }
-    const hit = ROUTES.map((r) => ({ ...r, m: r.re.exec(url) })).find((r) => r.m);
-    if (!hit) return reply(404, { error: `not found: the routes are ${ROUTE_LIST}` });
-    if (req.method !== hit.method) return reply(405, { error: `${url} is ${hit.method} only` });
+    // Matched on path FIRST, then on method, so /board can be two routes and a
+    // wrong method still says which methods the path takes rather than 404ing.
+    const onPath = ROUTES.map((r) => ({ ...r, m: r.re.exec(url) })).filter((r) => r.m);
+    if (!onPath.length) return reply(404, { error: `not found: the routes are ${ROUTE_LIST}` });
+    const hit = onPath.find((r) => r.method === req.method);
+    if (!hit) return reply(405, { error: `${url} is ${onPath.map((r) => r.method).join(" and ")} only` });
     if (!secret) return reply(503, { error: "EPITO_HOOK_SECRET is not set on the daemon, so the ingress is closed" });
     if (!secretsMatch(req.headers["x-epito-secret"], secret)) return reply(401, { error: "x-epito-secret header missing or wrong" });
     const chunks = []; let size = 0;
@@ -72,17 +81,25 @@ export function startHookServer({ port, host = "0.0.0.0", secret, onRequest, onH
       if (size > MAX_BODY) return reply(413, { error: `body over ${MAX_BODY} bytes` });
       const raw = Buffer.concat(chunks).toString("utf8");
       let json = null;
-      if (hit.route !== "hook") {
-        // /window/* may be called bare; /message/<name> may not.
-        const needsBody = hit.route === "message";
+      if (hit.route !== "hook" && hit.method !== "GET") {
+        // /window/* may be called bare; /message/<name> and /board may not.
+        const needsBody = hit.route === "message" || hit.route === "board.write";
         if (needsBody || raw.trim()) {
           const parsed = parseJsonBody(raw, url);
           if (parsed.error) return reply(400, { error: parsed.error });
           json = parsed.body;
         } else json = {};
       }
+      const query = Object.fromEntries(new URL(req.url ?? "/", "http://ingress").searchParams);
       try {
-        const out = await onRequest({ route: hit.route, name: hit.m[1] ?? null, raw, json });
+        const out = await onRequest({ route: hit.route, name: hit.m[1] ?? null, raw, json, query });
+        // A route may answer with something that is not JSON — `GET
+        // /board?format=text` is a table meant for a terminal, and wrapping it
+        // in a JSON string would make `curl` print escape sequences.
+        if (out.text !== undefined) {
+          res.writeHead(out.status, { "content-type": "text/plain; charset=utf-8" });
+          return res.end(out.text.endsWith("\n") ? out.text : out.text + "\n");
+        }
         reply(out.status, out.body);
       } catch (e) { reply(500, { error: e.message }); }
     });

@@ -15,6 +15,12 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       (--dry-run prints the schedule changes and stops)
   epito worker        do the work: poll the \`seats\` task queue and run seats
   epito ps [dir]      the roster, read from the runtime
+  epito board         what the seats have been doing: run reports, newest
+                      last (--agent, --kind, --limit, --json)
+  epito report <name> file a run report on the board from anywhere
+                      (--trigger --outcome --pr --turns --seconds --detail)
+  epito note <name> "..."
+                      put a line on the board that is not a run
   epito window open|close [scope] [text]
                       open (default 4h) or close work windows
   epito message <name> "..."
@@ -29,6 +35,10 @@ The runtime is two processes and one engine: \`epito run\` reconciles and
 serves the ingress, \`epito worker\` executes, and Temporal (self-hosted,
 TEMPORAL_ADDRESS, default 127.0.0.1:7233) is what makes a run survive a
 reboot. See docs/prfaq/epitod-v1-temporal.md.
+
+The board is where the runs show up: every seat epitod runs files its own
+report, and a seat that runs somewhere else files one with \`epito report\`.
+See docs/prfaq/task-board-v0.md and ADR-16.
 `;
 
 const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
@@ -119,6 +129,18 @@ if (cmd === "run") {
   const { tokenCmd } = await import("./token.js");
   const rest = args.filter((a) => !a.startsWith("-"));
   await tokenCmd(rest[0], rest[1] ?? ".", { dryRun: args.includes("--dry-run") });
+  process.exit(0);
+} else if (cmd === "board") {
+  const { boardCmd } = await import("./board.js");
+  await boardCmd(args);
+  process.exit(0);
+} else if (cmd === "report") {
+  const { reportCmd } = await import("./board.js");
+  await reportCmd(args);
+  process.exit(0);
+} else if (cmd === "note") {
+  const { noteCmd } = await import("./board.js");
+  await noteCmd(args);
   process.exit(0);
 } else if (cmd === "message") {
   const { message } = await import("./run.js");
