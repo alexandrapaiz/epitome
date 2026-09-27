@@ -499,3 +499,74 @@ test("a bot lookup that fails degrades loudly; it does not lose the run", async 
     assert.ok(said.some((m) => /agents\.epito\.me/.test(m)), "and names the address it fell back to");
   });
 });
+
+// --- the board ------------------------------------------------------------
+// The board's whole contract is in two pure functions: what it will accept
+// (boardEvent) and what it says once it has (foldBoard). Both are testable
+// with no server, no engine and no file, which is why they are pure.
+import { boardEvent, appendBoard, readBoard, foldBoard, renderBoard, KINDS } from "../src/lib/board.js";
+import { parseFlags } from "../src/board.js";
+
+test("the board has ONE shape: a field it does not know is refused by name", () => {
+  const { error } = boardEvent({ agent: "pm", trigger: "cron", priority: "P1", epic: "identity" });
+  assert.ok(error, "a run report may not invent a column");
+  assert.match(error, /"priority", "epic"/, `both are named: ${error}`);
+  assert.match(error, /it holds agent, trigger, runId/, "and the shape it does hold is in the message");
+  assert.match(error, /the PM's call/, "with the fix: changing the shape is not a field a run invents");
+});
+
+test("the board holds runs and notes, and says so when asked for anything else", () => {
+  const { error } = boardEvent({ kind: "view", agent: "pm" });
+  assert.match(error, /it holds run and note entries/);
+  assert.deepEqual(Object.keys(KINDS), ["run", "note"], "two kinds; a third is a spec change");
+});
+
+test("an entry names the agent it is about, and a note has words in it", () => {
+  assert.match(boardEvent({ trigger: "cron" }).error, /names the agent it is about/);
+  assert.match(boardEvent({ agent: "Not A Name" }).error, /\[a-z0-9-\]/);
+  assert.match(boardEvent({ kind: "note", agent: "pm", text: "   " }).error, /an empty note puts nothing on the board/);
+});
+
+test("the writer stamps the time; a caller cannot backdate the board", () => {
+  const { event } = boardEvent({ agent: "pm", ts: "1999-01-01T00:00:00.000Z" }, { now: new Date("2026-09-27T06:00:00.000Z") });
+  assert.equal(event.ts, "2026-09-27T06:00:00.000Z");
+  assert.equal(event.outcome, "ok", "a run with no outcome named ran fine; that is what silence means here");
+});
+
+test("turns and seconds are numbers, and a word where a number goes is refused", () => {
+  assert.equal(boardEvent({ agent: "pm", turns: "6" }).event.turns, 6, "a CLI hands strings; the board stores numbers");
+  assert.match(boardEvent({ agent: "pm", turns: "six" }).error, /"turns" is a number on the board/);
+});
+
+test("the fold collapses a run filed twice — `record` is a retried activity", () => {
+  const e = (over) => boardEvent({ agent: "pm", trigger: "cron", runId: "run-pm-1", ...over }).event;
+  const fold = foldBoard([e({}), e({}), e({ runId: "run-pm-2", outcome: "mint" })]);
+  assert.equal(fold.duplicates, 1);
+  assert.equal(fold.total, 2);
+  assert.equal(fold.seats[0].runs, 2, "two runs, not three");
+  assert.equal(fold.seats[0].failed, 1, "an outcome that is not ok is a failure on the board");
+});
+
+test("a half-written line is counted, never fatal: a crash mid-append leaves one", () => {
+  const dir = mkdtempSync(join(tmpdir(), "epito-board-"));
+  const path = join(dir, "board.jsonl");
+  writeFileSync(path, `{"ts":"2026-09-27T06:00:00.000Z","kind":"run","agent":"pm","outcome":"ok"}\n{"ts":"2026-09-2\n`);
+  const { events, unreadable } = readBoard({ path });
+  assert.equal(events.length, 1);
+  assert.equal(unreadable, 1);
+  assert.match(renderBoard(foldBoard(events), { unreadable, path }), /1 line in .* could not be read as JSON/);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("an empty board says how a report gets onto it, not just that there is none", () => {
+  const text = renderBoard(foldBoard([]), { path: ".epito/board.jsonl" });
+  assert.match(text, /the board is empty/);
+  assert.match(text, /epito report <name> --outcome ok --pr <url>/, "the fix is in the message");
+});
+
+test("a misspelled flag is refused by name, never silently ignored", () => {
+  assert.match(parseFlags(["--outcome", "ok", "--pr-url", "x"], ["outcome", "pr"]).error, /unknown option "--pr-url"/);
+  const { flags, rest } = parseFlags(["pm", "--outcome=mint", "--pr", "https://x/1", "--json"], ["outcome", "pr", "json"]);
+  assert.deepEqual(rest, ["pm"]);
+  assert.deepEqual(flags, { outcome: "mint", pr: "https://x/1", json: true }, "--flag=value, --flag value, and a bare --flag");
+});

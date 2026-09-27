@@ -19,6 +19,11 @@
 #   4. a run MINTS ITS OWN IDENTITY     (cycle 1 bet 2: the token reaches the
 #                                        child, the log does not get it, and an
 #                                        agent that cannot mint does not run)
+#   5. every run LANDS ON THE BOARD      (the owner's priority 1: one place
+#                                        that says what the seats have been
+#                                        doing, including a seat that runs in
+#                                        GitHub Actions and not on this engine,
+#                                        and a shape no seat can widen)
 #   + reconcile is idempotent, and deletes the schedule of a seat that loses
 #     its cron; per-agent Slack routing sends each seat's line to its own
 #     webhook; a seat with no charter refuses loudly and leaves no clone; the
@@ -198,7 +203,11 @@ node "$CLI/src/index.js" ps "$ROSTER" | sed 's/^/  /'
 check "epito ps shows clock's cron, its next fire, and a healthy schedule" "node '$CLI/src/index.js' ps '$ROSTER' | grep clock | grep -qE '\* \* \* \* \* +[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}Z +ok'"
 
 post() { curl -s -o "$ROOT/body.json" -w '%{http_code}' -X POST -H "x-epito-secret: $SECRET" -H 'content-type: application/json' --data "$2" "http://127.0.0.1:$PORT$1"; }
+get()  { curl -s -o "$ROOT/body.json" -w '%{http_code}' -H "x-epito-secret: $SECRET" "http://127.0.0.1:$PORT$1"; }
 body() { cat "$ROOT/body.json"; }
+# The board is a file the fold reads, so "is it on the board" is a question
+# about `epito board --json`, asked the way an owner's script would ask it.
+board(){ node "$CLI/src/index.js" board --json --limit 200; }
 
 step "the ingress still refuses what it refused in v0, by name"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "x-epito-secret: wrong" "http://127.0.0.1:$PORT/message/pm" --data '{"text":"hi"}')
@@ -393,6 +402,69 @@ check "every run that ever started also ended" "node -e '
 const l=require(\"fs\").readFileSync(\".epito/audit.jsonl\",\"utf8\").trim().split(\"\n\").map(JSON.parse);
 const s=l.filter(e=>e.action===\"run.start\").length, e=l.filter(e=>e.action===\"run.end\").length;
 console.log(\`    run.start=\${s} run.end=\${e}\`); process.exit(e>=s?0:1)'"
+
+step "5: THE BOARD — every run that happened is on it, in the owner's words"
+node "$CLI/src/index.js" board --limit 8 | sed 's/^/  /'
+check "the seats that ran are on the board, with their run counts" "board | node -e '
+const b=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));
+const seats=Object.fromEntries(b.seats.map(s=>[s.name,s.runs]));
+console.log(\"    seats:\", JSON.stringify(seats));
+process.exit(seats.pm>=3 && seats.clock>=1 && seats.ghost>=1 && seats.badkey>=1 ? 0 : 1)'"
+check "a scheduled run reads as a scheduled run: trigger cron, outcome ok" "board | grep -q '\"trigger\": \"cron\"' && board | node -e '
+const b=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));
+process.exit(b.recent.some(e=>e.agent===\"clock\"&&e.trigger===\"cron\"&&e.outcome===\"ok\"&&e.source===\"epitod\")?0:1)'"
+# The board is where you find out WHY a seat is not working, which is the
+# question the Slack line and `gh run list` both answer badly.
+check "a seat that could not mint is on the board as \"mint\", with the reason" "board | node -e '
+const b=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));
+const e=b.recent.find(x=>x.agent===\"badkey\");
+console.log(\"   \", e.outcome, \"—\", (e.detail||\"\").slice(0,72)+\"…\");
+process.exit(e.outcome===\"mint\" && /not a readable PEM/.test(e.detail||\"\")?0:1)'"
+check "a run that refused for a missing charter says so on the board too" "board | node -e '
+const b=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));
+process.exit(b.recent.some(e=>e.agent===\"ghost\"&&e.outcome===\"charter-missing\")?0:1)'"
+check "the PR a run opened is on the board, so the owner reads one place" "board | grep -q 'alexandrapaiz/epitome/pull/999'"
+check "no board entry anywhere contains a token" "! grep -qF '$STUB_TOKEN' .epito/board.jsonl && ! grep -qF '$SHARED_TOKEN' .epito/board.jsonl"
+check "the board files a run ONCE: no duplicate survived the retried record" "board | node -e '
+const b=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));
+const ids=b.recent.filter(e=>e.runId).map(e=>e.runId);
+process.exit(new Set(ids).size===ids.length?0:1)'"
+
+step "5 (the point of one board): a seat this runtime has never hosted files a report"
+# market runs in GitHub Actions, not on epitod, and is not in this roster. Its
+# report still belongs on the same board — that is what makes it ONE board.
+node "$CLI/src/index.js" report market --trigger cron --outcome ok --turns 9 --seconds 412 --pr "https://github.com/alexandrapaiz/epitome/pull/1000" 2>&1 | sed 's/^/  /'
+check "it is on the board, from a seat with no workflow on this engine" "board | node -e '
+const b=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));
+const e=b.recent.find(x=>x.agent===\"market\");
+process.exit(e && e.turns===9 && e.seconds===412 && e.source===\"cli\"?0:1)'"
+node "$CLI/src/index.js" note pm "cycle 1 closes 2026-10-02; bet 2 is on the stack" 2>&1 | sed 's/^/  /'
+check "a note is a line about the work, not a run" "board | node -e '
+const b=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));
+const e=b.recent.find(x=>x.kind===\"note\");
+process.exit(e && /bet 2 is on the stack/.test(e.text) && b.seats.find(s=>s.name===\"pm\").notes===1?0:1)'"
+
+step "5 (seats cannot create views): the board refuses a column a seat invented"
+code=$(post /board '{"agent":"pm","trigger":"cron","priority":"P1","epic":"identity"}'); echo "  $code $(body)"
+check "an invented field -> 400 naming both fields and the shape that exists" "[ '$code' = 400 ] && grep -q 'the board has one shape' '$ROOT/body.json' && grep -q 'priority' '$ROOT/body.json' && grep -q 'epic' '$ROOT/body.json' && grep -q 'it holds agent, trigger, runId' '$ROOT/body.json'"
+code=$(post /board '{"kind":"view","agent":"pm","name":"my runs"}'); echo "  $code $(body)"
+check "a new KIND -> 400: it holds runs and notes" "[ '$code' = 400 ] && grep -q 'it holds run and note entries' '$ROOT/body.json'"
+code=$(post /board '{"kind":"note","agent":"pm"}'); echo "  $code $(body)"
+check "a note with no words -> 400 with the fix in it" "[ '$code' = 400 ] && grep -q 'an empty note puts nothing on the board' '$ROOT/body.json'"
+check "and none of the three reached the board" "! grep -q 'priority' .epito/board.jsonl && ! grep -q '\"view\"' .epito/board.jsonl"
+
+step "5 (reading it from anywhere): GET /board, over the same door and the same secret"
+code=$(get "/board?format=text&limit=3"); printf '  %s
+' "$code"; sed 's/^/  /' "$ROOT/body.json"
+check "?format=text is the table a terminal wants, not JSON in a string" "[ '$code' = 200 ] && grep -q '^the board — ' '$ROOT/body.json' && grep -q 'SEAT  *RUNS' '$ROOT/body.json'"
+code=$(get "/board?agent=market"); check "?agent filters to one seat" "[ '$code' = 200 ] && grep -q '\"market\"' '$ROOT/body.json' && ! grep -q '\"ghost\"' '$ROOT/body.json'"
+code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/board")
+check "and it is not open to the world: no secret -> 401" "[ '$code' = 401 ]"
+code=$(curl -s -o "$ROOT/body.json" -w '%{http_code}' -X PUT -H "x-epito-secret: $SECRET" "http://127.0.0.1:$PORT/board")
+check "a wrong method says which methods /board takes" "[ '$code' = 405 ] && grep -q 'POST and GET only' '$ROOT/body.json'"
+
+step "board (the file behind it)"
+sed 's/^/  /' .epito/board.jsonl
 
 step "audit trail (the product's own record, engine-agnostic)"
 sed 's/^/  /' .epito/audit.jsonl
