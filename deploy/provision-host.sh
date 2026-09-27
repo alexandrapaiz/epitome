@@ -25,7 +25,7 @@
 #   user seats           the unprivileged principal every agent run is
 #   /srv/asc/repos       epito's source and the roster repo
 #   /srv/asc/roster      -> the directory of agent.toml files epitod hosts
-#   /srv/asc/state       epitod's working dir: .epito/{audit.jsonl,logs}
+#   /srv/asc/state       epitod's working dir: .epito/{audit.jsonl,board.jsonl,logs}
 #   /srv/asc/env         the runtime's secrets, 0600 seats:seats
 #   epitod.service       reconcile the roster onto Temporal + serve the ingress
 #   epitod-worker.service  the process that actually runs seats (task queue
@@ -468,6 +468,7 @@ cat <<NEXT
        systemctl reload epitod
   4. watch it: journalctl -u epitod-worker -u epitod -f
      the roster:  sudo -u $SEATS_USER sh -c 'cd $BASE/state && epito ps $ROSTER_DIR'
+     the board:   sudo -u $SEATS_USER sh -c 'cd $BASE/state && epito board'
      the history: ssh -L 8080:127.0.0.1:8080 this-host, then open localhost:8080
   5. speak to it (the secret is in $BASE/env):
      curl -X POST -H "x-epito-secret: \$EPITO_HOOK_SECRET" $([ -n "$DOMAIN" ] && echo "https://$DOMAIN" || echo "http://127.0.0.1:$PORT")/window/open -d '{"scope":"all"}'
