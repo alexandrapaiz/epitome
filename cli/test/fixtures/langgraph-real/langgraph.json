@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "seat": "./src/agent.py:graph",
+    "uncompiled": "./src/agent.py:builder"
+  }
+}

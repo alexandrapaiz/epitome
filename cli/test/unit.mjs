@@ -679,7 +679,8 @@ test("a langgraph seat runs: the graph's steps are its turns, and its PR is read
   const work = mkdtempSync(cloneDirPrefix("seat"));
   try {
     fixture("langgraph-stub", work);
-    const agent = seat("seat", { runtime: { adapter: "langgraph" } });
+    const agent = seat("seat", { runtime: { adapter: "langgraph", env: ["EPITO_STUB_ECHO_TOKEN"] } });
+    process.env.EPITO_STUB_ECHO_TOKEN = "1";
     const r = await executeAgent({
       agent, trigger: "cron", runId: "run-lg-1", workDir: work, timeoutMs: 60_000, log: () => {},
       executor: "/nonexistent/claude-stub",         // the claude override must not reach python
@@ -696,6 +697,7 @@ test("a langgraph seat runs: the graph's steps are its turns, and its PR is read
     assert.match(logged, /token=\[redacted: this run's token\]/, "its own credential reached it, and not the log");
   } finally {
     process.chdir(cwd);
+    delete process.env.EPITO_STUB_ECHO_TOKEN;
     rmSync(work, { recursive: true, force: true });
   }
 });

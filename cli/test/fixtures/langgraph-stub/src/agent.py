@@ -9,6 +9,14 @@ shape against the real framework.
 import os
 
 
+def _token():
+    """Only when a test asked: a fixture that prints $GH_TOKEN unasked is a
+    footgun on a box that has a real one (test/stub-executor.mjs, same rule)."""
+    if os.environ.get("EPITO_STUB_ECHO_TOKEN"):
+        return os.environ.get("GH_TOKEN") or "none"
+    return "(set, not echoed)" if os.environ.get("GH_TOKEN") else "none"
+
+
 class Graph:
     def stream(self, payload, config=None, stream_mode="updates"):
         prompt = payload["messages"][-1]["content"]
@@ -17,7 +25,7 @@ class Graph:
         yield {"open_pr": {"messages": [{"role": "assistant", "content":
                 f"{os.environ.get('EPITO_STUB_PR', 'https://github.com/acme/roster/pull/777')} "
                 f"(thread {config['configurable']['thread_id']}, {len(prompt)} chars of prompt, "
-                f"token={(os.environ.get('GH_TOKEN') or 'none')})"}]}}
+                f"token={_token()})"}]}}
 
 
 graph = Graph()
