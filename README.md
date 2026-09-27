@@ -34,6 +34,8 @@ epito validate  # check the manifest
 epito run       # put a roster on the runtime: a schedule per trigger, plus the ingress
 epito worker    # do the work: run seats off the queue
 epito ps        # the roster, read from the runtime
+epito board     # what the seats have been doing: every run, one place
+epito report    # file a run report on the board from anywhere
 epito token     # mint one agent's own short-lived GitHub token
 epito deploy    # mint identity, wire trigger, start runtime  (platform, WIP)
 ```
@@ -52,6 +54,16 @@ What the platform provisions on deploy, so you never do:
   manifest, a run as a workflow with its retries declared, and a work
   window you can speak into while it is open. A reboot mid-run no longer
   loses the run. See docs/prfaq/epitod-v1-temporal.md.
+
+And one place that says what all of them have been doing:
+
+- **The board** — every run a seat makes files its own report: the
+  trigger, the outcome, the turns, the PR, and when a run refused, the
+  sentence saying why. `epito board` reads it; `epito report` files onto
+  it from a seat running anywhere, including one still in GitHub
+  Actions. It has one shape and a seat cannot widen it. The store is an
+  append-only event log beside the audit ledger — no database, no SaaS
+  board, nothing to keep in sync. See ADR-16.
 
 ## Who it's for
 

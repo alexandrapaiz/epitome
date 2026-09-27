@@ -167,6 +167,8 @@ records `commit: null` in that case rather than a guess.
 | `POST /message/<name>` `{"text"}` | speaks to the agent inside the session its window holds; with no window open it falls back to a fresh run carrying the text, and says so |
 | `POST /window/open` `{"scope"?, "text"?, "ttl_ms"?}` | starts `SeatWindow` on every agent in scope and fires each once with the synchronous instruction plus your agenda — this is the all-hands call. A window already open has its deadline moved |
 | `POST /window/close` `{"scope"?}` | signals the window closed; the held session and its clone are discarded |
+| `POST /board` | a seat files a run report (or a note) on the board. Not gated by the roster: a seat running somewhere else entirely has a report to file too |
+| `GET /board` | the board back out — JSON, or `?format=text` for the table. `?agent=`, `?kind=`, `?limit=` narrow it |
 | `GET /healthz` | liveness, no secret. It answers 503 when the **engine** is unreachable, because an ingress that says 200 while Temporal is down is a health check that lies |
 
 `scope` is `"all"` (or absent) or a comma-separated list of `[agent].name`
@@ -178,6 +180,63 @@ epito window open all "Agenda: cycle 2 hill check."
 epito message pm "which PR did you open?"
 epito window close pm
 ```
+
+## The board
+
+Every run a seat makes on this runtime files its own report, from the same
+activity that writes the audit line. `epito board` reads it — no engine, no
+secret, just the file:
+
+```sh
+cd /srv/asc/state && epito board            # the last 20, and a row per seat
+epito board --agent pm --limit 50
+epito board --kind note --json
+```
+
+```
+the board — 6 seats, 12 entries since 2026-09-27 02:00Z
+
+SEAT    RUNS  FAILED  NOTES  LAST               OUTCOME          TURNS  LAST PR
+badkey  1     1       -      2026-09-27 02:00Z  mint             -      -
+clock   1     -       -      2026-09-27 02:00Z  ok               1      …/pull/999
+ghost   1     1       -      2026-09-27 02:00Z  charter-missing  -      -
+market  1     -       -      2026-09-27 02:00Z  ok               9      …/pull/1000
+```
+
+The store is `.epito/board.jsonl` in the runtime's working directory — the
+same directory as `audit.jsonl`, and for the same reasons (ADR-16). Two files
+because they answer two questions: the audit log is the forensic record, the
+board is what the owner reads.
+
+### A seat that does not run on epitod
+
+Most seats in this company are still GitHub Actions jobs. They belong on the
+same board — a board that only knows the migrated seats is useless for exactly
+as long as the migration takes. One line at the end of a seat's job files its
+report over the ingress:
+
+```sh
+epito report "$SEAT" --trigger cron --outcome ok \
+  --turns "$TURNS" --seconds "$SECONDS" --pr "$PR_URL"
+```
+
+It needs `EPITO_HOST` (e.g. `https://epito.example`) and `EPITO_HOOK_SECRET`
+in the job's environment, and nothing else — no engine, no Temporal, no
+checkout of this repo beyond the CLI. `epito note <name> "..."` puts a line on
+the board that is not a run.
+
+**Adding that line to `.github/workflows/agent-*.yml` is the owner's to make:**
+the engineer seat never edits workflows, so this ships as the command and the
+two variable names, not as a committed workflow change.
+
+### Why a field you invent is refused
+
+The board has one shape, and `POST /board` answers 400 to a field that is not
+in it, naming the field and the shape that exists. That is the owner's "seats
+cannot create views" — a board that grows a column whenever a seat wants one
+is a board that means something different depending on which seat wrote to it
+last. Widening it is a change to `KINDS` in `cli/src/lib/board.js`, in a PR,
+with a reason.
 
 ## Schedules: what `epito run` actually does
 
@@ -321,6 +380,7 @@ bash test/smoke-temporal.sh            # the whole runtime against a local dev s
 The smoke test spends no tokens and touches no network: the executor is a stub,
 `github.com` is rewritten to a local bare repo, and Slack is two local sinks.
 It proves a schedule fires a run on its own clock, a window holds a session and
-a message resumes it in the same clone, and `epito ps` reads Temporal. Without
+a message resumes it in the same clone, `epito ps` reads Temporal, a run mints
+its own identity, and every run lands on the board. Without
 the `temporal` CLI installed it exits 0 after saying so — that is an unrun
 test, not a passing one.

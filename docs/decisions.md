@@ -393,3 +393,79 @@ workflow holding a session id.
    second executor arrives, not before.
 7. **`.epito/state.json` is retired.** `epito ps` reads the engine. Two
    copies of what is running is one copy that can be wrong.
+
+## ADR-16: The board's store is an append-only event log, not a database and not a repo file
+
+**Date.** 2026-09-27. **Status.** Proposed by the engineer seat; the
+owner ratifies by merging, objects by editing.
+
+**Context.** Owner directive 2026-09-26 (synchronous session, relayed
+by the chair), priority 1 of four: "the task manager/board that
+replaces Linear — own store; seats cannot create views; run reports
+live on the board." The PM wrote it up Working Backwards
+(`docs/prfaq/task-board-v0.md`, PR #12) and left the storage engine
+open, naming two candidates and saying the engineer decides and records
+a route ADR, the way bet 1a did for the GitHub App route. This is that
+ADR.
+
+**Decision.** The board's store is `.epito/board.jsonl`: append-only,
+one JSON object per line, on the host the runtime runs on, folded into
+the board on read. Its schema is `KINDS` in `cli/src/lib/board.js` and
+the writer refuses any field not in it.
+
+**Why not the two candidates.**
+
+1. **A repo-tracked file, the way `docs/cycles/` is.** Seats cannot
+   push to main — that is in every charter — so every run report would
+   be a pull request waiting on a human merge, and the board would show
+   nothing that had happened since the last one. This is not
+   hypothetical: on the day this shipped, four engineer PRs were open
+   and nothing had merged since 2026-09-24, so a repo-tracked board
+   would have been three days blind about the seat doing the most work.
+   A board that is stale exactly when the company is busiest is the
+   Linear failure again with different plumbing.
+2. **Postgres beside the engine.** The runtime's Temporal server
+   already has one on the company host, so this costs nothing *there* —
+   and that is the trap. `epito` is a product other people run, and its
+   promise is that `epito run` works on a laptop for nothing (ADR-6,
+   the $0 stack). A board that needs a database makes the CLI
+   unrunnable without one. ADR-15 took the product's first load-bearing
+   runtime dependency knowingly and wrote down what it cost; taking a
+   second one for a table of run reports is not the same trade.
+
+**Why an event log specifically.** Both candidates would have been
+built on a stream of appended events anyway. Keeping the stream is what
+makes the choice reversible: if the board outgrows a file, the events
+replay into whatever comes next and `foldBoard` is the only code that
+changes. It is also the shape the product already trusts — ADR-15's law
+8 keeps `.epito/audit.jsonl` engine-agnostic for exactly this reason,
+and a single-line `O_APPEND` write is atomic on Linux, which is why two
+epitod processes can share one ledger without a lock.
+
+**Consequences.**
+
+1. **The board and the audit log are two files and one call.** They
+   answer different questions — the audit log answers "what exactly
+   happened, including the six lines nobody reads until something is
+   wrong"; the board answers the owner's question, "what have the seats
+   been doing" — and `record` writes both, which is what keeps them
+   agreeing. The board holds run reports and notes, and nothing else.
+2. **"Seats cannot create views" is code, not a promise.** `boardEvent`
+   refuses an unknown field by name and says where the meaning belongs
+   instead. A seat can fill the board in and cannot widen it because
+   its own run happened to have one more fact in it.
+3. **The board is not a second source of truth for the plan.** Bets,
+   scopes and hills stay in `docs/cycles/` (ADR-5), as the PR/FAQ says.
+   v0 renders run reports, not the cycle. Rendering the cycle file on
+   the board is a later slice and a decision of its own; a parser for
+   this company's markdown conventions is not product code, and
+   shipping a bad one would put a wrong hill in front of the owner.
+4. **One board, including seats epitod does not host.** Reports arrive
+   at `POST /board` over the ingress that already exists, so the seats
+   still running as GitHub Actions jobs file onto the same board as the
+   ones on the runtime. The alternative — a board that only knows the
+   seats already migrated — would make the board useless for exactly as
+   long as the migration takes.
+5. **Reading it needs no engine.** `epito board` is a file read. When
+   Temporal is down, the board still says what the seats did before it
+   went down, which is when an owner most wants to know.

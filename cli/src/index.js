@@ -38,7 +38,7 @@ reboot. See docs/prfaq/epitod-v1-temporal.md.
 
 The board is where the runs show up: every seat epitod runs files its own
 report, and a seat that runs somewhere else files one with \`epito report\`.
-See docs/prfaq/task-board-v0.md and ADR-16.
+See ADR-16 (docs/decisions.md).
 `;
 
 const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
