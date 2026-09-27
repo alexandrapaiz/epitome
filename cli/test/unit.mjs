@@ -788,6 +788,12 @@ test("the agent inherits the trace and never the export credential", () => {
   const child = childTraceEnv({ runId: "run-pm-1", agent: "pm", trigger: "cron", env });
   assert.equal(child.TRACEPARENT, traceparentFor("run-pm-1", "execute"), "the agent's spans nest under `execute`");
   assert.equal(child.OTEL_EXPORTER_OTLP_ENDPOINT, "http://127.0.0.1:6006");
+  assert.equal(child.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, "http://127.0.0.1:6006/v1/traces");
+  // An operator who set only the complete-URL spelling must not hand the child
+  // a base for it to append "/v1/traces" to a second time.
+  const specific = childTraceEnv({ runId: "run-pm-1", agent: "pm", env: { OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "https://otel.example/ingest" } });
+  assert.equal(specific.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, "https://otel.example/ingest");
+  assert.equal(specific.OTEL_EXPORTER_OTLP_ENDPOINT, undefined);
   assert.equal(child.OTEL_SERVICE_NAME, "pm", "the spans inside a run are the agent's work");
   assert.match(child.OTEL_RESOURCE_ATTRIBUTES, /^deployment\.environment=hq,epito\.agent=pm,epito\.run_id=run-pm-1,epito\.trigger=cron$/);
   assert.equal(child.OTEL_EXPORTER_OTLP_HEADERS, undefined,

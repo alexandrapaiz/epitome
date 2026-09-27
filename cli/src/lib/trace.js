@@ -104,9 +104,14 @@ export function childTraceEnv({ runId, agent, trigger, phase = "execute", env = 
   ].filter(Boolean);
   // An operator's own resource attributes are not ours to drop.
   const existing = (env.OTEL_RESOURCE_ATTRIBUTES ?? "").trim();
+  const base = (env.OTEL_EXPORTER_OTLP_ENDPOINT ?? "").trim();
   return {
     TRACEPARENT: traceparentFor(runId, phase),
-    OTEL_EXPORTER_OTLP_ENDPOINT: (env.OTEL_EXPORTER_OTLP_ENDPOINT ?? "").trim() || cfg.url,
+    // Both spellings, and the specific one always: an operator who set only
+    // OTEL_EXPORTER_OTLP_TRACES_ENDPOINT (a complete URL) would otherwise hand
+    // the child a base to append "/v1/traces" to a second time.
+    ...(base ? { OTEL_EXPORTER_OTLP_ENDPOINT: base } : {}),
+    OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: cfg.url,
     OTEL_SERVICE_NAME: agent ?? cfg.service,
     OTEL_RESOURCE_ATTRIBUTES: existing ? `${existing},${attrs.join(",")}` : attrs.join(","),
   };

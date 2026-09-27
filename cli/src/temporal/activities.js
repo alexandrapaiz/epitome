@@ -191,20 +191,27 @@ export async function execute({ name, manifest, runId, workDir, trigger, payload
     },
   });
 
+  // The span is filed for every ending, including the one that is about to
+  // throw: a cancelled run with no span is a gap in the trace exactly where an
+  // operator is looking.
+  const cancelled = ctx.cancellationSignal.aborted;
   await fileSpan({
     runId, name: "execute", phase: "execute", parent: "run", startMs,
     attrs: {
       "epito.agent": name, "epito.trigger": trigger, "epito.model": manifest.runtime.model,
-      "epito.adapter": result.adapter ?? null, "epito.outcome": result.exit === 0 ? "ok" : String(result.exit),
+      "epito.adapter": result.adapter ?? null,
+      "epito.outcome": cancelled ? "cancelled" : result.exit === 0 ? "ok" : String(result.exit),
       "epito.turns": result.turns ?? null, "epito.pr": result.pr ?? null,
       "epito.resumed": Boolean(resume), "epito.session_held": Boolean(result.sessionId),
       "epito.installation": minted?.meta?.installation ?? null, "epito.bot": minted?.meta?.commit?.name ?? null,
     },
-    error: result.exit === 0 ? null : (result.detail || `the run ended with exit ${result.exit}`),
+    error: cancelled
+      ? "the run was cancelled; the executor's process group was killed"
+      : result.exit === 0 ? null : (result.detail || `the run ended with exit ${result.exit}`),
     redact: minted ? [minted.token] : [],
   });
 
-  if (ctx.cancellationSignal.aborted) {
+  if (cancelled) {
     throw ApplicationFailure.nonRetryable(`${name}: the run was cancelled; the executor's process group was killed`, "cancelled");
   }
   // `minted.meta` and not `minted`: this return value is persisted by the
