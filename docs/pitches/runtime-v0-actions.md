@@ -9,7 +9,8 @@ identity slice landing first — see BETTING-MEMO-cycle-1.md).
 
 ## Problem
 
-An agent is autonomous and resident, not prompted (ADR-2); today a
+An agent is autonomous and resident, not prompted — the identity +
+trigger + runtime definition the company settled on; today a
 validated manifest has no way to wake. The backlog (Now) calls for
 runtime v0 on GitHub Actions — the $0 substrate the target users
 already run (alexandria's eleven seats all live there). Without this

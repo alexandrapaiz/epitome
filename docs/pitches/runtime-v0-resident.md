@@ -1,6 +1,6 @@
 # Pitch: runtime v0, resident — presence for epitod
 
-Owner-directed 2026-09-20 (Alexandra Systems HQ ADR-032). Supersedes
+Owner-directed 2026-09-20 (per HQ's resident-runtime ruling). Supersedes
 runtime-v0-actions.md as the runtime pitch: the owner wants agents
 with cloud runtimes "not tied to my laptop or ephemeral triggers", on
 free compute, built with epitome because "this is kind of the product
@@ -30,8 +30,8 @@ on it and a host script. If it swells, the pitch was wrong.
    invocation passes `--resume <session_id>` so context is held. A
    window is opened by `POST /window/open` (or `epito window open`)
    and closed by `POST /window/close` or a wall-clock (default 4h);
-   closing discards the session id (the PRs are the record — ADR-2's
-   "repo-as-state" holds).
+   closing discards the session id (the PRs are the record — the
+   repo-as-state rule holds).
 2. **The mailbox.** `POST /message/<name>` `{text}` → if a session is
    held, continue it with `text` as the prompt; else behave as
    `/hooks/<name>`. Queued per agent behind the existing `running`
