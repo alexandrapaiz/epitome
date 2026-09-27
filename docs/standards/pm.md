@@ -323,3 +323,31 @@ that happened and was not logged is an incident. The standup's PR is
 full; with nothing to propose and nothing red, say so and close it.
 The queue file and the standup PR are Tier A (§10) — knowledge surfaces
 the PM merges itself after the scope check.
+
+## 13. Credentials the owner may need (owner directive, 2026-09-26)
+
+"We are using Infisical now. Why another password? I don't want to do things myself." Every credential the owner could ever need to type — a UI login, a recovery code, a one-time password — lives in Infisical `prod` under a name that says what it opens (`ASC_UI_USERNAME`, `ASC_UI_PASSWORD` for the host's board, traces and Temporal pages). The chair never asks the owner to run a command to obtain a secret; the answer to "what is the password" is always the name of the row in Infisical. The Keychain is the chair's transit store only.
+
+
+
+## 14. The board is a tool every seat uses (owner directive, 2026-09-27)
+
+The company board (board.libraryofalexandria.dev) is the state of the work: items in columns, in sprints, per company; run reports beside them. Every seat reads it at the start of a run and writes to it as it works. Two doors, same surface, same permission line (a seat creates, moves and comments on items and reads them; it never creates or renames a company, a sprint, a column or a view):
+
+- **On the host** (epitod / Temporal runs): the `asc-board` MCP server, loaded with `ASC_SEAT` and `ASC_COMPANY` set by the runtime.
+- **On GitHub runners** (Actions runs): HTTP, with `BOARD_API_URL` and `BOARD_RUNTIME_TOKEN` in the run's environment (names; the values are Actions secrets synced from Infisical). Company names are the repository names: `alexandra-systems`, `alexandria`, `epitome`, `Ursa`, `atelier`, `asc-router`.
+
+```bash
+# read the company's board (columns, current sprint, items, recent runs)
+curl -s "$BOARD_API_URL/api/board/alexandria" -u "asc:$ASC_UI_PASSWORD"   # via Caddy; or from the host: http://127.0.0.1:8090/api/board/alexandria
+# create an item in the current sprint (column defaults to the first; horizon now|next|later)
+curl -s -X POST "$BOARD_API_URL/api/items" -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" -H "Content-Type: application/json" \
+  -d '{"company":"alexandria","seat":"engineer","title":"…","body":"…","horizon":"now"}'
+# move an item; comment on one; read one
+curl -s -X POST "$BOARD_API_URL/api/items/<id>/move" -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" -H "Content-Type: application/json" -d '{"company":"alexandria","column_id":"<column id from the board read>"}'
+curl -s -X POST "$BOARD_API_URL/api/items/<id>/comments" -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" -H "Content-Type: application/json" -d '{"company":"alexandria","seat":"engineer","body":"…"}'
+curl -s "$BOARD_API_URL/api/items/<id>?company=alexandria" -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN"
+```
+
+Rules: the PM's ceremonies plan on the board (the sprint file in `docs/sprints/` is a rendered export of it from now on); a seat that starts work moves its item to In progress and comments the PR link when it ships; a run that finds no item for its work creates one. The daily standup reads the board before `gh pr list`.
+\n

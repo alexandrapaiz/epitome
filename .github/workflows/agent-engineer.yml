@@ -22,6 +22,8 @@ jobs:
     timeout-minutes: 60
     env:
       GH_TOKEN: ${{ github.token }}
+      BOARD_API_URL: ${{ secrets.BOARD_API_URL }}
+      BOARD_RUNTIME_TOKEN: ${{ secrets.BOARD_RUNTIME_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
