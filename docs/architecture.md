@@ -194,6 +194,19 @@ can leave under constraint 1 — the manifests, the activities and
 rejected permanently: a vendor in the runtime path, and a per-action
 bill.
 
+**The adapter and tracing legs took nothing** (2026-09-27, ADR-17 and
+ADR-18; this line exists because the budget rule requires one either
+way). Hosting a LangGraph app added no dependency because an adapter is a
+subprocess and a result contract, not an SDK: `cli/adapters/langgraph_run.py`
+is stdlib-only Python and runs in the AGENT's interpreter, where the
+framework already lives. Tracing added none because the OpenTelemetry
+Node SDK is six packages, a provider and a background flush whose
+lifetime fights an activity's, where what epito needs is three spans per
+run with ids two processes can derive from the run id —
+`cli/src/lib/trace.js` is that, over `fetch`. Both remain replaceable in
+one file if the trade changes: adopt the SDK when a process epito did not
+spawn has to be given a trace context.
+
 ## Testing strategy
 
 Unit: validator golden fixtures, every error string asserted verbatim.
@@ -278,6 +291,8 @@ as a channel:
 | Work surfaces | GitHub, Linear | IdentityProvider targets (App; app-user pending ADR-6 re-rank) | agents demo the product in-situ, as themselves |
 | Models | Anthropic Claude, OpenAI | `[runtime].model` is provider-agnostic; owner's key as a named secret in `[runtime].env`; gateway option phase 3 | model-agnostic = every lab's users addressable |
 | Editors | Claude Code, Cursor | MCP server + skill (bet 2) | zero-listing-bar channel |
+| Agent frameworks | LangGraph (first; n8n, OpenClaw next) | `[runtime].adapter` hosts one unmodified, through its own `langgraph.json` (ADR-17) | the largest installed base of agents that have no identity — and a surface, since epito links none of it |
+| Tracing | OTLP (Phoenix, Jaeger, Tempo, LangSmith) | `OTEL_EXPORTER_OTLP_ENDPOINT`: one trace per run, the agent's own steps inside it (ADR-18) | a surface by construction — the protocol is the integration, so every backend is already supported |
 | Runtime engine | Temporal (self-hosted) | epitod v1's durable execution: schedules, `SeatRun`, `SeatWindow` | a swappable backend, never a channel — the one row chosen ONCE, as infrastructure only |
 | OS | Omarchy / Arch | epitod + systemd providers (phase 2) | AUR package; curated-defaults pitch |
 

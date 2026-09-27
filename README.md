@@ -55,6 +55,21 @@ What the platform provisions on deploy, so you never do:
   window you can speak into while it is open. A reboot mid-run no longer
   loses the run. See docs/prfaq/epitod-v1-temporal.md.
 
+And it runs the agent you already have:
+
+- **Any agent, unmodified** — `[runtime].adapter` says which kind of
+  agent a seat is. A LangGraph app runs through the `langgraph.json` its
+  author already wrote: nothing is added to its repository, nothing is
+  imported from epito, and it gets the same minted identity, the same
+  board entry and the same audit line as any other seat. epito links no
+  framework and takes no dependency to do it — an adapter is a process it
+  spawns and the JSON it prints. See ADR-17.
+- **Runs you can see inside** — set `OTEL_EXPORTER_OTLP_ENDPOINT` (a
+  Phoenix on the box, Jaeger, Tempo, anything that takes OTLP) and every
+  run files one trace: the run, its clone, each credential it minted, the
+  agent itself, and whatever the agent emits inside that. No span ever
+  carries a token, and tracing can never fail a run. See ADR-18.
+
 And one place that says what all of them have been doing:
 
 - **The board** — every run a seat makes files its own report: the
@@ -84,6 +99,7 @@ a principal you grant scopes to.
 
 - `spec/manifest.md` — the agent.toml spec (v0.1)
 - `cli/` — the `epito` CLI
+- `cli/adapters/` — one file per agent kind epito can host (`langgraph_run.py`)
 - `deploy/` — `provision-host.sh`: one always-on host for the runtime
 - `docs/` — vision, decisions (ADRs), backlog, ideas ledger, press release
 - `prompts/` — seat charters (this company is itself run as an agent org)
