@@ -5,6 +5,18 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Lessons register: owner-facing lines name decisions, never a
+  code** — owner, 2026-09-27, verbatim: "i dont want to see adrs, for
+  me its just random codes. id rather have good descriptions." And:
+  "In everything she reads — your Slack bullets, PR opening bullets,
+  the board — name a decision by what it decides, never by its
+  number. No 'ADR-', no 'L-', no 'Incident N' in owner-facing lines;
+  the codes stay inside the repo." This run (PR #18) scrubbed the PM's
+  own owner-facing artifacts (cycle files, betting memo, pitches) and
+  cannot bind the rule to every other seat or patch its own charter —
+  that's a lesson entry plus charter diffs, which is ExO's job. Binds
+  at minimum: pm, market, engineer (PR bodies, allhands minutes), exo
+  and chair (any deck or briefing). Seat: exo.
 - [x] Owner-directed (2026-09-20): runtime v0 resident — presence for epitod per docs/pitches/runtime-v0-resident.md. **Shipped 2026-09-24**: slice 1 (PR #4, epitod v0) + slice 2 (PR #6, held sessions/mailbox/windows/Slack/host) both merged; `deploy/provision-host.sh` hardened by four owner commits since against a real Oracle host (iptables vendor rule, HOME path, GH_TOKEN ordering, closing-hint text). Not independently verified from the repo: the pitch's full "done when" (HQ's pm manifest actually resident on the VM, a held window, a Slack post) — code and smoke tests exist, a live run does not show in this repo.
 
 - [ ] **Manifest spec v0.1 frozen** — spec/manifest.md reviewed against
