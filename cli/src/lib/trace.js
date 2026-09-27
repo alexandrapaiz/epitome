@@ -173,8 +173,12 @@ export async function emit(spans, { env = process.env, log = console.error, reda
   const cfg = traceConfig(env);
   if (!cfg) return { sent: false, reason: "no endpoint" };
   if (!spans?.length) return { sent: false, reason: "nothing to send" };
+  // The whole body goes through the scrubber, not each attribute: a span is a
+  // store we do not own and cannot delete from (ADR-18, consequence 3), so the
+  // guarantee wanted here is "no token in this request" rather than "no token
+  // in the attributes I remembered to scrub".
   const scrub = redactor(redact);
-  const body = JSON.stringify(payload(spans, { service: cfg.service }));
+  const body = scrub(JSON.stringify(payload(spans, { service: cfg.service })));
   try {
     const res = await fetch(cfg.url, {
       method: "POST",

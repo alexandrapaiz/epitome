@@ -95,6 +95,10 @@ export async function SeatRun(input) {
   for (;;) {
     attempt++;
     const id = attempt === 1 ? baseRunId : `${baseRunId}-${attempt}`;
+    // Workflow time, so a replay of this history files the same span: it is
+    // where the run's own trace starts, and `record` is the activity that
+    // files it (ADR-18).
+    const startedAt = new Date().toISOString();
     // A window's clone is borrowed: this run neither makes it nor deletes it.
     const borrowed = Boolean(req.workDir);
     let workDir = borrowed ? req.workDir : null;
@@ -122,14 +126,14 @@ export async function SeatRun(input) {
         // Temporal's ActivityFailure says only "Activity task failed", and an
         // audit line that says that has told the operator nothing.
         const detail = String(err?.cause?.message ?? err?.message ?? err);
-        await short.record({ name, trigger: req.trigger, runId: id, model: manifest.runtime.model, exit, detail });
+        await short.record({ name, trigger: req.trigger, runId: id, model: manifest.runtime.model, exit, detail, startedAt });
         if (!borrowed && workDir) await short.cleanup({ name, workDir });
       });
       throw err;
     }
 
     last = { trigger: req.trigger, ...result };
-    await short.record({ name, trigger: req.trigger, runId: id, resume: req.resume ?? null, model: manifest.runtime.model, ...result });
+    await short.record({ name, trigger: req.trigger, runId: id, resume: req.resume ?? null, model: manifest.runtime.model, startedAt, ...result });
     await short.notify({ name, manifest, trigger: req.trigger, turns: result.turns, pr: result.pr, durationMs: result.durationMs, exit: result.exit });
 
     // Who owns the clone: a window that lent it, a window that asked this run

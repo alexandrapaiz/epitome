@@ -17,6 +17,7 @@ import { postToSlack } from "../lib/slack.js";
 import { appendAudit } from "../lib/audit.js";
 import { appendBoard } from "../lib/board.js";
 import { mintForRun } from "../lib/identity.js";
+import { emit, span, traceConfig, traceIdFor } from "../lib/trace.js";
 import { temporalEnv } from "./env.js";
 
 const HEARTBEAT_MIN_MS = 5_000;
@@ -37,7 +38,23 @@ const HEARTBEAT_MIN_MS = 5_000;
 // key that is not a PEM, a scope with no mapping, an App installed nowhere),
 // and those stop the run on the first attempt rather than four times slower.
 // `execute` is never retried, so every failure there is final regardless.
+// --- spans, as an aside to everything else --------------------------------
+// One trace per run (ADR-18), whose ids are derived from the run id, which is
+// why three activities that never share memory can file three spans into one
+// trace with nothing passed between them. Filing a span can never fail a run:
+// the run already happened, and a ledger that argues with the run is worse
+// than one with a hole in it.
+async function fileSpan({ runId, name, phase, parent = null, startMs, endMs = Date.now(), attrs = {}, error = null, redact = [] }) {
+  if (!runId || !traceConfig()) return;
+  try {
+    await emit([span({ runId, name, phase, parent, startMs, endMs, attrs, error })], { redact });
+  } catch (e) {
+    console.error(`epito: the run is recorded, but its ${name} span was not filed (${e.message})`);
+  }
+}
+
 async function mintFor({ name, manifest, runId, phase, retryable }) {
+  const startMs = Date.now();
   let minted = null;
   try {
     minted = await mintForRun({ name, manifest, log: (m) => console.log(`${name}: ${m}`) });
@@ -51,7 +68,21 @@ async function mintFor({ name, manifest, runId, phase, retryable }) {
   // credential: which App, which installation, which permissions, until when,
   // and which half of the run asked for it. That is what makes "who pushed
   // this" answerable later.
-  if (minted) appendAudit({ agent: name, action: "mint", provider: "github-app", runId, phase, ...minted.meta });
+  if (minted) {
+    appendAudit({ agent: name, action: "mint", provider: "github-app", runId, phase, ...minted.meta });
+    // Every fact about the credential except the credential, on the span too:
+    // an operator watching a slow run wants to see whether the time went to
+    // GitHub's token exchange or to the agent.
+    await fileSpan({
+      runId, name: "mint", phase: `mint-${phase}`, parent: phase === "clone" ? "clone" : "execute", startMs,
+      attrs: {
+        "epito.agent": name, "epito.installation": minted.meta.installation,
+        "epito.repo": minted.meta.repo, "epito.token_expires_at": minted.meta.expiresAt,
+        "epito.scopes": minted.meta.scopes, "epito.bot": minted.meta.commit?.name ?? null,
+      },
+      redact: [minted.token],
+    });
+  }
   return minted;
 }
 
@@ -67,11 +98,24 @@ async function mintFor({ name, manifest, runId, phase, retryable }) {
 // seat's repository, which is the thing this leg of the product exists to
 // delete. An agent with no App still clones exactly as it did before.
 export async function clone({ name, manifest, runId }) {
-  const minted = await mintFor({ name, manifest, runId, phase: "clone", retryable: true });
+  const startMs = Date.now();
+  const attrs = {
+    "epito.agent": name, "epito.repo": manifest.runtime.repo, "epito.ref": manifest.runtime.ref ?? null,
+    "epito.attempt": Context.current().info.attempt,
+  };
+  let minted = null;
   try {
+    minted = await mintFor({ name, manifest, runId, phase: "clone", retryable: true });
     const { workDir } = await cloneAgentRepo({ agent: manifest, runId, token: minted?.token, log: (m) => console.log(m) });
+    await fileSpan({ runId, name: "clone", phase: "clone", parent: "run", startMs, attrs, redact: minted ? [minted.token] : [] });
     return { workDir };
   } catch (e) {
+    await fileSpan({
+      runId, name: "clone", phase: "clone", parent: "run", startMs,
+      attrs: { ...attrs, "epito.outcome": e.type ?? e.stage ?? "clone" }, error: e.message,
+      redact: minted ? [minted.token] : [],
+    });
+    if (e instanceof ApplicationFailure) throw e;        // the mint already chose retryable or not
     if (e.permanent) throw ApplicationFailure.nonRetryable(e.message, e.stage ?? "clone");
     throw ApplicationFailure.retryable(e.message, e.stage ?? "clone");
   }
@@ -85,6 +129,7 @@ export async function clone({ name, manifest, runId }) {
 export async function execute({ name, manifest, runId, workDir, trigger, payload = {}, resume, executor, timeoutMs }) {
   const ctx = Context.current();
   const cfg = temporalEnv();
+  const startMs = Date.now();
   let child = null;
   let lastBeat = 0;
 
@@ -111,7 +156,19 @@ export async function execute({ name, manifest, runId, workDir, trigger, payload
   // on the secrets its manifest names. A principal that cannot mint stops the
   // run, non-retryably — "identity failed, so I opened the PR as a human
   // instead" is not a recovery.
-  const minted = await mintFor({ name, manifest, runId, phase: "run", retryable: false });
+  let minted = null;
+  try {
+    minted = await mintFor({ name, manifest, runId, phase: "run", retryable: false });
+  } catch (e) {
+    // The seat had an identity and could not have it, so nothing ran. The span
+    // is the only place that failure is visible to someone watching a trace.
+    await fileSpan({
+      runId, name: "execute", phase: "execute", parent: "run", startMs,
+      attrs: { "epito.agent": name, "epito.trigger": trigger, "epito.model": manifest.runtime.model, "epito.outcome": "mint" },
+      error: e.message,
+    });
+    throw e;
+  }
 
   const result = await executeAgent({
     agent: manifest, trigger, runId, workDir, resume,
@@ -134,6 +191,19 @@ export async function execute({ name, manifest, runId, workDir, trigger, payload
     },
   });
 
+  await fileSpan({
+    runId, name: "execute", phase: "execute", parent: "run", startMs,
+    attrs: {
+      "epito.agent": name, "epito.trigger": trigger, "epito.model": manifest.runtime.model,
+      "epito.adapter": result.adapter ?? null, "epito.outcome": result.exit === 0 ? "ok" : String(result.exit),
+      "epito.turns": result.turns ?? null, "epito.pr": result.pr ?? null,
+      "epito.resumed": Boolean(resume), "epito.session_held": Boolean(result.sessionId),
+      "epito.installation": minted?.meta?.installation ?? null, "epito.bot": minted?.meta?.commit?.name ?? null,
+    },
+    error: result.exit === 0 ? null : (result.detail || `the run ended with exit ${result.exit}`),
+    redact: minted ? [minted.token] : [],
+  });
+
   if (ctx.cancellationSignal.aborted) {
     throw ApplicationFailure.nonRetryable(`${name}: the run was cancelled; the executor's process group was killed`, "cancelled");
   }
@@ -151,7 +221,9 @@ export async function execute({ name, manifest, runId, workDir, trigger, payload
 // than invisible. Never throws a retryable error for a full disk, because a
 // retry loop on a full disk is worse than a lost line.
 //
-// Two files, one call, because they answer two different questions. The audit
+// Three ledgers, one call, because they answer three different questions (the
+// third is the trace: see ADR-18 consequence 4 for why it is not allowed to
+// become a place facts live). The audit
 // log answers "what exactly happened, including the six lines nobody reads
 // until something is wrong" — every window opened, every session held, every
 // Slack post that failed. The board answers the owner's question, which is
@@ -162,8 +234,28 @@ export async function record(entry) {
   const line = { agent: name ?? null, action: action ?? "run.end", ...(runId ? { runId } : {}), ...rest };
   for (const k of Object.keys(line)) if (line[k] === undefined) delete line[k];
   try { appendAudit(line); } catch (e) { console.error(`epito: could not append to the audit log (${e.message})`); }
-  if (line.action === "run.end") fileOnBoard(line);
+  if (line.action === "run.end") {
+    fileOnBoard(line);
+    await fileRootSpan(line);
+  }
   return {};
+}
+
+// The root of the run's trace, filed here because this is the only activity
+// that knows how the run ENDED. `startedAt` comes from the workflow (workflow
+// time, so a replay files the same span), and its absence is survivable: a
+// root that starts where its own duration says it did is still a root.
+async function fileRootSpan(line) {
+  const startMs = line.startedAt ? Date.parse(line.startedAt) : Date.now() - (line.durationMs ?? 0);
+  await fileSpan({
+    runId: line.runId, name: `run ${line.agent}`, phase: "run", startMs,
+    attrs: {
+      "epito.agent": line.agent, "epito.trigger": line.trigger ?? null, "epito.model": line.model ?? null,
+      "epito.adapter": line.adapter ?? null, "epito.outcome": line.exit === 0 ? "ok" : String(line.exit ?? "failed"),
+      "epito.turns": line.turns ?? null, "epito.pr": line.pr ?? null, "epito.log": line.log ?? null,
+    },
+    error: line.exit === 0 ? null : (line.detail || `the run ended with exit ${line.exit ?? "failed"}`),
+  });
 }
 
 // The run report, on the board (owner directive 2026-09-26, priority 1). A

@@ -147,9 +147,18 @@ export function parseExecutorResult(out) {
     const lines = out.trim().split("\n");
     for (let i = lines.length - 1; i >= 0 && !obj; i--) obj = attempt(lines[i].trim());
   }
-  if (obj) return { sessionId: obj.session_id ?? null, turns: obj.num_turns ?? null, result: typeof obj.result === "string" ? obj.result : null };
+  // `detail` is the fourth, optional key of the result contract, and the only
+  // one claude never sends: it is how an adapter that refused puts the
+  // sentence saying why on the BOARD, instead of leaving an exit code there
+  // and the reason in a log file nobody has opened yet.
+  if (obj) return {
+    sessionId: obj.session_id ?? null,
+    turns: obj.num_turns ?? null,
+    result: typeof obj.result === "string" ? obj.result : null,
+    detail: typeof obj.detail === "string" ? obj.detail : null,
+  };
   const m = /"session_id"\s*:\s*"([^"]+)"/.exec(out);
-  return { sessionId: m ? m[1] : null, turns: null, result: null };
+  return { sessionId: m ? m[1] : null, turns: null, result: null, detail: null };
 }
 
 export function runLogPath(name, runId) {
@@ -313,9 +322,9 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
       clearTimeout(timer);
       const prs = tail.match(PR_URL_RE);
       const pr = prs ? prs[prs.length - 1] : null;
-      const { sessionId, turns } = parseExecutorResult(tail);
-      write(`\n---\n# exit=${timedOut ? "timeout" : code ?? signal} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}\n`);
-      res(finish(timedOut ? "timeout" : (code ?? signal), { pr, sessionId, turns, adapter: adapter.name }));
+      const { sessionId, turns, detail } = parseExecutorResult(tail);
+      write(`\n---\n# exit=${timedOut ? "timeout" : code ?? signal} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}${detail ? ` detail="${detail}"` : ""}\n`);
+      res(finish(timedOut ? "timeout" : (code ?? signal), { pr, sessionId, turns, detail, adapter: adapter.name }));
     });
   });
 }
