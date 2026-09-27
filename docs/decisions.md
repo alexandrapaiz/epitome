@@ -469,3 +469,163 @@ epitod processes can share one ledger without a lock.
 5. **Reading it needs no engine.** `epito board` is a file read. When
    Temporal is down, the board still says what the seats did before it
    went down, which is when an owner most wants to know.
+
+## ADR-17: A foreign agent is hosted by a spawn contract, never by an SDK integration
+
+**Date.** 2026-09-27. **Status.** Proposed by the engineer seat; the
+owner ratifies by merging, objects by editing.
+
+**Context.** Owner directive 2026-09-26 (synchronous session, relayed by
+the chair, recorded in `docs/sprints/dispatch-queue.md`), priority 3 of
+four: "the LangGraph implementation with tracing (Phoenix is
+installed)". Priority 1 was the board (ADR-16), priority 2 the engine
+(ADR-15). Until this card, epitod could host exactly one kind of agent:
+`cli/src/lib/runner.js` spawned `claude` and hard-coded that CLI's
+flags, so a seat whose agent is a LangGraph app could not run at all —
+epitod would have spawned it with `-p <prompt> --permission-mode
+bypassPermissions`. That is the opposite of R4 and ADR-10: the product's
+promise is that it runs the agent you already have.
+
+**Decision.** An agent kind is an **adapter**: a named entry in
+`cli/src/lib/adapters.js` that turns one run's facts into one command to
+spawn, and nothing else. `[runtime].adapter` names it in the manifest —
+`"claude"` (the default, and the behaviour every existing manifest
+already gets) or `"langgraph"`. epito depends on no framework SDK, links
+no framework library, and imports nothing from the agent's language.
+Every adapter returns the same three things — a file to spawn, its
+argv, and the extra environment for that one child — and every adapter
+speaks the same result contract: the last JSON object the child prints,
+read for `session_id`, `num_turns` and `result` (the shape
+`claude --output-format json` already emits).
+
+**Why not a LangGraph integration.** The obvious build is the one ADR-12
+calls the integrate arm: a `@epito/langchain` package a graph author
+imports. It is a fine distribution play and it is the wrong thing to put
+under the runtime, for three reasons.
+
+1. **It requires changing the agent.** R4 and ADR-10 both say the first
+   agent we run is one we did not write, unmodified. An import is a
+   modification, and a product whose runtime needs one has a different
+   promise than ours.
+2. **It buys a version treadmill.** LangChain shipped 1.0 this year and
+   LangGraph's own surface moves under it. A spawn contract cannot break
+   when a framework renames a class; a linked SDK can, and would break
+   it on the runtime box where every seat lives.
+3. **It would be a second executor in the product's own dependency
+   budget**, which ADR-15 consequence 6 explicitly deferred: "revisit
+   when a second executor arrives, not before". The second executor has
+   arrived, and the answer that keeps the budget at zero is a
+   subprocess, which is what epitod already is.
+
+**Why LangGraph still gets code.** A LangGraph app has no one-shot
+entry point: the framework's own invocation paths are a dev server and a
+library call. The adapter therefore ships a **shim** —
+`cli/adapters/langgraph_run.py`, stdlib-only Python — which reads the
+`langgraph.json` the author already has, resolves the graph it names,
+streams it once with the run's prompt, and prints the result contract.
+The agent's repository is unchanged: `langgraph.json` is LangGraph's own
+file, not ours. The shim is the adapter's body, the way claude's flags
+are the claude adapter's body, and it is the only Python epito owns.
+
+**Consequences.**
+
+1. **`[runtime].adapter` and `[runtime].graph` are proposed in-band in
+   `spec/manifest.md`**, both optional, both additive. An absent
+   `adapter` is `"claude"`, so every manifest in every roster behaves
+   exactly as it did — the acceptance test for this card is that the
+   claude argv is byte-identical before and after.
+2. **A window is a claude capability, not a runtime one.** Presence
+   (`--resume`, `POST /message`) rests on a session id the executor
+   hands back. The langgraph adapter holds no session: a follow-up
+   message to a langgraph seat starts a fresh run with the message as
+   its prompt, and the run log and audit line say so in those words. An
+   adapter declares `resumes: false` rather than pretending.
+3. **The mint, the board, the audit log and the trace are adapter-blind.**
+   An agent's identity is its App, not its framework (ADR-8): a
+   langgraph seat clones on its own minted token, commits as
+   `<name>[bot]`, files on the board, and appears in the audit log
+   through exactly the code the claude seats use. Nothing in
+   `activities.js` learned a new word.
+4. **A third adapter is a table entry and a smoke section.** n8n and
+   OpenClaw (portability proposal C) are now that shape rather than a
+   rewrite, and the shape is what ADR-10's "adapter runtime" always
+   meant.
+5. **The prompt does not fork per adapter.** One `buildPrompt` reaches
+   every agent, because the charter is the agent's contract with its
+   company and it cannot depend on which framework is reading it.
+
+## ADR-18: Runs emit OpenTelemetry spans; Phoenix is a surface, never a dependency
+
+**Date.** 2026-09-27. **Status.** Proposed by the engineer seat; the
+owner ratifies by merging, objects by editing.
+
+**Context.** The other half of the same directive: "with tracing
+(Phoenix is installed)". Arize Phoenix is running on the owner's box.
+Until this card the only record of what happened inside a run was
+`.epito/logs/<agent>/<runId>.log` — a transcript you read after you
+already know which run went wrong — plus a one-line board entry. A
+foreign agent makes that worse, not better: ADR-17 hands epitod a child
+process it deliberately knows nothing about, so without spans the graph
+is a single opaque exit code.
+
+**Decision.** epitod emits OTLP spans over HTTP/JSON, hand-rolled in
+`cli/src/lib/trace.js`, with no OpenTelemetry package in the dependency
+list. One trace per run: `run` (the root, filed by `record`), `clone`
+and `execute` beneath it, and beneath `execute` whatever the agent
+itself emits. The destination is `OTEL_EXPORTER_OTLP_ENDPOINT` — the
+standard variable, so pointing epitod at Phoenix is the same setting a
+Phoenix user already knows. Unset means tracing is off and costs
+nothing: no spans, no warnings, no behaviour change.
+
+**Why hand-rolled.** The OpenTelemetry Node SDK is six packages, a
+provider, a batch processor and a background flush whose lifetime fights
+an activity's — every activity invocation would have to shut the
+provider down to guarantee its spans left the process. What epito needs
+is three spans per run with ids that two separate processes can agree on
+without passing context, which is nine lines of `crypto` and one
+`fetch`. **Span and trace ids are derived from the run id by SHA-256**,
+so `clone`, `execute` and `record` — three activity invocations that
+never share memory, may run on different hosts, and are retried
+independently — compute the same ids from the same run, and a retried
+activity re-files the same span rather than inventing a sibling. That
+property is what pays for writing the exporter: with the SDK we would
+have had to thread a trace context through Temporal's persisted inputs,
+and law 7 makes every such input a thing written to a database forever.
+If epito ever needs context propagated from a process it did not spawn,
+adopt the SDK then and keep the ids.
+
+**Why Phoenix is not in the decision.** ADR-6: integrations are
+surfaces, never dependencies. What ships is OTLP, which Phoenix,
+Jaeger, Grafana Tempo, LangSmith's `/otel` endpoint and Honeycomb all
+accept; Phoenix is where the owner's spans happen to land tonight. No
+Phoenix name appears in the product's code, and the smoke test asserts
+against a fourteen-line OTLP sink rather than against Phoenix, so the
+test does not need what the box has.
+
+**Consequences.**
+
+1. **Tracing can never fail a run.** Export is best-effort with a short
+   timeout; a refused connection is one log line, not a retry loop and
+   not an exit code. The rule the board set (ADR-16, consequence 1) now
+   holds for three ledgers: the run already happened, and a record of it
+   that argues with the run is worse than a record that is missing.
+2. **The agent inherits the trace, not the credential.** The child is
+   given `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_RESOURCE_ATTRIBUTES` and
+   `TRACEPARENT`, so anything already instrumented — openinference,
+   LangSmith's OTel exporter, the langgraph shim's own node spans —
+   nests under `execute` with no epito import. It is **not** given
+   `OTEL_EXPORTER_OTLP_HEADERS`, because a headers value carries an api
+   key on every hosted tracing backend, and law 6 says a run sees only
+   the secrets its manifest names. A seat that needs authenticated
+   export lists that variable in `[runtime].env` like any other secret,
+   and the log redacts it.
+3. **No span attribute may hold a secret**, and the mint's attributes
+   are the test: app id, installation id, permissions and expiry are
+   attributes, the token never is. This is law 7 applied to a second
+   store we do not own — a trace backend is forever in exactly the way
+   Temporal's database is.
+4. **The trace is not a third source of truth.** The board answers what
+   the seats did, the audit log answers what exactly happened, and the
+   trace answers where the time went and what the agent did inside its
+   own run. A fact that belongs on the board goes on the board;
+   `trace.js` is not allowed to grow a query surface.
