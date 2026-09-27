@@ -12,6 +12,7 @@ import { createRequire } from "node:module";
 import * as activities from "./activities.js";
 import { temporalEnv } from "./env.js";
 import { appendAudit } from "../lib/audit.js";
+import { traceConfig } from "../lib/trace.js";
 
 const require = createRequire(import.meta.url);
 
@@ -60,7 +61,11 @@ export async function runWorker({ env = process.env } = {}) {
 
   console.log(`epito worker: ${cfg.address} namespace=${cfg.namespace} queue=${cfg.taskQueue} executor=${cfg.executor}`);
   console.log(`epito worker: run timeout ${Math.round(cfg.runTimeoutMs / 60000)} minutes (EPITO_RUN_TIMEOUT_MS)`);
-  appendAudit({ agent: null, action: "worker.start", address: cfg.address, namespace: cfg.namespace, queue: cfg.taskQueue, executor: cfg.executor });
+  // Whether this box traces is a thing an operator should be able to read on
+  // the first line of the log rather than infer from an empty Phoenix (ADR-18).
+  const trace = traceConfig();
+  console.log(`epito worker: traces ${trace ? `-> ${trace.url}` : "off (set OTEL_EXPORTER_OTLP_ENDPOINT to see inside a run)"}`);
+  appendAudit({ agent: null, action: "worker.start", address: cfg.address, namespace: cfg.namespace, queue: cfg.taskQueue, executor: cfg.executor, traces: trace?.url ?? null });
 
   const stop = (sig) => {
     console.log(`${sig}: draining the worker (runs in flight get their timeout to finish)`);

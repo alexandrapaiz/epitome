@@ -39,6 +39,12 @@ reboot. See docs/prfaq/epitod-v1-temporal.md.
 The board is where the runs show up: every seat epitod runs files its own
 report, and a seat that runs somewhere else files one with \`epito report\`.
 See ADR-16 (docs/decisions.md).
+
+A seat does not have to be a Claude session: \`[runtime].adapter = "langgraph"\`
+runs a LangGraph app through the \`langgraph.json\` its author already wrote,
+unmodified (ADR-17). Set OTEL_EXPORTER_OTLP_ENDPOINT — Phoenix, Jaeger, Tempo,
+anything that takes OTLP — and every run files a trace: the run, its clone, its
+mint, and whatever the agent itself emits inside it (ADR-18).
 `;
 
 const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
@@ -102,7 +108,10 @@ if (cmd === "validate") {
     for (const e of errors) console.error(`  ✗ ${e}`);
     process.exit(1);
   }
-  console.log(`✓ ${a.name} is an agent: identity (${m.identity.scopes.length} scope${m.identity.scopes.length > 1 ? "s" : ""}), trigger, runtime`);
+  // The adapter is named only when it is not the default, so every manifest
+  // written before adapters existed validates with the line it always had.
+  const adapter = m.runtime?.adapter;
+  console.log(`✓ ${a.name} is an agent: identity (${m.identity.scopes.length} scope${m.identity.scopes.length > 1 ? "s" : ""}), trigger, runtime${adapter && adapter !== "claude" ? ` — a ${adapter} agent` : ""}`);
   process.exit(0);
 }
 

@@ -20,6 +20,14 @@ import { once } from "node:events";
 import { generateKeyPairSync, createVerify } from "node:crypto";
 import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from "node:fs";
 import { seatOfWorkflowId, scheduleId, runId, windowId } from "../src/temporal/env.js";
+import { ADAPTERS, ADAPTER_NAMES, adapterFor, unknownAdapter, LANGGRAPH_SHIM } from "../src/lib/adapters.js";
+import {
+  traceConfig, traceIdFor, spanIdFor, traceparentFor, childTraceEnv, attributes,
+  span, payload, emit, parseHeaders, traceNote, resetQuiet,
+} from "../src/lib/trace.js";
+import { createServer } from "node:http";
+import { cpSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -569,4 +577,336 @@ test("a misspelled flag is refused by name, never silently ignored", () => {
   const { flags, rest } = parseFlags(["pm", "--outcome=mint", "--pr", "https://x/1", "--json"], ["outcome", "pr", "json"]);
   assert.deepEqual(rest, ["pm"]);
   assert.deepEqual(flags, { outcome: "mint", pr: "https://x/1", json: true }, "--flag=value, --flag value, and a bare --flag");
+});
+
+// --- adapters: what epito spawns, per kind of agent (ADR-17) --------------
+// The acceptance test of this card is the first one: a manifest that says
+// nothing about adapters must produce the argv it produced before adapters
+// existed, character for character. Everything else is new behaviour; that one
+// is a promise to every roster already running.
+
+test("the claude adapter's argv is byte-identical to the flags epitod always spawned", () => {
+  const m = seat("pm", { runtime: { max_turns: 12 } });
+  const { file, args, env } = ADAPTERS.claude.command({
+    manifest: m, name: "pm", runId: "r1", trigger: "cron", prompt: "PROMPT", resume: null, binary: "claude",
+  });
+  assert.equal(file, "claude");
+  assert.deepEqual(args, [
+    "-p", "PROMPT", "--permission-mode", "bypassPermissions",
+    "--model", "claude-sonnet-5", "--max-turns", "12", "--output-format", "json",
+  ]);
+  assert.deepEqual(env, {}, "the claude adapter adds no environment of its own");
+});
+
+test("the claude adapter still resumes a held session, and says it can", () => {
+  const { args } = ADAPTERS.claude.command({
+    manifest: seat("pm"), name: "pm", runId: "r1", trigger: "message", prompt: "hi", resume: "sess-1", binary: "claude",
+  });
+  assert.deepEqual(args.slice(-2), ["--resume", "sess-1"]);
+  assert.equal(ADAPTERS.claude.resumes, true);
+  assert.equal(ADAPTERS.langgraph.resumes, false, "a langgraph app has no session epito configured, and says so");
+});
+
+test("a manifest with no [runtime].adapter is a claude agent: spec v0.1 stays compatible", () => {
+  assert.equal(adapterFor(seat("pm")).name, "claude");
+  assert.deepEqual(validateManifest(seat("pm"), { baseDir: tmpdir() }), []);
+  assert.deepEqual(ADAPTER_NAMES, ["claude", "langgraph"]);
+});
+
+test("an adapter epito does not have refuses the run, names both of them and the fix", () => {
+  const m = seat("pm", { runtime: { adapter: "keras" } });
+  assert.throws(() => adapterFor(m), (e) => {
+    assert.match(e.message, /^pm: \[runtime\]\.adapter "keras" is not a kind of agent epito can host/);
+    assert.match(e.message, /"claude"/); assert.match(e.message, /"langgraph"/);
+    assert.match(e.message, /Fix: name one of those, or leave the field out/);
+    assert.equal(e.permanent, true, "a typo in a manifest is not a blip: retrying it insults the operator");
+    assert.equal(e.stage, "adapter");
+    return true;
+  });
+  // And `epito validate` says the same sentence, from the same source.
+  assert.deepEqual(validateManifest(m, { baseDir: tmpdir() }), [unknownAdapter("keras")]);
+});
+
+test("[runtime].graph only means something to the langgraph adapter", () => {
+  const wrong = validateManifest(seat("pm", { runtime: { graph: "agent" } }), { baseDir: tmpdir() });
+  assert.equal(wrong.length, 1);
+  assert.match(wrong[0], /only the langgraph adapter reads, and this manifest's adapter is "claude"/);
+  assert.match(wrong[0], /Fix: set \[runtime\]\.adapter = "langgraph", or drop \[runtime\]\.graph/);
+  const bad = validateManifest(seat("pm", { runtime: { adapter: "langgraph", graph: "not a name" } }), { baseDir: tmpdir() });
+  assert.match(bad[0], /must be the NAME of a graph in the agent's langgraph.json/);
+  assert.deepEqual(validateManifest(seat("pm", { runtime: { adapter: "langgraph", graph: "seat" } }), { baseDir: tmpdir() }), []);
+});
+
+test("the langgraph adapter hands the run in by environment, never in argv", () => {
+  const m = seat("seat", { runtime: { adapter: "langgraph", graph: "seat", max_turns: 7 } });
+  const { file, args, env } = ADAPTERS.langgraph.command({
+    manifest: m, name: "seat", runId: "run-7", trigger: "hook", prompt: "a paragraph", binary: "python3",
+  });
+  assert.equal(file, "python3");
+  assert.deepEqual(args, [LANGGRAPH_SHIM], "one argument, the shim: /proc/<pid>/cmdline is world-readable");
+  assert.equal(env.EPITO_PROMPT, "a paragraph");
+  assert.equal(env.EPITO_AGENT, "seat");
+  assert.equal(env.EPITO_RUN_ID, "run-7");
+  assert.equal(env.EPITO_TRIGGER, "hook");
+  assert.equal(env.EPITO_CHARTER, "prompts/seat.md");
+  assert.equal(env.EPITO_GRAPH, "seat");
+  assert.equal(env.EPITO_MAX_TURNS, "7");
+  assert.ok(LANGGRAPH_SHIM.endsWith("/adapters/langgraph_run.py"), "the shim ships with epito, not with the agent");
+  assert.ok(existsSync(LANGGRAPH_SHIM), "and it is actually there");
+});
+
+test("EPITO_EXECUTOR overrides the claude executable and never the interpreter", () => {
+  const env = { EPITO_EXECUTOR: "/tmp/stub-executor.mjs", EPITO_PYTHON: "/usr/bin/python3.12" };
+  assert.equal(ADAPTERS.claude.binary(env), "/tmp/stub-executor.mjs");
+  assert.equal(ADAPTERS.claude.binary(env, "/opt/claude"), "/opt/claude", "and an explicit override beats it");
+  assert.equal(ADAPTERS.langgraph.binary(env, "/tmp/stub-executor.mjs"), "/usr/bin/python3.12",
+    "every smoke test sets EPITO_EXECUTOR; handing a Python shim to a Node stub is how that becomes a bug");
+  assert.equal(ADAPTERS.langgraph.binary({}), "python3");
+});
+
+// --- a langgraph seat, actually run ---------------------------------------
+// The fixture is a graph-shaped object with no LangGraph installed, because
+// the adapter is duck-typed on purpose (epito imports nothing from the agent's
+// language). cli/test/smoke-langgraph.sh runs the same shim against the real
+// framework.
+
+const fixture = (name, work) => cpSync(fileURLToPath(new URL(`./fixtures/${name}/`, import.meta.url)), work, { recursive: true });
+
+test("a langgraph seat runs: the graph's steps are its turns, and its PR is read off stdout", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const work = mkdtempSync(cloneDirPrefix("seat"));
+  try {
+    fixture("langgraph-stub", work);
+    const agent = seat("seat", { runtime: { adapter: "langgraph" } });
+    const r = await executeAgent({
+      agent, trigger: "cron", runId: "run-lg-1", workDir: work, timeoutMs: 60_000, log: () => {},
+      executor: "/nonexistent/claude-stub",         // the claude override must not reach python
+      inject: { GH_TOKEN: "ghs_LANGGRAPHTOKEN0000000000000" }, redact: ["ghs_LANGGRAPHTOKEN0000000000000"],
+    });
+    assert.equal(r.exit, 0, `the graph ran (log: ${r.log})`);
+    assert.equal(r.adapter, "langgraph");
+    assert.equal(r.turns, 2, "two nodes ran, so the run took two steps");
+    assert.equal(r.pr, "https://github.com/acme/roster/pull/777", "a foreign agent's PR is read the same way");
+    assert.equal(r.sessionId, null, "and it holds no session, which is the honest answer");
+    const logged = readFileSync(r.log, "utf8");
+    assert.match(logged, /adapter=langgraph command=python3/);
+    assert.match(logged, /· read_charter: charter=prompts\/seat\.md trigger=cron/, "the run's facts reached the graph");
+    assert.match(logged, /token=\[redacted: this run's token\]/, "its own credential reached it, and not the log");
+  } finally {
+    process.chdir(cwd);
+    rmSync(work, { recursive: true, force: true });
+  }
+});
+
+test("a repository with no langgraph.json refuses in the product's voice, on the board", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const work = mkdtempSync(cloneDirPrefix("seat"));
+  try {
+    writeFileSync(join(work, "README.md"), "a repository that is not a langgraph app\n");
+    const r = await executeAgent({
+      agent: seat("seat", { runtime: { adapter: "langgraph" } }),
+      trigger: "cron", runId: "run-lg-2", workDir: work, timeoutMs: 60_000, log: () => {},
+    });
+    assert.equal(r.exit, 2, "2 is the adapter refusing before the graph started");
+    // `detail` is the fourth key of the result contract and the reason it
+    // exists: the sentence lands on the board, not only in a log file.
+    assert.match(r.detail, /^seat: \[runtime\]\.adapter is "langgraph", so this run looked for langgraph\.json/);
+    assert.match(r.detail, /Fix: commit the langgraph\.json your app already needs/);
+    assert.match(r.detail, /or set \[runtime\]\.adapter = "claude"/);
+  } finally {
+    process.chdir(cwd);
+    rmSync(work, { recursive: true, force: true });
+  }
+});
+
+test("a follow-up to an adapter that holds no session starts a fresh run, and says so", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const work = mkdtempSync(cloneDirPrefix("seat"));
+  const said = [];
+  try {
+    fixture("langgraph-stub", work);
+    const r = await executeAgent({
+      agent: seat("seat", { runtime: { adapter: "langgraph" } }),
+      trigger: "message", runId: "run-lg-3", workDir: work, timeoutMs: 60_000,
+      text: "one more thing", resume: "sess-from-a-claude-run", log: (m) => said.push(m),
+    });
+    assert.equal(r.exit, 0);
+    assert.ok(said.some((m) => /the langgraph adapter holds no session, so this message starts a fresh run/.test(m)),
+      "the operator is told, rather than left to wonder why context was lost");
+    const logged = readFileSync(r.log, "utf8");
+    assert.doesNotMatch(logged, /resume=/, "and no --resume was invented for an adapter that cannot use one");
+  } finally {
+    process.chdir(cwd);
+    rmSync(work, { recursive: true, force: true });
+  }
+});
+
+// --- the trace a run files (ADR-18) --------------------------------------
+
+test("tracing is off unless an endpoint is set, and off means nothing happens", async () => {
+  assert.equal(traceConfig({}), null);
+  assert.deepEqual(childTraceEnv({ runId: "r1", agent: "pm", env: {} }), {});
+  assert.deepEqual(await emit([{ name: "run" }], { env: {} }), { sent: false, reason: "no endpoint" });
+  assert.match(traceNote({ runId: "r1", env: {} }), /^# trace: off \(no OTEL_EXPORTER_OTLP_ENDPOINT/);
+});
+
+test("the standard variables, both spellings, and the path OTLP puts spans on", () => {
+  assert.equal(traceConfig({ OTEL_EXPORTER_OTLP_ENDPOINT: "http://127.0.0.1:6006" }).url, "http://127.0.0.1:6006/v1/traces");
+  assert.equal(traceConfig({ OTEL_EXPORTER_OTLP_ENDPOINT: "http://127.0.0.1:6006/" }).url, "http://127.0.0.1:6006/v1/traces");
+  assert.equal(traceConfig({ OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "https://otel.example/ingest" }).url, "https://otel.example/ingest");
+  assert.equal(traceConfig({ OTEL_EXPORTER_OTLP_ENDPOINT: "x", OTEL_SERVICE_NAME: "asc" }).service, "asc");
+  assert.deepEqual(parseHeaders("api_key=abc123,x-tenant=asc"), { api_key: "abc123", "x-tenant": "asc" });
+  assert.deepEqual(parseHeaders(undefined), {});
+});
+
+test("three activities agree on one trace with nothing passed between them", () => {
+  // The whole reason this file exists instead of the OTel SDK: clone, execute
+  // and record are separate invocations that may run on different hosts.
+  assert.equal(traceIdFor("run-pm-1"), traceIdFor("run-pm-1"));
+  assert.equal(spanIdFor("run-pm-1", "execute"), spanIdFor("run-pm-1", "execute"));
+  assert.notEqual(traceIdFor("run-pm-1"), traceIdFor("run-pm-2"));
+  assert.notEqual(spanIdFor("run-pm-1", "clone"), spanIdFor("run-pm-1", "execute"));
+  assert.equal(traceIdFor("run-pm-1").length, 32, "16 bytes, hex, as OTLP/JSON wants them");
+  assert.equal(spanIdFor("run-pm-1", "run").length, 16);
+  assert.equal(traceparentFor("run-pm-1", "execute"), `00-${traceIdFor("run-pm-1")}-${spanIdFor("run-pm-1", "execute")}-01`);
+});
+
+test("the agent inherits the trace and never the export credential", () => {
+  const env = {
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://127.0.0.1:6006",
+    OTEL_EXPORTER_OTLP_HEADERS: "api_key=phx-secret-key",
+    OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=hq",
+  };
+  const child = childTraceEnv({ runId: "run-pm-1", agent: "pm", trigger: "cron", env });
+  assert.equal(child.TRACEPARENT, traceparentFor("run-pm-1", "execute"), "the agent's spans nest under `execute`");
+  assert.equal(child.OTEL_EXPORTER_OTLP_ENDPOINT, "http://127.0.0.1:6006");
+  assert.equal(child.OTEL_SERVICE_NAME, "pm", "the spans inside a run are the agent's work");
+  assert.match(child.OTEL_RESOURCE_ATTRIBUTES, /^deployment\.environment=hq,epito\.agent=pm,epito\.run_id=run-pm-1,epito\.trigger=cron$/);
+  assert.equal(child.OTEL_EXPORTER_OTLP_HEADERS, undefined,
+    "law 6: a run sees only the secrets its manifest names, and a headers value is an api key");
+  assert.match(traceNote({ runId: "run-pm-1", env }), /which the agent is not given/);
+});
+
+test("a span names its parent by phase, so no caller has to know how an id is made", () => {
+  const s = span({ runId: "run-pm-1", name: "clone", phase: "clone", parent: "run", startMs: 1_000, endMs: 2_500, attrs: { "epito.repo": "acme/roster" } });
+  assert.equal(s.traceId, traceIdFor("run-pm-1"));
+  assert.equal(s.spanId, spanIdFor("run-pm-1", "clone"));
+  assert.equal(s.parentSpanId, spanIdFor("run-pm-1", "run"));
+  assert.equal(s.startTimeUnixNano, "1000000000");
+  assert.equal(s.endTimeUnixNano, "2500000000");
+  assert.deepEqual(s.status, { code: 1 });
+  const failed = span({ runId: "run-pm-1", name: "clone", phase: "clone", startMs: 1, endMs: 2, error: "no such repository" });
+  assert.deepEqual(failed.status, { code: 2, message: "no such repository" });
+  assert.equal(failed.parentSpanId, undefined, "a root has no parent field at all");
+});
+
+test("OTLP's attribute encoding: typed, and a null is dropped rather than sent empty", () => {
+  const attrs = attributes({ "epito.agent": "pm", "epito.turns": 3, "epito.resumed": false, "epito.pr": null, "epito.cost": 1.5, "epito.scopes": ["github:contents"] });
+  assert.deepEqual(attrs, [
+    { key: "epito.agent", value: { stringValue: "pm" } },
+    { key: "epito.turns", value: { intValue: "3" } },
+    { key: "epito.resumed", value: { boolValue: false } },
+    { key: "epito.cost", value: { doubleValue: 1.5 } },
+    { key: "epito.scopes", value: { arrayValue: { values: [{ stringValue: "github:contents" }] } } },
+  ]);
+  const p = payload([span({ runId: "r", name: "run", phase: "run", startMs: 1, endMs: 2 })], { service: "epito" });
+  assert.equal(p.resourceSpans[0].resource.attributes[0].value.stringValue, "epito");
+  assert.equal(p.resourceSpans[0].scopeSpans[0].spans.length, 1);
+});
+
+// A local stand-in for Phoenix: the test asserts against OTLP, not against a
+// product (ADR-18 — Phoenix is a surface, never a dependency).
+const otlpSink = async (t, { status = 200 } = {}) => {
+  const received = [];
+  const server = createServer((req, res) => {
+    const chunks = [];
+    req.on("data", (c) => chunks.push(c));
+    req.on("end", () => {
+      received.push({ url: req.url, headers: req.headers, body: Buffer.concat(chunks).toString() });
+      res.writeHead(status, { "content-type": "application/json" }).end("{}");
+    });
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(() => server.close());
+  return { received, port: server.address().port };
+};
+
+test("a span reaches an OTLP endpoint, with no token anywhere in the request", async (t) => {
+  const { received, port } = await otlpSink(t);
+  const token = "ghs_SPANTOKEN00000000000000000000000";
+  const env = { OTEL_EXPORTER_OTLP_ENDPOINT: `http://127.0.0.1:${port}`, OTEL_EXPORTER_OTLP_HEADERS: "api_key=phx-key" };
+  const out = await emit([span({
+    runId: "run-pm-1", name: "run pm", phase: "run", startMs: 1_000, endMs: 2_000,
+    // A caller that put a credential on a span would be a bug; the guarantee
+    // wanted is that the REQUEST cannot carry one, not that every caller
+    // remembered (ADR-18, consequence 3).
+    attrs: { "epito.agent": "pm", "epito.oops": `authorization: Bearer ${token}` },
+  })], { env, redact: [token] });
+  assert.deepEqual(out, { sent: true });
+  assert.equal(received.length, 1);
+  assert.equal(received[0].url, "/v1/traces");
+  assert.equal(received[0].headers.api_key, "phx-key", "the worker's own export credential does authenticate the export");
+  assert.doesNotMatch(received[0].body, /ghs_SPANTOKEN/);
+  assert.match(received[0].body, /\[redacted: this run's token\]/);
+  const sent = JSON.parse(received[0].body).resourceSpans[0].scopeSpans[0].spans[0];
+  assert.equal(sent.traceId, traceIdFor("run-pm-1"));
+  assert.equal(sent.name, "run pm");
+});
+
+test("a trace backend that is down, or answers 500, never fails the run", async (t) => {
+  resetQuiet();
+  const complaints = [];
+  const { port } = await otlpSink(t, { status: 500 });
+  const five = await emit([span({ runId: "r", name: "run", phase: "run", startMs: 1, endMs: 2 })],
+    { env: { OTEL_EXPORTER_OTLP_ENDPOINT: `http://127.0.0.1:${port}` }, log: (m) => complaints.push(m) });
+  assert.deepEqual(five, { sent: false, reason: "http 500" });
+  assert.match(complaints[0], /^epito: the run is recorded, but the trace endpoint answered 500/);
+
+  resetQuiet();
+  complaints.length = 0;
+  const dead = await emit([span({ runId: "r", name: "run", phase: "run", startMs: 1, endMs: 2 })],
+    { env: { OTEL_EXPORTER_OTLP_ENDPOINT: "http://127.0.0.1:1" }, log: (m) => complaints.push(m) });
+  assert.equal(dead.sent, false);
+  assert.match(complaints[0], /^epito: the run is recorded, but its trace did not reach http:\/\/127\.0\.0\.1:1\/v1\/traces/);
+  assert.equal(complaints.length, 1, "and it complains once per process, not once per run");
+});
+
+test("an agent's own spans land in the run's trace: the shim nests under `execute`", async (t) => {
+  const { received, port } = await otlpSink(t);
+  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const work = mkdtempSync(cloneDirPrefix("seat"));
+  const traced = { ...process.env, OTEL_EXPORTER_OTLP_ENDPOINT: `http://127.0.0.1:${port}` };
+  const saved = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+  try {
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = traced.OTEL_EXPORTER_OTLP_ENDPOINT;
+    fixture("langgraph-stub", work);
+    const r = await executeAgent({
+      agent: seat("seat", { runtime: { adapter: "langgraph" } }),
+      trigger: "cron", runId: "run-lg-trace", workDir: work, timeoutMs: 60_000, log: () => {},
+    });
+    assert.equal(r.exit, 0);
+    const spans = received.flatMap((p) => JSON.parse(p.body).resourceSpans.flatMap((rs) => rs.scopeSpans.flatMap((ss) => ss.spans)));
+    const graph = spans.find((s) => s.name.startsWith("graph "));
+    const nodes = spans.filter((s) => s.name.startsWith("node "));
+    assert.ok(graph, `the graph filed a span (got: ${spans.map((s) => s.name).join(", ")})`);
+    assert.equal(graph.traceId, traceIdFor("run-lg-trace"), "in the run's own trace");
+    assert.equal(graph.parentSpanId, spanIdFor("run-lg-trace", "execute"), "nested under the run's execute span");
+    assert.deepEqual(nodes.map((s) => s.name), ["node read_charter", "node open_pr"]);
+    assert.ok(nodes.every((s) => s.parentSpanId === graph.spanId), "and each node under the graph");
+    assert.equal(readFileSync(r.log, "utf8").includes(`# trace: ${traceIdFor("run-lg-trace")}`), true,
+      "the run log says which trace it is, so a transcript and a waterfall can be put side by side");
+  } finally {
+    process.chdir(cwd);
+    if (saved === undefined) delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT; else process.env.OTEL_EXPORTER_OTLP_ENDPOINT = saved;
+    rmSync(work, { recursive: true, force: true });
+  }
 });

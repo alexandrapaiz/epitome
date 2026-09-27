@@ -244,6 +244,13 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     return { exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null, adapter: adapter.name, ...extra };
   };
 
+  // Presence is a capability of the agent, not of the runtime (ADR-17,
+  // consequence 2): an adapter that holds no session is asked for none, and
+  // the log header therefore says what actually ran rather than what the
+  // window hoped for.
+  const droppedResume = resume && !adapter.resumes ? resume : null;
+  if (droppedResume) resume = null;
+
   write(`# epito run ${name} ${runId}\n# trigger=${trigger} model=${rt.model} repo=${rt.repo} ref=${rt.ref ?? "(default)"} adapter=${adapter.name} command=${binary}${resume ? ` resume=${resume}` : ""} workdir=${workDir}\n`);
   write(`${traceNote({ runId })}\n`);
 
@@ -253,14 +260,11 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     return finish("workdir-gone");
   }
 
-  // Presence is a capability of the agent, not of the runtime (ADR-17,
-  // consequence 2). An adapter that holds no session is told so here, once,
-  // in words: the follow-up still runs, as a fresh run whose prompt is the
-  // message, which is the honest degradation and not a silent one.
-  if (resume && !adapter.resumes) {
+  // Told once, in words: the follow-up still runs, as a fresh run whose prompt
+  // is the message, which is the honest degradation and not a silent one.
+  if (droppedResume) {
     write(`# session: the ${adapter.name} adapter holds none, so this follow-up starts a fresh run with the message as its prompt\n`);
     log(`${name}: the ${adapter.name} adapter holds no session, so this message starts a fresh run rather than continuing one`);
-    resume = null;
   }
 
   // A resumed run continues a conversation: the message is the whole prompt.
