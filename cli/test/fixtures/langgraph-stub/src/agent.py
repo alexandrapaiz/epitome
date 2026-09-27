@@ -20,12 +20,14 @@ def _token():
 class Graph:
     def stream(self, payload, config=None, stream_mode="updates"):
         prompt = payload["messages"][-1]["content"]
+        tail = prompt.split("Event payload for this run")[-1].strip().replace("\n", " ")[:120] if "Event payload" in prompt else "(no payload)"
         yield {"read_charter": {"messages": [{"role": "assistant", "content":
-                f"charter={os.environ.get('EPITO_CHARTER')} trigger={os.environ.get('EPITO_TRIGGER')}"}]}}
+                f"charter={os.environ.get('EPITO_CHARTER')} trigger={os.environ.get('EPITO_TRIGGER')} "
+                f"| prompt {len(prompt)} chars | payload: {tail}"}]}}
         yield {"open_pr": {"messages": [{"role": "assistant", "content":
                 f"{os.environ.get('EPITO_STUB_PR', 'https://github.com/acme/roster/pull/777')} "
                 f"(thread {config['configurable']['thread_id']}, {len(prompt)} chars of prompt, "
-                f"token={_token()})"}]}}
+                f"GH_TOKEN={_token()})"}]}}
 
 
 graph = Graph()

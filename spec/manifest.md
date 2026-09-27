@@ -37,6 +37,14 @@ repo  = "owner/historian"               # PROPOSED (v0.1, epitod v0): the GitHub
                                         # `entry` is a path inside it. Required by `epito run`.
 ref   = "main"                          # PROPOSED, optional: branch or tag the runtime checks
                                         # out; unset = the repository's default branch
+adapter = "claude"                      # PROPOSED (v0.1, the adapter slice), optional:
+                                        # which KIND of agent this is — what the
+                                        # runtime spawns for a run. "claude" (the
+                                        # default, and what every manifest written
+                                        # before this field means) or "langgraph".
+graph = "agent"                         # PROPOSED, optional: which graph in the
+                                        # agent's own langgraph.json this seat runs.
+                                        # Only the langgraph adapter reads it.
 image = "default"                       # optional: container image; "default" = platform base
 max_turns = 100                         # optional: run cap, default 100
 env = []                                # optional: names of secrets the runtime injects;
@@ -80,6 +88,51 @@ slack_webhook_env = "SLACK_WEBHOOK_URL_EPITOME"
   is exactly what it was: `SLACK_WEBHOOK_URL` if `env` lists it, no
   post otherwise. Every existing manifest is therefore unaffected,
   which is the compatibility bar epitod v1 had to clear.
+
+## Proposed in-band (the adapter slice, owner priority 3)
+
+Two optional, additive fields. Both default to the behaviour every existing
+manifest already has, which is the compatibility bar this slice had to clear:
+an absent `adapter` is `"claude"`, and the argv the runtime spawns for such a
+manifest is byte-identical to what it spawned before adapters existed (asserted
+in `cli/test/unit.mjs`).
+
+- **`[runtime].adapter`**, optional. Which kind of agent this is, from the set
+  the runtime can host: `"claude"` (the Claude Code CLI, headless) or
+  `"langgraph"` (a LangGraph app, run through the `langgraph.json` its author
+  already wrote). It is a *kind*, not a command: the manifest never names an
+  executable, because a manifest is publishable and a path on somebody's box is
+  not. `epito validate` refuses a value outside the set, listing the set and
+  what each member is (ADR-17).
+
+  The field exists because the runtime had exactly one agent shape hard-coded
+  into it, which contradicts the promise that epito runs the agent you already
+  have (R4, ADR-10). An adapter adds no dependency to the product: epito spawns
+  a process and reads the last JSON object it prints.
+
+- **`[runtime].graph`**, optional, and meaningful only when
+  `adapter = "langgraph"`. A LangGraph app may declare several graphs in its
+  `langgraph.json`; this names the one this seat is. Unset is fine when the app
+  declares exactly one; with several, the run refuses and names them, because
+  picking one for the operator is a guess about which agent they hired.
+  `epito validate` refuses `graph` beside any other adapter rather than letting
+  a field quietly mean nothing.
+
+**What is deliberately NOT in the manifest.** Nothing about the interpreter, the
+virtualenv, the image, or where the framework is installed. Those are properties
+of the box, and rule 1's spirit (a manifest is publishable without redaction)
+extends to them: `EPITO_PYTHON` names the interpreter on the runtime, the way
+`$EPITO_APP_KEY_<NAME>` names the App key. A manifest that named a path would
+stop being portable at exactly the moment a second person ran it.
+
+**Presence is a property of the adapter, not of the runtime.** A window and
+`POST /message` hold a session id the agent's executor hands back. The claude
+adapter has one; the langgraph adapter does not (a checkpointer is the agent's
+own configuration, and epito does not configure the agent's insides). A
+follow-up to a seat that holds no session runs the seat again with the message
+as its prompt, and says so in the run log. No manifest field expresses this: it
+follows from the adapter, and inventing `resumable = false` would let a manifest
+claim a capability its agent does not have.
 
 ## Proposed in-band (the identity slice, cycle 1 bet 2)
 

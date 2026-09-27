@@ -24,6 +24,14 @@
 #                                        doing, including a seat that runs in
 #                                        GitHub Actions and not on this engine,
 #                                        and a shape no seat can widen)
+#   6. a seat is NOT ONLY A CLAUDE SESSION (owner priority 3: a LangGraph app
+#                                        runs as a seat through its own
+#                                        langgraph.json, unmodified, and mints,
+#                                        clones, records and posts through the
+#                                        same code every other seat uses)
+#   7. a run is ONE TRACE                (ADR-18: run -> clone / mint /
+#                                        execute -> the agent's own steps, at
+#                                        an OTLP endpoint, with no token in it)
 #   + reconcile is idempotent, and deletes the schedule of a seat that loses
 #     its cron; per-agent Slack routing sends each seat's line to its own
 #     webhook; a seat with no charter refuses loudly and leaves no clone; the
@@ -63,10 +71,12 @@ SLACK_HQ_PORT="${EPITO_TEST_SLACK_PORT:-47472}"
 SLACK_PRODUCT_PORT="${EPITO_TEST_SLACK2_PORT:-47473}"
 GRPC_PORT="${EPITO_TEST_TEMPORAL_PORT:-47811}"
 GH_PORT="${EPITO_TEST_GITHUB_PORT:-47474}"
+OTLP_PORT="${EPITO_TEST_OTLP_PORT:-47476}"
 NS="epito-smoke"
 SECRET="smoke-secret-not-a-real-one"
 SLACK_HQ="$ROOT/slack-hq.log"; SLACK_PRODUCT="$ROOT/slack-product.log"
 GH_LOG="$ROOT/github-requests.jsonl"
+SPANS="$ROOT/spans.jsonl"
 # The credential the box has today, and which an agent's own must beat.
 SHARED_TOKEN="shared-operator-token-not-a-real-one"
 STUB_TOKEN="ghs_STUBTOKEN0000000000000000000000000000"
@@ -84,7 +94,7 @@ none(){ n=$(node "$CLI/test/audit-has.mjs" --count "$2"); if [ "$n" = 0 ]; then 
 step() { printf '\n== %s\n' "$1"; }
 
 cleanup() {
-  for pid in ${INGRESS_PID:-} ${WORKER_PID:-} ${SINK1_PID:-} ${SINK2_PID:-} ${GH_PID:-} ${SERVER_PID:-}; do
+  for pid in ${INGRESS_PID:-} ${WORKER_PID:-} ${SINK1_PID:-} ${SINK2_PID:-} ${GH_PID:-} ${OTLP_PID:-} ${SERVER_PID:-}; do
     kill "$pid" 2>/dev/null
   done
   sleep 1
@@ -107,7 +117,28 @@ echo "  $("$TEMPORAL_BIN" --version | head -1)"
 
 step "fixture: a local repo standing in for github.com/acme/roster"
 seed="$ROOT/seed"; mkdir -p "$seed/prompts"
-for a in clock pm okr badkey; do printf '# %s\n\nYou are %s. One run: open a draft PR.\n' "$a" "$a" > "$seed/prompts/$a.md"; done
+for a in clock pm okr badkey graphs; do printf '# %s\n\nYou are %s. One run: open a draft PR.\n' "$a" "$a" > "$seed/prompts/$a.md"; done
+# The same repository also holds a LangGraph app, because one of the seats in
+# this roster is one (owner priority 3, ADR-17). Which fixture stands in for it
+# depends on whether this machine has the framework: `langgraph-real` is two
+# nodes of real LangGraph, `langgraph-stub` is a graph-shaped object that needs
+# nothing installed. Both declare a graph named "seat", so the manifest below is
+# the same either way.
+LG_PYTHON="${EPITO_PYTHON:-}"
+if [ -n "$LG_PYTHON" ] && ! "$LG_PYTHON" -c 'import langgraph' >/dev/null 2>&1; then LG_PYTHON=""; fi
+if [ -z "$LG_PYTHON" ]; then
+  if python3 -c 'import langgraph' >/dev/null 2>&1; then LG_PYTHON=python3
+  elif [ -x /tmp/lgvenv/bin/python ] && /tmp/lgvenv/bin/python -c 'import langgraph' >/dev/null 2>&1; then LG_PYTHON=/tmp/lgvenv/bin/python
+  fi
+fi
+if [ -n "$LG_PYTHON" ]; then
+  cp -r "$CLI/test/fixtures/langgraph-real/." "$seed/"
+  LG_KIND="the real framework ($("$LG_PYTHON" -c 'from importlib.metadata import version; print("langgraph", version("langgraph"))'))"
+else
+  cp -r "$CLI/test/fixtures/langgraph-stub/." "$seed/"
+  LG_PYTHON=python3
+  LG_KIND="a graph-shaped object — langgraph is not installed, so this proves the CONTRACT and not the framework (see test/smoke-langgraph.sh)"
+fi
 # ghost's manifest points at prompts/ghost.md, which this repo does not have:
 # the runtime must refuse that run rather than improvise a prompt.
 git -c init.defaultBranch=main init -q "$seed"
@@ -138,18 +169,47 @@ write_manifest() { # name cron slack_env
     fi
   } > "$ROSTER/$1/agent.toml"
 }
+# The langgraph seat is written by hand: it is the one manifest in this roster
+# that is not a claude agent, and the two fields that make it one are the point.
+write_langgraph_manifest() {
+  mkdir -p "$ROSTER/graphs"
+  cat > "$ROSTER/graphs/agent.toml" <<'TOML'
+[agent]
+name = "graphs"
+description = "Smoke-test seat: a LangGraph app, hosted unmodified through its own langgraph.json."
+
+[identity]
+scopes = ["github:contents", "github:pull_requests"]
+
+[trigger]
+webhook = true
+
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/graphs.md"
+repo = "acme/roster"
+adapter = "langgraph"
+graph = "seat"
+max_turns = 25
+env = ["EPITO_STUB_DIR", "EPITO_STUB_ECHO_TOKEN", "GH_TOKEN"]
+TOML
+}
+
 write_manifest clock "* * * * *" "SLACK_WEBHOOK_URL"
 write_manifest pm    ""          "SLACK_WEBHOOK_URL"
 write_manifest okr   ""          "SLACK_WEBHOOK_URL_EPITOME"   # per-agent routing: its own channel
 write_manifest ghost ""          ""
 write_manifest badkey ""         ""
+write_langgraph_manifest
 echo "  clock (cron * * * * *), pm (its own GitHub App), okr (own webhook), ghost (no charter), badkey (an App it cannot sign with)"
+echo "  graphs (adapter = \"langgraph\", its own App too) — standing in for it: $LG_KIND"
 
 step "every manifest still passes \`epito validate\` — spec v0.1 stays compatible"
-for a in clock pm okr ghost badkey; do
+for a in clock pm okr ghost badkey graphs; do
   out=$(cd "$ROSTER/$a" && node "$CLI/src/index.js" validate 2>&1); rc=$?
   check "validate $a: $out" "[ $rc = 0 ]"
 done
+check "and validate names an adapter that is not the default, so a reader knows" "(cd '$ROSTER/graphs' && node '$CLI/src/index.js' validate) | grep -q 'a langgraph agent'"
 
 step "identity fixture: one throwaway RSA App for pm, and a stand-in api.github.com"
 # Generated here and thrown away with $ROOT: nothing personal ever enters a
@@ -168,9 +228,14 @@ check "the stand-in GitHub API is up" "grep -q 'github-stub on $GH_PORT (ok)' '$
 echo "  pm: App 1234, key $ROOT/pm-app.pem (2048-bit, thrown away with this run)"
 echo "  badkey: App 99, and a key that is not a PEM — the refusal path"
 
-step "start: two slack sinks, the worker, then the reconciler + ingress"
+step "start: two slack sinks, a trace backend, the worker, then the reconciler + ingress"
 node "$CLI/test/slack-sink.mjs" "$SLACK_HQ_PORT" "$SLACK_HQ" > "$ROOT/sink1.log" 2>&1 & SINK1_PID=$!
 node "$CLI/test/slack-sink.mjs" "$SLACK_PRODUCT_PORT" "$SLACK_PRODUCT" > "$ROOT/sink2.log" 2>&1 & SINK2_PID=$!
+# Phoenix, Jaeger and Tempo all take OTLP over HTTP; this takes the same thing
+# and writes one line per span, so the test asserts against the protocol rather
+# than against a product (ADR-18).
+node "$CLI/test/otlp-sink.mjs" "$OTLP_PORT" "$SPANS" > "$ROOT/otlp.log" 2>&1 & OTLP_PID=$!
+for _ in $(seq 1 60); do grep -q 'otlp sink on' "$ROOT/otlp.log" && break; sleep 0.2; done
 cd "$STATE"
 export TEMPORAL_ADDRESS="127.0.0.1:$GRPC_PORT" TEMPORAL_NAMESPACE="$NS" \
        EPITO_HOOK_SECRET="$SECRET" EPITO_PORT="$PORT" EPITO_STUB_DIR="$STUB" \
@@ -179,6 +244,9 @@ export TEMPORAL_ADDRESS="127.0.0.1:$GRPC_PORT" TEMPORAL_NAMESPACE="$NS" \
        EPITO_GITHUB_API="http://127.0.0.1:$GH_PORT" \
        EPITO_APP_ID_PM=1234 EPITO_APP_KEY_PM="$(cat "$ROOT/pm-app.pem")" \
        EPITO_APP_ID_BADKEY=99 EPITO_APP_KEY_BADKEY="this is not a pem, and no amount of retrying will make it one" \
+       EPITO_APP_ID_GRAPHS=4321 EPITO_APP_KEY_GRAPHS="$(cat "$ROOT/pm-app.pem")" \
+       EPITO_PYTHON="$LG_PYTHON" \
+       OTEL_EXPORTER_OTLP_ENDPOINT="http://127.0.0.1:$OTLP_PORT" \
        SLACK_WEBHOOK_URL="http://127.0.0.1:$SLACK_HQ_PORT/hook" \
        SLACK_WEBHOOK_URL_EPITOME="http://127.0.0.1:$SLACK_PRODUCT_PORT/hook"
 node "$CLI/src/index.js" worker > "$ROOT/worker.log" 2>&1 & WORKER_PID=$!
@@ -192,7 +260,7 @@ sed 's/^/  /' "$ROOT/ingress.log"
 
 step "1: reconcile registered ONE schedule — the three presence-only seats got none"
 check "one schedule created, nothing else" "grep -q 'reconciled: 1 created, 0 updated, 0 deleted, 0 unchanged' '$ROOT/ingress.log'"
-check "the presence-only seats are named as such" "grep -qF 'presence-only (no [trigger].cron, so no schedule): badkey, ghost, okr, pm' '$ROOT/ingress.log'"
+check "the presence-only seats are named as such" "grep -qF 'presence-only (no [trigger].cron, so no schedule): badkey, ghost, graphs, okr, pm' '$ROOT/ingress.log'"
 check "the schedule is seat:clock, in UTC, with its model and repo" "grep -qF '+ seat:clock  * * * * * UTC  claude-sonnet-5  acme/roster' '$ROOT/ingress.log'"
 check "temporal itself lists it" "'$TEMPORAL_BIN' schedule list --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -q seat:clock"
 audit "the audit log records the registration" '{"agent":"clock","action":"schedule.create","schedule":"seat:clock"}'
@@ -462,6 +530,63 @@ code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/board")
 check "and it is not open to the world: no secret -> 401" "[ '$code' = 401 ]"
 code=$(curl -s -o "$ROOT/body.json" -w '%{http_code}' -X PUT -H "x-epito-secret: $SECRET" "http://127.0.0.1:$PORT/board")
 check "a wrong method says which methods /board takes" "[ '$code' = 405 ] && grep -q 'POST and GET only' '$ROOT/body.json'"
+
+step "6: A SEAT THAT IS NOT A CLAUDE SESSION — a LangGraph app, hosted unmodified"
+# Owner priority 3. graphs is a langgraph seat: same ingress, same mint, same
+# board, same audit log, and a completely different agent inside (ADR-17).
+code=$(post /hooks/graphs '{"event":"smoke","payload":{"why":"the langgraph adapter"}}'); echo "  $code $(body)"
+node "$CLI/test/wait-for.mjs" runs graphs 1 120000 || { echo "the langgraph seat never ran"; tail -30 "$ROOT/worker.log"; }
+sed 's/^/  /' .epito/logs/graphs/*.log
+audit "it ran, and the audit line names the adapter that ran it" '{"agent":"graphs","action":"run.end","adapter":"langgraph","exit":0}'
+audit "the graph's steps came back as the run's turns" '{"agent":"graphs","action":"run.end","turns":2}'
+check "the runtime spawned python with the shim, not claude with its flags" "grep -qE 'adapter=langgraph command=.*python' .epito/logs/graphs/*.log"
+check "the charter reached the graph, read from inside the clone" "grep -qE 'charter.prompts/graphs.md' .epito/logs/graphs/*.log"
+check "and the hook's payload reached it as data" "grep -q 'the langgraph adapter' .epito/logs/graphs/*.log"
+# ADR-17 consequence 3: identity is the agent's App, not its framework.
+audit "a langgraph seat mints its own identity, through the same code" '{"agent":"graphs","action":"mint","provider":"github-app","installation":"4242"}'
+check "its own token reached the graph, and the log kept none of it" "grep -q 'GH_TOKEN=\[redacted' .epito/logs/graphs/*.log && ! grep -qF '$STUB_TOKEN' .epito/logs/graphs/*.log"
+check "its commits are the bot's, exactly as a claude seat's are" "grep -qE 'commits authored as epito-seat-4321\[bot\] <99001\+epito-seat-4321\[bot\]@users.noreply.github.com>' .epito/logs/graphs/*.log"
+check "it is on the board like any other seat" "board | node -e '
+const b=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));
+const e=b.recent.find(x=>x.agent===\"graphs\");
+console.log(\"   \", e.agent, e.trigger, e.outcome, e.turns+\" turns\", e.pr||\"-\");
+process.exit(e && e.outcome===\"ok\" && e.turns===2 ? 0 : 1)'"
+check "and the clone it ran in is gone" "[ \$(ls -d \${TMPDIR:-/tmp}/epito-graphs-* 2>/dev/null | wc -l) = 0 ]"
+
+step "6 (presence, honestly): a window over a seat whose agent holds no session"
+code=$(post /window/open '{"scope":"graphs","text":"Anything to report?"}'); echo "  $code $(body)"
+node "$CLI/test/wait-for.mjs" runs graphs 2 120000
+none "no session is held for it: the langgraph adapter has none to hold" '{"agent":"graphs","action":"session.hold"}'
+code=$(post /message/graphs '{"text":"And now?"}'); echo "  $code $(body)"
+node "$CLI/test/wait-for.mjs" runs graphs 3 120000
+audit "a message to it still runs the seat — three runs, none of them resumed" '{"agent":"graphs","action":"run.end"}' 3
+none "and nothing pretended to resume a conversation" '{"agent":"graphs","action":"run.end","resume":"*"}'
+code=$(post /window/close '{"scope":"graphs"}'); echo "  $code $(body)"
+node "$CLI/test/wait-for.mjs" closed graphs 60000
+check "the window closed and took the clone with it" "[ \$(ls -d \${TMPDIR:-/tmp}/epito-graphs-* 2>/dev/null | wc -l) = 0 ]"
+
+step "7: A RUN IS ONE TRACE — run -> clone / mint / execute -> the agent's own steps"
+check "the worker says on its first lines where its spans go" "grep -q 'epito worker: traces -> http://127.0.0.1:$OTLP_PORT/v1/traces' '$ROOT/worker.log'"
+# The tree is the evidence, so it is printed once and then asserted on.
+tree() { node "$CLI/test/trace-shape.mjs" "$SPANS" "$@" > "$ROOT/trace.txt" 2> "$ROOT/trace.err"; rc=$?; sed 's/^/  /' "$ROOT/trace.txt"; [ $rc = 0 ] || sed 's/^/       /' "$ROOT/trace.err"; return $rc; }
+check "the scheduled run is a trace: a root, its clone, its execute" "tree clock"
+check "a seat with an App also files its two mints, with installation and expiry" "tree pm --minted"
+check "and the agent's OWN steps are inside the run's trace, not beside it" "tree graphs --minted --agent-spans 3"
+check "a refusal is an ERROR span carrying the sentence, not a silent gap" "node -e '
+const fs=require(\"fs\");
+const spans=fs.readFileSync(\"$SPANS\",\"utf8\").trim().split(\"\\n\").map(JSON.parse);
+const bad=spans.filter(s=>s.status===2);
+const mint=bad.find(s=>/not a readable PEM/.test(s.message||\"\"));
+const charter=bad.find(s=>/does not exist in acme\/roster/.test(s.message||\"\"));
+console.log(\"   \", bad.length, \"error spans;\", (mint?\"badkey mint\":\"\"), (charter?\"+ ghost charter\":\"\"));
+process.exit(mint && charter ? 0 : 1)'"
+check "no span anywhere carries a credential" "! grep -qF '$STUB_TOKEN' '$SPANS' && ! grep -qF '$SHARED_TOKEN' '$SPANS'"
+check "every span in the file belongs to a run of this company's seats" "node -e '
+const fs=require(\"fs\");
+const spans=fs.readFileSync(\"$SPANS\",\"utf8\").trim().split(\"\\n\").map(JSON.parse);
+const services=[...new Set(spans.map(s=>s.service))].sort();
+console.log(\"   \", spans.length, \"spans from\", services.join(\", \"));
+process.exit(services.every(x=>[\"epito\",\"clock\",\"pm\",\"okr\",\"ghost\",\"badkey\",\"graphs\"].includes(x))?0:1)'"
 
 step "board (the file behind it)"
 sed 's/^/  /' .epito/board.jsonl

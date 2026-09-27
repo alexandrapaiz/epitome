@@ -22,7 +22,12 @@ class State(TypedDict):
 def read_charter(state: State) -> dict:
     charter = os.environ.get("EPITO_CHARTER", "(none)")
     body = open(charter, encoding="utf-8").read().strip().splitlines()[0] if os.path.exists(charter) else "(missing)"
-    return {"messages": [{"role": "assistant", "content": f"charter {charter}: {body}"}]}
+    prompt = getattr(state["messages"][0], "content", "")
+    # What the run was woken with, as the graph received it: a real seat would
+    # act on this, and a test needs to be able to read that it arrived.
+    tail = prompt.split("Event payload for this run")[-1].strip().replace("\n", " ")[:120] if "Event payload" in prompt else "(no payload)"
+    return {"messages": [{"role": "assistant", "content":
+        f"charter {charter}: {body} | prompt {len(prompt)} chars | payload: {tail}"}]}
 
 
 def open_pr(state: State) -> dict:

@@ -694,7 +694,7 @@ test("a langgraph seat runs: the graph's steps are its turns, and its PR is read
     const logged = readFileSync(r.log, "utf8");
     assert.match(logged, /adapter=langgraph command=python3/);
     assert.match(logged, /· read_charter: charter=prompts\/seat\.md trigger=cron/, "the run's facts reached the graph");
-    assert.match(logged, /token=\[redacted: this run's token\]/, "its own credential reached it, and not the log");
+    assert.match(logged, /GH_TOKEN=\[redacted: this run's token\]/, "its own credential reached it, and not the log");
   } finally {
     process.chdir(cwd);
     delete process.env.EPITO_STUB_ECHO_TOKEN;

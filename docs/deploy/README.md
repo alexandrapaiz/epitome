@@ -38,7 +38,11 @@ a second copy of what is running is a second copy that can be wrong.
 | `EPITO_WINDOW_MS` | `14400000` | how long a work window stays open (4h) |
 | `EPITO_RUN_TIMEOUT_MS` | `3600000` | per-run cap: the `execute` activity's timeout and the workflow's run timeout |
 | `EPITO_MAX_CONCURRENT_RUNS` | `4` | how many seat runs one worker will hold at once |
-| `EPITO_EXECUTOR` | `claude` | the binary the `execute` activity spawns |
+| `EPITO_EXECUTOR` | `claude` | the binary the `execute` activity spawns **for a claude seat** |
+| `EPITO_PYTHON` | `python3` | the interpreter a **langgraph** seat runs in — the one with that agent's own dependencies installed (a venv path is normal) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | — | where run traces go, e.g. `http://127.0.0.1:6006` for a Phoenix on the box. Unset = no tracing, and no complaint about it |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | — | the full URL instead, when it is not `<base>/v1/traces` |
+| `OTEL_EXPORTER_OTLP_HEADERS` | — | `k=v,k2=v2` auth for a hosted backend. **Never given to a run** — list it in `[runtime].env` if a seat's own agent must export too |
 | `CLAUDE_CODE_OAUTH_TOKEN` / `ANTHROPIC_API_KEY` | — | the executor's auth, only if a manifest lists it |
 | `GH_TOKEN` | — | the roster-wide credential: the worker clones with it, and a seat that has no App of its own pushes and opens PRs with it |
 | `EPITO_APP_ID_<NAME>` | — | one agent's own GitHub App, so its PRs open as `<name>[bot]` — see below |
@@ -158,6 +162,110 @@ belongs to no account. "No silent fallback" is a rule about acting as the
 wrong *principal*; an unlinked commit is still the agent, only less legibly,
 and losing a whole run over an avatar is the wrong trade. The audit line
 records `commit: null` in that case rather than a guess.
+
+## A seat that is not a Claude session
+
+`[runtime].adapter` says which kind of agent a seat is (ADR-17, spec v0.1
+in-band). Two exist:
+
+| adapter | what the runtime spawns | holds a session |
+|---|---|---|
+| `claude` (default) | `claude -p <prompt> --permission-mode bypassPermissions --model … --output-format json` | yes — windows and `POST /message` continue a conversation |
+| `langgraph` | `$EPITO_PYTHON cli/adapters/langgraph_run.py`, in the clone | no — a follow-up message runs the seat again with the message as its prompt |
+
+A langgraph seat's manifest is an ordinary manifest with two more fields:
+
+```toml
+[runtime]
+model = "claude-sonnet-5"        # still required: what the agent's own nodes call
+entry = "prompts/researcher.md"  # still the charter, and the graph is handed its path
+repo = "acme/researcher"
+adapter = "langgraph"
+graph = "agent"                  # which graph in the app's own langgraph.json
+env = ["OPENAI_API_KEY"]         # whatever the agent's own code reads, by NAME
+```
+
+**Nothing is added to the agent's repository.** epito reads the
+`langgraph.json` LangGraph authors already write — `{"graphs": {"agent":
+"./src/agent.py:graph"}}` — imports the object it names (a compiled graph, a
+`StateGraph`, or a factory returning either), and streams it once. What the
+graph receives:
+
+| variable | what it is |
+|---|---|
+| `EPITO_PROMPT` | the run's prompt, handed to the graph as `{"messages": [{"role": "user", "content": …}]}` |
+| `EPITO_AGENT` / `EPITO_RUN_ID` / `EPITO_TRIGGER` | the seat, the run, and how it was woken |
+| `EPITO_CHARTER` | `[runtime].entry`, a path inside the clone the graph may read |
+| `EPITO_MODEL` / `EPITO_MAX_TURNS` | the manifest's model, and the graph's recursion limit |
+| `GH_TOKEN` / `GITHUB_TOKEN` | the credential **minted for this run**, if the seat has an App — so a graph's own tool calls act as `<name>[bot]` with no epito import |
+| `TRACEPARENT` / `OTEL_*` | the run's trace, so the graph's steps appear inside it |
+
+What the shim prints back is the result contract every adapter speaks — one
+JSON object, `{"session_id", "num_turns", "result", "detail"}` — and its exit
+code says who failed: **0** ran, **2** the adapter refused before the graph
+started (no `langgraph.json`, an ambiguous `[runtime].graph`, an import that
+raised), **3** the graph itself raised. Both non-zero cases put the sentence
+explaining them on the board, not only in the log.
+
+The interpreter is the box's business, not the manifest's. Install the agent's
+own dependencies wherever you like and point `EPITO_PYTHON` at it:
+
+```sh
+python3 -m venv /srv/asc/venvs/researcher
+/srv/asc/venvs/researcher/bin/pip install -e /srv/asc/agents/researcher   # the agent's own deps
+# in the EnvironmentFile:
+EPITO_PYTHON=/srv/asc/venvs/researcher/bin/python
+```
+
+One caveat worth knowing before you migrate a seat: `EPITO_PYTHON` is
+per-worker, not per-seat, so two langgraph seats with incompatible dependency
+sets need two workers today (`EPITO_TASK_QUEUE` differs, and each manifest's
+schedule targets the queue its worker polls). One interpreter per box is
+enough until it isn't.
+
+## Seeing inside a run
+
+Set `OTEL_EXPORTER_OTLP_ENDPOINT` and every run files a trace (ADR-18). One
+trace per run, and its shape is the run:
+
+```
+run <agent>                      the whole run: trigger, model, adapter, outcome, PR
+├ clone                          the repository, at the ref
+│ └ mint                         installation, permissions, expiry — never the token
+└ execute                        the agent itself: adapter, turns, PR, session held
+  ├ mint                         the run's own credential (law 7: two mints, one per activity)
+  └ …                            whatever the AGENT emits: for a langgraph seat, its
+                                 graph and one span per node
+```
+
+Phoenix takes OTLP on `http://127.0.0.1:6006` by default, so on the company
+host that is the whole configuration:
+
+```sh
+# in the EnvironmentFile both units read
+OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:6006
+```
+
+`epito worker` says on its first lines where its spans go, or that they go
+nowhere, so "is this box traced" is a thing to read rather than infer:
+
+```
+epito worker: traces -> http://127.0.0.1:6006/v1/traces
+epito worker: traces off (set OTEL_EXPORTER_OTLP_ENDPOINT to see inside a run)
+```
+
+Three properties worth knowing:
+
+- **Tracing can never fail a run.** A refused endpoint is one log line. The run
+  is recorded in `.epito/audit.jsonl` and on the board either way.
+- **A span never carries a credential.** Whole payloads go through the same
+  scrubber the run logs use, because a trace backend is a store you cannot
+  delete from later.
+- **An agent's spans are the agent's.** epito hands the child `TRACEPARENT` and
+  the endpoint and nothing else; anything already instrumented (openinference,
+  LangSmith's OTel exporter) nests under `execute` with no epito import. It is
+  NOT handed `OTEL_EXPORTER_OTLP_HEADERS`: on every hosted backend that value is
+  an api key, and a run sees only the secrets its manifest names.
 
 ## The ingress
 
@@ -375,12 +483,26 @@ docker exec epitod epito ps
 cd cli
 node --test test/unit.mjs              # the reconcile diff and the validator, no server
 bash test/smoke-temporal.sh            # the whole runtime against a local dev server
+bash test/smoke-langgraph.sh           # the langgraph adapter, against the real framework
 ```
 
-The smoke test spends no tokens and touches no network: the executor is a stub,
-`github.com` is rewritten to a local bare repo, and Slack is two local sinks.
-It proves a schedule fires a run on its own clock, a window holds a session and
-a message resumes it in the same clone, `epito ps` reads Temporal, a run mints
-its own identity, and every run lands on the board. Without
-the `temporal` CLI installed it exits 0 after saying so — that is an unrun
-test, not a passing one.
+The smoke tests spend no tokens and touch no network: the executor is a stub,
+`github.com` is rewritten to a local bare repo, Slack is two local sinks, and
+the trace backend is `test/otlp-sink.mjs`. `smoke-temporal.sh` proves a schedule
+fires a run on its own clock, a window holds a session and a message resumes it
+in the same clone, `epito ps` reads Temporal, a run mints its own identity,
+every run lands on the board, a LangGraph seat runs beside the claude ones, and
+each run files one trace. Without the `temporal` CLI installed it exits 0 after
+saying so — that is an unrun test, not a passing one.
+
+`smoke-langgraph.sh` is the adapter on its own, including every refusal it can
+produce. It runs against real LangGraph when the interpreter has it:
+
+```sh
+python3 -m venv /tmp/lgvenv && /tmp/lgvenv/bin/pip install langgraph
+EPITO_PYTHON=/tmp/lgvenv/bin/python bash test/smoke-langgraph.sh
+```
+
+Without it, the framework half skips loudly and the duck-typed half still runs
+— the adapter imports nothing from the agent's language, so most of it can be
+proved with no framework installed at all.
