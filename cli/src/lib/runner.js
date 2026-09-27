@@ -7,11 +7,12 @@
 //
 //   cloneAgentRepo:  git clone --depth 1 of [runtime].repo into a fresh temp
 //                    dir, then assert [runtime].entry exists inside it
-//   executeAgent:    spawn `claude -p <prompt> --permission-mode
-//                    bypassPermissions --model <model> --max-turns <n>
-//                    --output-format json` with cwd = the clone, capture
-//                    stdout+stderr to .epito/logs/<agent>/<runId>.log, and
-//                    kill the whole process group on timeout or cancellation
+//   executeAgent:    spawn the command this seat's ADAPTER asks for (ADR-17:
+//                    `claude -p <prompt> …` for the default, a Python shim
+//                    over the author's langgraph.json for `langgraph`) with
+//                    cwd = the clone, capture stdout+stderr to
+//                    .epito/logs/<agent>/<runId>.log, and kill the whole
+//                    process group on timeout or cancellation
 //
 // The env the child sees is ONLY: PATH, HOME and USER (the claude CLI keeps
 // its config under HOME and, on macOS, reads its OAuth token from the login
@@ -38,6 +39,9 @@ import { mkdtempSync, mkdirSync, rmSync, existsSync, openSync, closeSync, writeS
 import { tmpdir } from "node:os";
 import { join, resolve, sep } from "node:path";
 import { EPITO_DIR } from "./audit.js";
+import { redactor } from "./redact.js";
+import { adapterFor } from "./adapters.js";
+import { childTraceEnv, traceNote } from "./trace.js";
 
 const PR_URL_RE = /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/\d+/g;
 
@@ -82,22 +86,9 @@ function sh(cmd, args, opts = {}) {
   });
 }
 
-// epito prints no token, but these logs capture everything a subprocess
-// prints, and `git` and `gh` both have error paths that echo the credential
-// they were handed. Every secret given here is replaced on its way to the
-// file. Honest limit: a secret split across two read boundaries slips
-// through, so this is the second line of defence, not the first. The
-// 8-character floor keeps an empty or absurd entry from redacting a log into
-// confetti.
-export function redactor(secrets = []) {
-  const real = secrets.filter((x) => typeof x === "string" && x.length >= 8);
-  if (real.length === 0) return String;
-  return (s) => {
-    let out = String(s);
-    for (const secret of real) out = out.split(secret).join("[redacted: this run's token]");
-    return out;
-  };
-}
+// Secret-scrubbing lives in redact.js now (trace.js needs it too) and is
+// re-exported here because this is where every caller learned to find it.
+export { redactor } from "./redact.js";
 
 // The name the inline credential helper reads the run's token out of.
 export const GIT_TOKEN_ENV = "EPITO_GIT_TOKEN";
@@ -223,10 +214,15 @@ export async function cloneAgentRepo({ agent, runId, token = null, log = console
 // `exit` is the child's exit code, or a string naming the failure stage
 // ("timeout", "spawn", "cancelled", "workdir-gone").
 export async function executeAgent({ agent, trigger, runId, workDir, hookBody, text, instruction, resume = null,
-                                     executor = "claude", timeoutMs, log = console.log, onSpawn, onOutput,
+                                     executor = null, timeoutMs, log = console.log, onSpawn, onOutput,
                                      inject = null, redact = [], commitIdentity = null }) {
   const { name } = agent.agent;
   const rt = agent.runtime;
+  // Which kind of agent this seat is (ADR-17). `executor` is no longer the
+  // command: it is an override the claude adapter honours, because that is
+  // what EPITO_EXECUTOR has always meant and every smoke test sets it.
+  const adapter = adapterFor(agent);
+  const binary = adapter.binary(process.env, executor);
   const started = Date.now();
   const date = new Date().toISOString().slice(0, 10);
   const logPath = runLogPath(name, runId);
@@ -236,10 +232,11 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   const write = (s) => { if (fd !== null) writeSync(fd, scrub(s)); };
   const finish = (exit, extra = {}) => {
     if (fd !== null) closeSync(fd);
-    return { exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null, ...extra };
+    return { exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null, adapter: adapter.name, ...extra };
   };
 
-  write(`# epito run ${name} ${runId}\n# trigger=${trigger} model=${rt.model} repo=${rt.repo} ref=${rt.ref ?? "(default)"} executor=${executor}${resume ? ` resume=${resume}` : ""} workdir=${workDir}\n`);
+  write(`# epito run ${name} ${runId}\n# trigger=${trigger} model=${rt.model} repo=${rt.repo} ref=${rt.ref ?? "(default)"} adapter=${adapter.name} command=${binary}${resume ? ` resume=${resume}` : ""} workdir=${workDir}\n`);
+  write(`${traceNote({ runId })}\n`);
 
   if (!existsSync(workDir)) {
     write(`work directory ${workDir} is gone\n`);
@@ -247,13 +244,30 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     return finish("workdir-gone");
   }
 
+  // Presence is a capability of the agent, not of the runtime (ADR-17,
+  // consequence 2). An adapter that holds no session is told so here, once,
+  // in words: the follow-up still runs, as a fresh run whose prompt is the
+  // message, which is the honest degradation and not a silent one.
+  if (resume && !adapter.resumes) {
+    write(`# session: the ${adapter.name} adapter holds none, so this follow-up starts a fresh run with the message as its prompt\n`);
+    log(`${name}: the ${adapter.name} adapter holds no session, so this message starts a fresh run rather than continuing one`);
+    resume = null;
+  }
+
   // A resumed run continues a conversation: the message is the whole prompt.
-  // A fresh run is introduced by the charter preamble.
+  // A fresh run is introduced by the charter preamble. One prompt reaches
+  // every adapter: a charter is the agent's contract with its company and
+  // cannot depend on which framework is reading it.
   const prompt = resume ? text : buildPrompt({ name, entry: rt.entry, trigger, date, hookBody: hookBody ?? text, instruction });
-  const args = ["-p", prompt, "--permission-mode", "bypassPermissions", "--model", rt.model, "--max-turns", String(rt.max_turns ?? 100), "--output-format", "json"];
-  if (resume) args.push("--resume", resume);
+  const { file, args, env: adapterEnv = {} } = adapter.command({ manifest: agent, name, runId, trigger, prompt, resume, binary });
   const env = { PATH: process.env.PATH, HOME: process.env.HOME, USER: process.env.USER };
   for (const k of rt.env ?? []) if (process.env[k] !== undefined) env[k] = process.env[k];
+  // The adapter's own variables: this run's facts, none of them secret.
+  Object.assign(env, adapterEnv);
+  // The trace the agent's own spans belong to (ADR-18). Empty when nothing on
+  // this runtime is listening, and never carrying the export headers, which
+  // are the worker's secret and not this run's.
+  Object.assign(env, childTraceEnv({ runId, agent: name, trigger }));
   // The agent's own credential, minted for this one run by the caller, goes in
   // LAST and on purpose: it outranks a shared GH_TOKEN inherited through
   // [runtime].env. An agent that has an identity acts as itself, and the log
@@ -277,11 +291,11 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   write(`# commits authored as ${commit.name} <${commit.email}>${commitIdentity
     ? " — the App's own bot user, so GitHub links every commit in the PR to the agent"
     : " — epito's convention; this agent has no App, so the address links to no account"}\n`);
-  write(`$ ${executor} ${args.map((a) => (a.includes("\n") ? "<prompt>" : a)).join(" ")}\n# env passed: ${Object.keys(env).join(", ")}\n---\n`);
+  write(`$ ${file} ${args.map((a) => (a.includes("\n") ? "<prompt>" : a)).join(" ")}\n# env passed: ${Object.keys(env).join(", ")}\n---\n`);
 
   return new Promise((res) => {
     let child;
-    try { child = spawn(executor, args, { cwd: workDir, env, stdio: ["ignore", "pipe", "pipe"], detached: true }); }
+    try { child = spawn(file, args, { cwd: workDir, env, stdio: ["ignore", "pipe", "pipe"], detached: true }); }
     catch (e) { write(`spawn failed: ${e.message}\n`); return res(finish("spawn")); }
     onSpawn?.(child);
     let tail = "";
@@ -301,7 +315,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
       const pr = prs ? prs[prs.length - 1] : null;
       const { sessionId, turns } = parseExecutorResult(tail);
       write(`\n---\n# exit=${timedOut ? "timeout" : code ?? signal} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}\n`);
-      res(finish(timedOut ? "timeout" : (code ?? signal), { pr, sessionId, turns }));
+      res(finish(timedOut ? "timeout" : (code ?? signal), { pr, sessionId, turns, adapter: adapter.name }));
     });
   });
 }

@@ -6,6 +6,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { parse } from "smol-toml";
+import { ADAPTERS, DEFAULT_ADAPTER, unknownAdapter } from "./adapters.js";
 
 export const NAME_RE = /^[a-z0-9-]{1,40}$/;
 
@@ -58,6 +59,23 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
     }
     if (r.ref !== undefined && (typeof r.ref !== "string" || !/^[A-Za-z0-9_./-]{1,200}$/.test(r.ref) || r.ref.startsWith("-"))) {
       errors.push(`[runtime].ref "${r.ref}" must be a branch or tag name — the ref the runtime checks out; leave it unset for the default branch`);
+    }
+    // Which kind of agent this is (ADR-17). Absent means "claude", which is
+    // what every manifest written before adapters existed means, so nothing
+    // in any roster changes by this field arriving.
+    if (r.adapter !== undefined && !(typeof r.adapter === "string" && ADAPTERS[r.adapter])) {
+      errors.push(unknownAdapter(r.adapter));
+    }
+    // A langgraph app may declare several graphs in its langgraph.json; this
+    // names the one this seat runs. It means nothing to any other adapter, and
+    // a field that quietly means nothing is how a manifest lies to its author.
+    if (r.graph !== undefined) {
+      const adapter = r.adapter ?? DEFAULT_ADAPTER;
+      if (typeof r.graph !== "string" || !/^[A-Za-z0-9_.-]{1,80}$/.test(r.graph)) {
+        errors.push(`[runtime].graph "${r.graph}" must be the NAME of a graph in the agent's langgraph.json (letters, digits, dot, dash, underscore)`);
+      } else if (adapter !== "langgraph") {
+        errors.push(`[runtime].graph names a graph, which only the langgraph adapter reads, and this manifest's adapter is "${adapter}". Fix: set [runtime].adapter = "langgraph", or drop [runtime].graph.`);
+      }
     }
     if (r.max_turns !== undefined && !(Number.isInteger(r.max_turns) && r.max_turns > 0)) {
       errors.push(`[runtime].max_turns must be a positive integer, got "${r.max_turns}"`);
