@@ -252,7 +252,13 @@ export async function execute({ name, manifest, runId, workDir, trigger, payload
   // engine and spread into an audit line by the workflow, and the one field
   // that must never travel is one property name away. Naming the safe half
   // explicitly is cheaper than trusting every future caller to remember.
-  return minted ? { ...result, identity: minted.meta } : result;
+  //
+  // `attempts` stays here too, for a smaller reason: every road this run tried
+  // is already one audit line and one span each, filed above. Carrying the
+  // array on as well would put the same facts a third time into the engine's
+  // database and a fourth into the run.end line an owner reads.
+  const { attempts, ...run } = result;
+  return minted ? { ...run, identity: minted.meta } : run;
 }
 
 // --- record ---------------------------------------------------------------

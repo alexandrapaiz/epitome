@@ -72,6 +72,13 @@ SLACK_PRODUCT_PORT="${EPITO_TEST_SLACK2_PORT:-47473}"
 GRPC_PORT="${EPITO_TEST_TEMPORAL_PORT:-47811}"
 GH_PORT="${EPITO_TEST_GITHUB_PORT:-47474}"
 OTLP_PORT="${EPITO_TEST_OTLP_PORT:-47476}"
+# Two endpoints that stand in for an open provider (ADR-19). Nothing listens on
+# either: the stub executor decides what a route does by reading the endpoint it
+# was pointed at, which is how one process can be a provider that refuses and a
+# provider that works.
+OPEN_REFUSES="http://127.0.0.1:47477/anthropic"
+OPEN_WORKS="http://127.0.0.1:47478/anthropic"
+OPEN_KEY="open-route-key-not-a-real-one"
 NS="epito-smoke"
 SECRET="smoke-secret-not-a-real-one"
 SLACK_HQ="$ROOT/slack-hq.log"; SLACK_PRODUCT="$ROOT/slack-product.log"
@@ -117,7 +124,7 @@ echo "  $("$TEMPORAL_BIN" --version | head -1)"
 
 step "fixture: a local repo standing in for github.com/acme/roster"
 seed="$ROOT/seed"; mkdir -p "$seed/prompts"
-for a in clock pm okr badkey graphs; do printf '# %s\n\nYou are %s. One run: open a draft PR.\n' "$a" "$a" > "$seed/prompts/$a.md"; done
+for a in clock pm okr badkey graphs routed cheap; do printf '# %s\n\nYou are %s. One run: open a draft PR.\n' "$a" "$a" > "$seed/prompts/$a.md"; done
 # The same repository also holds a LangGraph app, because one of the seats in
 # this roster is one (owner priority 3, ADR-17). Which fixture stands in for it
 # depends on whether this machine has the framework: `langgraph-real` is two
@@ -195,17 +202,90 @@ env = ["EPITO_STUB_DIR", "EPITO_STUB_ECHO_TOKEN", "GH_TOKEN"]
 TOML
 }
 
+# The two seats that declare more than one road to a model (ADR-19). Written
+# by hand for the same reason the langgraph one is: the fields that make them
+# what they are is the whole point of the section that reads them.
+write_routed_manifests() {
+  mkdir -p "$ROSTER/routed" "$ROSTER/cheap"
+  cat > "$ROSTER/routed/agent.toml" <<TOML
+[agent]
+name = "routed"
+description = "Smoke-test seat: an open road that refuses, and the subscription behind it."
+
+[identity]
+scopes = ["github:contents", "github:pull_requests"]
+
+[trigger]
+webhook = true
+
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/routed.md"
+repo = "acme/roster"
+max_turns = 5
+env = ["EPITO_STUB_DIR", "EPITO_STUB_ECHO_TOKEN", "GH_TOKEN", "OPEN_ROUTE_KEY", "EPITO_STUB_REFUSE_BASE_URL", "EPITO_STUB_ECHO_ROUTE"]
+
+[[runtime.route]]
+name = "open"
+model = "kimi-k2-turbo-preview"
+base_url = "$OPEN_REFUSES"
+token_env = "OPEN_ROUTE_KEY"
+concurrency = 1
+
+[[runtime.route]]
+name = "subscription"
+model = "claude-sonnet-5"
+TOML
+  cat > "$ROSTER/cheap/agent.toml" <<TOML
+[agent]
+name = "cheap"
+description = "Smoke-test seat: a road whose key this box does not hold, an open road that works, and the floor."
+
+[identity]
+scopes = ["github:contents", "github:pull_requests"]
+
+[trigger]
+webhook = true
+
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/cheap.md"
+repo = "acme/roster"
+max_turns = 5
+env = ["EPITO_STUB_DIR", "EPITO_STUB_ECHO_TOKEN", "GH_TOKEN", "OPEN_ROUTE_KEY", "ABSENT_ROUTE_KEY", "EPITO_STUB_ECHO_ROUTE"]
+
+[[runtime.route]]
+name = "premium"
+model = "a-model-this-box-cannot-reach"
+base_url = "https://api.example.invalid/anthropic"
+token_env = "ABSENT_ROUTE_KEY"
+
+[[runtime.route]]
+name = "open"
+model = "kimi-k2-turbo-preview"
+base_url = "$OPEN_WORKS"
+token_env = "OPEN_ROUTE_KEY"
+concurrency = 1
+
+[[runtime.route]]
+name = "subscription"
+model = "claude-sonnet-5"
+TOML
+}
+
 write_manifest clock "* * * * *" "SLACK_WEBHOOK_URL"
 write_manifest pm    ""          "SLACK_WEBHOOK_URL"
 write_manifest okr   ""          "SLACK_WEBHOOK_URL_EPITOME"   # per-agent routing: its own channel
 write_manifest ghost ""          ""
 write_manifest badkey ""         ""
 write_langgraph_manifest
+write_routed_manifests
 echo "  clock (cron * * * * *), pm (its own GitHub App), okr (own webhook), ghost (no charter), badkey (an App it cannot sign with)"
 echo "  graphs (adapter = \"langgraph\", its own App too) — standing in for it: $LG_KIND"
+echo "  routed (open road refuses -> subscription), cheap (a closed road, then an open one that works)"
 
 step "every manifest still passes \`epito validate\` — spec v0.1 stays compatible"
-for a in clock pm okr ghost badkey graphs; do
+for a in clock pm okr ghost badkey graphs routed cheap; do
   out=$(cd "$ROSTER/$a" && node "$CLI/src/index.js" validate 2>&1); rc=$?
   check "validate $a: $out" "[ $rc = 0 ]"
 done
@@ -246,6 +326,7 @@ export TEMPORAL_ADDRESS="127.0.0.1:$GRPC_PORT" TEMPORAL_NAMESPACE="$NS" \
        EPITO_APP_ID_BADKEY=99 EPITO_APP_KEY_BADKEY="this is not a pem, and no amount of retrying will make it one" \
        EPITO_APP_ID_GRAPHS=4321 EPITO_APP_KEY_GRAPHS="$(cat "$ROOT/pm-app.pem")" \
        EPITO_PYTHON="$LG_PYTHON" \
+       OPEN_ROUTE_KEY="$OPEN_KEY" EPITO_STUB_REFUSE_BASE_URL="$OPEN_REFUSES" EPITO_STUB_ECHO_ROUTE=1 \
        OTEL_EXPORTER_OTLP_ENDPOINT="http://127.0.0.1:$OTLP_PORT" \
        SLACK_WEBHOOK_URL="http://127.0.0.1:$SLACK_HQ_PORT/hook" \
        SLACK_WEBHOOK_URL_EPITOME="http://127.0.0.1:$SLACK_PRODUCT_PORT/hook"
@@ -260,7 +341,7 @@ sed 's/^/  /' "$ROOT/ingress.log"
 
 step "1: reconcile registered ONE schedule — the three presence-only seats got none"
 check "one schedule created, nothing else" "grep -q 'reconciled: 1 created, 0 updated, 0 deleted, 0 unchanged' '$ROOT/ingress.log'"
-check "the presence-only seats are named as such" "grep -qF 'presence-only (no [trigger].cron, so no schedule): badkey, ghost, graphs, okr, pm' '$ROOT/ingress.log'"
+check "the presence-only seats are named as such" "grep -qF 'presence-only (no [trigger].cron, so no schedule): badkey, cheap, ghost, graphs, okr, pm, routed' '$ROOT/ingress.log'"
 check "the schedule is seat:clock, in UTC, with its model and repo" "grep -qF '+ seat:clock  * * * * * UTC  claude-sonnet-5  acme/roster' '$ROOT/ingress.log'"
 check "temporal itself lists it" "'$TEMPORAL_BIN' schedule list --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -q seat:clock"
 audit "the audit log records the registration" '{"agent":"clock","action":"schedule.create","schedule":"seat:clock"}'
@@ -586,7 +667,56 @@ const fs=require(\"fs\");
 const spans=fs.readFileSync(\"$SPANS\",\"utf8\").trim().split(\"\\n\").map(JSON.parse);
 const services=[...new Set(spans.map(s=>s.service))].sort();
 console.log(\"   \", spans.length, \"spans from\", services.join(\", \"));
-process.exit(services.every(x=>[\"epito\",\"clock\",\"pm\",\"okr\",\"ghost\",\"badkey\",\"graphs\"].includes(x))?0:1)'"
+process.exit(services.every(x=>[\"epito\",\"clock\",\"pm\",\"okr\",\"ghost\",\"badkey\",\"graphs\",\"routed\",\"cheap\"].includes(x))?0:1)'"
+
+step "9: THE ROUTER — a seat declares its roads, and the runtime takes the detour"
+# What HQ does by hand in fifteen workflows: try the open provider, fall back
+# to the subscription when it refuses (L-E7). Here the runtime does it, once,
+# and every seat gets it — including the two that are not Claude sessions.
+node "$CLI/src/index.js" routes "$ROSTER" | sed 's/^/  /'
+check "epito routes says which road each seat takes ON THIS MACHINE" "node '$CLI/src/index.js' routes '$ROSTER' | grep -q 'routed (claude) — takes open'"
+check "and names the road that is closed here, and why" "node '$CLI/src/index.js' routes '$ROSTER' | grep -qF 'premium: a-model-this-box-cannot-reach' && node '$CLI/src/index.js' routes '$ROSTER' | grep -q 'closed: ABSENT_ROUTE_KEY is not set'"
+check "a box without the key sees the floor instead — the same manifests, a different machine" "env -u OPEN_ROUTE_KEY node '$CLI/src/index.js' routes '$ROSTER' | grep -q 'cheap (claude) — takes subscription'"
+check "no route line ever prints a key" "! node '$CLI/src/index.js' routes '$ROSTER' | grep -qF '$OPEN_KEY'"
+
+code=$(post /hooks/routed '{"why":"the open road refuses this one"}'); echo "  $code $(body)"
+node "$CLI/test/wait-for.mjs" runs routed 1 120000
+audit "the open road refused at turn one, and the ledger says so by name" '{"agent":"routed","action":"route.refused","route":"open","model":"kimi-k2-turbo-preview","turns":1,"exit":"1"}'
+audit "the run took the next road, and the ledger says which one and after what" '{"agent":"routed","action":"route.taken","route":"subscription"}'
+audit "the run ended ok — a provider that refused cost the run nothing" '{"agent":"routed","action":"run.end","exit":0,"pr":"https://github.com/alexandrapaiz/epitome/pull/999"}'
+audit "and the run is recorded under the model that RAN, not the one it tried first" '{"agent":"routed","action":"run.end","model":"claude-sonnet-5"}'
+check "the run log shows the detour in words" "grep -q 'did not start the run .*taking the next road, \"subscription\"' .epito/logs/routed/*.log"
+check "the road's key is scrubbed out of the log, named rather than printed" "grep -q 'key=\[redacted: the key for route open\]' .epito/logs/routed/*.log"
+check "and it appears nowhere in the log at all" "! grep -qF '$OPEN_KEY' .epito/logs/routed/*.log"
+
+code=$(post /hooks/cheap '{"why":"this one takes the open road"}'); echo "  $code $(body)"
+node "$CLI/test/wait-for.mjs" runs cheap 1 120000
+check "a road whose key this box does not hold is skipped, not attempted" "grep -q 'route \"premium\" (a-model-this-box-cannot-reach) skipped: ABSENT_ROUTE_KEY is not set on this machine' .epito/logs/cheap/*.log"
+none "a skipped road is not a refusal: nothing was tried and nothing failed" '{"agent":"cheap","action":"route.refused","route":"premium"}'
+audit "the open road worked, so the run ran on it" '{"agent":"cheap","action":"run.end","exit":0,"model":"kimi-k2-turbo-preview"}'
+check "the child really was pointed at the open provider, with the open model" "grep -qF 'endpoint=$OPEN_WORKS' .epito/logs/cheap/*.log"
+check "the board says the model that ran, which is the question an owner asks" "board | node -e '
+const rows=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")).recent.filter(r=>r.agent===\"cheap\"&&r.kind===\"run\");
+console.log(\"   \", rows.map(r=>[r.agent,r.model,r.outcome].join(\" \")).join(\"; \"));
+process.exit(rows.length && rows.every(r=>r.model===\"kimi-k2-turbo-preview\")?0:1)'"
+check "every road a run tried is a span inside its execute, refusals included" "node -e '
+const fs=require(\"fs\");
+const spans=fs.readFileSync(\"$SPANS\",\"utf8\").trim().split(\"\\n\").map(JSON.parse);
+const of=(a)=>spans.filter(s=>(s.attrs||{})[\"epito.agent\"]===a);
+const roads=of(\"routed\").filter(s=>s.name.indexOf(\"route \")===0);
+const execute=of(\"routed\").find(s=>s.name===\"execute\");
+console.log(\"   \", roads.map(s=>s.name+\"=\"+(s.attrs||{})[\"epito.outcome\"]+\" under \"+(s.parent===(execute||{}).spanId?\"execute\":\"?\")).join(\"; \"));
+const refused=roads.find(s=>s.name===\"route open\"&&(s.attrs||{})[\"epito.outcome\"]===\"refused\"&&s.status===2);
+const taken=roads.find(s=>s.name===\"route subscription\"&&(s.attrs||{})[\"epito.outcome\"]===\"ok\");
+const nested=roads.every(s=>execute&&s.parent===execute.spanId&&s.traceId===execute.traceId);
+process.exit(refused && taken && nested ? 0 : 1)'"
+check "the execute span names the road the run ended up on, not the one it asked for" "node -e '
+const fs=require(\"fs\");
+const spans=fs.readFileSync(\"$SPANS\",\"utf8\").trim().split(\"\\n\").map(JSON.parse);
+const ex=spans.find(s=>s.name===\"execute\"&&(s.attrs||{})[\"epito.agent\"]===\"routed\");
+console.log(\"   \", (ex.attrs||{})[\"epito.route\"], (ex.attrs||{})[\"epito.model\"]);
+process.exit((ex.attrs||{})[\"epito.route\"]===\"subscription\"&&(ex.attrs||{})[\"epito.model\"]===\"claude-sonnet-5\"?0:1)'"
+check "no span carries a route's key either" "! grep -qF '$OPEN_KEY' '$SPANS'"
 
 step "board (the file behind it)"
 sed 's/^/  /' .epito/board.jsonl

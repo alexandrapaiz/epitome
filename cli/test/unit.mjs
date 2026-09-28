@@ -1120,7 +1120,7 @@ test("the detour: a provider that refuses at turn one costs the run nothing", as
   assert.match(r.logged, /route "kimi" did not start the run .* — taking the next road, "subscription"/,
     "the detour is in the run log, because a fallback nobody can see is a cost nobody can see");
   assert.doesNotMatch(r.logged, /sk-moonshot-unit-key/, "and the road's key is scrubbed like every other secret");
-  assert.match(r.logged, /key=\[redacted: the key for route "kimi"\]/,
+  assert.match(r.logged, /key=\[redacted: the key for route kimi\]/,
     "the child echoed the key it tried; the log names which credential stood there and prints none of it");
 });
 
@@ -1129,6 +1129,7 @@ test("the detour: the cheap road is taken when it works, and nothing else runs",
   assert.equal(r.exit, 0);
   assert.equal(r.route, "kimi");
   assert.equal(r.attempts.length, 1, "one road, one spawn");
+  assert.match(r.logged, /"num_turns":1/, "a redaction never breaks the result line the run reads its own turns out of");
   assert.match(r.logged, /model=kimi-k2-turbo-preview endpoint=https:\/\/api\.moonshot\.ai\/anthropic/,
     "the child really was pointed at the open provider");
 });
