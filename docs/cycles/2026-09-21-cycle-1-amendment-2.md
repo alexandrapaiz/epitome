@@ -2,8 +2,8 @@
 
 The first amendment (2026-09-21-cycle-1-amendment.md) re-bet cycle 1 to
 the resident runtime and a reduced identity slice. Five days later the
-owner opened a synchronous work window (pm.md §11.4 / L-P7: "when im on
-we all work synchronous... pms should be directing") and, relayed by
+owner opened a synchronous work window (pm.md §11.4: "when im on we all
+work synchronous... pms should be directing") and, relayed by
 the chair and staged by the PM in a dispatch queue (PR #12), gave the
 engineer seat four priorities in her own order. The engineer has since
 built all four, stacked, as one branch chain. This file exists because
@@ -14,8 +14,9 @@ the "high-level-only board" this charter forbids.
 ## The bets (amended again, in the owner's order)
 
 **1. epitod v1 on Temporal** — the runtime engine, self-hosted on the
-company host; `epitod` becomes its face (HQ ADR-036, recorded as a
-press-release-first design in docs/prfaq/epitod-v1-temporal.md once
+company host; `epitod` becomes its face (owner directive 2026-09-25,
+recorded as a press-release-first design in
+docs/prfaq/epitod-v1-temporal.md once
 that PR merges). Supersedes epitod v0's hand-rolled scheduler/mutex/
 retry code from amendment 1's bet 1 — a port, not a parallel track.
 PR #11 (`engineer/2026-09-26-epitod-v1-temporal`), draft, unmerged.
@@ -28,9 +29,9 @@ engine rather than the old one. PR #14 (stacked on #11) and PR #15
 
 **3. The board** — an owned task manager (Working Backwards PR/FAQ:
 docs/prfaq/task-board-v0.md once merged), replacing the Linear mirror
-this charter still names (ADR-5's trial is superseded here, not
-completed; the ExO/charter-patch is flagged below, not self-applied).
-PR #16 (stacked on #15), draft, unmerged.
+this charter still names (the Shape Up-vs-Scrum trial's Linear mirror is
+being superseded here, not completed; the ExO/charter-patch is flagged
+below, not self-applied). PR #16 (stacked on #15), draft, unmerged.
 
 **4. LangGraph adapter with tracing** — a seat that is not a Claude
 session, runs visible in Phoenix. PR #17 (stacked on #16), draft,
@@ -42,7 +43,7 @@ detour. PR #21 (stacked on #17), draft, unmerged. Own-model hosting
 
 ## Why this is a bet-swap, not a circuit-breaker failure
 
-ADR-5's rule is "anything urgent goes to the owner as a proposed
+This charter's rule is "anything urgent goes to the owner as a proposed
 bet-swap, her call alone." That call was already made, in the room, by
 the owner herself — the PM's job here is only to record it where the
 board lives instead of leaving it scattered across a dispatch queue and
