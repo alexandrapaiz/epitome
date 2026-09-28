@@ -241,7 +241,9 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   // Every secret this run can print: the minted token the caller named, plus
   // the key of every route this box could take. A provider that refuses is
   // exactly the child that echoes the key it tried.
-  const routeKeys = routesFor(agent).map((r) => r.tokenEnv && process.env[r.tokenEnv]).filter(Boolean);
+  const routeKeys = routesFor(agent)
+    .map((r) => (r.tokenEnv && process.env[r.tokenEnv] ? { value: process.env[r.tokenEnv], as: `the key for route "${r.name}"` } : null))
+    .filter(Boolean);
   const scrub = redactor([...(redact ?? []), ...routeKeys]);
   const write = (s) => { if (fd !== null) writeSync(fd, scrub(s)); };
   const finish = (exit, extra = {}) => {

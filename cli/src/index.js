@@ -15,6 +15,8 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       (--dry-run prints the schedule changes and stops)
   epito worker        do the work: poll the \`seats\` task queue and run seats
   epito ps [dir]      the roster, read from the runtime
+  epito routes [dir]  which model road each seat takes on THIS machine, and
+                      which declared roads are closed here (--json)
   epito board         what the seats have been doing: run reports, newest
                       last (--agent, --kind, --limit, --json)
   epito report <name> file a run report on the board from anywhere
@@ -39,6 +41,11 @@ reboot. See docs/prfaq/epitod-v1-temporal.md.
 The board is where the runs show up: every seat epitod runs files its own
 report, and a seat that runs somewhere else files one with \`epito report\`.
 See ADR-16 (docs/decisions.md).
+
+A seat can declare several roads to a model: \`[[runtime.route]]\` names them in
+order, and a run takes the first one that starts it — falling back only while
+the agent has provably done nothing (ADR-19). \`epito routes\` says which are
+open on this box.
 
 A seat does not have to be a Claude session: \`[runtime].adapter = "langgraph"\`
 runs a LangGraph app through the \`langgraph.json\` its author already wrote,
@@ -138,6 +145,10 @@ if (cmd === "run") {
   const { tokenCmd } = await import("./token.js");
   const rest = args.filter((a) => !a.startsWith("-"));
   await tokenCmd(rest[0], rest[1] ?? ".", { dryRun: args.includes("--dry-run") });
+  process.exit(0);
+} else if (cmd === "routes") {
+  const { routesCmd } = await import("./routes.js");
+  await routesCmd(args);
   process.exit(0);
 } else if (cmd === "board") {
   const { boardCmd } = await import("./board.js");

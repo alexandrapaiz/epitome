@@ -18,9 +18,13 @@ import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { once } from "node:events";
 import { generateKeyPairSync, createVerify } from "node:crypto";
-import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, chmodSync } from "node:fs";
 import { seatOfWorkflowId, scheduleId, runId, windowId } from "../src/temporal/env.js";
 import { ADAPTERS, ADAPTER_NAMES, adapterFor, unknownAdapter, LANGGRAPH_SHIM } from "../src/lib/adapters.js";
+import {
+  routesFor, routeErrors, liveRoutes, noRouteMessage, anthropicRouteEnv, routeFacts,
+  classifyAttempt, withLane, DEFAULT_ROUTE,
+} from "../src/lib/router.js";
 import {
   traceConfig, traceIdFor, spanIdFor, traceparentFor, childTraceEnv, attributes,
   span, payload, emit, parseHeaders, traceNote, resetQuiet,
@@ -917,4 +921,258 @@ test("an agent's own spans land in the run's trace: the shim nests under `execut
     if (saved === undefined) delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT; else process.env.OTEL_EXPORTER_OTLP_ENDPOINT = saved;
     rmSync(work, { recursive: true, force: true });
   }
+});
+
+// --- the router (ADR-19) --------------------------------------------------
+// Three rules, and every test below is one of them: a route is names and
+// never values; a road whose key is not on this box is skipped and said so;
+// falling back is allowed only while the agent has provably done nothing.
+
+const routed = (over = {}) => ({
+  agent: { name: "pm", description: "A seat." },
+  identity: { scopes: ["github:contents"] },
+  trigger: { cron: "0 6 * * *" },
+  runtime: {
+    model: "claude-opus-5", entry: "prompts/pm.md", repo: "acme/roster",
+    env: ["MOONSHOT_API_KEY"],
+    route: [
+      { name: "kimi", model: "kimi-k2-turbo-preview", base_url: "https://api.moonshot.ai/anthropic", token_env: "MOONSHOT_API_KEY" },
+      { name: "subscription", model: "claude-opus-5" },
+    ],
+    ...over,
+  },
+});
+
+test("router: a manifest with no routes has exactly one, and it is the model it always named", () => {
+  const rs = routesFor(seat("pm"));
+  assert.equal(rs.length, 1);
+  assert.deepEqual(
+    { name: rs[0].name, model: rs[0].model, baseUrl: rs[0].baseUrl, tokenEnv: rs[0].tokenEnv },
+    { name: DEFAULT_ROUTE, model: "claude-sonnet-5", baseUrl: null, tokenEnv: null },
+    "every roster written before routing existed means this",
+  );
+});
+
+test("router: declared routes keep their order, and a route inherits the manifest's model", () => {
+  const rs = routesFor(routed({ route: [{ base_url: "http://gateway.internal" }, { name: "subscription" }] }));
+  assert.deepEqual(rs.map((r) => r.name), ["route-1", "subscription"], "an unnamed road still has a name to be logged by");
+  assert.deepEqual(rs.map((r) => r.model), ["claude-opus-5", "claude-opus-5"]);
+});
+
+test("router: a key is a NAME, and a name the manifest does not inject can never resolve", () => {
+  const errs = routeErrors(routed({ env: [] }));
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /token_env names "MOONSHOT_API_KEY".*must also be listed in \[runtime\]\.env/s);
+  assert.match(errs[0], /never resolve to a value/, "the rule, in the product's own words");
+});
+
+test("router: a credential inside base_url is refused — a manifest is publishable", () => {
+  const errs = routeErrors(routed({ route: [{ name: "kimi", base_url: "https://user:sk-live-abc@api.moonshot.ai/anthropic" }] }));
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /carries a credential in the URL/);
+  assert.match(errs[0], /Fix: put the key in a secret and name it with token_env/, "the fix is in the message");
+});
+
+test("router: two roads with one name would make a run unable to say where it went", () => {
+  const errs = routeErrors(routed({ route: [{ name: "kimi", model: "a" }, { name: "kimi", model: "b" }] }));
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /both named "kimi"/);
+});
+
+test("router: concurrency is a positive integer, and [[runtime.route]] is a list of tables", () => {
+  assert.match(routeErrors(routed({ route: [{ name: "kimi", concurrency: 0 }] }))[0], /concurrency must be a positive integer/);
+  assert.match(routeErrors(routed({ route: [] }))[0], /double brackets/, "the TOML spelling a vibecoder gets wrong is in the message");
+  assert.match(routeErrors(routed({ route: ["kimi"] }))[0], /must be a table of fields/);
+});
+
+test("router: `epito validate` refuses a broken route chain with everything else it refuses", () => {
+  const errors = validateManifest(routed({ env: [] }), { baseDir: "." });
+  assert.ok(errors.some((e) => /token_env names "MOONSHOT_API_KEY"/.test(e)), "one validator, one set of rules");
+});
+
+test("router: a road whose key is not on this box is skipped, by name and with the reason", () => {
+  const rs = routesFor(routed());
+  const { live, skipped } = liveRoutes(rs, { PATH: "/usr/bin" });
+  assert.deepEqual(live.map((r) => r.name), ["subscription"], "open routing is opt-in per machine");
+  assert.deepEqual(skipped.map((s) => s.route.name), ["kimi"]);
+  assert.match(skipped[0].reason, /MOONSHOT_API_KEY is not set on this machine/);
+  const both = liveRoutes(rs, { MOONSHOT_API_KEY: "sk-test" });
+  assert.deepEqual(both.live.map((r) => r.name), ["kimi", "subscription"], "and open when the key is there");
+  assert.deepEqual(liveRoutes(rs, { MOONSHOT_API_KEY: "   " }).live.map((r) => r.name), ["subscription"],
+    "an empty key is not a key: a blank secret is how a workflow that was switched off used to fail at turn one");
+});
+
+test("router: every road closed is a refusal that names all of them and the fix", () => {
+  const rs = routesFor(routed({ route: [{ name: "kimi", token_env: "MOONSHOT_API_KEY" }], env: ["MOONSHOT_API_KEY"] }));
+  const { live, skipped } = liveRoutes(rs, {});
+  assert.equal(live.length, 0);
+  const msg = noRouteMessage("pm", skipped);
+  assert.match(msg, /every route this seat declares is closed on this machine/);
+  assert.match(msg, /"kimi" \(MOONSHOT_API_KEY is not set/);
+  assert.match(msg, /the subscription is the floor/);
+});
+
+test("router: the endpoint and the key reach the claude CLI under the names it reads", () => {
+  const [kimi, sub] = routesFor(routed());
+  assert.deepEqual(anthropicRouteEnv(kimi, { MOONSHOT_API_KEY: "sk-test" }), {
+    ANTHROPIC_BASE_URL: "https://api.moonshot.ai/anthropic", ANTHROPIC_AUTH_TOKEN: "sk-test",
+  }, "exactly what HQ's fifteen workflows set by hand");
+  assert.deepEqual(anthropicRouteEnv(sub, { MOONSHOT_API_KEY: "sk-test" }), {},
+    "and an unrouted road changes nothing about the child at all");
+});
+
+test("router: a foreign agent is told which road it is on, and never handed the key twice", () => {
+  const [kimi] = routesFor(routed());
+  const facts = routeFacts(kimi);
+  assert.deepEqual(facts, { EPITO_ROUTE: "kimi", EPITO_MODEL: "kimi-k2-turbo-preview", EPITO_BASE_URL: "https://api.moonshot.ai/anthropic" });
+  assert.ok(!Object.values(facts).includes("sk-test"), "the key arrives under the name [runtime].env already lists");
+});
+
+test("router: the adapter spawns the ROUTE's model, not the manifest's", () => {
+  const { args } = ADAPTERS.claude.command({
+    manifest: routed(), prompt: "hi", binary: "claude", route: routesFor(routed())[0],
+  });
+  assert.equal(args[args.indexOf("--model") + 1], "kimi-k2-turbo-preview");
+  const { env } = ADAPTERS.langgraph.command({
+    manifest: routed({ adapter: "langgraph" }), name: "pm", runId: "r", trigger: "cron",
+    prompt: "hi", binary: "python3", route: routesFor(routed())[0],
+  });
+  assert.equal(env.EPITO_MODEL, "kimi-k2-turbo-preview");
+});
+
+test("router: whose fault the ending was — the road's, or the agent's", () => {
+  assert.equal(classifyAttempt({ exit: 0, turns: 7 }), "ok");
+  assert.equal(classifyAttempt({ exit: 1, turns: 1 }), "route", "L-E7's fingerprint: refused at turn one, nothing done");
+  assert.equal(classifyAttempt({ exit: 1, turns: null }), "route", "a provider that answered nothing at all");
+  assert.equal(classifyAttempt({ exit: 1, turns: 9 }), "agent", "nine turns in, the outcome is the run's own");
+  assert.equal(classifyAttempt({ exit: 1, turns: 1, pr: "https://github.com/a/b/pull/1" }), "agent",
+    "it opened a pull request: this run exists now and may never be started again somewhere else");
+  for (const exit of ["timeout", "cancelled", "workdir-gone", "spawn"]) {
+    assert.equal(classifyAttempt({ exit, turns: 1 }), "agent", `${exit} is not a road another provider can fix`);
+  }
+});
+
+test("router: a one-lane road carries one run at a time", async () => {
+  const lane = { name: "kimi", concurrency: 1 };
+  let inside = 0, most = 0;
+  const body = async () => {
+    inside++; most = Math.max(most, inside);
+    await new Promise((r) => setTimeout(r, 15));
+    inside--;
+    return "done";
+  };
+  const out = await Promise.all([withLane(lane, body), withLane(lane, body), withLane(lane, body)]);
+  assert.deepEqual(out, ["done", "done", "done"]);
+  assert.equal(most, 1, "a prepaid tier that allows one concurrent request is a single-lane road");
+  let free = 0;
+  await Promise.all([withLane({ name: "open" }, async () => { free++; await new Promise((r) => setTimeout(r, 10)); }),
+                     withLane({ name: "open" }, async () => { free++; })]);
+  assert.equal(free, 2, "a road with no ceiling is not serialized");
+});
+
+// --- the detour, end to end ----------------------------------------------
+
+const stubRun = async (agent, over = {}, env = {}) => {
+  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const work = mkdtempSync(cloneDirPrefix(agent.agent.name));
+  const saved = {};
+  for (const [k, v] of Object.entries(env)) { saved[k] = process.env[k]; process.env[k] = v; }
+  process.env.EPITO_STUB_DIR = join(dir, "stub");
+  try {
+    const r = await executeAgent({
+      agent, trigger: "cron", runId: "r-route", workDir: work, timeoutMs: 30_000, log: () => {},
+      executor: new URL("./stub-executor.mjs", import.meta.url).pathname, ...over,
+    });
+    return { ...r, logged: readFileSync(r.log, "utf8") };
+  } finally {
+    process.chdir(cwd);
+    rmSync(work, { recursive: true, force: true });
+    for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+    delete process.env.EPITO_STUB_DIR;
+  }
+};
+
+const stubSeat = (over = {}) => ({
+  agent: { name: "pm" },
+  runtime: {
+    model: "claude-opus-5", entry: "e", repo: "acme/roster",
+    env: ["MOONSHOT_API_KEY", "EPITO_STUB_DIR", "EPITO_STUB_REFUSE_BASE_URL", "EPITO_STUB_ECHO_ROUTE"],
+    route: [
+      { name: "kimi", model: "kimi-k2-turbo-preview", base_url: "https://api.moonshot.ai/anthropic", token_env: "MOONSHOT_API_KEY" },
+      { name: "subscription", model: "claude-opus-5" },
+    ],
+    ...over,
+  },
+});
+
+test("the detour: a provider that refuses at turn one costs the run nothing", async () => {
+  const r = await stubRun(stubSeat(), {}, {
+    MOONSHOT_API_KEY: "sk-moonshot-unit-key",
+    EPITO_STUB_REFUSE_BASE_URL: "https://api.moonshot.ai/anthropic",
+    EPITO_STUB_ECHO_ROUTE: "1",
+  });
+  assert.equal(r.exit, 0, "the run happened");
+  assert.equal(r.route, "subscription");
+  assert.equal(r.model, "claude-opus-5", "and the model reported is the one that actually ran");
+  assert.deepEqual(r.attempts.map((a) => [a.route, a.outcome]), [["kimi", "route"], ["subscription", "ok"]]);
+  assert.match(r.logged, /route "kimi" did not start the run .* — taking the next road, "subscription"/,
+    "the detour is in the run log, because a fallback nobody can see is a cost nobody can see");
+  assert.doesNotMatch(r.logged, /sk-moonshot-unit-key/, "and the road's key is scrubbed like every other secret");
+  assert.match(r.logged, /key=\[redacted: the key for route "kimi"\]/,
+    "the child echoed the key it tried; the log names which credential stood there and prints none of it");
+});
+
+test("the detour: the cheap road is taken when it works, and nothing else runs", async () => {
+  const r = await stubRun(stubSeat(), {}, { MOONSHOT_API_KEY: "sk-moonshot-unit-key", EPITO_STUB_ECHO_ROUTE: "1" });
+  assert.equal(r.exit, 0);
+  assert.equal(r.route, "kimi");
+  assert.equal(r.attempts.length, 1, "one road, one spawn");
+  assert.match(r.logged, /model=kimi-k2-turbo-preview endpoint=https:\/\/api\.moonshot\.ai\/anthropic/,
+    "the child really was pointed at the open provider");
+});
+
+test("the detour: no key on this box means the closed road is announced, not attempted", async () => {
+  const r = await stubRun(stubSeat(), {}, { MOONSHOT_API_KEY: "" });
+  assert.equal(r.exit, 0);
+  assert.equal(r.route, "subscription");
+  assert.equal(r.attempts.length, 1, "a skipped road is not an attempt");
+  assert.match(r.logged, /route "kimi" \(kimi-k2-turbo-preview\) skipped: MOONSHOT_API_KEY is not set/);
+});
+
+test("the detour: a seat with every road closed refuses the run and names each one", async () => {
+  const seatNoFloor = stubSeat({ route: [{ name: "kimi", base_url: "https://api.moonshot.ai/anthropic", token_env: "MOONSHOT_API_KEY" }] });
+  const r = await stubRun(seatNoFloor, {}, { MOONSHOT_API_KEY: "" });
+  assert.equal(r.exit, "no-route");
+  assert.match(r.detail, /every route this seat declares is closed on this machine/);
+  assert.match(r.detail, /the subscription is the floor/, "the fix names the rule the company already paid for");
+});
+
+test("the detour: a run that reached turn nine is the agent's outcome, not the road's", async () => {
+  // The stub answers turn N+1 for a session it has seen before, so a second
+  // run on the same session id is a run that did work and then failed.
+  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const stub = join(dir, "many-turns.mjs");
+  writeFileSync(stub, `#!/usr/bin/env node
+process.stdout.write(JSON.stringify({ type: "result", is_error: true, num_turns: 9, result: "the agent gave up", session_id: "s1" }) + "\\n");
+process.exit(1);
+`);
+  chmodSync(stub, 0o755);
+  const r = await stubRun(stubSeat(), { executor: stub }, { MOONSHOT_API_KEY: "sk-moonshot-unit-key" });
+  assert.equal(r.exit, 1, "the agent's own exit code, not a stage name");
+  assert.equal(r.route, "kimi", "it stayed on the road it started on");
+  assert.deepEqual(r.attempts.map((a) => [a.route, a.outcome, a.turns]), [["kimi", "agent", 9]],
+    "nine turns in, the runtime keeps its hands off the outcome");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("the detour: a resumed run never falls back — a session belongs to the provider that made it", async () => {
+  const r = await stubRun(stubSeat(), { resume: "held-session-1", text: "one more thing", routeName: "kimi" }, {
+    MOONSHOT_API_KEY: "sk-moonshot-unit-key",
+    EPITO_STUB_REFUSE_BASE_URL: "https://api.moonshot.ai/anthropic",
+  });
+  assert.notEqual(r.exit, 0, "the road it was held on refused, and the run failed there");
+  assert.deepEqual(r.attempts.map((a) => a.route), ["kimi"], "no stranger was handed the session id");
+  assert.match(r.logged, /a resumed run does not fall back/);
 });

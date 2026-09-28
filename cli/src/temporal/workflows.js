@@ -52,9 +52,15 @@ function executor(runTimeoutMs) {
 
 // --- SeatRun --------------------------------------------------------------
 
-// input: { name, manifest, trigger, payload?, resume?, workDir?, keepWork?,
-//          runTimeoutMs?, executor? }
-// result: { exit, durationMs, pr, sessionId, turns, log, workDir }
+// input: { name, manifest, trigger, payload?, resume?, route?, workDir?,
+//          keepWork?, runTimeoutMs?, executor? }
+// result: { exit, durationMs, pr, sessionId, turns, log, workDir, route, model }
+//
+// `route` travels beside `resume` and for the same reason: a held session
+// belongs to the provider that made it (ADR-19), so a window's follow-up must
+// land on the road its opening run took. It is a NAME — the one the manifest
+// gave that road — and never an endpoint or a key, so nothing secret enters
+// the engine's database (law 7).
 export async function SeatRun(input) {
   const { name, manifest } = input;
   if (!name || !manifest?.runtime) {
@@ -108,6 +114,7 @@ export async function SeatRun(input) {
       result = await execute({
         name, manifest, runId: id, workDir,
         trigger: req.trigger, payload: req.payload ?? {}, resume: req.resume ?? null,
+        routeName: req.route ?? null,
         executor: req.executor ?? input.executor ?? null,
         timeoutMs: runTimeoutMs,
       });
@@ -162,6 +169,10 @@ export async function SeatWindow(input) {
   let expiresAt = new Date(info.startTime.getTime() + input.ttlMs).toISOString();
   let closing = null;          // the reason, once there is one
   let session = null;
+  // The road the window was opened on, held for the same reason the session
+  // is: a follow-up that lands on a different provider is talking to a
+  // conversation that does not exist there (ADR-19).
+  let route = null;
   let workDir = null;
   let runs = 0;
   const inbox = [];
@@ -188,8 +199,9 @@ export async function SeatWindow(input) {
     const first = await child({ trigger: "window", payload: { instruction: input.instruction }, keepWork: true }, `window:${runs}`);
     runs++;
     session = first.sessionId ?? null;
+    route = first.route ?? null;
     workDir = first.workDir ?? null;
-    if (session && workDir) await short.record({ name, action: "session.hold", session, until: expiresAt });
+    if (session && workDir) await short.record({ name, action: "session.hold", session, route, until: expiresAt });
   } catch (e) {
     // The seat could not run (no charter, clone refused). There is nothing to
     // hold, so the window is over rather than open and empty.
@@ -207,9 +219,10 @@ export async function SeatWindow(input) {
     // Everything said while the seat was busy arrives as one message: a
     // coalesced trigger may be dropped, words a person typed may not.
     const text = inbox.splice(0, inbox.length).join("\n\n");
-    const r = await child({ trigger: "message", payload: { text }, resume: session, workDir }, `message:${runs}`);
+    const r = await child({ trigger: "message", payload: { text }, resume: session, route, workDir }, `message:${runs}`);
     runs++;
     if (r.sessionId) session = r.sessionId;
+    if (r.route) route = r.route;
     if (r.exit === "workdir-gone") { closing = "the held clone is gone; the next message starts a fresh run"; break; }
   }
 

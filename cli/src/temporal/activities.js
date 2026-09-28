@@ -126,7 +126,7 @@ export async function clone({ name, manifest, runId }) {
 // whenever the child writes output, so a wedged run is detected by
 // heartbeatTimeout rather than waited out to the full run timeout, and it
 // kills the child's whole process group if the activity is cancelled.
-export async function execute({ name, manifest, runId, workDir, trigger, payload = {}, resume, executor, timeoutMs }) {
+export async function execute({ name, manifest, runId, workDir, trigger, payload = {}, resume, routeName = null, executor, timeoutMs }) {
   const ctx = Context.current();
   const cfg = temporalEnv();
   const startMs = Date.now();
@@ -171,7 +171,7 @@ export async function execute({ name, manifest, runId, workDir, trigger, payload
   }
 
   const result = await executeAgent({
-    agent: manifest, trigger, runId, workDir, resume,
+    agent: manifest, trigger, runId, workDir, resume, routeName,
     hookBody: payload.hookBody, text: payload.text, instruction: payload.instruction,
     executor: executor || cfg.executor,
     timeoutMs: timeoutMs ?? cfg.runTimeoutMs,
@@ -191,6 +191,37 @@ export async function execute({ name, manifest, runId, workDir, trigger, payload
     },
   });
 
+  // Every road this run tried, on the ledger and in the trace (ADR-19). A
+  // fallback that leaves no trace is a cost nobody can see: the whole reason
+  // the router exists is that fifteen hand-wired detours each failed silently,
+  // and "the cheap route is working" must be a thing an operator can read
+  // rather than believe.
+  for (const a of result.attempts ?? []) {
+    if (a.outcome === "route") {
+      appendAudit({
+        agent: name, action: "route.refused", runId, route: a.route, model: a.model,
+        exit: String(a.exit), turns: a.turns ?? null,
+      });
+    }
+    await fileSpan({
+      runId, name: `route ${a.route}`, phase: `route-${a.route}`, parent: "execute",
+      startMs: a.startMs, endMs: a.endMs,
+      attrs: {
+        "epito.agent": name, "epito.route": a.route, "epito.model": a.model,
+        "epito.outcome": a.outcome === "ok" ? "ok" : a.outcome === "route" ? "refused" : String(a.exit),
+        "epito.turns": a.turns ?? null,
+      },
+      error: a.outcome === "ok" ? null : (a.detail || `the route ended with exit ${a.exit}`),
+      redact: minted ? [minted.token] : [],
+    });
+  }
+  if ((result.attempts ?? []).length > 1) {
+    appendAudit({
+      agent: name, action: "route.taken", runId, route: result.route, model: result.model,
+      after: result.attempts.filter((a) => a.outcome === "route").map((a) => a.route),
+    });
+  }
+
   // The span is filed for every ending, including the one that is about to
   // throw: a cancelled run with no span is a gap in the trace exactly where an
   // operator is looking.
@@ -198,7 +229,10 @@ export async function execute({ name, manifest, runId, workDir, trigger, payload
   await fileSpan({
     runId, name: "execute", phase: "execute", parent: "run", startMs,
     attrs: {
-      "epito.agent": name, "epito.trigger": trigger, "epito.model": manifest.runtime.model,
+      "epito.agent": name, "epito.trigger": trigger,
+      // The model that RAN, which is the manifest's only when no route
+      // changed it, and the fact an operator is actually looking for.
+      "epito.model": result.model ?? manifest.runtime.model, "epito.route": result.route ?? null,
       "epito.adapter": result.adapter ?? null,
       "epito.outcome": cancelled ? "cancelled" : result.exit === 0 ? "ok" : String(result.exit),
       "epito.turns": result.turns ?? null, "epito.pr": result.pr ?? null,
