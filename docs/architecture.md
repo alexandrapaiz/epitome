@@ -194,6 +194,13 @@ can leave under constraint 1 — the manifests, the activities and
 rejected permanently: a vendor in the runtime path, and a per-action
 bill.
 
+**The router took nothing either** (2026-09-28, ADR-19): routing a run to
+another provider is two environment variables and a different `--model`,
+which is what fifteen hand-written workflow steps across the company
+already prove. A gateway (LiteLLM, OpenRouter) would have been a second
+service in the runtime path to buy what a table in the manifest buys, so
+it stays available as one route's `base_url` and nothing more.
+
 **The adapter and tracing legs took nothing** (2026-09-27, ADR-17 and
 ADR-18; this line exists because the budget rule requires one either
 way). Hosting a LangGraph app added no dependency because an adapter is a
@@ -289,7 +296,7 @@ as a channel:
 | Data | Supabase Postgres | phase-3 DB; OAuth 2.1 → future per-agent DB identity | partner catalog at revenue |
 | Human auth | Clerk | control-plane sign-in for owners/orgs (humans only — agents use OUR identity layer) | vibecoder auth default, template ecosystem |
 | Work surfaces | GitHub, Linear | IdentityProvider targets (App; app-user pending ADR-6 re-rank) | agents demo the product in-situ, as themselves |
-| Models | Anthropic Claude, OpenAI | `[runtime].model` is provider-agnostic; owner's key as a named secret in `[runtime].env`; gateway option phase 3 | model-agnostic = every lab's users addressable |
+| Models | Anthropic Claude, OpenAI, any Anthropic-API-compatible provider (Moonshot first) | `[runtime].model`, and `[[runtime.route]]` names the roads in order: a run takes the first one open on this box, and falls back only while the agent has done nothing (ADR-19). A gateway is one route's `base_url`, never a dependency | model-agnostic = every lab's users addressable, and the cheap road is the runtime's job rather than every workflow's |
 | Editors | Claude Code, Cursor | MCP server + skill (bet 2) | zero-listing-bar channel |
 | Agent frameworks | LangGraph (first; n8n, OpenClaw next) | `[runtime].adapter` hosts one unmodified, through its own `langgraph.json` (ADR-17) | the largest installed base of agents that have no identity — and a surface, since epito links none of it |
 | Tracing | OTLP (Phoenix, Jaeger, Tempo, LangSmith) | `OTEL_EXPORTER_OTLP_ENDPOINT`: one trace per run, the agent's own steps inside it (ADR-18) | a surface by construction — the protocol is the integration, so every backend is already supported |
