@@ -7,6 +7,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { parse } from "smol-toml";
 import { ADAPTERS, DEFAULT_ADAPTER, unknownAdapter } from "./adapters.js";
+import { routeErrors } from "./router.js";
 
 export const NAME_RE = /^[a-z0-9-]{1,40}$/;
 
@@ -80,6 +81,10 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
     if (r.max_turns !== undefined && !(Number.isInteger(r.max_turns) && r.max_turns > 0)) {
       errors.push(`[runtime].max_turns must be a positive integer, got "${r.max_turns}"`);
     }
+    // The roads this seat may take, in order (ADR-19). Absent means one road,
+    // [runtime].model on whatever this box authenticates the executor with,
+    // which is what every manifest written before routing existed means.
+    errors.push(...routeErrors(m));
     if (r.env && Array.isArray(r.env)) for (const e of r.env) {
       if (typeof e !== "string" || /[=:]/.test(e)) errors.push(`[runtime].env carries secret NAMES only, and "${e}" doesn't look like one — values never appear in the manifest`);
     }

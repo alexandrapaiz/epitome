@@ -41,6 +41,7 @@ import { join, resolve, sep } from "node:path";
 import { EPITO_DIR } from "./audit.js";
 import { redactor } from "./redact.js";
 import { adapterFor } from "./adapters.js";
+import { routesFor, liveRoutes, noRouteMessage, classifyAttempt, withLane } from "./router.js";
 import { childTraceEnv, traceNote } from "./trace.js";
 
 const PR_URL_RE = /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/\d+/g;
@@ -223,7 +224,7 @@ export async function cloneAgentRepo({ agent, runId, token = null, log = console
 // `exit` is the child's exit code, or a string naming the failure stage
 // ("timeout", "spawn", "cancelled", "workdir-gone").
 export async function executeAgent({ agent, trigger, runId, workDir, hookBody, text, instruction, resume = null,
-                                     executor = null, timeoutMs, log = console.log, onSpawn, onOutput,
+                                     routeName = null, executor = null, timeoutMs, log = console.log, onSpawn, onOutput,
                                      inject = null, redact = [], commitIdentity = null }) {
   const { name } = agent.agent;
   const rt = agent.runtime;
@@ -237,11 +238,18 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   const logPath = runLogPath(name, runId);
   mkdirSync(join(EPITO_DIR, "logs", name), { recursive: true });
   const fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
-  const scrub = redactor(redact ?? []);
+  // Every secret this run can print: the minted token the caller named, plus
+  // the key of every route this box could take. A provider that refuses is
+  // exactly the child that echoes the key it tried.
+  const routeKeys = routesFor(agent).map((r) => r.tokenEnv && process.env[r.tokenEnv]).filter(Boolean);
+  const scrub = redactor([...(redact ?? []), ...routeKeys]);
   const write = (s) => { if (fd !== null) writeSync(fd, scrub(s)); };
   const finish = (exit, extra = {}) => {
     if (fd !== null) closeSync(fd);
-    return { exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null, adapter: adapter.name, ...extra };
+    return {
+      exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null,
+      adapter: adapter.name, route: null, model: rt.model, attempts: [], ...extra,
+    };
   };
 
   // Presence is a capability of the agent, not of the runtime (ADR-17,
@@ -272,15 +280,50 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   // every adapter: a charter is the agent's contract with its company and
   // cannot depend on which framework is reading it.
   const prompt = resume ? text : buildPrompt({ name, entry: rt.entry, trigger, date, hookBody: hookBody ?? text, instruction });
-  const { file, args, env: adapterEnv = {} } = adapter.command({ manifest: agent, name, runId, trigger, prompt, resume, binary });
-  const env = { PATH: process.env.PATH, HOME: process.env.HOME, USER: process.env.USER };
-  for (const k of rt.env ?? []) if (process.env[k] !== undefined) env[k] = process.env[k];
-  // The adapter's own variables: this run's facts, none of them secret.
-  Object.assign(env, adapterEnv);
+
+  // Which road this run takes (ADR-19). A seat with no [[runtime.route]] has
+  // exactly one, named "default", and everything below collapses to what this
+  // function always did: one spawn, on [runtime].model.
+  const declared = routesFor(agent);
+  const { live, skipped } = liveRoutes(declared, process.env);
+  for (const s of skipped) {
+    write(`# route "${s.route.name}" (${s.route.model}) skipped: ${s.reason}\n`);
+    log(`${name}: the route "${s.route.name}" is closed on this machine — ${s.reason}`);
+  }
+  if (live.length === 0) {
+    const msg = noRouteMessage(name, skipped);
+    write(`${msg}\n`);
+    log(msg);
+    return finish("no-route", { detail: msg, attempts: [] });
+  }
+
+  // A held session belongs to the provider that made it: `--resume <id>` means
+  // nothing at a different endpoint. So a run that continues a window takes
+  // ONE road — the one the window recorded, or the first open one — and never
+  // falls back, because falling back here would hand a stranger a session id
+  // and get a confident answer about a conversation that never happened.
+  let chain = live;
+  if (resume) {
+    const pinned = (routeName && live.find((r) => r.name === routeName)) || live[0];
+    chain = [pinned];
+    if (routeName && pinned.name !== routeName) {
+      write(`# route: this window was held on "${routeName}", which is closed now, so this message runs on "${pinned.name}" and the session may not be there\n`);
+      log(`${name}: the window was held on route "${routeName}", which is closed now`);
+    }
+  }
+
+  write(`# routes: ${chain.map((r) => `${r.name}(${r.model})`).join(" -> ")}${resume ? " — a resumed run does not fall back" : ""}\n`);
+
+  // The child's environment, per road. Everything that does not depend on the
+  // route is computed once, above; the route contributes the model (through
+  // the adapter's argv) and the endpoint or key that reaches it, read out of
+  // this worker's own environment at the last possible moment.
+  const baseEnv = { PATH: process.env.PATH, HOME: process.env.HOME, USER: process.env.USER };
+  for (const k of rt.env ?? []) if (process.env[k] !== undefined) baseEnv[k] = process.env[k];
   // The trace the agent's own spans belong to (ADR-18). Empty when nothing on
   // this runtime is listening, and never carrying the export headers, which
   // are the worker's secret and not this run's.
-  Object.assign(env, childTraceEnv({ runId, agent: name, trigger }));
+  Object.assign(baseEnv, childTraceEnv({ runId, agent: name, trigger }));
   // The agent's own credential, minted for this one run by the caller, goes in
   // LAST and on purpose: it outranks a shared GH_TOKEN inherited through
   // [runtime].env. An agent that has an identity acts as itself, and the log
@@ -288,7 +331,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   // PR was opened with.
   for (const [k, v] of Object.entries(inject ?? {})) {
     if (rt.env?.includes(k) && process.env[k] !== undefined) write(`# identity: ${k} from [runtime].env is overridden by this run's own minted credential\n`);
-    env[k] = v;
+    baseEnv[k] = v;
   }
   // Who the commits belong to. An installation token makes the PR open as
   // `<name>[bot]`; it does nothing at all for the commits inside it, because
@@ -297,40 +340,73 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   // no App we keep epito's old convention, which is honest about being a
   // convention: it belongs to no account and links to nothing.
   const commit = commitIdentity ?? { name, email: `${name}@agents.epito.me` };
-  Object.assign(env, {
+  Object.assign(baseEnv, {
     GIT_AUTHOR_NAME: commit.name, GIT_AUTHOR_EMAIL: commit.email,
     GIT_COMMITTER_NAME: commit.name, GIT_COMMITTER_EMAIL: commit.email,
   });
   write(`# commits authored as ${commit.name} <${commit.email}>${commitIdentity
     ? " — the App's own bot user, so GitHub links every commit in the PR to the agent"
     : " — epito's convention; this agent has no App, so the address links to no account"}\n`);
-  write(`$ ${file} ${args.map((a) => (a.includes("\n") ? "<prompt>" : a)).join(" ")}\n# env passed: ${Object.keys(env).join(", ")}\n---\n`);
 
-  return new Promise((res) => {
+  // One attempt on one road. Resolves with the run's facts; it never decides
+  // anything — whose fault the ending was is classifyAttempt's judgement, and
+  // it is made in one place for every adapter.
+  const attempt = (route) => new Promise((res) => {
+    const { file, args, env: adapterEnv = {} } = adapter.command({ manifest: agent, name, runId, trigger, prompt, resume, binary, route });
+    const env = { ...baseEnv, ...adapterEnv, ...(adapter.routeEnv?.(route, process.env) ?? {}) };
+    write(`$ ${file} ${args.map((a) => (a.includes("\n") ? "<prompt>" : a)).join(" ")}\n# route=${route.name} model=${route.model}${route.baseUrl ? ` endpoint=${route.baseUrl}` : ""}${route.tokenEnv ? ` key=$${route.tokenEnv}` : ""}\n# env passed: ${Object.keys(env).join(", ")}\n---\n`);
     let child;
     try { child = spawn(file, args, { cwd: workDir, env, stdio: ["ignore", "pipe", "pipe"], detached: true }); }
-    catch (e) { write(`spawn failed: ${e.message}\n`); return res(finish("spawn")); }
+    catch (e) { write(`spawn failed: ${e.message}\n`); return res({ exit: "spawn", pr: null, sessionId: null, turns: null, detail: null }); }
     onSpawn?.(child);
     let tail = "";
     // Scrubbed before it reaches either the log or the tail: `tail` is what
     // the PR URL and the session id are read out of, and a 64KB window of the
     // child's output is exactly the kind of thing that ends up in an error
     // message somewhere else.
-    const onData = (d) => { const s = scrub(d); write(s); tail = (tail + s).slice(-64 * 1024); onOutput?.(); };
+    const onData = (d) => { const t = scrub(d); write(t); tail = (tail + t).slice(-64 * 1024); onOutput?.(); };
     child.stdout.on("data", onData);
     child.stderr.on("data", onData);
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; killGroup(child); }, timeoutMs);
-    child.on("error", (e) => { clearTimeout(timer); write(`spawn failed: ${e.message}\n`); res(finish("spawn")); });
+    let settled = false;
+    const done = (v) => { if (settled) return; settled = true; clearTimeout(timer); res(v); };
+    child.on("error", (e) => { write(`spawn failed: ${e.message}\n`); done({ exit: "spawn", pr: null, sessionId: null, turns: null, detail: null }); });
     child.on("close", (code, signal) => {
-      clearTimeout(timer);
       const prs = tail.match(PR_URL_RE);
       const pr = prs ? prs[prs.length - 1] : null;
       const { sessionId, turns, detail } = parseExecutorResult(tail);
-      write(`\n---\n# exit=${timedOut ? "timeout" : code ?? signal} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}${detail ? ` detail="${detail}"` : ""}\n`);
-      res(finish(timedOut ? "timeout" : (code ?? signal), { pr, sessionId, turns, detail, adapter: adapter.name }));
+      const exit = timedOut ? "timeout" : (code ?? signal);
+      write(`\n---\n# exit=${exit} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}${detail ? ` detail="${detail}"` : ""}\n`);
+      done({ exit, pr, sessionId, turns, detail });
     });
   });
+
+  // The detour itself. It is a loop and not a retry: a retry repeats a run
+  // that happened, and the only attempt this loop takes again is one that
+  // classifyAttempt says never started.
+  const attempts = [];
+  for (let i = 0; i < chain.length; i++) {
+    const route = chain[i];
+    const last = i === chain.length - 1;
+    const startedAt = Date.now();
+    const out = await withLane(route, () => attempt(route));
+    const verdict = classifyAttempt(out);
+    attempts.push({
+      route: route.name, model: route.model, outcome: verdict, exit: out.exit,
+      turns: out.turns ?? null, pr: out.pr ?? null, detail: out.detail ?? null,
+      startMs: startedAt, endMs: Date.now(),
+    });
+    if (verdict !== "route" || last) {
+      if (verdict === "route" && last) {
+        write(`# route "${route.name}" did not start the run either, and it was the last road\n`);
+        log(`${name}: no route started this run — the last one tried was "${route.name}"`);
+      }
+      return finish(out.exit, { ...out, route: route.name, model: route.model, attempts });
+    }
+    write(`# route "${route.name}" did not start the run (exit=${out.exit}, turns=${out.turns ?? "-"}, no pull request) — taking the next road, "${chain[i + 1].name}"\n`);
+    log(`${name}: route "${route.name}" did not start the run; falling back to "${chain[i + 1].name}"`);
+  }
 }
 
 // Kill the child AND everything it spawned: `claude` starts subprocesses, and
