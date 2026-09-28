@@ -629,3 +629,90 @@ test does not need what the box has.
    trace answers where the time went and what the agent did inside its
    own run. A fact that belongs on the board goes on the board;
    `trace.js` is not allowed to grow a query surface.
+
+## ADR-19: A seat declares its roads; the runtime takes the detour, and only for a run that never started
+
+**Date.** 2026-09-28. **Status.** Proposed by the engineer seat; the
+owner ratifies by merging, objects by editing.
+
+**Context.** Priority 4 of the four the owner gave on 2026-09-26, and
+the last of them: "the router". (Own-model hosting with vLLM was dropped
+in the same breath, so this is about routing runs to models somebody
+else hosts, not about hosting one.)
+
+The company has already built this five times. Every HQ seat workflow
+carries an open-routed step — `ANTHROPIC_BASE_URL` and
+`ANTHROPIC_AUTH_TOKEN` pointed at Moonshot, `continue-on-error: true`,
+an `id` — and a second step on the Claude subscription that runs when
+the first did not succeed. That is eleven lines of YAML repeated in
+fifteen workflows across five repositories, and the company's own
+register records what it cost to get right: a fallback step without
+`continue-on-error` kills the job instead of falling back; three runs
+died at turn one against a provider whose prepaid tier allows one
+concurrent request; the switch had to move behind a repository variable
+rather than behind the presence of a key. A detour hand-wired into every
+driver is a detour that is wrong in one driver.
+
+epitod is the one place a company's runs all pass through. It should
+own the detour.
+
+**Decision.** `[[runtime.route]]`, an ordered list. Each route is a
+model, optionally an endpoint (`base_url`), optionally the NAME of the
+key that opens it (`token_env`), optionally a lane width
+(`concurrency`). A run tries them in order and takes the first road
+that starts it. No `[[runtime.route]]` means one road — `[runtime].model`
+on whatever login the executor already has — which is what every
+manifest in every roster means today.
+
+**Why not a gateway** (LiteLLM, OpenRouter, a proxy on the box), which
+is the obvious build and a real product: it is a second service to run,
+and a seat's road would then be an operational fact with no expression
+in the manifest — the opposite of what the manifest is for. A gateway
+remains a perfectly good `base_url` for one route, which is the honest
+relationship: surfaces, never dependencies.
+
+**Why not "retry the run on another model"**, which is what a naive
+router does: `execute` is never retried in this runtime because a run
+that half-ran has already pushed commits. The router inherits that
+bound, and it is the whole of consequence 2.
+
+**Consequences.**
+
+1. **A route whose key is not on this box is skipped, not failed.** Open
+   routing is opt-in per machine, so the same roster runs on a box with
+   a Moonshot key and on one without, and only the second goes straight
+   to the subscription. What it may never do is go there silently: every
+   skip is a line in the run log, and `epito routes` says per box which
+   road each seat takes and why the others are closed. A seat whose every
+   road is closed refuses the run, naming each one.
+
+2. **Falling back is bounded by what the AGENT did, never by what the
+   provider said.** The next road is taken only when the attempt opened
+   no pull request and reached at most one turn — a run that provably
+   never started. Turn nine and a failure is the agent's own outcome; a
+   timeout, a cancellation and a spawn failure are the box's. That rule
+   is what makes the detour safe without a distributed lock, and it is
+   asserted six ways in `cli/test/unit.mjs`.
+
+3. **A held session belongs to the road that made it.** A window records
+   the route its opening run took, and follow-up messages land on that
+   road with no fallback. `--resume <id>` at a different endpoint is a
+   stranger handed a conversation it never had.
+
+4. **The ledger, the board and the trace say which road ran.** One audit
+   line per refusal, one per detour taken, one span per road under the
+   run's `execute`, and the run's recorded `model` is the model that
+   actually ran rather than the one the manifest named first. A fallback
+   nobody can see is a cost nobody can see — which is exactly how fifteen
+   hand-wired detours stayed wrong.
+
+5. **A route's key is a secret like every other**: named in the manifest,
+   read from the worker's own environment at spawn time, never written
+   to Temporal's database, never in a span, and scrubbed out of the run
+   log — because a provider that refuses is precisely the child that
+   prints the key it tried.
+
+6. **One worker serializes its own lane.** `concurrency` is honoured
+   inside one worker process, which is the whole of a single-host
+   install. Two worker hosts are two counters; the engine-side lease
+   that would fix that is an idea, not a claim.

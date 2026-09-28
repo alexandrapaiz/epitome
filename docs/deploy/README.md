@@ -52,6 +52,7 @@ a second copy of what is running is a second copy that can be wrong.
 | `EPITO_GITHUB_API` | `https://api.github.com` | where tokens are minted; for GitHub Enterprise, and for the smoke test's local stub |
 | `SLACK_WEBHOOK_URL` | — | the default webhook, which is `#hq` |
 | `SLACK_WEBHOOK_URL_<PRODUCT>` | — | a per-seat webhook, named by that seat's `[runtime].slack_webhook_env` |
+| *(a route's key)* | — | the key named by a seat's `[[runtime.route]].token_env`, e.g. `MOONSHOT_API_KEY`. Its presence is what opens that road on this box; absent means the road is skipped and the run takes the next one |
 
 Only the **worker** needs the secret values. Temporal persists every workflow
 argument in plain text, so the manifests carry secret *names* and the worker's
@@ -223,6 +224,66 @@ sets need two workers today (`EPITO_TASK_QUEUE` differs, and each manifest's
 schedule targets the queue its worker polls). One interpreter per box is
 enough until it isn't.
 
+## Which model a seat actually runs on
+
+A seat can declare more than one road to a model (ADR-19):
+
+```toml
+[runtime]
+model = "claude-sonnet-5"
+env = ["CLAUDE_CODE_OAUTH_TOKEN", "MOONSHOT_API_KEY"]
+
+[[runtime.route]]
+name = "open"
+model = "kimi-k2-turbo-preview"
+base_url = "https://api.moonshot.ai/anthropic"
+token_env = "MOONSHOT_API_KEY"
+concurrency = 1
+
+[[runtime.route]]
+name = "subscription"
+model = "claude-sonnet-5"
+```
+
+The runtime tries them in order and the run takes the first road that starts
+it. This is the open-routing pattern every HQ workflow hand-wires — the open
+provider first, the subscription behind it — done once, in the runtime, for
+every seat.
+
+**On this box, not in the manifest.** `MOONSHOT_API_KEY` has to be in the
+worker's environment for the `open` road to be open here. It is not, on a
+laptop? Then that road is skipped, the run goes to `subscription`, and the run
+log says which and why. That is the point: one roster, many boxes.
+
+```
+$ epito routes /srv/asc/runtime/agents
+pm (claude) — takes open
+  → open: kimi-k2-turbo-preview at https://api.moonshot.ai/anthropic [key $MOONSHOT_API_KEY], 1 at a time
+    subscription: claude-sonnet-5 on this machine's own executor login
+okr (claude) — takes subscription
+  ✗ open: kimi-k2-turbo-preview at https://api.moonshot.ai/anthropic [key $MOONSHOT_API_KEY] — closed: MOONSHOT_API_KEY is not set on this machine
+  → subscription: claude-sonnet-5 on this machine's own executor login
+```
+
+It exits non-zero when a seat has no open road at all, so it is worth a line in
+a deploy check. It prints no key, ever — only names.
+
+**What a fallback costs, and what it may not do.** The next road is taken only
+when the attempt opened no PR and reached at most one turn: a run that never
+started. A run that failed at turn nine keeps its failure — the runtime never
+starts a half-finished run somewhere else. `concurrency` serializes this
+worker's runs on one road, which is what a prepaid tier allowing one request at
+a time needs; two worker hosts are two counters.
+
+**Reading it back.** `route.refused` and `route.taken` lines in
+`.epito/audit.jsonl`, one span per road under the run's `execute`, and the
+board's `model` column is the model that *ran*:
+
+```
+$ epito board --agent pm --limit 3
+18:56  pm  cron  ok  kimi-k2-turbo-preview  1 turn  https://github.com/…/pull/41
+```
+
 ## Seeing inside a run
 
 Set `OTEL_EXPORTER_OTLP_ENDPOINT` and every run files a trace (ADR-18). One
@@ -232,8 +293,9 @@ trace per run, and its shape is the run:
 run <agent>                      the whole run: trigger, model, adapter, outcome, PR
 ├ clone                          the repository, at the ref
 │ └ mint                         installation, permissions, expiry — never the token
-└ execute                        the agent itself: adapter, turns, PR, session held
+└ execute                        the agent itself: adapter, turns, PR, session held, route
   ├ mint                         the run's own credential (law 7: two mints, one per activity)
+  ├ route <name>                 one per road tried: its model, and whether it refused
   └ …                            whatever the AGENT emits: for a langgraph seat, its
                                  graph and one span per node
 ```

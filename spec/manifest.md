@@ -59,6 +59,20 @@ slack_webhook_env = "SLACK_WEBHOOK_URL_EPITOME"
                                         # Must also appear in `env`. Unset = the runtime's
                                         # default SLACK_WEBHOOK_URL, or no post if that is
                                         # not listed in `env` either.
+
+[[runtime.route]]                       # PROPOSED (v0.1, the router), optional, repeatable:
+name = "open"                           # the roads to a model, in the order the runtime tries
+model = "kimi-k2-turbo-preview"         # them; a run takes the first one that starts it.
+base_url = "https://api.moonshot.ai/anthropic"
+                                        # optional: the endpoint that speaks the model's API
+token_env = "MOONSHOT_API_KEY"          # optional: the NAME of the key that opens it, which
+                                        # must also appear in `env` — never the key itself
+concurrency = 1                         # optional: how many of one box's runs may be on this
+                                        # road at once
+                                        # No [[runtime.route]] at all = one road: `model`
+                                        # above, on whatever login the executor already has.
+                                        # A table must follow every plain [runtime] key, which
+                                        # is TOML's rule; this is a catalogue, not a file to copy.
 ```
 
 ## Rules
@@ -136,6 +150,46 @@ follow-up to a seat that holds no session runs the seat again with the message
 as its prompt, and says so in the run log. No manifest field expresses this: it
 follows from the adapter, and inventing `resumable = false` would let a manifest
 claim a capability its agent does not have.
+
+## Proposed in-band (the router, owner priority 4)
+
+One optional, repeatable table: **`[[runtime.route]]`**. Absent — which is
+every manifest written before it — means one road, `[runtime].model`, on
+whatever this box authenticates the executor with, and the argv is unchanged
+(asserted in `cli/test/unit.mjs`).
+
+A route is `name`, `model`, and optionally `base_url`, `token_env` and
+`concurrency`. The runtime tries them in the order written and the run takes
+the first one that starts it (ADR-19).
+
+- **`token_env` is a name, never a value**, and rule 1 is why. It must also
+  appear in `[runtime].env`: the runtime injects only the names the manifest
+  lists, so an unlisted key could never resolve to a value anyway, and
+  `epito validate` says that rather than letting a seat discover it at 06:00.
+  A `base_url` carrying a credential in the URL is refused for the same reason.
+
+- **A route whose key is not on this box is skipped**, not failed: the same
+  roster runs on a machine that holds a Moonshot key and on one that does not.
+  That makes "which model is this company actually running on" unanswerable
+  from the manifests alone, which is what `epito routes` answers, per box.
+
+- **`concurrency` is a property of the road, not of the seat.** A prepaid tier
+  that allows one request at a time is a single-lane road, and two seats that
+  take it at the same moment both die at turn one. One worker serializes its
+  own runs on that road; a second worker host is a second counter, and the
+  engine-side fix is an idea, not a claim (docs/ideas.md).
+
+**Falling back is bounded by what the agent did, not by what the provider
+said.** The runtime takes the next road only when the attempt ended with no
+pull request and at most one turn — a run that never started. A run that
+reached turn nine and failed is the agent's own outcome and is never started
+again somewhere else, for the same reason `execute` is never retried: a run
+that half-happened has already pushed commits.
+
+**A held session belongs to the road that made it.** A window records the route
+its opening run took, and every follow-up message lands on that road with no
+fallback: `--resume <id>` at a different endpoint is a stranger being handed a
+conversation it never had.
 
 ## Proposed in-band (the identity slice, cycle 1 bet 2)
 

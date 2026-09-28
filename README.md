@@ -37,6 +37,7 @@ epito ps        # the roster, read from the runtime
 epito board     # what the seats have been doing: every run, one place
 epito report    # file a run report on the board from anywhere
 epito token     # mint one agent's own short-lived GitHub token
+epito routes    # which model road each seat takes on this machine
 epito deploy    # mint identity, wire trigger, start runtime  (platform, WIP)
 ```
 
@@ -64,6 +65,14 @@ And it runs the agent you already have:
   board entry and the same audit line as any other seat. epito links no
   framework and takes no dependency to do it — an adapter is a process it
   spawns and the JSON it prints. See ADR-17.
+- **Whichever model is open today** — `[[runtime.route]]` names the roads
+  to a model, in order, and a run takes the first one that starts it: the
+  cheap provider first, the subscription behind it. A road whose key this
+  machine does not hold is skipped, so the same roster runs anywhere; a
+  provider that refuses at turn one costs the run nothing; a run that
+  reached turn nine is never started again somewhere else. `epito routes`
+  says which road each seat takes on this box, and the board records the
+  model that actually ran. See ADR-19.
 - **Runs you can see inside** — set `OTEL_EXPORTER_OTLP_ENDPOINT` (a
   Phoenix on the box, Jaeger, Tempo, anything that takes OTLP) and every
   run files one trace: the run, its clone, each credential it minted, the
