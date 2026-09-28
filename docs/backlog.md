@@ -24,8 +24,20 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   (docs/pitches/deploy-identity-v0.md, docs/cycles/2026-09-21-cycle-1.md),
   then reduced by the owner's 2026-09-20 amendment to just the
   token-minting slice the runtime consumes (`epito token <name>`).
-  As of 2026-09-24: no code for it in cli/src — zero visible engineer
-  time this cycle, which ends 2026-10-02.*
+  As of 2026-09-28: overbuilt, not stalled — three independent main-based
+  PRs (#9, #10, #20) implement it against the epitod v0 engine, and a
+  fourth implementation (#14, #15) does it correctly inside the Temporal
+  engine that's superseding v0. Needs an owner/engineer call on which of
+  #9/#10/#20 to close before cycle 2; see
+  docs/cycles/2026-09-21-cycle-1-amendment-2.md.*
+
+- [ ] **Reconcile the engineer PR stack before cycle 2's betting table**
+  — six draft PRs deep (#11 Temporal engine → #14/#15 identity →#16
+  board → #17 LangGraph → #21 router), none merged as of 2026-09-28,
+  each retargeting to main "as the stack merges." Needs a merge order
+  decision; the longer it stays unmerged the more one conflict ripples
+  five branches downstream. Seat: engineer + owner.
+  docs/cycles/2026-09-21-cycle-1-amendment-2.md has the evidence trail.
 - [x] ~~Runtime v0, reshaped as bring-your-own-agent (owner ruling R4)~~
   — overtaken by events: the owner didn't wait for a cycle-2 rewrite,
   she re-bet cycle 1 to the resident runtime directly (the amendment,
