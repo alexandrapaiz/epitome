@@ -126,11 +126,8 @@ async function call(url, { auth, method = "GET", body } = {}) {
 // Mint one token for one agent. Returns
 // { token, expiresAt, permissions, repositories, installationId, scopes, source }.
 export async function mintToken(name, manifest, { env = process.env, dir = EPITO_DIR, api = env.EPITO_GITHUB_API || DEFAULT_API } = {}) {
-  const creds = loadAppCredentials(name, { env, dir });
-  if (creds.absent) {
-    throw new TokenError(`${name} has no principal to mint from — epito looked for ${creds.looked}. Create a GitHub App for ${name}, install it on its repository, and put the App's id and private key there`);
-  }
-
+  // The manifest's own problems first: they are the agent's author's to fix,
+  // and they are cheaper to fix than anything about the box.
   const repo = manifest?.runtime?.repo;
   if (!repo) throw new TokenError(`${name}'s token is scoped to one repository and [runtime].repo is unset — add repo = "owner/name" to [runtime], the repository this agent works in`);
   const [owner, repoName] = String(repo).split("/");
@@ -139,6 +136,11 @@ export async function mintToken(name, manifest, { env = process.env, dir = EPITO
   if (!scopes.length) throw new TokenError(`${name} declares no [identity].scopes, so there is no permission to mint — scopes are the ceiling (spec rule 2), and an empty ceiling is an agent that can do nothing`);
   const { permissions, errors } = mapScopes(scopes);
   if (errors.length) throw new TokenError(`${name}'s scopes do not all map to GitHub permissions:\n  ✗ ${errors.join("\n  ✗ ")}`);
+
+  const creds = loadAppCredentials(name, { env, dir });
+  if (creds.absent) {
+    throw new TokenError(`${name} has no principal to mint from — epito looked for ${creds.looked}. Create a GitHub App for ${name}, install it on its repository, and put the App's id and private key there`);
+  }
 
   const jwt = appJwt(creds.appId, creds.privateKey);
   const auth = `Bearer ${jwt}`;

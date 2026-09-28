@@ -29,9 +29,11 @@ entry = "prompts/historian.md"
 ```
 
 ```bash
-epito init      # scaffold an agent (alias: `epito me`)
-epito validate  # check the manifest
-epito deploy    # mint identity, wire trigger, start runtime  (platform, WIP)
+epito init          # scaffold an agent (alias: `epito me`)
+epito validate      # check the manifest
+epito run <dir>     # the resident runtime: host a roster of manifests
+epito token <name>  # mint that agent a short-lived GitHub token of its own
+epito deploy        # mint identity, wire trigger, start runtime  (platform, WIP)
 ```
 
 What the platform provisions on deploy, so you never do:
@@ -39,7 +41,12 @@ What the platform provisions on deploy, so you never do:
 - **Identity** — a real principal: non-personal, scoped, revocable
   credentials; short-lived tokens minted per run; an audit log; one-click
   revoke. The agent shows up in GitHub, Asana, Vercel, your database as
-  *itself*, never as you.
+  *itself*, never as you. *Shipped for GitHub:* `epito token <name>` mints
+  from a per-agent GitHub App, scoped to exactly what `[identity].scopes`
+  maps to and to the one repository `[runtime].repo` names, expiring in an
+  hour and never written to disk — and every run of `epito run` mints its
+  own before it clones (`docs/deploy/README.md`, "Giving a seat its own
+  principal").
 - **Trigger** — cron, webhook, and event subscriptions. Agents are
   autonomous and triggered, not prompted. (If it only runs when prompted
   inside someone else's identity, it's a skill, not an agent.)

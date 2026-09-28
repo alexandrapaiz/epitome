@@ -57,6 +57,44 @@ env = []                                # optional: names of secrets the runtime
 4. **One manifest, one principal.** Deploying the same file twice updates
    the same agent; renaming creates a new one. Identity follows `name`.
 
+## Scope mapping (github, v0.1) — PROPOSED in-band (cycle 1 bet 2)
+
+Rule 2 says scopes are the ceiling. This table is where the sentence
+becomes arithmetic: it is the whole of what `platform:permission` means
+for `github` in v0.1, and every token epito mints asks GitHub for exactly
+what it derives here — never the installation's own grant, which is
+usually wider.
+
+| `[identity].scopes` | GitHub App permission |
+|---|---|
+| `github:contents` | `contents: write` |
+| `github:issues` | `issues: write` |
+| `github:metadata` | `metadata: read` |
+| `github:pull_requests` | `pull_requests: write` |
+
+`metadata: read` is added to every token whether or not the manifest asks
+for it: GitHub grants it to every installation and several permissions
+imply it, so naming it costs nothing and keeps the audit line honest about
+what the token could do.
+
+A `github:` scope with no row here fails `epito validate` and fails the
+mint, in the same words — an agent that believes it holds a permission it
+was never granted fails later, mid-run, in GitHub's vocabulary instead of
+ours. Adding a row is a spec change, which means a diff, which means the
+audit trail includes intent (rule 2 again).
+
+Two things the mint does that are not in the table, and belong to the same
+contract:
+
+- **The token is scoped to one repository**, the `[runtime].repo` of the
+  manifest it was minted from. Scopes are the ceiling on *what*;
+  `[runtime].repo` is the ceiling on *where*.
+- **The token is never written down.** It lives in the run's environment
+  for the length of the run and is redacted out of the run log. What
+  persists on the runtime box is the App's private key, mode 0600, which
+  is the one secret an agent's principal is made of. Rule 1 is unchanged:
+  none of it is ever in the manifest.
+
 ## Proposed in-band (epitod v0, cycle 1 bet 1)
 
 - `[runtime].repo = "owner/name"`. The resident runtime (`epito run`)

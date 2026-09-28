@@ -22,8 +22,61 @@ Environment the daemon reads:
 | `EPITO_EXECUTOR` | the binary spawned per run, default `claude`; `echo` is the stub for smoke tests |
 | `EPITO_RUN_TIMEOUT_MS` | per-run cap, default 3600000 (60 min) |
 | `CLAUDE_CODE_OAUTH_TOKEN` / `ANTHROPIC_API_KEY` | the executor's auth, only if a manifest lists it |
-| `GH_TOKEN` | clone/push/`gh pr create` for now (bet 2 replaces it with a per-agent App token) |
+| `GH_TOKEN` | clone/push/`gh pr create` for an agent with no principal of its own; an agent that has one gets its own minted token under this name instead |
+| `EPITO_APP_ID_<AGENT>` / `EPITO_APP_KEY_<AGENT>` | that agent's GitHub App: its numeric id, and its private key as PEM or base64 of PEM. `<AGENT>` is `[agent].name` upper-cased with `-` as `_` — `pm` → `EPITO_APP_ID_PM`, `code-review` → `EPITO_APP_ID_CODE_REVIEW` |
+| `EPITO_GITHUB_API` | GitHub API base, default `https://api.github.com`; set it for GitHub Enterprise, or at a local stand-in in tests |
 | `SLACK_WEBHOOK_URL` | where the one-line post after each run goes, for agents that list it |
+
+## Giving a seat its own principal
+
+Without this, a run works as whatever `GH_TOKEN` the box holds — one
+identity for every seat, which is the thing epito exists to end. With it,
+each seat opens its PRs as `<name>[bot]`, with only the permissions its
+manifest declares, on only the repository its manifest names, for one hour.
+
+1. Create a GitHub App for the seat (Settings → Developer settings →
+   GitHub Apps → New). Give it the permissions `[identity].scopes` maps to
+   — see the scope table in `spec/manifest.md`.
+2. Generate a private key and download the `.pem`.
+3. Install the App on the repository the seat's `[runtime].repo` names.
+4. Put the id and the key on the box, either in the daemon's environment:
+
+   ```sh
+   # /etc/epitod.env, mode 0600 — one line per value, so the key goes in base64
+   EPITO_APP_ID_PM=1234567
+   EPITO_APP_KEY_PM=LS0tLS1CRUdJTiBSU0Eg...
+   ```
+
+   …or in a file beside the daemon's state, which must be mode 0600 or the
+   mint refuses it:
+
+   ```sh
+   install -m 600 /dev/null .epito/apps/pm.json
+   jq -n --arg k "$(cat pm.private-key.pem)" '{app_id: 1234567, private_key: $k}' > .epito/apps/pm.json
+   ```
+
+5. Check it by hand before the daemon needs it:
+
+   ```sh
+   epito token pm --dir /srv/asc/agents
+   # minted pm: acme/roster, contents:write, metadata:read, pull_requests:write,
+   #   expires 2026-09-28T03:09:52Z (installation 424242, key from EPITO_APP_ID_PM/EPITO_APP_KEY_PM)
+   ```
+
+   The token prints on stdout and the summary on stderr, so
+   `export GH_TOKEN=$(epito token pm)` does the right thing.
+
+Three behaviours worth knowing, because each is deliberate:
+
+- **No principal configured** → the run proceeds on `[runtime].env` exactly
+  as it did before, and says so in its log. Nothing breaks by not adopting
+  this yet.
+- **A principal configured but broken** → the run *fails*, with the reason
+  named (`exit=token` in the log, `token.refused` in the audit). It does
+  not fall back to the box's own credentials: an agent quietly working as
+  its owner is the confusion the product exists to end.
+- **Every mint is one audit line** — agent, repository, installation,
+  scopes, permissions, expiry. Never the token.
 
 ## The ingress
 
