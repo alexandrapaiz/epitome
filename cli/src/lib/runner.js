@@ -27,9 +27,34 @@ import { spawn } from "node:child_process";
 import { mkdtempSync, mkdirSync, rmSync, existsSync, openSync, closeSync, writeSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { EPITO_DIR } from "./audit.js";
+import { EPITO_DIR, appendAudit } from "./audit.js";
+import { loadAppCredentials, mintToken, mintAudit, describePermissions, TokenError } from "./token.js";
 
 const PR_URL_RE = /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/\d+/g;
+
+// A git credential helper that answers from $GH_TOKEN instead of from a file.
+// Two reasons it is shaped this way: a token must never be written to disk
+// (it would land in the clone's .git/config if it rode in the remote URL),
+// and the agent's own `git push` has to authenticate as the same principal
+// the daemon minted for it — so the helper is handed to the child too.
+const CREDENTIAL_HELPER = '!f() { test "$1" = get && printf "username=x-access-token\\npassword=%s\\n" "$GH_TOKEN"; }; f';
+
+// git reads config from GIT_CONFIG_KEY_n/VALUE_n up to GIT_CONFIG_COUNT.
+// Append to whatever chain the environment already has rather than clobbering
+// it: the smoke test's url.insteadOf rewrite lives in the same chain.
+export function gitConfigEnv(base = {}, entries = []) {
+  const start = Number.parseInt(base.GIT_CONFIG_COUNT ?? "0", 10) || 0;
+  const out = {};
+  entries.forEach(([k, v], i) => { out[`GIT_CONFIG_KEY_${start + i}`] = k; out[`GIT_CONFIG_VALUE_${start + i}`] = v; });
+  out.GIT_CONFIG_COUNT = String(start + entries.length);
+  return out;
+}
+
+// The environment a minted token travels in: the two names every GitHub tool
+// reads, plus the helper that turns them into git authentication.
+export function tokenEnv(base, token) {
+  return { GH_TOKEN: token, GITHUB_TOKEN: token, ...gitConfigEnv(base, [["credential.https://github.com.helper", CREDENTIAL_HELPER]]) };
+}
 
 // Branch slug per trigger: the run's branch name says how it was woken.
 const SLUG = { cron: "scheduled", hook: "hook", message: "message", window: "window" };
@@ -88,9 +113,9 @@ export function parseExecutorResult(out) {
   return { sessionId: m ? m[1] : null, turns: null, result: null };
 }
 
-// Returns { exit, durationMs, pr, log, sessionId, turns, workDir }. exit is the
-// child's exit code, or a string naming the failure stage ("clone",
-// "charter-missing", "timeout", "spawn", "workdir-gone").
+// Returns { exit, durationMs, pr, log, sessionId, turns, minted, workDir }. exit
+// is the child's exit code, or a string naming the failure stage ("token",
+// "clone", "charter-missing", "timeout", "spawn", "workdir-gone").
 export async function runAgent({ agent, trigger, hookBody, text, instruction, resume = null, workDir = null, keepWork = false, executor = "claude", timeoutMs, log = console.log, onSpawn }) {
   const { name } = agent.agent;
   const rt = agent.runtime;
@@ -102,7 +127,10 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
   const reused = Boolean(workDir);
   const work = workDir ?? mkdtempSync(join(tmpdir(), `epito-${name}-`));
   const fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
-  const write = (s) => { if (fd !== null) writeSync(fd, s); };
+  // Nothing that passes through this log carries the token out of memory: the
+  // agent can echo $GH_TOKEN and the log will still be safe to read and paste.
+  let secret = null;
+  const write = (s) => { if (fd === null) return; const t = String(s); writeSync(fd, secret ? t.split(secret).join("***epito-token***") : t); };
   // A clone handed to us belongs to the window, not to this run, so it
   // survives however the run ends. A clone we made is kept only when a window
   // asked for it AND the run got far enough to have a session worth resuming.
@@ -115,6 +143,32 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
 
   write(`# epito run ${name} ${runId}\n# trigger=${trigger} model=${rt.model} repo=${rt.repo} ref=${rt.ref ?? "(default)"} executor=${executor}${resume ? ` resume=${resume}` : ""}${reused ? ` workdir=${work} (held)` : ""}\n`);
 
+  // The run's identity. An agent with a principal configured mints one token
+  // for this run and works as itself; an agent with none runs on whatever the
+  // manifest's [runtime].env carries, which is where every seat started. The
+  // third case — a principal configured but broken — is the run's failure,
+  // not a quiet fallback to the owner's credentials: that would be the exact
+  // confusion the product exists to end.
+  let minted = null;
+  try {
+    const creds = loadAppCredentials(name);
+    if (!creds.absent) {
+      minted = await mintToken(name, agent);
+      secret = minted.token;
+      write(`# identity: ${name} as installation ${minted.installationId} on ${minted.repo}, ${describePermissions(minted.permissions)}, expires ${minted.expiresAt}\n`);
+      appendAudit({ agent: name, ...mintAudit(minted), run: runId });
+      log(`${name}: token.mint installation=${minted.installationId} expires=${minted.expiresAt}`);
+    } else {
+      write(`# identity: no principal for ${name} (${creds.looked}); the run uses [runtime].env as before\n`);
+    }
+  } catch (e) {
+    if (!(e instanceof TokenError)) throw e;
+    write(`token mint failed: ${e.message}\n`);
+    appendAudit({ agent: name, action: "token.refused", reason: e.message.split("\n")[0], run: runId });
+    log(`${name}: ${e.message}`);
+    return finish("token");
+  }
+
   if (reused) {
     if (!existsSync(work)) {
       write(`held work directory ${work} is gone\n`);
@@ -124,7 +178,8 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
   } else {
     const url = `https://github.com/${rt.repo}.git`;
     const refArgs = rt.ref ? ["--branch", rt.ref] : [];
-    const clone = await sh("git", ["clone", "--depth", "1", "--quiet", ...refArgs, url, work]);
+    const cloneEnv = minted ? { ...process.env, ...tokenEnv(process.env, minted.token) } : process.env;
+    const clone = await sh("git", ["clone", "--depth", "1", "--quiet", ...refArgs, url, work], { env: cloneEnv });
     write(`$ git clone --depth 1 ${refArgs.join(" ")} ${url}\n${clone.out}`);
     if (clone.code !== 0) { log(`${name}: clone of ${rt.repo} failed (exit ${clone.code}); see ${logPath}`); return finish("clone"); }
 
@@ -145,6 +200,9 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
   for (const k of rt.env ?? []) if (process.env[k] !== undefined) env[k] = process.env[k];
   const email = `${name}@agents.epito.me`;
   Object.assign(env, { GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_COMMITTER_NAME: name, GIT_COMMITTER_EMAIL: email });
+  // Last, so a minted principal beats any GH_TOKEN the manifest's env carries:
+  // the agent works as itself, not as whoever runs the daemon.
+  if (minted) Object.assign(env, tokenEnv(env, minted.token));
   write(`$ ${executor} ${args.map((a) => (a.includes("\n") ? "<prompt>" : a)).join(" ")}\n# env passed: ${Object.keys(env).join(", ")}\n---\n`);
 
   return new Promise((resolve) => {
@@ -165,7 +223,7 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
       const pr = prs ? prs[prs.length - 1] : null;
       const { sessionId, turns } = parseExecutorResult(tail);
       write(`\n---\n# exit=${timedOut ? "timeout" : code ?? signal} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}\n`);
-      resolve(finish(timedOut ? "timeout" : (code ?? signal), { pr, sessionId, turns }));
+      resolve(finish(timedOut ? "timeout" : (code ?? signal), { pr, sessionId, turns, minted: minted ? { installationId: minted.installationId, expiresAt: minted.expiresAt } : null }));
     });
   });
 }

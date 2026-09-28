@@ -16,6 +16,8 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       open (default 4h) or close work windows on the daemon
   epito message <name> "..."
                       speak to an agent in the session its window holds
+  epito token <name> [--dir <dir>]
+                      mint a short-lived GitHub token as that agent
   epito deploy        provision the agent (not yet: platform in progress)
 `;
 
@@ -86,6 +88,48 @@ if (cmd === "run") {
 } else if (cmd === "message") {
   const { message } = await import("./run.js");
   await message(args[0], args.slice(1).join(" "));
+  process.exit(0);
+}
+
+if (cmd === "token") {
+  const flags = args.filter((a) => a.startsWith("--"));
+  const [name] = args.filter((a) => !a.startsWith("--"));
+  if (!name) die("token needs an agent: `epito token <name>` mints a short-lived GitHub token as that agent");
+  const di = args.indexOf("--dir");
+  const dir = di === -1 ? "." : args[di + 1];
+  if (di !== -1 && !dir) die("`--dir` needs a directory: the roster `epito token` looks the agent up in");
+  for (const f of flags) if (f !== "--dir") die(`unknown flag "${f}" — \`epito token <name> [--dir <dir>]\``);
+  if (!existsSync(dir)) die(`no such directory "${dir}" — \`epito token\` looks up <name> among the agent.toml files under it`);
+
+  const { findManifests, loadManifest } = await import("./lib/manifest.js");
+  const paths = findManifests(dir);
+  if (!paths.length) die(`no agent.toml under ${dir} — an agent mints as itself, so \`epito token\` needs the manifest that names it`);
+  const roster = paths.map((p) => ({ path: p, ...loadManifest(p) }));
+  const hit = roster.find((r) => r.manifest?.agent?.name === name);
+  if (!hit) {
+    const known = roster.map((r) => r.manifest?.agent?.name).filter(Boolean).sort();
+    die(`no agent named "${name}" under ${dir}${known.length ? ` — this roster: ${known.join(", ")}` : ""}`);
+  }
+  if (hit.errors.length) {
+    console.error(`${hit.path}: ${hit.errors.length} problem${hit.errors.length > 1 ? "s" : ""} — a manifest that does not validate does not mint\n`);
+    for (const e of hit.errors) console.error(`  ✗ ${e}`);
+    process.exit(1);
+  }
+
+  const { mintToken, mintAudit, describePermissions, TokenError } = await import("./lib/token.js");
+  const { appendAudit } = await import("./lib/audit.js");
+  let minted;
+  try { minted = await mintToken(name, hit.manifest); }
+  catch (e) {
+    if (e instanceof TokenError) { appendAudit({ agent: name, action: "token.refused", reason: e.message.split("\n")[0] }); die(e.message); }
+    throw e;
+  }
+  appendAudit({ agent: name, ...mintAudit(minted) });
+  if (process.stdout.isTTY) {
+    console.error(`epito: this is a live credential for ${name} on ${minted.repo}, good until ${minted.expiresAt}. It is not on disk anywhere — pipe it, don't paste it: export GH_TOKEN=$(epito token ${name})`);
+  }
+  console.error(`minted ${name}: ${minted.repo}, ${describePermissions(minted.permissions)}, expires ${minted.expiresAt} (installation ${minted.installationId}, key from ${minted.source})`);
+  process.stdout.write(minted.token + "\n");
   process.exit(0);
 }
 
