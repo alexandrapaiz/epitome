@@ -75,6 +75,40 @@ env = []                                # optional: names of secrets the runtime
   is what every HQ seat wants. Exists so a charter can be staged on a
   branch and run before it merges (this PR's own smoke test needs it).
 
+## Proposed in-band (the mint, cycle 1 bet 2)
+
+Nothing here is a new field: the point is that a principal needs none.
+
+- **`[identity].scopes` -> GitHub App permissions, v0.1.** The mapping is
+  exactly the scopes the three alexandria seat shapes need:
+
+  | scope | App permission |
+  |---|---|
+  | `github:contents` | `contents: write` |
+  | `github:pull_requests` | `pull_requests: write` |
+  | `github:issues` | `issues: write` |
+  | `github:metadata` | `metadata: read` |
+
+  Anything else fails loudly and mints nothing, naming the mapped set
+  (deploy-identity-v0's no-go on table sprawl; the wider grammar is a v0.2
+  question, below). A minted token asks for exactly these permissions and no
+  others, and it is scoped to the single repository in `[runtime].repo` —
+  rule 2, enforced rather than promised.
+
+- **Where the App key lives: not here, and not named here.** An agent's
+  GitHub App id and private key are secrets on the machine that runs it,
+  found by a name derived from `[agent].name`: agent `pm` reads
+  `EPITO_APP_ID_PM` and `EPITO_APP_PRIVATE_KEY_PM` (uppercase, `-` becomes
+  `_`). This keeps rule 1 absolute — a manifest names no secret at all for
+  its own identity, so the same file is publishable and installable by
+  someone else, who supplies their own App. `[runtime].env` stays what it
+  was: names of *other* secrets a run needs.
+
+- **A token is minted per run and written nowhere.** `.epito/audit.jsonl`
+  records `token.mint` (agent, repo, scopes, permissions, App, installation,
+  expiry) and `token.fail` (the reason) — never the token. `epito token
+  <name>` prints it on stdout and nothing else, for a human or a script.
+
 ## Open questions (settle before v0.2)
 
 - Scope grammar for non-GitHub platforms (`asana:tasks.write`?

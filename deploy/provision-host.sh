@@ -133,6 +133,12 @@ EPITO_PORT=$PORT
 CLAUDE_CODE_OAUTH_TOKEN=replace-me
 GH_TOKEN=replace-me
 SLACK_WEBHOOK_URL=replace-me
+# Per-agent identity, optional and one pair per seat: with these, that agent's
+# runs mint their own short-lived GitHub token and its PRs open as the bot
+# instead of as GH_TOKEN's owner. Names come from [agent].name, uppercased.
+# See docs/deploy/README.md, "Identity: giving a seat its own principal".
+#EPITO_APP_ID_PM=123456
+#EPITO_APP_PRIVATE_KEY_PM=-----BEGIN RSA PRIVATE KEY-----\nMIIE...\n-----END RSA PRIVATE KEY-----\n
 ENV
   chown "$SEATS_USER:$SEATS_USER" "$BASE/env"; chmod 0600 "$BASE/env"
   umask 022
@@ -374,6 +380,9 @@ say "done"
 cat <<NEXT
   1. fill in $BASE/env (CLAUDE_CODE_OAUTH_TOKEN, GH_TOKEN, SLACK_WEBHOOK_URL)
      — or point the Infisical agent at your project and let it render the file
+     — optional, per seat: EPITO_APP_ID_<NAME> + EPITO_APP_PRIVATE_KEY_<NAME>
+       give that agent its own GitHub identity; check it with
+       sudo -u $SEATS_USER sh -c 'cd $BASE/state && epito token <name> $ROSTER_DIR' 
   2. put the roster in $ROSTER_DIR (one directory per agent, each an agent.toml
      with [runtime].repo set), then: systemctl restart epitod
   3. watch it: journalctl -u epitod -f   |   sudo -u $SEATS_USER sh -c 'cd $BASE/state && epito ps'

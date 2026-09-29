@@ -10,7 +10,7 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 
 const argv = process.argv.slice(2);
 const flag = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : null; };
@@ -24,7 +24,16 @@ const prompt = flag("-p") ?? "";
 const transcript = join(dir, `${sessionId}.jsonl`);
 
 const prior = existsSync(transcript) ? readFileSync(transcript, "utf8").trim().split("\n").filter(Boolean) : [];
-writeFileSync(transcript, [...prior, JSON.stringify({ ts: new Date().toISOString(), cwd: process.cwd(), resumed: Boolean(resume), prompt })].join("\n") + "\n");
+// The transcript records WHICH identity the run was handed, never the token
+// itself: a sha256 prefix is enough for a test to prove the child got exactly
+// the token the mint issued, and keeps the rule (tokens are never written
+// down) true even in the fixtures.
+const fp = (v) => (v ? createHash("sha256").update(v).digest("hex").slice(0, 12) : null);
+writeFileSync(transcript, [...prior, JSON.stringify({
+  ts: new Date().toISOString(), cwd: process.cwd(), resumed: Boolean(resume), prompt,
+  gh_token_fingerprint: fp(process.env.GH_TOKEN), github_token_fingerprint: fp(process.env.GITHUB_TOKEN),
+  git_author: `${process.env.GIT_AUTHOR_NAME} <${process.env.GIT_AUTHOR_EMAIL}>`,
+})].join("\n") + "\n");
 
 // First turn of a session opens a PR; a resumed turn refers back to it, which
 // is exactly the continuity the window is for.

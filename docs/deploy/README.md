@@ -22,8 +22,58 @@ Environment the daemon reads:
 | `EPITO_EXECUTOR` | the binary spawned per run, default `claude`; `echo` is the stub for smoke tests |
 | `EPITO_RUN_TIMEOUT_MS` | per-run cap, default 3600000 (60 min) |
 | `CLAUDE_CODE_OAUTH_TOKEN` / `ANTHROPIC_API_KEY` | the executor's auth, only if a manifest lists it |
-| `GH_TOKEN` | clone/push/`gh pr create` for now (bet 2 replaces it with a per-agent App token) |
+| `GH_TOKEN` | the box's fallback identity: clones, and any run with no principal of its own |
+| `EPITO_APP_ID_<NAME>` / `EPITO_APP_PRIVATE_KEY_<NAME>` | agent `<name>`'s own GitHub App (uppercase, `-` becomes `_`); present = that agent's runs mint their own token and stop borrowing `GH_TOKEN` |
+| `GITHUB_API_URL` | where the mint talks, default `https://api.github.com` (GitHub Enterprise, or a stub in tests) |
 | `SLACK_WEBHOOK_URL` | where the one-line post after each run goes, for agents that list it |
+
+## Identity: giving a seat its own principal
+
+Without this, every PR a seat opens wears the owner's face: one `GH_TOKEN`
+on the box, used by everybody. With it, each agent mints its own short-lived
+GitHub App installation token per run, scoped to exactly its
+`[identity].scopes`, and the PR opens as `<app-slug>[bot]`.
+
+One-time, per agent (you do this; the CLI never touches your account):
+
+1. **Create a GitHub App** — Settings → Developer settings → GitHub Apps →
+   New. Name it for the agent. Repository permissions: give it only what the
+   manifest's scopes map to (spec/manifest.md, "the mint"): Contents
+   read+write, Pull requests read+write, Issues read+write if it needs them.
+   No webhook, no callback URL: nothing here is an OAuth flow.
+2. **Install it** on the repository in `[runtime].repo`, that repository
+   only. An App with no installation there can mint nothing, and says so.
+3. **Generate a private key** and put it, with the App id, in the daemon's
+   env file (`/srv/asc/env`, 0600) — one agent per pair of names:
+
+   ```
+   EPITO_APP_ID_PM=123456
+   EPITO_APP_PRIVATE_KEY_PM=-----BEGIN RSA PRIVATE KEY-----\nMIIE...\n-----END RSA PRIVATE KEY-----\n
+   ```
+
+   The escaped-`\n` form is for env files that want one line; the raw PEM and
+   the whole file base64'd are both accepted too.
+
+Then check it from the box, before trusting a run to it:
+
+```sh
+cd /srv/asc/state
+epito token pm /srv/asc/roster            # prints the token on stdout, the details on stderr
+# minted for pm: epito-pm[bot] on alexandrapaiz/alexandra-systems (contents:write, pull_requests:write) — expires 2026-09-29T03:54:43Z
+tail -1 .epito/audit.jsonl                # the mint is recorded; the token is not
+```
+
+What the runtime then does, per run: mints after the clone and before the
+executor, injects the token as `GH_TOKEN`/`GITHUB_TOKEN` **after**
+`[runtime].env` is applied (so the agent's own identity always beats a
+borrowed one), sets git author and committer to `<slug>[bot]`, and writes a
+`token.mint` line. Rules it keeps: an agent with no App on the box runs
+exactly as before; an agent **with** one whose mint fails stops the run
+(`exit=identity`) rather than quietly falling back to your token; the token
+never reaches `.epito/`, a log, or the state file.
+
+Not yet: the clone still uses the box's git credentials, so a private repo
+still needs `GH_TOKEN` (docs/ideas.md — "clone as the principal").
 
 ## The ingress
 

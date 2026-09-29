@@ -31,6 +31,8 @@ entry = "prompts/historian.md"
 ```bash
 epito init      # scaffold an agent (alias: `epito me`)
 epito validate  # check the manifest
+epito token pm  # mint that agent's own short-lived GitHub token
+epito run ./agents  # the resident runtime: host every agent.toml under a dir
 epito deploy    # mint identity, wire trigger, start runtime  (platform, WIP)
 ```
 
