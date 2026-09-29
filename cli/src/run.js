@@ -19,9 +19,9 @@
 // `--resume`. Closing the window — by hand or by the clock — discards the id
 // and deletes the clone: the PRs are the record (ADR-2, repo-as-state), the
 // session is not.
-import { readdirSync, statSync, rmSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { loadManifest } from "./lib/manifest.js";
+import { rmSync } from "node:fs";
+import { resolve } from "node:path";
+import { loadManifest, findManifests } from "./lib/manifest.js";
 import { parseCron, cronMatches, nextCronFire } from "./lib/cron.js";
 import { startHookServer } from "./lib/hooks.js";
 import { runAgent, windowInstruction } from "./lib/runner.js";
@@ -33,21 +33,8 @@ const SWEEP_MS = 5_000; // how punctually a window's wall-clock deadline is hono
 const DEFAULT_TIMEOUT_MS = 60 * 60 * 1000;
 const DEFAULT_WINDOW_MS = 4 * 60 * 60 * 1000;
 const DEFAULT_PORT = 4747;
-const SKIP = new Set(["node_modules", ".git", ".epito"]);
-
 const ts = () => new Date().toISOString();
 const log = (msg) => console.log(`${ts()} ${msg}`);
-
-function findManifests(dir, depth = 0, out = []) {
-  for (const ent of readdirSync(dir)) {
-    if (SKIP.has(ent)) continue;
-    const p = join(dir, ent);
-    const st = statSync(p);
-    if (st.isDirectory() && depth < 4) findManifests(p, depth + 1, out);
-    else if (ent === "agent.toml") out.push(p);
-  }
-  return out;
-}
 
 // Load the roster or exit(1) with every problem named, in the validator's voice.
 function loadRoster(dir) {
@@ -140,8 +127,9 @@ export async function runDaemon(dirArg) {
     }
 
     appendAudit({ agent: name, action: "run.end", trigger: req.trigger, model: a.manifest.runtime.model, exit: r.exit, durationMs: r.durationMs,
-      ...(r.turns != null ? { turns: r.turns } : {}), ...(r.sessionId ? { session: r.sessionId } : {}), ...(r.pr ? { pr: r.pr } : {}) });
-    log(`${name}: run.end exit=${r.exit} ${r.durationMs}ms${r.turns != null ? ` turns=${r.turns}` : ""}${r.pr ? ` pr=${r.pr}` : ""} log=${r.log}`);
+      ...(r.turns != null ? { turns: r.turns } : {}), ...(r.sessionId ? { session: r.sessionId } : {}), ...(r.pr ? { pr: r.pr } : {}),
+      ...(r.identity ? { as: r.identity.login } : {}) });
+    log(`${name}: run.end exit=${r.exit}${r.identity ? ` as=${r.identity.login}` : ""} ${r.durationMs}ms${r.turns != null ? ` turns=${r.turns}` : ""}${r.pr ? ` pr=${r.pr}` : ""} log=${r.log}`);
 
     const slack = await postToSlack({ agent: name, manifest: a.manifest, trigger: req.trigger, turns: r.turns, pr: r.pr, durationMs: r.durationMs, exit: r.exit });
     if (slack.text) {

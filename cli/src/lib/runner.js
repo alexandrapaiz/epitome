@@ -23,11 +23,20 @@
 // transcript per project directory — so `workDir`/`keepWork` let the caller
 // keep one clone alive for the length of a window. That is the only reason
 // the clone outlives a run; closing the window deletes it.
+// Identity (cycle 1 bet 2): if this box holds a GitHub App for the agent —
+// EPITO_APP_ID_<NAME> and EPITO_APP_PRIVATE_KEY_<NAME> — the run mints its own
+// short-lived installation token and works as `<app-slug>[bot]`: its PR, its
+// commits, its audit trail, none of them the owner's. The minted token is
+// injected as GH_TOKEN/GITHUB_TOKEN *after* [runtime].env is read, so the
+// agent's own identity always beats a borrowed one. No principal on the box
+// means the old behaviour, unchanged. A principal that fails to mint stops the
+// run: a seat that quietly falls back to the owner's token is the bug.
 import { spawn } from "node:child_process";
 import { mkdtempSync, mkdirSync, rmSync, existsSync, openSync, closeSync, writeSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { EPITO_DIR } from "./audit.js";
+import { EPITO_DIR, appendAudit } from "./audit.js";
+import { hasPrincipal, mintToken } from "./identity.js";
 
 const PR_URL_RE = /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/\d+/g;
 
@@ -110,7 +119,7 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
     if (fd !== null) closeSync(fd);
     const hold = reused || (keepWork && typeof exit === "number" && Boolean(extra.sessionId));
     if (!hold) rmSync(work, { recursive: true, force: true });
-    return { exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null, ...extra, workDir: hold ? work : null };
+    return { exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null, identity: null, ...extra, workDir: hold ? work : null };
   };
 
   write(`# epito run ${name} ${runId}\n# trigger=${trigger} model=${rt.model} repo=${rt.repo} ref=${rt.ref ?? "(default)"} executor=${executor}${resume ? ` resume=${resume}` : ""}${reused ? ` workdir=${work} (held)` : ""}\n`);
@@ -136,21 +145,44 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
     }
   }
 
+  // The agent's own principal, minted per run and never written down.
+  let identity = null;
+  if (hasPrincipal(name)) {
+    try {
+      identity = await mintToken({ name, scopes: agent.identity?.scopes, repo: rt.repo });
+      const perms = Object.entries(identity.permissions).map(([k, v]) => `${k}:${v}`).sort().join(",");
+      write(`# identity: minted ${identity.bot?.login ?? identity.appSlug ?? `app ${identity.appId}`} installation=${identity.installationId} perms=${perms} expires=${identity.expiresAt}\n`);
+      appendAudit({ agent: name, action: "token.mint", via: "run", repo: rt.repo, scopes: agent.identity?.scopes ?? [],
+        permissions: identity.permissions, app: identity.appSlug, app_id: identity.appId,
+        installation: identity.installationId, expires_at: identity.expiresAt });
+      log(`${name}: minted its own token as ${identity.bot?.login ?? identity.appSlug} (expires ${identity.expiresAt})`);
+    } catch (e) {
+      write(`identity: ${e.message}\n`);
+      appendAudit({ agent: name, action: "token.fail", via: "run", reason: e.message.split("\n")[0].slice(0, 200) });
+      log(`${name}: ${e.message}`);
+      return finish("identity");
+    }
+  }
+
   // A resumed run continues a conversation: the message is the whole prompt.
   // A fresh run is introduced by the charter preamble.
+  const idSummary = identity ? { login: identity.bot?.login ?? identity.appSlug, app: identity.appSlug, installation: identity.installationId, expiresAt: identity.expiresAt } : null;
+
   const prompt = resume ? text : buildPrompt({ name, entry: rt.entry, trigger, date, hookBody: hookBody ?? text, instruction });
   const args = ["-p", prompt, "--permission-mode", "bypassPermissions", "--model", rt.model, "--max-turns", String(rt.max_turns ?? 100), "--output-format", "json"];
   if (resume) args.push("--resume", resume);
   const env = { PATH: process.env.PATH, HOME: process.env.HOME, USER: process.env.USER };
   for (const k of rt.env ?? []) if (process.env[k] !== undefined) env[k] = process.env[k];
-  const email = `${name}@agents.epito.me`;
-  Object.assign(env, { GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_COMMITTER_NAME: name, GIT_COMMITTER_EMAIL: email });
+  if (identity) { env.GH_TOKEN = identity.token; env.GITHUB_TOKEN = identity.token; }
+  const who = identity?.bot?.login ?? name;
+  const email = identity?.bot?.email ?? `${name}@agents.epito.me`;
+  Object.assign(env, { GIT_AUTHOR_NAME: who, GIT_AUTHOR_EMAIL: email, GIT_COMMITTER_NAME: who, GIT_COMMITTER_EMAIL: email });
   write(`$ ${executor} ${args.map((a) => (a.includes("\n") ? "<prompt>" : a)).join(" ")}\n# env passed: ${Object.keys(env).join(", ")}\n---\n`);
 
   return new Promise((resolve) => {
     let child;
     try { child = spawn(executor, args, { cwd: work, env, stdio: ["ignore", "pipe", "pipe"], detached: true }); }
-    catch (e) { write(`spawn failed: ${e.message}\n`); return resolve(finish("spawn")); }
+    catch (e) { write(`spawn failed: ${e.message}\n`); return resolve(finish("spawn", { identity: idSummary })); }
     onSpawn?.(child);
     let tail = "";
     const onData = (d) => { write(d); tail = (tail + d).slice(-64 * 1024); };
@@ -158,14 +190,14 @@ export async function runAgent({ agent, trigger, hookBody, text, instruction, re
     child.stderr.on("data", onData);
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; try { process.kill(-child.pid, "SIGKILL"); } catch {} }, timeoutMs);
-    child.on("error", (e) => { clearTimeout(timer); write(`spawn failed: ${e.message}\n`); resolve(finish("spawn")); });
+    child.on("error", (e) => { clearTimeout(timer); write(`spawn failed: ${e.message}\n`); resolve(finish("spawn", { identity: idSummary })); });
     child.on("close", (code, signal) => {
       clearTimeout(timer);
       const prs = tail.match(PR_URL_RE);
       const pr = prs ? prs[prs.length - 1] : null;
       const { sessionId, turns } = parseExecutorResult(tail);
       write(`\n---\n# exit=${timedOut ? "timeout" : code ?? signal} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}\n`);
-      resolve(finish(timedOut ? "timeout" : (code ?? signal), { pr, sessionId, turns }));
+      resolve(finish(timedOut ? "timeout" : (code ?? signal), { pr, sessionId, turns, identity: idSummary }));
     });
   });
 }

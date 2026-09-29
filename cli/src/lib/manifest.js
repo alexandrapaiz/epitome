@@ -3,11 +3,27 @@
 // with the same rules `epito validate` applies. The error strings are product
 // surface (spec: "name the rule broken, in the product's own vocabulary, with
 // the fix in the message") and must not drift between the two commands.
-import { readFileSync, existsSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
+import { dirname, resolve, join } from "node:path";
 import { parse } from "smol-toml";
 
 export const NAME_RE = /^[a-z0-9-]{1,40}$/;
+
+// Directories a roster never hides an agent in.
+const SKIP = new Set(["node_modules", ".git", ".epito"]);
+
+// Every agent.toml under a directory, four levels deep: the roster shape
+// `epito run` hosts and `epito token` looks an agent up in.
+export function findManifests(dir, depth = 0, out = []) {
+  for (const ent of readdirSync(dir)) {
+    if (SKIP.has(ent)) continue;
+    const p = join(dir, ent);
+    const st = statSync(p);
+    if (st.isDirectory() && depth < 4) findManifests(p, depth + 1, out);
+    else if (ent === "agent.toml") out.push(p);
+  }
+  return out;
+}
 
 // Parse a manifest file. Returns { manifest } or { parseError }.
 export function parseManifest(path) {

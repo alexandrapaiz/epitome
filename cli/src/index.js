@@ -16,6 +16,8 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       open (default 4h) or close work windows on the daemon
   epito message <name> "..."
                       speak to an agent in the session its window holds
+  epito token <name> [dir]
+                      mint that agent's own short-lived GitHub token
   epito deploy        provision the agent (not yet: platform in progress)
 `;
 
@@ -86,6 +88,10 @@ if (cmd === "run") {
 } else if (cmd === "message") {
   const { message } = await import("./run.js");
   await message(args[0], args.slice(1).join(" "));
+  process.exit(0);
+} else if (cmd === "token") {
+  const { tokenCmd } = await import("./token.js");
+  await tokenCmd(args);
   process.exit(0);
 }
 
