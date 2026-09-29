@@ -37,6 +37,16 @@ const ts = () => new Date().toISOString();
 const log = (msg) => console.log(`${ts()} ${msg}`);
 
 const ALREADY_STARTED = "WorkflowExecutionAlreadyStartedError";
+// The other side of the same coin. `signalWithStart` either signals the
+// execution already running under this id or starts one — but the two happen
+// on the server in that order, so a run that COMPLETES in between is signalled
+// after it closed and the call fails. It is the ordinary end of every run
+// racing the ingress, not a broken workflow, and the caller's own intent
+// ("start a fresh run") is exactly what a retry does: by the second attempt
+// the execution is closed, so signalWithStart starts a new one.
+const ALREADY_COMPLETED = "WorkflowNotFoundError";
+const justCompleted = (e) =>
+  e?.name === ALREADY_COMPLETED || /workflow execution already completed/i.test(e?.message ?? "");
 
 export async function runDaemon(dirArg, { dryRun = false } = {}) {
   const dir = resolve(dirArg);
@@ -69,12 +79,14 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
     // is the call that starts the workflow, so the run needs a way to know
     // that the first followUp it sees IS the trigger it was started with.
     const args = seatArgs(name, { trigger, payload, token: randomUUID() });
-    // Asked before, only so the answer can say which of the two happened. The
-    // engine is correct either way, so a run that ends in the gap costs a
-    // wrong word in a 202 body and nothing else.
+    // Asked before, only so the answer can say which of the two happened.
+    // A run that ends in this gap costs a wrong word in the 202 body — and,
+    // until the retry below, cost the whole request: the signal landed on an
+    // execution that had just closed and the ingress answered 500 with
+    // Temporal's own sentence in it.
     const before = await client.workflow.getHandle(runId(name)).describe().catch(() => null);
     const wasRunning = before?.status?.name === "RUNNING";
-    const handle = await client.workflow.signalWithStart("SeatRun", {
+    const send = () => client.workflow.signalWithStart("SeatRun", {
       workflowId: runId(name),
       taskQueue: cfg.taskQueue,
       workflowRunTimeout: cfg.runTimeoutMs,
@@ -82,8 +94,21 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
       signal: "followUp",
       signalArgs: [args],
     });
-    if (wasRunning) log(`${name}: ${trigger} while running — coalesced into the run in flight`);
-    return { outcome: wasRunning ? "coalesced" : "started", workflow: handle.workflowId };
+    let handle;
+    let raced = false;
+    try {
+      handle = await send();
+    } catch (e) {
+      if (!justCompleted(e)) throw e;
+      // The run ended underneath us. Say so, and start the fresh one the
+      // caller asked for — dropping a message here would lose something a
+      // person said, which this runtime does not do.
+      raced = true;
+      log(`${name}: the run ended as the ${trigger} arrived — starting a fresh run for it`);
+      handle = await send();
+    }
+    if (wasRunning && !raced) log(`${name}: ${trigger} while running — coalesced into the run in flight`);
+    return { outcome: wasRunning && !raced ? "coalesced" : "started", workflow: handle.workflowId };
   }
 
   async function openWindow(name, { text, ttlMs }) {

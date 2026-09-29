@@ -7,7 +7,7 @@
 // The reconcile diff is a pure function of (desired roster, schedules already
 // registered), which is the whole reason `epito run` is safe to re-run: these
 // six cases are the command's entire behavior.
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { reconcilePlan, scheduleShape } from "../src/temporal/schedules.js";
 import { validateManifest } from "../src/lib/manifest.js";
@@ -34,6 +34,19 @@ import { cpSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+// Every temp dir this suite makes, swept when the suite ends. Ten call sites
+// made one each and removed none, so a single `node --test test/unit.mjs` left
+// a hundred-odd directories in $TMPDIR — and the smoke test asserts "no clone
+// was left behind" by globbing that same directory, so the mess is not only
+// untidy, it is in the way.
+const TMPDIRS = [];
+const tmpDir = (prefix = "epito-unit-") => {
+  const d = mkdtempSync(join(tmpdir(), prefix));
+  TMPDIRS.push(d);
+  return d;
+};
+after(() => { for (const d of TMPDIRS) rmSync(d, { recursive: true, force: true }); });
 
 const seat = (name, over = {}) => ({
   agent: { name, description: "A seat." },
@@ -231,7 +244,7 @@ test("one agent, one App key: the env names are per agent and slug-safe", () => 
 test("a key can be a .pem on disk, which is what a systemd EnvironmentFile needs", () => {
   const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
   const pem = privateKey.export({ type: "pkcs1", format: "pem" }).toString();
-  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const dir = tmpDir();
   const keyPath = join(dir, "pm.pem");
   writeFileSync(keyPath, pem, { mode: 0o600 });
   const p = loadPrincipal("pm", { env: { EPITO_APP_ID_PM: "7", EPITO_APP_KEY_FILE_PM: keyPath }, dir });
@@ -251,7 +264,7 @@ test("loadPrincipal reads a PEM whose newlines arrived escaped, and is null with
   const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
   const pem = privateKey.export({ type: "pkcs1", format: "pem" }).toString();
   const env = { EPITO_APP_ID_PM: 99, EPITO_APP_KEY_PM: pem.replace(/\n/g, "\\n") };
-  const p = loadPrincipal("pm", { env, dir: mkdtempSync(join(tmpdir(), "epito-unit-")) });
+  const p = loadPrincipal("pm", { env, dir: tmpDir() });
   assert.equal(p.appId, "99", "an App id from the environment is a string");
   assert.equal(p.privateKey, pem, "a single-line PEM is unescaped before use");
   assert.equal(p.installationId, null, "discovered from [runtime].repo when unnamed");
@@ -261,7 +274,7 @@ test("loadPrincipal reads a PEM whose newlines arrived escaped, and is null with
 // --- identity: the token reaches the child and not the log ----------------
 
 test("a minted token is injected into the run and scrubbed out of its log", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);                              // .epito/logs/<agent>/ is relative
   const work = mkdtempSync(cloneDirPrefix("pm"));
@@ -298,7 +311,7 @@ test("a minted token is injected into the run and scrubbed out of its log", asyn
 });
 
 test("with no App, the run is exactly what it was before the identity slice", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
   const work = mkdtempSync(cloneDirPrefix("okr"));
@@ -677,7 +690,7 @@ test("EPITO_EXECUTOR overrides the claude executable and never the interpreter",
 const fixture = (name, work) => cpSync(fileURLToPath(new URL(`./fixtures/${name}/`, import.meta.url)), work, { recursive: true });
 
 test("a langgraph seat runs: the graph's steps are its turns, and its PR is read off stdout", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
   const work = mkdtempSync(cloneDirPrefix("seat"));
@@ -696,7 +709,14 @@ test("a langgraph seat runs: the graph's steps are its turns, and its PR is read
     assert.equal(r.pr, "https://github.com/acme/roster/pull/777", "a foreign agent's PR is read the same way");
     assert.equal(r.sessionId, null, "and it holds no session, which is the honest answer");
     const logged = readFileSync(r.log, "utf8");
-    assert.match(logged, /adapter=langgraph command=python3/);
+    // The interpreter is whatever this box resolves, not the literal
+    // "python3": a box that actually runs langgraph seats sets EPITO_PYTHON
+    // (deploy README), and asserting the default made this test pass only
+    // where the framework is absent — green on every box except the one the
+    // feature is for.
+    assert.ok(logged.includes(`adapter=langgraph command=${ADAPTERS.langgraph.binary(process.env)}`),
+      "the log names the interpreter the runtime resolved");
+    assert.ok(!logged.includes("/nonexistent/claude-stub"), "and the claude override never reached python");
     assert.match(logged, /· read_charter: charter=prompts\/seat\.md trigger=cron/, "the run's facts reached the graph");
     assert.match(logged, /GH_TOKEN=\[redacted: this run's token\]/, "its own credential reached it, and not the log");
   } finally {
@@ -707,7 +727,7 @@ test("a langgraph seat runs: the graph's steps are its turns, and its PR is read
 });
 
 test("a repository with no langgraph.json refuses in the product's voice, on the board", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
   const work = mkdtempSync(cloneDirPrefix("seat"));
@@ -730,7 +750,7 @@ test("a repository with no langgraph.json refuses in the product's voice, on the
 });
 
 test("a follow-up to an adapter that holds no session starts a fresh run, and says so", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
   const work = mkdtempSync(cloneDirPrefix("seat"));
@@ -892,7 +912,7 @@ test("a trace backend that is down, or answers 500, never fails the run", async 
 
 test("an agent's own spans land in the run's trace: the shim nests under `execute`", async (t) => {
   const { received, port } = await otlpSink(t);
-  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
   const work = mkdtempSync(cloneDirPrefix("seat"));
@@ -1073,7 +1093,7 @@ test("router: a one-lane road carries one run at a time", async () => {
 // --- the detour, end to end ----------------------------------------------
 
 const stubRun = async (agent, over = {}, env = {}) => {
-  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
   const work = mkdtempSync(cloneDirPrefix(agent.agent.name));
@@ -1153,7 +1173,7 @@ test("the detour: a seat with every road closed refuses the run and names each o
 test("the detour: a run that reached turn nine is the agent's outcome, not the road's", async () => {
   // The stub answers turn N+1 for a session it has seen before, so a second
   // run on the same session id is a run that did work and then failed.
-  const dir = mkdtempSync(join(tmpdir(), "epito-unit-"));
+  const dir = tmpDir();
   const stub = join(dir, "many-turns.mjs");
   writeFileSync(stub, `#!/usr/bin/env node
 process.stdout.write(JSON.stringify({ type: "result", is_error: true, num_turns: 9, result: "the agent gave up", session_id: "s1" }) + "\\n");

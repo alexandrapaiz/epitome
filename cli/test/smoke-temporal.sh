@@ -99,6 +99,20 @@ audit(){ label="$1"; shift; if node "$CLI/test/audit-has.mjs" "$@" >/dev/null 2>
 # of what the identity slice promises.
 none(){ n=$(node "$CLI/test/audit-has.mjs" --count "$2"); if [ "$n" = 0 ]; then ok "$1"; else bad "$1 (found $n)"; fi; }
 step() { printf '\n== %s\n' "$1"; }
+# "The clone is gone" is an assertion about an activity that runs AFTER the run
+# the test just watched finish: `cleanup` is its own Temporal activity, so the
+# directory disappears a moment later, not at run.end. Asserting it immediately
+# is a race the test wins on an idle box and loses under load (found running
+# every suite in one pass: test/all.sh). Poll instead — an assertion with a
+# deadline is still an assertion, and a stale directory fails it just the same.
+gone() {
+  local label="$1" glob="$2" deadline=$((SECONDS + 15))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    [ "$(ls -d $glob 2>/dev/null | wc -l)" = 0 ] && { ok "$label"; return; }
+    sleep 0.25
+  done
+  bad "$label (still there after 15s: $(ls -d $glob 2>/dev/null | tr '\n' ' '))"
+}
 
 cleanup() {
   for pid in ${INGRESS_PID:-} ${WORKER_PID:-} ${SINK1_PID:-} ${SINK2_PID:-} ${GH_PID:-} ${OTLP_PID:-} ${SERVER_PID:-}; do
@@ -385,7 +399,7 @@ check "nobody started it by hand: the workflow id carries the scheduled time" "'
   --address "127.0.0.1:$GRPC_PORT" --namespace "$NS" 2>&1 | sed 's/^/  temporal> /'
 node "$CLI/test/wait-for.mjs" runs clock 1
 sleep 1
-check "and the clone it ran in is gone" "[ \$(ls -d \${TMPDIR:-/tmp}/epito-clock-* 2>/dev/null | wc -l) = 0 ]"
+gone "and the clone it ran in is gone" "${TMPDIR:-/tmp}/epito-clock-*"
 # Schedule listing is eventually consistent by Temporal's own documentation, so
 # a pause is a thing to wait for rather than to read once.
 for _ in $(seq 1 40); do node "$CLI/src/index.js" ps 2>/dev/null | grep clock | grep -q paused && break; sleep 0.5; done
@@ -453,7 +467,7 @@ audit "the run ended at the mint, and is recorded as such" '{"agent":"badkey","a
 audit "the refusal is recorded in the product voice, not as \"Activity task failed\"" '{"agent":"badkey","action":"run.end","detail":"~this run has an identity it could not mint, so it did not start"}'
 audit "and the key it choked on is described, never printed" '{"agent":"badkey","action":"run.end","detail":"~not a readable PEM"}'
 check "no token was handed to it instead" "! ls .epito/logs/badkey/*.log >/dev/null 2>&1 || ! grep -q 'GH_TOKEN=$SHARED_TOKEN' .epito/logs/badkey/*.log"
-check "and no clone was left behind" "[ \$(ls -d \${TMPDIR:-/tmp}/epito-badkey-* 2>/dev/null | wc -l) = 0 ]"
+gone "and no clone was left behind" "${TMPDIR:-/tmp}/epito-badkey-*"
 node "$CLI/test/wait-for.mjs" closed badkey
 
 step "4 (the CLI): \`epito token <name>\` is the same mint, on stdout"
@@ -495,7 +509,7 @@ code=$(post /window/open '{"scope":"ghost"}'); echo "  $code $(body)"
 node "$CLI/test/wait-for.mjs" action ghost run.end 1
 audit "it is recorded as a run that ENDED, not a run that vanished" '{"agent":"ghost","action":"run.end","trigger":"window","exit":"charter-missing"}'
 audit "the refusal names the rule and the repository, in the audit line" '{"agent":"ghost","action":"run.end","detail":"~[runtime].entry \"prompts/ghost.md\" does not exist in acme/roster; the run refuses to improvise"}'
-check "no clone was left behind for ghost" "[ \$(ls -d \${TMPDIR:-/tmp}/epito-ghost-* 2>/dev/null | wc -l) = 0 ]"
+gone "no clone was left behind for ghost" "${TMPDIR:-/tmp}/epito-ghost-*"
 node "$CLI/test/wait-for.mjs" closed ghost
 audit "and the window did not stay open with nothing in it" '{"agent":"ghost","action":"window.close","reason":"the opening run failed, so there is no session to hold"}'
 
@@ -503,7 +517,7 @@ step "closing a window discards the session and deletes the clone"
 code=$(post /window/close '{"scope":"pm"}'); echo "  $code $(body)"
 node "$CLI/test/wait-for.mjs" closed pm
 audit "the close is recorded with its reason" '{"agent":"pm","action":"window.close","reason":"requested"}'
-check "no clone left behind for pm" "[ \$(ls -d \${TMPDIR:-/tmp}/epito-pm-* 2>/dev/null | wc -l) = 0 ]"
+gone "no clone left behind for pm" "${TMPDIR:-/tmp}/epito-pm-*"
 
 step "a message with no window held starts a fresh run, and says so"
 code=$(post /message/pm '{"text":"no window: treat me as an event"}'); echo "  $code $(body)"
@@ -632,7 +646,7 @@ const b=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));
 const e=b.recent.find(x=>x.agent===\"graphs\");
 console.log(\"   \", e.agent, e.trigger, e.outcome, e.turns+\" turns\", e.pr||\"-\");
 process.exit(e && e.outcome===\"ok\" && e.turns===2 ? 0 : 1)'"
-check "and the clone it ran in is gone" "[ \$(ls -d \${TMPDIR:-/tmp}/epito-graphs-* 2>/dev/null | wc -l) = 0 ]"
+gone "and the clone it ran in is gone" "${TMPDIR:-/tmp}/epito-graphs-*"
 
 step "6 (presence, honestly): a window over a seat whose agent holds no session"
 code=$(post /window/open '{"scope":"graphs","text":"Anything to report?"}'); echo "  $code $(body)"
@@ -644,7 +658,7 @@ audit "a message to it still runs the seat — three runs, none of them resumed"
 none "and nothing pretended to resume a conversation" '{"agent":"graphs","action":"run.end","resume":"*"}'
 code=$(post /window/close '{"scope":"graphs"}'); echo "  $code $(body)"
 node "$CLI/test/wait-for.mjs" closed graphs 60000
-check "the window closed and took the clone with it" "[ \$(ls -d \${TMPDIR:-/tmp}/epito-graphs-* 2>/dev/null | wc -l) = 0 ]"
+gone "the window closed and took the clone with it" "${TMPDIR:-/tmp}/epito-graphs-*"
 
 step "7: A RUN IS ONE TRACE — run -> clone / mint / execute -> the agent's own steps"
 check "the worker says on its first lines where its spans go" "grep -q 'epito worker: traces -> http://127.0.0.1:$OTLP_PORT/v1/traces' '$ROOT/worker.log'"
