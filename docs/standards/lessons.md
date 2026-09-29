@@ -1,7 +1,7 @@
-<!-- vendored-from: standards/lessons.md @ 9605e550a39742ea583ea93a796c1e49e05fd578 -->
+<!-- vendored-from: standards/lessons.md @ 775ce369c76dc04b45d0aa19e6fdf45969e13718 -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `9605e55`,
-> vendored 2026-09-21. Changes to a company standard are HQ
+> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `775ce36`,
+> vendored 2026-09-28. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
 <!-- end vendored header -->
@@ -21,6 +21,24 @@ old ID, never done silently.
 
 Format: rule, then provenance (product, date, owner's words where
 captured).
+
+**Where a new lesson goes, and who issues its ID.** The centralizer is
+not the only author who reaches this file. Between harvests the owner
+and the chair land rulings here directly, which is correct, because a
+ruling should not wait a week for a seat to run. What cannot work is
+those entries picking their own rule ID. Between 2026-09-23 and
+2026-09-25 four such commits added five entries, and two of them reused
+IDs that were already live in five repositories (see L-A18, which now
+carries this as its second source). A counter in a file is not an
+allocator when more than one author can write between merges.
+
+So: **anyone may append to the inbox at the bottom of this file, and only
+the centralizer issues a rule ID.** An inbox entry needs a title, a
+date, the role or roles it binds, and the rule in plain sentences. No
+`L-` identifier. The next harvest generalizes it, gives it an ID, files
+it under its role section, and empties the inbox. Nothing in the inbox
+is law yet, and nothing cites an inbox entry, so nothing breaks when the
+ID it eventually gets is not the one its author would have chosen.
 
 ## any (all seats, all products)
 
@@ -185,6 +203,194 @@ captured).
   PR #15. Two products, one defect, so the fix is owed here under
   L-A11.)
 
+  **Amended 2026-09-28, and this half matters more than the half above.**
+  Reading the tail is the right instruction and it is not sufficient,
+  because two seats reading the same tail at the same time take the same
+  number. The org keeps two kinds of identifier and had been treating
+  them the same. An id read only by the run that wrote it may be
+  sequential. **An id that other artifacts cite has to be allocatable
+  without coordination, because the seats cannot coordinate by
+  construction: they never message each other and each one sees a
+  different snapshot of the repository.** A sequential counter in a file
+  is not an allocator under those conditions, it is a collision
+  generator, and it fires on every window where two authors register
+  something between merges. The form that needs no allocator is
+  `INC-YYYY-MM-DD-slug`, or any scheme whose uniqueness comes from the
+  date and the subject rather than from a count. Identifiers already
+  issued are permanent, and the scheme changes for new ones only. Where a
+  central register must keep a short sequential ID because charters cite
+  it, as this file does, the fix is instead to make one author the only
+  issuer and give everyone else an unnumbered inbox, per the preamble.
+
+  **Third clause: an identifier cited across repositories carries its
+  legislature.** This company has two bodies that number things and both
+  are cited as bare numbers. alexandria's own ADRs stop at 32 and HQ
+  numbers ADR-033, and a reader of "ADR-15" in a product repo cannot tell
+  which one is meant. Cite `HQ ADR-015` or `alexandria ADR-15`, never
+  the number alone, in any file that is read from more than one repo.
+  (Second source for all three clauses: alexandria incident 29,
+  2026-09-24, where the exo seat and the chair wrote incidents 23 and 24
+  for different events three days apart, both correct when written. The
+  file then turned out to already hold two 19s, two 20s and two 22s from
+  three earlier merges that nobody had registered. Third source, HQ's
+  own, 2026-09-28: HQ's incident register now runs 1, 2, 3, 4, 5, 6, 3,
+  4, 5 and this register had shipped `L-K3` and `L-E6` twice each to
+  three products. The "where to look next" the alexandria entry left for
+  its successor was the ADR numbering, and it was right.)
+- **L-A19 — A status line is not communication.** The owner's window
+  into a company cannot be one line per run with a link, because she
+  reads that as silence. A report is prose and it opens the pull
+  request. A PM speaks in the first person about what it plans, what it
+  dispatched and what it needs answered, and the channel carries
+  traffic in both directions. The test is not whether a message was
+  sent. It is whether the owner would call what happened a
+  conversation. (HQ, 2026-09-26, the owner on the Slack run reports.
+  **Renumbered from L-V1 on 2026-09-28**, which used a section prefix
+  no section owns. The rule is unchanged and no file anywhere cited the
+  old ID.)
+- **L-A20 — A parent decision governs, and it does not take effect
+  silently.** HQ decides for the portfolio and a product does not get
+  to refuse. Precedence is not the problem, and a veto in the subsidiary
+  would be the wrong fix. What the subsidiary is owed is notice, and
+  notice has a definition. One, an HQ decision that changes anything
+  inside a product lands with a record inside that product: a vendored
+  copy, or one entry in the product's own decisions file naming the HQ
+  ADR, the local files it changes and the local law it touches. A
+  commit subject is not a record, because nothing reads commit
+  subjects. Two, where the decision overrides a local law, the override
+  is written into that local law's own file, not into a changelog.
+  Three, and this is the clause to keep if the rest is cut, **a local
+  law's preconditions survive an override unless the override names
+  them.** A safety clause that can be dropped by not being mentioned
+  is not a clause. Four, the seats whose behaviour changes are told in
+  their charter or in a file their charter already reads. Five, the
+  relay runs both ways: a subsidiary's incident that is evidence about
+  a parent decision goes up. None of this is an approval step and none
+  of it lets a product delay anything. Every obligation is to write
+  something down where the seats already look. (alexandria incident 23
+  and docs/agents/cross-repo-law.md, 2026-09-24, owner-ordered: HQ
+  ADR-015 routed four alexandria seats to an open model by direct
+  commit to that repo's workflows. alexandria's routing law requires a
+  golden-set comparison before any seat changes model. The comparison
+  was not overruled, it was not seen, because the decision was made
+  where the law was not visible and the only record inside the product
+  was a commit subject. Both PM runs then failed and the seat that owns
+  the routing register found out three days later by reading its own
+  file on schedule. alexandria offered the rule upward as a candidate
+  for the standards set, and this is HQ accepting it. The four propagation
+  shapes are in that file, and the dangerous one is the direct commit,
+  dangerous in proportion to how cleanly it is made.)
+- **L-A21 — A gate is judged by what it can see, and a gate that saw
+  nothing is a failure rather than a quiet pass.** Two ways a gate
+  reports success while protecting nothing, and both were live in the
+  same week. First, **its scope is narrower than its subject**: a law
+  can fire on schedule, pass its own audit, and miss, because it is
+  pointed at the wrong place. The test to run on every gate is
+  concrete. Name one change that would break what this gate governs,
+  then ask whether the gate would have *seen* that change, not whether
+  it would have fired on it. Second, **it ran against no input**: a
+  check that examined nothing and a check that examined everything and
+  found nothing look identical from outside, and by default every tool
+  reports them the same way. A run that collected fewer items than the
+  last run is a failure, not a quieter success, and every gate is
+  tested against an artifact known to fail it before the gate is
+  trusted. (alexandria, 2026-09-24, two incidents. The scope half:
+  docs/agents/runtime-changes.md made smoke-testing law, but its "what
+  counts as a runtime change" list was written the week the org
+  containerized, the exo and engineer audits that enforce it diffed
+  `.github/` only, and a provider swap lands in `pipeline/`, so the
+  largest runtime change the org makes was invisible to both gates, and
+  every cell of that register's row was accurate. The blind-pass half:
+  INC-2026-09-24-test-suite-ran-zero-tests, where a pytest collection
+  error stopped the suite at zero tests run and reported it as `1
+  error` on one line, hiding a test that had been failing for an
+  unrecoverable length of time. The CI-shaped path was green because it
+  ran the files one at a time and nothing ever ran the suite. Same
+  asymmetry under alexandria incident 32, where a quality gate returned
+  `0 blocking` on an issue it could not parse.)
+- **L-A22 — The gate goes in the command, not in the charter.** A rule
+  enforced by a sentence in a charter is enforced at the reliability of
+  a model reading a file. A rule enforced by a link in a command is
+  enforced at the reliability of a shell. When a law has failed to fire
+  once, writing it more clearly is not the fix. The fix is to find the
+  command that already runs and add the check to it, as another link in
+  the `&&` chain, so there is no way to forget it and no charter text
+  involved. Where that is impossible, say so plainly and record the
+  rule as enforced at the reliability of reading. (alexandria,
+  2026-09-24, the fourth occurrence of L-A9 in one week and the entry's
+  own closing sentence: of ten rows in that product's register map,
+  nine are enforced by charter text and one by an `&&` chain the chair
+  runs before a deploy, and the one enforced by the chain is the one
+  that has never broken. The press's chain already asked whether the
+  request fits and whether the model exists. The question it was
+  missing, does one real call work, is one more link.)
+- **L-A23 — A prohibition must not quote the banned specimen where the
+  work is written.** L-A14 says a rule forbidding an outcome ships the
+  safe form beside it. This is the other half, and it is the one that
+  bites: read the instruction from the position of whoever obeys it,
+  and **if the nearest quoted example at that position is the thing
+  being banned, the prohibition is a supply.** Rejected specimens are
+  worth keeping, and in this company they are the product of whole
+  sessions of the owner's corrections, but they belong in the gate
+  that reads the output, never in the prompt, checklist or charter
+  section next to the blank where the work goes. State the rule
+  positively at the point of writing and hold the specimens at the
+  point of reading. (alexandria
+  INC-2026-09-24-prohibition-supplies-the-string, 2026-09-24: a banned
+  internal framework name was printed verbatim as a subscriber-facing
+  heading for the third time. The rule was recorded in five places and
+  a gate asking the right question was running. A sixth recording, the
+  prohibition itself quoting the four banned names inside the heading
+  prompt, was working against the other five, and the unpatched
+  generator had produced the correct heading eleven hours earlier.)
+- **L-A24 — Health is measured on the thing the company ships, and
+  where a scheduler and an artifact disagree the artifact wins.** Every
+  run-health duty written from a seat's point of view reads `gh run
+  list`, which covers the agent workflows and none of the products. A
+  cron, a static deploy, a hosted server and a scheduled job are all
+  outside it, so the org can be green everywhere and shipping nothing.
+  Two consequences. First, when hunting for unowned duties, **grep the
+  charters for the vocabulary of what the org sells, not only for the
+  vocabulary of the duty.** "Run health" finds an owner instantly.
+  "Issue", "digest" and "reader" in a monitoring sense find nobody.
+  Second, availability checks, fallback lists and failure alarms all
+  tell you a run failed and none of them tells you a run never
+  happened. Only an outside observer reading the artifact catches the
+  missing run, because a scheduler reports its own intentions.
+  (alexandria incident 24, 2026-09-24: the weekly press failed three
+  times in five days, the owner found out from her own inbox three days
+  late, and every health report the org produced that week was
+  accurate. The Modal app left no log at all for 2026-09-21, and a job
+  that never starts cannot notify anybody. Confirmed the same evening
+  in the other direction: every GitHub Actions run on 2026-09-24 was
+  green while the press failed four times, so `gh run list` was
+  accurate and useless. Guardrails: alexandria
+  docs/agents/delivery-health.md.)
+- **L-A25 — A register of rejections cannot converge, so taste needs a
+  positive specification.** A taste register made almost entirely of
+  "no" improves the work every round and never closes the distance to
+  shipping, and that is arithmetic rather than taste: each rejection
+  removes one candidate from an unbounded space. Before a seat drafts
+  against a taste register, one artifact has to exist saying what the
+  thing is *for* and what it is worth to the person receiving it, and
+  that artifact carries the owner's approval. Two supporting rules from
+  the same failure. Drafting happens in a file, never in chat, because
+  a round that leaves no file cannot be read by the next round.
+  And the record is appended one line per candidate while the session
+  is live, because a session written up afterwards loses the exact
+  sentences she rejected, which were the whole point of recording it.
+  (alexandria incident 27 and the 2026-09-21 exo entry, from the
+  owner's site-copy session of 2026-09-20: eight rounds, twenty-two
+  candidates, four approved lines, the register moving from explanatory
+  to selling to quiet to friendly to flat without converging. Her
+  diagnosis of the last round: "its describing the mechanism not what
+  it delivers. or the value to a builder", and "no mention of a growing
+  self mantaining corpus, nothing. thats my point." Roughly forty
+  rulings sat in that product's taste register and nearly all were
+  rejections, and nothing in the repository said what the product was worth
+  to a builder. Two of the eight rounds have no recoverable candidate
+  text at all. Process: alexandria docs/agents/copy-pipeline.md.)
+
 ## engineer
 
 - **L-E0 — The bar is Omarchy or higher.** Owner, 2026-09-20: "high
@@ -259,6 +465,74 @@ captured).
   generator run got 413 Payload Too Large from Groq, and no issue was
   written. The writer seat set the rules, the engineer seat ran them,
   and the shared constraint had no owner.)
+- **L-E7 — Open routing is best-effort; the subscription is the
+  floor.** A seat workflow's open-routed step carries
+  `continue-on-error: true` and an `id`, and the Claude step runs when
+  that step did not succeed. Never let a cheap provider's concurrency
+  ceiling cost a run. A cheap provider with a concurrency ceiling is a
+  single-lane road: serialize the traffic company-wide, or build the
+  detour into every driver. We could not serialize across
+  repositories, so every workflow carries the detour. Corollary worth
+  memorizing as a fingerprint: a run that ends `is_error` at about one
+  turn and about three minutes on an open model is this failure until
+  proven otherwise, so check what else was running. (HQ incident 4,
+  2026-09-21 and 2026-09-24: three Kimi-routed PM runs across two
+  repositories died at turn one, only ever with another Kimi run in
+  progress, and the provider's own words in the 09-24 alarm were "request
+  reached max organization concurrency: 1". Fixed in all 15 routed
+  workflows across five repos. **Renumbered from L-K3 on 2026-09-28**:
+  that ID was already live as the marketing rule on public copy, and
+  had been distributed to three products twice over. The rule is
+  unchanged and no file anywhere cited the old ID.)
+- **L-E8 — A fallback step needs `continue-on-error`, and a no-ship
+  tripwire counts commits rather than remote branches.** Three defects,
+  one failed run. First, a "try the open route, fall back to Claude"
+  pair only works when the first step carries `continue-on-error: true`
+  and an `id`. Without them the job dies at the failed step, the
+  fallback is skipped, and the seat produces nothing while both paths
+  look configured. Second, a tripwire that tests `git branch -r
+  --contains HEAD` passes trivially when the run never branched,
+  because HEAD is still `origin/<base>`, so it must count commits ahead of
+  the base branch, exclude the base from the pushed check, and fail a
+  run that made no commit, no seat branch and no PR. Third,
+  operational: keep a paid route behind a repo variable
+  (`OPEN_ROUTING`), never behind the presence of its secret, so
+  switching it off costs a flag rather than deleting a key. Binds
+  engineer seats and anyone editing the workflow template. (epitome pm
+  run 35956231272, 2026-09-24, where four consecutive Kimi attempts
+  each burned about three minutes before falling back; epitome and HQ
+  workflow commits 2026-09-25; HQ incident 4. **Renumbered from L-E6 on
+  2026-09-28**, which was already live as the quality-law-versus-
+  runtime-budget rule above and had been distributed to three products
+  twice over. The rule is unchanged and no file anywhere cited the old
+  ID. Note the overlap with L-E7, which is the same first defect stated
+  as policy. This rule is the implementation, and its second and third
+  clauses are its own.)
+- **L-E9 — Connecting a repo to a host is finished when one build has
+  run end to end, and the metered unit is counted first.** Two
+  questions before the connection is called done. Does a real build
+  complete, verified by watching one rather than by the host reporting
+  the repository as connected, because a wrong root directory or a wrong
+  framework guess fails in seconds and the live site keeps serving the
+  last good deployment, so nothing looks down. And what does this host
+  actually meter. A free tier's unit of consumption is rarely the one
+  you think about, an agent company produces that unit at a rate no
+  human team does, and the branch that ships should be the only branch
+  connected. One more reading rule for both: a failure email that
+  repeats on every push is one bug, not many, so count distinct causes
+  before counting mails. (HQ incidents 3 and 5 of 2026-09-20 through
+  2026-09-25, both against alexandria's Vercel project and both
+  portable by their own registers. The first: root directory left at
+  `.` when the Next.js app lives in `site/`, so every git-triggered
+  build failed for six seconds for three days, five production builds
+  and every seat branch's preview, and the owner read the resulting
+  mail as "lots of failed runs throughout the companies". The second:
+  the Hobby plan creates a deployment per push per branch and allows
+  100 a day, and a 16-PR merge pass on top of a day of seat-branch
+  pushes crossed the line at 04:55Z, after which every deployment
+  including production was refused for 24 hours. Fixed by disabling
+  branch deploys and firing a deploy hook only on pushes to `main` that
+  touch the site.)
 
 - *Pending harvest: the owner reports substantial engineer corrections
   in Ursa chair sessions not yet captured in any register (partially
@@ -305,6 +579,29 @@ captured).
   internal FAQ) exists and the owner has merged it; if the press
   release is not compelling, revise the document, not the roadmap.
   Full procedure: standards/pm.md §2c.
+- **L-P6 — Presence is a cadence, not a duty.** Between a seat's runs
+  the owner is the only actor present, so every gap in the schedule
+  lands on her. A PM that runs daily, reads state and dispatches
+  against written criteria removes that default. A PM that runs weekly
+  cannot, no matter what its charter says it does. The second half is
+  about how this was found. The premise that had blocked daily
+  dispatch, "a run's token cannot start a run", was a misreading of
+  the rule, and it had been designed around rather than tested. **Test
+  the mechanism with a two-line probe before designing around a
+  limitation.** (HQ, 2026-09-23, the dispatch probe and ADR-033. The
+  cadence half is L-X6 stated from the PM's side, and the probe half is
+  the new part.)
+- **L-P7 — In sync mode the PM directs and the owner steers through
+  it.** A rule written to stop two dispatchers racing, "never dispatch
+  while the owner is present", made every PM passive at exactly the
+  moment the owner was there, and she ended up prompting seats herself.
+  Sync mode means the chair opens the PM windows first, relays her
+  words to the PMs as agenda and as messages, and the PMs dispatch
+  under their ceilings. The chair's job in sync mode is to direct the
+  PMs, not the seats. Binds pm and chair. (HQ, 2026-09-26; pm.md §11.4
+  as amended, and standards/operating-modes.md. Companion to L-A13,
+  which says what synchronous mode is, and to L-P3, which says the PM
+  seat exists to relieve her.)
 
 ## okr
 
@@ -434,7 +731,21 @@ captured).
   qualification: run 35463415653 was a pm smoke run reporting
   `num_turns` 13, and applying the rule literally would have cut pm and
   exo from 120 to the floor on the strength of a run that did no pm
-  work.)
+  work. Amended 2026-09-28 with the symmetric clause the rule was
+  missing: **a run that failed for any reason other than hitting the
+  cap contributes nothing to the table, in either direction.** The
+  first clause covers a run censored high by the cap. Nothing covered a
+  run censored low by dying early, and alexandria's two PM failures at
+  turn 1 and turn 30 would have argued for cutting a cap of 300 to the
+  floor. Same amendment, third source: a seat's first measurement is
+  its least reliable one, and a seat whose peak drifts upward between
+  the monthly review and a duty-growth trigger is measured by neither.
+  alexandria's writer went from 53 to 80 turns in a day when it started
+  running daily, against a cap of 150 nobody had noticed was low. And
+  the trap for this seat specifically: the 2026-09-21 run queued a PM
+  cap raise on the grounds that the seat's duties had grown, which is a
+  feeling rather than a measurement and is the exact thing this rule
+  forbids. The next run caught it.)
 - **L-X4 — Reach is proven by a write, never by a read.** A credential
   check that only reads proves nothing, because public repositories
   read anonymously and a token with no grant at all returns the same
@@ -507,6 +818,23 @@ captured).
   L-X1, which says a fix is closed only in the tree: this one says what
   to do when the tree is not reachable from the seat.)
 
+  **Amended 2026-09-28 with the cost nobody had named.** Queue depth is
+  not a tidiness problem. **It is what turns independent work into
+  conflicting work.** Seats branch from different snapshots and never
+  message each other, so every day a branch waits is another day it can
+  collide with a branch it cannot see, and the collisions land in
+  exactly the shared files the org uses to coordinate: registers,
+  incident numbers, decision logs. Report queue depth as a number with
+  its oldest item's age, beside the conflicts it has already caused,
+  and report it as an observation rather than a proposal, because the
+  merge gate is the owner's by design and loosening it is her call and
+  nobody else's. (alexandria, 2026-09-24: eighteen pull requests open,
+  the oldest six days old, exactly one PR merged since 2026-09-21 and
+  it was the chair's, while every chair PR in the log had merged within
+  hours. The incident-numbering collision of L-A18 happened because
+  four seats wrote into one register across six days of unmerged
+  branches, so the second cost is visible in the first.)
+
 - **L-X8 — A runtime change is smoke-tested before it reaches a seat
   doing real work.** Every change to the ground a seat stands on, which
   means the container, the runner, the image, the permission mode, the
@@ -525,6 +853,30 @@ captured).
   verification. The owner asked whether this should be standing law and
   the recorded answer was yes. Procedure: alexandria
   docs/agents/runtime-changes.md.)
+
+  **Amended 2026-09-28, because the law existed and did not fire.**
+  Two corrections, both about scope. First, **a provider or model
+  change is a runtime change**, and integration properties are not in
+  anyone's documentation but are all in one real call: reasoning models
+  think before they write and spend the output reservation doing it,
+  long calls need long timeouts, long calls must not hold a database
+  transaction open, and a provider swap rewrites owner-facing prose.
+  Second, **a product is a runtime**. The list in the original rule was
+  written the week alexandria containerized, so it names containers,
+  runners, images, permission modes, tokens and workflow shapes, and a
+  reader applying it honestly concludes it does not cover a cron, a
+  static deploy or a hosted server. It covers them now. The
+  consequence for the audits that enforce this rule: they read the
+  directory where providers actually live, not only `.github/`. And the
+  smoke test is a link in the deploy command, per L-A22, not a sentence
+  in a charter. (alexandria, 2026-09-24 second cycle: ADR-32 moved the
+  press's single writing call to a new provider straight onto the real
+  Monday path, and it failed four times in one evening: no content,
+  then a 300s client timeout, then Neon killing a read transaction left
+  open across a multi-minute call so a written issue could not be
+  saved, then an alarm subject the owner rejected on taste. The chair
+  fixed each in minutes and the owner found each one from her inbox.
+  This is L-A21's scope half with a price attached.)
 - **L-X9 — A seat's lane is bounded by its token, not by its charter.**
   Where the two disagree the token wins, and it wins silently until
   something tries to write. So a charter that names a lane names the
@@ -565,6 +917,46 @@ captured).
   bind by accident. HQ's own standards/workflow-template.yml still
   carried the hardcoded branch line at the time of this harvest, which
   is the same defect one level up.)
+- **L-X11 — Every seat's charter is two files, and no run had ever
+  diffed them.** There is the charter in `prompts/`, which the seat can
+  read and often edit, and there is the inline `prompt:` block in the
+  workflow, which the seat usually cannot edit and which arrives last
+  and closest. Where the two contradict each other, expect the workflow
+  block to win, because it is nearer the model's attention. So a
+  charter edit is not a duty performed, and any audit of what a seat is
+  instructed to do reads both files or it has read half the charter.
+  The sweep is per seat and mechanical: diff the two, list every
+  instruction present in one and absent or contradicted in the other.
+  (alexandria, 2026-09-21: the owner's ruling of 2026-09-19 gave site
+  copy to the writer seat, the exo run corrected `prompts/writer-agent
+  .md` accordingly, and `.github/workflows/agent-writer.yml` line 40
+  still told the seat "Never edit taste.md, charters, site copy,
+  pipeline code, sprints, or skills". The corrected charter was inert.
+  One contradiction confirmed out of twelve seats, because the run that
+  found it judged fixing one worth more than finding a second. Note
+  L-X9: the seat that most needs this sweep is usually the seat whose
+  token cannot fix what it finds.)
+- **L-X12 — The owner-as-seat audit: count what reached her, because
+  no other audit can see it.** Every audit this company runs measures a
+  seat against its charter, or a charter set against a duty. None of
+  them can see work the owner did herself, so a duty that falls to
+  whoever is present reads as covered in every report, and the only
+  continuous process in this company is her. The detector is a number
+  and it belongs in the exo run's standing observations: **how many
+  rounds of one artifact reached the owner before it converged.** One
+  is a healthy probe. Two is a pattern. Eight is a missing seat. Run
+  the same count on dispatches by author, where a list whose every entry
+  names the owner says the dispatching seat is not there, and on
+  failures by reporter, where a failure the owner reported first is a
+  detection failure rather than an input. (alexandria, 2026-09-21,
+  generalizing two of its own incidents that turned out to be one: on
+  2026-09-19 the PM was asleep and she said "right now i feel like im
+  doing the PMs job". On 2026-09-20 the writer was forbidden from site
+  copy by its workflow prompt and she drafted eight rounds herself. In
+  both cases every seat obeyed its charter and no audit failed.
+  Enforced there at prompts/exo-agent.md §3e. Companions: L-X6 gives
+  the cadence test that predicts the gap, L-P3 says the PM seat exists
+  to close it, and this rule measures whether it did.)
 
 ## security
 
@@ -610,3 +1002,19 @@ captured).
   because postmortem literature enters no arXiv category, and the owner
   had to report it herself. Catalog: the research role's canonical
   charter carries this check.)
+
+## inbox — lessons awaiting an ID
+
+Anyone may append here between harvests: the owner, the chair, any
+seat. Nothing in this section is law and nothing cites it. The
+centralizer generalizes each entry at the next harvest, gives it a rule
+ID, files it under its role section, and deletes it from here. Format:
+a title, the date, the role or roles it binds, and the rule in plain
+sentences. **No `L-` identifier.** See the preamble and L-A18 for why
+a second author picking IDs is a collision generator rather than a
+convenience.
+
+*Empty as of 2026-09-28. The five entries that were here (presence is
+a cadence, open routing is best-effort, sync mode, a status line is not
+communication, and the continue-on-error tripwire pair) are now
+L-P6, L-E7, L-P7, L-A19 and L-E8 in their own sections.*
