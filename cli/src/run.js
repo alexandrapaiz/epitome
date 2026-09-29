@@ -45,8 +45,22 @@ const ALREADY_STARTED = "WorkflowExecutionAlreadyStartedError";
 // ("start a fresh run") is exactly what a retry does: by the second attempt
 // the execution is closed, so signalWithStart starts a new one.
 const ALREADY_COMPLETED = "WorkflowNotFoundError";
-const justCompleted = (e) =>
+export const justCompleted = (e) =>
   e?.name === ALREADY_COMPLETED || /workflow execution already completed/i.test(e?.message ?? "");
+
+// The retry itself, lifted out of the closure so a test can drive it without a
+// Temporal server: the race it fixes is a race, and a fix that can only be
+// checked by losing a coin toss is a fix that comes back. `send` is the
+// signalWithStart call; anything that is not this one race propagates
+// untouched, because a swallowed error here would hide a real broken workflow.
+export async function sendOrRestart(send, onRace = () => {}) {
+  try { return { handle: await send(), raced: false }; }
+  catch (e) {
+    if (!justCompleted(e)) throw e;
+    onRace();
+    return { handle: await send(), raced: true };
+  }
+}
 
 export async function runDaemon(dirArg, { dryRun = false } = {}) {
   const dir = resolve(dirArg);
@@ -94,19 +108,11 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
       signal: "followUp",
       signalArgs: [args],
     });
-    let handle;
-    let raced = false;
-    try {
-      handle = await send();
-    } catch (e) {
-      if (!justCompleted(e)) throw e;
-      // The run ended underneath us. Say so, and start the fresh one the
-      // caller asked for — dropping a message here would lose something a
-      // person said, which this runtime does not do.
-      raced = true;
-      log(`${name}: the run ended as the ${trigger} arrived — starting a fresh run for it`);
-      handle = await send();
-    }
+    // The run may end underneath us. Say so, and start the fresh one the
+    // caller asked for — dropping a message here would lose something a
+    // person said, which this runtime does not do.
+    const { handle, raced } = await sendOrRestart(send, () =>
+      log(`${name}: the run ended as the ${trigger} arrived — starting a fresh run for it`));
     if (wasRunning && !raced) log(`${name}: ${trigger} while running — coalesced into the run in flight`);
     return { outcome: wasRunning && !raced ? "coalesced" : "started", workflow: handle.workflowId };
   }
@@ -211,10 +217,22 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
         if (!text) return { status: 400, body: { error: `a message needs {"text": "..."} — an empty message gives the agent nothing to answer` } };
         const session = await heldSession(name);
         if (session !== null) {
-          await client.workflow.getHandle(windowId(name)).signal("message", text);
-          appendAudit({ agent: name, action: "message", trigger: "message", bytes: text.length, held: true, session });
-          log(`${name}: message delivered into held session ${session.slice(0, 8)}`);
-          return { status: 202, body: { agent: name, outcome: "delivered", held: true, session } };
+          // heldSession() asked whether the window was RUNNING; this signals
+          // it. Closing is what a window does, and the ingress holds no lock
+          // on it, so the two can straddle the close — and a signal that lands
+          // after it means there was no held session after all. Fall through
+          // to a fresh run, which is what "no window" has always meant here.
+          // Before this, the request answered 500 with Temporal's own sentence
+          // and the message was gone.
+          const delivered = await client.workflow.getHandle(windowId(name)).signal("message", text)
+            .then(() => true)
+            .catch((e) => { if (justCompleted(e)) return false; throw e; });
+          if (delivered) {
+            appendAudit({ agent: name, action: "message", trigger: "message", bytes: text.length, held: true, session });
+            log(`${name}: message delivered into held session ${session.slice(0, 8)}`);
+            return { status: 202, body: { agent: name, outcome: "delivered", held: true, session } };
+          }
+          log(`${name}: the window closed as the message arrived — starting a fresh run for it`);
         }
         appendAudit({ agent: name, action: "message", trigger: "message", bytes: text.length, held: false });
         const r = await startOrFollowUp(name, "message", { text });

@@ -20,6 +20,7 @@ import { once } from "node:events";
 import { generateKeyPairSync, createVerify } from "node:crypto";
 import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, chmodSync } from "node:fs";
 import { seatOfWorkflowId, scheduleId, runId, windowId } from "../src/temporal/env.js";
+import { justCompleted, sendOrRestart } from "../src/run.js";
 import { ADAPTERS, ADAPTER_NAMES, adapterFor, unknownAdapter, LANGGRAPH_SHIM } from "../src/lib/adapters.js";
 import {
   routesFor, routeErrors, liveRoutes, noRouteMessage, anthropicRouteEnv, routeFacts,
@@ -1196,4 +1197,51 @@ test("the detour: a resumed run never falls back — a session belongs to the pr
   assert.notEqual(r.exit, 0, "the road it was held on refused, and the run failed there");
   assert.deepEqual(r.attempts.map((a) => a.route), ["kimi"], "no stranger was handed the session id");
   assert.match(r.logged, /a resumed run does not fall back/);
+});
+
+// --- the ingress racing the end of a run -----------------------------------
+// `signalWithStart` signals-then-starts on the server, so a run that COMPLETES
+// between those two steps is signalled after it closed. It is the ordinary end
+// of every run meeting the ingress, and before the retry it answered 500 with
+// Temporal's own sentence and dropped whatever the person had said.
+
+test("a signal that lost the race to a run's own ending is recognised, by name and by sentence", () => {
+  const byName = Object.assign(new Error("whatever the server said"), { name: "WorkflowNotFoundError" });
+  assert.ok(justCompleted(byName), "the SDK's error class is the reliable half");
+  assert.ok(justCompleted(new Error("workflow execution already completed")),
+    "and the sentence is the half that survives an SDK rename");
+  assert.ok(justCompleted(new Error("Workflow Execution Already Completed")), "case is not a promise the server makes");
+  assert.ok(!justCompleted(new Error("connection refused")), "an engine that is down is not a run that ended");
+  assert.ok(!justCompleted(Object.assign(new Error("x"), { name: "WorkflowExecutionAlreadyStartedError" })),
+    "and neither is the opposite race, which openWindow handles its own way");
+  assert.ok(!justCompleted(null) && !justCompleted(undefined), "nothing thrown is nothing to classify");
+});
+
+test("losing that race starts a fresh run instead of failing the request", async () => {
+  let calls = 0;
+  const send = async () => {
+    calls++;
+    if (calls === 1) throw Object.assign(new Error("workflow execution already completed"), { name: "WorkflowNotFoundError" });
+    return { workflowId: "run:pm" };
+  };
+  let said = 0;
+  const r = await sendOrRestart(send, () => said++);
+  assert.equal(calls, 2, "it tries again: by now the execution is closed, so a new one starts");
+  assert.equal(r.raced, true, "and the caller is told, so the 202 does not claim it coalesced");
+  assert.equal(r.handle.workflowId, "run:pm");
+  assert.equal(said, 1, "the operator sees it once, not on every message");
+});
+
+test("a run in flight is signalled once, and nothing is retried", async () => {
+  let calls = 0;
+  const r = await sendOrRestart(async () => { calls++; return { workflowId: "run:pm" }; });
+  assert.equal(calls, 1);
+  assert.equal(r.raced, false, "the ordinary path says nothing and costs nothing");
+});
+
+test("any other failure is the caller's to see: a retry here would hide a broken workflow", async () => {
+  let calls = 0;
+  const send = async () => { calls++; throw new Error("connection refused"); };
+  await assert.rejects(() => sendOrRestart(send), /connection refused/);
+  assert.equal(calls, 1, "it is not retried, because retrying a dead engine just fails twice");
 });
