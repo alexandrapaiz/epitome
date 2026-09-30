@@ -1,0 +1,36 @@
+# Shape 1 of 3: the daily builder.
+#
+# A seat that wakes on a schedule, writes code in a repository it owns, and
+# leaves a pull request behind. It is the heaviest of the three shapes: it is
+# the only one that needs more than one road to a model, and the only one that
+# posts somewhere other than the runtime's default channel.
+
+[agent]
+name = "daily-builder"
+description = "Wakes each morning, works one card, and leaves a draft pull request."
+
+[identity]
+scopes = ["github:contents", "github:pull_requests"]
+
+[trigger]
+cron = "0 6 * * *"
+
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/daily-builder.md"
+repo = "acme/product"
+max_turns = 120
+slack_webhook_env = "SLACK_WEBHOOK_URL_PRODUCT"
+env = ["SLACK_WEBHOOK_URL_PRODUCT", "MOONSHOT_API_KEY"]
+
+# Two roads, tried in order: the cheap one, then the floor (ADR-19).
+[[runtime.route]]
+name = "open"
+model = "kimi-k2-turbo-preview"
+base_url = "https://api.moonshot.ai/anthropic"
+token_env = "MOONSHOT_API_KEY"
+concurrency = 1
+
+[[runtime.route]]
+name = "subscription"
+model = "claude-sonnet-5"

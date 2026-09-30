@@ -206,6 +206,20 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
         return { status: 404, body: { error: `no agent named "${name}" in this roster — it hosts: ${[...roster.keys()].join(", ")}` } };
       }
 
+      // Spec rule 3: triggers are explicit and never defaulted. Until this
+      // check existed the ingress woke ANY rostered seat, so a seat that
+      // declared only `cron = "0 6 * * *"` — deliberately a scheduled seat,
+      // and nothing else — had a live hook endpoint it never asked for, and
+      // `[trigger].webhook` was decoration. The refusal is 403 rather than
+      // 404 on purpose: the seat exists, and saying otherwise would make a
+      // misconfigured manifest look like a typo in the URL.
+      if (route === "hook" && roster.get(name).manifest.trigger?.webhook !== true) {
+        const cron = roster.get(name).manifest.trigger?.cron;
+        appendAudit({ agent: name, action: "hook", trigger: "hook", bytes: raw.length, refused: "no-webhook-trigger" });
+        log(`${name}: hook refused — the manifest does not declare [trigger].webhook`);
+        return { status: 403, body: { error: `"${name}" does not declare [trigger].webhook, so the ingress may not wake it — a trigger is explicit and never defaulted (spec v0.1 rule 3). ${cron ? `It runs on its schedule, ${cron} UTC.` : "It has no trigger this runtime can fire at all."} Fix: add \`webhook = true\` under [trigger] in its agent.toml and restart \`epito run\`.` } };
+      }
+
       if (route === "hook") {
         appendAudit({ agent: name, action: "hook", trigger: "hook", bytes: raw.length });
         const r = await startOrFollowUp(name, "hook", { hookBody: raw || undefined });

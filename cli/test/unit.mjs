@@ -10,7 +10,7 @@
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { reconcilePlan, scheduleShape } from "../src/temporal/schedules.js";
-import { validateManifest } from "../src/lib/manifest.js";
+import { validateManifest, loadManifest, FIELDS, TABLES } from "../src/lib/manifest.js";
 import { webhookName } from "../src/lib/slack.js";
 import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP } from "../src/lib/identity.js";
@@ -24,7 +24,7 @@ import { justCompleted, sendOrRestart } from "../src/run.js";
 import { ADAPTERS, ADAPTER_NAMES, adapterFor, unknownAdapter, LANGGRAPH_SHIM } from "../src/lib/adapters.js";
 import {
   routesFor, routeErrors, liveRoutes, noRouteMessage, anthropicRouteEnv, routeFacts,
-  classifyAttempt, withLane, DEFAULT_ROUTE,
+  classifyAttempt, withLane, DEFAULT_ROUTE, ROUTE_FIELDS,
 } from "../src/lib/router.js";
 import {
   traceConfig, traceIdFor, spanIdFor, traceparentFor, childTraceEnv, attributes,
@@ -1245,3 +1245,94 @@ test("any other failure is the caller's to see: a retry here would hide a broken
   await assert.rejects(() => sendOrRestart(send), /connection refused/);
   assert.equal(calls, 1, "it is not retried, because retrying a dead engine just fails twice");
 });
+
+// --- the freeze: spec v0.1's field catalogue, and the three seat shapes ----
+//
+// The backlog card this section closes: "spec/manifest.md reviewed against
+// the three alexandria seat shapes (daily builder, weekly writer,
+// event-driven responder); every field either earns its place or goes." The
+// shapes are real manifests in test/fixtures/shapes/, and the coverage test
+// below is that sentence made executable — a field no shape needs is a field
+// that did not earn its place, and this suite says so by name.
+
+const SHAPES = ["daily-builder", "weekly-writer", "event-responder"];
+const shapePath = (n) => fileURLToPath(new URL(`./fixtures/shapes/${n}/agent.toml`, import.meta.url));
+
+for (const shape of SHAPES) {
+  test(`seat shape "${shape}" validates against frozen v0.1`, () => {
+    const { errors } = loadManifest(shapePath(shape));
+    assert.deepEqual(errors, [], errors.join("\n"));
+  });
+}
+
+test("every field in the frozen catalogue is needed by at least one of the three shapes", () => {
+  const used = { agent: new Set(), identity: new Set(), trigger: new Set(), runtime: new Set() };
+  for (const shape of SHAPES) {
+    const { manifest } = loadManifest(shapePath(shape));
+    for (const t of TABLES) for (const k of Object.keys(manifest[t] ?? {})) used[t].add(k);
+  }
+  const orphans = [];
+  for (const t of TABLES) for (const f of FIELDS[t]) if (!used[t].has(f)) orphans.push(`[${t}].${f}`);
+  assert.deepEqual(orphans, [], `these fields are in the spec and no real seat shape needs them: ${orphans.join(", ")}`);
+});
+
+test("the three shapes together exercise every key a route has", () => {
+  const { manifest } = loadManifest(shapePath("daily-builder"));
+  const used = new Set(manifest.runtime.route.flatMap((r) => Object.keys(r)));
+  assert.deepEqual(ROUTE_FIELDS.filter((f) => !used.has(f)), []);
+});
+
+test("a misspelled field is refused, and the message carries the spelling", () => {
+  const errs = validateManifest(baseManifest({ runtime: { ...baseRuntime(), mdoel: "claude-opus-5" } }));
+  const hit = errs.find((e) => e.includes("mdoel"));
+  assert.ok(hit, `a typo must not validate: ${errs.join("\n")}`);
+  assert.match(hit, /did you mean \[runtime\]\.model\?/);
+});
+
+test("max_turn (the singular typo) is refused rather than silently meaning 100", () => {
+  const errs = validateManifest(baseManifest({ runtime: { ...baseRuntime(), max_turn: 50 } }));
+  assert.ok(errs.some((e) => e.includes("max_turn") && e.includes("max_turns")), errs.join("\n"));
+});
+
+test("[trigger].on is retired, and the message says what replaces it", () => {
+  const errs = validateManifest(baseManifest({ trigger: { on: ["issue.opened"] } }));
+  const hit = errs.find((e) => e.includes("[trigger].on"));
+  assert.ok(hit, errs.join("\n"));
+  assert.match(hit, /webhook = true/);
+  // The seat could never have fired, and the triad rule now says so too.
+  assert.ok(errs.some((e) => /needs at least one of: cron .* or webhook/.test(e)), errs.join("\n"));
+});
+
+test("[runtime].image is retired: an image is a property of the box", () => {
+  const errs = validateManifest(baseManifest({ runtime: { ...baseRuntime(), image: "default" } }));
+  assert.ok(errs.some((e) => e.includes("[runtime].image") && e.includes("property of the box")), errs.join("\n"));
+});
+
+test("a whole table the spec does not define is named as a table", () => {
+  const errs = validateManifest(baseManifest({ deploy: { target: "github" } }));
+  assert.ok(errs.some((e) => e.startsWith("[deploy] is not a table")), errs.join("\n"));
+});
+
+test("an unknown key inside a route table is refused too", () => {
+  const rt = { ...baseRuntime(), env: ["K"], route: [{ name: "open", model: "m", token_env: "K", retries: 3 }] };
+  const errs = validateManifest(baseManifest({ runtime: rt }));
+  assert.ok(errs.some((e) => e.includes("retries") && e.includes("[[runtime.route]] #1")), errs.join("\n"));
+});
+
+test("[trigger].webhook is a boolean, and the message says the URL is never the manifest's", () => {
+  const errs = validateManifest(baseManifest({ trigger: { webhook: "https://example.com/hooks/x" } }));
+  assert.ok(errs.some((e) => e.includes("[trigger].webhook") && e.includes("never the manifest's")), errs.join("\n"));
+});
+
+function baseRuntime() {
+  return { model: "claude-sonnet-5", entry: "prompts/x.md", repo: "acme/x" };
+}
+function baseManifest(over = {}) {
+  return {
+    agent: { name: "x", description: "A seat." },
+    identity: { scopes: ["github:contents"] },
+    trigger: { cron: "0 6 * * *" },
+    runtime: baseRuntime(),
+    ...over,
+  };
+}
