@@ -151,3 +151,30 @@ jobs:
       # Visibility window (standards/operating-modes.md §3): the seat's run
       # report goes to the team's channel when the owner has created one.
       # Seats never read the channel; it is the owner's window only.
+      - name: Report this run to the board
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          [ -n "$BOARD_API_URL" ] && [ -n "$BOARD_RUNTIME_TOKEN" ] || { echo "no board on this repo"; exit 0; }
+          branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)
+          pr=$(gh pr list --state all --author "@me" --limit 1 --json url,body,headRefName --jq '.[0]' 2>/dev/null || echo "")
+          [ -n "$pr" ] || pr=$(gh pr list --head "$branch" --state all --json url,body --jq '.[0]' 2>/dev/null || echo "")
+          python3 - "$pr" <<'PY'
+          import json, os, sys, urllib.request
+          pr = json.loads(sys.argv[1]) if sys.argv[1] else {}
+          report = (pr.get("body") or "").split("\n🤖")[0].strip()[:2000]
+          run_url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+          status = os.environ.get("JOB_STATUS", "unknown")
+          msg = {"company": "epitome", "seat": "pm", "trigger": os.environ.get("GITHUB_EVENT_NAME", ""),
+                 "run_url": run_url, "pr_url": pr.get("url") or None, "exit": 0 if status == "success" else 1,
+                 "report": report or ("The run ended with status " + status + " and opened no pull request.")}
+          req = urllib.request.Request(os.environ["BOARD_API_URL"].rstrip("/") + "/api/runs", data=json.dumps(msg).encode(), method="POST",
+                                       headers={"Authorization": "Bearer " + os.environ["BOARD_RUNTIME_TOKEN"], "Content-Type": "application/json"})
+          try:
+              with urllib.request.urlopen(req, timeout=20) as r:
+                  print("board run report:", r.status)
+          except Exception as e:
+              print("board run report failed:", e)
+          PY
