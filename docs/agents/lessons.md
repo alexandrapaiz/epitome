@@ -208,3 +208,104 @@ L-A8.
 
 **Binds:** every seat producing presentations (market, pm, engineer,
 exo); the chair, as renderer only.
+
+*IDs L9 and L10 are reserved: they are taken by the entries in flight in
+PR #26 (an open PR is work; status is read from the merge queue). This
+run read that PR before writing and numbered from 11 rather than
+renumbering anything — the hazard #26's own exo patch was written for.*
+
+## L11 — A seat's charter is three files, and the launcher wins
+
+**Trigger (2026-09-30)**, the weekly drift review, with no owner
+correction behind it: two branch conventions for the same seats are live
+in this repository's own pull request list, and this seat is forbidden to
+edit charters by one of its launchers and permitted by another.
+
+**Rule.** Every seat here is instructed by three files, not two:
+`prompts/<seat>-agent.md`, the inline `prompt:` block of
+`.github/workflows/agent-<seat>.yml`, and `buildPrompt` in
+`cli/src/lib/runner.js`, which is the dispatch the resident runtime
+composes when it wakes a seat. The third is product code, which is why
+no charter audit had read it. Where they disagree, expect the launcher
+to win: the charter is a file the seat is told to go and read, the
+launcher is the sentence it is already reading. So an audit of what a
+seat is instructed to do reads all three or it has read a third of the
+charter, and a rule the charter owns appears in none of the launchers —
+they carry L-X10's pointer form and nothing else.
+
+The two live divergences, both verifiable in one command each:
+
+- **Branch convention.** `runner.js:71` builds `<agent-name>/<date>-<trigger>`,
+  so the runtime's seats branch `epitome-pm/...`, `epitome-exo/...`;
+  the five workflow prompts hardcode `<seat>/YYYY-MM-DD-slug`, so the
+  Actions seats branch `pm/...`, `exo/...`. Both are in `gh pr list`
+  today. No run has reported filtering by prefix, so the proven cost is
+  narrower than it looks and worth stating exactly: a seat's own work is
+  not findable by one pattern, and two of the three unread PM pull
+  requests #26 names (#12, #18) sit on the prefix the other four do not.
+- **The charter-edit prohibition.** The workflow prompt says "never edit
+  charters"; `runner.js:72` says "never touch secrets or workflows" and
+  does not mention charters. For this seat, whose central duty is
+  charter patches, the two launchers give opposite answers about its own
+  main job. The safe reading is the one both permit and §10 of the pm
+  standard requires anyway — patches as reviewed diffs, never as edits —
+  and that resolution was written in neither launcher nor this charter
+  until the patch this run proposes.
+
+**Binds:** exo (the three-file sweep is part of its drift review, per
+the proposed patch); engineer, which owns `runner.js`; the exo
+centralizer, which owns the workflow blocks. HQ L-X11 said the charter
+is two files; this is the same rule with the product's own runtime
+counted, and it generalizes to any product whose seats can be woken by
+more than one launcher — which is epito's whole thesis.
+
+`portable: yes`
+
+## L12 — A commented-out cron is a cadence of zero, and it reads as a cadence
+
+**Trigger (2026-09-30)**, the same drift review. `gh run list` over
+this repository's entire history, against the cadence each charter
+claims in its opening sentence:
+
+| Seat | Charter says | `on:` block | Runs ever | Scheduled |
+|---|---|---|---|---|
+| engineer | daily | twice daily | 14 | 12 |
+| pm | weekly | weekly, Mon | 5 | 1 |
+| market | weekly (Friday) | weekly, Fri | 0 | 0 |
+| okr | monthly | monthly, the 1st | 0 | 0 |
+| exo | weekly on schedule | **commented out** | 1 | 0 |
+
+**Rule.** Run the cadence test (L-X6) against the cron as *enabled*,
+never against the cadence a charter claims, because a commented-out
+schedule, a schedule correctly withheld pending the supervised smoke run
+L-X2 requires, and a schedule whose first fire has not arrived yet all
+present as "weekly" or "monthly" to every audit that reads a charter.
+Read the `on:` block, then count the runs. Two corollaries this seat
+proved on itself and on the seat below it:
+
+- **A charter sentence is not a schedule.** This charter says "weekly on
+  schedule"; the `schedule:` block in `agent-exo.yml` has never been
+  uncommented, and §11.4 of the pm standard forbids the one seat that
+  dispatches from waking this one ("never dispatch the exo seat — it
+  audits you"). The seat's real trigger is the owner's attention, which
+  is L-X12's own definition of a missing seat, and this run is the proof:
+  it was triggered by a window.
+- **The un-fired smoke run is a cadence item with an age, not a
+  checklist item.** It is the only thing between a written schedule and
+  a live one, so it is tracked the way queue depth is (L-X7). The okr
+  seat is the cost: twelve days after founding, in a company running
+  two-week cycles, its monthly cron had not yet fired once,
+  `docs/okrs.md` did not exist, and two charters already forbade editing
+  it. The file is being written tonight — by a window (#35), not by the
+  schedule.
+
+And the half that makes this actionable rather than clever: **only a
+cron edit changes a cadence** (L-X6), crons live in workflow files,
+those are Tier C and the centralizer's, so the output of this finding is
+a named request to the owner and HQ, never a charter patch. A charter
+patch against a cadence gap is the fix that cannot work.
+
+**Binds:** exo, which runs the audit; and anyone writing a cadence into
+a charter — the chair, the centralizer, the owner.
+
+`portable: yes`

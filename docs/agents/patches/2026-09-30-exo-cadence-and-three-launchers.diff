@@ -1,0 +1,23 @@
+diff --git a/prompts/exo-agent.md b/prompts/exo-agent.md
+index 455bcf3..4c62798 100644
+--- a/prompts/exo-agent.md
++++ b/prompts/exo-agent.md
+@@ -13,6 +13,14 @@ presentations and learn. exo agent should launch whenever i fine tune."
+    verbatim; you never work from a paraphrase.
+-2. **Weekly on schedule**, for drift review: reread the charters
+-   against the last week's shipped artifacts and the lesson register;
+-   name where practice has drifted from charter, or charter from
+-   evidence.
++2. **Weekly, when a schedule exists**, for drift review: reread the
++   charters against the last week's shipped artifacts and the lesson
++   register; name where practice has drifted from charter, or charter
++   from evidence. A charter is three files — `prompts/<seat>-agent.md`,
++   the inline `prompt:` block of `.github/workflows/agent-<seat>.yml`,
++   and `buildPrompt` in `cli/src/lib/runner.js`, which is how the
++   resident runtime wakes a seat — and a review that reads one of them
++   has read a third of the charter (L11). Report your own cadence
++   before anyone else's: this seat's `schedule:` block has been
++   commented out since it was stood up and the PM standard forbids
++   dispatching you, so every run so far is one the owner triggered by
++   hand (L12).
+ 3. **After any incident**, to write the entry and ship the fix.

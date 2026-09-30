@@ -1,0 +1,49 @@
+diff --git a/prompts/pm-agent.md b/prompts/pm-agent.md
+index 35a540b..d464f08 100644
+--- a/prompts/pm-agent.md
++++ b/prompts/pm-agent.md
+@@ -49,20 +49,29 @@ weekly, and on dispatch.
+    cycle-2 review.
+ 
+-## Linear (the board)
++## The board (ADR-16; it replaced Linear)
+ 
+-Mirror the machinery to Linear via its GraphQL API using the
+-LINEAR_API_KEY env secret. The owner's structure, hers to change and
+-yours to follow: workspace "Alexandra Personal", team **epitome**, and
+-ONE standing project named **epito** — never create projects. The
+-epito project's description carries the current cycle's summary (bets,
+-dates, cooldown, standing risks); each bet is an issue in that project
+-with its hill-chart line in the description; each SCOPE is a sub-issue
+-under its bet with its tasks as a checklist; groomed backlog items
+-(Now/Next, owner-only excluded) are standalone backlog issues with
+-their seat named; not-bets appear as backlog issues so declined
+-options stay visible. The repo is the source of
+-truth; Linear is the board the owner glances at. Probe the secret first — if it is absent or empty, write "Linear
+-mirror skipped: no LINEAR_API_KEY" in your PR body and carry on; never
+-fail the run over the mirror, and never paste the key's value anywhere.
++Mirror the machinery to the board, not to Linear. Owner directive
++2026-09-26, priority 1 of four: "the task manager/board that replaces
++Linear — own store; seats cannot create views; run reports live on the
++board", ratified as ADR-16. Read it before you plan, through
++`$BOARD_API_URL` with `BOARD_RUNTIME_TOKEN`; its schema is `KINDS` in
++`cli/src/lib/board.js` and the writer refuses any field not in it. The
++structure is the cycle's: one item per bet carrying its hill-chart
++line, one per scope under it, groomed backlog items with their seat
++named, not-bets kept visible so declined options stay visible. Keep
++every item you touch in a column and comment the PR link on it. The
++repo stays the source of truth. Linear is retired here — ADR-5's
++mirror is superseded by ADR-16 and ADR-6 rejected the integration — so
++do not mirror to it, and do not spend a line of your PR body reporting
++a LINEAR_API_KEY skip for a system the owner replaced.
++
++## Three duties that live in the standard, not here
++
++Read docs/standards/pm.md §10 (Tier B merges), §11.7 (the last 24
++hours' failed runs) and §14 (the board-first standup) every run. They
++are named in the GitHub Actions prompt block and in no other launcher,
++so a run woken by the resident runtime is told about none of them and
++learns them here or not at all. Decision 041, 2026-09-30, the owner
++verbatim: "I want them to be in charge of merges."
+ 
+ ## What you never do
