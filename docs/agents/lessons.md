@@ -242,9 +242,12 @@ engineer, pm, market, okr, exo. In charter as of 2026-09-29 for the
 engineer only (prompts/engineer-agent.md, commit e36da5b); proposed for
 pm, okr and exo in docs/agents/patches/.
 
-*Full record: epitome incident 2. Portfolio rule: the same rule was
-filed at HQ by the chair on 2026-09-29; cited here by its text because
-its ID is unresolved — see incident 2's ID note.*
+*Full record: epitome incident 2. Portfolio rule: the chair filed this
+same rule at HQ on 2026-09-29 and called it **L-E7**, but `L-E7` in the
+copy vendored here (`775ce36`, 2026-09-28) is the open-routing rule, and
+this rule is not in that copy at all. So the cross-reference is to the
+rule's text, not to its number, until the next lessons sync settles it —
+incident 2's ID note has the detail.*
 
 portable: yes
 
@@ -286,7 +289,14 @@ scorecard); okr, whose gradings read repo evidence and would score
 five built-but-unmerged bets 0.0; engineer, for the landing pass.
 Proposed as charter diffs in docs/agents/patches/, unratified.
 
-*Full record: epitome incident 2, RC-2 and RC-3.*
+*Full record: epitome incident 2, RC-2 and RC-3. No HQ counterpart
+yet: this one is new, and is marked portable as a candidate for the next
+harvest. For completeness on the case file's other citation — the rule
+it calls **L-E6** (a fallback step needs `continue-on-error`, a no-ship
+tripwire counts commits rather than remote branches, a paid route stays
+behind a variable) is **L-E8** in the vendored copy, it binds the
+engineer seat on workflow mechanics, and it is ratified here unchanged;
+it is from the same batch as L9 but has nothing to do with stack depth.*
 
 portable: yes
 
