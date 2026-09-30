@@ -92,10 +92,10 @@ it could not bind the run that followed it.
 #24 stopped the sequence on 2026-09-29: instead of a sixth copy it
 merged `main` into the stack's tip, ran the five bets composed for the
 first time, and fixed what that turned up. The chair merged it on the
-owner's word at 2026-09-30T01:55:51Z. Between 01:56:30Z and 01:58:11Z
-the owner closed seven pull requests by hand (#9, #10, #11, #14, #15,
-#16, #17, #20, #21, #23 across that window) — GitHub had recorded the
-stack members as closed-unmerged, not merged.
+owner's word at 2026-09-30T01:55:51Z. In the two minutes and twenty
+seconds that followed — 01:55:53Z to 01:58:11Z — the owner closed ten
+pull requests by hand (#9, #10, #11, #14, #15, #16, #17, #20, #21,
+#23), because GitHub had recorded none of them as merged.
 
 **Impact.**
 
@@ -118,9 +118,10 @@ stack members as closed-unmerged, not merged.
    actually has langgraph installed, which is the machine the feature is
    for. (Six "the clone is gone" assertions also raced the `cleanup`
    activity: they won on an idle box and lost under load.)
-4. **Org work landed on the owner.** She merged the stack and closed
-   ten pull requests by hand inside three minutes. That is the cost
-   signal — the board's cleanup was not any seat's step.
+4. **Org work landed on the owner.** The stack was merged on her word
+   and she then closed ten pull requests by hand inside two and a half
+   minutes. That is the cost signal — the board's cleanup was nobody's
+   step.
 
 **Root cause in the system (blameless — two structural, plus one
 tooling).**

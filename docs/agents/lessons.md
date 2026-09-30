@@ -209,6 +209,87 @@ L-A8.
 **Binds:** every seat producing presentations (market, pm, engineer,
 exo); the chair, as renderer only.
 
+## L9 — An open pull request is work; an open card is not evidence that nobody built it
+
+**Trigger (2026-09-29)**, the owner's directive after the cycle-1 stack
+was landed by hand: "report the cause and system to ExO, including HQ."
+The artifact behind it: the identity/token card was independently built
+five times (#9, #10, #20, #14/#15, #23) while every copy's own run read
+the same untouched card.
+
+**Rule.** Every seat run starts from a fresh clone of `main`, where
+in-flight work is invisible and every card looks exactly as the last run
+left it. So the card is not the state of the work — the pull request
+list is. Before building anything, read it: `gh pr list --state open`
+for work in flight, and `gh pr list --state all --search "<the thing>"`
+for work already done and closed. If your card is already built in an
+open PR, you do not build a second copy: you extend that branch, or you
+write the one paragraph that proposes closing it as superseded and stop.
+Both are complete runs. If the built work is unmerged and stacked,
+landing it beats adding to it. Name the PRs you checked in your PR body;
+a run that skipped the check and duplicated work is a failed run even
+when its code is good.
+
+Second half, and the part that makes this structural rather than a
+reminder: **this applies to your own seat's previous runs.** The PM
+named this exact duplication in #22 on 09-28 and the fifth copy opened
+on 09-29, because the naming was itself in an open pull request that no
+later run read. A finding that lives only in an unmerged PR has not been
+reported to anyone.
+
+**Binds:** every seat that builds or writes to a file it owns —
+engineer, pm, market, okr, exo. In charter as of 2026-09-29 for the
+engineer only (prompts/engineer-agent.md, commit e36da5b); proposed for
+pm, okr and exo in docs/agents/patches/.
+
+*Full record: epitome incident 2. Portfolio rule: the same rule was
+filed at HQ by the chair on 2026-09-29; cited here by its text because
+its ID is unresolved — see incident 2's ID note.*
+
+portable: yes
+
+## L10 — Status is read from the merge queue, not from the board; a stack deeper than two is a queue, not progress
+
+**Trigger (2026-09-29)**, same directive. The artifact: five bets
+rendered as five hills moving downhill while they were in fact one
+six-deep chain of unmerged PRs (`#11 → #14 → #15 → #16 → #17 → #21`)
+with a single exit, unmerged for four days, and the first composed run
+of the chain — on the day it landed — found three real defects.
+
+**Rule.** Any seat reporting status derives it from `gh pr list`, not
+from cards: what is open, what is merged, and what each open PR targets.
+Cards record intent, and intent is what a stalled queue looks like from
+the inside. A rule that names an inference without naming the command
+that performs it is advice, not mechanism, so the command belongs in the
+charter.
+
+The concrete test this produces: **read the `baseRefName` of every open
+PR.** Any chain deeper than two — a PR targeting a PR targeting a PR —
+is flagged in the report as a queue with one exit and a named landing
+order, never drawn as parallel progress. Its true position is the
+position of its least-finished member, because nothing in it ships until
+the tip merges. Corollary from the same evidence: work that has never
+run composed with what it stacks on has an unknown position, not a
+downhill one.
+
+Third clause, tooling: **a stacked PR does not auto-close when its
+commits land.** GitHub marks a PR merged only when its own base branch
+receives the merge, so a chain landed at the tip leaves every member
+recording as open-then-closed-unmerged. Whoever lands a stack closes its
+members in the same pass, naming the merge commit that carries them, and
+whoever counts open PRs treats a chain as one unit of work. Ten manual
+closes by the owner inside two and a half minutes on 2026-09-30 is what
+skipping this costs.
+
+**Binds:** pm (hill charts, duplication checks, the cooldown
+scorecard); okr, whose gradings read repo evidence and would score
+five built-but-unmerged bets 0.0; engineer, for the landing pass.
+Proposed as charter diffs in docs/agents/patches/, unratified.
+
+*Full record: epitome incident 2, RC-2 and RC-3.*
+
+portable: yes
+
 ## L13 — One landing attempt per stack; the second one is a report, not a run
 
 **Trigger (2026-10-05)**, the weekly drift review, with no owner
@@ -293,3 +374,4 @@ no pre-ship check against this register at all; a patch adding it is in
 `docs/agents/patches/`.
 
 `portable: yes`
+
