@@ -24,10 +24,36 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       BOARD_API_URL: ${{ secrets.BOARD_API_URL }}
       BOARD_RUNTIME_TOKEN: ${{ secrets.BOARD_RUNTIME_TOKEN }}
+      # Traces: this run lands in Langfuse as one trace, a span per tool call
+      # (runtime/langfuse/ in the HQ repo). The auth header is set by the step below.
+      CLAUDE_CODE_ENABLE_TELEMETRY: "1"
+      CLAUDE_CODE_ENHANCED_TELEMETRY_BETA: "1"
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.LANGFUSE_HOST }}/api/public/otel
+      OTEL_LOG_USER_PROMPTS: "1"
+      OTEL_LOG_ASSISTANT_RESPONSES: "1"
+      OTEL_LOG_TOOL_DETAILS: "1"
+      OTEL_RESOURCE_ATTRIBUTES: service.name=epitome-engineer,langfuse.environment=epitome,langfuse.user.id=engineer,langfuse.session.id=${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Trace this run to Langfuse
+        env:
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+        run: |
+          if [ -z "$LANGFUSE_PUBLIC_KEY" ] || [ -z "$LANGFUSE_SECRET_KEY" ]; then
+            echo "No Langfuse keys on this repo; this run is not traced."
+            echo "OTEL_TRACES_EXPORTER=none" >> "$GITHUB_ENV"; exit 0
+          fi
+          auth=$(printf '%s:%s' "$LANGFUSE_PUBLIC_KEY" "$LANGFUSE_SECRET_KEY" | base64 -w0)
+          echo "::add-mask::$auth"
+          echo "OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic $auth" >> "$GITHUB_ENV"
+          echo "Traced: seat engineer of epitome, run ${{ github.run_id }}."
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
