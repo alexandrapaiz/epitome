@@ -1,12 +1,262 @@
 # Market brief — docs/market.md
 
 Maintained by the market seat. This revision: **rev 3, 2026-09-30**,
-research in progress (weekly window run). Rev 2 is kept below, marked
-superseded, until this revision's sections are filled in.
+weekly window run (charter: prompts/market-agent.md). Scope: what
+moved since rev 2 (2026-09-19/20) against the charter's four sections,
+plus the mandatory ADR-12 standing-watch check. This is a delta run,
+not a from-scratch re-rank: the full integration table, gap analysis
+(§6), and maker-track map (§7-§8) from rev 2 stand except where a row
+is explicitly updated below. Rev 2 is kept in full further down this
+file, marked superseded. Every claim below carries a source and access
+date; sources were spot-checked (GitHub API calls against cited
+issues/PRs/repos, not just the agent's transcript) before inclusion,
+per the charter's "never state a competitor claim without a link."
+
+## Orientation: the ten-day delta
+
+Four things moved since 2026-09-20. First, the ADR-12 tripwire did not
+fire — LangSmith shipped more Fleet/Engine changelog volume this
+window but no new identity primitive; full log in §4a. Second, one
+integration-map re-ranking trigger fired for real: Atlassian's
+`rovo-agent-connector` reached GA on 2026-09-28 and now names
+externally-hosted agents (GitHub Copilot, Cursor Background Agents, Box
+AI Agents) as a supported case over A2A — the exact condition rev 2
+flagged as "re-check next quarter," now confirmed early. It does not
+change the standing recommendation (Slack still wins the #2 slot; see
+§4) but it reopens Atlassian as a build-next candidate for the next
+full re-rank. Third, a new entrant — Ando, $20M seed, out of stealth
+2026-09-24 — is building agent-native team messaging (agents as
+first-class members with identity, permissions, and shared context)
+as a whole new surface rather than a plug-in identity layer aimed at
+Slack's turf; watch, not build. Fourth, and the sharpest reframe: this
+run's positioning research surfaced that our "why epito and not glue"
+answer has always been implicitly benchmarked against vendor lock-in
+and hand-rolled plumbing, but a free, real, MIT-licensed competitor
+already exists for the single narrowest slice of our v1 — per-agent
+GitHub identity — built and shipped by one solo developer
+([qwts/agent-bot-identity](https://github.com/qwts/agent-bot-identity),
+created 2026-07-23, 1 star as of 2026-09-30, verified live via the
+GitHub API). One star means unproven adoption, not a threat by
+traction — but it proves the mechanism is a weekend build for anyone
+technical enough to read our own architecture doc, which sharpens what
+we have to sell beyond the mechanism itself: the roster, the audit
+trail, and the manifest that scales the same file from 1 agent to 100
+(vision §0), none of which a single-purpose script gives you.
 
 ---
 
-# Market brief — docs/market.md (rev 2, superseded by rev 3 above once filled in)
+## 1. Landscape — what moved, 2026-09-20 through 2026-09-30
+
+**Atlassian (re-ranked up from rev 2's "watch, structural mismatch").**
+The `rovo-agent-connector` module reached General Availability on
+2026-09-28 ([Atlassian developer changelog](https://developer.atlassian.com/changelog/); [module reference, last updated 2026-09-22](https://developer.atlassian.com/platform/forge/manifest-reference/modules/rovo-agent-connector/), accessed 2026-09-30).
+Rev 2's objection was structural: "Marketplace agents must run on
+Forge... their model absorbs the agent body into their cloud, the
+opposite of ADR-2 residency." The GA module now explicitly supports
+agents "hosted outside of the Atlassian platform," citing GitHub
+Copilot, Cursor Background Agents, and Box AI Agents as examples,
+connecting over the Agent2Agent (A2A) protocol. This does not on its
+own clear law 2 (self-serve mint) — whether an epito agent could
+register through this connector and appear in Jira/Confluence as
+itself, versus merely being callable by Rovo, is not yet confirmed and
+is flagged for the next full re-rank. But the reason Atlassian was
+parked at "watch" no longer clearly holds, so it moves to **build-next
+candidate, unconfirmed**, pending that one-afternoon check.
+
+**New entrant: Ando.** Out of stealth 2026-09-24 with a $20M seed
+(Accel, Index, Emergence): an agent-native team-messaging platform
+built as a Slack alternative, where agents get "identity, permissions,
+and shared context" as first-class team members, agent-agnostic
+(Codex, Claude, Grok, etc.) ([TechCrunch](https://techcrunch.com/2026/09/24/ando-eyes-slack-as-it-builds-team-messaging-platform-for-humans-and-agents-to-work-together/); [launch release](https://www.globenewswire.com/news-release/2026/09/24/3368344/0/en/ando-launches-agent-native-messaging-platform-announces-20-million-seed.html), accessed 2026-09-30).
+Read plainly against law 3 (the agent appears as itself or the row is
+mislabeled): Ando bundles identity *inside its own new platform*, the
+same walled pattern as every other bundler in rev 2's landscape
+section — it does not portable-ize identity across GitHub, Slack, and
+Ando the way a manifest does. It is a competitor on the "agent as
+teammate" register, not a wedge threat yet, and a future watch-tier
+row if it gets traction; too new to rank on distribution (no directory,
+no marketplace, pre-launch product).
+
+**Notion Agent SDK, public beta (2026-09-15).** Lets Custom Agents be
+triggered and continued from outside Notion, not just invoked inside it
+([release notes](https://www.notion.com/releases/2026-09-15), accessed
+2026-09-30). This softens, slightly, rev 2's objection that "Notion
+bundles residency natively, so our marginal value there is
+portability, not residence" — external triggering is a step toward
+externally-hosted agents driving a Notion identity, which is closer to
+our shape. Not enough to move tier; Notion stays build-next.
+
+**Okta, Oktane 2026 (2026-09-23).** Agent SSO, Agent-to-Agent
+Connections, and Resource Access Certifications all went GA; a new
+"Blueprint Alliance" with AWS and CrowdStrike; Agent Gateway and
+Shadow-AI-Discovery slated for Q3 GA. Notably, WorkOS, Stytch, and
+smaller agent-credential players (Archestra.AI, Keycard, Scalekit) are
+listed as Cross App Access ecosystem partners — Okta is positioning
+itself as the routing/governance layer other identity vendors plug
+into ([Okta's own announcements PDF](https://s205.q4cdn.com/566291348/files/doc_events/2026/Sep/23/Okta-Oktane-2026-Announcements.pdf); [SiliconANGLE](https://siliconangle.com/2026/09/22/okta-adds-ai-agent-runtime-gateway-forms-blueprint-alliance-with-aws-and-crowdstrike/), accessed 2026-09-30).
+Enterprise-anchored, same as every prior IdP move in rev 2 — reinforces
+G4's whitespace claim (nobody portable-izes identity across an
+indie builder's actual stack) rather than narrowing it.
+
+**CrowdStrike "Agentic Identity Provider"** launched 2026-09-02 (just
+before the rev 2 cutoff, missed then): an enterprise security-platform
+SKU for agent identity, no public self-serve or per-agent price point
+found ([CrowdStrike press release](https://www.crowdstrike.com/en-us/press-releases/crowdstrike-agentic-identity-provider-foundation-for-ai-agent-identity-security/), accessed 2026-09-30). Same enterprise pattern; no comp for our buyer.
+
+**Re-ranking trigger conditions, checked one by one (rev 2's list):**
+
+| Condition | Status | Evidence |
+|---|---|---|
+| GitHub opens agent-app self-service | Not fired | [Preview page](https://github.com/features/preview/agent-apps-for-github) still framed as early-access signup, no changelog entry opening it; checked [github.blog/changelog](https://github.blog/changelog/), accessed 2026-09-30 |
+| Anthropic Managed Agents adds per-agent platform identity | Not fired | September releases were `anthropic-workspace-id` header, domain-restricted tool access, session budget caps — no identity primitive ([Claude Platform release notes](https://platform.claude.com/docs/en/release-notes/overview), accessed 2026-09-30) |
+| Supabase clears/drops Partner Catalog bar | Not fired | Docs unchanged: registered business + revenue or VC backing ([Partner Catalog](https://supabase.com/docs/guides/integrations/partner-catalog), accessed 2026-09-30) |
+| Vercel opens a lighter listing path | **Unverified, flagged** | The integration-requirements doc shows a "last updated Aug 28, 2026" stamp with no changelog text describing what changed; approval/email-review flow still documented as-is. Needs a direct diff read next run. |
+| Slack changes app-creation/marketplace policy for AI apps | Not fired on the mechanism we depend on | September was a governance-heavy month (Slack Code, channel restrictions on apps/agents, IdP-managed MCP controls) but `apps.manifest.create` self-serve creation is untouched ([summary source, secondary](https://vantagepoint.io/blog/sf/slack-september-2026-admin-updates), accessed 2026-09-30) |
+| Atlassian `rovo-agent-connector` exits EAP | **Fired**, 2026-09-28 | See above |
+| Asana opens AI Teammates below sales tier | Not fired (access); pricing model shifted | Self-serve purchasing still "coming soon"; AI Teammates/Dash are now bundled into paid tiers with consumption billing rather than a separate add-on fee, as of mid-September ([MPUG](https://mpug.com/asana-ai-teammates-are-now-included-in-paid-tiers-and-billed-by-consumption-after-that), accessed 2026-09-30) — a pricing data point (§3), not an access change |
+
+## 2. Demand — fresh evidence, three pain points
+
+All quotes verified live (GitHub API / direct fetch) before inclusion,
+not taken on the research pass's word alone.
+
+**Personal tokens / attribution.** Two live GitHub issues from the
+past two weeks show the exact confusion our product exists to remove:
+one maintainer flagging that a shipped "identity stack" commits as
+`arbsec-agent[bot]` with its own DCO sign-off while `CONTRIBUTING.md`
+still says AI contributions are attributed to the human submitter —
+"reviewers auditing provenance get contradictory anchors" ([arbsec/orchestraitor #397](https://github.com/arbsec/orchestraitor/issues/397), opened 2026-09-26); another where every agent commit in a fleet was silently attributed to the generic `github-actions[bot]` because a CI workflow omitted `bot_id`/`bot_name`, making "an agent's feature commit indistinguishable from CI's" ([bdh-org/dev-common #245](https://github.com/bdh-org/dev-common/issues/245), opened 2026-09-12).
+Both are the identity-collision failure mode our manifest is built to
+prevent, reported by people who built partial versions of our product
+by hand and got the attribution wrong.
+
+**Sandbox / resident-agent death.** The most interesting find is meta:
+a live, verified GitHub issue whose body states it was "produced
+automatically by Hermes (an autonomous AI agent) after a failed
+unattended mission" — the agent itself wrote the postmortem of its own
+death. It reports "no resource-lifecycle primitive in the core...
+renting a cloud resource has no guarantee... the finished artifact was
+never retrieved and is lost" ([NousResearch/hermes-agent #82304](https://github.com/NousResearch/hermes-agent/issues/82304), opened 2026-08-09,
+confirmed live via GitHub API, repo has 47,048 open issues — treat
+volume as a sign of a large, noisy tracker, not as forty-seven-thousand
+independent corroborations). Read carefully: this is not a human's
+complaint, it is the demand signal writing itself — an unattended agent
+whose sandbox death cost it a finished, unretrievable result, filed by
+the agent under a human's account (`tilllt`). Separately, a merged PR
+in a session-runtime project fixes exactly the diagnosability gap: "A
+sandbox killed by the kubelet reports the same thing as every other
+death... the pod is typically garbage-collected before anyone
+investigates" ([paradigmxyz/centaur #1532](https://github.com/paradigmxyz/centaur/pull/1532), merged 2026-09-04).
+
+**Cron duct-tape.** A Show HN launch (score 37, 19 comments,
+2026-09-05) for a new open-source agent scheduler opens with the
+builder's own frustration: "Why can't we get an agent scheduler that
+supports all of the following: git compatible, agent agnostic, 100%
+open source, os and system-agnostic, multi-runner support..." and
+claims 1,000+ users within what reads as a short window
+([Show HN: Moadim.io](https://news.ycombinator.com/item?id=49571537), verified live via the HN API). This is a second data point (after Trigger.dev/Temporal in rev 1) that "cron plus an agent" is being rebuilt from scratch by indie builders repeatedly — a demand signal for the trigger leg specifically, and a reminder that our roadmap's trigger primitive is competing with hobbyist tools people will build for free before they'll pay for ours. A dev.to postmortem adds the failure-mode texture: "I had seven AI agents on cron. Two of them stopped running on day one. I noticed on day eighteen... silent failures are the most expensive kind, because nothing crashes and nobody gets paged" ([Ken Imoto, dev.to](https://dev.to/kenimo49/i-cron-scheduled-7-ai-agents-2-silently-failed-for-18-days-tracing-wouldnt-have-caught-it-24fa), 2026-06-03, older than this window but newly surfaced, verified live).
+
+## 3. Positioning and pricing
+
+**Positioning update.** "Why epito.me and not glue" (rev 1) now has a
+second glue category to beat, alongside the hand-built GitHub App
+plumbing every demand quote in §2 shows people rolling themselves: a
+*free, working, single-purpose OSS substitute* for the narrowest slice
+of v1 (`qwts/agent-bot-identity`, verified above). The honest
+distinction is not mechanism — the mechanism is public and copyable by
+construction (vision §0b: "every abstraction must be explainable by
+pointing at the real mechanism beneath it") — it is scope: one script
+gives one machine one GitHub identity; the manifest gives a roster
+(1 to 100 agents, vision §0) one portable identity per agent across
+every platform it touches, with the audit trail and passport rev 2 §6
+G3/G4 describe. That distinction has to be sellable in one sentence
+before it is sellable at all, and this run did not draft that sentence
+— flagged for the next presentation pass under L-A8/L-A15.
+
+**Pricing: flat roster tiers, reconfirmed, no change.** This run found
+nothing that argues for a different structure. Okta's Agent SSO ships
+inside core SSO plans at no incremental charge — another flat/bundled
+treatment of agent identity from a major vendor ([coverage](https://finance.yahoo.com/technology/ai/articles/okta-sees-ai-agent-identity-210208369.html), 2026-09-23) — and CrowdStrike's and Ping Identity's September launches both ship as enterprise SKUs with no public usage-metered price point, so neither is a counter-comp for a hybrid model. No new "per-agent identity as a service" product with public indie pricing was found this run; WorkOS Agent Auth and Auth0's "Agent as Principal" remain sales-contact-only. The pricing risk this run surfaces is not structural, it is the DIY-for-free competitor named above: a flat tier has to be justified against "free," not against a metered rival.
+
+## 4a. Standing watch: LangChain/LangSmith (ADR-12)
+
+**Checked this run, as every Friday/window run must (ADR-12): tripwire
+did not fire.** No mechanism found where a LangSmith-deployed agent
+acts on GitHub, Slack, or any outside platform under its own principal
+— every credential path still resolves to a shared/static secret, the
+invoking human's OAuth, or (new this window) a single LangChain-owned
+service identity shared across *all* customers.
+
+What's new since rev 2 §8 (2026-09-20), none of it tripping the wire:
+
+- **Fleet weekly changelog, 2026-09-22 through 09-28**
+  ([docs.langchain.com/langsmith/changelog](https://docs.langchain.com/langsmith/changelog); diff via [langchain-ai/docs PR #6270](https://github.com/langchain-ai/docs/pull/6270/files), accessed 2026-09-30):
+  "Fleet now uses the selected user identity for GitHub requests that
+  are not tied to a specific repository" — an explicit reaffirmation of
+  the human-delegated model, not a step toward an agent principal.
+- **LangSmith Engine's GitHub App attribution changed**: code-fix
+  commits now link to "the LangSmith Engine GitHub App." Confirmed via
+  [docs.langchain.com/langsmith/engine-github](https://docs.langchain.com/langsmith/engine-github) (accessed 2026-09-30) that this is **one LangChain-managed GitHub App shared across every customer workspace** — "you do not create or configure an app yourself... no distinct bot identity per workspace." This is the closest thing LangChain has shipped to a GitHub-App-flavored bot identity, and it shows appetite for the pattern, but it is LangChain's own product bot, not a customer's deployed agent getting its own principal. Worth naming as the item most likely to evolve toward the tripwire condition — re-check specifically whether "shared across every workspace" narrows to "one per customer" or "one per agent" in a future release.
+- **Blog post, "New in LangSmith: Engine v2, Managed Deep Agents,
+  Fine-Tuning, and more"** ([2026-09-25](https://www.langchain.com/blog/langsmith-engine-agents-fine-tuning-trajectories)): introduces the phrase "identity-scoped auth," but on inspection this restates Connections' existing agent-owned/user-owned model (shipped 2026-09-09, already covered in rev 2 §8) plus new user-level memory scoping — not a new identity primitive.
+
+Plain reading: a quiet ten days relative to the tripwire, high activity
+otherwise (Fleet ships weekly). ADR-12's two active arms (integrate via
+`langchain-epito`, outdo via the passport) are unaffected; no
+escalation triggered.
+
+## 4. Integration map — delta only
+
+The full ranked table (rev 2 §5) is unchanged except for the two rows
+below. **Standing recommendation is unchanged: Slack remains the next
+integration after GitHub** — nothing this run found alters
+`apps.manifest.create`'s self-serve status or the visibility-surface
+argument for Slack.
+
+- **Atlassian: watch → build-next candidate, unconfirmed** (see §1).
+  Action before the next full re-rank: confirm whether
+  `rovo-agent-connector` lets an externally-hosted agent register and
+  appear as itself in Jira/Confluence (law 3), or only lets Rovo call
+  out to it (still a delegation surface). One afternoon of docs
+  reading, not a build.
+- **Notion: build-next, unchanged tier, strengthened case.** The Agent
+  SDK public beta (§1) narrows the "bundles residency" objection;
+  still ranked behind Slack.
+- **New watch-tier entry: Ando** (see §1) — too early to rank on
+  distribution, tracked for the next dispatch that touches the
+  messaging-surface question.
+
+---
+
+## To the seat that builds on this (unchanged from rev 2, reconfirmed)
+
+The central problem in one sentence: every platform now gives agents
+an identity that stops at its own wall, and epito.me exists to issue
+the one identity that crosses them, owned by the user. This run adds
+one refinement worth carrying forward: the platforms are not the only
+thing that stops at a wall. A single free script can cross the same
+wall for one agent on one machine. What a platform cannot do and a
+script does not try to do is what we still own — the roster, portable
+across a builder's whole stack, audited as one thing.
+
+*Charter compliance note (rev 3): research only; nothing posted, no
+one contacted, no sign-ups, no accounts created. Every non-official-
+domain source (GitHub issues/PRs/repos, the HN thread) was
+independently verified live via the GitHub API or a direct fetch
+before inclusion, not taken on trust from the research pass alone.
+Flagged secondary/unverified: the Slack September admin-updates
+summary (vantagepoint.io, a secondary aggregator); the Vercel
+"lighter listing path" condition (timestamp found, no changelog text,
+needs a direct read next run); Atlassian's law-3 status for the new
+connector (mechanism confirmed GA, self-serve-mint status unconfirmed).
+Checked against docs/agents/lessons.md before shipping: no lesson
+violation found — L-A1 (mechanism, not pitch) held throughout, and
+this document is not owner-facing prose requiring the L-K3 public-copy
+register.*
+
+---
+
+# Market brief — docs/market.md (rev 2, superseded by rev 3 above)
 
 Maintained by the market seat. This revision: **rev 2, 2026-09-19**,
 convened on dispatch for two owner questions: the integration universe
