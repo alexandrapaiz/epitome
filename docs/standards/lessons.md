@@ -1,7 +1,7 @@
-<!-- vendored-from: standards/lessons.md @ 775ce369c76dc04b45d0aa19e6fdf45969e13718 -->
+<!-- vendored-from: standards/lessons.md @ 7e051c056c5120cad6f697012de37d1b8ef6c2c0 -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `775ce36`,
-> vendored 2026-09-28. Changes to a company standard are HQ
+> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `7e051c0`,
+> vendored 2026-09-30. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
 <!-- end vendored header -->
@@ -507,7 +507,20 @@ ID it eventually gets is not the one its author would have chosen.
   twice over. The rule is unchanged and no file anywhere cited the old
   ID. Note the overlap with L-E7, which is the same first defect stated
   as policy. This rule is the implementation, and its second and third
-  clauses are its own.)
+  clauses are its own. **Amended 2026-09-30** with the clause that made
+  the difference between a written rule and a fixed fleet: each of the
+  three defects is testable in one `grep`, so the drift check owns them,
+  and a workflow rule that `tools/check-seat-workflows.sh` does not test
+  should be read as undistributed no matter how many registers carry it.
+  Evidence for the amendment is the register's own failure. Five days
+  after this rule was written and distributed to every product, the
+  centralizer counted the live workflows: the commit-counting tripwire
+  had reached HQ's nine seats and epitome's five and no others, so 26
+  workflows across alexandria, Ursa and atelier-app still ran the
+  `git branch -r --contains HEAD` form that epitome run 35956231272
+  proved passes a run that shipped nothing, and the checker reported all
+  of them conforming because it only tested that a step named "No-ship
+  tripwire" existed. L-A9 in the engineer's own territory.)
 - **L-E9 — Connecting a repo to a host is finished when one build has
   run end to end, and the metered unit is counted first.** Two
   questions before the connection is called done. Does a real build
@@ -533,6 +546,40 @@ ID it eventually gets is not the one its author would have chosen.
   including production was refused for 24 hours. Fixed by disabling
   branch deploys and firing a deploy hook only on pushes to `main` that
   touch the site.)
+
+- **L-E10 — An open card is not evidence that nobody built it, so a
+  builder surveys the pull requests before it writes code.** Every
+  autonomous run starts from `main` with no memory, and `main` is the
+  one place where work that is built but unmerged is invisible. A
+  backlog card therefore says only that the work has not *landed*; it
+  says nothing about whether it has been *done*. Before writing a line
+  of code a builder seat runs `gh pr list --state open` and
+  `gh pr list --state closed --search '<the feature in words>'`, reads
+  the hits whose scope overlaps its own, and then picks one of three
+  moves in the open: extend the existing branch, propose closing it
+  with a reason, or land the stack. Writing a sixth implementation is
+  never one of the three. The survey belongs in the PR description as
+  named numbers, because a survey nobody can see is indistinguishable
+  from a survey nobody ran (L-E5's grounding rule applied to prior art,
+  and requirement 9 of engineering-artifacts.md is its artifact form).
+  PM corollary, which is the half that lets this recur: a hill or a
+  dispatch drawn from a card rather than from `gh pr list` hides the
+  duplication it then commissions, so a dispatch whose evidence is a
+  sprint item carries the PR survey in the instruction, and a seat
+  sitting behind a stack of its own open PRs is told to land the stack
+  rather than to build again. Binds every builder seat (engineer,
+  frontend, skill, and any seat that commits code) and every PM.
+  (epitome cycle 1 bet 2, 2026-09-22 through 2026-09-29: `epito token`
+  was built six times in five attempts — PRs #9, #10, #14, #15, #20,
+  #23 — every one of them closed and **not one merged**, while a
+  six-deep unmerged stack sat in the repo and the card stayed open. So
+  the cost was not only five wasted builds, it was a feature the
+  company paid for six times and shipped zero times. Reported to HQ by
+  the chair on the owner's directive of 2026-09-29, "report the cause
+  and system to ExO, including HQ"; epitome's own register entry is in
+  flight at epitome#26. The shape is not epitome's alone: HQ carried 13
+  open PRs and 19 unmerged seat branches on the day this rule was
+  written, which is the same invisible inventory one repository up.)
 
 - *Pending harvest: the owner reports substantial engineer corrections
   in Ursa chair sessions not yet captured in any register (partially
