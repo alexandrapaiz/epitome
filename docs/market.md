@@ -1,5 +1,13 @@
 # Market brief — docs/market.md
 
+Maintained by the market seat. This revision: **rev 3, 2026-09-30**,
+research in progress (weekly window run). Rev 2 is kept below, marked
+superseded, until this revision's sections are filled in.
+
+---
+
+# Market brief — docs/market.md (rev 2, superseded by rev 3 above once filled in)
+
 Maintained by the market seat. This revision: **rev 2, 2026-09-19**,
 convened on dispatch for two owner questions: the integration universe
 (where an epito agent could show up, ranked) and the gaps that
