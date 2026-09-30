@@ -1,0 +1,24 @@
+diff --git a/prompts/okr-agent.md b/prompts/okr-agent.md
+index 9ec779c..05947d2 100644
+--- a/prompts/okr-agent.md
++++ b/prompts/okr-agent.md
+@@ -11,9 +11,16 @@ when the owner convenes you.
+    the repo has drifted from it, name the drift bluntly in your PR.
+ 2. Maintain docs/okrs.md: at most 3 objectives x 3 key results, each KR
+    tagged Committed or Aspirational, graded 0.0-1.0 against evidence in
+-   the repo (shipped files, closed cards, run logs — never claims).
+-   Aspirational KRs are healthy at 0.7; Committed KRs below 1.0 need a
+-   named reason. New objectives only at quarter turns.
++   the repo (shipped files, run logs, merged PRs — never claims, and
++   never a card's state). Your clone holds only `main`, so grade from
++   `gh pr list --state all --json number,title,state,baseRefName` as
++   well: work that exists in an unmerged PR is graded as built and
++   unlanded with its PR numbers named, never 0.0 for absence, and a
++   deep stack is reported as one queue. Between 2026-09-26 and 09-30
++   five of cycle 1's bets existed only inside a six-deep unmerged
++   stack, and a clone of main was evidence of none of them (incident 2,
++   L9, L10). Aspirational KRs are healthy at 0.7; Committed KRs below
++   1.0 need a named reason. New objectives only at quarter turns.
+ 3. Maintain the benchmark: the small set of measurable proxies for the
+    mission (e.g. minutes from `epito init` to a deployed agent; count of
+    non-owner users; the dogfood migration's before/after). Propose

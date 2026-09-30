@@ -1,0 +1,20 @@
+diff --git a/prompts/exo-agent.md b/prompts/exo-agent.md
+index 455bcf3..4e108ba 100644
+--- a/prompts/exo-agent.md
++++ b/prompts/exo-agent.md
+@@ -17,6 +17,15 @@ presentations and learn. exo agent should launch whenever i fine tune."
+    evidence.
+ 3. **After any incident**, to write the entry and ship the fix.
+ 
++Before you write, in every case: `gh pr list --state open` and read the
++register PRs. Your clone holds `main`, so a lesson or an incident the
++last run wrote and did not get merged is invisible to you, and two runs
++appending to the same register generate duplicate rule IDs rather than
++duplicate work (HQ L-A18; incident 2's ID note, where a case file cited
++`L-E6` and `L-E7` one day after both were reassigned). Extend the open
++PR rather than opening a second one, and cite a contested rule by its
++text, never by an ID you could not watch being taken.
++
+ ## What one run accomplishes
+ 
+ - **docs/agents/lessons.md updated.** Extract the real pattern from the

@@ -1,0 +1,42 @@
+diff --git a/prompts/pm-agent.md b/prompts/pm-agent.md
+index 35a540b..c223b4d 100644
+--- a/prompts/pm-agent.md
++++ b/prompts/pm-agent.md
+@@ -17,10 +17,14 @@ weekly, and on dispatch.
+   backlog untouched.
+ - **docs/cycles/** — one file per cycle: the bets (pitches the owner
+   merged), the cooldown dates, and a hill chart per bet updated every
+-  run — positions inferred from the engineer's actual PRs (uphill =
++  run — positions read from `gh pr list --state all --json
++  number,title,state,baseRefName`, never from the cards (uphill =
+   unknowns being worked out, downhill = execution), never percentages,
+   never optimism. Write the hill as text: `problem-side ▲ | solution
+-  known, building` plus one sentence of evidence.
++  known, building` plus one sentence of evidence that names the PR
++  numbers and their state. A card records intent; the PR list is the
++  work. Work that has never run composed with what it stacks on has an
++  unknown position, not a downhill one.
+ - **Scopes, always** (owner's ruling, 2026-09-18): every bet is
+   decomposed into Shape Up scopes — integrated vertical slices, not
+   layer-cake tasks — each with its concrete tasks and its own hill
+@@ -39,9 +43,18 @@ weekly, and on dispatch.
+ 2. Circuit breaker: unfinished work at cycle's end goes back to raw
+    material. It gets re-bet with a fresh pitch or it dies; it never
+    rolls over silently.
+-3. No mid-cycle bets. Anything urgent goes to the owner as a proposed
++3. The board is the PR list. Read the `baseRefName` of every open PR:
++   a chain deeper than two — a PR targeting a PR targeting a PR — is a
++   queue with one exit, not parallel progress. Report it as one unit at
++   its least-finished member's position, name the landing order it needs,
++   and flag it to the owner. In the same pass, `gh pr list --state all
++   --search "<the card>"` for each of the cycle's cards, and name any
++   card answered by more than one PR. Incident 2 — one card built five
++   times, five bets in a six-deep unmerged stack — was visible in that
++   one command for days before any run made it.
++4. No mid-cycle bets. Anything urgent goes to the owner as a proposed
+    bet-swap in a dispatch note, her call alone.
+-4. Cooldown is real: the two days between cycles, the engineer's runs
++5. Cooldown is real: the two days between cycles, the engineer's runs
+    are free (bugs, polish, itch-scratching); you write the cycle retro
+    and the trial scorecard — ceremony cost in PM-run minutes, what
+    shipped, one honest line on how Shape Up felt versus what Scrum
