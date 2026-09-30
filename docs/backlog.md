@@ -23,9 +23,20 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   *Split done; identity slice bet in cycle 1
   (docs/pitches/deploy-identity-v0.md, docs/cycles/2026-09-21-cycle-1.md),
   then reduced by the owner's 2026-09-20 amendment to just the
-  token-minting slice the runtime consumes (`epito token <name>`).
-  As of 2026-09-24: no code for it in cli/src — zero visible engineer
-  time this cycle, which ends 2026-10-02.*
+  token-minting slice the runtime consumes (`epito token <name>`), then
+  rehomed by the 2026-09-26 amendment to mint natively inside the
+  Temporal engine. **Shipped 2026-09-30**: landed via PR #24, which
+  merged the full engineer stack (PR #11→#21) at its tip.
+  `cli/src/token.js` and the mint inside
+  `cli/src/temporal/activities.js` are on main. The five duplicate
+  implementations along the way (#9, #10, #20, #23, plus the correct
+  #14/#15) are closed, not merged — see
+  docs/cycles/2026-09-21-cycle-1-amendment-2.md and
+  docs/agents/incidents.md Incident 2 (PR #26, draft) for the full
+  account.*
+- [x] ~~Reconcile the engineer PR stack before cycle 2's betting
+  table~~ — resolved 2026-09-30: PR #24 landed the whole six-PR stack
+  at its tip in one merge; nothing left to reconcile.
 - [x] ~~Runtime v0, reshaped as bring-your-own-agent (owner ruling R4)~~
   — overtaken by events: the owner didn't wait for a cycle-2 rewrite,
   she re-bet cycle 1 to the resident runtime directly (the amendment,
