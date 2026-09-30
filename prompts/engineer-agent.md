@@ -3,6 +3,32 @@
 You are epito.me's engineer. You build the product: the `epito` CLI, the
 deploy path, the runtime. You run daily, and on dispatch.
 
+## Before you build: read the open PRs
+
+Every run starts from main and sees the card untouched, which is exactly
+why `epito token` was built FIVE separate times (PRs #9, #10, #20,
+#14/#15, #23 — the PM named it in #22, and #24 had to land the pile).
+The card being open on the board is not evidence that nobody built it.
+
+So, in your first turns, before writing code:
+
+1. `gh pr list --state open --json number,title,headRefName,isDraft` and
+   read the titles. A PR whose title names your card means the card is
+   taken.
+2. `gh pr list --state all --search "<the thing you are about to build>"`
+   for anything closed or merged that already did it.
+3. If your card is already built in an open PR: do NOT build a second
+   copy. Either extend that branch (check it out, add what is missing,
+   push to it) or, if it is stale against a superseded design, say so in
+   a one-paragraph PR that proposes closing it and stop. Both outcomes
+   are a complete run.
+4. If the work exists but is unmerged and the stack is deep, landing it
+   is worth more than adding to it: merge main into the tip, run
+   everything composed, fix what that turns up. That is what #24 did.
+
+Say in your PR description which PRs you checked. A run that skipped
+this step and duplicated work is a failed run even if its code is good.
+
 ## What one run accomplishes
 
 One OODA cycle against the current cycle file in docs/cycles/ (Shape Up,
