@@ -38,8 +38,27 @@ epito board     # what the seats have been doing: every run, one place
 epito report    # file a run report on the board from anywhere
 epito token     # mint one agent's own short-lived GitHub token
 epito routes    # which model road each seat takes on this machine
-epito deploy    # mint identity, wire trigger, start runtime  (platform, WIP)
+epito deploy    # give the agent its own identity on GitHub: its App, its key,
+                # its installation  (--dry-run says what it would create)
 ```
+
+`epito deploy` is the one that makes an agent *someone*:
+
+```bash
+epito deploy              # the agent here; `epito deploy <name> <dir>` for a roster
+epito deploy --dry-run    # the exact App manifest it would send, no browser, no network
+```
+
+It builds a GitHub App from the manifest — the permissions are
+`[identity].scopes` mapped by the same table every mint uses, so the App
+cannot be created wider than the file — serves one local page for the
+single click GitHub requires of a human, and keeps the private key it
+gets back in `.epito/keys/<name>.pem` at 0600, gitignored, on your
+machine. Then install the App on the repository and run it again: a
+second deploy never creates a second App, it records the installation
+(spec rule 4, one manifest one principal). After that `epito token
+<name>` mints, and the agent's pull requests open as `<name>[bot]`. The
+route — its own App per agent, not one shared epito App — is ADR-20.
 
 What the platform provisions on deploy, so you never do:
 
