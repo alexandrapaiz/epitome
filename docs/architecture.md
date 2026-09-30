@@ -105,14 +105,37 @@ On-disk store, three files at three trust levels:
 4. Commits/PRs attribute to `<name>[bot]`. Revoke = uninstall the App
    (GitHub refuses all future mints) + delete local keys.
 
-## epitod — the local daemon (phase 2; the Omarchy surface)
+## epitod — the runtime (shipped; the Omarchy surface)
 
-- Watches a manifests directory; per manifest, generates a systemd
-  user unit (`ExecStart=epito run <name>`, `DynamicUser=yes` or a
-  rootless podman container) and a timer translated from
-  `[trigger].cron`.
-- journald is the runtime log; an adapter appends audit entries.
-- `epito ps` renders the roster from systemctl state.
+Rev 2, 2026-09-26: epitod v1 replaced the hand-built middle with a
+durable-execution engine. The full design is
+docs/prfaq/epitod-v1-temporal.md; the shape in five lines:
+
+- **Temporal, self-hosted, is the engine. epitod is the face.** No
+  Temporal word reaches a product-facing string.
+- `[trigger].cron` becomes one Temporal **Schedule** per manifest, id
+  `seat:<name>`, UTC, overlap `BUFFER_ONE`. `epito run <roster>`
+  reconciles them to match the roster and is idempotent.
+- A run is the workflow **`SeatRun`** over four activities — `clone`,
+  `execute`, `record`, `notify` — each with its `RetryPolicy` and
+  timeout declared at the call site. `execute` is `maximumAttempts: 1`,
+  because an execution that half-ran has already pushed commits.
+- Presence is the workflow **`SeatWindow`**, holding the executor's
+  `session_id` and the clone path, driven by `message` / `close` /
+  `refresh` signals and a TTL timer.
+- One systemd unit reconciles and serves the ingress
+  (`epitod.service`); a second does the work on task queue `seats`
+  (`epitod-worker.service`). `epito ps` reads the engine —
+  `.epito/state.json` is retired. `.epito/audit.jsonl` stays as the
+  product's own append-only record, and must remain readable if the
+  engine is ever replaced.
+
+The earlier phase-2 plan for this layer — a systemd user unit and timer
+generated per manifest, journald as the log, `epito ps` from systemctl
+state — is superseded. It was a second scheduler, and the whole point of
+v1 is that we stopped writing those. What survives from it is the
+packaging idea: epitod plus the CLI plus the MCP server as one
+installable thing, which is still the Omarchy channel.
 - OS-level identity mirrors platform identity: the same someone in
   `ps` and in the commit log.
 - Omarchy integration = a package (AUR first) installing epito +
@@ -151,9 +174,45 @@ PR body, or rejected; lockfile committed): core: smol-toml only (zod
 rejected — the hand-rolled validator's error voice is product
 surface). cli: none. mcp: @modelcontextprotocol/sdk. providers/github:
 jose (RS256; native fetch, no octokit — four endpoints don't earn a
-client library). providers/systemd + epitod: none targeted (unit files
+client library). providers/systemd: none targeted (unit files
 written directly, systemctl exec'd). Control plane: hono + pg
 proposed, decided at the phase-3 pitch.
+
+**epitod's budget changed, and this is the justification line** (epitod
+v1, 2026-09-26; the full argument is docs/prfaq/epitod-v1-temporal.md,
+ratified by merging that PR): `@temporalio/client`, `@temporalio/worker`,
+`@temporalio/workflow`, `@temporalio/activity`, and an operated Temporal
+server. "None targeted" bought a 364-line `cli/src/run.js` that was a
+scheduler, a per-seat mutex, a retry loop and a crash-recovery story
+written badly, and whose worst defect was silent: a run in flight when
+the box rebooted was simply gone, with nothing in the system aware it had
+existed. Those four things are a workflow engine. The deps are accepted
+because the part we stopped writing is the part that is hardest to get
+right and least differentiating, and because the engine is a surface we
+can leave under constraint 1 — the manifests, the activities and
+`audit.jsonl` are engine-agnostic by construction. Temporal Cloud is
+rejected permanently: a vendor in the runtime path, and a per-action
+bill.
+
+**The router took nothing either** (2026-09-28, ADR-19): routing a run to
+another provider is two environment variables and a different `--model`,
+which is what fifteen hand-written workflow steps across the company
+already prove. A gateway (LiteLLM, OpenRouter) would have been a second
+service in the runtime path to buy what a table in the manifest buys, so
+it stays available as one route's `base_url` and nothing more.
+
+**The adapter and tracing legs took nothing** (2026-09-27, ADR-17 and
+ADR-18; this line exists because the budget rule requires one either
+way). Hosting a LangGraph app added no dependency because an adapter is a
+subprocess and a result contract, not an SDK: `cli/adapters/langgraph_run.py`
+is stdlib-only Python and runs in the AGENT's interpreter, where the
+framework already lives. Tracing added none because the OpenTelemetry
+Node SDK is six packages, a provider and a background flush whose
+lifetime fights an activity's, where what epito needs is three spans per
+run with ids two processes can derive from the run id —
+`cli/src/lib/trace.js` is that, over `fetch`. Both remain replaceable in
+one file if the trade changes: adopt the SDK when a process epito did not
+spawn has to be given a trace context.
 
 ## Testing strategy
 
@@ -173,6 +232,14 @@ stolen → act as that ONE agent until revoke (0600, gitignored at init,
 revoke = uninstall; OS-keychain on backlog). Token exfiltrated → ≤1 h,
 that agent's scopes only (env-only handoff, never-log, never disk).
 npm supply chain → dependency budget + lockfile + provenance.
+Temporal's database holds every workflow and activity argument in plain
+text → no secret value may be one; the manifest (publishable by design)
+is what crosses that boundary, and the worker reads values from its own
+environment. Self-hosted Temporal's gRPC endpoint has no mTLS → bound to
+loopback behind ufw 22/443, so reaching it means already being on the
+box, and mTLS is the fix when a second worker host exists. The Temporal
+UI shows history, which shows prompts → loopback only, reached by SSH
+tunnel, never published.
 Webhook forgery (phase 3) → per-agent signing secret at ingress.
 Owner's credentials → structurally absent; that's the product.
 Standing rule: a control in this table absent from the code is an
@@ -188,12 +255,20 @@ proposals, never TBDs:
   environment. Data: `.epito/` three-trust-level store (principals
   .json, keys/, audit.jsonl). Secrets: PEM 0600 local; GitHub repo
   secrets carry `[runtime].env` names.
-- **Phase 2 (epitod).** Compute: the user's machine, systemd user
-  units + timers. Containers: rootless podman 5.x, one OCI image per
-  agent, base image on GHCR (docker rejected: root daemon);
-  DynamicUser as the no-container fallback. Data: local store +
-  journald with an adapter into audit.jsonl. Secrets proposal: OS
-  keychain (libsecret / macOS Keychain) replaces bare PEM files.
+- **Phase 2 (epitod, shipped).** Compute: one always-on host (Oracle
+  Always Free A1 today, any Ubuntu box by design), two systemd system
+  units as the unprivileged user `seats`. Engine: Temporal self-hosted
+  in two containers (`temporalio/auto-setup`, `temporalio/ui`) on the
+  host's Postgres, bound to loopback, installed by HQ
+  `runtime/temporal/install.sh`. Data: `.epito/audit.jsonl` plus
+  Temporal's own workflow history (retention is a namespace setting; 30
+  days is the starting value for 36 seats). Secrets: `/srv/asc/env` at
+  0600, optionally rendered by an Infisical agent; secret values are
+  held by the worker process only, never by a workflow argument.
+  Containers per agent (rootless podman, one OCI image per agent) is
+  still unbuilt and still the right next isolation step; a seat run is
+  a process under `PrivateTmp=yes` today. Secrets proposal for phase 3
+  unchanged: OS keychain replaces bare PEM files.
 - **Phase 3 (plane).** Compute: Vercel functions for api + ingress;
   agent runtimes STAY user-side (hosted runners a later paid option).
   Containers: the same per-agent OCI images from GHCR. Data: Supabase
@@ -221,12 +296,19 @@ as a channel:
 | Data | Supabase Postgres | phase-3 DB; OAuth 2.1 → future per-agent DB identity | partner catalog at revenue |
 | Human auth | Clerk | control-plane sign-in for owners/orgs (humans only — agents use OUR identity layer) | vibecoder auth default, template ecosystem |
 | Work surfaces | GitHub, Linear | IdentityProvider targets (App; app-user pending ADR-6 re-rank) | agents demo the product in-situ, as themselves |
-| Models | Anthropic Claude, OpenAI | `[runtime].model` is provider-agnostic; owner's key as a named secret in `[runtime].env`; gateway option phase 3 | model-agnostic = every lab's users addressable |
+| Models | Anthropic Claude, OpenAI, any Anthropic-API-compatible provider (Moonshot first) | `[runtime].model`, and `[[runtime.route]]` names the roads in order: a run takes the first one open on this box, and falls back only while the agent has done nothing (ADR-19). A gateway is one route's `base_url`, never a dependency | model-agnostic = every lab's users addressable, and the cheap road is the runtime's job rather than every workflow's |
 | Editors | Claude Code, Cursor | MCP server + skill (bet 2) | zero-listing-bar channel |
+| Agent frameworks | LangGraph (first; n8n, OpenClaw next) | `[runtime].adapter` hosts one unmodified, through its own `langgraph.json` (ADR-17) | the largest installed base of agents that have no identity — and a surface, since epito links none of it |
+| Tracing | OTLP (Phoenix, Jaeger, Tempo, LangSmith) | `OTEL_EXPORTER_OTLP_ENDPOINT`: one trace per run, the agent's own steps inside it (ADR-18) | a surface by construction — the protocol is the integration, so every backend is already supported |
+| Runtime engine | Temporal (self-hosted) | epitod v1's durable execution: schedules, `SeatRun`, `SeatWindow` | a swappable backend, never a channel — the one row chosen ONCE, as infrastructure only |
 | OS | Omarchy / Arch | epitod + systemd providers (phase 2) | AUR package; curated-defaults pitch |
 
 Constraint 1 governs every row: a surface or a swappable backend,
-never a load-bearing dependency.
+never a load-bearing dependency. The engine row is the honest exception
+to the "chosen twice" rule and is marked as such: it buys no
+distribution at all. It earns its place on mechanism alone, and the test
+that it stayed swappable is that `audit.jsonl` and the activities carry
+no Temporal type.
 
 ## Sequencing (the one ops paragraph)
 

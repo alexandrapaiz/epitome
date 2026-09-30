@@ -6,6 +6,8 @@
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { parse } from "smol-toml";
+import { ADAPTERS, DEFAULT_ADAPTER, unknownAdapter } from "./adapters.js";
+import { routeErrors } from "./router.js";
 
 export const NAME_RE = /^[a-z0-9-]{1,40}$/;
 
@@ -59,11 +61,46 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
     if (r.ref !== undefined && (typeof r.ref !== "string" || !/^[A-Za-z0-9_./-]{1,200}$/.test(r.ref) || r.ref.startsWith("-"))) {
       errors.push(`[runtime].ref "${r.ref}" must be a branch or tag name — the ref the runtime checks out; leave it unset for the default branch`);
     }
+    // Which kind of agent this is (ADR-17). Absent means "claude", which is
+    // what every manifest written before adapters existed means, so nothing
+    // in any roster changes by this field arriving.
+    if (r.adapter !== undefined && !(typeof r.adapter === "string" && ADAPTERS[r.adapter])) {
+      errors.push(unknownAdapter(r.adapter));
+    }
+    // A langgraph app may declare several graphs in its langgraph.json; this
+    // names the one this seat runs. It means nothing to any other adapter, and
+    // a field that quietly means nothing is how a manifest lies to its author.
+    if (r.graph !== undefined) {
+      const adapter = r.adapter ?? DEFAULT_ADAPTER;
+      if (typeof r.graph !== "string" || !/^[A-Za-z0-9_.-]{1,80}$/.test(r.graph)) {
+        errors.push(`[runtime].graph "${r.graph}" must be the NAME of a graph in the agent's langgraph.json (letters, digits, dot, dash, underscore)`);
+      } else if (adapter !== "langgraph") {
+        errors.push(`[runtime].graph names a graph, which only the langgraph adapter reads, and this manifest's adapter is "${adapter}". Fix: set [runtime].adapter = "langgraph", or drop [runtime].graph.`);
+      }
+    }
     if (r.max_turns !== undefined && !(Number.isInteger(r.max_turns) && r.max_turns > 0)) {
       errors.push(`[runtime].max_turns must be a positive integer, got "${r.max_turns}"`);
     }
+    // The roads this seat may take, in order (ADR-19). Absent means one road,
+    // [runtime].model on whatever this box authenticates the executor with,
+    // which is what every manifest written before routing existed means.
+    errors.push(...routeErrors(m));
     if (r.env && Array.isArray(r.env)) for (const e of r.env) {
       if (typeof e !== "string" || /[=:]/.test(e)) errors.push(`[runtime].env carries secret NAMES only, and "${e}" doesn't look like one — values never appear in the manifest`);
+    }
+    // Per-agent Slack routing: the name of the webhook secret this agent
+    // posts to, so a product seat can speak in its own channel instead of
+    // #hq. It is a NAME like every other secret reference, and the same rule
+    // applies: a name the manifest does not list under [runtime].env is never
+    // injected into a run, so a webhook name that isn't listed can never
+    // resolve to a value.
+    if (r.slack_webhook_env !== undefined) {
+      const w = r.slack_webhook_env;
+      if (typeof w !== "string" || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(w)) {
+        errors.push(`[runtime].slack_webhook_env "${w}" must be the NAME of an environment variable (letters, digits, underscore) — the webhook URL itself never appears in the manifest`);
+      } else if (!(Array.isArray(r.env) && r.env.includes(w))) {
+        errors.push(`[runtime].slack_webhook_env names "${w}", so "${w}" must also be listed in [runtime].env — the runtime injects only the names the manifest lists, so an unlisted webhook can never resolve to a value`);
+      }
     }
   }
 

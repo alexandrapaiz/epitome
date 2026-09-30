@@ -1,32 +1,41 @@
-# epitod v0 as a systemd user unit: the same `epito run` the Dockerfile runs,
-# on any box with node, git, gh, and the claude CLI on PATH.
+# epitod v1: the reconciler and the ingress. One process that does two small
+# things and no large ones:
 #
-#   mkdir -p ~/.config/systemd/user ~/epito/agents ~/epito/state
-#   cp docs/deploy/epitod.service ~/.config/systemd/user/
-#   systemctl --user daemon-reload && systemctl --user enable --now epitod
-#   journalctl --user -u epitod -f
+#   1. reads every agent.toml under the roster directory and makes Temporal's
+#      schedules match it (create / update / delete). Idempotent, so a restart
+#      reconciles instead of duplicating.
+#   2. serves the ingress: POST /hooks/<name>, /message/<name>, /window/open,
+#      /window/close and GET /healthz, each turning into a workflow start or a
+#      signal.
 #
-# Secrets come from /etc/epito/env (root:root 0600, one KEY=value per line):
-# EPITO_HOOK_SECRET, CLAUDE_CODE_OAUTH_TOKEN, GH_TOKEN. The manifest lists
-# the names an agent may see; epito passes only those into each run.
+# It does NOT execute seats. That is epitod-worker.service, and the split is
+# the point: restarting this unit to pick up a roster change cannot interrupt
+# a seat that is mid-run.
+#
+#   sudo cp docs/deploy/epitod.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now epitod
+#   sudo systemctl reload epitod        # re-read the roster, reconcile again
+#   journalctl -u epitod -f
 [Unit]
-Description=epitod v0 - epito resident runtime (epito run)
-After=network-online.target
+Description=epitod v1 - reconcile the roster onto Temporal, and serve the ingress
+After=network-online.target docker.service epitod-worker.service
 Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=%h/epito/state
-EnvironmentFile=/etc/epito/env
+User=seats
+Group=seats
+WorkingDirectory=/srv/asc/state
+EnvironmentFile=/srv/asc/env
 Environment=EPITO_PORT=4747
-ExecStart=/usr/bin/env epito run %h/epito/agents
+ExecStart=/usr/bin/env epito run /srv/asc/roster
+# SIGHUP re-reads the roster and reconciles, without dropping the ingress.
+ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=5
-# Runs write clones under $TMPDIR; give the unit its own so cleanup is local.
-PrivateTmp=yes
 NoNewPrivileges=yes
 KillMode=mixed
-TimeoutStopSec=90
+TimeoutStopSec=30
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target

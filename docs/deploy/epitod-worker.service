@@ -1,0 +1,50 @@
+# epitod v1: the worker. This is the process that does the work — it polls the
+# `seats` task queue on the Temporal server and runs the activities: clone the
+# seat's repository, spawn `claude -p` in it, append the audit line, post the
+# Slack line.
+#
+#   sudo cp docs/deploy/epitod-worker.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now epitod-worker
+#   journalctl -u epitod-worker -f
+#
+# Two units, deliberately: restarting the ingress to pick up a roster change
+# must not kill a seat that is mid-run, and with the worker in its own unit it
+# does not. `systemctl restart epitod` is safe at any time; `systemctl restart
+# epitod-worker` interrupts whatever is running, which is why it is separate.
+#
+# This unit holds the secrets. The worker is the only process that ever sees a
+# secret VALUE: the manifests name them, and Temporal only ever carries the
+# names (workflow arguments are persisted in plain text, so nothing else is
+# safe). /srv/asc/env is root:root 0600 and carries at least:
+#   TEMPORAL_ADDRESS, TEMPORAL_NAMESPACE
+#   CLAUDE_CODE_OAUTH_TOKEN, GH_TOKEN
+#   SLACK_WEBHOOK_URL, and any per-agent SLACK_WEBHOOK_URL_<PRODUCT>
+[Unit]
+Description=epitod v1 worker - runs seats off the Temporal task queue
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=seats
+Group=seats
+# The same working directory as epitod.service: .epito/audit.jsonl and
+# .epito/logs/ are written here, and both processes append to the one ledger.
+WorkingDirectory=/srv/asc/state
+EnvironmentFile=/srv/asc/env
+Environment=EPITO_TASK_QUEUE=seats
+ExecStart=/usr/bin/env epito worker
+Restart=always
+RestartSec=5
+# Runs clone into $TMPDIR; give the unit its own so a leaked clone is local to
+# it and dies with the unit.
+PrivateTmp=yes
+NoNewPrivileges=yes
+# A seat run is minutes to an hour. `epito worker` drains on SIGTERM: it stops
+# taking new work and lets what is in flight finish, so the stop timeout has to
+# be longer than a run's own timeout is expected to need.
+KillMode=mixed
+TimeoutStopSec=300
+
+[Install]
+WantedBy=multi-user.target
