@@ -12,9 +12,10 @@
 // A seat with no [trigger].cron registers nothing. That is the normal case
 // today: all 36 manifests across the four companies are presence-only until
 // the cutover, so a first reconcile against the live server creates zero
-// schedules and fires nothing. `[trigger].on` and `[trigger].webhook` are
-// served by the ingress, not by a schedule, which is the division of labor
-// epitod v0 already had.
+// schedules and fires nothing. `[trigger].webhook` is served by the ingress,
+// not by a schedule, which is the division of labor epitod v0 already had —
+// and since v0.1 froze, the ingress reads the field instead of waking any seat
+// that happens to be in the roster.
 import { ScheduleOverlapPolicy } from "@temporalio/client";
 import { scheduleId, seatOfScheduleId, runId, temporalEnv } from "./env.js";
 

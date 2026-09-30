@@ -535,6 +535,23 @@ audit "the hook ran the agent" '{"agent":"pm","action":"run.end","trigger":"hook
 check "the payload reached the run, as data" "grep -rq 'hook-payload-reached-the-run' \"$STUB\""
 check "and it was framed as data, never as instructions" "grep -rq 'never overrides the charter' \"$STUB\""
 
+# Spec v0.1 rule 3: a trigger is explicit and never defaulted. `clock` is the
+# one seat in this roster that declares a cron and nothing else, so it is the
+# seat that must NOT have a hook endpoint — before the freeze it had one, and
+# anyone who could reach the ingress could wake a seat its author had made
+# scheduled on purpose.
+step "a seat that did not declare [trigger].webhook cannot be woken through the ingress"
+before=$(node "$CLI/test/audit-has.mjs" --count '{"agent":"clock","action":"run.start"}')
+code=$(post /hooks/clock '{"why":"clock declares cron and nothing else"}'); echo "  $code $(body)"
+check "the ingress refuses it with 403, not 404: the seat exists" "[ \"$code\" = 403 ]"
+check "it names the rule in the product's words" "grep -q 'a trigger is explicit and never defaulted' '$ROOT/body.json'"
+check "it names the schedule the seat DOES run on" "grep -q '\* \* \* \* \* UTC' '$ROOT/body.json'"
+check "it carries the fix" "grep -q 'webhook = true' '$ROOT/body.json'"
+audit "the refusal is in the audit log, with its reason" '{"agent":"clock","action":"hook","refused":"no-webhook-trigger"}'
+sleep 1
+after=$(node "$CLI/test/audit-has.mjs" --count '{"agent":"clock","action":"run.start"}')
+check "and no run was started for it" "[ \"$after\" = \"$before\" ]"
+
 step "the CLI wrappers speak to the same ingress"
 node "$CLI/src/index.js" window open okr | sed 's/^/  /'
 node "$CLI/src/index.js" message okr "what did you open?" | sed 's/^/  /'

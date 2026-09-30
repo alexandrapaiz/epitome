@@ -15,6 +15,7 @@ import { webhookName } from "../src/lib/slack.js";
 import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP } from "../src/lib/identity.js";
 import { spawn } from "node:child_process";
+import { parse } from "smol-toml";
 import { mkdirSync } from "node:fs";
 import { once } from "node:events";
 import { generateKeyPairSync, createVerify } from "node:crypto";
@@ -1336,3 +1337,32 @@ function baseManifest(over = {}) {
     ...over,
   };
 }
+
+// The spec's catalogue and the validator's catalogue are the same list, and
+// this is what makes that a fact rather than a comment. The block under "##
+// The field catalogue" in spec/manifest.md is valid TOML on purpose, so the
+// document can be read by the code it governs: a field added to one side and
+// not the other fails here, by name, which is exactly the drift that let five
+// fields land as prose without ever being checked.
+test("spec/manifest.md's field catalogue is the validator's field catalogue", () => {
+  const md = readFileSync(fileURLToPath(new URL("../../spec/manifest.md", import.meta.url)), "utf8");
+  const block = md.match(/## The field catalogue[\s\S]*?```toml\n([\s\S]*?)```/);
+  assert.ok(block, "spec/manifest.md has no TOML catalogue under '## The field catalogue'");
+  const spec = parse(block[1]);
+  assert.deepEqual(Object.keys(spec).sort(), [...TABLES].sort(), "the spec and the code disagree about which tables a manifest has");
+  for (const t of TABLES) {
+    assert.deepEqual(
+      Object.keys(spec[t]).sort(),
+      [...FIELDS[t]].sort(),
+      `[${t}]: spec/manifest.md and cli/src/lib/manifest.js disagree about the fields`,
+    );
+  }
+  // The route table's keys live with the route reader; same rule.
+  assert.deepEqual(Object.keys(spec.runtime.route[0]).sort(), [...ROUTE_FIELDS].sort(),
+    "[[runtime.route]]: spec/manifest.md and cli/src/lib/router.js disagree about the fields");
+  // A retired field must not creep back into the document.
+  for (const gone of ["[trigger].on", "[runtime].image"]) {
+    const [, table, field] = gone.match(/\[(\w+)\]\.(\w+)/);
+    assert.ok(!(field in spec[table]), `${gone} is retired and is back in the spec's catalogue`);
+  }
+});

@@ -11,6 +11,13 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   the three alexandria seat shapes (daily builder, weekly writer,
   event-driven responder); every field either earns its place or goes.
   Seat: engineer. (Draft shipped founding night.)
+  *Built 2026-09-30 in PR #28 — awaiting review, not merged. The three
+  shapes are real manifests (cli/test/fixtures/shapes/) and a test
+  asserts every catalogued field is needed by one of them; two fields
+  went (`[trigger].on`, `[runtime].image`); the validator now refuses a
+  key the spec does not define. Box left unchecked on purpose: closing a
+  card is the PM's call. Read this note before rebuilding — L9/L-E10, an
+  open card is not evidence that nobody built it.*
 - [ ] **`epito init` + `epito validate` error polish** — errors a
   vibecoder can act on; `epito me` alias. Seat: engineer. (v0 shipped
   founding night.)
