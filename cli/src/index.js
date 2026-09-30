@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { parseManifest, validateManifest, NAME_RE } from "./lib/manifest.js";
+import { ignore } from "./lib/gitignore.js";
 
 const [, , cmdRaw, ...args] = process.argv;
 // `epito me` is `epito init`: mint an epitome of yourself.
@@ -31,7 +32,12 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       mint this agent's own short-lived GitHub token on
                       stdout (--dry-run says what it would ask for, and
                       touches neither the network nor a key)
-  epito deploy        provision the agent (not yet: platform in progress)
+  epito deploy [name] [dir]
+                      give the agent its own identity on GitHub: create its
+                      App pre-filled from [identity].scopes, keep the key in
+                      .epito/ (0600), record the installation on
+                      [runtime].repo (--dry-run says what it would create and
+                      touches neither the network nor a browser)
 
 The runtime is two processes and one engine: \`epito run\` reconciles and
 serves the ingress, \`epito worker\` executes, and Temporal (self-hosted,
@@ -55,15 +61,6 @@ mint, and whatever the agent itself emits inside it (ADR-18).
 `;
 
 const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
-
-// Add one line to .gitignore if it is not already covered. Never rewrites what
-// is there: an existing .gitignore belongs to the repo, not to us.
-const ignore = (line) => {
-  const existing = existsSync(".gitignore") ? readFileSync(".gitignore", "utf8") : "";
-  if (existing.split("\n").some((l) => l.trim() === line || l.trim() === line.replace(/\/$/, ""))) return;
-  const sep = existing === "" || existing.endsWith("\n") ? "" : "\n";
-  writeFileSync(".gitignore", `${existing}${sep}${existing ? "" : "# epito: the agent's credentials and run state, never committed\n"}${line}\n`);
-};
 
 if (!cmd || cmd === "help" || cmd === "--help") {
   console.log(HELP);
@@ -169,7 +166,9 @@ if (cmd === "run") {
 }
 
 if (cmd === "deploy") {
-  die("deploy is what the platform does, and the platform is in progress — track spec/manifest.md and docs/backlog.md");
+  const { deployCmd } = await import("./deploy.js");
+  await deployCmd(args);
+  process.exit(0);
 }
 
 die(`unknown command "${cmdRaw}" — try \`epito help\``);
