@@ -850,6 +850,16 @@ that are deliberately Actions-era." That decided the shape.
   roster being loaded by `epito run`, which hard-refuses already and
   prints no notes at all.
 
+**A note fires on doubt, never on the good case.** The third note v0.1 has
+says the `✓` did not check `[runtime].entry` — the validator skips that stat
+once `repo` is set, because the runtime reads the charter inside the clone.
+It is said only when the file is also absent from the directory you are
+standing in. A note on every correctly configured manifest would be the
+noise this ADR's objection is about, and noise on the good case is worse
+than noise on the broken one: standing in the repo with the charter beside
+you is evidence, and a path that resolves nowhere on this machine is the
+case that earns a sentence.
+
 **What it costs.** One more thing on screen for a repo-less manifest that
 its author knows is repo-less. The honest mitigation was to remove the
 common case rather than argue about it: `epito init` now reads

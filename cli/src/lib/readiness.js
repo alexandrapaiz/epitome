@@ -24,6 +24,8 @@
 // an exit code by itself: these are notes, and `--for-runtime` is what turns
 // them into errors, opt-in, because the default has to keep saying yes to
 // every manifest the spec blesses.
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { SCOPE_MAP } from "./identity.js";
 
 // The commands that refuse a manifest with no `[runtime].repo`. This list is
@@ -75,14 +77,22 @@ export function blockers(m, path = "agent.toml") {
 
 // Things this command could not check, so the tick does not claim it did.
 // `[runtime].entry` is the only one in v0.1: when `repo` is set the charter
-// lives in that repository and the runtime reads it inside the clone, so a
-// path that is wrong is a run-time refusal and there is nothing here to stat
+// lives in that repository and the runtime reads it inside the clone, so the
+// validator skips the stat and a wrong path is a run-time refusal
 // (src/lib/manifest.js says the same at the check it skips).
-export function unchecked(m) {
+//
+// Said only when the file is also absent HERE. A note that fired on every
+// correctly configured manifest would be the thing docs/ideas.md warned about
+// when it raised this card — "a warning nobody can silence becomes noise" —
+// and it would be noise on the good case, which is worse than noise on the
+// broken one. Standing in the repo with the charter next to you is evidence,
+// so there is nothing to disclaim; a path that resolves nowhere on this
+// machine is the case that deserves a sentence.
+export function unchecked(m, { baseDir = process.cwd(), exists = existsSync } = {}) {
   const out = [];
   const r = m?.runtime;
-  if (r?.repo && r?.entry) {
-    out.push(`[runtime].entry "${r.entry}" is read inside the clone of ${r.repo}, not here, so this ✓ does not say the charter exists — commit it to ${r.repo} before the first run`);
+  if (r?.repo && r?.entry && !exists(resolve(baseDir, String(r.entry)))) {
+    out.push(`[runtime].entry "${r.entry}" is read inside the clone of ${r.repo}, not here, and there is no such file in this directory either — so this ✓ does not say the charter exists. Fix: commit ${r.entry} to ${r.repo} before the first run`);
   }
   return out;
 }

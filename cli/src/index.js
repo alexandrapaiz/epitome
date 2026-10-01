@@ -144,7 +144,7 @@ if (cmd === "validate") {
   // The rules are the other commands' (src/lib/readiness.js); saying them here
   // is the difference between a ✓ that is correct and a ✓ that is honest.
   const ready = blockers(m, "agent.toml");
-  const notChecked = unchecked(m);
+  const notChecked = unchecked(m);  // cwd is the baseDir, as it is for validate's own entry check
   for (const u of notChecked) console.log(`  — ${u}`);
   if (ready.length) {
     // --for-runtime is the opt-in strict pass, for the person who wants CI to

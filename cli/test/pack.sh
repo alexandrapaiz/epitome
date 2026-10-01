@@ -199,7 +199,16 @@ if (cd "$REPO_WORK" && git init -q . && git remote add origin git@github.com:acm
   check "...and says where it got it"                        "said 'read from this directory'"
   run_epito validate; shows -2
   check "epito validate ticks with no note to add"           "[ $RC = 0 ] && ! said 'not ready to run'"
-  check "...and is honest that the charter is read in the clone" "said 'read inside the clone of acme/product'"
+  check "...with nothing to disclaim: the charter init wrote is right here" "! said 'read inside the clone'"
+  # Move the charter away and the ✓ stops claiming it exists. `epito validate`
+  # does not stat `entry` at all once `repo` is set (the runtime reads it inside
+  # the clone), so without this note the tick would be silent about a seat whose
+  # charter is nowhere -- and loud about every seat whose charter is fine.
+  mv "$REPO_WORK/prompts/digest.md" "$REPO_WORK/charter-moved-away.md"
+  run_epito validate; shows -2
+  check "a charter that is nowhere on this machine is said out loud"  "[ $RC = 0 ] && said 'read inside the clone of acme/product'"
+  check "...with the fix naming the file and the repo"                "said 'Fix: commit prompts/digest.md to acme/product'"
+  mv "$REPO_WORK/charter-moved-away.md" "$REPO_WORK/prompts/digest.md"
   run_epito validate --for-runtime
   check "the strict pass agrees: the runtime would take this manifest" "[ $RC = 0 ]"
   run_epito deploy --dry-run; shows -3

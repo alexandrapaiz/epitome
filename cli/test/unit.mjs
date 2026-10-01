@@ -1462,10 +1462,20 @@ test("the ✓ says the charter was NOT checked when the charter lives in another
   // runtime reads it inside the clone. The tick must not imply otherwise.
   assert.deepEqual(validateManifest(manifestFor({ repo: "acme/product", entry: "nope.md" }), { baseDir: tmpDir() }), [],
     "entry is checked locally even though repo is set");
-  const [u] = unchecked(manifestFor({ repo: "acme/product" }));
+  // Said when the charter is nowhere on this machine either.
+  const d = tmpDir();
+  const [u] = unchecked(manifestFor({ repo: "acme/product" }), { baseDir: d });
   assert.match(u, /read inside the clone of acme\/product/);
-  // With no repo the entry IS checked here, so there is nothing to disclaim.
-  assert.deepEqual(unchecked(manifestFor()), []);
+  assert.match(u, /Fix: commit prompts\/digest\.md to acme\/product/);
+  // And NOT said when the charter is sitting right here, which is the ordinary
+  // case of running `epito validate` in the repo the agent works in. A note on
+  // every correct manifest is the noise docs/ideas.md warned about.
+  mkdirSync(join(d, "prompts"), { recursive: true });
+  writeFileSync(join(d, "prompts", "digest.md"), "# digest\n");
+  assert.deepEqual(unchecked(manifestFor({ repo: "acme/product" }), { baseDir: d }), [],
+    "the ✓ disclaims a charter that is sitting in the directory");
+  // With no repo the entry IS checked by the validator, so nothing to disclaim.
+  assert.deepEqual(unchecked(manifestFor(), { baseDir: d }), []);
 });
 
 // The drift guard, same shape as the engine-peers assertion above: the note
