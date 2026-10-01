@@ -14,7 +14,8 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { appNameFor, appManifestFor, formPage, readPrincipals, writePrincipals, recordInstallation } from "../src/deploy.js";
+import { fileURLToPath } from "node:url";
+import { appNameFor, appManifestFor, formPage, readPrincipals, writePrincipals, recordInstallation, resolveAgent } from "../src/deploy.js";
 import { permissionsFor } from "../src/lib/identity.js";
 
 const temps = [];
@@ -126,4 +127,33 @@ test("a principals.json written as a bare array still reads — the store predat
   mkdirSync(join(dir, ".epito"), { recursive: true });
   writeFileSync(join(dir, ".epito/principals.json"), JSON.stringify([{ agent: "pm", externalId: "9" }]));
   assert.equal(readPrincipals(dir)[0].externalId, "9");
+});
+
+// The composition assertion: every seat shape the frozen spec blesses is a
+// shape `epito deploy` can actually provision. #28 froze v0.1 against these
+// three fixtures and #36 built deploy; they were separate branches, so until
+// they met nothing checked that the shapes the spec holds up as the three real
+// ways to be an agent all map to a GitHub App. The event responder is the one
+// worth having: it is the only shape whose scopes are not the builder's pair,
+// and an unmapped scope is a refusal AFTER a human has been sent to a browser.
+test("every seat shape in the frozen spec is a shape deploy can provision", () => {
+  const shapes = ["daily-builder", "weekly-writer", "event-responder"];
+  for (const shape of shapes) {
+    const dir = fileURLToPath(new URL(`./fixtures/shapes/${shape}/`, import.meta.url));
+    const { manifest } = resolveAgent(undefined, dir);
+    const perms = permissionsFor(manifest.identity.scopes);
+    assert.ok(
+      Object.keys(perms).length > 0,
+      `${shape}: [identity].scopes maps to no GitHub App permission, so deploy would refuse a shape the spec blesses`,
+    );
+    const app = appManifestFor({
+      name: manifest.agent.name,
+      repo: manifest.runtime.repo,
+      permissions: perms,
+      redirectUrl: "http://127.0.0.1:1/callback",
+    });
+    assert.deepEqual(app.default_permissions, perms, `${shape}: the App would not carry the manifest's scopes`);
+    assert.deepEqual(app.default_events, [], `${shape}: an identity subscribes to nothing`);
+    assert.ok(app.name.length <= 34, `${shape}: App name over GitHub's cap: ${app.name}`);
+  }
 });
