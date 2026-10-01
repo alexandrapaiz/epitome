@@ -2,23 +2,65 @@
   "name": "epito",
   "version": "0.1.0",
   "description": "Mint agents: identity + trigger + runtime from one file",
+  "keywords": [
+    "agent",
+    "agents",
+    "agent-identity",
+    "github-app",
+    "cron",
+    "manifest",
+    "runtime",
+    "temporal",
+    "langgraph",
+    "cli"
+  ],
+  "author": "epito.me",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexandrapaiz/epitome.git",
+    "directory": "cli"
+  },
+  "bugs": "https://github.com/alexandrapaiz/epitome/issues",
   "type": "module",
   "bin": {
     "epito": "src/index.js"
   },
+  "files": [
+    "src",
+    "adapters",
+    "README.md"
+  ],
   "engines": {
     "node": ">=18"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "test": "bash test/all.sh"
+    "test": "bash test/all.sh",
+    "pack-check": "bash test/pack.sh",
+    "prepublishOnly": "bash test/pack.sh"
   },
   "dependencies": {
+    "smol-toml": "^1.3.0"
+  },
+  "peerDependencies": {
     "@temporalio/activity": "^1.24.0",
     "@temporalio/client": "^1.24.0",
     "@temporalio/worker": "^1.24.0",
-    "@temporalio/workflow": "^1.24.0",
-    "smol-toml": "^1.3.0"
+    "@temporalio/workflow": "^1.24.0"
   },
-  "license": "UNLICENSED",
-  "private": true
+  "peerDependenciesMeta": {
+    "@temporalio/activity": { "optional": true },
+    "@temporalio/client": { "optional": true },
+    "@temporalio/worker": { "optional": true },
+    "@temporalio/workflow": { "optional": true }
+  },
+  "devDependencies": {
+    "@temporalio/activity": "^1.24.0",
+    "@temporalio/client": "^1.24.0",
+    "@temporalio/worker": "^1.24.0",
+    "@temporalio/workflow": "^1.24.0"
+  }
 }
