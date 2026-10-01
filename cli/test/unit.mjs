@@ -11,6 +11,10 @@ import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { reconcilePlan, scheduleShape } from "../src/temporal/schedules.js";
 import { validateManifest, loadManifest, FIELDS, TABLES } from "../src/lib/manifest.js";
+import { blockers, unchecked, REPO_REQUIRED_BY, SCOPE_REQUIRED_BY } from "../src/lib/readiness.js";
+import { parseGitHubRemote, originRepo } from "../src/lib/origin.js";
+import { loadRoster } from "../src/lib/roster.js";
+import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
 import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP } from "../src/lib/identity.js";
@@ -1399,4 +1403,202 @@ test("the runtime box installs every engine peer the CLI declares", () => {
   // package where a globally installed `epito` will resolve it.
   assert.match(sh, /npm install -g --silent \$ENGINE_PKGS/,
     "provision-host.sh names the engine packages but does not install them globally");
+});
+
+// --- readiness: a ✓ that does not overclaim ---------------------------------
+//
+// `epito init` wrote a manifest, `epito validate` ticked it, and `epito run`,
+// `epito deploy` and `epito token` then every one refused it for a missing
+// [runtime].repo. Spec v0.1 keeps the validator permissive there on purpose
+// (Actions-era manifests stay valid) and leaves an unmapped scope to the mint
+// ("a stricter validator would refuse a running roster at startup over one
+// word"), so neither is an error — which makes the NOTE the only thing
+// standing between a vibecoder and a refusal they were just told would not
+// come. These assert the note says the true thing.
+
+const manifestFor = (runtime = {}, identity = {}) => ({
+  agent: { name: "digest", description: "One sentence." },
+  identity: { scopes: ["github:contents"], ...identity },
+  trigger: { cron: "0 6 * * *" },
+  runtime: { model: "claude-sonnet-5", entry: "prompts/digest.md", ...runtime },
+});
+
+test("a manifest with no [runtime].repo is valid, and the note names every command that will refuse it", () => {
+  const m = manifestFor();
+  assert.deepEqual(validateManifest(m, { baseDir: tmpDir() }).filter((e) => /repo/.test(e)), [],
+    "[runtime].repo became a validation error — spec v0.1 says validate accepts it absent");
+  const [b, ...rest] = blockers(m);
+  assert.equal(rest.length, 0, "one blocker expected, got more");
+  assert.deepEqual(b.commands, REPO_REQUIRED_BY);
+  assert.match(b.problem, /\[runtime\]\.repo is unset/);
+  // The bar from `epito validate`: name the rule, in the product's vocabulary,
+  // with the fix in the message.
+  assert.match(b.fix, /repo = "owner\/name"/, "the note does not carry the fix");
+  for (const c of REPO_REQUIRED_BY) assert.match(b.problem, new RegExp(`epito ${c}`), `the note does not name \`epito ${c}\``);
+});
+
+test("a manifest WITH [runtime].repo has nothing to warn about", () => {
+  assert.deepEqual(blockers(manifestFor({ repo: "acme/product" })), []);
+});
+
+test("an unmappable scope is valid, and the note sends it to the two commands that mint", () => {
+  const m = manifestFor({ repo: "acme/product" }, { scopes: ["github:contents", "github:packages"] });
+  assert.deepEqual(validateManifest(m, { baseDir: tmpDir() }), [],
+    "an unmapped scope became a validation error — spec v0.1 sends it to the mint, not the validator");
+  const [b] = blockers(m);
+  assert.deepEqual(b.commands, SCOPE_REQUIRED_BY);
+  assert.match(b.problem, /"github:packages"/, "the note does not name the offending scope");
+  assert.ok(!/github:contents"\)/.test(b.problem), "the note blames a scope that maps fine");
+  for (const s of Object.keys(SCOPE_MAP)) assert.match(b.fix, new RegExp(s), `the fix does not list the mintable scope ${s}`);
+});
+
+test("both blockers at once are both reported — a user fixes what they are shown", () => {
+  const m = manifestFor({}, { scopes: ["github:packages"] });
+  assert.equal(blockers(m).length, 2);
+});
+
+test("the ✓ says the charter was NOT checked when the charter lives in another repo", () => {
+  // validateManifest skips the entry stat when repo is set, because the
+  // runtime reads it inside the clone. The tick must not imply otherwise.
+  assert.deepEqual(validateManifest(manifestFor({ repo: "acme/product", entry: "nope.md" }), { baseDir: tmpDir() }), [],
+    "entry is checked locally even though repo is set");
+  const [u] = unchecked(manifestFor({ repo: "acme/product" }));
+  assert.match(u, /read inside the clone of acme\/product/);
+  // With no repo the entry IS checked here, so there is nothing to disclaim.
+  assert.deepEqual(unchecked(manifestFor()), []);
+});
+
+// The drift guard, same shape as the engine-peers assertion above: the note
+// prints a list of commands, and the list is only true as long as it is the
+// whole list. These are the files that refuse over [runtime].repo today, and
+// which commands each one speaks for. A new refusal in a new file fails this
+// test rather than quietly making the note a lie.
+test("the repo note names every command whose source refuses over [runtime].repo", () => {
+  const OWNERS = {
+    "lib/roster.js": ["run", "ps"],   // loadRoster, shared by `epito run` and `epito ps <dir>`
+    "deploy.js": ["deploy"],
+    "token.js": ["token"],
+    "lib/identity.js": ["deploy", "token"], // the mint path both of those reach
+  };
+  const srcDir = fileURLToPath(new URL("../src/", import.meta.url));
+  const files = [];
+  const walk = (d, prefix = "") => {
+    for (const ent of readdirSync(d, { withFileTypes: true })) {
+      if (ent.isDirectory()) walk(join(d, ent.name), `${prefix}${ent.name}/`);
+      else if (ent.name.endsWith(".js")) files.push([`${prefix}${ent.name}`, readFileSync(join(d, ent.name), "utf8")]);
+    }
+  };
+  walk(srcDir);
+  // A refusal is any of the four ways this codebase says no — die(), throw,
+  // or pushing onto a validator's error list — whose message names the field.
+  // Checked on the statement, not on the file, so a file that merely mentions
+  // [runtime].repo in a comment is not counted as refusing over it.
+  const REFUSES = /(?:\bdie\(|\bthrow\b|\berrs\.push\(|\berrors\.push\()/;
+  // Refusing because the field is ABSENT, which is what the note is about.
+  // `epito validate` also refuses a repo that is present and malformed
+  // ("must be owner/name"), and that one is not a readiness blocker at all —
+  // it is an error the validator already reports on its own.
+  const MISSING = /(?:is required|but no \[runtime\]\.repo)/;
+  const refusesOverMissingRepo = (body) => {
+    for (const m of body.matchAll(/\[runtime\]\.repo/g)) {
+      const before = body.slice(Math.max(0, m.index - 200), m.index);
+      const stmt = before.slice(before.lastIndexOf(";") + 1);
+      // The phrasing can sit on either side of the field name ("is required",
+      // "but no [runtime].repo"), so the window spans both.
+      if (REFUSES.test(stmt) && MISSING.test(body.slice(Math.max(0, m.index - 100), m.index + 60))) return true;
+    }
+    return false;
+  };
+  const refusers = files
+    .filter(([rel, body]) => rel !== "lib/readiness.js" && refusesOverMissingRepo(body))
+    .map(([rel]) => rel);
+  assert.deepEqual(refusers.sort(), Object.keys(OWNERS).sort(),
+    "a file refuses over [runtime].repo that readiness.js's command list does not account for — update REPO_REQUIRED_BY (and OWNERS here) so the note stays true");
+  const expected = [...new Set(Object.values(OWNERS).flat())];
+  assert.deepEqual([...REPO_REQUIRED_BY].sort(), expected.sort(),
+    "REPO_REQUIRED_BY and the commands those files speak for have diverged");
+});
+
+test("loadRoster is where `epito run` and `epito ps <dir>` refuse, and it names the field", () => {
+  const d = tmpDir();
+  writeFileSync(join(d, "agent.toml"), `[agent]
+name = "digest"
+description = "One sentence."
+[identity]
+scopes = ["github:contents"]
+[trigger]
+cron = "0 6 * * *"
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/digest.md"
+`);
+  const errs = [];
+  const realError = console.error, realExit = process.exit;
+  console.error = (m) => errs.push(String(m));
+  process.exit = () => { throw new Error("exited"); };
+  try { loadRoster(d); } catch { /* the exit */ } finally { console.error = realError; process.exit = realExit; }
+  assert.match(errs.join("\n"), /\[runtime\]\.repo is required by `epito run`/);
+});
+
+// --- [trigger].cron: parsed by the validator, not counted ------------------
+//
+// The one outright validator bug behind the false ✓, and the only one with no
+// spec cover: the catalogue says "5-field cron, UTC", the validator counted
+// five fields, and `epito run` then refused "0 99 * * *" when it built the
+// matcher. One check now, so the two commands cannot disagree.
+
+test("[trigger].cron with five impossible fields is refused by the validator, not just by `epito run`", () => {
+  for (const [expr, why] of [
+    ["0 99 * * *", /hour "99" is outside 0-23/],
+    ["0 6 * *", /must have 5 fields, got 4/],
+    ["*/0 6 * * *", /step must be >= 1/],
+    ["0 6 * * xyz", /is not a number, \*, range, step, or list/],
+  ]) {
+    const errs = validateManifest(manifestFor({ repo: "a/b" }) && { ...manifestFor({ repo: "a/b" }), trigger: { cron: expr } }, { baseDir: tmpDir() });
+    const cron = errs.filter((e) => e.startsWith("[trigger].cron"));
+    assert.equal(cron.length, 1, `${expr}: expected exactly one cron error, got ${JSON.stringify(errs)}`);
+    assert.match(cron[0], why);
+    assert.match(cron[0], /Fix: five fields in UTC/, `${expr}: the cron error carries no fix`);
+  }
+});
+
+test("every cron the three frozen seat shapes use still validates", () => {
+  for (const expr of ["0 6 * * *", "0 7 * * 1", "*/15 * * * *", "0 0 1 1 *", "0 6 * * 0-5"]) {
+    const m = { ...manifestFor({ repo: "a/b" }), trigger: { cron: expr } };
+    assert.deepEqual(validateManifest(m, { baseDir: tmpDir() }), [], `${expr} was refused`);
+  }
+});
+
+// --- origin: the repo init no longer has to ask for ------------------------
+
+test("parseGitHubRemote reads the four spellings git writes, and refuses everything else", () => {
+  for (const u of [
+    "git@github.com:acme/product.git",
+    "ssh://git@github.com/acme/product.git",
+    "https://github.com/acme/product",
+    "https://github.com/acme/product.git",
+    "https://github.com/acme/product/",
+    "https://token@github.com/acme/product.git",
+  ]) assert.equal(parseGitHubRemote(u), "acme/product", `${u} did not read as acme/product`);
+
+  for (const u of [
+    "https://gitlab.com/acme/product.git",      // another platform is not a guess we make
+    "git@bitbucket.org:acme/product.git",
+    "https://github.com/acme",                  // no repo half
+    "https://github.com.evil.test/acme/product", // not github.com
+    "/srv/git/product.git",
+    "", null, undefined,
+  ]) assert.equal(parseGitHubRemote(u), null, `${JSON.stringify(u)} was read as a GitHub repo`);
+});
+
+test("a repo parsed off a remote is a value [runtime].repo itself accepts", () => {
+  // The whole point is that init writes it into a manifest, so a value this
+  // returns and the validator refuses would be worse than no value at all.
+  const repo = parseGitHubRemote("git@github.com:acme/product.git");
+  assert.deepEqual(validateManifest(manifestFor({ repo }), { baseDir: tmpDir() }), []);
+  assert.deepEqual(blockers(manifestFor({ repo })), []);
+});
+
+test("originRepo returns null outside a git repo instead of throwing", () => {
+  assert.equal(originRepo(tmpDir()), null);
 });

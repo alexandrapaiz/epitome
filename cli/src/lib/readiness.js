@@ -38,9 +38,16 @@ export const REPO_REQUIRED_BY = ["run", "ps", "deploy", "token"];
 // the schedule registers either way, so the refusal lands at mint time.
 export const SCOPE_REQUIRED_BY = ["deploy", "token"];
 
+// How each command is spelled when it is the one refusing. `ps` reads manifests
+// only when it is handed a directory (src/temporal/ps.js: "A roster directory
+// is optional"), and a note that said a bare `epito ps` would refuse would be
+// the same kind of overclaim this module exists to remove.
+const SPELLING = { ps: "ps <dir>" };
+const cmd = (x) => `\`epito ${SPELLING[x] ?? x}\``;
+
 const list = (xs) => xs.length === 1
-  ? `\`epito ${xs[0]}\``
-  : `${xs.slice(0, -1).map((x) => `\`epito ${x}\``).join(", ")} and \`epito ${xs[xs.length - 1]}\``;
+  ? cmd(xs[0])
+  : `${xs.slice(0, -1).map(cmd).join(", ")} and ${cmd(xs[xs.length - 1])}`;
 
 // Things that will make another command refuse this manifest. Returns
 // [{ commands, problem, fix }]; empty means every command's extra rules pass.

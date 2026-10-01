@@ -82,6 +82,12 @@ check "the bin entry is in it"                     'has src/index.js'
 check "and every module it lazily imports"         'has src/run.js && has src/deploy.js && has src/token.js && has src/board.js && has src/routes.js'
 check "  including the engine-missing message"     'has src/lib/engine.js'
 check "  and the field catalogue the frozen spec is tested against" 'has src/lib/fields.js'
+# `epito validate` is the first command a user runs and these two are what make
+# its answer honest -- the readiness notes and the git-origin read behind
+# `epito init`. Named here because a `files` entry npm drops is silent, which
+# is how the README went missing for a commit.
+check "  and the readiness notes behind the ✓"   'has src/lib/readiness.js'
+check "  and the origin read behind \`epito init\`" 'has src/lib/origin.js'
 check "the langgraph adapter ships: a seat may be one" 'has adapters/langgraph_run.py'
 check "a README ships — the npm page is not blank" 'has README.md'
 check "no test suite, no fixtures"                 'hasnt "^test/"'
@@ -113,7 +119,23 @@ run_epito init digest
 check "epito init works, exit 0"                   "[ $RC = 0 ] && [ -f '$WORK/agent.toml' ]"
 run_epito validate; shows -1
 check "epito validate works and ticks, exit 0"     "[ $RC = 0 ] && said '✓'"
+
+# --- the ✓ must not overclaim. $WORK is a bare temp directory with no git
+# origin, so init cannot know [runtime].repo and leaves it commented out --
+# which is exactly the manifest that used to tick here and then get refused by
+# the four commands below. The tick stays (spec v0.1 says this file is valid);
+# what it now also does is say what the runtime will still need.
+check "init says it could not read [runtime].repo here" "grep -q '^# repo = \"owner/name\"' '$WORK/agent.toml'"
+check "the ✓ names what is still missing"            "said 'not ready to run'"
+check "...and which commands will refuse it"          "said 'epito run' && said 'epito deploy' && said 'epito token'"
+check "...and the fix, in the field's own words"      "said 'repo = \"owner/name\"'"
+check "...without claiming the file is invalid"       "[ $RC = 0 ] && said 'valid v0.1 manifest either way'"
+run_epito validate --for-runtime
+check "--for-runtime makes the same note an error"    "[ $RC = 1 ] && said 'the runtime would accept this manifest, and it would not'"
+
 printf 'repo = "acme/roster"\n' >> "$WORK/agent.toml"
+run_epito validate
+check "with repo set, the ✓ has nothing left to warn about" "[ $RC = 0 ] && ! said 'not ready to run'"
 for c in "deploy --dry-run" "token digest --dry-run" "routes" "board" "--help"; do
   # shellcheck disable=SC2086 -- $c is this script's own literal, split on purpose
   run_epito $c
@@ -156,6 +178,38 @@ if (cd "$ROOT" && npm install -g --prefix "$PREFIX" @temporalio/client@^1.24.0) 
 else
   printf '  SKIPPED — could not install @temporalio/client here (no registry access?)\n'
   sed 's/^/       /' "$ROOT/engine.log" | tail -5
+fi
+
+# ------------------- 6. the card itself: init in a repo needs no hand-editing
+# The backlog card is "errors a vibecoder can act on", and the sharpest version
+# of acting on an error is never seeing it. Nearly always `epito init` is run
+# inside the repository the agent will work in, and that is where
+# [runtime].repo was sitting all along -- so init reads it off the git origin
+# instead of asking. This is the whole out-of-the-box path, in order, from the
+# installed package: init, validate, deploy. It is the sequence that used to
+# end in a refusal, and step 3 above is the same sequence with the one fact
+# init could not know.
+step "6: init -> validate -> deploy inside a real repo, with nothing edited by hand"
+REPO_WORK="$ROOT/in-a-repo"
+mkdir -p "$REPO_WORK"
+if (cd "$REPO_WORK" && git init -q . && git remote add origin git@github.com:acme/product.git) 2>/dev/null; then
+  cd "$REPO_WORK"
+  run_epito init digest; shows -2
+  check "epito init reads [runtime].repo off the git origin"  "grep -q '^repo = \"acme/product\"' '$REPO_WORK/agent.toml'"
+  check "...and says where it got it"                        "said 'read from this directory'"
+  run_epito validate; shows -2
+  check "epito validate ticks with no note to add"           "[ $RC = 0 ] && ! said 'not ready to run'"
+  check "...and is honest that the charter is read in the clone" "said 'read inside the clone of acme/product'"
+  run_epito validate --for-runtime
+  check "the strict pass agrees: the runtime would take this manifest" "[ $RC = 0 ]"
+  run_epito deploy --dry-run; shows -3
+  check "epito deploy --dry-run accepts it, unedited"        "[ $RC = 0 ] && ! said '\[runtime\].repo is required'"
+  check "...and asks GitHub for exactly the declared scopes" "said '\"contents\": \"write\"' && said '\"pull_requests\": \"write\"'"
+  run_epito token digest . --dry-run
+  check "epito token --dry-run accepts it too, unedited"     "! said '\[runtime\].repo is required'"
+  cd "$WORK"
+else
+  printf '  SKIPPED -- no usable git here, so the origin-read path could not be driven\n'
 fi
 
 printf '\npack: %d ok, %d failed\n' "$pass" "$fail"
