@@ -1366,3 +1366,37 @@ test("spec/manifest.md's field catalogue is the validator's field catalogue", ()
     assert.ok(!(field in spec[table]), `${gone} is retired and is back in the spec's catalogue`);
   }
 });
+
+// Same rule, one directory over: the runtime box's engine list and the CLI's
+// declared peers are one list. cli/package.json stopped shipping @temporalio/*
+// with the CLI so `npm i -g epito` is half a megabyte, and the box that exists
+// to run `epito run` and `epito worker` therefore has to install them by name
+// in deploy/provision-host.sh. Two places naming the same four packages is
+// drift waiting to happen — and the failure mode is a provisioned host whose
+// units start, print an install line and exit 1, which is why this is an
+// assertion and not a comment.
+test("the runtime box installs every engine peer the CLI declares", () => {
+  const pkg = JSON.parse(readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8"));
+  const peers = Object.keys(pkg.peerDependencies ?? {});
+  assert.ok(peers.length > 0, "cli/package.json declares no peerDependencies — has the engine moved back into dependencies?");
+  for (const p of peers) {
+    assert.ok(
+      (pkg.peerDependenciesMeta?.[p]?.optional) === true,
+      `${p} is a peer dependency but not an optional one, so \`npm i -g epito\` drags the engine back in`,
+    );
+  }
+
+  const sh = readFileSync(fileURLToPath(new URL("../../deploy/provision-host.sh", import.meta.url)), "utf8");
+  const line = sh.match(/^ENGINE_PKGS="([^"]*)"/m);
+  assert.ok(line, "deploy/provision-host.sh no longer sets ENGINE_PKGS — the runtime box would come up with no engine");
+  const installed = line[1].trim().split(/\s+/).map((s) => s.split("@^")[0] || s);
+  assert.deepEqual(
+    installed.map((s) => s.replace(/@[\^~]?[\d.].*$/, "")).sort(),
+    peers.sort(),
+    "deploy/provision-host.sh and cli/package.json disagree about which engine packages the runtime box needs",
+  );
+  // And it must actually be installed globally: a local `npm ci` cannot put a
+  // package where a globally installed `epito` will resolve it.
+  assert.match(sh, /npm install -g --silent \$ENGINE_PKGS/,
+    "provision-host.sh names the engine packages but does not install them globally");
+});

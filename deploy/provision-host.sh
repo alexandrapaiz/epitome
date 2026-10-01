@@ -203,6 +203,22 @@ fi
 (cd "$EPITO_SRC/cli" && npm ci --silent --omit=dev >/dev/null && npm install -g --silent . >/dev/null)
 echo "  $(command -v epito) installed"
 
+# The engine, by name, because the CLI no longer brings it. cli/package.json
+# declares @temporalio/* as OPTIONAL peer dependencies so that `npm i -g epito`
+# is half a megabyte instead of ~300 MB for the people who only write
+# manifests — which means the `npm ci --omit=dev` above installs everything
+# EXCEPT the one thing this host exists to run. `epito run` and `epito worker`
+# are this box's entire job; without these four they start, print the
+# install line, and exit 1.
+#
+# This list and cli/package.json's peerDependencies are one list, kept so by
+# a unit assertion ("the runtime box installs every engine peer") rather than
+# by anyone remembering to edit both.
+ENGINE_PKGS="@temporalio/client@^1.24.0 @temporalio/worker@^1.24.0 @temporalio/activity@^1.24.0 @temporalio/workflow@^1.24.0"
+# shellcheck disable=SC2086 -- the list is this script's own literal, split on purpose
+npm install -g --silent $ENGINE_PKGS >/dev/null
+echo "  engine: @temporalio/{client,worker,activity,workflow}"
+
 say "roster"
 ROSTER_DIR="$BASE/roster"
 if [ -n "$ROSTER_REPO" ]; then
