@@ -8,6 +8,7 @@ import { dirname, resolve } from "node:path";
 import { parse } from "smol-toml";
 import { ADAPTERS, DEFAULT_ADAPTER, unknownAdapter } from "./adapters.js";
 import { routeErrors } from "./router.js";
+import { parseCron } from "./cron.js";
 import { unknownKeys } from "./fields.js";
 
 export const NAME_RE = /^[a-z0-9-]{1,40}$/;
@@ -85,7 +86,16 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
   if (m.trigger) {
     const t = m.trigger;
     if (!t.cron && !t.webhook) errors.push("[trigger] needs at least one of: cron (a schedule) or webhook (the ingress wakes it) — an agent is triggered, not prompted");
-    if (t.cron && !/^\S+ \S+ \S+ \S+ \S+$/.test(t.cron)) errors.push(`[trigger].cron "${t.cron}" must be 5-field cron`);
+    // Parsed, not counted. Counting five fields passed "0 99 * * *", which
+    // `epito run` then refused when it built the matcher — so a tick here
+    // promised a schedule the runtime would reject. One check, one message,
+    // and loadRoster no longer carries its own copy.
+    if (t.cron) {
+      try { parseCron(t.cron); }
+      catch (e) {
+        errors.push(`[trigger].cron "${t.cron}" is not a schedule the runtime can register — ${String(e.message).replace(/^cron /, "")}. Fix: five fields in UTC (minute hour day-of-month month day-of-week) using numbers, *, ranges, steps and lists; "0 6 * * *" is 06:00 every day.`);
+      }
+    }
     if (t.webhook !== undefined && typeof t.webhook !== "boolean") {
       errors.push(`[trigger].webhook is true or false — it says whether the ingress may wake this seat, not where: the URL is the runtime's to hand out, never the manifest's to name. Got "${t.webhook}".`);
     }

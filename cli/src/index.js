@@ -3,6 +3,8 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { parseManifest, validateManifest, NAME_RE } from "./lib/manifest.js";
 import { ignore } from "./lib/gitignore.js";
 import { engineImport } from "./lib/engine.js";
+import { blockers, unchecked } from "./lib/readiness.js";
+import { originRepo } from "./lib/origin.js";
 
 const [, , cmdRaw, ...args] = process.argv;
 // `epito me` is `epito init`: mint an epitome of yourself.
@@ -11,7 +13,9 @@ const cmd = cmdRaw === "me" ? "init" : cmdRaw;
 const HELP = `epito — mint agents: identity + trigger + runtime from one file
 
   epito init [name]   scaffold agent.toml and a charter (alias: epito me)
-  epito validate      check agent.toml against spec v0.1
+  epito validate      check agent.toml against spec v0.1, and name what the
+                      runtime will still need before it can run this agent
+                      (--for-runtime makes that an error, not a note)
   epito run <dir>     put every agent.toml under <dir> on the runtime: one
                       schedule per [trigger].cron, then serve the ingress
                       (--dry-run prints the schedule changes and stops)
@@ -73,6 +77,19 @@ if (cmd === "init") {
   if (!NAME_RE.test(name)) die(`name must be [a-z0-9-], 1-40 chars, got "${name}"`);
   if (existsSync("agent.toml")) die("agent.toml already exists here — one manifest, one agent");
   const charter = `prompts/${name}.md`;
+  // `[runtime].repo` is the one field the prompt cannot supply and every other
+  // command requires, so the manifest init used to write validated and was
+  // then refused by `epito run`, `epito deploy` and `epito token` alike. The
+  // answer is almost always the directory you are standing in. Local read of
+  // one git remote — no network, no account (src/lib/origin.js).
+  const origin = originRepo();
+  const repoLine = origin
+    ? `repo = "${origin}"\n`
+    : `# repo = "owner/name"
+#   the repository the runtime clones for every run, and what bounds this
+#   agent's token to one repo. \`epito run\`, \`epito deploy\` and \`epito token\`
+#   all need it, and \`epito validate\` says so until it is set.
+`;
   writeFileSync("agent.toml", `[agent]
 name = "${name}"
 description = "One sentence: what this agent does."
@@ -86,7 +103,7 @@ cron = "0 6 * * *"
 [runtime]
 model = "claude-sonnet-5"
 entry = "${charter}"
-`);
+${repoLine}`);
   // An agent's App key lands in .epito/keys/ and its ledger in
   // .epito/audit.jsonl. The manifest is publishable by design and that
   // directory is not, so init makes the difference structural rather than a
@@ -97,6 +114,8 @@ entry = "${charter}"
     writeFileSync(charter, `# ${name}\n\nYou are ${name}. This file is your charter: who you are, what one\nrun accomplishes, and what you never do. Everything worth remembering\nlives in a file, because every run is a fresh context.\n`);
   }
   console.log(`minted ${name}: agent.toml + ${charter}`);
+  if (origin) console.log(`  [runtime].repo = ${origin}, read from this directory's git origin`);
+  else console.log(`  [runtime].repo is commented out: this directory has no GitHub origin to read it from, and \`epito run\`, \`epito deploy\` and \`epito token\` each need it`);
   console.log(`next: edit both, then \`epito validate\``);
   process.exit(0);
 }
@@ -117,6 +136,28 @@ if (cmd === "validate") {
   // written before adapters existed validates with the line it always had.
   const adapter = m.runtime?.adapter;
   console.log(`✓ ${a.name} is an agent: identity (${m.identity.scopes.length} scope${m.identity.scopes.length > 1 ? "s" : ""}), trigger, runtime${adapter && adapter !== "claude" ? ` — a ${adapter} agent` : ""}`);
+
+  // A valid manifest is not the same thing as a runnable one, and the tick used
+  // to imply both: spec v0.1 keeps `[runtime].repo` optional and leaves an
+  // unmapped scope to the mint, so `epito validate` passed files that
+  // `epito run`, `epito ps`, `epito deploy` and `epito token` all refused.
+  // The rules are the other commands' (src/lib/readiness.js); saying them here
+  // is the difference between a ✓ that is correct and a ✓ that is honest.
+  const ready = blockers(m, "agent.toml");
+  const notChecked = unchecked(m);
+  for (const u of notChecked) console.log(`  — ${u}`);
+  if (ready.length) {
+    // --for-runtime is the opt-in strict pass, for the person who wants CI to
+    // fail here instead of at 06:00. The default stays exit 0, because the spec
+    // says these manifests are valid and a validator that refused them would
+    // break every Actions-era file on purpose.
+    const strict = args.includes("--for-runtime");
+    const say = strict ? console.error : console.log;
+    say(`\n${a.name} is valid, and not ready to run:\n`);
+    for (const b of ready) say(`  ! ${b.problem}.\n    Fix: ${b.fix}.`);
+    if (strict) { console.error(`\nepito: --for-runtime asks whether the runtime would accept this manifest, and it would not.`); process.exit(1); }
+    say(`\nThis file is a valid v0.1 manifest either way — run \`epito validate --for-runtime\` to make the above an error instead of a note.`);
+  }
   process.exit(0);
 }
 

@@ -40,7 +40,6 @@ export function loadRoster(dirArg) {
     const { manifest, errors } = loadManifest(p);
     const errs = [...errors];
     if (manifest?.runtime && !manifest.runtime.repo) errs.push("[runtime].repo is required by `epito run`: the runtime clones owner/name fresh for every run, so it must know which repository the charter lives in");
-    if (manifest?.trigger?.cron) { try { parseCron(manifest.trigger.cron); } catch (e) { errs.push(`[trigger].cron: ${e.message}`); } }
     if (manifest?.agent?.name && agents.has(manifest.agent.name)) errs.push(`[agent].name "${manifest.agent.name}" is already used by ${agents.get(manifest.agent.name).path} — one manifest, one principal`);
     if (errs.length) {
       bad++;
