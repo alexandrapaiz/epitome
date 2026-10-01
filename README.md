@@ -21,7 +21,7 @@ description = "Writes the daily digest of what changed and why."
 scopes = ["github:contents", "github:pull_requests"]
 
 [trigger]
-cron = "0 6 * * *"        # or: on = ["issue.opened"], or: webhook = true
+cron = "0 6 * * *"        # and/or: webhook = true, to be woken by an event
 
 [runtime]
 model = "claude-sonnet-5"

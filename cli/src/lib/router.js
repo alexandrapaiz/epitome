@@ -31,10 +31,16 @@
 //      and trying the next road costs nothing. A run that reached turn nine
 //      and failed is the agent's own outcome and the router must keep its
 //      hands off it.
+import { unknownKeys } from "./fields.js";
 // The same shape [agent].name has: a route name is read by a human in a run
 // log. Spelled here rather than imported from manifest.js, which imports this
 // file — one small regexp is cheaper than a cycle between the two.
 const ROUTE_NAME_RE = /^[a-z0-9-]{1,40}$/;
+
+// A route's whole vocabulary, frozen with the rest of v0.1. Kept here, beside
+// the reader above, for the reason this file already gives: a field accepted
+// by the validator and misread by the reader is the bug the pairing prevents.
+export const ROUTE_FIELDS = ["name", "model", "base_url", "token_env", "concurrency"];
 
 // The label a manifest with no [[runtime.route]] gets: one route, the model
 // the manifest already named, no credential of its own. Every manifest
@@ -108,6 +114,7 @@ export function routeErrors(m) {
     if (r.concurrency !== undefined && !(Number.isInteger(r.concurrency) && r.concurrency > 0)) {
       errors.push(`${where}: concurrency must be a positive integer — how many of this box's runs may be on this road at once (a prepaid tier that allows one is why this field exists)`);
     }
+    errors.push(...unknownKeys(r, ROUTE_FIELDS, where));
   });
   return errors;
 }

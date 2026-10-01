@@ -1,0 +1,28 @@
+# Shape 3 of 3: the event-driven responder.
+#
+# A seat with no schedule at all: it exists to answer something that happened.
+# The runtime wakes it through the ingress, and `webhook = true` is what
+# permits that — without the line the ingress refuses the hook, because a
+# trigger is explicit and never defaulted (spec v0.1 rule 3).
+#
+# It is also the shape that is not a Claude session, which is the point of
+# [runtime].adapter: epito runs the agent its author already wrote (ADR-17).
+
+[agent]
+name = "event-responder"
+description = "Answers an issue the moment it is opened, as the LangGraph app its author already wrote."
+
+[identity]
+scopes = ["github:contents", "github:issues"]
+
+[trigger]
+webhook = true
+
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/event-responder.md"
+repo = "acme/support"
+adapter = "langgraph"
+graph = "responder"
+max_turns = 40
+env = ["TAVILY_API_KEY"]
