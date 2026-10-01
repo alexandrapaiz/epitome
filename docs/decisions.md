@@ -795,3 +795,70 @@ which is why deploying twice is the documented shape.
 5. **An account-level cap on Apps exists and this seat has not measured
    it.** A roster of a few hundred seats may meet it. That is an open
    question against the per-agent route, recorded rather than guessed at.
+
+## ADR-21: `epito validate` notes what the runtime will still refuse; `--for-runtime` is the strict pass
+
+**Date.** 2026-10-01. **Status.** Proposed by the engineer seat; the
+owner ratifies by merging, objects by editing. Settles the open decision
+recorded in docs/ideas.md ("`epito validate` passes a manifest that
+`epito run` will refuse"), which named both candidate answers and
+declined to pick one.
+
+**Context.** `epito init` scaffolded a manifest, `epito validate` printed
+`✓`, and `epito run`, `epito ps <dir>`, `epito deploy` and `epito token`
+then every one refused it for a missing `[runtime].repo`. Those are the
+first three commands a vibecoder runs, in order, out of the box, and the
+sequence ended in a refusal the tick had just said would not come. The
+same shape applies to a scope outside `SCOPE_MAP`: valid, ticked, refused
+at the mint.
+
+Both gaps are the spec being deliberate, not careless. v0.1 says
+`epito validate` "accepts [repo] absent (Actions-era manifests stay
+valid)", and that an unmapped scope "fails **the mint** … not `epito
+validate`. That placement is deliberate: a stricter validator would
+refuse a running roster at startup over one word, and a live box is
+downstream of that choice." Both calls survive this ADR unchanged.
+
+**Decision.** Three parts.
+
+1. **The notes are on by default and change no exit code.** A valid
+   manifest stays valid and still exits 0. What changes is that the tick
+   stops implying the rules it does not apply do not exist: it names the
+   commands that will refuse, and carries the fix, to the bar `epito
+   validate` already sets for its errors.
+2. **`--for-runtime` is the strict pass**, exit 1 — for CI that wants the
+   refusal here instead of at 06:00. Opt-in, because the default must keep
+   saying yes to every manifest the spec blesses.
+3. **The rules live in one module** (`cli/src/lib/readiness.js`), owned by
+   the commands that enforce them, and the validator reads them out. A
+   drift test asserts the printed list of commands is the whole list of
+   commands whose source refuses over the field.
+
+**Why this and not the alternatives.** The ideas entry named the real
+risk: "a warning nobody can silence becomes noise on the 36 manifests
+that are deliberately Actions-era." That decided the shape.
+
+- **Making the validator strict** was the obvious fix and is the one the
+  spec forbids, for a reason that is still good: a live box reconciling a
+  roster must not refuse a seat over a word it does not need.
+- **`--for-runtime` only, with a silent default**, leaves the false `✓`
+  exactly where it is for everyone who does not know to pass a flag —
+  which is everyone the card is about.
+- **Noise was the objection to a default note, and it does not apply
+  here.** `epito validate` reads one `agent.toml`, in the directory the
+  user is standing in, because they asked. The 36-manifest case is a
+  roster being loaded by `epito run`, which hard-refuses already and
+  prints no notes at all.
+
+**What it costs.** One more thing on screen for a repo-less manifest that
+its author knows is repo-less. The honest mitigation was to remove the
+common case rather than argue about it: `epito init` now reads
+`[runtime].repo` off the directory's git origin, so the manifest it
+writes in the normal case has nothing to warn about.
+
+**Also settled, with no spec cover needed.** `[trigger].cron` was counted
+(five fields present) and not parsed, so `"0 99 * * *"` ticked here and
+was refused by `epito run` when it built the matcher. That was a plain
+validator bug, not a deliberate placement: it is parsed in the validator
+now, and `loadRoster`'s duplicate copy of the check is gone, so the two
+commands cannot print different sentences about the same expression.

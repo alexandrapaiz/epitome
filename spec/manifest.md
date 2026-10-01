@@ -47,6 +47,9 @@ scopes = ["github:contents", "github:pull_requests"]
 
 [trigger]                               # required: at least one of the two
 cron = "0 6 * * *"                      # 5-field cron, UTC. The runtime registers a schedule.
+                                        # Parsed by `epito validate`, not counted: five
+                                        # impossible fields ("0 99 * * *") is refused here and
+                                        # not left for `epito run` to discover.
 webhook = true                          # the ingress may wake this seat: POST /hooks/<name>.
                                         # Without it the ingress refuses — a trigger is
                                         # explicit and never defaulted (rule 3).
@@ -60,8 +63,10 @@ repo  = "owner/historian"               # the GitHub repository a run happens in
                                         # hands the clone to the agent as its working directory.
                                         # Also what bounds the minted token to one repo.
                                         # `epito validate` accepts it absent (Actions-era
-                                        # manifests stay valid); `epito run` and `epito token`
-                                        # both refuse without it, and say so.
+                                        # manifests stay valid) and SAYS so: `epito run`,
+                                        # `epito ps <dir>`, `epito deploy` and `epito token`
+                                        # all refuse without it, so the ✓ names them instead
+                                        # of implying they will not.
 ref   = "main"                          # optional: branch or tag the runtime checks out;
                                         # unset = the repository's default branch
 adapter = "claude"                      # optional: which KIND of agent this is. "claude" (the
@@ -147,6 +152,16 @@ Anything outside the table fails **the mint**, naming the scope and the
 mapped set — not `epito validate`. That placement is deliberate: a
 stricter validator would refuse a running roster at startup over one
 word, and a live box is downstream of that choice.
+
+What that placement costs is a ✓ on a manifest the mint will refuse, so
+`epito validate` **notes** the unmapped scope without failing on it — and the
+same for an absent `[runtime].repo`. The rules belong to the other commands;
+`cli/src/lib/readiness.js` holds them once and the validator reads them out,
+so its tick is honest about what it did not promise. `epito validate
+--for-runtime` turns those notes into an error and exits 1, for CI that wants
+the stricter rule; the default stays exit 0, because these files are valid
+v0.1 manifests and a validator that refused them would break every
+Actions-era manifest on purpose.
 
 Nothing about an agent's App belongs in the manifest, and rule 1 is why:
 the App id and private key are named by convention

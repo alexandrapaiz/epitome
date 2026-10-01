@@ -30,7 +30,7 @@ entry = "prompts/historian.md"
 
 ```bash
 epito init      # scaffold an agent (alias: `epito me`)
-epito validate  # check the manifest
+epito validate  # check the manifest, and name what the runtime will still need
 epito run       # put a roster on the runtime: a schedule per trigger, plus the ingress
 epito worker    # do the work: run seats off the queue
 epito ps        # the roster, read from the runtime

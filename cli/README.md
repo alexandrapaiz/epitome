@@ -42,6 +42,31 @@ refused by name, with the fix in the message, because a manifest that
 validates with a tick and then behaves differently is the bug its author
 cannot debug.
 
+Which is why the tick also says what it did **not** promise. A few rules
+belong to the commands downstream rather than to the validator —
+`[runtime].repo` is optional to the spec and required by `epito run`,
+`epito deploy` and `epito token`; a scope outside the mapped set fails at
+the mint, not here — so `epito validate` names those commands and the fix
+instead of leaving you to meet them one at a time:
+
+```
+✓ historian is an agent: identity (2 scopes), trigger, runtime
+
+historian is valid, and not ready to run:
+
+  ! [runtime].repo is unset, so `epito run`, `epito ps <dir>`, `epito deploy`
+    and `epito token` will refuse this manifest: the runtime clones owner/name
+    fresh for every run, and a minted token is scoped to exactly one repository.
+    Fix: add repo = "owner/name" to [runtime] in agent.toml.
+```
+
+That is a note, not an error: the file is a valid v0.1 manifest and the
+exit code stays 0. `epito validate --for-runtime` turns the notes into an
+error, for CI that would rather fail here than at 06:00. And in the normal
+case you will not see it at all — run `epito init` inside the repository
+the agent will work in and it reads `[runtime].repo` off the git origin
+(ADR-21).
+
 ## What it gives an agent
 
 - **Identity** — its own GitHub App, created from `[identity].scopes` and
