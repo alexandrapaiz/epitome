@@ -87,7 +87,8 @@ run_suite() {
   names+=("$name"); results+=("$result"); counts+=("${tally:-nothing asserted}"); notes+=("$note")
 }
 
-run_suite "unit"            node --test "$CLI/test/unit.mjs"
+run_suite "unit"            node --test "$CLI/test/unit.mjs" "$CLI/test/unit-deploy.mjs"
+run_suite "smoke-deploy"    bash "$CLI/test/smoke-deploy.sh"
 run_suite "smoke-temporal"  bash "$CLI/test/smoke-temporal.sh"
 run_suite "smoke-langgraph" bash "$CLI/test/smoke-langgraph.sh"
 run_suite "provision-host"  bash "$ROOT/deploy/test-provision.sh"

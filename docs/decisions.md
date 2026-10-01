@@ -716,3 +716,82 @@ bound, and it is the whole of consequence 2.
    inside one worker process, which is the whole of a single-host
    install. Two worker hosts are two counters; the engine-side lease
    that would fix that is an idea, not a claim.
+
+## ADR-20: An agent gets its own GitHub App, created by the app-manifest flow
+
+**Date.** 2026-09-30. **Status.** Proposed by the engineer seat; the
+owner ratifies by merging, objects by editing. This is EPI-4, the route
+decision cycle 1 named as its central unknown and left open when the
+cycle was re-bet to the runtime.
+
+**Context.** `epito deploy` has printed "platform in progress" since
+founding night, and it is the command the product is named for. The mint
+(`epito token`), the trigger wiring (`epito run`) and the ledger all
+landed without it, which means every principal in existence today was
+created by a human in GitHub's 14-field App form and installed by hand.
+The question the cycle framed: does an agent get **its own App**, created
+per agent, or does one epito-owned App get **installed per agent**?
+
+**Decision.** App-per-agent, created through GitHub's app-manifest flow:
+`epito deploy` serves one local page that POSTs a manifest built from
+`[identity].scopes`, a human clicks Create once, GitHub returns a code to
+a one-shot loopback listener, and the conversion hands back the App's id
+and private key, which land in `.epito/` at 0600.
+
+**Why, on the evidence available.** Not a live spike: no App was created
+on any account for this decision, and the flow is proved end to end
+against a stand-in api.github.com (`cli/test/smoke-deploy.sh`, 52
+assertions) rather than against github.com. What decided it is three
+properties that are structural rather than empirical, so a live spike
+would not have changed them:
+
+1. **A shared App makes every agent the same someone.** ADR-2 says an
+   agent is *someone* — its own identity, never the owner's. Under the
+   shared route every PR in every customer's repository is authored by
+   `epito[bot]`, and the audit trail can no longer answer "which agent
+   did this" from the artifact itself. The market brief's differentiator
+   (§1) is exactly the leg that would be given away.
+2. **A shared App is one key for every customer's every agent.** Its
+   compromise is total and its revocation is total: "uninstall the App"
+   is ADR-2's one-click revoke, and under the shared route that click
+   revokes the whole roster. Per-agent keys make the blast radius one
+   agent, which is the promise the product sells.
+3. **Neither route costs us portability.** `lib/identity.js` already
+   reduces both to (app id, key, installation id) — it was written that
+   way deliberately, and not one line of it changed to build this. If
+   the owner overrules, the change is a second `IdentityProvider`, not a
+   rewrite.
+
+**What it costs, named plainly.** GitHub has no API that creates an App
+without a human at a keyboard, so `epito deploy` cannot be fully
+headless: creation is one click in a browser, and installation on the
+repository is a second. Everything around those two clicks is gone — the
+form, the permission guesswork, the key file in Downloads, the "which App
+was this" a month later — but the clicks stay, and a hosted callback
+service that removed them was ruled a rabbit hole for this cycle and
+still is. The redeploy path (recording the installation) *is* headless,
+which is why deploying twice is the documented shape.
+
+**Consequences.**
+
+1. **One manifest, one principal, enforced by the command.** A second
+   `epito deploy` never creates a second App: it re-discovers the
+   installation for `[runtime].repo` and updates the one record (spec
+   rule 4). Two Apps answering to one name would make the ledger unable
+   to say who acted.
+2. **App names are globally unique on GitHub, so they carry a suffix.**
+   `<agent>-<repo owner>`, capped at GitHub's 34 characters,
+   `--app-name` to override. A naming *system* was a named rabbit hole;
+   this is one suffix derived from the manifest.
+3. **The App this creates subscribes to nothing.** No `hook_attributes`,
+   no `default_events`. Triggers belong to `epito run`, and an App that
+   declares a hook URL nobody serves is a dead endpoint in somebody's
+   settings page forever. `[trigger].webhook` is served by the runtime's
+   ingress, not by GitHub.
+4. **The ceiling is set once, from the file.** `default_permissions` is
+   `[identity].scopes` through the same `SCOPE_MAP` every mint uses, so
+   an App cannot be created wider than the manifest that describes it —
+   and an unmapped scope fails before a human is sent to a browser.
+5. **An account-level cap on Apps exists and this seat has not measured
+   it.** A roster of a few hundred seats may meet it. That is an open
+   question against the per-agent route, recorded rather than guessed at.
