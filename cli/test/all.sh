@@ -38,6 +38,22 @@ done
 mkdir -p "$LOGS"
 trap '[ "$KEEP" = 1 ] && echo "full output kept in $LOGS" || rm -rf "$LOGS"' EXIT
 
+# One prerequisite is this repository's own, and every suite needs it. Without
+# node_modules the unit suite does not skip itself politely — it dies with a
+# fourteen-line ERR_MODULE_NOT_FOUND naming a path inside src/, and the first
+# thing anyone does with that is read it as a broken checkout. The suites are
+# allowed to report their own missing binaries; this one is ours to catch.
+if [ ! -d "$CLI/node_modules/smol-toml" ]; then
+  cat <<EOF
+test/all.sh: this checkout has no dependencies installed, so no suite can run.
+
+  cd $CLI && npm ci
+
+Everything else a suite needs, the suite names itself when it skips.
+EOF
+  exit 2
+fi
+
 names=(); results=(); counts=(); notes=()
 
 # Run one suite and let it classify itself.
@@ -51,7 +67,7 @@ run_suite() {
   printf '\n\033[1m== %s\033[0m\n' "$name"
   "$@" > "$log" 2>&1
   local rc=$? tally="" note="" result
-  tally="$(grep -Eo '^(smoke|provision): [0-9]+ ok, [0-9]+ failed' "$log" | tail -1)"
+  tally="$(grep -Eo '^(smoke|provision|pack): [0-9]+ ok, [0-9]+ failed' "$log" | tail -1)"
   if [ -z "$tally" ]; then
     local p f
     p="$(grep -Eo '^# pass [0-9]+' "$log" | tail -1 | grep -Eo '[0-9]+')"
@@ -92,6 +108,7 @@ run_suite "smoke-deploy"    bash "$CLI/test/smoke-deploy.sh"
 run_suite "smoke-temporal"  bash "$CLI/test/smoke-temporal.sh"
 run_suite "smoke-langgraph" bash "$CLI/test/smoke-langgraph.sh"
 run_suite "provision-host"  bash "$ROOT/deploy/test-provision.sh"
+run_suite "pack"            bash "$CLI/test/pack.sh"
 
 printf '\n%s\n' "-----------------------------------------------"
 failed=0; incomplete=0

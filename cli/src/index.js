@@ -2,6 +2,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { parseManifest, validateManifest, NAME_RE } from "./lib/manifest.js";
 import { ignore } from "./lib/gitignore.js";
+import { engineImport } from "./lib/engine.js";
 
 const [, , cmdRaw, ...args] = process.argv;
 // `epito me` is `epito init`: mint an epitome of yourself.
@@ -122,21 +123,33 @@ if (cmd === "validate") {
 if (cmd === "run") {
   const dir = args.find((a) => !a.startsWith("-"));
   if (!dir) die("run needs a directory: `epito run <dir>` puts every agent.toml under <dir> on the runtime");
-  const { runDaemon } = await import("./run.js");
   // The engine being unreachable is an operating condition, not a crash: it
   // gets the same one-line treatment as a broken manifest, never a stack.
-  try { await runDaemon(dir, { dryRun: args.includes("--dry-run") }); } catch (e) { die(e.message); }
+  // The import is INSIDE the guard on purpose — the engine packages are
+  // optional peers (package.json), so "not installed at all" is the first
+  // way this fails, and it used to escape the guard as a raw
+  // ERR_MODULE_NOT_FOUND. engineImport turns that one into a sentence.
+  try {
+    const { runDaemon } = await engineImport(() => import("./run.js"), "run");
+    await runDaemon(dir, { dryRun: args.includes("--dry-run") });
+  } catch (e) { die(e.message); }
 } else if (cmd === "worker") {
-  const { runWorker } = await import("./temporal/worker.js");
-  try { await runWorker(); } catch (e) { die(e.message); }
+  try {
+    const { runWorker } = await engineImport(() => import("./temporal/worker.js"), "worker");
+    await runWorker();
+  } catch (e) { die(e.message); }
   process.exit(0);
 } else if (cmd === "ps") {
-  const { psCmd } = await import("./temporal/ps.js");
-  try { await psCmd(args[0]); } catch (e) { die(e.message); }
+  try {
+    const { psCmd } = await engineImport(() => import("./temporal/ps.js"), "ps");
+    await psCmd(args[0]);
+  } catch (e) { die(e.message); }
   process.exit(0);
 } else if (cmd === "window") {
-  const { windowCmd } = await import("./run.js");
-  await windowCmd(args[0], args[1], args[2]);
+  try {
+    const { windowCmd } = await engineImport(() => import("./run.js"), "window");
+    await windowCmd(args[0], args[1], args[2]);
+  } catch (e) { die(e.message); }
   process.exit(0);
 } else if (cmd === "token") {
   const { tokenCmd } = await import("./token.js");
@@ -160,8 +173,10 @@ if (cmd === "run") {
   await noteCmd(args);
   process.exit(0);
 } else if (cmd === "message") {
-  const { message } = await import("./run.js");
-  await message(args[0], args.slice(1).join(" "));
+  try {
+    const { message } = await engineImport(() => import("./run.js"), "message");
+    await message(args[0], args.slice(1).join(" "));
+  } catch (e) { die(e.message); }
   process.exit(0);
 }
 
