@@ -26,6 +26,9 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       which declared roads are closed here (--json)
   epito board         what the seats have been doing: run reports, newest
                       last (--agent, --kind, --limit, --json)
+  epito audit [name]  the ledger: every App created, every token minted and
+                      what it could do, every run and every road refused
+                      (--agent, --action, --since, --limit, --json)
   epito report <name> file a run report on the board from anywhere
                       (--trigger --outcome --pr --turns --seconds --detail)
   epito note <name> "..."
@@ -53,6 +56,12 @@ reboot. See docs/prfaq/epitod-v1-temporal.md.
 The board is where the runs show up: every seat epitod runs files its own
 report, and a seat that runs somewhere else files one with \`epito report\`.
 See ADR-16 (docs/decisions.md).
+
+The board and the ledger answer two different questions. The board is "what
+have the seats been doing" — run reports, folded for an owner. The ledger
+(\`epito audit\`, .epito/audit.jsonl) is "what exactly happened", including the
+lines nobody reads until something is wrong: which permissions each agent's
+token actually held, on which repository, until when.
 
 A seat can declare several roads to a model: \`[[runtime.route]]\` names them in
 order, and a run takes the first one that starts it — falling back only while
@@ -220,6 +229,10 @@ if (cmd === "run") {
   const { boardCmd } = await import("./board.js");
   await boardCmd(args);
   process.exit(0);
+} else if (cmd === "audit") {
+  const { auditCmd } = await import("./audit.js");
+  await auditCmd(args);
+
 } else if (cmd === "report") {
   const { reportCmd } = await import("./board.js");
   await reportCmd(args);

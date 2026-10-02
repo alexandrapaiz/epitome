@@ -28,9 +28,10 @@
 // that is not in it, by name. That refusal is the owner's "seats cannot create
 // views" written as code rather than as a promise: a seat can fill this board
 // in, and cannot grow it a column because its own run happened to have one.
-import { appendFileSync, readFileSync, existsSync } from "node:fs";
+import { appendFileSync } from "node:fs";
 import { join } from "node:path";
-import { EPITO_DIR, ensureDir } from "./audit.js";
+import { EPITO_DIR, ensureDir, readJsonl } from "./audit.js";
+import { table, iso16, hhmm } from "./table.js";
 import { NAME_RE } from "./manifest.js";
 
 export const BOARD_PATH = join(EPITO_DIR, "board.jsonl");
@@ -96,19 +97,12 @@ export function appendBoard(raw, { path = BOARD_PATH, now = new Date() } = {}) {
 
 // A line this epito cannot parse is counted, never dropped silently and never
 // fatal: a newer epito may have written it, and a half-written line is what a
-// crash mid-append leaves behind.
+// crash mid-append leaves behind. That rule was written here first and is now
+// shared with the audit ledger, which is the same file format and the same
+// argument (lib/audit.js, readJsonl).
 export function readBoard({ path = BOARD_PATH } = {}) {
-  if (!existsSync(path)) return { events: [], unreadable: 0, exists: false };
-  let unreadable = 0;
-  const events = [];
-  for (const line of readFileSync(path, "utf8").split("\n")) {
-    if (!line.trim()) continue;
-    try {
-      const e = JSON.parse(line);
-      if (e && typeof e === "object" && !Array.isArray(e)) events.push(e); else unreadable++;
-    } catch { unreadable++; }
-  }
-  return { events, unreadable, exists: true };
+  const { entries, unreadable, exists } = readJsonl(path);
+  return { events: entries, unreadable, exists };
 }
 
 // The fold: the board as it stands, from the events that made it.
@@ -151,14 +145,6 @@ export function foldBoard(events, { agent = null, limit = 20, kind = null } = {}
     duplicates,
     since: kept.length ? kept[0].ts : null,
   };
-}
-
-const iso16 = (t) => (t ? String(t).slice(0, 16).replace("T", " ") + "Z" : "-");
-const hhmm = (t) => (t ? String(t).slice(11, 16) + "Z" : "-");
-
-function table(rows) {
-  const w = rows[0].map((_, i) => Math.max(...rows.map((r) => String(r[i]).length)));
-  return rows.map((r) => r.map((c, i) => String(c).padEnd(w[i])).join("  ").trimEnd());
 }
 
 // One screen: who has been running, and what the last things that happened
