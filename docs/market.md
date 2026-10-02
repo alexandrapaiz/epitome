@@ -1,5 +1,342 @@
 # Market brief — docs/market.md
 
+Maintained by the market seat. This revision: **rev 4, 2026-10-02**,
+dispatch run. Anchor: docs/backlog.md names 2026-10-02 explicitly for
+"Market re-justifies the ranking under ADR-6 in the 10-02 map refresh"
+and separately flags ADR-13's buyer-2 pricing/column as still open.
+Built on top of the unmerged rev 3 (PR #31, 2026-09-30) rather than
+re-running its research: `gh pr list` was checked first (L-E10 — an
+open card, or here an open brief, is not evidence nobody built it),
+rev 3 already covers the ten-day delta against rev 2 including an
+ADR-12 check, and redoing that would be the duplicate-build pattern
+ExO incident 2 named. This run is additive on four fronts: the
+mandatory ADR-12 check (§4a — it fires this time), the ADR-6 re-rank
+grounded against what actually shipped in `cli/` since rev 2 rather
+than only the outside landscape, ADR-13's agent-maker-as-customer
+column and separate buyer-2 pricing, and three research assignments
+accepted on founding night or at ADR-7 (2026-09-18/19) that sat
+undone through rev 2 and rev 3: WhatsApp, WeChat, Omarchy. Rev 3
+stands below, unedited, marked superseded. Every claim below is
+sourced and dated; non-official-domain sources were fetched directly,
+not taken from a search summary alone.
+
+## Orientation: the tripwire fires, on Slack, and it's a miss we made ourselves
+
+The headline: LangSmith Fleet mints a real, distinct Slack bot
+identity per agent — "Fleet creates a Slack app named after your
+agent, using its description and icon" — and that satisfies ADR-12's
+literal tripwire condition (§4a). It shipped 2026-07-13/17, which
+means rev 2 (09-19) and rev 3 (09-30) both reviewed Fleet's identity
+docs and missed it; this is a detection failure on our declared
+territory (L-R1), not a new release to react to, and it's named as
+such rather than softened.
+
+Read against G4 (rev 2 §6), the finding shrinks back down: Fleet's
+Slack app is a real principal, but it is a LangSmith-custodied
+principal that exists only inside Fleet, follows no agent to GitHub or
+anywhere else, and disappears the day the customer cancels LangSmith.
+It is a new wall, built well, not a door through the walls. The
+tripwire still fires on its literal wording — "any mechanism by which
+a LangSmith-deployed agent acts on an outside platform under its own
+principal" — and ADR-12 is explicit that firing is a procedural
+question, not a judgment call, so this is escalated below rather than
+argued away. The owner's call is what it's worth in light of G4, not
+whether it fires.
+
+---
+
+## 4a. Standing watch: LangChain/LangSmith (ADR-12) — TRIPWIRE FIRES, escalation
+
+**Checked this run, as every run must.** Finding: **yes, a mechanism
+exists today** by which a LangSmith-deployed agent acts on Slack under
+its own principal, not a shared key and not the invoking human's
+OAuth.
+
+**The mechanism, sourced from LangChain's own docs (fetched directly
+2026-10-02, not taken from a search summary):**
+
+- Agent identity in Fleet is a binary choice made once and locked:
+  "Fixed Credentials ('Claws')" — the agent authenticates with the
+  same credentials "irrespective of who initiates the interaction,"
+  the documented example being "a team Slack bot or a daily briefing
+  agent" — versus "User Credentials ('Assistants')," which act as the
+  invoking human
+  ([docs.langchain.com/langsmith/fleet/agent-identity](https://docs.langchain.com/langsmith/fleet/agent-identity),
+  accessed 2026-10-02). Claws is the mode the tripwire is about:
+  fixed, not delegated.
+- For Slack specifically, Claws is not a shared key: "Each agent maps
+  to exactly one Slack app," and "Fleet creates a Slack app named
+  after your agent, using its description and icon." On self-hosted
+  LangSmith the admin creates a custom Slack app per agent instead;
+  either way it's one app per agent, not one app for the workspace and
+  not one app for all of LangChain's customers
+  ([docs.langchain.com/langsmith/fleet/slack-app](https://docs.langchain.com/langsmith/fleet/slack-app),
+  accessed 2026-10-02).
+- Shipped **2026-07-13 through 07-17**: "You can now add any agent to
+  Slack in one click. After you authenticate with Slack once, Fleet
+  automatically creates a Slack app..." plus the same window's
+  interrupt-approval buttons and thread replies, all under that same
+  per-agent bot
+  ([docs.langchain.com/langsmith/fleet/changelog](https://docs.langchain.com/langsmith/fleet/changelog),
+  accessed 2026-10-02). That date is eleven weeks before rev 2's
+  LangSmith review and six weeks before rev 3's — both had the page
+  open and cited adjacent pages, neither caught this one.
+- **GitHub does not (yet) do the same thing, and it's the clean
+  opposite shape.** Fleet's GitHub integration on self-hosted LangSmith
+  is one GitHub App for the whole deployment, created once via GitHub
+  Settings and stored as a Kubernetes secret (`kubectl create secret
+  generic fleet-github-app`), shared across every agent in that
+  workspace. Worse for law 3, not just shared: "Each user must also
+  authorize the GitHub App against their own GitHub account using the
+  re-auth flow in LangSmith. This allows Fleet to resolve per-user
+  tokens for tools that act on behalf of a user" — on GitHub, Fleet is
+  explicitly in "Assistants" mode (the human's own token), not "Claws"
+  ([docs.langchain.com/langsmith/fleet/self-hosted](https://docs.langchain.com/langsmith/fleet/self-hosted),
+  accessed 2026-10-02). Law 3's test ("a shared installation is a
+  delegation surface, not an identity surface") fails GitHub on both
+  counts — shared app, human-delegated token; it now passes Slack.
+
+**What this does and doesn't mean, read against our own gaps (rev 2
+§6):**
+
+1. **It does not close G4.** A Fleet Slack bot is not portable: it
+   cannot become the same agent's GitHub identity, cannot be verified
+   as the same principal across platforms (no passport, no manifest,
+   no cross-platform binding), and is custodied by LangSmith, not
+   owned by the builder the way a manifest is. The whitespace this
+   company is a bet on is unchanged.
+2. **It does narrow one specific pitch.** Rev 2's Slack recommendation
+   leaned partly on "Slack is where a human watches the agent work...
+   the product demo, in-situ, daily." Any builder already paying for
+   LangSmith Fleet can get that specific demo today, for an agent they
+   built in Fleet, without us. That is a real, if narrow, erosion —
+   it affects the visibility argument for Slack specifically, not the
+   identity argument, and not for builders outside the LangSmith
+   ecosystem (still most of buyer 1, per ADR-13).
+3. **ADR-12's three arms, re-examined.** Integrate (`langchain-epito`)
+   and outdo (the passport) are unaffected — neither depends on
+   whether Fleet's own Slack bots are good. Supply (ADR-13's third
+   arm, "be the provider their Connections resolve to") gets a
+   concrete next question worth putting to the owner: could an epito
+   manifest become the identity Fleet's Claws mode points at, instead
+   of (or alongside) Fleet's own auto-created Slack app — i.e., does
+   LangChain's own one-principal-per-agent design give epito a
+   plug-in point, or does Fleet's closed creation flow ("do not create
+   the Slack app outside this flow") foreclose it. Not researched this
+   run; flagged as the first question for whoever picks up the supply
+   arm.
+
+**Escalation (per ADR-12, same run, pre-authorized out-of-cycle
+exception):** the tripwire fired on its literal wording. Recommend
+the betting table treats this as evidence the *mechanism* class
+(agent-as-Slack-principal) has one more working, shipped example in
+the wild, which makes the outdo arm's deadline ("visible before their
+next credential release") a few weeks closer than rev 2 assumed,
+without treating it as the wedge-halving event ADR-12 was written to
+catch. **One word: does the owner want the passport prototype pulled
+forward again, yes/no.**
+
+---
+
+## 1. Landscape delta (rev 4) — Atlassian confirmed, Vercel re-checked
+
+Rev 3 left two flags open. Both are closed this run with direct reads
+of the primary pages, not a search summary.
+
+**Atlassian: upgraded from "build-next candidate, unconfirmed" to
+build-next, confirmed on law 3, open on law 2.** The `rovo-agent-
+connector` module is GA and its own docs describe exactly the law-3
+test: "an AI agent hosted outside of Forge [can] be connected to Rovo
+over the Agent2Agent (A2A) protocol, so the external agent appears
+alongside native Rovo agents," and "users can interact with them...
+assigning them work items, @mentioning them in comments, and chatting
+with them via the Rovo Chat panel"
+([developer.atlassian.com/platform/forge/manifest-reference/modules/rovo-agent-connector](https://developer.atlassian.com/platform/forge/manifest-reference/modules/rovo-agent-connector/),
+accessed 2026-10-02). That is appearing as itself, assignable and
+mentionable, not merely callable — law 3 passes. Still only `jira` is
+supported in `productContexts` (Confluence not yet). Law 2 (self-serve
+mint, no bar) is left open: Forge apps are ordinarily self-deployable
+to one's own site without Marketplace review, which would clear it,
+but this run did not find a page stating that applies to this module
+specifically rather than to Marketplace-listed agents — one more
+targeted read, flagged for the next full re-rank rather than asserted.
+
+**Vercel: re-checked, no change.** September's marketplace activity
+(skills.sh registry crossing 1M skills, Vercel Connect + TanStack AI,
+Mem0 joining, OpenAI Agents API integration) is volume, not a listing-
+bar change: submissions are still "curated rather than open-
+submission, with a strong bias toward agents that demonstrate AI SDK
+patterns," and onboarding is still "submit a request to join the
+Vercel Marketplace" ([vercel.com/docs/agent-resources/integrations-for-agents](https://vercel.com/docs/agent-resources/integrations-for-agents);
+[Vercel Marketplace community thread](https://community.vercel.com/t/introducing-ai-agents-services-on-the-vercel-marketplace/25852),
+accessed 2026-10-02). Rev 2/3's "build-next, bar unopened" verdict
+stands; the "lighter listing path" re-ranking trigger did not fire.
+
+## Mechanism audit: what Slack integration actually shipped vs. what rev 2 recommended
+
+This is new to the brief because it's the one check only the market
+seat can do by reading `cli/` instead of the outside web, and it
+belongs in an ADR-6 re-rank. Rev 2's standing recommendation was a
+Slack bot *App*: self-serve mint via `apps.manifest.create`, its own
+username and avatar, revocable per install — the identity-surface
+shape law 3 demands. What actually shipped (`cli/src/lib/slack.js`,
+confirmed by reading the file 2026-10-02) is a different, smaller
+thing: an incoming-webhook poster. Its own header comment says so
+plainly — "it posts; it never reads" — one line per run
+(`pm · message · 3 turns · 12s · <pr-url>`) to a URL named in
+`[runtime].env`. There is no `apps.manifest.create` call anywhere in
+`cli/` (checked by grep), no bot user, no distinct avatar: the line
+arrives via whatever name the webhook's parent app was given once, by
+hand, outside epito. Contrast with GitHub, where `cli/src/lib/
+identity.js` implements the real thing rev 2 described: App id, signed
+JWT, installation-scoped token minted fresh per run, scopes derived
+from the manifest and nothing wider.
+
+This is not a ranking change — Slack still wins the #2 slot (below) —
+it's a build-status correction. **The thing we'd be selling on Slack
+(law 3, "appears as itself") does not exist yet.** What shipped is a
+real and valuable v0 of the *visibility* argument for Slack (a human
+watches the agent work) with none of the *identity* argument (the
+agent is a someone there). Noted for whoever next picks up the Slack
+card: the identity-bearing version is still the open build, not a
+polish pass on what's there.
+
+## ADR-13: the agent-maker-as-customer column, and pricing buyer 2 separately
+
+ADR-13 (2026-09-20) asked for two things, neither done in rev 2 or
+rev 3: a column on the maker map for "as customer" alongside "as
+surface," and a buyer-2 price distinct from the roster tiers. Both
+land here.
+
+**As customer:** for each maker in rev 2 §7.3's table, would it ever
+pay *us* to be the outside-platform identity issuer for the agents it
+builds or hosts, versus only being a runtime whose agents we might run
+(§7.3's existing "as surface" column, about ADR-17's adapter shape)?
+
+| Maker | As surface (ADR-17: can epito host/run its agents?) | As customer (does it need an outside-platform identity issuer, and would it buy one rather than build one?) |
+|---|---|---|
+| **LangChain / LangSmith** | Yes — `langgraph` adapter shipped (ADR-17) | **Live tension, not a clean yes.** §4a just found they're building this themselves (Fleet's per-agent Slack app), which cuts against buying it — but it's a Slack-only, Fleet-only, non-portable version, and the "supply" question raised in §4a (could epito be the provider Connections points at) is exactly this column's point. Candidate, unconfirmed. |
+| **OpenClaw** | Not an adapter target (it hosts its own agents; epito would be a credential backend reached via its plugin hub or vault mount, §7.1) | **Yes, plausibly, and already scoped**: §7.1's spike is literally "epito as customer" — an MCP connector serving per-agent platform tokens to OpenClaw agents, because OpenClaw's roadmap fixed credential *storage*, not credential *identity*. Clearest fit of the five. |
+| **CrewAI** | Would follow LangGraph's adapter shape if ever built | Same env-key pattern as LangGraph per rev 2 §7.3; no identity ambition seen. Watch. |
+| **OpenAI Agents SDK / AgentKit** | Not a target (no adapter shape fits a hosted sandbox) | Unlikely near-term: OpenAI is absorbing the runtime leg itself (native sandbox execution, its own Connector Registry); a company building its own full stack is a weak buyer for a piece of it. Watch. |
+| **AutoGen / Microsoft Agent Framework, Google ADK** | Not targets | No: both are Entra- or Google-cloud-anchored by design: the identity story is already sold to them by the parent platform. Skip as customer. |
+
+**Pricing buyer 2, separately from roster tiers.** Buyer 2 is not a
+builder with a roster; it's a platform reselling agent identity to
+*its own* customers at volume, so a flat roster tier (rev 1's
+recommendation for buyer 1) is the wrong shape — it prices one
+builder's agents, not a platform's throughput. The nearest real comp
+is still Clerk's M2M pricing, re-verified today unchanged: $0.001 per
+token creation (2,500/month free) and $0.00001 per verification
+(100,000/month free)
+([clerk.com/docs/guides/development/machine-auth/m2m-tokens](https://clerk.com/docs/guides/development/machine-auth/m2m-tokens),
+accessed 2026-10-02) — this is what the market already charges a
+platform for minting and checking machine credentials at wholesale.
+WorkOS Agent Auth and Auth0's "Agent as Principal" remain sales-
+contact-only with no public per-unit price (rev 3 §8.3, unchanged).
+**Recommendation: buyer 2 is priced usage-based, per credential minted
+and per credential verified, at or below the Clerk comp, never a flat
+tier** — the flat-roster logic (identity issuance is priced near zero,
+the resident runtime is the billable substance) still holds, but for
+buyer 2 there is no resident runtime to attach a flat price to; the
+mint itself is the entire product being sold. One word: **usage-based
+buyer-2 pricing, yes/no.**
+
+## Three overdue research assignments, closed: WhatsApp, WeChat, Omarchy
+
+All three were accepted by the owner on founding night or at ADR-7
+(2026-09-18/19) "for the next brief revision." Two revisions passed
+without them. Closed here, under the same four ranking laws as every
+other row.
+
+**WhatsApp Business Platform: SKIP, and not for the usual gating
+reason.** Every other watch/skip verdict in this document is about a
+listing bar or an enterprise sales motion. WhatsApp's is sharper: Meta
+changed the WhatsApp Business Solution terms on 2026-01-15 to bar
+"providers of AI or machine-learning technologies, including large
+language models, generative AI platforms, or general-purpose AI
+assistants... when such technologies are the primary functionality
+being provided," while "business-specific bots... customer support,
+order tracking, bookings, FAQs" remain fully permitted
+([dig.watch summary of Meta's terms change](https://dig.watch/updates/meta-changes-whatsapp-terms-to-block-third-party-ai-assistants);
+corroborating coverage: [dataslayer.ai](https://www.dataslayer.ai/blog/meta-bans-general-purpose-ai-chatbots-on-whatsapp-business),
+accessed 2026-10-02). Read against ADR-2's own definition — "an agent
+is autonomous and *triggered*, not prompted, with its own identity and
+its own runtime" — an epito-minted agent is categorically the thing
+the policy names, not the task-specific bot it exempts. The identity
+mechanics are otherwise fine and self-serve (a Meta Business Portfolio,
+app creation via the Meta App Dashboard, system users and access
+tokens — ordinary self-serve OAuth-app plumbing), which is exactly why
+this is worth stating plainly: law 2 passes, the policy gate above it
+does not, and no amount of good engineering opens a policy wall. Skip,
+re-check only if Meta narrows the ban.
+
+**WeChat: SKIP, on two independent grounds, neither of which is the
+platform's own design.** First, regulatory: any generative-AI or
+agent service reaching users inside China needs either a fuller
+"filing" (备案) or a lighter "registration" (登记) with the Cyberspace
+Administration of China, and the filing applicant must be "a mainland
+China registered legal entity (WFOE, Joint Venture, or VIE-structure
+entity)" — as of the sources checked, "no WFOE has successfully
+secured [the fuller filing] to date"
+([appinchina.co, China's AIGC registration guide](https://appinchina.co/blog/the-complete-guide-to-chinas-aigc-registration/),
+accessed 2026-10-02). epito.me has no mainland entity and no plan to
+form one; this blocks the platform regardless of what WeChat's API
+allows. Second, even bracketing that: WeChat's new agent layer is the
+opposite shape from ours. The "WeChat AI Ecosystem" guidelines
+(published 2026-06-08) let a mini-program "automatically become a
+'skill' that AI can call" — i.e., third-party services are absorbed as
+callable skills *inside WeChat's own one super-agent*, not given their
+own recognized identity the way a GitHub App or a Linear app-user is
+([crossingriver.substack.com](https://crossingriver.substack.com/p/4-million-mini-programs-one-ai-agent),
+accessed 2026-10-02) — and the feature is still in closed beta, end
+users can't reach it yet. Two independent blockers, stated honestly
+rather than picking the more flattering one. Skip.
+
+**Omarchy Linux: WATCH, as a channel and a runtime target, not an
+identity surface — exactly the shape ideas.md proposed on founding
+night.** Omarchy (DHH's Arch-based distro) ships "ten AI coding agents
+pre-wired" and its next release ("Quattro") is "building AI agents into
+the desktop itself," with a usage-monitoring widget and per-agent
+selection in `Setup > Defaults > Agent`
+([itsfoss.com](https://itsfoss.com/news/omarchy-ai-agent-focus/);
+[mindstudio.ai](https://www.mindstudio.ai/blog/what-is-omarchy-linux),
+accessed 2026-10-02). Nothing found gives any of those nine-to-ten
+bundled agents an identity on an outside platform — Omarchy wires
+*which* agent runs, not *who* it is anywhere else, which is the exact
+gap ideas.md named ("its agents have no identity — our layer"). Two
+distinct opportunities, not one: **channel** — an AUR package
+(`omarchy-ai-usage-git` already exists as a precedent for third-party
+Omarchy tooling, zero listing bar, same shape as law 4) — and
+**runtime target** — `epitod` as a systemd unit on a box that already
+has agent tooling pre-wired, meeting a user where they already are
+(vision §0's "easy for vibecoders" plus §0b's own Omarchy-as-craft-
+exemplar, a pleasant coincidence worth naming but not leaning on).
+Traction signal, dated today: Omarchy opened a $100,000 HackerOne bug
+bounty on 2026-10-02 ([itsfoss.com](https://itsfoss.com/news/omarchy-ai-agent-focus/)),
+a real security-investment signal for a project this young. Tier:
+watch/low-cost-channel, per ideas.md's own "Low effort" rating — an AUR
+package is a side-bet, not a build slot.
+
+## Standing recommendation, re-justified under ADR-6 (rev 4): unchanged
+
+Slack remains the pick for integration #2. Nothing found this run
+changes any of the four laws' answers for Slack — `apps.manifest.
+create` is still open and self-serve, a Slack App is still a first-
+class someone, distribution is still optional on top of a working
+surface. What changed is context, not the verdict: Atlassian is
+promoted to a confirmed (law 3) build-next candidate behind Slack,
+WhatsApp and WeChat are removed from the open-research queue as
+skips, Omarchy enters as a channel/runtime watch item, and the mechanism
+audit above records that Slack's *build* is still ahead of us, not
+behind us — the recommendation was right in rev 2 and remains unbuilt,
+which is a project-management fact for the PM/engineer seats, not a
+market-seat finding that changes.
+
+---
+
+# Market brief — docs/market.md (rev 3, superseded by rev 4 above)
+
 Maintained by the market seat. This revision: **rev 3, 2026-09-30**,
 weekly window run (charter: prompts/market-agent.md). Scope: what
 moved since rev 2 (2026-09-19/20) against the charter's four sections,

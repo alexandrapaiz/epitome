@@ -57,13 +57,19 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **Market seat brief #1: pricing** — per-active-agent pricing vs.
   roster tier; who pays today for Clerk/Fly/Trigger.dev glue and what do
   they pay. Before any public pricing. Seat: market. *Rev 1 shipped
-  2026-09-18 (docs/market.md §3, "Positioning and pricing"). Rev 2 still
-  open: ADR-13 (2026-09-20) requires pricing buyer 2 (the agent-maker/
-  platform tier) separately from the roster tiers — not yet done.*
+  2026-09-18 (docs/market.md §3, "Positioning and pricing"). ADR-13's
+  buyer-2 (agent-maker/platform tier) pricing and the "as customer"
+  maker-map column shipped in rev 4, 2026-10-02 (docs/market.md,
+  "ADR-13: the agent-maker-as-customer column, and pricing buyer 2
+  separately") — usage-based per-mint/per-verify pricing recommended,
+  owner has not yet ruled one word on it.*
 - [x] **Second integration verdict: Linear REJECTED** (owner,
   2026-09-18 — ADR-6: integrations are surfaces, never dependencies).
   Market re-justifies the ranking under ADR-6 in the 10-02 map
   refresh; owner rules again on the new recommendation. Seat: market.
+  *Done in rev 4, 2026-10-02 (docs/market.md, "Standing recommendation,
+  re-justified under ADR-6 (rev 4)"): Slack reaffirmed under all four
+  laws, no change to the pick.*
 - [ ] **`epito` MCP server + Claude Code/Cursor skill** — the market
   map's near-zero-cost distribution side-bet: reach every editor
   session. *Shaped and bet in cycle 1 (docs/pitches/epito-mcp-server.md,
