@@ -23,6 +23,9 @@
 #   5. DEPLOY TWICE updates one principal (spec rule 4) — no second App
 #   6. and then `epito token` MINTS from what deploy wrote, which is the only
 #      assertion that proves the two commands agree about where a key lives
+#   7. and `epito audit` READS BACK the ledger those two just wrote — the only
+#      assertion that proves the writer and the reader agree about the shape of
+#      a line, which no unit test over a hand-written fixture can prove
 set -uo pipefail
 
 CLI="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -184,6 +187,62 @@ check "  stdout is the token and nothing else" "[ '$TOK' = '$STUB_TOKEN' ]"
 check "  signed with the key deploy wrote — the stub verified the signature" "grep -q '\"jwtOk\":true' '$GH_LOG'"
 check "  and epito found the principal in the file, not in the environment" "grep -q 'minted for acme-bot' '$ROOT/token.err'"
 audit "the mint is in the same ledger as the deploy that made it possible" '{"agent":"acme-bot","action":"mint","repo":"acme/roster","installation":"4242"}'
+
+step "7. \`epito audit\`: the ledger those two commands just wrote, read back"
+# Every assertion above this point used test/audit-has.mjs, which reads the
+# file with its own parser. This section reads it with the PRODUCT's, which is
+# the only way to find out that the writer and the reader disagree about the
+# shape of a line — the failure a unit test over a hand-written fixture cannot
+# have, because the fixture was written by the same hand as the assertion.
+LEDGER="$(cd "$WORK" && $E audit 2>&1)"; rc=$?
+printf '%s\n' "$LEDGER" | sed 's/^/     | /'
+check "it reads the real ledger, exit 0" "[ $rc = 0 ]"
+check "  the seat has a row" "printf '%s' \"\$LEDGER\" | grep -q '^acme-bot'"
+check "  2 deploys and 1 mint, counted" "printf '%s' \"\$LEDGER\" | grep -qE '^acme-bot +1 +2 '"
+check "  the App id deploy created" "printf '%s' \"\$LEDGER\" | grep -q '707070'"
+check "  the repo the manifest named" "printf '%s' \"\$LEDGER\" | grep -q 'acme/roster'"
+check "  what the token was actually allowed to do" "printf '%s' \"\$LEDGER\" | grep -q 'contents:write, pull_requests:write'"
+check "  the mint sentence says until when" "printf '%s' \"\$LEDGER\" | grep -qE 'mint .*installation 4242, expires [0-9]{2}:[0-9]{2}Z'"
+check "  and the deploy that was not a second App" "printf '%s' \"\$LEDGER\" | grep -q 'recorded App 707070'"
+# The assertion this command exists to be trusted on. The mint above returned a
+# real (stub) token on stdout one step ago; the ledger it wrote must not contain
+# it, and the reader must not print it. If this ever fails, `epito audit` is a
+# credential leak with columns.
+check "NO TOKEN in the ledger's output — not the one just minted" "! printf '%s' \"\$LEDGER\" | grep -q '$STUB_TOKEN'"
+check "  nor any private key material" "! printf '%s' \"\$LEDGER\" | grep -qi 'PRIVATE KEY'"
+check "  and the file itself never held the token either" "! grep -q '$STUB_TOKEN' '$WORK/.epito/audit.jsonl'"
+
+check "--action mint shows the mint and says what it left out" \
+  "(cd '$WORK' && $E audit --action mint) | grep -qE '1 of [0-9]+ lines'"
+check "--action deploy counts both deploys" \
+  "[ \"\$(cd '$WORK' && $E audit --action deploy --limit 0 | grep -c 'App 707070')\" = 2 ]"
+check "--agent on a seat that is not in the ledger says so, exit 0" \
+  "(cd '$WORK' && $E audit --agent nobody) | grep -q 'none of them this'"
+check "--since 1h still has today's lines" "(cd '$WORK' && $E audit --since 1h) | grep -q 'acme-bot'"
+check "--since 1970-01-01 has all of them" \
+  "[ \"\$(cd '$WORK' && $E audit --since 1970-01-01 --limit 0 --json | node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>console.log(JSON.parse(s).matched))')\" = \"\$(grep -c . '$WORK/.epito/audit.jsonl')\" ]"
+check "--json is machine-readable and names the path it read" \
+  "(cd '$WORK' && $E audit --json) | node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>{const j=JSON.parse(s);if(j.path!==\".epito/audit.jsonl\")process.exit(1);if(!j.seats.length)process.exit(1)})'"
+
+# A line written by a NEWER epito than the one reading it. Appended to the real
+# ledger on purpose: the rule is that the reader must never hide a line, and
+# the way that rule breaks is a future action silently vanishing.
+printf '%s\n' '{"ts":"2026-10-02T23:59:00.000Z","agent":"acme-bot","action":"quota.exhausted","window":"5h"}' >> "$WORK/.epito/audit.jsonl"
+printf '%s\n' '{"ts":"2026-10-02T23:59:01.000Z","agent":"acme-bot","action":"trunca' >> "$WORK/.epito/audit.jsonl"
+FUTURE="$(cd "$WORK" && $E audit 2>&1)"
+check "an action this epito never heard of still prints, with its fields" \
+  "printf '%s' \"\$FUTURE\" | grep -q 'quota.exhausted  window=5h'"
+check "a half-written line is counted, not fatal and not silent" \
+  "printf '%s' \"\$FUTURE\" | grep -q '1 line in .epito/audit.jsonl could not be read as JSON and was skipped'"
+
+check "a misspelled option is refused, not dropped" \
+  "(cd '$WORK' && $E audit --agnet acme-bot 2>&1; [ \$? = 1 ]) | grep -q 'Did you mean --agent'"
+check "an action nothing ever writes is refused with the list" \
+  "(cd '$WORK' && $E audit --action mintt 2>&1; [ \$? = 1 ]) | grep -q 'nothing in the ledger is a \"mintt\"'"
+check "a --since it cannot parse is refused with the forms" \
+  "(cd '$WORK' && $E audit --since yesterday 2>&1; [ \$? = 1 ]) | grep -q 'It takes a window'"
+check "no ledger in this directory is not an error — it says where one is written" \
+  "(cd '$ALT' && $E audit) | grep -q 'it is written where the work happens'"
 
 printf '\nsmoke: %d ok, %d failed\n' "$pass" "$fail"
 [ "$fail" = 0 ] || exit 1

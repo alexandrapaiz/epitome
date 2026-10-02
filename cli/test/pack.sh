@@ -19,8 +19,9 @@
 #      dropped it (README.md lived at the repo root, not in cli/)
 #   2. the MANIFEST COMMANDS WORK WITH NO ENGINE INSTALLED. @temporalio/* are
 #      optional peers so `npm i -g epito` is half a megabyte instead of
-#      ~300 MB; init, validate, deploy --dry-run, token --dry-run, routes and
-#      board must all run with the engine absent, or that trade is a lie
+#      ~300 MB; init, validate, deploy --dry-run, token --dry-run, routes,
+#      board and audit must all run with the engine absent, or that trade is
+#      a lie
 #   3. and the five commands that DO need the engine refuse in epito's voice —
 #      naming the package, the install line and the command to retry — rather
 #      than with the fourteen-line ERR_MODULE_NOT_FOUND stack they printed
@@ -136,7 +137,7 @@ check "--for-runtime makes the same note an error"    "[ $RC = 1 ] && said 'the 
 printf 'repo = "acme/roster"\n' >> "$WORK/agent.toml"
 run_epito validate
 check "with repo set, the ✓ has nothing left to warn about" "[ $RC = 0 ] && ! said 'not ready to run'"
-for c in "deploy --dry-run" "token digest --dry-run" "routes" "board" "--help"; do
+for c in "deploy --dry-run" "token digest --dry-run" "routes" "board" "audit" "--help"; do
   # shellcheck disable=SC2086 -- $c is this script's own literal, split on purpose
   run_epito $c
   check "epito $c runs with no engine, and prints no stack" "! said ERR_MODULE_NOT_FOUND"
@@ -247,6 +248,43 @@ run_epito init --force
 check "a command with no options says so plainly"       "[ $RC = 1 ] && said 'takes no options'"
 run_epito deploy --timeout 1 --dry-run
 check "a real option still works, value and all"        "[ $RC = 0 ] && said 'would deploy'"
+cd "$WORK"
+
+# ------------------------------ 8. the ledger reader, from the installed package
+# `epito audit` is new in this branch, and what pack.sh is for is the half of a
+# change that a developer checkout cannot see. Two of those here: whether
+# src/audit.js and src/lib/table.js actually reached the tarball (`files` claims
+# "src", and npm silently dropped a README the last time something trusted a
+# files entry), and whether the reader runs with no engine installed, which the
+# loop in section 3 now also asserts.
+#
+# The ledger here is written by hand rather than by a deploy: this script
+# touches no network and no account, and `--dry-run` deliberately writes no
+# audit line. That the WRITER and the READER agree about the shape of a line is
+# proven in test/smoke-deploy.sh section 7, against a ledger `epito deploy` and
+# `epito token` really wrote.
+step "8: \`epito audit\` reads a ledger, from the installed binary"
+check "src/audit.js shipped in the tarball"      'has src/audit.js'
+check "src/lib/table.js shipped too"             'has src/lib/table.js'
+
+mkdir -p "$WORK/.epito"
+cat > "$WORK/.epito/audit.jsonl" <<'LEDGER'
+{"ts":"2026-10-02T14:02:11.004Z","agent":null,"action":"worker.start","address":"127.0.0.1:7233","namespace":"default","queue":"seats"}
+{"ts":"2026-10-02T14:03:01.000Z","agent":"digest","action":"deploy","created":true,"appId":"707070","slug":"digest-acme","repo":"acme/roster","installation":"4242","permissions":{"contents":"write","pull_requests":"write"}}
+{"ts":"2026-10-02T14:04:07.880Z","agent":"digest","action":"mint","runId":"r-9f12","phase":"execute","repo":"acme/roster","installation":"4242","permissions":{"contents":"write","pull_requests":"write"},"expiresAt":"2026-10-02T15:04:07Z","commit":{"name":"digest[bot]"}}
+{"ts":"2026-10-02T14:31:44.000Z","agent":"digest","action":"run.end","runId":"r-9f12","outcome":"ok","turns":23,"seconds":1654,"pr":"https://github.com/acme/roster/pull/7"}
+LEDGER
+cd "$WORK"
+run_epito audit; shows -9
+check "it reads the ledger, exit 0"                  "[ $RC = 0 ] && said 'the ledger'"
+check "...and names what the token could do, and until when" \
+  "said 'contents:write, pull_requests:write on acme/roster' && said 'expires 15:04Z'"
+check "...and the run it belonged to"                "said '23 turns' && said 'pull/7'"
+check "...and gives the machine's own lines no seat row" "! said '^-  *-  *-'"
+run_epito audit --agent digest --action mint --limit 0
+check "the filters work from the installed binary"   "[ $RC = 0 ] && said '1 of 4 lines'"
+run_epito audit --sinse 24h
+check "and a misspelled option is still refused"     "[ $RC = 1 ] && said 'Did you mean --since'"
 cd "$WORK"
 
 printf '\npack: %d ok, %d failed\n' "$pass" "$fail"
