@@ -71,6 +71,16 @@ export function readJsonl(path) {
   return { entries, unreadable, exists: true };
 }
 
+// Both readers print this sentence, so both read it from here. It was written
+// twice and the two spellings disagreed: board.js said "1 line ... were
+// skipped". A ledger whose own footer has a grammar bug is a small thing that
+// reads as a large one, because the footer is the part that admits a problem.
+export function unreadableNote(n, path) {
+  return n === 1
+    ? `1 line in ${path} could not be read as JSON and was skipped`
+    : `${n} lines in ${path} could not be read as JSON and were skipped`;
+}
+
 export function readAudit({ path = AUDIT_PATH } = {}) {
   const { entries, unreadable, exists } = readJsonl(path);
   return { lines: entries, unreadable, exists };
@@ -316,16 +326,12 @@ export function renderAudit(fold, { unreadable = 0, path = AUDIT_PATH, filters =
 
   const foot = [];
   if (fold.runtimeLines) {
-    foot.push(`${fold.runtimeLines} line${fold.runtimeLines === 1 ? "" : "s"} name no seat: the runtime's own (the worker and the ingress starting and stopping, a reconcile)`);
+    foot.push(`${fold.runtimeLines} ${fold.runtimeLines === 1 ? "line names" : "lines name"} no seat: the runtime's own (the worker and the ingress starting and stopping, a reconcile)`);
   }
   if (fold.matched > fold.recent.length) {
     foot.push(`showing the last ${fold.recent.length} of ${fold.matched} matching — \`--limit 0\` for all of them`);
   }
-  if (unreadable) {
-    foot.push(unreadable === 1
-      ? `1 line in ${path} could not be read as JSON and was skipped`
-      : `${unreadable} lines in ${path} could not be read as JSON and were skipped`);
-  }
+  if (unreadable) foot.push(unreadableNote(unreadable, path));
   if (foot.length) out.push("", ...foot);
   return out.join("\n");
 }

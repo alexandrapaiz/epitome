@@ -30,7 +30,7 @@
 // in, and cannot grow it a column because its own run happened to have one.
 import { appendFileSync } from "node:fs";
 import { join } from "node:path";
-import { EPITO_DIR, ensureDir, readJsonl } from "./audit.js";
+import { EPITO_DIR, ensureDir, readJsonl, unreadableNote } from "./audit.js";
 import { table, iso16, hhmm } from "./table.js";
 import { NAME_RE } from "./manifest.js";
 
@@ -178,6 +178,6 @@ export function renderBoard(fold, { unreadable = 0, path = BOARD_PATH } = {}) {
         ].filter(Boolean).join("  ")]),
   ]).slice(1));
   if (fold.duplicates) out.push(`\n${fold.duplicates} duplicate run report${fold.duplicates === 1 ? "" : "s"} collapsed (a retried record files the same runId twice)`);
-  if (unreadable) out.push(`\n${unreadable} line${unreadable === 1 ? "" : "s"} in ${path} could not be read as JSON and were skipped`);
+  if (unreadable) out.push(`\n${unreadableNote(unreadable, path)}`);
   return out.join("\n");
 }
