@@ -35,6 +35,7 @@ epito validate         # check it against manifest spec v0.1
 epito deploy           # give it its own GitHub App: its identity, its key
 epito token historian  # mint its own short-lived token, scoped to the manifest
 epito run ./roster     # put every agent.toml under ./roster on the runtime
+epito audit            # read the ledger: what was granted, to whom, until when
 ```
 
 `epito validate` is the contract: a field the spec does not define is
@@ -73,7 +74,7 @@ the agent will work in and it reads `[runtime].repo` off the git origin
   never wider than the file. Short-lived tokens minted per run, an
   append-only audit line for each, the private key at `0600` on your
   machine and never in the repo. Its pull requests open as `<name>[bot]`,
-  not as you.
+  not as you. `epito audit` reads that record back.
 - **Trigger** — `[trigger].cron` becomes a real schedule; `webhook = true`
   lets the ingress wake it. A trigger is explicit and never defaulted: a
   seat that did not ask to be woken by the ingress is not woken by it.
@@ -84,10 +85,42 @@ It runs the agent you already have: `[runtime].adapter = "langgraph"` runs
 a LangGraph app through the `langgraph.json` its author already wrote,
 unmodified — nothing added to its repository, nothing imported from epito.
 
+## The record
+
+Every App created, every token minted and what it was allowed to do, every
+run, every road refused: one append-only line each in `.epito/audit.jsonl`,
+written by the thing that did the work and by nothing else. `epito audit`
+reads it back.
+
+```
+$ epito audit --limit 2
+the ledger — 2 seats, 133 lines, 2026-10-02 06:00Z → 14:31Z   (.epito/audit.jsonl)
+
+SEAT       MINTS  DEPLOYS  RUNS  FAILED  REFUSED  APP     REPO          PERMISSIONS NOW                      LAST MINT
+digest     30     1        30    1       2        707071  acme/product  contents:write                       2026-10-02 13:48Z
+historian  13     1        13    -       -        707070  acme/roster   contents:write, pull_requests:write  2026-10-02 14:04Z
+
+14:04Z  historian  mint     contents:write, pull_requests:write on acme/roster, installation 4242, expires 15:04Z, for the execute, as historian[bot]
+14:31Z  historian  run.end  ok, 23 turns, 1654s, https://github.com/acme/roster/pull/7
+
+1 line names no seat: the runtime's own (the worker and the ingress starting and stopping, a reconcile)
+showing the last 2 of 133 matching — `--limit 0` for all of them
+```
+
+`--agent`, `--action`, `--since 24h`, `--limit 0` and `--json` narrow it.
+There is no way to write through this command: a ledger a hand can append to
+from outside is not a ledger (ADR-22). The token itself is never in it — not
+the audit line, not the log, not a file.
+
+The **board** is the other question. `epito board` is "what have the seats
+been doing": run reports, folded for whoever is reading, including reports
+filed with `epito report` by seats running somewhere else entirely. The
+ledger is "what exactly happened".
+
 ## The engine is optional
 
 The manifest commands — `init`, `validate`, `deploy`, `token`, `board`,
-`report`, `note`, `routes` — need nothing but this package. They are the
+`audit`, `report`, `note`, `routes` — need nothing but this package. They are the
 whole CLI for most people, so `npm i -g epito` does not drag in Temporal's
 ~300 MB of prebuilt core.
 

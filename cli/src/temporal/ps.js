@@ -108,7 +108,8 @@ export async function psCmd(dirArg) {
     }
     const w = rows[0].map((_, i) => Math.max(...rows.map((r) => r[i].length)));
     for (const r of rows) console.log(r.map((c, i) => c.padEnd(w[i])).join("  ").trimEnd());
-    console.log(`\naudit: .epito/audit.jsonl   history and per-run detail: the Temporal UI on 127.0.0.1:8080 (ssh -L 8080:127.0.0.1:8080)`);
+    console.log(`\nthe record: \`epito audit\` (what was granted, to whom, until when)   the runs: \`epito board\``);
+    console.log(`per-run engine detail — retries, timers, the event history: the Temporal UI on 127.0.0.1:8080 (ssh -L 8080:127.0.0.1:8080)`);
   } finally {
     await connection.close().catch(() => {});
   }

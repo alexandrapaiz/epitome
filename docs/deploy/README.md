@@ -20,7 +20,18 @@ processes must share** so there is one ledger:
 
 ```
 .epito/audit.jsonl        one JSON line per event, append-only
+.epito/board.jsonl        run reports, folded by `epito board`
 .epito/logs/<agent>/*.log stdout+stderr of every run
+```
+
+Read the ledger with `epito audit`, in that directory — what each agent's
+token was allowed to do, on which repository, until when, and every run and
+refused road beside it. `--agent`, `--action mint`, `--since 24h` and `--json`
+narrow it; there is no way to write through the command (ADR-22). On the host
+that means:
+
+```bash
+cd /srv/asc/state && epito audit --since 24h
 ```
 
 There is no `.epito/state.json` any more. `epito ps` asks Temporal, because

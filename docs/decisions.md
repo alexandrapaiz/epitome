@@ -872,3 +872,71 @@ was refused by `epito run` when it built the matcher. That was a plain
 validator bug, not a deliberate placement: it is parsed in the validator
 now, and `loadRoster`'s duplicate copy of the check is gone, so the two
 commands cannot print different sentences about the same expression.
+
+## ADR-22: The ledger is read-only from the CLI, and it is not the board
+
+**Date.** 2026-10-02. **Status.** Proposed by the engineer seat; the owner
+ratifies by merging, objects by editing. Closes cycle 1's scope 1e, whose
+read-back ("optional `epito audit`") was named the cycle's first cut on
+2026-09-21 and duly cut.
+
+**Context.** `.epito/audit.jsonl` has been written since PR #4 and is now
+appended to by six code paths: `epito deploy`, `epito token`, `epito run`'s
+ingress, the worker, and the `clone` and `execute` activities. Until this
+ADR nothing could read it. `epito ps` printed the path and told the operator
+to look at the Temporal UI for anything more.
+
+That is a gap in the product's central claim, not a missing convenience.
+epito sells agents that act as themselves under named permissions. "This
+agent held `contents:write` and `pull_requests:write` on `acme/product`,
+minted at 14:04, expiring at 15:04, as `digest[bot]`" is the sentence the
+whole identity leg exists to be able to say, every fact in it has been on
+disk for two weeks, and no command could say it.
+
+**Decision.** Three parts.
+
+1. **`epito audit` reads, and there is no way to write through it.** No
+   `--add`, no `epito audit note`, no ingress route that appends. A ledger a
+   hand can append to from outside is not a ledger: the single thing an audit
+   log sells is that every line in it was put there by the thing that did the
+   work. `epito report` exists for a seat that wants to say something, and it
+   files to the *board*.
+2. **The board and the ledger stay two files answering two questions.** The
+   board (ADR-16) is "what have the seats been doing" — run reports, folded
+   for an owner, one shape refused field by field. The ledger is "what exactly
+   happened", in the runtime's vocabulary, including the lines nobody reads
+   until something is wrong. They agree about runs because one activity files
+   both (`record`, in `temporal/activities.js`). Merging them would force one
+   of the two questions to be asked in the other's words.
+3. **An action this epito does not know still prints.** Unknown actions render
+   their own fields as `key=value`. The worst line in a ledger is the one a
+   *newer* epito wrote, and a reader that hid it would blind the auditor on
+   exactly the events that are new — upgrading the runtime would quietly
+   narrow the record.
+
+**Why this and not the alternatives.**
+
+- **A second kind of board entry** (`kind: "audit"`) was the cheap route and
+  is wrong twice: the board refuses any field not in its one shape, which is
+  ADR-16's whole point and which an audit line — different per action —
+  cannot satisfy; and it would put the ledger behind the ingress and its
+  secret, when the ledger's reader needs no network at all.
+- **Only `--json`, and let `jq` do the rest.** It is already there and it is
+  not an answer: the person who needs this most is the vibecoder the product
+  is for, and "pipe it through jq and group by agent" is the hand-wiring epito
+  exists to delete. The fold is four columns of arithmetic that nobody should
+  do twice.
+- **Deferring it to the Temporal UI**, which `epito ps` currently suggests.
+  The UI knows workflows, not permissions, and it is the engine's — ADR-15
+  and law 8 both say the product's record must outlive the engine. A mint
+  that happened in `epito token` on a laptop was never in Temporal at all.
+
+**What it costs.** One more command in `--help`, and a second reader to keep
+honest when a new action is added: `ACTIONS` in `cli/src/lib/audit.js` is the
+list, and a unit test asserts every entry in it renders a sentence. An action
+written by the runtime and missing from that list prints its fields instead of
+a sentence — degraded, never hidden, which is part 3 above working as intended
+rather than a gap.
+
+**No spec change.** `spec/manifest.md` defines the manifest, and nothing here
+touches a field in it. The audit log is the runtime's, not the manifest's.
