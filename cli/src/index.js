@@ -5,6 +5,7 @@ import { ignore } from "./lib/gitignore.js";
 import { engineImport } from "./lib/engine.js";
 import { blockers, unchecked } from "./lib/readiness.js";
 import { originRepo } from "./lib/origin.js";
+import { unknownOption } from "./lib/flags.js";
 
 const [, , cmdRaw, ...args] = process.argv;
 // `epito me` is `epito init`: mint an epitome of yourself.
@@ -67,12 +68,20 @@ mint, and whatever the agent itself emits inside it (ADR-18).
 
 const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
 
+// An option epito does not know is refused before the command runs. It used to
+// be dropped, which made `--dry-runn` a real mint and `--for-runtimes` a ✓ that
+// asserted nothing (src/lib/flags.js says why at more length). `window` and
+// `message` are absent on purpose: their last argument is free text a person
+// wrote, and text is allowed to start with a dash.
+const gate = (name, argv, known) => { const e = unknownOption(name, argv, known); if (e) die(e); };
+
 if (!cmd || cmd === "help" || cmd === "--help") {
   console.log(HELP);
   process.exit(0);
 }
 
 if (cmd === "init") {
+  gate(cmdRaw === "me" ? "me" : "init", args, []);
   const name = (args[0] ?? "my-agent").toLowerCase();
   if (!NAME_RE.test(name)) die(`name must be [a-z0-9-], 1-40 chars, got "${name}"`);
   if (existsSync("agent.toml")) die("agent.toml already exists here — one manifest, one agent");
@@ -121,6 +130,7 @@ ${repoLine}`);
 }
 
 if (cmd === "validate") {
+  gate("validate", args, [{ name: "for-runtime", does: "make the readiness notes an error, not a note" }]);
   if (!existsSync("agent.toml")) die("no agent.toml here — run `epito init` first");
   const { manifest: m, parseError } = parseManifest("agent.toml");
   if (parseError) die(`agent.toml is not valid TOML: ${parseError}`);
@@ -162,6 +172,7 @@ if (cmd === "validate") {
 }
 
 if (cmd === "run") {
+  gate("run", args, [{ name: "dry-run", does: "print the schedule changes and stop" }]);
   const dir = args.find((a) => !a.startsWith("-"));
   if (!dir) die("run needs a directory: `epito run <dir>` puts every agent.toml under <dir> on the runtime");
   // The engine being unreachable is an operating condition, not a crash: it
@@ -175,12 +186,14 @@ if (cmd === "run") {
     await runDaemon(dir, { dryRun: args.includes("--dry-run") });
   } catch (e) { die(e.message); }
 } else if (cmd === "worker") {
+  gate("worker", args, []);
   try {
     const { runWorker } = await engineImport(() => import("./temporal/worker.js"), "worker");
     await runWorker();
   } catch (e) { die(e.message); }
   process.exit(0);
 } else if (cmd === "ps") {
+  gate("ps", args, []);
   try {
     const { psCmd } = await engineImport(() => import("./temporal/ps.js"), "ps");
     await psCmd(args[0]);
@@ -193,11 +206,13 @@ if (cmd === "run") {
   } catch (e) { die(e.message); }
   process.exit(0);
 } else if (cmd === "token") {
+  gate("token", args, [{ name: "dry-run", does: "say what it would ask for, and touch neither the network nor a key" }]);
   const { tokenCmd } = await import("./token.js");
   const rest = args.filter((a) => !a.startsWith("-"));
   await tokenCmd(rest[0], rest[1] ?? ".", { dryRun: args.includes("--dry-run") });
   process.exit(0);
 } else if (cmd === "routes") {
+  gate("routes", args, [{ name: "json", does: "the report as JSON" }]);
   const { routesCmd } = await import("./routes.js");
   await routesCmd(args);
   process.exit(0);

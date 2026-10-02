@@ -596,10 +596,58 @@ test("an empty board says how a report gets onto it, not just that there is none
 });
 
 test("a misspelled flag is refused by name, never silently ignored", () => {
-  assert.match(parseFlags(["--outcome", "ok", "--pr-url", "x"], ["outcome", "pr"]).error, /unknown option "--pr-url"/);
+  const { error } = parseFlags(["--outcome", "ok", "--pr-url", "x"], ["outcome", "pr"], "report");
+  assert.match(error, /--pr-url/, `the option it refused is named: ${error}`);
+  assert.match(error, /`epito report`/, "and so is the command that refused it");
   const { flags, rest } = parseFlags(["pm", "--outcome=mint", "--pr", "https://x/1", "--json"], ["outcome", "pr", "json"]);
   assert.deepEqual(rest, ["pm"]);
   assert.deepEqual(flags, { outcome: "mint", pr: "https://x/1", json: true }, "--flag=value, --flag value, and a bare --flag");
+});
+
+// --- options epito does not know (src/lib/flags.js) -----------------------
+// The rule board.js already had, now every command's. The two assertions that
+// matter are the last two: a dropped --dry-run is not a cosmetic bug, it is
+// the real mint and the real App.
+import { unknownOption, nearest } from "../src/lib/flags.js";
+
+const VALIDATE = [{ name: "for-runtime", does: "make the readiness notes an error, not a note" }];
+
+test("an unknown option is refused, and the near miss is named as one", () => {
+  const e = unknownOption("validate", ["--for-runtimes"], VALIDATE);
+  assert.ok(e, "--for-runtimes is not --for-runtime");
+  assert.match(e, /`epito validate` has no --for-runtimes option/, e);
+  assert.match(e, /Did you mean --for-runtime\?/, "the fix is the flag they meant");
+  assert.match(e, /\`epito validate --for-runtime\`/, "spelled as a command they can run");
+});
+
+test("an option close to nothing gets the real list instead of a guess", () => {
+  const e = unknownOption("validate", ["--wat"], VALIDATE);
+  assert.doesNotMatch(e, /Did you mean/, `--wat is nobody's typo for --for-runtime: ${e}`);
+  assert.match(e, /--for-runtime  make the readiness notes an error/, "so it says what the command does take");
+  assert.equal(nearest("wat", ["for-runtime"]), null);
+  assert.equal(nearest("dry-runn", ["dry-run", "json"]), "dry-run");
+});
+
+test("a command with no options says that, rather than listing nothing", () => {
+  assert.match(unknownOption("init", ["--force"], []), /takes no options, so there is nothing --force could mean/);
+});
+
+test("what epito does know still passes, values and positionals and all", () => {
+  assert.equal(unknownOption("validate", ["--for-runtime"], VALIDATE), null);
+  assert.equal(unknownOption("token", ["pm", ".", "--dry-run"], [{ name: "dry-run" }]), null, "positionals are not options");
+  const opts = [{ name: "timeout", value: true }, { name: "dry-run" }];
+  assert.equal(unknownOption("deploy", ["--timeout", "30", "--dry-run"], opts), null, "a value is not an option");
+  assert.equal(unknownOption("deploy", ["--timeout=30"], opts), null, "--flag=value too");
+  // `--timeout -5` is deploy's own range error, with deploy's own message; it
+  // must not be swallowed here as an unknown option called "5".
+  assert.equal(unknownOption("deploy", ["--timeout", "-5"], opts), null);
+});
+
+test("the two flags whose typo is not cosmetic are both refused", () => {
+  assert.match(unknownOption("token", ["pm", "--dry-runn"], [{ name: "dry-run" }]),
+    /Did you mean --dry-run/, "a dropped --dry-run on `token` is a real mint");
+  assert.match(unknownOption("deploy", ["--dry-runn"], [{ name: "dry-run" }]),
+    /Did you mean --dry-run/, "and on `deploy` it is a real GitHub App");
 });
 
 // --- adapters: what epito spawns, per kind of agent (ADR-17) --------------

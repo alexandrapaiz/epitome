@@ -41,6 +41,7 @@ import {
 } from "./lib/identity.js";
 import { appendAudit, ensureDir } from "./lib/audit.js";
 import { ignore } from "./lib/gitignore.js";
+import { unknownOption } from "./lib/flags.js";
 
 const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
 
@@ -211,7 +212,22 @@ export function resolveAgent(nameArg, dirArg = ".") {
 
 // --- the command -----------------------------------------------------------
 
+// Every option deploy takes, in one list, because it is also what refuses the
+// ones it does not. `--dry-runn` used to be dropped, and a dropped --dry-run on
+// THIS command opens a browser and creates a real GitHub App.
+const DEPLOY_OPTIONS = [
+  { name: "dry-run", does: "say what it would create, and touch neither the network nor a browser" },
+  { name: "org", does: "create the App under an organisation instead of your account", value: true },
+  { name: "app-name", does: "override the derived App name when it collides", value: true },
+  { name: "port", does: "the loopback port for the callback (0 picks a free one)", value: true },
+  { name: "timeout", does: "seconds to wait for GitHub to come back (default 600)", value: true },
+  { name: "public", does: "let the App be installed outside your account" },
+  { name: "no-open", does: "print the URL instead of opening a browser" },
+];
+
 export async function deployCmd(argv = []) {
+  const bad = unknownOption("deploy", argv, DEPLOY_OPTIONS);
+  if (bad) die(bad);
   const flag = (n) => argv.includes(n);
   const value = (n, fallback) => { const i = argv.indexOf(n); return i === -1 ? fallback : argv[i + 1]; };
   const positional = [];

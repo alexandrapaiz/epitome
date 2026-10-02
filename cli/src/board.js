@@ -11,32 +11,26 @@
 // (a GitHub Actions runner, a laptop), so it goes through the ingress, which
 // already has the one door and the one secret. Anyone remote who wants to
 // READ it asks the same door: `curl -H "x-epito-secret: …" …/board?format=text`.
+import { parseFlags } from "./lib/flags.js";
 import { readBoard, foldBoard, renderBoard, BOARD_PATH, KINDS } from "./lib/board.js";
 
 const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
 
 // --flag value, --flag=value, and bare --flag. Unknown flags are refused by
 // name rather than ignored: a report filed with a misspelled --outcome that
-// silently became "ok" is worse than one that did not file.
-export function parseFlags(argv, known) {
-  const flags = {};
-  const rest = [];
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (!a.startsWith("--")) { rest.push(a); continue; }
-    const eq = a.indexOf("=");
-    const name = (eq === -1 ? a.slice(2) : a.slice(2, eq));
-    if (!known.includes(name)) return { error: `unknown option "--${name}" — this command takes ${known.map((k) => `--${k}`).join(", ")}` };
-    if (eq !== -1) { flags[name] = a.slice(eq + 1); continue; }
-    const next = argv[i + 1];
-    if (next === undefined || next.startsWith("--")) { flags[name] = true; continue; }
-    flags[name] = next; i++;
-  }
-  return { flags, rest };
-}
+// silently became "ok" is worse than one that did not file. That rule now
+// applies to every command, so the implementation lives in lib/flags.js and
+// this re-export keeps board.js's callers (and its tests) spelling it the way
+// they always did.
+export { parseFlags } from "./lib/flags.js";
 
 export async function boardCmd(argv) {
-  const { flags, rest, error } = parseFlags(argv, ["agent", "limit", "kind", "json"]);
+  const { flags, rest, error } = parseFlags(argv, [
+    { name: "agent", does: "only this agent's entries" },
+    { name: "limit", does: "how many to show (default 20)" },
+    { name: "kind", does: `only ${Object.keys(KINDS).join(" or ")} entries` },
+    { name: "json", does: "the fold as JSON" },
+  ], "board");
   if (error) die(error);
   if (rest.length) die(`board takes options, not arguments — \`epito board --agent ${rest[0]}\` is what you meant`);
   if (flags.kind && !KINDS[flags.kind]) die(`the board holds ${Object.keys(KINDS).join(" and ")} entries, not "${flags.kind}"`);
@@ -58,7 +52,16 @@ export async function boardCmd(argv) {
 }
 
 export async function reportCmd(argv) {
-  const { flags, rest, error } = parseFlags(argv, ["trigger", "outcome", "pr", "turns", "seconds", "detail", "model", "run-id"]);
+  const { flags, rest, error } = parseFlags(argv, [
+    { name: "trigger", does: "what woke the run" },
+    { name: "outcome", does: "how it ended" },
+    { name: "pr", does: "the pull request it opened" },
+    { name: "turns", does: "how many turns it took" },
+    { name: "seconds", does: "how long it ran" },
+    { name: "detail", does: "one line of what happened" },
+    { name: "model", does: "which model ran it" },
+    { name: "run-id", does: "the runtime's id for the run" },
+  ], "report");
   if (error) die(error);
   const name = rest[0];
   if (!name) die(`report needs the agent it is about — \`epito report <name> --outcome ok --pr <url>\``);
@@ -80,7 +83,7 @@ export async function reportCmd(argv) {
 }
 
 export async function noteCmd(argv) {
-  const { flags, rest, error } = parseFlags(argv, ["url"]);
+  const { flags, rest, error } = parseFlags(argv, [{ name: "url", does: "a link the note points at" }], "note");
   if (error) die(error);
   const name = rest[0];
   const text = rest.slice(1).join(" ");

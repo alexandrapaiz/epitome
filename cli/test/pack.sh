@@ -221,5 +221,33 @@ else
   printf '  SKIPPED -- no usable git here, so the origin-read path could not be driven\n'
 fi
 
+# --------------------- 7. an option epito does not know is refused, by name
+# Found driving the installed package by hand: every command outside `epito
+# board` read its flags with `args.includes("--x")`, so anything else was
+# dropped without a word. That is not a cosmetic bug on two of them --
+# `--dry-runn` is the difference between printing a plan and minting a real
+# token, or opening a browser and creating a real GitHub App -- and on
+# `validate` it turns the strict gate somebody put in CI into a silent ✓.
+# These run against the INSTALLED binary because that is who the user is.
+step "7: a misspelled option is refused rather than dropped"
+cd "$WORK"   # section 3 left a valid manifest named digest here, repo and all
+run_epito validate --for-runtimes; shows -3
+check "validate refuses --for-runtimes, exit 1"        "[ $RC = 1 ] && said 'has no --for-runtimes option'"
+check "...and names the flag that was meant"           "said 'Did you mean --for-runtime'"
+check "...and does NOT print a ✓ on the way"           "! said '✓'"
+run_epito token digest . --dry-runn; shows -2
+check "token refuses --dry-runn rather than minting"   "[ $RC = 1 ] && said 'Did you mean --dry-run'"
+check "...and reaches no network and no key"           "! said 'would mint' && ! said 'no identity to mint from'"
+run_epito deploy --dry-runn; shows -2
+check "deploy refuses --dry-runn rather than deploying" "[ $RC = 1 ] && said 'Did you mean --dry-run'"
+check "...and opens nothing"                            "! said 'waiting up to' && ! said 'click Create'"
+run_epito validate --wat; shows -3
+check "an option close to nothing lists the real ones"  "[ $RC = 1 ] && said '[-][-]for-runtime  make the readiness notes an error'"
+run_epito init --force
+check "a command with no options says so plainly"       "[ $RC = 1 ] && said 'takes no options'"
+run_epito deploy --timeout 1 --dry-run
+check "a real option still works, value and all"        "[ $RC = 0 ] && said 'would deploy'"
+cd "$WORK"
+
 printf '\npack: %d ok, %d failed\n' "$pass" "$fail"
 [ "$fail" = 0 ] || exit 1
