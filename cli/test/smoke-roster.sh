@@ -55,7 +55,13 @@ if [ ! -d "$AGENTS" ]; then
   exit 0
 fi
 
-SEATS="$(ls "$AGENTS" | sort | tr '\n' ' ')"
+# Directories only: the roster directory also holds agents/README.md, and a
+# plain `ls` made this suite assert that README.md has an agent.toml. A glob
+# rather than `find -printf`, which is GNU-only and this repository's other
+# suites run on macOS too.
+SEATS=""
+for d in "$AGENTS"/*/; do [ -d "$d" ] || continue; SEATS="$SEATS$(basename "$d") "; done
+[ -n "${SEATS// /}" ] || { echo "smoke: SKIPPED — agents/ holds no seat directories"; exit 0; }
 
 step "1. every seat in the real roster is a valid v0.1 manifest, strictly"
 for s in $SEATS; do
