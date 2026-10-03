@@ -75,6 +75,25 @@ What the platform provisions on deploy, so you never do:
   window you can speak into while it is open. A reboot mid-run no longer
   loses the run. See docs/prfaq/epitod-v1-temporal.md.
 
+### The roster, and ours
+
+Several manifests in one directory are a roster, and the runtime takes the
+directory:
+
+```bash
+epito run agents --dry-run   # the schedules it would register, and nothing else:
+                             # no engine writes, no ledger lines
+epito routes agents          # which road each seat takes on THIS box
+```
+
+`agents/` in this repository is not an example — it is the five seats that run
+epito.me, translated field by field from the GitHub Actions workflows that
+have been running them for weeks (`agents/README.md`). Pointing the product at
+its own company is what found the bugs the three synthetic fixtures could not:
+a `--dry-run` that wrote to an append-only ledger, a `--dry-run` that exited 1
+after succeeding, and a ✓ that told five seats to commit a charter that was
+already committed.
+
 And it runs the agent you already have:
 
 - **Any agent, unmodified** — `[runtime].adapter` says which kind of
@@ -128,6 +147,8 @@ a principal you grant scopes to.
 - `spec/manifest.md` — the agent.toml spec (v0.1)
 - `cli/` — the `epito` CLI
 - `cli/adapters/` — one file per agent kind epito can host (`langgraph_run.py`)
+- `agents/` — **this company's own roster**: one `agent.toml` per seat, the
+  dogfood (`agents/README.md`, ADR-23)
 - `deploy/` — `provision-host.sh`: one always-on host for the runtime
 - `docs/` — vision, decisions (ADRs), backlog, ideas ledger, press release
 - `prompts/` — seat charters (this company is itself run as an agent org)
