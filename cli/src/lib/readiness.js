@@ -27,6 +27,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { SCOPE_MAP } from "./identity.js";
+import { repoRoot, originRepo } from "./origin.js";
 
 // The commands that refuse a manifest with no `[runtime].repo`. This list is
 // the one the note prints AND the one the drift test checks the source
@@ -88,11 +89,30 @@ export function blockers(m, path = "agent.toml") {
 // broken one. Standing in the repo with the charter next to you is evidence,
 // so there is nothing to disclaim; a path that resolves nowhere on this
 // machine is the case that deserves a sentence.
-export function unchecked(m, { baseDir = process.cwd(), exists = existsSync } = {}) {
+//
+// "HERE" means two places, not one, and the second was found by pointing the
+// command at this company's own roster. `entry` is "a path inside `repo`"
+// (spec/manifest.md), and a roster puts manifests in subdirectories:
+// agents/pm/agent.toml names prompts/pm-agent.md, which is committed at the
+// top of this repository and is not beside the manifest. Checking only the
+// manifest's own folder told all five seats to commit a charter that was
+// already committed — noise on the good case, on the one layout `epito run
+// <dir>` is built for.
+//
+// The repository root only counts as evidence when it is the repository the
+// manifest NAMES. A charter found at the top of some unrelated repo you
+// happen to be standing in says nothing about alexandrapaiz/epitome, so the
+// origin has to match before the stat is believed.
+export function unchecked(m, {
+  baseDir = process.cwd(), exists = existsSync, root = repoRoot, origin = originRepo,
+} = {}) {
   const out = [];
   const r = m?.runtime;
-  if (r?.repo && r?.entry && !exists(resolve(baseDir, String(r.entry)))) {
-    out.push(`[runtime].entry "${r.entry}" is read inside the clone of ${r.repo}, not here, and there is no such file in this directory either — so this ✓ does not say the charter exists. Fix: commit ${r.entry} to ${r.repo} before the first run`);
-  }
+  if (!r?.repo || !r?.entry) return out;
+  const entry = String(r.entry);
+  if (exists(resolve(baseDir, entry))) return out;
+  const top = root(baseDir);
+  if (top && origin(baseDir) === r.repo && exists(resolve(top, entry))) return out;
+  out.push(`[runtime].entry "${entry}" is read inside the clone of ${r.repo}, not here, and there is no such file in this directory either — so this ✓ does not say the charter exists. Fix: commit ${entry} to ${r.repo} before the first run`);
   return out;
 }

@@ -1,0 +1,31 @@
+# epito.me's own PM seat, as a manifest.
+# Translated from .github/workflows/agent-pm.yml.
+#
+# The only seat of the five that needs `github:issues`: its charter keeps the
+# Now/Next backlog as standalone GitHub issues with a seat named on each
+# (prompts/pm-agent.md). Scopes are a ceiling (spec rule 2), so the other
+# four do not get it just because this one does.
+#
+# The workflow's open road (ANTHROPIC_BASE_URL from the OPENROUTE_BASE_URL
+# secret, gated on the OPEN_ROUTING repo variable) is NOT written here, and
+# it is not an omission: [[runtime.route]].base_url is a literal URL, and
+# this company holds its endpoint as a secret. See agents/README.md, "what
+# did not translate", and the new open question in spec/manifest.md.
+
+[agent]
+name = "pm"
+description = "Runs Shape Up for the org: pitches, bets, hill charts, the backlog and the board."
+
+[identity]
+scopes = ["github:contents", "github:pull_requests", "github:issues"]
+
+[trigger]
+cron = "0 12 * * 1"
+webhook = true
+
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/pm-agent.md"
+repo = "alexandrapaiz/epitome"
+max_turns = 100
+env = ["SLACK_WEBHOOK_URL", "BOARD_API_URL", "BOARD_RUNTIME_TOKEN", "LINEAR_API_KEY"]

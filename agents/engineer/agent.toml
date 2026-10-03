@@ -1,0 +1,29 @@
+# epito.me's own engineer seat, as a manifest.
+#
+# Translated from .github/workflows/agent-engineer.yml, field by field — this
+# is the dogfood: the company's seats described by the product instead of by
+# 150 lines of YAML per seat. Nothing here was invented; every value has a
+# line in that workflow, and the translation is recorded in agents/README.md.
+#
+# Two crons in the workflow (11:46 and 23:46 UTC, owner directive 2026-09-24:
+# engineers run twice a day) are ONE expression here, because cron's hour
+# field takes a list. Two `- cron:` entries in Actions is the same schedule
+# written twice.
+
+[agent]
+name = "engineer"
+description = "Builds the epito CLI, the deploy path and the runtime; one card a run, one draft PR."
+
+[identity]
+scopes = ["github:contents", "github:pull_requests"]
+
+[trigger]
+cron = "46 11,23 * * *"
+webhook = true
+
+[runtime]
+model = "claude-opus-5"
+entry = "prompts/engineer-agent.md"
+repo = "alexandrapaiz/epitome"
+max_turns = 150
+env = ["SLACK_WEBHOOK_URL"]

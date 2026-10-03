@@ -38,6 +38,25 @@ export function parseGitHubRemote(url) {
   return repo;
 }
 
+// The top of the git work tree `cwd` is in, or null. Here because
+// `[runtime].entry` is "a path inside `repo`" (spec/manifest.md) and a roster
+// puts the manifest in a subdirectory: agents/pm/agent.toml names
+// prompts/pm-agent.md, which is at the top of the repository and not beside
+// the manifest. Resolving entry only against the manifest's own folder made
+// `epito validate` warn that a committed charter was missing — see
+// readiness.js. Local only: one `git rev-parse`, no network.
+export function repoRoot(cwd = process.cwd()) {
+  let res;
+  try {
+    res = spawnSync("git", ["rev-parse", "--show-toplevel"], {
+      cwd, encoding: "utf8", timeout: 5000, stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch { return null; }
+  if (!res || res.status !== 0 || typeof res.stdout !== "string") return null;
+  const top = res.stdout.trim();
+  return top || null;
+}
+
 // owner/name for the git repository `cwd` is in, or null. Never throws: not
 // being in a repo is the ordinary case for `epito init` in an empty folder.
 export function originRepo(cwd = process.cwd()) {

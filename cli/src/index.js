@@ -194,6 +194,13 @@ if (cmd === "run") {
     const { runDaemon } = await engineImport(() => import("./run.js"), "run");
     await runDaemon(dir, { dryRun: args.includes("--dry-run") });
   } catch (e) { die(e.message); }
+  // `--dry-run` is the only way this returns — the daemon otherwise serves
+  // until a signal — and without this line it fell out of the chain and hit
+  // the `unknown command` fallthrough at the bottom: a dry run printed its
+  // whole plan, then `epito: unknown command "run"`, then exited 1. A CI gate
+  // that ran `epito run agents --dry-run` to check a roster saw a failure on
+  // a roster that was fine.
+  process.exit(0);
 } else if (cmd === "worker") {
   gate("worker", args, []);
   try {
@@ -232,7 +239,11 @@ if (cmd === "run") {
 } else if (cmd === "audit") {
   const { auditCmd } = await import("./audit.js");
   await auditCmd(args);
-
+  // Every other branch exits here too. `epito audit` happens to exit from
+  // inside auditCmd on all three of its paths today, so this line changes
+  // nothing — which is the point: whether a command reaches the fallthrough
+  // should not depend on where some other file put its exit.
+  process.exit(0);
 } else if (cmd === "report") {
   const { reportCmd } = await import("./board.js");
   await reportCmd(args);

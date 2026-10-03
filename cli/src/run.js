@@ -70,12 +70,25 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
   const secret = process.env.EPITO_HOOK_SECRET || "";
 
   const { client, connection } = await connect();
-  appendAudit({ agent: null, action: "reconcile.start", dir, address: cfg.address, namespace: cfg.namespace, queue: cfg.taskQueue });
+  // A dry run writes nothing to the ledger, and the guard is HERE rather than
+  // three lines down because that is where it used to be: `epito run <dir>
+  // --dry-run` reconciled nothing on the engine, said "would create", and
+  // then appended one `reconcile.start` and one `schedule.create` per seat
+  // anyway. The ledger is append-only and is the answer to "what exactly
+  // happened" (ADR-22), so four lines claiming four schedules that do not
+  // exist are not noise — they are a record that cannot be corrected, written
+  // by the one flag whose whole promise is that it touches nothing.
+  const record = dryRun ? () => {} : appendAudit;
+  record({ agent: null, action: "reconcile.start", dir, address: cfg.address, namespace: cfg.namespace, queue: cfg.taskQueue });
   const plan = await reconcile({ client, roster, dryRun, log: (m) => log(m) });
   for (const k of ["create", "update", "delete"]) {
-    for (const s of plan[k]) appendAudit({ agent: s.name, action: `schedule.${k}`, schedule: s.id, cron: s.shape?.cron ?? null });
+    for (const s of plan[k]) record({ agent: s.name, action: `schedule.${k}`, schedule: s.id, cron: s.shape?.cron ?? null });
   }
-  if (dryRun) { await connection.close().catch(() => {}); return; }
+  if (dryRun) {
+    await connection.close().catch(() => {});
+    log(`dry run: nothing was registered on the engine and nothing was written to ${AUDIT_PATH}`);
+    return;
+  }
 
   // --- starting and signalling ---------------------------------------------
 
