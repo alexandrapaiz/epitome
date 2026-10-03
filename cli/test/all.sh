@@ -101,6 +101,14 @@ run_suite() {
   elif [ -z "$tally" ]; then
     result=unrun
     note="$(grep -m1 -E "$SKIP_RE" "$log" | sed 's/^[[:space:]]*//')"
+    # A suite that asserted plenty and spelled its tally line without the
+    # prefix this function greps for looks exactly like a suite that skipped.
+    # smoke-validate.sh did precisely that on its first run through all.sh —
+    # 59 assertions, reported as "nothing asserted" — so when there is no skip
+    # notice and an un-prefixed tally IS in the log, say which it was.
+    if [ -z "$note" ] && grep -qE '^[0-9]+ ok, [0-9]+ failed' "$log"; then
+      note="it printed a tally without the \`smoke:\` prefix run_suite greps for, so its assertions were not counted: $(grep -Eo '^[0-9]+ ok, [0-9]+ failed' "$log" | tail -1)"
+    fi
     printf '  unrun  %s\n' "${note:-it asserted nothing and said nothing about why}"
     sed -n '/install it:/,+1p' "$log" | sed 's/^[[:space:]]*/         /'
     KEEP=1

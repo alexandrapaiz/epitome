@@ -226,5 +226,10 @@ OUT="$($E validate "$CLEAN" --for-runtimes 2>&1)"; RC=$?
 check "a misspelled flag is refused, not ignored" "[ $RC -eq 1 ] && printf '%s' \"\$OUT\" | grep -q 'Did you mean --for-runtime'"
 
 # ---------------------------------------------------------------------------
-printf '\n%d ok, %d failed\n' "$pass" "$fail"
+# The "smoke:" prefix is what test/all.sh greps for to tally a suite
+# (run_suite's `tally=` line). Without it this suite ran 59 assertions and
+# all.sh reported "unrun — nothing asserted", which is the harness being
+# right: it cannot tell a suite that skipped from one that used a prefix it
+# does not know. all.sh now says so when it happens.
+printf '\nsmoke: %d ok, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

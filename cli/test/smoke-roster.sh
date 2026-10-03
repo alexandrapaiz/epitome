@@ -131,8 +131,29 @@ check "exo has no cron (its workflow's schedule block is commented out)" "! grep
 check "exo is still triggerable: webhook = true" "grep -q 'webhook = true' '$AGENTS/exo/agent.toml'"
 
 step "4. epito run agents --dry-run: plans, exits 0, writes nothing"
-if ! command -v temporal >/dev/null 2>&1 && [ -z "${TEMPORAL_ADDRESS:-}" ]; then
-  echo "  == 4: SKIPPED — no engine to plan against: the \`temporal\` CLI is not on PATH and TEMPORAL_ADDRESS is unset"
+# What this step needs is a server ANSWERING, which is not what the guard used
+# to ask. It asked whether the `temporal` CLI was on PATH — so installing the
+# prerequisite the skip notice names, without then starting a server, turned
+# this suite from honestly `partial` into `FAILED` on a codebase that was
+# fine: four assertions about a plan that was never printed, because `epito
+# run` had already refused with "no Temporal server answering at
+# 127.0.0.1:7233". A harness that cannot claim more than it proved must not
+# claim a failure it did not see either. One TCP connect, no new dependency,
+# and it reads TEMPORAL_ADDRESS the same way `epito run` does.
+engine_answers() {
+  node -e '
+    const net = require("node:net");
+    const at = (process.env.TEMPORAL_ADDRESS || "127.0.0.1:7233").split(":");
+    const s = net.connect({ host: at[0], port: Number(at[1] || 7233) });
+    const no = () => { s.destroy(); process.exit(1); };
+    s.setTimeout(2000);
+    s.on("connect", () => { s.destroy(); process.exit(0); });
+    s.on("error", no);
+    s.on("timeout", no);
+  ' >/dev/null 2>&1
+}
+if ! engine_answers; then
+  echo "  == 4: SKIPPED — no engine to plan against: nothing is answering at ${TEMPORAL_ADDRESS:-127.0.0.1:7233}"
   echo "     install it (curl -sSf https://temporal.download/cli.sh | sh) and run \`temporal server start-dev\`"
 else
   # A copy, because the assertion is about what a dry run WRITES and the real
@@ -161,6 +182,43 @@ check "deploy --dry-run on the real pm manifest exits 0" "[ $prc -eq 0 ]"
 check "it would install on the repository the manifest names" "printf '%s' \"\$pout\" | grep -q 'installed on alexandrapaiz/epitome'"
 check "the App name is derived from the manifest, not invented" "printf '%s' \"\$pout\" | grep -q 'pm-alexandrapaiz'"
 check "deploy wrote no ledger either, being a dry run" "[ ! -e '$TMP/.epito/audit.jsonl' ]"
+
+step "6. the roster has one command that says yes, and it needs no engine"
+# Step 1 above is what an operator had to do before this existed: a shell loop,
+# one `cd` per seat. This is the same question asked once. It is the half of
+# dogfood step 1 that does not need the box — "is my roster good" answered
+# without a Temporal server, which `epito run agents --dry-run` in step 4
+# cannot do (it connects first, which is why step 4 is inside a skip guard and
+# this is not).
+vout="$($E validate "$AGENTS" 2>"$TMP/validate.err")"; vrc=$?
+verr="$(cat "$TMP/validate.err")"
+check "epito validate agents exits 0 on the real roster" "[ $vrc -eq 0 ]"
+check "it says nothing on stderr when the roster is clean" "[ -z \"\$verr\" ]"
+check "it needed no engine to answer" "! printf '%s' \"\$vout\" | grep -qi 'temporal\|7233'"
+nseats=$(printf '%s ' $SEATS | wc -w | tr -d ' ')
+check "it counts every seat in agents/" "printf '%s' \"\$vout\" | grep -q '$nseats of $nseats manifests are agents'"
+for s in $SEATS; do
+  check "it reports $s by name" "printf '%s\n' \"\$vout\" | grep -qE '^[✓!] $s +identity'"
+done
+check "it names the presence-only seat as presence-only" "printf '%s' \"\$vout\" | grep -q 'presence-only (exo)'"
+check "it says the runtime would refuse nothing here" "printf '%s' \"\$vout\" | grep -q 'nothing here .epito run'"
+# The claim the strict gate makes: it asks exactly what `epito run` asks.
+svout="$($E validate "$AGENTS" --for-runtime 2>&1)"; svrc=$?
+check "the strict gate passes on the real roster too" "[ $svrc -eq 0 ]"
+check "...and reports the same seats" "printf '%s' \"\$svout\" | grep -q '$nseats of $nseats manifests are agents'"
+# Each seat reads identically whether asked one at a time or as a roster. The
+# single-manifest wording is the wording that already shipped, so this is the
+# acceptance test for factoring `epito validate` out of src/index.js.
+for s in $SEATS; do
+  single="$(cd "$AGENTS/$s" && $E validate 2>&1 | sed -n "s/^✓ $s is an agent: //p")"
+  fromroster="$(printf '%s\n' "$vout" | sed -n "s/^✓ $s  *//p")"
+  check "$s reads the same one-at-a-time as in the roster" "[ -n \"\$single\" ] && [ \"\$single\" = \"\$fromroster\" ]"
+done
+check "validate created no .epito/ in the repository" "[ ! -e '$ROOT/.epito' ]"
+# agents/README.md is in that directory and is not a seat. findManifests looks
+# for the filename, so it cannot be fooled — but the count above is what would
+# have caught it, and this suite has already been bitten once by `ls`.
+check "the roster count ignores agents/README.md" "[ -f '$AGENTS/README.md' ] && printf '%s' \"\$vout\" | grep -q '$nseats of $nseats manifests'"
 
 step "rule 1: nothing personal in the roster"
 # The manifests are published with the repository. A credential in one would

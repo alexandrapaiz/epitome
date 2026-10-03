@@ -31,6 +31,7 @@ entry = "prompts/historian.md"
 ```bash
 epito init      # scaffold an agent (alias: `epito me`)
 epito validate  # check the manifest, and name what the runtime will still need
+                # (`epito validate <dir>` checks a whole roster, with no engine)
 epito run       # put a roster on the runtime: a schedule per trigger, plus the ingress
 epito worker    # do the work: run seats off the queue
 epito ps        # the roster, read from the runtime
@@ -81,10 +82,24 @@ Several manifests in one directory are a roster, and the runtime takes the
 directory:
 
 ```bash
+epito validate agents        # is every manifest an agent, and is the ROSTER one:
+                             # no engine, no network, nothing written
 epito run agents --dry-run   # the schedules it would register, and nothing else:
                              # no engine writes, no ledger lines
 epito routes agents          # which road each seat takes on THIS box
 ```
+
+`epito validate <dir>` is the one you reach for before you have a box. It
+checks every manifest under the directory *and* the two rules that are about
+the set rather than any one file — two seats may not claim one `[agent].name`
+(rule 4), and every seat needs a `[runtime].repo` before the runtime will
+clone for it. It exits 1 if any manifest is refused, because a roster runs
+whole or not at all, and it prints the whole report to stderr when it refuses,
+so `epito validate agents >/dev/null` in a CI step shows exactly the problems.
+
+`--for-runtime` turns the readiness notes into errors, and on a directory that
+makes it exact: it refuses precisely what `epito run <dir>` would refuse,
+minus the engine.
 
 `agents/` in this repository is not an example — it is the five seats that run
 epito.me, translated field by field from the GitHub Actions workflows that
