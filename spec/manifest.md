@@ -132,6 +132,13 @@ manifest can express a complicated seat; shape 2 asks how little a real
 seat needs, and every field absent from it had to justify itself against
 one of the other two or go.
 
+All three are fixtures, written by the same people who wrote the validator.
+Since 2026-10-03 there is also a roster that is not: `agents/` holds this
+company's own five seats, translated from the Actions workflows that have been
+running them for weeks (`agents/README.md`). It is the stronger evidence, and
+it is where the three "what did not translate" findings below came from — one
+of them a field v0.2 probably needs.
+
 ## Scopes
 
 `[identity].scopes` map to fine-grained GitHub App permissions. v0.1 maps
@@ -278,7 +285,30 @@ better than "unknown field".
   Settle it with `epito deploy` (which is what would register a
   subscription), and decide then whether filtering belongs in the manifest
   at all or is the platform's job.
-- Whether `[trigger]` combinations compose (cron + webhook on one agent,
-  which v0.1 permits and no shape yet uses) or v1 forces exactly one.
-- Team/roster fields stay OUT of the manifest — confirm this survives
-  contact with the dogfood migration.
+- **A route endpoint that is a NAME, not a URL.** `token_env` names the key
+  that opens a road because rule 1 forbids the value; `base_url` is still a
+  literal, and that is where the first real roster hit the wall. This
+  company's own `pm`, `market` and `okr` seats take a cheaper road whose
+  endpoint it holds as a repository secret (`OPENROUTE_BASE_URL`), so the road
+  cannot be written in a publishable manifest at all — the three manifests in
+  `agents/` declare one road each and say so in a comment. The shape is
+  probably `base_url_env`, beside `token_env` and under the same rule: a name
+  that must also appear in `env`, skipped like any other road whose
+  credential is absent from the box. Not added here, because v0.1 is frozen
+  and the freeze's point is that a field arrives through a question, then a
+  spec change, then code — this is the question. Decide with v0.2.
+- ~~Whether `[trigger]` combinations compose (cron + webhook on one agent,
+  which v0.1 permits and no shape yet uses) or v1 forces exactly one.~~
+  **Answered by the dogfood, 2026-10-03: they compose, and the ordinary seat
+  needs both.** Every one of this company's five workflows can be fired by its
+  clock *and* by hand (`workflow_dispatch`), and on the runtime the second one
+  is the ingress — so four of the five manifests in `agents/` carry `cron` and
+  `webhook = true` together, and the fifth carries only the webhook because
+  its schedule block is commented out. Forcing exactly one would have made the
+  first real roster unexpressible. v0.1's permissiveness here was right;
+  nothing to change.
+- Team/roster fields stay OUT of the manifest — **holding so far**: the first
+  real roster (`agents/`, five seats, 2026-10-03) needed no field that
+  described the roster, only a directory. `epito run <dir>` discovers the
+  files; nothing in a manifest references a sibling. Confirm again at dogfood
+  step 2, when a seat's Actions wiring is actually deleted.

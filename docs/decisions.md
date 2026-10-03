@@ -940,3 +940,78 @@ rather than a gap.
 
 **No spec change.** `spec/manifest.md` defines the manifest, and nothing here
 touches a field in it. The audit log is the runtime's, not the manifest's.
+
+## ADR-23: The company's roster lives in `agents/`, and it does not retire the workflows
+
+**Date.** 2026-10-03. **Status.** Proposed by the engineer seat; the owner
+ratifies by merging, objects by editing. Cycle 1 closed 2026-10-02; this is
+the top open card in `docs/backlog.md`'s Now section.
+
+**Context.** epito.me runs five seats, and all five are GitHub Actions jobs:
+`.github/workflows/agent-{engineer,pm,market,okr,exo}.yml`, ~130 lines each,
+most of it identical. The product exists because that is the wrong way to run
+an agent (the cycle-1 amendment records the owner's words: "there isn't
+anything to give agents a consistent runtime... a consistent runtime that
+isn't just a cron"). Up to this ADR, nothing in this repository described a
+seat as a manifest. The only manifests were three fixtures under
+`cli/test/fixtures/shapes/`, written to freeze the spec against.
+
+So the product had never been pointed at a seat it did not invent — and
+"customer #1 is the owner's own company" (ADR-11) was a claim with no file
+behind it.
+
+**Decision.** Three parts.
+
+1. **The roster is `agents/<seat>/agent.toml`, in the repository the seats
+   work in.** One directory, one manifest per subdirectory, which is the
+   layout `epito run <dir>` already discovers (`lib/roster.js`). Not a single
+   multi-agent file, and no roster manifest describing the roster: the spec's
+   open question — team/roster fields stay out — survived contact, because
+   `epito run agents` needs a directory and nothing more.
+
+2. **Every value is translated, never invented, and the translation is
+   tested.** `cli/test/smoke-roster.sh` asserts each manifest's `max_turns`
+   still equals the `--max-turns` its workflow passes, and that the engineer's
+   two `- cron:` entries are the one list expression that means the same
+   thing. A roster that drifts from the wiring it replaces proves nothing, and
+   drift is silent by default.
+
+3. **The workflows stay.** This ADR describes the seats; it does not move
+   them. Dogfood step 2 — deleting a seat's Actions wiring — waits for a box
+   that is actually running them, and conflating the two would mean a
+   half-migrated org where a seat is described in one place and run in
+   another with no way to tell which fired.
+
+**Alternatives.**
+
+- *A single `roster.toml` listing five agents.* Rejected: a manifest is the
+  unit of everything later (a deploy is a manifest provisioned, a marketplace
+  listing is a manifest published, spec v0.1's opening). Five agents in one
+  file is one file five agents cannot be published out of, and `epito deploy
+  <name>` would need a selector where it currently needs a path.
+- *Generate the manifests from the workflows at build time.* Rejected: the
+  direction of travel is the other way. The workflows are what we intend to
+  delete; deriving the product's input from the thing it replaces makes the
+  replacement permanent.
+- *Translate one seat, not five.* Tempting — the card says "one alexandria
+  seat" — and rejected because the findings came from the spread. Three of
+  the five share an unexpressible second road, one has two crons, one has no
+  cron at all; a single-seat roster would have been the easy case and would
+  have found none of it.
+- *Wait for a live box.* Rejected: it is what every previous run did, and the
+  card has been open since founding night. The seats-as-manifests half needs
+  no box, and the two bugs it found were in the dry-run path specifically —
+  the path an operator uses *before* they have a box.
+
+**Consequence.** `agents/` is product surface now: a change to a seat's
+schedule or model has two homes until step 2, and `smoke-roster.sh` is what
+catches the one that forgot the other. Accepted deliberately — the alternative
+is a roster that is decorative, and a decorative roster is how the three
+synthetic fixtures ended up being the only evidence the spec had.
+
+**Spec delta.** Flagged in the PR, and it is a question rather than a field:
+`[[runtime.route]].base_url` is a literal URL, and the open road three of
+these seats take has its endpoint held as a repository secret, so the road
+cannot be written in a publishable manifest. `spec/manifest.md`'s open
+questions now carry it (probable shape: `base_url_env`, beside `token_env`).
+v0.1 stays frozen; nothing was added to the catalogue.
