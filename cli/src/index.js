@@ -1,9 +1,8 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { parseManifest, validateManifest, NAME_RE } from "./lib/manifest.js";
+import { writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { NAME_RE } from "./lib/manifest.js";
 import { ignore } from "./lib/gitignore.js";
 import { engineImport } from "./lib/engine.js";
-import { blockers, unchecked } from "./lib/readiness.js";
 import { originRepo } from "./lib/origin.js";
 import { unknownOption } from "./lib/flags.js";
 
@@ -14,9 +13,13 @@ const cmd = cmdRaw === "me" ? "init" : cmdRaw;
 const HELP = `epito — mint agents: identity + trigger + runtime from one file
 
   epito init [name]   scaffold agent.toml and a charter (alias: epito me)
-  epito validate      check agent.toml against spec v0.1, and name what the
-                      runtime will still need before it can run this agent
-                      (--for-runtime makes that an error, not a note)
+  epito validate [dir]
+                      check agent.toml against spec v0.1, and name what the
+                      runtime will still need before it can run this agent.
+                      Given a directory, check the WHOLE ROSTER — every
+                      manifest under it plus the rules about the set — with no
+                      engine running (--for-runtime makes the notes errors,
+                      and asks exactly what \`epito run <dir>\` would ask)
   epito run <dir>     put every agent.toml under <dir> on the runtime: one
                       schedule per [trigger].cron, then serve the ingress
                       (--dry-run prints the schedule changes and stops)
@@ -139,44 +142,13 @@ ${repoLine}`);
 }
 
 if (cmd === "validate") {
-  gate("validate", args, [{ name: "for-runtime", does: "make the readiness notes an error, not a note" }]);
-  if (!existsSync("agent.toml")) die("no agent.toml here — run `epito init` first");
-  const { manifest: m, parseError } = parseManifest("agent.toml");
-  if (parseError) die(`agent.toml is not valid TOML: ${parseError}`);
-  const a = m.agent ?? {};
-  const errors = validateManifest(m, { raw: readFileSync("agent.toml", "utf8") });
-
-  if (errors.length) {
-    console.error(`agent.toml: ${errors.length} problem${errors.length > 1 ? "s" : ""}\n`);
-    for (const e of errors) console.error(`  ✗ ${e}`);
-    process.exit(1);
-  }
-  // The adapter is named only when it is not the default, so every manifest
-  // written before adapters existed validates with the line it always had.
-  const adapter = m.runtime?.adapter;
-  console.log(`✓ ${a.name} is an agent: identity (${m.identity.scopes.length} scope${m.identity.scopes.length > 1 ? "s" : ""}), trigger, runtime${adapter && adapter !== "claude" ? ` — a ${adapter} agent` : ""}`);
-
-  // A valid manifest is not the same thing as a runnable one, and the tick used
-  // to imply both: spec v0.1 keeps `[runtime].repo` optional and leaves an
-  // unmapped scope to the mint, so `epito validate` passed files that
-  // `epito run`, `epito ps`, `epito deploy` and `epito token` all refused.
-  // The rules are the other commands' (src/lib/readiness.js); saying them here
-  // is the difference between a ✓ that is correct and a ✓ that is honest.
-  const ready = blockers(m, "agent.toml");
-  const notChecked = unchecked(m);  // cwd is the baseDir, as it is for validate's own entry check
-  for (const u of notChecked) console.log(`  — ${u}`);
-  if (ready.length) {
-    // --for-runtime is the opt-in strict pass, for the person who wants CI to
-    // fail here instead of at 06:00. The default stays exit 0, because the spec
-    // says these manifests are valid and a validator that refused them would
-    // break every Actions-era file on purpose.
-    const strict = args.includes("--for-runtime");
-    const say = strict ? console.error : console.log;
-    say(`\n${a.name} is valid, and not ready to run:\n`);
-    for (const b of ready) say(`  ! ${b.problem}.\n    Fix: ${b.fix}.`);
-    if (strict) { console.error(`\nepito: --for-runtime asks whether the runtime would accept this manifest, and it would not.`); process.exit(1); }
-    say(`\nThis file is a valid v0.1 manifest either way — run \`epito validate --for-runtime\` to make the above an error instead of a note.`);
-  }
+  const { validateCmd, VALIDATE_FLAGS } = await import("./validate.js");
+  gate("validate", args, VALIDATE_FLAGS);
+  await validateCmd(args);
+  // validateCmd exits on every path today. This line is here for the same
+  // reason `run` and `audit` have one: whether a command reaches the
+  // `unknown command` fallthrough must not depend on where another file put
+  // its exit (see the comment on `run` below — that one cost a CI gate).
   process.exit(0);
 }
 
