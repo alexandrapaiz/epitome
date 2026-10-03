@@ -48,7 +48,7 @@ export const VALIDATE_FLAGS = [{ name: "for-runtime", does: "make the readiness 
 // would be a rule `epito run` refuses and `epito validate --for-runtime` passes
 // in silence, which is the one way this command could lie — so it is checked at
 // import, not in a test that someone has to remember to write.
-const SEVERITY = { name: "error", repo: "note" };
+export const SEVERITY = { name: "error", repo: "note" };
 for (const r of ROSTER_RULES) {
   if (!SEVERITY[r]) {
     throw new Error(`src/validate.js: roster rule "${r}" has no severity here, so \`epito validate --for-runtime\` would pass a roster \`epito run\` refuses. Fix: add "${r}" to SEVERITY as "error" or "note".`);
@@ -59,7 +59,7 @@ const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
 
 // What the ✓ claims about a manifest, in one place, so the single-manifest line
 // and the roster's column can never describe the same file differently.
-function shape(m) {
+export function shape(m) {
   const n = m.identity.scopes.length;
   const adapter = m.runtime?.adapter;
   return `identity (${n} scope${n > 1 ? "s" : ""}), trigger, runtime${adapter && adapter !== "claude" ? ` — a ${adapter} agent` : ""}`;
@@ -181,7 +181,7 @@ function roster(dirArg, strict, self) {
     process.exit(1);
   }
   if (strict && notReady.length) {
-    out(`epito: --for-runtime asks whether the runtime would accept this roster, and it would not: ${notReady.length} of ${n} ${notReady.length === 1 ? "seat is" : "seats are"} not ready to run.`);
+    out(`epito: --for-runtime asks whether the runtime would accept this roster, and it would not: ${notReady.length} of ${plural(n, "seat")} ${notReady.length === 1 ? "is" : "are"} not ready to run.`);
     process.exit(1);
   }
 

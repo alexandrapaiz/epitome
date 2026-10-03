@@ -13,7 +13,8 @@ import { reconcilePlan, scheduleShape } from "../src/temporal/schedules.js";
 import { validateManifest, loadManifest, FIELDS, TABLES } from "../src/lib/manifest.js";
 import { blockers, unchecked, REPO_REQUIRED_BY, SCOPE_REQUIRED_BY } from "../src/lib/readiness.js";
 import { parseGitHubRemote, originRepo, repoRoot } from "../src/lib/origin.js";
-import { loadRoster } from "../src/lib/roster.js";
+import { loadRoster, rosterRules, ROSTER_RULES } from "../src/lib/roster.js";
+import { SEVERITY, checkManifest, shape } from "../src/validate.js";
 import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
 import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, GIT_TOKEN_ENV } from "../src/lib/runner.js";
@@ -1588,6 +1589,14 @@ test("the repo note names every command whose source refuses over [runtime].repo
     "deploy.js": ["deploy"],
     "token.js": ["token"],
     "lib/identity.js": ["deploy", "token"], // the mint path both of those reach
+    // Deliberately absent: src/validate.js. `epito validate <dir> --for-runtime`
+    // does refuse a roster over a missing [runtime].repo, but the note is the
+    // thing `epito validate` PRINTS, and a note that listed the command you are
+    // already running would be noise. The flag is also opt-in, so the default
+    // `epito validate` still says yes — which is the whole reason readiness.js
+    // exists. It carries no [runtime].repo refusal of its own either: it reads
+    // the rule from lib/readiness.js and lib/roster.js, which is why it does
+    // not show up in `refusers` below.
   };
   const srcDir = fileURLToPath(new URL("../src/", import.meta.url));
   const files = [];
@@ -1598,11 +1607,20 @@ test("the repo note names every command whose source refuses over [runtime].repo
     }
   };
   walk(srcDir);
-  // A refusal is any of the four ways this codebase says no — die(), throw,
-  // or pushing onto a validator's error list — whose message names the field.
+  // A refusal is any of the ways this codebase says no — die(), throw, pushing
+  // onto a validator's error list, or returning a tagged rule from a rule set
+  // some caller maps to its own refusal (lib/roster.js's rosterRules, which
+  // `epito run` turns into errs and `epito validate <dir>` turns into a note).
   // Checked on the statement, not on the file, so a file that merely mentions
   // [runtime].repo in a comment is not counted as refusing over it.
-  const REFUSES = /(?:\bdie\(|\bthrow\b|\berrs\.push\(|\berrors\.push\()/;
+  //
+  // `out.push(` earns its place here the hard way: when the roster's two rules
+  // were factored into rosterRules so `epito validate <dir>` could apply them
+  // at its own severity, lib/roster.js stopped matching this pattern and this
+  // test went red — correctly. The rule had not moved out of roster.js, only
+  // into a different shape, and a detector that cannot see the shape would
+  // have quietly stopped guarding the note.
+  const REFUSES = /(?:\bdie\(|\bthrow\b|\berrs\.push\(|\berrors\.push\(|\bout\.push\()/;
   // Refusing because the field is ABSENT, which is what the note is about.
   // `epito validate` also refuses a repo that is present and malformed
   // ("must be owner/name"), and that one is not a readiness blocker at all —
@@ -1710,4 +1728,122 @@ test("a repo parsed off a remote is a value [runtime].repo itself accepts", () =
 
 test("originRepo returns null outside a git repo instead of throwing", () => {
   assert.equal(originRepo(tmpDir()), null);
+});
+
+// --- `epito validate <dir>`: the roster's own rules, and the one invariant that
+// --- makes --for-runtime's claim true ------------------------------------
+
+test("every rule a roster adds has a severity in `epito validate`", () => {
+  // The claim `epito validate <dir> --for-runtime` makes is that it refuses
+  // exactly what `epito run <dir>` refuses, minus the engine. That holds only
+  // while every rule roster.js can emit is one validate.js knows about: a rule
+  // missing from SEVERITY would be a rule `epito run` refuses and the strict
+  // gate passes in silence, which makes the gate a lie rather than a gate.
+  //
+  // src/validate.js throws at import if this is ever false, so reaching this
+  // line already proves it — the assertion is here so the failure reads as a
+  // test about the rule set rather than as a module that would not load.
+  for (const r of ROSTER_RULES) {
+    assert.ok(SEVERITY[r], `roster rule "${r}" has no severity in src/validate.js`);
+    assert.ok(["error", "note"].includes(SEVERITY[r]), `severity "${SEVERITY[r]}" for rule "${r}" is neither an error nor a note`);
+  }
+  assert.deepEqual(Object.keys(SEVERITY).sort(), [...ROSTER_RULES].sort(),
+    "SEVERITY and ROSTER_RULES name different rules, so one of them is describing a rule that does not exist");
+});
+
+test("rosterRules: a seat with no [runtime].repo trips the repo rule, once", () => {
+  const rules = rosterRules(manifestFor(), { path: "agents/a/agent.toml", takenBy: new Map() });
+  assert.deepEqual(rules.map((r) => r.rule), ["repo"]);
+  assert.match(rules[0].message, /\[runtime\]\.repo is required by `epito run`/);
+});
+
+test("rosterRules: a seat WITH a repo and a free name trips nothing", () => {
+  assert.deepEqual(rosterRules(manifestFor({ repo: "acme/product" }), { path: "x", takenBy: new Map() }), []);
+});
+
+test("rosterRules: two manifests, one [agent].name — spec rule 4, naming the first file", () => {
+  const m = manifestFor({ repo: "acme/product" });
+  const takenBy = new Map([[m.agent.name, "agents/first/agent.toml"]]);
+  const rules = rosterRules(m, { path: "agents/second/agent.toml", takenBy });
+  assert.deepEqual(rules.map((r) => r.rule), ["name"]);
+  assert.match(rules[0].message, /one manifest, one principal/, "the rule is not named in the spec's words");
+  assert.match(rules[0].message, /agents\/first\/agent\.toml/, "the message does not say which file claimed the name first");
+  // A refusal, not a note: no --for-runtime should be needed to hear that two
+  // seats are asking for one identity.
+  assert.equal(SEVERITY.name, "error");
+});
+
+test("rosterRules: the two rules are independent and both report", () => {
+  const m = manifestFor();                       // no repo
+  const takenBy = new Map([[m.agent.name, "agents/first/agent.toml"]]);
+  assert.deepEqual(rosterRules(m, { path: "p", takenBy }).map((r) => r.rule), ["repo", "name"]);
+});
+
+test("rosterRules tolerates a manifest that did not parse", () => {
+  // loadRoster calls it with whatever loadManifest returned, and a file that is
+  // not TOML returns manifest: null. A roster of four must still report the
+  // other three rather than dying on the first unparseable one.
+  for (const m of [null, undefined, {}, { runtime: null }]) {
+    assert.deepEqual(rosterRules(m, { path: "p", takenBy: new Map() }), []);
+  }
+});
+
+test("checkManifest spells the readiness fix with the path the reader typed", () => {
+  // findManifests returns absolute paths. Before `as` was threaded through,
+  // the fix for a seat in agents/okr named a /tmp path nobody had typed, which
+  // fails the error-message bar: the fix has to be an instruction you can run.
+  const d = tmpDir();
+  writeFileSync(join(d, "agent.toml"), `[agent]
+name = "okr"
+description = "One sentence."
+
+[identity]
+scopes = ["github:contents"]
+
+[trigger]
+cron = "0 6 * * *"
+
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/okr.md"
+`);
+  mkdirSync(join(d, "prompts"), { recursive: true });
+  writeFileSync(join(d, "prompts", "okr.md"), "# okr\n");
+
+  const r = checkManifest(join(d, "agent.toml"), { as: "agents/okr/agent.toml" });
+  assert.deepEqual(r.errors, [], `a valid manifest was refused: ${r.errors.join("; ")}`);
+  assert.equal(r.blocks.length, 1, "the missing [runtime].repo should be one readiness note");
+  assert.match(r.blocks[0].fix, /in agents\/okr\/agent\.toml/);
+  assert.doesNotMatch(r.blocks[0].fix, new RegExp(d.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+    "the fix names the absolute path the reader never typed");
+});
+
+test("checkManifest does not ask what a refused manifest would be ready for", () => {
+  const d = tmpDir();
+  writeFileSync(join(d, "agent.toml"), '[agent]\nname = "x"\n');
+  const r = checkManifest(join(d, "agent.toml"));
+  assert.ok(r.errors.length > 0, "a manifest with no triad should be refused");
+  assert.deepEqual(r.blocks, [], "readiness was computed for a file that is not a manifest");
+  assert.deepEqual(r.notes, []);
+});
+
+test("checkManifest names an unparseable file by the path the reader typed", () => {
+  const d = tmpDir();
+  writeFileSync(join(d, "agent.toml"), "[agent\nname = 'x'\n");
+  const r = checkManifest(join(d, "agent.toml"), { as: "agents/pm/agent.toml" });
+  assert.ok(r.parseError, "a broken TOML file should report a parse error");
+  assert.match(r.errors[0], /^agents\/pm\/agent\.toml is not valid TOML/);
+});
+
+test("one shape() describes a manifest, so a seat cannot read two ways", () => {
+  // The single-manifest ✓ and the roster's column are the same string by
+  // construction. This is the acceptance test for factoring `epito validate`
+  // out of index.js: the wording that already shipped is the wording both use.
+  assert.equal(shape(manifestFor({ repo: "acme/product" })), "identity (1 scope), trigger, runtime");
+  assert.equal(shape(manifestFor({}, { scopes: ["github:contents", "github:pull_requests"] })),
+    "identity (2 scopes), trigger, runtime");
+  // The adapter is named only when it is not the default, so every manifest
+  // written before adapters existed reads exactly as it always did.
+  assert.equal(shape(manifestFor({ adapter: "claude" })), "identity (1 scope), trigger, runtime");
+  assert.match(shape(manifestFor({ adapter: "langgraph", graph: "agent" })), / — a langgraph agent$/);
 });

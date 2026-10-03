@@ -118,6 +118,7 @@ run_suite() {
 
 run_suite "unit"            node --test "$CLI/test/unit.mjs" "$CLI/test/unit-deploy.mjs" "$CLI/test/unit-audit.mjs"
 run_suite "smoke-deploy"    bash "$CLI/test/smoke-deploy.sh"
+run_suite "smoke-validate"  bash "$CLI/test/smoke-validate.sh"
 run_suite "smoke-roster"    bash "$CLI/test/smoke-roster.sh"
 run_suite "smoke-temporal"  bash "$CLI/test/smoke-temporal.sh"
 run_suite "smoke-langgraph" bash "$CLI/test/smoke-langgraph.sh"
