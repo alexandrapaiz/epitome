@@ -56,6 +56,19 @@ fi
 
 names=(); results=(); counts=(); notes=()
 
+# What a skip notice looks like, anchored. Every suite announces one at the
+# start of a line, bare or behind a short prefix: "pack: SKIPPED — ...",
+# "  == 4: SKIPPED — ...", "  SKIPPED -- ...", "test-provision: needs docker
+# (skipping)".
+#
+# Anchored because it used to be a bare `grep -qE 'SKIPPED|skipping'` over the
+# whole log, and the first suite to use the word in prose — an assertion label
+# reading "names the presence-only seat instead of silently skipping it" —
+# came out `partial` with 60 ok, 0 failed and an empty reason. A harness that
+# exists so a run cannot claim more than it proved must not claim less either:
+# a false partial teaches people to ignore the column.
+SKIP_RE='^[[:space:]]*([^:]*:[[:space:]]*)?SKIPPED|[(]skipping[)]'
+
 # Run one suite and let it classify itself.
 #   FAILED  non-zero exit
 #   unrun   exit 0 and no tally line: it skipped before asserting anything
@@ -87,13 +100,13 @@ run_suite() {
     KEEP=1
   elif [ -z "$tally" ]; then
     result=unrun
-    note="$(grep -m1 -iE 'SKIPPED|skipping' "$log" | sed 's/^[[:space:]]*//')"
+    note="$(grep -m1 -E "$SKIP_RE" "$log" | sed 's/^[[:space:]]*//')"
     printf '  unrun  %s\n' "${note:-it asserted nothing and said nothing about why}"
     sed -n '/install it:/,+1p' "$log" | sed 's/^[[:space:]]*/         /'
     KEEP=1
-  elif grep -qE 'SKIPPED|skipping' "$log"; then
+  elif grep -qE "$SKIP_RE" "$log"; then
     result=partial
-    note="$(grep -m1 -E 'SKIPPED' "$log" | sed 's/^[[:space:]]*//')"
+    note="$(grep -m1 -E "$SKIP_RE" "$log" | sed 's/^[[:space:]]*//')"
     printf '  ok     %s — but: %s\n' "$tally" "$note"
     KEEP=1
   else
@@ -105,6 +118,7 @@ run_suite() {
 
 run_suite "unit"            node --test "$CLI/test/unit.mjs" "$CLI/test/unit-deploy.mjs" "$CLI/test/unit-audit.mjs"
 run_suite "smoke-deploy"    bash "$CLI/test/smoke-deploy.sh"
+run_suite "smoke-roster"    bash "$CLI/test/smoke-roster.sh"
 run_suite "smoke-temporal"  bash "$CLI/test/smoke-temporal.sh"
 run_suite "smoke-langgraph" bash "$CLI/test/smoke-langgraph.sh"
 run_suite "provision-host"  bash "$ROOT/deploy/test-provision.sh"

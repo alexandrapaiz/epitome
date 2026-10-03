@@ -12,18 +12,18 @@ import assert from "node:assert/strict";
 import { reconcilePlan, scheduleShape } from "../src/temporal/schedules.js";
 import { validateManifest, loadManifest, FIELDS, TABLES } from "../src/lib/manifest.js";
 import { blockers, unchecked, REPO_REQUIRED_BY, SCOPE_REQUIRED_BY } from "../src/lib/readiness.js";
-import { parseGitHubRemote, originRepo } from "../src/lib/origin.js";
+import { parseGitHubRemote, originRepo, repoRoot } from "../src/lib/origin.js";
 import { loadRoster } from "../src/lib/roster.js";
 import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
 import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP } from "../src/lib/identity.js";
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import { parse } from "smol-toml";
 import { mkdirSync } from "node:fs";
 import { once } from "node:events";
 import { generateKeyPairSync, createVerify } from "node:crypto";
-import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, chmodSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, chmodSync, realpathSync } from "node:fs";
 import { seatOfWorkflowId, scheduleId, runId, windowId } from "../src/temporal/env.js";
 import { justCompleted, sendOrRestart } from "../src/run.js";
 import { ADAPTERS, ADAPTER_NAMES, adapterFor, unknownAdapter, LANGGRAPH_SHIM } from "../src/lib/adapters.js";
@@ -1524,6 +1524,57 @@ test("the ✓ says the charter was NOT checked when the charter lives in another
     "the ✓ disclaims a charter that is sitting in the directory");
   // With no repo the entry IS checked by the validator, so nothing to disclaim.
   assert.deepEqual(unchecked(manifestFor(), { baseDir: d }), []);
+});
+
+// The roster layout, which is the layout `epito run <dir>` exists for: the
+// manifest is at agents/<seat>/agent.toml and the charter it names is at the
+// top of the repository, not beside it. Checking only the manifest's own
+// folder told all five of this company's seats to commit a charter that was
+// already committed (agents/, this branch) — a note on the good case, which
+// is the one failure the note was written to avoid.
+test("a charter at the repository root counts, when it is the repo the manifest names", () => {
+  const d = tmpDir();
+  const top = tmpDir();
+  mkdirSync(join(top, "prompts"), { recursive: true });
+  writeFileSync(join(top, "prompts", "digest.md"), "# digest\n");
+  const m = manifestFor({ repo: "acme/product" });
+
+  // The charter is not beside the manifest, but it IS at the top of the work
+  // tree the manifest sits in, and that tree's origin is the repo it names.
+  assert.deepEqual(unchecked(m, { baseDir: d, root: () => top, origin: () => "acme/product" }), [],
+    "a charter committed at the repository root is still evidence the charter exists");
+
+  // Same file on disk, but this work tree is a different repository. Finding
+  // prompts/digest.md at the top of some unrelated checkout says nothing
+  // about acme/product, so the note stands.
+  const [u] = unchecked(m, { baseDir: d, root: () => top, origin: () => "acme/other" });
+  assert.match(u, /Fix: commit prompts\/digest\.md to acme\/product/,
+    "a charter in a repo the manifest does not name was taken as evidence");
+
+  // Not in a git work tree at all: nothing to fall back to, note stands.
+  const [u2] = unchecked(m, { baseDir: d, root: () => null, origin: () => null });
+  assert.match(u2, /read inside the clone of acme\/product/);
+
+  // The root is consulted only as a fallback: a charter beside the manifest
+  // short-circuits before any git call, so `epito validate` in an ordinary
+  // single-manifest repo spawns nothing.
+  mkdirSync(join(d, "prompts"), { recursive: true });
+  writeFileSync(join(d, "prompts", "digest.md"), "# digest\n");
+  let gitCalls = 0;
+  assert.deepEqual(unchecked(m, { baseDir: d, root: () => { gitCalls++; return top; }, origin: () => "acme/product" }), []);
+  assert.equal(gitCalls, 0, "the charter was beside the manifest and git was asked anyway");
+});
+
+test("repoRoot answers the top of a work tree, and null outside one", () => {
+  const d = tmpDir();
+  assert.equal(repoRoot(d), null, "a bare temp directory is not a work tree");
+  execFileSync("git", ["init", "-q", "."], { cwd: d });
+  const sub = join(d, "agents", "pm");
+  mkdirSync(sub, { recursive: true });
+  // realpathSync: macOS hands out /var/... for /private/var/..., and git
+  // answers with the resolved one.
+  assert.equal(realpathSync(repoRoot(sub)), realpathSync(d),
+    "repoRoot from a subdirectory must answer the top, which is what a roster needs");
 });
 
 // The drift guard, same shape as the engine-peers assertion above: the note
