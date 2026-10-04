@@ -69,6 +69,31 @@ names=(); results=(); counts=(); notes=()
 # a false partial teaches people to ignore the column.
 SKIP_RE='^[[:space:]]*([^:]*:[[:space:]]*)?SKIPPED|[(]skipping[)]'
 
+# The fix, in the suite's own words. Every suite prints guidance under its skip
+# notice — an install line, a venv recipe, an engine to start — and that text is
+# the only place the fix exists. all.sh used to surface it for `unrun` suites
+# only, by grepping for the literal string "install it:"; smoke-roster's
+# guidance reads "install it (curl ...) and run `temporal server start-dev`",
+# with no colon, so it matched nothing and a `partial` suite named a missing
+# prerequisite while withholding the one line that fixes it. That is exactly
+# the bar `epito validate` sets for the product's own errors — name the rule
+# broken, with the fix in the message — missed by the harness that enforces it.
+#
+# So: print whatever the suite wrote between its skip notice and its next piece
+# of structure, and detect nothing. Same rule as the rest of this script — the
+# suite is the only thing that knows what it needs, and it already said so.
+guidance() {
+  awk -v re="$SKIP_RE" '
+    !seen { if ($0 ~ re) seen = 1; next }
+    $0 ~ /^[[:space:]]*(==|ok[[:space:]]|FAIL|not ok|#|[0-9]+ ok,)/ { exit }
+    { buf[++n] = $0; if (n >= 10) exit }
+    END {
+      for (i = 1; i <= n; i++) if (buf[i] ~ /[^[:space:]]/) last = i
+      for (i = 1; i <= last; i++) print buf[i]
+    }
+  ' "$1" | sed -e '/[^[:space:]]/s/^/     /'
+}
+
 # Run one suite and let it classify itself.
 #   FAILED  non-zero exit
 #   unrun   exit 0 and no tally line: it skipped before asserting anything
@@ -110,12 +135,13 @@ run_suite() {
       note="it printed a tally without the \`smoke:\` prefix run_suite greps for, so its assertions were not counted: $(grep -Eo '^[0-9]+ ok, [0-9]+ failed' "$log" | tail -1)"
     fi
     printf '  unrun  %s\n' "${note:-it asserted nothing and said nothing about why}"
-    sed -n '/install it:/,+1p' "$log" | sed 's/^[[:space:]]*/         /'
+    guidance "$log"
     KEEP=1
   elif grep -qE "$SKIP_RE" "$log"; then
     result=partial
     note="$(grep -m1 -E "$SKIP_RE" "$log" | sed 's/^[[:space:]]*//')"
     printf '  ok     %s — but: %s\n' "$tally" "$note"
+    guidance "$log"
     KEEP=1
   else
     result=ok
@@ -153,8 +179,9 @@ if [ "$failed" -gt 0 ]; then
 fi
 if [ "$incomplete" -gt 0 ]; then
   printf 'test/all.sh: everything that ran passed, but %d suite(s) did not fully run here.\n' "$incomplete"
-  printf 'That is a partial build, not a green one. Install what the lines above name,\n'
-  printf 'or say so out loud when you report the result. --strict makes this exit 1.\n'
+  printf 'That is a partial build, not a green one. Each suite above prints its own\n'
+  printf 'fix under the == section where it ran. Install what those name, or say so out\n'
+  printf 'loud when you report the result. --strict makes this exit 1.\n'
   [ "$STRICT" = 1 ] && exit 1
   exit 0
 fi
