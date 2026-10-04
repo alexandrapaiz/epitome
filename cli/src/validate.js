@@ -24,8 +24,25 @@
 //     the default has to keep saying yes to every manifest the spec blesses
 //     (src/lib/readiness.js argues this at length). What the flag buys instead
 //     is exact: `epito validate <dir> --for-runtime` refuses precisely what
-//     `epito run <dir>` refuses, minus the engine. SEVERITY below is what makes
-//     that an invariant rather than a sentence in a PR.
+//     `epito run <dir>` refuses. SEVERITY below is what makes that an invariant
+//     rather than a sentence in a PR.
+//
+// That last line used to end "minus the engine", and `epito --help` said the
+// flag "asks exactly what `epito run <dir>` would ask". Both shipped, and only
+// one of them could be true. On a box with no engine this command ticked five
+// seats and said "there is nothing here `epito run agents` would refuse", and
+// `epito run agents --dry-run` then refused in one line before it read a
+// manifest — the exact failure readiness.js was written to remove ("`epito
+// validate` ticked it, and `epito run` then refused it ... a refusal the tick
+// had just told them would not come"), reintroduced one level up.
+//
+// So the engine is looked at, and the look costs nothing: a bare TCP connect
+// with a 400ms ceiling, no engine package imported, no gRPC. "No engine
+// required" stays literally true — the command needs no engine to run and
+// still answers the manifest question in full without one. What changes is
+// that it no longer speaks for a command it never consulted. The engine is a
+// fact about the BOX, not about a manifest, so it is not a per-seat error or
+// blocker: it is the closing verdict, where the overclaim was.
 //   - The worst outcome wins the exit code. One refused manifest in five exits
 //     1, because "a roster runs whole or not at all" — loadRoster's own words,
 //     and the reason `epito run` would not have started either.
@@ -34,8 +51,12 @@ import { dirname, relative, resolve } from "node:path";
 import { parseManifest, validateManifest } from "./lib/manifest.js";
 import { blockers, unchecked } from "./lib/readiness.js";
 import { ROSTER_RULES, findManifests, rosterRules } from "./lib/roster.js";
+// The address and the look, through a module that imports no @temporalio: the
+// roster form has to be able to say whether the engine is up on a machine that
+// could not run it (test/pack.sh asserts the manifest commands work there).
+import { engineAddress, engineAnswering, engineFix, engineMissing } from "./lib/engine.js";
 
-export const VALIDATE_FLAGS = [{ name: "for-runtime", does: "make the readiness notes an error, not a note" }];
+export const VALIDATE_FLAGS = [{ name: "for-runtime", does: "make the readiness notes — and an engine that is not up — an error, not a note" }];
 
 // How this command treats each rule a roster adds beyond the per-manifest ones.
 // `name` is a refusal: spec rule 4 ("one manifest, one principal") is a rule
@@ -125,7 +146,7 @@ function one(path, strict, self) {
 // entirely to stderr, so `epito validate agents >/dev/null` in a CI step shows
 // exactly the problems and nothing else. That is the same split the
 // single-manifest form makes with `say`, applied to the whole report.
-function roster(dirArg, strict, self) {
+async function roster(dirArg, strict, self) {
   const dir = resolve(dirArg);
   if (!existsSync(dir)) die(`no such directory "${dirArg}"`);
   // Sorted by path: deterministic, and it groups the report the way the seats
@@ -154,10 +175,23 @@ function roster(dirArg, strict, self) {
 
   const bad = seats.filter((s) => s.errors.length);
   const notReady = seats.filter((s) => !s.errors.length && s.blocks.length);
-  const refused = bad.length > 0 || (strict && notReady.length > 0);
+  // The box, asked only when the files are good enough for the answer to
+  // change anything. A roster with a refused manifest is refused whatever the
+  // engine is doing, and 400ms is 400ms.
+  const address = engineAddress();
+  const engine = bad.length ? null : await engineAnswering(address);
+  // The engine counts toward `refused` so the stream discipline below still
+  // holds: `epito validate agents --for-runtime >/dev/null` on a box with no
+  // engine shows exactly the problem and nothing else.
+  const refused = bad.length > 0 || (strict && (notReady.length > 0 || !engine.ok));
   const out = refused ? console.error : console.log;
   const n = seats.length;
+  const noEngine = engine ? engineMissing(engine) : null;
 
+  // "(no engine)" is a statement about what this check REQUIRES, and it is
+  // still exact — nothing below needs a server to be true. The engine line in
+  // the closing verdict is about what was FOUND on the box. Header: what was
+  // needed. Footer: what is there. Do not "fix" one to match the other.
   out(`roster ${rel(dir)} — ${plural(n, "manifest")}, against spec v0.1 (no engine)\n`);
   // Only the ✓/! rows are padded, so only they set the width — a refused
   // manifest is named by its path, and letting a long path set the column
@@ -182,6 +216,10 @@ function roster(dirArg, strict, self) {
   }
   if (strict && notReady.length) {
     out(`epito: --for-runtime asks whether the runtime would accept this roster, and it would not: ${notReady.length} of ${plural(n, "seat")} ${notReady.length === 1 ? "is" : "are"} not ready to run.`);
+    // Both halves at once. An operator with a manifest to fix AND no engine
+    // running wants to hear about both before they start, not to fix one and
+    // be stopped by the other.
+    if (!engine.ok) out(`  There is also no runtime to accept it: ${noEngine}. Fix: ${engineFix(address)}`);
     process.exit(1);
   }
 
@@ -194,8 +232,26 @@ function roster(dirArg, strict, self) {
   out(`✓ ${n} of ${plural(n, "manifest")} ${n === 1 ? "is an agent" : "are agents"}: ${cronned.length} on a cron, ${presence.length} presence-only${presence.length ? ` (${presence.join(", ")})` : ""}`);
   if (notReady.length) {
     out(`  ${plural(notReady.length, "seat")} ${notReady.length === 1 ? "is" : "are"} valid and not ready to run — run \`${self} --for-runtime\` to make those an error instead of a note`);
+    if (!engine.ok) out(`  and the engine is not up either: ${noEngine}. Fix: ${engineFix(address)}`);
+  } else if (engine.ok) {
+    // The only sentence here that claims anything about `epito run`, and now
+    // the only one that has looked. A TCP connect proves "something accepted a
+    // connection", which is why this says the address is answering rather than
+    // that Temporal is healthy — `epito run` still does the real connect and
+    // the real namespace check, and will still refuse an engine that answers
+    // and is the wrong one.
+    out(`  every one is ready to run, and ${address} is answering: there is nothing here \`epito run ${dirArg}\` would refuse`);
   } else {
-    out(`  every one is ready to run: there is nothing here \`epito run ${dirArg}\` would refuse`);
+    // The common case on a laptop, and the case the old ✓ got wrong. Two
+    // lines, because this is the half that deserves sentences: the files are
+    // genuinely fine and the operator is genuinely not ready to run.
+    out(`  every manifest is ready; the engine is not: ${noEngine}, so \`epito run ${dirArg}\` refuses before it reads a seat`);
+    out(`    Fix: ${engineFix(address)}`);
+  }
+  if (strict && !engine.ok) {
+    out(`\nepito: --for-runtime asks whether the runtime would accept this roster, and there is no runtime: ${noEngine}.`);
+    out(`  The manifests are not the problem — \`${self}\` without --for-runtime says so, and that is the question a roster validator can answer with no box.`);
+    process.exit(1);
   }
   process.exit(0);
 }

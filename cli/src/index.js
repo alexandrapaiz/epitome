@@ -17,9 +17,11 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       check agent.toml against spec v0.1, and name what the
                       runtime will still need before it can run this agent.
                       Given a directory, check the WHOLE ROSTER — every
-                      manifest under it plus the rules about the set — with no
-                      engine running (--for-runtime makes the notes errors,
-                      and asks exactly what \`epito run <dir>\` would ask)
+                      manifest under it plus the rules about the set — needing
+                      no engine to do it, and say whether the engine the
+                      runtime would use is up (--for-runtime makes both the
+                      notes and a missing engine errors, which is exactly what
+                      \`epito run <dir>\` would refuse)
   epito run <dir>     put every agent.toml under <dir> on the runtime: one
                       schedule per [trigger].cron, then serve the ingress
                       (--dry-run prints the schedule changes and stops)

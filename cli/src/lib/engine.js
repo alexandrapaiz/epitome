@@ -182,17 +182,28 @@ export function splitAddress(address) {
 export function engineAnswering(address, { timeoutMs = PROBE_TIMEOUT_MS, connect = createConnection } = {}) {
   const { host, port } = splitAddress(address);
   if (!host || !Number.isInteger(port) || port < 1 || port > 65535) {
-    return Promise.resolve({ ok: false, address, reason: `"${address}" is not a host:port address` });
+    // A malformed address is not a dead engine, and saying "nothing is
+    // answering at garbage" would read as a network problem when the problem
+    // is the variable. Flagged so callers can say which.
+    return Promise.resolve({ ok: false, address, malformed: true, reason: "not a host:port address" });
   }
   return new Promise((resolve) => {
     let done = false;
-    const finish = (r) => { if (!done) { done = true; try { socket.destroy(); } catch {} resolve({ address, ...r }); } };
+    const finish = (r) => { if (!done) { done = true; try { socket.destroy(); } catch {} resolve({ address, malformed: false, ...r }); } };
     const socket = connect({ host, port });
     socket.setTimeout(timeoutMs);
     socket.once("connect", () => finish({ ok: true, reason: null }));
     socket.once("timeout", () => finish({ ok: false, reason: `nothing answered within ${timeoutMs}ms` }));
     socket.once("error", (e) => finish({ ok: false, reason: e?.code ?? e?.message ?? "connection failed" }));
   });
+}
+
+// The probe's result as a clause, so `epito validate`'s three sentences about a
+// missing engine cannot describe one result three ways.
+export function engineMissing(engine) {
+  return engine?.malformed
+    ? `TEMPORAL_ADDRESS is "${engine.address}", which is ${engine.reason}`
+    : `nothing is answering at ${engine?.address} (${engine?.reason})`;
 }
 
 // The address the runtime would use, asked without loading the runtime.
