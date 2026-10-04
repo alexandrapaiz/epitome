@@ -99,7 +99,12 @@ so `epito validate agents >/dev/null` in a CI step shows exactly the problems.
 
 `--for-runtime` turns the readiness notes into errors, and on a directory that
 makes it exact: it refuses precisely what `epito run <dir>` would refuse,
-minus the engine.
+engine included. The engine is the one `epito run` asks about first, before it
+reads a seat, so the roster verdict looks too — a bare TCP connect to
+`TEMPORAL_ADDRESS`, no engine package loaded. Without the flag it stays exit 0
+and still needs no engine: your manifests are the half a roster validator can
+answer with no box, and it says which half is missing rather than ticking both
+(ADR-24).
 
 `agents/` in this repository is not an example — it is the five seats that run
 epito.me, translated field by field from the GitHub Actions workflows that
