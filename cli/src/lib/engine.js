@@ -84,3 +84,116 @@ export async function engineImport(loader, cmd) {
     throw e;
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The engine that IS installed, and is not answering.
+//
+// Two failures wear the same word. The one above is a package epito chose not
+// to ship. This one is a server that is not running — and it is the common
+// one, because the server is installed separately from the CLI by design
+// (deploy/provision-host.sh installs the engine's npm packages and the units;
+// it deliberately does not install the Temporal server itself).
+//
+// The sentence for it lived in two places — src/temporal/client.js and
+// src/temporal/worker.js — with two different ways of digging the reason out
+// of a gRPC error. That is drift already begun, so it lives here once and
+// unit.mjs fails if either file grows its own copy again. Same rule as
+// readiness.js's REPO_REQUIRED_BY: the list the message prints is the list the
+// test checks the source against.
+//
+// It lives in lib/ rather than temporal/ for a second reason: `epito validate`
+// has to be able to ask "is the engine up" on a machine where the engine is
+// not installed at all (test/pack.sh asserts the manifest commands run there).
+// Nothing in this module imports @temporalio, and the one thing it does import
+// — temporal/env.js, for the address — imports nothing itself, which unit.mjs
+// also asserts.
+import { createConnection } from "node:net";
+import { temporalEnv } from "../temporal/env.js";
+
+export const DEFAULT_ADDRESS = "127.0.0.1:7233";
+
+// How long to wait before calling it unreachable. Short on purpose: the only
+// caller that probes on a healthy path is `epito validate <dir>`, and a
+// validator that hangs for ten seconds to tell you your files are fine is a
+// validator people stop running. The real connect (`epito run`) still uses
+// Temporal's own 10s connectTimeout — this is the cheap look, not the open.
+export const PROBE_TIMEOUT_MS = 400;
+
+// The fix, as a line the reader can actually run.
+//
+// `runtime/temporal/install.sh` used to be the first thing this sentence named,
+// and that file is HQ's (alexandra-systems). It is in neither this repository
+// nor `npm i -g epito`, whose package.json `files` ships src, adapters and
+// README.md. So the product's most likely first refusal told you to run a
+// script that exists on no machine you have — which is worse than naming no
+// fix at all, because it sends you looking. The bar `epito validate` sets is
+// the fix IN the message; a path is only a fix if the reader has the path.
+//
+// A wrong TEMPORAL_ADDRESS is called out separately because it is the one
+// cause the reader cannot see: a stale export in a shell, or an /srv/asc/env
+// copied between boxes, looks exactly like a dead engine.
+export function engineFix(address = DEFAULT_ADDRESS) {
+  const where = address === DEFAULT_ADDRESS
+    ? `set TEMPORAL_ADDRESS if your engine is somewhere other than the default ${DEFAULT_ADDRESS}`
+    : `point TEMPORAL_ADDRESS at the engine you have — it is currently ${address}, and unsetting it falls back to ${DEFAULT_ADDRESS}`;
+  return `run \`temporal server start-dev\` for a local engine, or ${where}. On a runtime host the engine is brought up before epitod: docs/deploy/README.md ("Temporal server + UI") in github.com/alexandrapaiz/epitome.`;
+}
+
+// Why a connection failed, as a sentence rather than a struct.
+//
+// The two clients report transport failures differently: @temporalio/client
+// hands back an error with a `cause.code`, and @temporalio/worker's native
+// connection nests a Rust error string. client.js read the first and worker.js
+// read the second, so the same dead port produced "ECONNREFUSED" from `epito
+// run` and "Failed to connect before the deadline" from `epito worker`. Both
+// shapes are read here, in the order of specificity, so an operator who moves
+// between the two commands hears one answer.
+export function connectReason(e) {
+  const raw = String(e?.cause?.message ?? e?.message ?? e);
+  const m = /message: "([^"]+)"/.exec(raw) || /ConnectError\("([^"]+)"/.exec(raw);
+  if (m) return m[1];
+  return e?.cause?.code ?? raw;
+}
+
+// One sentence, both callers, every surface that has to say it.
+export function engineUnreachableMessage(address, reason) {
+  return `no Temporal server answering at ${address}${reason ? ` (${reason})` : ""} — the engine is a server, and it is installed separately from the CLI. Fix: ${engineFix(address)}`;
+}
+
+// host:port, including the bracketed IPv6 form Temporal accepts.
+export function splitAddress(address) {
+  const s = String(address ?? "");
+  const v6 = /^\[(.+)\]:(\d+)$/.exec(s);
+  if (v6) return { host: v6[1], port: Number(v6[2]) };
+  const i = s.lastIndexOf(":");
+  if (i <= 0 || i === s.length - 1) return { host: null, port: NaN };
+  return { host: s.slice(0, i), port: Number(s.slice(i + 1)) };
+}
+
+// Is anything answering there? A bare TCP connect: no gRPC, no namespace
+// check, no @temporalio.
+//
+// What a successful connect proves is exactly "something accepted a connection
+// on that port" — so every call site says that, and none of them says Temporal
+// is healthy. `epito run` still does the real connect and the real
+// describeNamespace, and will still refuse an engine that answers and is wrong.
+// This is the half that turns a validator's overclaim into a sentence an
+// operator can act on, and it is the half that costs nothing.
+export function engineAnswering(address, { timeoutMs = PROBE_TIMEOUT_MS, connect = createConnection } = {}) {
+  const { host, port } = splitAddress(address);
+  if (!host || !Number.isInteger(port) || port < 1 || port > 65535) {
+    return Promise.resolve({ ok: false, address, reason: `"${address}" is not a host:port address` });
+  }
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (r) => { if (!done) { done = true; try { socket.destroy(); } catch {} resolve({ address, ...r }); } };
+    const socket = connect({ host, port });
+    socket.setTimeout(timeoutMs);
+    socket.once("connect", () => finish({ ok: true, reason: null }));
+    socket.once("timeout", () => finish({ ok: false, reason: `nothing answered within ${timeoutMs}ms` }));
+    socket.once("error", (e) => finish({ ok: false, reason: e?.code ?? e?.message ?? "connection failed" }));
+  });
+}
+
+// The address the runtime would use, asked without loading the runtime.
+export const engineAddress = (env = process.env) => temporalEnv(env).address;
