@@ -29,6 +29,11 @@ import { seatOfWorkflowId, scheduleId, runId, windowId } from "../src/temporal/e
 import { justCompleted, sendOrRestart } from "../src/run.js";
 import { ADAPTERS, ADAPTER_NAMES, adapterFor, unknownAdapter, LANGGRAPH_SHIM } from "../src/lib/adapters.js";
 import {
+  DEFAULT_ADDRESS, connectReason, engineAnswering, engineFix, engineMissing,
+  engineUnreachableMessage, splitAddress,
+} from "../src/lib/engine.js";
+import { createServer as createTcpServer } from "node:net";
+import {
   routesFor, routeErrors, liveRoutes, noRouteMessage, anthropicRouteEnv, routeFacts,
   classifyAttempt, withLane, DEFAULT_ROUTE, ROUTE_FIELDS,
 } from "../src/lib/router.js";
@@ -1846,4 +1851,140 @@ test("one shape() describes a manifest, so a seat cannot read two ways", () => {
   // written before adapters existed reads exactly as it always did.
   assert.equal(shape(manifestFor({ adapter: "claude" })), "identity (1 scope), trigger, runtime");
   assert.match(shape(manifestFor({ adapter: "langgraph", graph: "agent" })), / — a langgraph agent$/);
+});
+
+// --- the engine as a fact about the box ------------------------------------
+//
+// `epito validate agents --for-runtime` used to tick five seats and say "there
+// is nothing here `epito run agents` would refuse" on a machine where `epito
+// run agents --dry-run` refused in one line, before it read a manifest,
+// because nothing was answering at 127.0.0.1:7233. These assert the two
+// halves of the fix: that the look needs no engine, and that the sentence
+// cannot drift from the two commands that already had to say it.
+
+test("the unreachable-engine sentence exists once, and both clients use that one", () => {
+  // The same dead port used to read as "ECONNREFUSED" from `epito run` and as
+  // a nested Rust string from `epito worker`, because each file had its own
+  // copy of the sentence AND its own reason-extraction. The copies are the
+  // drift; this is the assertion that they stay gone. Same rule as
+  // REPO_REQUIRED_BY: the thing the message prints is the thing the test
+  // checks the source against.
+  const src = (f) => readFileSync(fileURLToPath(new URL(`../src/${f}`, import.meta.url)), "utf8");
+  for (const f of ["temporal/client.js", "temporal/worker.js"]) {
+    assert.ok(!/no Temporal server answering at/.test(src(f)),
+      `src/${f} has grown its own copy of the unreachable-engine sentence again — it belongs in lib/engine.js, once`);
+    assert.match(src(f), /engineUnreachableMessage/,
+      `src/${f} no longer calls engineUnreachableMessage, so the two clients can disagree about a dead port again`);
+    assert.ok(!/^function connectReason/m.test(src(f)),
+      `src/${f} has its own connectReason again — one dead port, one name for it`);
+  }
+  assert.match(src("lib/engine.js"), /no Temporal server answering at/,
+    "lib/engine.js is supposed to be the one place the sentence lives");
+});
+
+test("the engine fix names nothing the reader does not have", () => {
+  // `runtime/temporal/install.sh` is HQ's file (alexandra-systems). It is in
+  // neither this repository nor `npm i -g epito`, whose package.json `files`
+  // ships src, adapters and README.md — so the product's most likely first
+  // refusal told you to run a script that exists on no machine you have,
+  // which is worse than naming no fix, because it sends you looking. A path
+  // is only a fix if the reader has the path.
+  const fix = engineFix();
+  assert.ok(!/runtime\/temporal\/install\.sh/.test(fix),
+    "the fix names HQ's runtime/temporal/install.sh, which the reader does not have");
+  assert.match(fix, /temporal server start-dev/, "the fix no longer names the one command a laptop can run");
+  // Every repository path the fix names has to be in THIS repository, and
+  // named with the repository, since an npm install ships none of them.
+  const repoRootDir = fileURLToPath(new URL("../../", import.meta.url));
+  for (const [, p] of fix.matchAll(/\b((?:docs|deploy|spec|prompts|agents)\/[\w./-]+)/g)) {
+    assert.ok(existsSync(join(repoRootDir, p)), `the engine fix names ${p}, which is not in this repository`);
+    assert.match(fix, /github\.com\/[\w-]+\/[\w-]+/,
+      `the engine fix names the repository path ${p} without naming the repository, and \`npm i -g epito\` ships no docs`);
+  }
+});
+
+test("asking whether the engine is up pulls in no engine", async () => {
+  // This is the invariant behind "no engine required", and it is stronger than
+  // the assertion it replaced in smoke-validate.sh (which checked that the
+  // output never said the word "temporal"). What must be true is that the
+  // module `epito validate` reaches the address through imports nothing —
+  // otherwise a future edit to temporal/env.js could quietly make the manifest
+  // commands need the ~300 MB of engine that cli/package.json exists to avoid
+  // shipping.
+  const env = readFileSync(fileURLToPath(new URL("../src/temporal/env.js", import.meta.url)), "utf8");
+  assert.ok(!/^import /m.test(env),
+    "src/temporal/env.js has grown an import — lib/engine.js reads the address from it, so an @temporalio import there would make `epito validate` need the engine");
+  const engine = readFileSync(fileURLToPath(new URL("../src/lib/engine.js", import.meta.url)), "utf8");
+  for (const [, spec] of engine.matchAll(/^import .*? from "([^"]+)"/gm)) {
+    assert.ok(spec.startsWith("node:") || spec.startsWith("."),
+      `src/lib/engine.js imports ${spec}; it may import only node builtins and engine-free local modules`);
+  }
+});
+
+test("the probe reports what a TCP connect actually proves", async () => {
+  const srv = createTcpServer();
+  await new Promise((r) => srv.listen(0, "127.0.0.1", r));
+  const port = srv.address().port;
+  after(() => srv.close());
+
+  const up = await engineAnswering(`127.0.0.1:${port}`);
+  assert.equal(up.ok, true, "a listening port should read as answering");
+  assert.equal(up.malformed, false);
+
+  // Port 1 on loopback: refused immediately, which is the laptop case.
+  const down = await engineAnswering("127.0.0.1:1");
+  assert.equal(down.ok, false);
+  assert.equal(down.malformed, false);
+  assert.match(engineMissing(down), /nothing is answering at 127\.0\.0\.1:1/);
+
+  // A malformed address is a wrong variable, not a dead network, and saying
+  // "nothing is answering at garbage" would send an operator to look at the
+  // wrong thing.
+  const bad = await engineAnswering("garbage");
+  assert.equal(bad.ok, false);
+  assert.equal(bad.malformed, true);
+  assert.match(engineMissing(bad), /TEMPORAL_ADDRESS is "garbage", which is not a host:port address/);
+  assert.ok(!/answering/.test(engineMissing(bad)), "a malformed address should not be described as a dead engine");
+
+  // The ceiling is the point: a validator that hangs to tell you your files
+  // are fine is a validator people stop running. 198.51.100.x is TEST-NET-2
+  // (RFC 5737) and is not routed, so this is a timeout and not a refusal.
+  const t0 = Date.now();
+  const slow = await engineAnswering("198.51.100.1:7233", { timeoutMs: 150 });
+  assert.equal(slow.ok, false);
+  assert.ok(Date.now() - t0 < 2000, `the probe took ${Date.now() - t0}ms; it is supposed to cap at its timeout`);
+});
+
+test("splitAddress handles the forms TEMPORAL_ADDRESS takes", () => {
+  assert.deepEqual(splitAddress("127.0.0.1:7233"), { host: "127.0.0.1", port: 7233 });
+  assert.deepEqual(splitAddress("temporal.internal:7233"), { host: "temporal.internal", port: 7233 });
+  // The bracketed IPv6 form, which a lastIndexOf(":") alone would cut in half.
+  assert.deepEqual(splitAddress("[::1]:7233"), { host: "::1", port: 7233 });
+  for (const bad of ["", "7233", "host:", ":7233", undefined]) {
+    assert.ok(!splitAddress(bad).host || Number.isNaN(splitAddress(bad).port), `"${bad}" should not parse as host:port`);
+  }
+});
+
+test("the sentence says which address, and whether the address is the suspect", () => {
+  const dflt = engineUnreachableMessage(DEFAULT_ADDRESS, "ECONNREFUSED");
+  assert.match(dflt, /^no Temporal server answering at 127\.0\.0\.1:7233 \(ECONNREFUSED\)/);
+  assert.match(dflt, /set TEMPORAL_ADDRESS if your engine is somewhere other than/);
+  // A wrong TEMPORAL_ADDRESS is the one cause an operator cannot see — a stale
+  // export, or an /srv/asc/env copied between boxes, looks exactly like a dead
+  // engine. So when the address is not the default, the variable is named as a
+  // suspect and the fallback is spelled out.
+  const custom = engineUnreachableMessage("10.0.0.5:7233", "ECONNREFUSED");
+  assert.match(custom, /point TEMPORAL_ADDRESS at the engine you have — it is currently 10\.0\.0\.5:7233/);
+  assert.match(custom, /unsetting it falls back to 127\.0\.0\.1:7233/);
+});
+
+test("connectReason reads both transports' idea of a dead port", () => {
+  // @temporalio/client: an error with a cause.code.
+  assert.equal(connectReason({ cause: { code: "ECONNREFUSED" } }), "ECONNREFUSED");
+  // @temporalio/worker's native connection: a nested Rust string.
+  assert.equal(connectReason({ message: 'transport error: ConnectError("tcp connect error")' }), "tcp connect error");
+  assert.equal(connectReason({ cause: { message: 'status: Unavailable, message: "Failed to connect before the deadline"' } }),
+    "Failed to connect before the deadline");
+  // Anything else comes through whole rather than as "[object Object]".
+  assert.equal(connectReason({ message: "something else entirely" }), "something else entirely");
 });

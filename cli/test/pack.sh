@@ -243,7 +243,11 @@ run_epito deploy --dry-runn; shows -2
 check "deploy refuses --dry-runn rather than deploying" "[ $RC = 1 ] && said 'Did you mean --dry-run'"
 check "...and opens nothing"                            "! said 'waiting up to' && ! said 'click Create'"
 run_epito validate --wat; shows -3
-check "an option close to nothing lists the real ones"  "[ $RC = 1 ] && said '[-][-]for-runtime  make the readiness notes an error'"
+check "an option close to nothing lists the real ones"  "[ $RC = 1 ] && said '[-][-]for-runtime  make the readiness notes'"
+# And what the flag says it does has to include the engine, because that is
+# what it now refuses for — a user reading only this list must not be surprised
+# by an exit 1 from a box with no Temporal server.
+check "...and the flag's one line names the engine too"  "said 'an engine that is not up'"
 run_epito init --force
 check "a command with no options says so plainly"       "[ $RC = 1 ] && said 'takes no options'"
 run_epito deploy --timeout 1 --dry-run

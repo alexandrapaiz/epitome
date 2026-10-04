@@ -10,11 +10,23 @@
 # ones, two seats claiming one name, a seat that is valid and not yet runnable —
 # and those have to be built to be seen.
 #
-# It needs nothing: no engine, no network, no account, no credential. That is
-# the card. `epito run <dir> --dry-run` was the only command that read a roster
+# It needs no engine, no network, no account and no credential. That is the
+# card. `epito run <dir> --dry-run` was the only command that read a roster
 # whole and it connects to Temporal first, so an operator with five manifests
 # and no box had no way to hear "yes" (docs/ideas.md raised it twice while the
 # real roster was being written).
+#
+# What it does bind is one loopback TCP port, as a stand-in for an engine. The
+# command now LOOKS at TEMPORAL_ADDRESS (a bare connect, no engine package) so
+# that its closing ✓ stops speaking for `epito run` without having asked, and a
+# suite whose verdicts depended on whether the machine running it happened to
+# have Temporal up would assert nothing reliably. Pinning the address at a stub
+# for sections 1-9 is what keeps "exit 1" in those sections mean the manifest
+# rule they are about. Section 10 is the engine itself, both states, named.
+#
+# The stub is deliberately NOT a Temporal server, and section 10 asserts the
+# wording that makes that honest: a TCP connect proves "something is answering",
+# which is what the command claims, and not that the engine is healthy.
 #
 # What it proves:
 #
@@ -44,9 +56,33 @@ ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
 bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
 check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 step() { printf '\n== %s\n' "$1"; }
-cleanup() { if [ -n "${EPITO_SMOKE_KEEP:-}" ]; then printf '\nkept: %s\n' "$TMP"; else rm -rf "$TMP"; fi; }
+STUB_PID=""
+cleanup() {
+  [ -n "$STUB_PID" ] && kill "$STUB_PID" 2>/dev/null
+  if [ -n "${EPITO_SMOKE_KEEP:-}" ]; then printf '\nkept: %s\n' "$TMP"; else rm -rf "$TMP"; fi
+}
 trap cleanup EXIT
 mkdir -p "$TMP"
+
+# A socket that accepts and does nothing, standing in for the engine on an
+# ephemeral port. Sections 1-9 are about manifests, so the engine is held
+# constant and present; section 10 varies it on purpose.
+node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>require("fs").writeFileSync(process.argv[1],String(s.address().port)));' "$TMP/stub-port" &
+STUB_PID=$!
+for _ in $(seq 1 60); do [ -s "$TMP/stub-port" ] && break; sleep 0.05; done
+STUB_PORT="$(cat "$TMP/stub-port" 2>/dev/null)"
+if [ -z "$STUB_PORT" ]; then
+  echo "smoke: SKIPPED — could not bind a loopback port to stand in for the engine."
+  echo "     This suite pins TEMPORAL_ADDRESS at a stub so that an exit 1 in"
+  echo "     sections 1-9 means the manifest rule under test and not a missing"
+  echo "     engine. Nothing was asserted. Treat this as no evidence, not a pass."
+  exit 0
+fi
+# Every section below runs against the stub unless it says otherwise.
+export TEMPORAL_ADDRESS="127.0.0.1:$STUB_PORT"
+# The dead address every "no engine" case uses: loopback port 1 refuses
+# immediately, so these cases cost a refusal and not a timeout.
+DEAD="127.0.0.1:1"
 
 # A seat, written out: $1 dir, $2 name, $3 extra [runtime] lines. The charter is
 # written beside the manifest so a fixture seat is ready to run by default and
@@ -80,6 +116,7 @@ check "it counts the manifests"                 "printf '%s' \"\$OUT\" | grep -q
 check "it separates cronned from presence-only" "printf '%s' \"\$OUT\" | grep -q '2 on a cron, 1 presence-only (charlie)'"
 check "it names the presence-only seat"          "printf '%s' \"\$OUT\" | grep -q 'presence-only (charlie)'"
 check "it says the roster would not be refused" "printf '%s' \"\$OUT\" | grep -q 'nothing here .epito run .* would refuse'"
+check "...and names the engine it checked"      "printf '%s' \"\$OUT\" | grep -q \"$TEMPORAL_ADDRESS is answering\""
 check "a clean roster says nothing on stderr"   "[ -z \"\$ERR\" ]"
 # A roster beside or above the cwd relativises to a ladder of ".." — harder to
 # read and harder to paste than the path it came from. $CLEAN is under TMPDIR
@@ -87,7 +124,17 @@ check "a clean roster says nothing on stderr"   "[ -z \"\$ERR\" ]"
 AWAY="$(cd "$CLI" && $E validate "$CLEAN" 2>&1)"
 check "a roster outside the cwd is named, not laddered" "! printf '%s' \"\$AWAY\" | grep -q '\.\./'"
 check "...and it is still the same verdict"             "printf '%s' \"\$AWAY\" | grep -q '3 of 3 manifests are agents'"
-check "...and it needed no engine to say it"    "! printf '%s' \"\$OUT\" | grep -qi 'temporal'"
+# This used to assert that the output never said the word "temporal", which
+# read as "no engine required" and was in fact what let the ✓ claim `epito run`
+# would refuse nothing on a box where `epito run` refused in one line. The
+# invariant worth holding is the real one: the command ANSWERS THE MANIFEST
+# QUESTION IN FULL, exit 0, with nothing answering anywhere — which is the
+# operator with five manifests and no box, and is section 10's first case.
+# That it needs no engine PACKAGE installed is test/pack.sh's assertion, and
+# that the module it reads the address through imports nothing is unit.mjs's.
+NOENG="$(TEMPORAL_ADDRESS=$DEAD $E validate "$CLEAN" 2>&1)"; RC=$?
+check "with no engine at all it still exits 0"  "[ $RC -eq 0 ]"
+check "...and still validates every manifest"   "printf '%s' \"\$NOENG\" | grep -q '3 of 3 manifests are agents'"
 
 step "2. the roster form and the single-manifest form describe a seat identically"
 # One shape() for both, so a seat cannot read two ways depending on which
@@ -224,6 +271,72 @@ check "no manifest in the cwd still says init"   "[ $RC -eq 1 ] && printf '%s' \
 check "...and now also names the roster form"    "printf '%s' \"\$OUT\" | grep -q 'epito validate <dir>'"
 OUT="$($E validate "$CLEAN" --for-runtimes 2>&1)"; RC=$?
 check "a misspelled flag is refused, not ignored" "[ $RC -eq 1 ] && printf '%s' \"\$OUT\" | grep -q 'Did you mean --for-runtime'"
+
+step "10. the engine is the other half of \"ready to run\""
+# The defect this section exists for. `epito validate agents --for-runtime`
+# ticked five seats and said "there is nothing here \`epito run agents\` would
+# refuse" on a box where \`epito run agents --dry-run\` refused in one line,
+# before it read a manifest, because nothing was answering at 127.0.0.1:7233.
+# That is the failure src/lib/readiness.js was written to remove, one level up.
+
+# a. files good, engine down: exit 0 (the manifests ARE fine) and say so
+OUT="$(TEMPORAL_ADDRESS=$DEAD $E validate "$CLEAN" 2>&1)"; RC=$?
+check "a clean roster with no engine exits 0"       "[ $RC -eq 0 ]"
+check "it does not claim run would refuse nothing"  "! printf '%s' \"\$OUT\" | grep -q 'nothing here .epito run .* would refuse'"
+check "it says the manifests are ready"             "printf '%s' \"\$OUT\" | grep -q 'every manifest is ready; the engine is not'"
+check "it names the address nothing answered at"    "printf '%s' \"\$OUT\" | grep -q \"nothing is answering at $DEAD\""
+check "it names what run would do about it"         "printf '%s' \"\$OUT\" | grep -q 'refuses before it reads a seat'"
+check "the fix is the command a laptop can run"     "printf '%s' \"\$OUT\" | grep -q 'temporal server start-dev'"
+# A fix is only a fix if the reader has it. The sentence used to name HQ's
+# runtime/temporal/install.sh, which is in neither this repository nor
+# \`npm i -g epito\`.
+check "the fix names no file the reader lacks"      "! printf '%s' \"\$OUT\" | grep -q 'runtime/temporal/install.sh'"
+
+# b. files good, engine up: the old sentence, now earned
+OUT="$($E validate "$CLEAN" 2>&1)"
+check "with something answering, run would refuse nothing" "printf '%s' \"\$OUT\" | grep -q 'nothing here .epito run .* would refuse'"
+# What a TCP connect proves is that something accepted a connection. The stub
+# behind $TEMPORAL_ADDRESS is not a Temporal server, and the wording has to stay
+# true of it: \`epito run\` still does the real connect and the real namespace
+# check, and still refuses an engine that answers and is the wrong one.
+check "...and claims only that the address answers"        "printf '%s' \"\$OUT\" | grep -q 'is answering'"
+check "...not that the engine is healthy or correct"       "! printf '%s' \"\$OUT\" | grep -qiE 'engine is (up|healthy|running)'"
+
+# c. --for-runtime is the flag whose whole contract is "what would run refuse"
+OUT="$(TEMPORAL_ADDRESS=$DEAD $E validate "$CLEAN" --for-runtime 2>&1)"; RC=$?
+check "--for-runtime with no engine exits 1"        "[ $RC -eq 1 ]"
+check "...and says there is no runtime to accept it" "printf '%s' \"\$OUT\" | grep -q 'there is no runtime'"
+# And it must not leave the operator thinking their files are broken: the
+# manifests are the half a roster validator can answer with no box, and that
+# user is who the command was built for.
+check "...and says the manifests are not the problem" "printf '%s' \"\$OUT\" | grep -q 'The manifests are not the problem'"
+check "...and names the form that answers that half"  "printf '%s' \"\$OUT\" | grep -q 'without --for-runtime says so'"
+SOUT="$(TEMPORAL_ADDRESS=$DEAD $E validate "$CLEAN" --for-runtime 2>/dev/null)"
+check "...and a refusal for the engine is on stderr too" "[ -z \"\$SOUT\" ]"
+OUT="$($E validate "$CLEAN" --for-runtime 2>&1)"; RC=$?
+check "--for-runtime with an engine answering exits 0" "[ $RC -eq 0 ]"
+
+# d. both halves wrong: an operator hears both before they start
+OUT="$(TEMPORAL_ADDRESS=$DEAD $E validate "$NR" --for-runtime 2>&1)"; RC=$?
+check "a not-ready seat AND no engine exits 1"      "[ $RC -eq 1 ]"
+check "...and names the seat that is not ready"     "printf '%s' \"\$OUT\" | grep -q '1 of 2 seats is not ready to run'"
+check "...and the engine in the same breath"        "printf '%s' \"\$OUT\" | grep -q 'There is also no runtime to accept it'"
+OUT="$(TEMPORAL_ADDRESS=$DEAD $E validate "$NR" 2>&1)"; RC=$?
+check "without the flag that is still exit 0"       "[ $RC -eq 0 ]"
+check "...and both halves are still said"           "printf '%s' \"\$OUT\" | grep -q 'the engine is not up either'"
+
+# e. a malformed TEMPORAL_ADDRESS is a wrong variable, not a dead network
+OUT="$(TEMPORAL_ADDRESS=garbage $E validate "$CLEAN" 2>&1)"; RC=$?
+check "a malformed address still exits 0"           "[ $RC -eq 0 ]"
+check "...and is reported as the variable it is"    "printf '%s' \"\$OUT\" | grep -q 'TEMPORAL_ADDRESS is \"garbage\", which is not a host:port address'"
+check "...not as an engine that failed to answer"   "! printf '%s' \"\$OUT\" | grep -q 'nothing is answering at garbage'"
+check "...and the fix names the fallback"           "printf '%s' \"\$OUT\" | grep -q 'unsetting it falls back to 127.0.0.1:7233'"
+
+# f. the single-manifest form claims nothing about a roster or an engine, so it
+#    must not have grown an engine line: it never promised one.
+OUT="$(cd "$CLEAN/alpha" && TEMPORAL_ADDRESS=$DEAD $E validate 2>&1)"; RC=$?
+check "one manifest with no engine exits 0"         "[ $RC -eq 0 ]"
+check "...and says nothing about an engine"         "! printf '%s' \"\$OUT\" | grep -qi 'temporal\|answering'"
 
 # ---------------------------------------------------------------------------
 # The "smoke:" prefix is what test/all.sh greps for to tally a suite

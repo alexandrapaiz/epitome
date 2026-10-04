@@ -190,22 +190,50 @@ step "6. the roster has one command that says yes, and it needs no engine"
 # without a Temporal server, which `epito run agents --dry-run` in step 4
 # cannot do (it connects first, which is why step 4 is inside a skip guard and
 # this is not).
+#
+# The engine half of the verdict depends on this box, so it is asserted against
+# this box, both ways. `engine_answers` above is this suite's OWN probe and
+# stays that way: checking the command's engine line with the command's engine
+# probe would assert that a function agrees with itself.
 vout="$($E validate "$AGENTS" 2>"$TMP/validate.err")"; vrc=$?
 verr="$(cat "$TMP/validate.err")"
 check "epito validate agents exits 0 on the real roster" "[ $vrc -eq 0 ]"
 check "it says nothing on stderr when the roster is clean" "[ -z \"\$verr\" ]"
-check "it needed no engine to answer" "! printf '%s' \"\$vout\" | grep -qi 'temporal\|7233'"
+# This used to assert the output never said "temporal" or "7233", which read as
+# "no engine required" and was the reason the ✓ below could claim `epito run`
+# would refuse nothing on a box where `epito run` refused in one line. The
+# invariant worth holding is that it ANSWERS, in full, whatever the box is
+# doing — the counts and the per-seat lines below are that assertion, and they
+# run unconditionally.
+check "it answers whether or not this box has an engine" "[ $vrc -eq 0 ]"
 nseats=$(printf '%s ' $SEATS | wc -w | tr -d ' ')
 check "it counts every seat in agents/" "printf '%s' \"\$vout\" | grep -q '$nseats of $nseats manifests are agents'"
 for s in $SEATS; do
   check "it reports $s by name" "printf '%s\n' \"\$vout\" | grep -qE '^[✓!] $s +identity'"
 done
 check "it names the presence-only seat as presence-only" "printf '%s' \"\$vout\" | grep -q 'presence-only (exo)'"
-check "it says the runtime would refuse nothing here" "printf '%s' \"\$vout\" | grep -q 'nothing here .epito run'"
-# The claim the strict gate makes: it asks exactly what `epito run` asks.
+# The claim the strict gate makes: it asks exactly what `epito run <dir>` asks.
+# `epito run` asks about the engine FIRST — before it reads a manifest — so the
+# gate has to, and the verdict differs by box. Both branches are assertions;
+# neither is a skip, because whichever box this is, the command has a right
+# answer for it.
 svout="$($E validate "$AGENTS" --for-runtime 2>&1)"; svrc=$?
-check "the strict gate passes on the real roster too" "[ $svrc -eq 0 ]"
-check "...and reports the same seats" "printf '%s' \"\$svout\" | grep -q '$nseats of $nseats manifests are agents'"
+check "...and reports the same seats under --for-runtime" "printf '%s' \"\$svout\" | grep -q '$nseats of $nseats manifests are agents'"
+if engine_answers; then
+  check "with an engine up, it says run would refuse nothing here" "printf '%s' \"\$vout\" | grep -q 'nothing here .epito run'"
+  check "...and names the engine it looked at" "printf '%s' \"\$vout\" | grep -q \"${TEMPORAL_ADDRESS:-127.0.0.1:7233} is answering\""
+  check "...and the strict gate passes on the real roster too" "[ $svrc -eq 0 ]"
+else
+  # The case every previous run of this suite was in, and the one the ✓ got
+  # wrong: five good manifests, no engine, and a tick that spoke for `epito
+  # run` without asking it. Step 4 above skipped for exactly this reason, four
+  # steps earlier, in the same run.
+  check "with no engine, it does not claim run would refuse nothing" "! printf '%s' \"\$vout\" | grep -q 'nothing here .epito run .* would refuse'"
+  check "...it says the manifests are ready and the engine is not" "printf '%s' \"\$vout\" | grep -q 'every manifest is ready; the engine is not'"
+  check "...and carries the fix for the half that is missing" "printf '%s' \"\$vout\" | grep -q 'temporal server start-dev'"
+  check "...and the strict gate refuses, because \`epito run\` would" "[ $svrc -eq 1 ]"
+  check "...naming the engine and not the files as the problem" "printf '%s' \"\$svout\" | grep -q 'The manifests are not the problem'"
+fi
 # Each seat reads identically whether asked one at a time or as a roster. The
 # single-manifest wording is the wording that already shipped, so this is the
 # acceptance test for factoring `epito validate` out of src/index.js.
