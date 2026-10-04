@@ -5,10 +5,17 @@ Five `agent.toml` files, one per seat this company runs. This is the dogfood
 org instead of 150 lines of YAML per seat.
 
 ```bash
-epito run agents --dry-run     # what the runtime would register, and nothing else
+epito validate agents          # is this roster good — no engine needed to answer
 epito routes agents            # which road each seat takes on THIS box
+epito run agents --dry-run     # what the runtime would register, and nothing else
 epito ps agents                # the roster, read back from the engine
 ```
+
+The first two need nothing but the files. The last two connect to Temporal
+first and refuse by name when it is not answering — which is why `epito
+validate agents` leads: it is the question you can ask standing anywhere,
+and its closing line tells you whether the other two would work from here
+(ADR-24).
 
 Each file was translated **field by field** from the workflow beside it, and
 `cli/test/smoke-roster.sh` asserts the translation has not drifted — a

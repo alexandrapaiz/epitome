@@ -1015,3 +1015,97 @@ these seats take has its endpoint held as a repository secret, so the road
 cannot be written in a publishable manifest. `spec/manifest.md`'s open
 questions now carry it (probable shape: `base_url_env`, beside `token_env`).
 v0.1 stays frozen; nothing was added to the catalogue.
+
+## ADR-24: A validator may not speak for a command it did not ask
+
+**Date.** 2026-10-04. **Status.** Proposed by the engineer seat; the owner
+ratifies by merging, objects by editing. Cooldown (2026-10-05/06); this is a
+defect in the stack open in front of PR #45, not a new card.
+
+**Context.** ADR-21 settled that `epito validate` notes what the runtime will
+still refuse, and that `--for-runtime` is the strict pass. PR #44 extended it
+to a roster: `epito validate <dir>`, sold as "no engine required", because an
+operator with five manifests and no box had no single command that said yes.
+
+Its closing line said:
+
+```
+✓ 5 of 5 manifests are agents: 4 on a cron, 1 presence-only (exo)
+  every one is ready to run: there is nothing here `epito run agents` would refuse
+```
+
+On a box with no Temporal server — which is every box the "no engine required"
+pitch is aimed at — the very next command refused, in one line, before it read
+a manifest. `epito --help` said `--for-runtime` "asks exactly what `epito run
+<dir>` would ask"; `src/validate.js`'s own comment said "minus the engine".
+Both shipped. Only one could be true.
+
+That is the failure `src/lib/readiness.js` was written to remove, in its own
+words — "`epito validate` ticked it, and `epito run` then refused it ... a
+refusal the tick had just told them would not come" — reintroduced one level
+up, by the file that cites it.
+
+**Decision.** Three rules.
+
+1. **A command that names another command's behaviour must have asked.** The
+   roster ✓ claims something about `epito run <dir>`, so it looks: a bare TCP
+   connect to `TEMPORAL_ADDRESS`, 400ms ceiling, no `@temporalio` import, no
+   gRPC. "No engine required" is preserved exactly — the command still needs no
+   engine to run and still answers the manifest question in full without one.
+   What it loses is the right to answer for a command it never consulted.
+
+2. **The engine is a fact about the box, not about a manifest.** It is
+   therefore neither a per-seat error nor a per-seat blocker — no manifest
+   becomes invalid because a server is down. It belongs to the closing verdict,
+   which is where the overclaim was, and the default exit code stays 0: the
+   files are the half a roster validator can answer with no box, and when they
+   are good the answer is yes.
+
+3. **`--for-runtime` refuses what `epito run <dir>` refuses, engine included.**
+   That is the flag's whole contract and the help text's existing promise. A
+   missing engine exits 1 under the flag, and the refusal says the manifests
+   are not the problem and names the form that answers that half — because the
+   operator with five manifests and no box is who the command was built for and
+   must keep their yes.
+
+A corollary, in the same voice as rule 1: **a fix is only a fix if the reader
+has it.** The unreachable-engine message named `runtime/temporal/install.sh`,
+which is HQ's file (alexandra-systems). It is in neither this repository nor
+`npm i -g epito`, whose `files` ships `src`, `adapters`, `README.md`. Naming it
+was worse than naming nothing — it sent the reader looking for a path that
+exists on no machine they have.
+
+**Alternatives.**
+
+- *Scope the sentence instead: "nothing in these manifests `epito run` would
+  refuse".* Cheapest, and rejected: it is honest about the claim and useless
+  about the question. The operator still leaves the command one refusal away
+  from where they were going, which is the thing ADR-21 exists to stop.
+- *Print the caveat unconditionally, with no probe.* Rejected on readiness.js's
+  own rule — "a note that fired on every correctly configured manifest would be
+  noise on the good case, which is worse than noise on the broken one". The
+  probe is what buys the good case a clean sentence.
+- *Make `--for-runtime` require a healthy engine (connect + describeNamespace).*
+  Rejected: it needs `@temporalio/client`, which the manifest commands do not
+  install, so the strict pass would start refusing on the exact machine #44 was
+  built for. The TCP look is the half that costs nothing; `epito run` still does
+  the real connect and the real namespace check and will still refuse an engine
+  that answers and is the wrong one. Hence the wording: the address is
+  **answering**, never that the engine is healthy.
+- *Leave it; `epito run` gives a good error anyway.* Rejected. It does, and
+  that is not the point: the validator exists so the refusal arrives before
+  06:00, and a validator that is wrong about the refusal is worse than no
+  validator, because it is believed.
+
+**Consequence.** `epito validate <dir>` now reads `TEMPORAL_ADDRESS`, so the
+module it reads it through (`src/temporal/env.js`) must stay import-free, or a
+future `@temporalio` import there would quietly make the manifest commands need
+the engine. `cli/test/unit.mjs` asserts that, and asserts that `src/lib/engine.js`
+imports only node builtins and engine-free local modules. That assertion is the
+thing standing between this ADR and a 300 MB `npm i -g epito`.
+
+Two tests were replaced in the process, both of which asserted that `epito
+validate`'s output never contained the string "temporal". That reads as "no
+engine required" and is not: it is what let the ✓ be wrong in the first place.
+A test that forbids the product from mentioning the thing it is wrong about is
+a test that protects the bug.

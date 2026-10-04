@@ -68,6 +68,30 @@ case you will not see it at all — run `epito init` inside the repository
 the agent will work in and it reads `[runtime].repo` off the git origin
 (ADR-21).
 
+Given a directory it checks the whole roster, and the last line is the
+only one that speaks for `epito run` — so it is the one line that looks:
+
+```
+✓ 5 of 5 manifests are agents: 4 on a cron, 1 presence-only (exo)
+  every one is ready to run, and 127.0.0.1:7233 is answering: there is
+  nothing here `epito run agents` would refuse
+```
+
+```
+✓ 5 of 5 manifests are agents: 4 on a cron, 1 presence-only (exo)
+  every manifest is ready; the engine is not: nothing is answering at
+  127.0.0.1:7233 (ECONNREFUSED), so `epito run agents` refuses before it
+  reads a seat
+    Fix: run `temporal server start-dev` for a local engine, or set
+    TEMPORAL_ADDRESS ...
+```
+
+Still exit 0 in both: your manifests are the question a roster validator
+can answer with no box, and they are good. `--for-runtime` is what makes
+the second one exit 1, because that is the flag that asks whether the
+runtime would accept this roster, and in the second case there is no
+runtime (ADR-24).
+
 ## What it gives an agent
 
 - **Identity** — its own GitHub App, created from `[identity].scopes` and
@@ -134,6 +158,13 @@ Run one of them without it and `epito` says so in a sentence, naming the
 package and the install line — never a stack trace. On a runtime box you do
 not do this by hand; `deploy/provision-host.sh` installs the engine with the
 CLI.
+
+Those four packages are the engine **client**. The engine itself is a
+**server**, and it is a third thing: `temporal server start-dev` on a
+laptop, or a self-hosted Temporal brought up before epitod on a runtime
+host (docs/deploy/README.md). `epito run`, `epito worker` and `epito ps`
+all refuse by name when it is not answering, and `epito validate <dir>`
+tells you before you get there.
 
 ## Spec and source
 

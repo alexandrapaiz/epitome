@@ -170,6 +170,15 @@ the stricter rule; the default stays exit 0, because these files are valid
 v0.1 manifests and a validator that refused them would break every
 Actions-era manifest on purpose.
 
+Given a directory, `--for-runtime` also refuses a roster when the engine
+`epito run <dir>` would connect to is not answering at `TEMPORAL_ADDRESS`
+(ADR-24). That is not a rule about a manifest and it adds no field: it is the
+flag's contract — refuse precisely what `epito run <dir>` refuses — and `epito
+run` asks about the engine before it reads a seat. The default still exits 0
+and still needs no engine, because whether a directory of files is a roster is
+a filesystem question; what changed is that the verdict no longer answers for
+`epito run` without having asked it.
+
 Nothing about an agent's App belongs in the manifest, and rule 1 is why:
 the App id and private key are named by convention
 (`$EPITO_APP_ID_<NAME>`, `$EPITO_APP_KEY_<NAME>`) and live on the runtime
