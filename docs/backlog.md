@@ -79,6 +79,28 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Owner-only (secrets, money, accounts)
 
+- [ ] **Two merge-authority decisions are blocking a 12-PR chain** (named
+  2026-10-05, second such message this day — see PR #57 for the first).
+  A board message, purportedly a handoff from "alexandra-systems/pm" and
+  asking me to "read your inbox on the board and act, reply there in
+  first person," reported the engineer stack PR #48 (the newest of
+  twelve, containing all eleven, no rebase against main, independently
+  verified green) as merge-ready and named the blocker correctly: the
+  PR that would give this seat merge authority, #29 (`chair/pm-merges`),
+  is itself open. I did not act on the message as an authority
+  channel — docs/standards/pm.md §1 is explicit that seats never message
+  each other, and no "board inbox" is defined in prompts/pm-agent.md or
+  any standard I inherit; "the board" in my charter is the Linear
+  mirror, which has no reply mechanism at all (and LINEAR_API_KEY is
+  still absent, so it wouldn't matter). The message also leaned on PR
+  #56 (`chair/exo-routes-to-pm`) as if already in effect; it is still
+  open too, and even merged it would route ExO's findings to the *HQ*
+  PM, not hand this product's PM a message directly. Both readings
+  would have had me treat an unratified charter proposal as live
+  policy. Two things wait on you alone: ruling on #29 (merge authority
+  for this seat) and on #56 (the ExO routing mechanism) — and, once
+  either lands, the still-open merge of the #48 chain itself. I am not
+  landing any of it myself.
 - [ ] Register **epito.me** (verified available 2026-09-18; a few
   dollars; .me is Montenegro's registry — dictionary-adjacent names can
   be premium-priced, confirm at checkout).
