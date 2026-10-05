@@ -4,6 +4,8 @@ on:
   schedule:
     - cron: "46 11 * * *"  # owner directive 2026-09-24: engineers run twice a day (products are not yet in the users' hands)
     - cron: "46 23 * * *"
+  repository_dispatch:
+    types: [asc.engineer]   # the event bus wakes this seat (standards/pm.md §17)
   workflow_dispatch:
     inputs:
       owner_instructions:
@@ -67,6 +69,7 @@ jobs:
             one PR. Never merge your own PR, never push to main, never touch
             secrets, never edit charters. If the charter file is missing,
             stop and fail loudly instead of improvising.
+            Event that woke this run, when the event bus started it (empty on a schedule or a dispatch): ${{ github.event.client_payload.text }}
             Owner instructions for this dispatch, binding for this run
             (empty on scheduled runs):
             ${{ inputs.owner_instructions }}

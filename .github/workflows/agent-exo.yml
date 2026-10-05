@@ -10,6 +10,8 @@ name: exo-agent
 on:
   # schedule:   # weekly Sun drift review — enable after supervised smoke run
   #   - cron: "6 11 * * 1"   # uncomment only after a supervised smoke run
+  repository_dispatch:
+    types: [asc.exo]   # the event bus wakes this seat (standards/pm.md §17)
   workflow_dispatch:
     inputs:
       owner_instructions:
@@ -73,6 +75,7 @@ jobs:
             merge your own PR, never push to main, never touch secrets,
             never edit charters. If the charter file is missing, stop and
             fail loudly instead of improvising.
+            Event that woke this run, when the event bus started it (empty on a schedule or a dispatch): ${{ github.event.client_payload.text }}
             Owner instructions for this dispatch, binding for this run
             (empty on scheduled runs):
             ${{ inputs.owner_instructions }}

@@ -3,6 +3,8 @@ name: market-agent
 on:
   schedule:
     - cron: "0 12 * * 5"   # activated 2026-09-25 by owner directive: all four companies' seats active (HQ ADR-036)
+  repository_dispatch:
+    types: [asc.market]   # the event bus wakes this seat (standards/pm.md §17)
   workflow_dispatch:
     inputs:
       owner_instructions:
@@ -81,6 +83,7 @@ jobs:
             one PR. Never merge your own PR, never push to main, never touch
             secrets, never edit charters. If the charter file is missing,
             stop and fail loudly instead of improvising.
+            Event that woke this run, when the event bus started it (empty on a schedule or a dispatch): ${{ github.event.client_payload.text }}
             Owner instructions for this dispatch, binding for this run
             (empty on scheduled runs):
             ${{ inputs.owner_instructions }}
