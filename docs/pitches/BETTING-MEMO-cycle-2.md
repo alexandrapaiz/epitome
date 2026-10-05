@@ -82,6 +82,18 @@ underneath these bets without being asked for.
   Nothing to re-bet. Noted here so the betting table reflects what's
   actually left undone, not what the original four-proposal list
   still implies is open.
+- **Omarchy integration** (ideas ledger, 2026-09-18, accepted by the
+  owner: "lets integrate omarchy into our stack." docs/architecture.md
+  §"OS" names it explicitly for "the cycle-2 betting table"). Not
+  shaped this cycle, named rather than dropped: docs/architecture.md
+  itself describes the integration as a package installing "epito +
+  epitod + the MCP server," which makes it a bet with a real
+  dependency on the MCP server shipping first, the exact
+  dependency-chain problem bet 2 was scoped to avoid this same memo.
+  With only one big batch and one small batch of appetite this cycle,
+  both already spoken for, Omarchy queues behind whichever cycle bets
+  the MCP server. Stays in the backlog, raw material, not re-shaped
+  on a cycle it has no realistic appetite room in.
 - **Everything in backlog Later** (teams, convening, the agent
   repository): ADR-1's wedge rule, unshaped, untouched, same as every
   prior cycle.
