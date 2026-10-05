@@ -108,7 +108,11 @@ check "a charter absent from the whole repo is still named" "printf '%s' \"\$gou
 mkdir -p "$TMP/repo/prompts" && echo charter > "$TMP/repo/prompts/ghost.md"
 gout2="$(cd "$TMP/repo/agents/ghost" && $E validate 2>&1)"
 check "committing it at the repo root silences the note" "! printf '%s' \"\$gout2\" | grep -q 'before the first run'"
-sed -i 's|repo = "acme/other"|repo = "acme/unrelated"|' "$TMP/repo/agents/ghost/agent.toml"
+# `sed -i` with no suffix is GNU-only: BSD sed reads the next argument as the
+# backup suffix and the file as the script, and says `invalid command code f`.
+# Every in-place edit in this harness uses the one form both accept.
+sed -i.bak 's|repo = "acme/other"|repo = "acme/unrelated"|' "$TMP/repo/agents/ghost/agent.toml" \
+  && rm -f "$TMP/repo/agents/ghost/agent.toml.bak"
 gout3="$(cd "$TMP/repo/agents/ghost" && $E validate 2>&1)"
 check "a charter in a repo the manifest does NOT name is not evidence" "printf '%s' \"\$gout3\" | grep -q 'commit prompts/ghost.md to acme/unrelated'"
 
@@ -209,7 +213,11 @@ check "it answers whether or not this box has an engine" "[ $vrc -eq 0 ]"
 nseats=$(printf '%s ' $SEATS | wc -w | tr -d ' ')
 check "it counts every seat in agents/" "printf '%s' \"\$vout\" | grep -q '$nseats of $nseats manifests are agents'"
 for s in $SEATS; do
-  check "it reports $s by name" "printf '%s\n' \"\$vout\" | grep -qE '^[✓!] $s +identity'"
+  # `(✓|!)`, not `[✓!]`: a bracket expression holding a multibyte character is
+  # matched byte by byte by BSD grep and by any grep in a non-UTF-8 locale, so
+  # the three bytes of ✓ could never be the one character the class asks for.
+  # Alternation compares the same bytes either way.
+  check "it reports $s by name" "printf '%s\n' \"\$vout\" | grep -qE '^(✓|!) $s +identity'"
 done
 check "it names the presence-only seat as presence-only" "printf '%s' \"\$vout\" | grep -q 'presence-only (exo)'"
 # The claim the strict gate makes: it asks exactly what `epito run <dir>` asks.

@@ -173,7 +173,12 @@ check "the bad cron is named as a schedule"      "printf '%s' \"\$OUT\" | grep -
 # every good seat's description most of the way across the terminal — the
 # longest seat name here is "charlie" (7), so a padded ✓ row is at most
 # "✓ " + 7 + 2 = 11 characters before its description starts.
-COL="$(printf '%s\n' "$OUT" | grep -E '^✓ ' | head -1 | awk '{ i = index($0, "identity"); print i }')"
+# Measured after the marker, and the marker's two characters added back: awk's
+# index() counts bytes, not characters, on BSD awk and in any non-UTF-8 locale,
+# and the ✓ is three of them — so a correctly padded table read as 14 wide on
+# macOS and as 12 on a Linux box with LANG set. The ASCII part is the same
+# number either way.
+COL="$(printf '%s\n' "$OUT" | grep -E '^✓ ' | head -1 | awk '{ sub(/^✓ /, ""); print index($0, "identity") + 2 }')"
 check "a long refused path does not set the column" "[ \"\$COL\" -le 12 ]"
 
 step "4. two manifests, one [agent].name — spec rule 4"
@@ -246,10 +251,14 @@ step "8. validate writes nothing, anywhere, on any path"
 # append-only ledger for schedules it never created (docs/ideas.md). A
 # validator has even less business writing than a dry run does.
 for d in "$CLEAN" "$BAD" "$DUP" "$NR"; do
-  before="$(cd "$d" && find . | sort | md5sum 2>/dev/null || true)"
+  # The listing itself, not a digest of it: macOS has `md5`, not `md5sum`, and
+  # `|| true` turned that into two empty strings comparing equal — an assertion
+  # about files that would have passed whatever validate wrote. It is also the
+  # cheaper failure to read, because it prints the file that appeared.
+  before="$(cd "$d" && find . | sort)"
   $E validate "$d" >/dev/null 2>&1
   $E validate "$d" --for-runtime >/dev/null 2>&1
-  after="$(cd "$d" && find . | sort | md5sum 2>/dev/null || true)"
+  after="$(cd "$d" && find . | sort)"
   check "$(basename "$d"): no file created or removed" "[ \"\$before\" = \"\$after\" ]"
   check "$(basename "$d"): no .epito/ appeared"        "[ ! -e \"$d/.epito\" ]"
 done
