@@ -1,7 +1,7 @@
-<!-- vendored-from: standards/lessons.md @ 7e051c056c5120cad6f697012de37d1b8ef6c2c0 -->
+<!-- vendored-from: standards/lessons.md @ 256a1812a4cec59f8b5d60d00f629c53b8d78155 -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `7e051c0`,
-> vendored 2026-09-30. Changes to a company standard are HQ
+> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `256a181`,
+> vendored 2026-10-05. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
 <!-- end vendored header -->
@@ -98,6 +98,32 @@ ID it eventually gets is not the one its author would have chosen.
   repeat herself with "AGAIN". Companion to L-A4 and L-X1: L-A4 names
   the repeat as a register defect, L-X1 closes the loop in the tree,
   and this rule places the check before delivery.)
+
+  **Amended 2026-10-05, for the case where the register is a gate.**
+  When a rule's wrong answer is itself an incident, the rule is a
+  command that returns a verdict, never a paragraph a seat reads from
+  memory once per run. A memoryless seat recalling a clause under turn
+  pressure is the weakest reader the company has, and the clause it is
+  recalling is the one the company chose to put a penalty behind. The
+  test that a gate is real: name the command, and say what its exit
+  status means. (HQ, 2026-10-04: standards/pm.md §10 granted every seat
+  the right to merge its own pull request when every changed file is a
+  knowledge surface, told the seat to verify that with
+  `gh pr diff --name-only`, and declared that a Tier A merge whose diff
+  crossed the line is an incident that suspends that seat's self-merge
+  right. Nothing in `tools/` computed it for two weeks. When the
+  engineer finally did, in `tools/check-tier.sh`, the check immediately
+  established two facts no amount of careful reading had surfaced:
+  §10's grant cleared none of the 31 open pull requests, and two of
+  §10's own named surfaces — `docs/ideas.md` and `docs/finance/` —
+  cannot be decided from file names at all, so the `--name-only` ritual
+  the standard prescribed was the wrong instrument for its own rule.
+  The seat's own words for it: "the company put a gate on its only
+  self-service merge path, made a wrong answer an incident, and then
+  implemented the gate as a seat reading a paragraph from memory once
+  per run." Note the direction a real gate is built in: fail-closed, so
+  a false Tier B costs one merge of waiting and a false Tier A costs an
+  incident, and the cheap error is the one the tool is allowed to make.)
 - **L-A10 — One file, one owning charter.** Every file a seat writes
   names exactly one owning charter. When two seats need the same file,
   it is split by named section with an owner recorded in both charters.
@@ -390,6 +416,114 @@ ID it eventually gets is not the one its author would have chosen.
   rejections, and nothing in the repository said what the product was worth
   to a builder. Two of the eight rounds have no recoverable candidate
   text at all. Process: alexandria docs/agents/copy-pipeline.md.)
+- **L-A26 — A grant written as a list of names decays into a grant for
+  one thing, so write the property the list was an application of.** An
+  authority that enumerates paths, directories or filenames is correct
+  on the day it is written and wrong on the day the company adds a
+  seat, and it is wrong silently, because the enumeration keeps
+  answering confidently about the world it was written in. State the
+  property that made the listed items safe, name the exceptions with
+  the reason beside each one, and give the property a command that
+  tests it (L-A9 as amended). Two sources, one rule, and the second is
+  this register's own distribution.
+
+  *Source one, the grant that cleared nothing.* standards/pm.md §10 had
+  granted Tier A self-merge to a list of directories since ADR-011. The
+  list was drawn from the surfaces the PM and the exo centralizer
+  happen to write, and the company then added the okr, mba, yc,
+  distribution and marketing seats and a generated company view.
+  `tools/check-tier.sh --open` over all 31 open pull requests on
+  2026-10-04 answered Tier A for exactly one, a one-line stub. Four of
+  the refusals were 100% dated analysis — okr #71, mba #69, yc #68,
+  distribution #70, with zero code, charter, workflow, standard, site
+  or spend anywhere in their diffs — and every one of them missed on a
+  directory name alone. A fifth gap was quieter: `tools/sync-company.sh`
+  had been committing `docs/company/` straight to `main` citing "§10
+  Tier A" since 2026-09-20 and §10 never named that directory, so the
+  practice was right and the citation was fiction. The replacement is a
+  property: inside `docs/`, a knowledge surface is a file whose only
+  effect is what a reader knows — nothing executes from it, no money
+  moves, no authority changes, no customer reads it — with the Tier B
+  exceptions named and reasoned (HQ PR #88 and PR #90, ADR-051).
+
+  *Source two, measured on this seat.* The exo centralizer's own grant
+  names two filenames: `standards/lessons.md` here and
+  `docs/standards/lessons.md` in a product. Every vendored standard is
+  the same class of artifact, produced by the same command, verified by
+  the same diff, distributed by the same seat in the same pull request
+  shape. On 2026-10-05 a drift check across the five portfolio repos
+  returned: `lessons.md` current in 5 of 5, and of the eleven other
+  vendored copies, zero current — `pm.md` behind in all five (four by
+  six days, asc-router by fifteen and 127 lines), `documents.md` behind
+  in epitome and asc-router, `model-routing.md` behind in asc-router.
+  Same seat, same tool, same week, same mechanical one-file diff. The
+  only variable is which filename the grant happens to name. A
+  distribution duty granted per filename is performed for one file and
+  recorded as performed for the duty.
+- **L-A27 — An authority held and not exercised costs exactly what no
+  authority costs, and it shows up as a pile.** A grant is not a
+  property of a seat, it is something a run does. A run that could
+  self-merge and does not, or that opens a draft and ends without
+  readying it, hands the owner an artifact she cannot act on — GitHub
+  refuses to merge a draft at all — and no later run comes back for it,
+  because the seat has no memory. So three clauses bind every seat.
+  **Exercise it or say why:** a run holding a self-merge grant either
+  merges every qualifying artifact or writes in the pull request which
+  clause stopped it, so the next reader sees a decision instead of a
+  gap. **Close what you supersede:** a recurring ceremony artifact
+  replaces its predecessor, so the run that writes the new one closes
+  the old pull request in the same run rather than leaving a fifth to
+  pile on. **A draft is legitimate only while its own run is alive:**
+  the run that opened it readies it or states in it why it stays a
+  draft. Where this rule and a fail-closed gate disagree, the gate
+  wins — a tool that answers Tier B when it cannot prove Tier A has
+  given the right answer, and this rule asks for the reason to be
+  written down, never for the verdict to be overridden. (Three sources,
+  2026-09-26 through 2026-10-04. Ursa's PM self-merged its standups as
+  Tier A in #12, #17 and #23, stopped with #37 for no reason it
+  recorded, and #37, #45, #60 and #67 then sat open and unclosed across
+  four days, each one's own description saying it superseded the one
+  before it, until the 2026-10-04 run closed all four. Ursa's frontend
+  commented "superseded by #65" on #15, #35 and #51 on 2026-10-01 and
+  left all three open. At HQ on 2026-10-02 the engineer's new
+  `tools/check-draft-prs.sh` found that nine of the ten open drafts had
+  no live run behind them, idle from twelve hours to six days against a
+  longest declared seat timeout of sixty minutes, and **five of the
+  nine carried finished reports**; the standup closed the PM's #39 and
+  #46 the same day. One of the nine was this seat's own #49, finished
+  on 2026-09-28 and still a draft a week later. The second cost is a
+  measurement error that compounds: every standup's open-pull-request
+  count was overstated by five, so the queue depth the org reports is
+  not the queue depth it has.)
+- **L-A28 — A promotion between two registers is recorded on both
+  sides.** When an entry in one register becomes a rule in another —
+  a product lesson into this file, a finding into an ADR, a ruling into
+  a standard — the source entry records the identifier it became and
+  the date, and the destination records its source. One side is not
+  enough, because the side that was not written is the side a later
+  reader consults. The corollary binds anything generated: a view that
+  can read only one of the two sides states that limit in its own words
+  instead of asserting the conclusion it cannot reach. (Two instances,
+  one week, both in this company's own machinery.
+  `docs/company/lessons-portable.md`, regenerated daily, listed
+  atelier-app's L1, L2 and L3 on 2026-10-04 under the heading "3
+  awaiting harvest" and the sentence "a lesson still listed here has
+  not been promoted yet". All three became law as L-P4, L-X3 and L-A10
+  on 2026-09-19, the same day atelier's seat wrote them, in commits
+  2efaa93 and 08e67e4, and all three are cited by name in this file
+  with atelier as the source. The view was still calling them
+  unharvested fifteen days later.
+  The generator reads the product side only, the product entries record
+  no rule ID, so neither side could answer the question the view
+  claimed to answer, and the first act of this harvest was re-deriving
+  by grep what a marker would have stated. Second instance, same
+  generator, stated honestly by it: `docs/company/incidents.md` reports
+  57 incident entries carrying no status marker, so it cannot say which
+  are open — which makes the companion duty explicit, that an incident
+  register entry carries an explicit `**Status:** open` or
+  `**Status:** closed` line. Note which instance is the better
+  behaviour: the incidents view says what it cannot see, and the
+  lessons view asserts what it cannot see.)
 
 ## engineer
 
@@ -581,6 +715,39 @@ ID it eventually gets is not the one its author would have chosen.
   open PRs and 19 unmerged seat branches on the day this rule was
   written, which is the same invisible inventory one repository up.)
 
+- **L-E11 — A run's success is measured against state captured before
+  it ran, never re-derived from the end state afterwards.** A check
+  that asks at teardown "is there a branch, a commit ahead, a pull
+  request" is asking about the wreckage, and the cleanest possible run
+  leaves the least wreckage. Capture the facts the question needs in a
+  step that executes *before* the agent — the base SHA, the list of
+  remote branches — and at the end compare: the base branch advanced,
+  or a new seat-prefixed remote branch exists. Two clauses come with
+  it. **A false failure is a defect, not a transient**, so it is
+  triaged and never re-run, because re-running it spends a seat's
+  budget to reproduce a measurement error. And **a tripwire that fires
+  hardest on the best runs is worse than no tripwire**, because the org
+  learns to read its colour instead of its message, and the cost lands
+  on the true failures it was built for. (HQ, 2026-09-27 through
+  2026-10-02: the no-ship tripwire false-failed six times by the PM
+  standup's own count, across two seats and two mechanisms. Five are
+  identifiable in the record — PR #44 on 2026-09-27, PR #51 on
+  2026-09-28, the exo centralizer's run 36657936104 on 2026-09-30, the
+  PM's run 36600822137 on 2026-09-29, and the 2026-10-01 scheduled PM
+  run that shipped and self-merged PR #80 and was then marked as having
+  produced nothing. The mechanism, read
+  line by line out of `standards/workflow-template.yml` rather than
+  inferred from the failure mark: after a Tier A self-merge `HEAD`
+  never leaves `main`, so `commits` against `origin/main` is zero; the
+  consumed seat branch is deleted, so the pushed-branch check is empty;
+  and `gh pr list --head main` finds nothing because no pull request
+  ever had head branch literally `main`. All three of the tripwire's
+  shipped-ness signals read empty on the single cleanest ship path the
+  company has. The fix is PR #75, written 2026-09-30, unmerged as of
+  this harvest — which makes this rule's own evidence an instance of
+  L-X7. Companion to L-E8, which fixed the tripwire's arithmetic; this
+  one fixes where it reads from.)
+
 - *Pending harvest: the owner reports substantial engineer corrections
   in Ursa chair sessions not yet captured in any register (partially
   harvested: Incident 3 → engineering-artifacts.md, L-E4, L-E5). First
@@ -763,6 +930,24 @@ ID it eventually gets is not the one its author would have chosen.
 - **L-X1 — Implement, don't archive.** An incident is closed when the
   fix is in the tree, never when it is written down. (alexandria
   incident 13.)
+
+  **Amended 2026-10-05: in the tree is half of it, and the other half
+  is a detector.** A fix that only repairs the damage protects the past
+  and leaves the future exactly as exposed as it was, so an incident is
+  closed when the repair is in the tree *and* something in the tree
+  would notice the same thing happening again. The detector is checked
+  against a real positive before the incident is called closed, because
+  a detector nobody has seen fire is a second thing written down. And
+  the entry carries an explicit status line, per L-A28, or no register
+  reader can tell a closed incident from an open one. (Ursa incident 2,
+  2026-09-18, fixed entirely as history surgery with
+  `git-filter-repo`: the purge protected every commit that existed and
+  nothing was added that would notice the same strings re-entering
+  through a new file. The same class of string re-entered through a new
+  file the next day, which is Ursa incident 4. Companion to L-E8 as
+  amended, where a workflow rule the drift check does not test reads as
+  undistributed no matter how many registers carry it, and to L-A9,
+  where a gate that is not a command is not a gate.)
 - **L-X2 — Secret first, schedules last.** No cron until the seat
   passes a supervised dispatch with a verified token. (Ursa incident 1:
   scheduled seats with an invalid token produced 0 successful runs.)
@@ -1032,6 +1217,37 @@ ID it eventually gets is not the one its author would have chosen.
   were compromised in the 2026 agent-escape event during the same
   window the pipeline was being built. Nobody had written down what the
   dependency was until the owner reported the event.)
+- **L-S3 — A standard written to close one incident is checked against
+  the standing rules in the same territory, and two standards binding
+  one artifact each cite the other.** The dangerous case is not a rule
+  nobody follows. It is two rules, written days apart in different
+  files by different seats, where obeying one *is* how you violate the
+  other, and the seat cannot see the conflict from inside the file it
+  was told to satisfy. So a clause that sets a content floor carries
+  its safety convention in the same clause rather than leaving the
+  convention in another document, and the seat that writes an incident
+  fix into a standard greps the other standards governing that artifact
+  before shipping it and names what it found. Where two standards do
+  bind one artifact, each cites the other by file and section, because
+  a contradiction nobody owns is discovered by the next violation.
+  (Ursa incident 4, 2026-09-19/20. Ursa incident 2's fix, two days
+  earlier, created a permanent rule: nothing generated from a raw
+  record ships public without a redaction pass. Ursa incident 3's fix,
+  the next day, added element 3 to the engineering-artifact standard in
+  a different file: "at least one real example payload (actual file
+  contents, not a placeholder)." The only real payload available was
+  built from the private trial record, so "real" and "public-safe"
+  read as opposites, and the engineer seat obeying element 3 exactly is
+  what put the owner's absolute home directory and a full private
+  session UUID into a public product plan — within 24 hours of the rule
+  written to prevent that class, and in one instance inside the very
+  README announcing the purge. Neither document cited the other. The
+  register's own verdict: "a failure rediscovered is the ExO lane
+  failing." Severity was genuinely low, two pointers and no content,
+  and it is written up for the pattern rather than the payload.
+  Companions: L-S1 owns the redaction rule itself, L-X10 covers the
+  same artifact being governed from two places when the rules *agree*,
+  and this one covers the case where they do not.)
 
 ## research
 
@@ -1061,7 +1277,9 @@ sentences. **No `L-` identifier.** See the preamble and L-A18 for why
 a second author picking IDs is a collision generator rather than a
 convenience.
 
-*Empty as of 2026-09-28. The five entries that were here (presence is
-a cadence, open routing is best-effort, sync mode, a status line is not
-communication, and the continue-on-error tripwire pair) are now
-L-P6, L-E7, L-P7, L-A19 and L-E8 in their own sections.*
+*Empty as of 2026-10-05, and empty on arrival this harvest: nothing was
+appended here between 2026-09-28 and this run. The five entries that
+were here once (presence is a cadence, open routing is best-effort,
+sync mode, a status line is not communication, and the
+continue-on-error tripwire pair) are now L-P6, L-E7, L-P7, L-A19 and
+L-E8 in their own sections.*
