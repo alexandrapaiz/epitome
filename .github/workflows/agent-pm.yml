@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # §11.7: the standup reruns failed runs; §11: it dispatches seats
   pull-requests: write
   id-token: write
 
@@ -56,6 +57,8 @@ jobs:
             one PR. Never merge your own PR, never push to main, never touch
             secrets, never edit charters. If the charter file is missing,
             stop and fail loudly instead of improvising.
+            You also own merges and failed runs: merge Tier B pull requests under standards/pm.md §10, and triage this company's failed runs under §11.7, every run.
+            The board is where you plan (standards/pm.md §14): read it first, keep every item you touch in a column, comment PR links; when the owner is on, you are on: run the standup from the board and its Messages and answer what is addressed to pm.
             Owner instructions for this dispatch, binding for this run
             (empty on scheduled runs):
             ${{ inputs.owner_instructions }}
