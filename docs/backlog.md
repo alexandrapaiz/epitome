@@ -93,7 +93,7 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **LINEAR_API_KEY repo secret** (personal API key from Linear
   settings) + name the Linear team/workspace the PM mirrors to (ADR-5).
   Optional until the PM's first run; the seat skips the mirror cleanly
-  without it. *Still absent as of 2026-09-24 — this run skipped the
+  without it. *Still absent as of 2026-10-05 — this run skipped the
   mirror per charter.*
 - [x] `claude setup-token` → CLAUDE_CODE_OAUTH_TOKEN repo secret, when
   ready to stand up seats. Present and working: pm/okr/exo/market/engineer
