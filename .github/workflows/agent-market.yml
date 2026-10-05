@@ -26,6 +26,19 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       BOARD_API_URL: ${{ secrets.BOARD_API_URL }}
       BOARD_RUNTIME_TOKEN: ${{ secrets.BOARD_RUNTIME_TOKEN }}
+      # Traces: this run lands in Langfuse as one trace, a span per tool call
+      # (runtime/langfuse/ in the HQ repo). The auth header is set by the step below.
+      CLAUDE_CODE_ENABLE_TELEMETRY: "1"
+      CLAUDE_CODE_ENHANCED_TELEMETRY_BETA: "1"
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.LANGFUSE_HOST }}/api/public/otel
+      OTEL_LOG_USER_PROMPTS: "1"
+      OTEL_LOG_ASSISTANT_RESPONSES: "1"
+      OTEL_LOG_TOOL_DETAILS: "1"
+      OTEL_RESOURCE_ATTRIBUTES: service.name=epitome-market,langfuse.environment=epitome,langfuse.user.id=market,langfuse.session.id=${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,6 +50,19 @@ jobs:
       # Flip it on:  gh variable set OPEN_ROUTING --body on
       # Flip it off: gh variable set OPEN_ROUTING --body off   (or delete it)
       # The secret stays stored either way (HQ Incident 4).
+      - name: Trace this run to Langfuse
+        env:
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+        run: |
+          if [ -z "$LANGFUSE_PUBLIC_KEY" ] || [ -z "$LANGFUSE_SECRET_KEY" ]; then
+            echo "No Langfuse keys on this repo; this run is not traced."
+            echo "OTEL_TRACES_EXPORTER=none" >> "$GITHUB_ENV"; exit 0
+          fi
+          auth=$(printf '%s:%s' "$LANGFUSE_PUBLIC_KEY" "$LANGFUSE_SECRET_KEY" | base64 -w0)
+          echo "::add-mask::$auth"
+          echo "OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic $auth" >> "$GITHUB_ENV"
+          echo "Traced: seat market of epitome, run ${{ github.run_id }}."
       - name: Seat run (open-routed)
         id: openrouted
         if: vars.OPEN_ROUTING == 'on' && env.OPENROUTE != ''
@@ -127,29 +153,30 @@ jobs:
       # Visibility window (standards/operating-modes.md §3): the seat's run
       # report goes to the team's channel when the owner has created one.
       # Seats never read the channel; it is the owner's window only.
-      - name: Post run report
+      - name: Report this run to the board
         if: always()
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
         run: |
-          # The guard lives in the script, not in the step's `if`: a step
-          # cannot read its own `env:` block from its `if` condition, and the
-          # `secrets` context is not available there either, so gating in YAML
-          # would either always skip or leak the webhook into the job env that
-          # the seat itself can read.
-          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
-            echo "No SLACK_WEBHOOK_URL configured; the visibility window is not open yet."
-            exit 0
-          fi
-          branch=$(git rev-parse --abbrev-ref HEAD)
-          pr=$(gh pr list --head "$branch" --state all --json number,title,url,body --jq '.[0]' 2>/dev/null)
-          title=$(echo "$pr" | jq -r '.title // "no PR opened"'); url=$(echo "$pr" | jq -r '.url // ""')
-          # Prose, not a log line (owner, 2026-09-26: "communications are pretty dead on slack"):
-          # the report is the PR description's opening — its first paragraphs, up to ~900 chars.
-          # Bullets, not paragraphs (owner, 2026-09-26: "make the slack prose be in bullets"):
-          # the first five bullet lines of the PR description, each cut to one line; a
-          # description with no bullets yields its first two lines.
-          summary=$(echo "$pr" | jq -r '.body // ""' | grep -E '^\s*[-*•] ' | head -5 | sed -E 's/^\s*[-*•] +/• /; s/\*\*//g' | cut -c1-180)
-          [ -n "$summary" ] || summary=$(echo "$pr" | jq -r '.body // ""' | sed -e '/^#/d' -e '/^🤖/d' -e '/^\s*$/d' | head -2 | cut -c1-180 | sed 's/^/• /')
-          curl -s -X POST -H 'Content-type: application/json' "$SLACK_WEBHOOK_URL" \
-            --data "$(jq -nc --arg t "*${{ github.workflow }}* · ${{ job.status }} · $title" --arg s "$summary" --arg u "$url" '{text: ($t + (if $s != "" then "\n" + $s else "" end) + (if $u != "" then "\n" + $u else "" end))}')" >/dev/null || true
+          [ -n "$BOARD_API_URL" ] && [ -n "$BOARD_RUNTIME_TOKEN" ] || { echo "no board on this repo"; exit 0; }
+          branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)
+          pr=$(gh pr list --state all --author "@me" --limit 1 --json url,body,headRefName --jq '.[0]' 2>/dev/null || echo "")
+          [ -n "$pr" ] || pr=$(gh pr list --head "$branch" --state all --json url,body --jq '.[0]' 2>/dev/null || echo "")
+          python3 - "$pr" <<'PY'
+          import json, os, sys, urllib.request
+          pr = json.loads(sys.argv[1]) if sys.argv[1] else {}
+          report = (pr.get("body") or "").split("\n🤖")[0].strip()[:2000]
+          run_url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+          status = os.environ.get("JOB_STATUS", "unknown")
+          msg = {"company": "epitome", "seat": "market", "trigger": os.environ.get("GITHUB_EVENT_NAME", ""),
+                 "run_url": run_url, "pr_url": pr.get("url") or None, "exit": 0 if status == "success" else 1,
+                 "report": report or ("The run ended with status " + status + " and opened no pull request.")}
+          req = urllib.request.Request(os.environ["BOARD_API_URL"].rstrip("/") + "/api/runs", data=json.dumps(msg).encode(), method="POST",
+                                       headers={"Authorization": "Bearer " + os.environ["BOARD_RUNTIME_TOKEN"], "Content-Type": "application/json"})
+          try:
+              with urllib.request.urlopen(req, timeout=20) as r:
+                  print("board run report:", r.status)
+          except Exception as e:
+              print("board run report failed:", e)
+          PY
