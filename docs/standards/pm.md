@@ -1,3 +1,11 @@
+<!-- vendored-from: standards/pm.md @ 2c5b526dbca5d2c1d0ad2968800baab5763e2b07 -->
+> **Vendored copy — do not edit here.** Source of truth is
+> `alexandrapaiz/alexandra-systems` `standards/pm.md` at commit `2c5b526`,
+> vendored 2026-10-05. Changes to a company standard are HQ
+> ADRs (standards/README.md). Deviations for this product belong in this
+> repo's own decisions file, not in this copy.
+<!-- end vendored header -->
+
 # Standard: Project Management
 
 The PM practice proven in alexandria, modularized so every Alexandra
@@ -351,3 +359,27 @@ curl -s "$BOARD_API_URL/api/items/<id>?company=alexandria" -H "Authorization: Be
 
 Rules: the PM's ceremonies plan on the board (the sprint file in `docs/sprints/` is a rendered export of it from now on); a seat that starts work moves its item to In progress and comments the PR link when it ships; a run that finds no item for its work creates one. The daily standup reads the board before `gh pr list`.
 \n
+
+## 15. Chairs and seats talk through the board (owner directive, 2026-09-30)
+
+The owner works in several chats at once, and each chat is a chair. Until tonight two chairs and two product seats rewrote the same workflow files in the same hour without knowing of each other. From now on the board carries the conversation, for chairs and seats alike, so a parallel writer is seen before it collides.
+
+**The surface.** `board.messages`: a message is a note, an ask, a handoff, a done, a claim or a release, from a seat of a company to a seat, a company, or everyone. On the host the `asc-board` MCP has `read_inbox`, `post_message`, `claim`, `release`; on a laptop every chat has the `asc-chair` MCP with the same four plus `read_board` (`tools/chair-install.sh`, once per machine); on GitHub runners it is HTTP:
+
+```bash
+curl -s "$BOARD_API_URL/api/messages?to_seat=pm&to_company=alexandria" -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN"
+curl -s -X POST "$BOARD_API_URL/api/messages" -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" -H "Content-Type: application/json" \
+  -d '{"company":"alexandria","seat":"exo","kind":"handoff","to_company":"alexandra-systems","to_seat":"exo-centralizer","subject":"…","body":"…","ref":"<PR url>"}'
+```
+
+**The protocol, every run and every chair session.**
+
+1. **Read the inbox first**, before the board, before `gh pr list`. Answer what is addressed to you; a handoff becomes an item on your board.
+2. **Claim before you change a shared surface**: another company's repo, any `.github/workflows`, any `standards/` file, the runtime machinery, a branch someone else opened. A claim that is refused means someone holds it: message them or wait; never edit around them. Release when done. Claims expire in six hours on their own.
+3. **Post `done` when you ship**, with the PR as the reference, in one line. That line is what the next chair reads instead of re-deriving your work.
+4. **Ask instead of guessing.** A question to another seat is an `ask` addressed to it, and the daily standup answers its asks before dispatching anything.
+
+**Who owns what.** Workflow files and runtime machinery in every product repo belong to HQ: a product seat that finds a fix files the lesson and hands it to HQ (`handoff` to `alexandra-systems/exo-centralizer`), and HQ applies it everywhere with one idempotent tool, the way the tracing landed in 37 files at once. A product seat does not edit `.github/workflows` in its own repo. The centralizer is the only cross-company writer of lessons; a product ExO writes its local register and stops there.
+
+**The owner sees it all** on the board's Messages tab, and the board is the only record. A chair that dispatched something writes a `note` saying so, because the next chat starts from that line and not from the transcript.
+
