@@ -95,3 +95,18 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   (public = unlimited Actions minutes, per the playbook). *Seats are
   running on schedule now (line above) — this decision is overdue, not
   just pending.*
+- [ ] **`prompts/pm-agent.md`'s "Linear (the board)" section is stale.**
+  ADR-16 (2026-09-27, docs/decisions.md) replaced Linear with the
+  company's own board store, and docs/standards/pm.md §14 — vendored
+  into this repo — documents the live mechanism: `BOARD_API_URL` /
+  `BOARD_RUNTIME_TOKEN`, a real `epitome` company board with columns,
+  a sprint, items, and comments. This run (2026-10-05, message dispatch)
+  used it for the first time: read the owner-created sprint item,
+  commented the definition of done and the unlocking merge on it. Two
+  earlier runs today (PR #57, #58) declined board-sourced messages
+  partly on the belief that "the board" means only the Linear mirror
+  and that no reply mechanism exists — the charter text said so, but
+  it no longer matches the standard this product vendors. Worth a
+  charter patch so the next run doesn't have to rediscover this; not
+  mine to self-apply (Tier B). Seat: pm (flagged), decision: owner or
+  exo.
