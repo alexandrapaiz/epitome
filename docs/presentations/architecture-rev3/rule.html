@@ -1,0 +1,34 @@
+<section id="rule" data-transition="fade" style="background:#FAFAF7; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:40px">
+  <div style="display:flex; flex-direction:column; gap:14px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">1 · Components</p>
+    <h2 style="font-size:60px; font-weight:600; line-height:1.1">Components and their responsibilities.</h2>
+  </div>
+  <div style="display:flex; gap:40px">
+    <div style="width:860px; background:#1B2620; border-radius:14px; padding:36px 44px; display:flex; flex-direction:column">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.6; color:#5FD09A">packages/</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.6; color:#D9E4DC">&#160;&#160;core/&#160;&#160;&#160;&#160;&#160;&#160;&#160;parse · validate · orchestrate · audit</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.6; color:#D9E4DC">&#160;&#160;providers/</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.6; color:#D9E4DC">&#160;&#160;&#160;&#160;github/&#160;&#160;&#160;identity + trigger + runtime (v1)</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.6; color:#D9E4DC">&#160;&#160;&#160;&#160;systemd/&#160;&#160;trigger + runtime, local (phase 2)</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.6; color:#7A8C80">&#160;&#160;&#160;&#160;&lt;next&gt;/&#160;&#160;&#160;2nd identity target — market re-ranks (ADR-6)</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.6; color:#D9E4DC">&#160;&#160;cli/&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;epito — thin mouth</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.6; color:#D9E4DC">&#160;&#160;mcp/&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;stdio server — thin mouth</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.6; color:#D9E4DC">&#160;&#160;epitod/&#160;&#160;&#160;&#160;&#160;local daemon (phase 2)</p>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:22px">
+      <div style="display:flex; flex-direction:column; gap:8px; background:#FFFFFF; padding:30px 36px; border:1px solid #E2E6E1; border-radius:12px">
+        <h3 style="font-size:28px; font-weight:600; color:#2E7D5B">Mouths carry no logic</h3>
+        <p style="font-size:25px; color:#4E5B54">CLI and MCP translate argv/tool calls into core calls. Nothing else.</p>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; background:#FFFFFF; padding:30px 36px; border:1px solid #E2E6E1; border-radius:12px">
+        <h3 style="font-size:28px; font-weight:600; color:#2E7D5B">Core carries no platforms</h3>
+        <p style="font-size:25px; color:#4E5B54">If an integration can't fit a seam, the seam is wrong — fix the interface, record an ADR.</p>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; background:#FFFFFF; padding:30px 36px; border:1px solid #E2E6E1; border-radius:12px">
+        <h3 style="font-size:28px; font-weight:600; color:#2E7D5B">Core is born in scope 2a</h3>
+        <p style="font-size:25px; color:#4E5B54">The refactor that gives init/validate a module boundary IS the birth of packages/core.</p>
+      </div>
+    </div>
+  </div>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">epito · system architecture</p>
+</section>

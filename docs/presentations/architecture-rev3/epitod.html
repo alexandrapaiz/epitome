@@ -1,0 +1,16 @@
+<section id="epitod" data-transition="fade" style="background:#F2F4F0; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:36px">
+  <div style="display:flex; flex-direction:column; gap:14px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">6 · epitod — the local daemon (phase 2)</p>
+    <h2 style="font-size:58px; font-weight:600; line-height:1.1">The same manifest becomes a systemd unit.</h2>
+  </div>
+  <table style="font-size:26px; color:#1F2A24; background:#FFFFFF; border:1px solid #E2E6E1; border-radius:12px">
+    <tr><th style="width:34%; text-align:left; font-size:25px">Manifest</th><th style="width:38%; text-align:left; font-size:25px">epitod materializes</th><th style="width:28%; text-align:left; font-size:25px">Mechanism</th></tr>
+    <tr><td style="font-family:'JetBrains Mono', Courier New, monospace">[trigger].cron</td><td>systemd user timer</td><td>OnCalendar=</td></tr>
+    <tr style="background:#FAFBF9"><td style="font-family:'JetBrains Mono', Courier New, monospace">[runtime]</td><td>user unit or rootless container</td><td style="font-family:'JetBrains Mono', Courier New, monospace">ExecStart=epito run &lt;name&gt;</td></tr>
+    <tr><td style="font-family:'JetBrains Mono', Courier New, monospace">[agent].name</td><td>OS-level identity for the process</td><td>DynamicUser / per-agent user / podman — decided in the phase-2 pitch</td></tr>
+    <tr style="background:#FAFBF9"><td>audit</td><td>journald → audit.jsonl adapter</td><td>same AuditEntry schema</td></tr>
+    <tr><td>roster</td><td style="font-family:'JetBrains Mono', Courier New, monospace">epito ps</td><td>reads systemctl state</td></tr>
+  </table>
+  <p style="font-size:27px; color:#4E5B54; width:1640px">The point: OS-level identity mirrors platform identity — the same someone in <span style="font-family:'JetBrains Mono', Courier New, monospace">ps</span> and in the commit log. The Omarchy package (accepted) is just epito + epitod + the MCP server; the systemd provider pair IS the integration — nothing bespoke, per ADR-6.</p>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">epito · system architecture</p>
+</section>

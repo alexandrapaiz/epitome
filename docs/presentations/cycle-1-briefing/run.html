@@ -1,0 +1,25 @@
+<section id="run" data-transition="fade" style="background:#FAFAF7; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:40px">
+  <div style="display:flex; flex-direction:column; gap:14px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">3 · What happens on every run</p>
+    <h2 style="font-size:58px; font-weight:600; line-height:1.1">Short-lived tokens, real attribution, a line in the log.</h2>
+  </div>
+  <div style="display:flex; gap:28px">
+    <div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:34px 38px; border:1px solid #E2E6E1; border-radius:14px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; font-weight:600; color:#2E7D5B">JWT → token</p>
+      <p style="font-size:25px; line-height:1.45; color:#4E5B54">Sign a 10-minute JWT with the App key; exchange it for an installation token that <b>expires in ~1 hour</b> and carries only the manifest's scopes. Tokens never touch disk.</p>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:34px 38px; border:1px solid #E2E6E1; border-radius:14px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; font-weight:600; color:#2E7D5B">The agent acts</p>
+      <p style="font-size:25px; line-height:1.45; color:#4E5B54">Commits and PRs attribute to <span style="font-family:'JetBrains Mono', Courier New, monospace">historian[bot]</span> — never to the owner. "Which agent did that" finally has an answer.</p>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:34px 38px; border:1px solid #E2E6E1; border-radius:14px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; font-weight:600; color:#2E7D5B">Audit + revoke</p>
+      <p style="font-size:25px; line-height:1.45; color:#4E5B54">Every mint appends one JSONL line. Revocation = uninstall the App: one click, and nothing personal is touched.</p>
+    </div>
+  </div>
+  <div style="background:#1B2620; border-radius:14px; padding:30px 44px; display:flex; flex-direction:column; gap:6px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#7A8C80">.epito/audit.jsonl</p>
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; color:#D9E4DC">{"agent":"historian","scopes":["github:contents","github:pull_requests"],"ts":"2026-09-29T06:00:12Z"}</p>
+  </div>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">epito.me · cycle 1 technical briefing · PM seat</p>
+</section>

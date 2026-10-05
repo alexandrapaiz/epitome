@@ -1,0 +1,17 @@
+<section id="infra" data-transition="fade" style="background:#FAFAF7; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:28px">
+  <div style="display:flex; flex-direction:column; gap:12px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">13 · Infrastructure, end to end</p>
+    <h2 style="font-size:54px; font-weight:600; line-height:1.1">Compute, containers, data, and secrets, per phase.</h2>
+  </div>
+  <table style="font-size:24px; color:#1F2A24; background:#FFFFFF; border:1px solid #E2E6E1; border-radius:12px">
+    <tr><th style="width:13%; text-align:left; font-size:23px">Phase</th><th style="width:23%; text-align:left; font-size:23px">Compute</th><th style="width:20%; text-align:left; font-size:23px">Containers</th><th style="width:24%; text-align:left; font-size:23px">Data storage</th><th style="width:20%; text-align:left; font-size:23px">Secrets</th></tr>
+    <tr><td><b>1</b> (now)</td><td>GitHub Actions runners, ephemeral, user's account</td><td>none — the runner image is the environment</td><td><span style="font-family:'JetBrains Mono', Courier New, monospace">.epito/</span>: principals.json, keys/, audit.jsonl (three trust levels)</td><td>PEM at 0600 local; GitHub repo secrets for [runtime].env</td></tr>
+    <tr style="background:#FAFBF9"><td><b>2</b> (epitod)</td><td>the user's machine: systemd user units + timers</td><td>rootless podman, one OCI image per agent, base image in GHCR; DynamicUser as the no-container fallback</td><td>same local store + journald as the run log, adapter to audit.jsonl</td><td>proposal: OS keychain (libsecret / macOS Keychain) replaces bare PEM files</td></tr>
+    <tr><td><b>3</b> (plane)</td><td>Vercel functions for api + ingress; agent runtimes STAY user-side, hosted runners only as a later paid option</td><td>same per-agent OCI images, pulled from GHCR</td><td>Supabase Postgres: orgs → agents (manifest snapshots) → principals → grants → audit; local mode keeps working (constraint 4)</td><td>App keys move to KMS — proposal: AWS KMS, fallback libsodium-sealed columns; decided at the phase-3 pitch</td></tr>
+  </table>
+  <div style="display:flex; gap:24px">
+    <div style="flex:1; background:#EAF5EE; border:1px solid #CDE5D6; border-radius:12px; padding:20px 30px"><p style="font-size:24px"><b>Named proposals, not TBDs:</b> podman 5.x rootless (daemonless; docker rejected: root daemon), GHCR (already in the account), Supabase Postgres 16 (buys the OAuth 2.1 server and catalog listing over bare Neon; both are Postgres, so swappable under constraint 1).</p></div>
+    <div style="flex:1; background:#EAF5EE; border:1px solid #CDE5D6; border-radius:12px; padding:20px 30px"><p style="font-size:24px"><b>Cost shape:</b> phases 1–2 cost us zero by design — compute, storage, and secrets all live on the user's machine and accounts. Our first infrastructure bill arrives with phase 3, after demand is proven.</p></div>
+  </div>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">epito · engineering plan · internal</p>
+</section>

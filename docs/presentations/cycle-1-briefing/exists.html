@@ -1,0 +1,36 @@
+<section id="exists" data-transition="fade" style="background:#FAFAF7; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:40px">
+  <div style="display:flex; flex-direction:column; gap:14px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">1 · What exists today</p>
+    <h2 style="font-size:60px; font-weight:600; line-height:1.1">A manifest, a validator, and a deploy that says "not yet."</h2>
+  </div>
+  <div style="display:flex; gap:40px">
+    <div style="width:760px; display:flex; flex-direction:column; gap:0; background:#1B2620; border-radius:14px; padding:36px 44px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#7A8C80; padding:0 0 16px 0">agent.toml — the whole agent</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.55; color:#5FD09A">[agent]</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.55; color:#D9E4DC">name = "historian"</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.55; color:#5FD09A">[identity]</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.55; color:#D9E4DC">scopes = ["github:contents",</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.55; color:#D9E4DC">&#160;&#160;"github:pull_requests"]</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.55; color:#5FD09A">[trigger]</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.55; color:#D9E4DC">cron = "0 6 * * *"</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.55; color:#5FD09A">[runtime]</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.55; color:#D9E4DC">model = "claude-sonnet-5"</p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.55; color:#D9E4DC">entry = "prompts/historian.md"</p>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:22px">
+      <div style="display:flex; flex-direction:column; gap:8px; background:#FFFFFF; padding:30px 36px; border:1px solid #E2E6E1; border-radius:12px">
+        <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:26px; font-weight:600">epito init · epito me</p>
+        <p style="font-size:25px; color:#4E5B54">Works. Scaffolds the manifest and a charter file.</p>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; background:#FFFFFF; padding:30px 36px; border:1px solid #E2E6E1; border-radius:12px">
+        <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:26px; font-weight:600">epito validate</p>
+        <p style="font-size:25px; color:#4E5B54">Works. Enforces spec v0.1: the identity/trigger/runtime triad, scope grammar, no credentials in the file — "without [identity] this file describes a skill."</p>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; background:#FFF7EE; padding:30px 36px; border:1px solid #E8D9C4; border-radius:12px">
+        <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:26px; font-weight:600; color:#A8632A">epito deploy</p>
+        <p style="font-size:25px; color:#4E5B54">A stub that refuses politely. <b>Making it real is bet 1.</b></p>
+      </div>
+    </div>
+  </div>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">epito.me · cycle 1 technical briefing · PM seat</p>
+</section>

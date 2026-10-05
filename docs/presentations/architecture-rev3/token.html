@@ -1,0 +1,29 @@
+<section id="token" data-transition="fade" style="background:#FAFAF7; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:40px">
+  <div style="display:flex; flex-direction:column; gap:14px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">7 · Flow: every run</p>
+    <h2 style="font-size:58px; font-weight:600; line-height:1.1">The per-run token flow.</h2>
+  </div>
+  <div style="display:flex; gap:28px">
+    <div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:32px 36px; border:1px solid #E2E6E1; border-radius:14px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; font-weight:600; color:#2E7D5B">sign</p>
+      <p style="font-size:25px; line-height:1.45; color:#4E5B54">Load <span style="font-family:'JetBrains Mono', Courier New, monospace">keys/&lt;agent&gt;.pem</span>; sign a 10-minute JWT, <span style="font-family:'JetBrains Mono', Courier New, monospace">iss</span> = App id.</p>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:32px 36px; border:1px solid #E2E6E1; border-radius:14px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; font-weight:600; color:#2E7D5B">exchange</p>
+      <p style="font-size:25px; line-height:1.45; color:#4E5B54"><span style="font-family:'JetBrains Mono', Courier New, monospace">POST /app/installations/{id}/access_tokens</span> with exactly the manifest's permissions → ~1-hour installation token.</p>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:32px 36px; border:1px solid #E2E6E1; border-radius:14px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; font-weight:600; color:#2E7D5B">hand off</p>
+      <p style="font-size:25px; line-height:1.45; color:#4E5B54">Token reaches the agent process via env, never disk. Work attributes to <span style="font-family:'JetBrains Mono', Courier New, monospace">&lt;name&gt;[bot]</span>. Audit line appended.</p>
+    </div>
+  </div>
+  <div style="display:flex; gap:28px">
+    <div style="flex:1; display:flex; flex-direction:column; gap:10px; background:#EAF5EE; padding:28px 36px; border:1px solid #CDE5D6; border-radius:14px">
+      <p style="font-size:26px; color:#1F2A24"><b>Scopes are the ceiling</b> — the runtime can never acquire a permission the manifest doesn't declare; widening = a manifest diff = intent in the audit trail.</p>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:10px; background:#EAF5EE; padding:28px 36px; border:1px solid #CDE5D6; border-radius:14px">
+      <p style="font-size:26px; color:#1F2A24"><b>Revoke = uninstall the App</b> — GitHub refuses every future mint; local keys deleted; nothing personal touched.</p>
+    </div>
+  </div>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">epito · system architecture</p>
+</section>

@@ -1,0 +1,15 @@
+<section id="testing" data-transition="fade" style="background:#FAFAF7; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:32px">
+  <div style="display:flex; flex-direction:column; gap:12px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">8 · Testing strategy</p>
+    <h2 style="font-size:56px; font-weight:600; line-height:1.1">Four layers, each with a gate.</h2>
+  </div>
+  <table style="font-size:25px; color:#1F2A24; background:#FFFFFF; border:1px solid #E2E6E1; border-radius:12px">
+    <tr><th style="width:15%; text-align:left; font-size:24px">Layer</th><th style="width:41%; text-align:left; font-size:24px">What</th><th style="width:22%; text-align:left; font-size:24px">Tool</th><th style="width:22%; text-align:left; font-size:24px">Gate</th></tr>
+    <tr><td><b>Unit</b></td><td>Validator golden fixtures — a corpus of valid + invalid manifests; every error string asserted verbatim (errors are product surface)</td><td>vitest</td><td>every PR, CI</td></tr>
+    <tr style="background:#FAFBF9"><td><b>Integration</b></td><td>mint / token / revoke flows against a mocked GitHub API — manifest conversion, token exchange, failure paths (expired code, missing installation)</td><td>vitest + undici MockAgent</td><td>every PR, CI</td></tr>
+    <tr><td><b>Regression</b></td><td>CLI output byte-identical through scope 2a's refactor</td><td>diff in CI</td><td>during 2a; then retired</td></tr>
+    <tr style="background:#FAFBF9"><td><b>E2E</b></td><td>real `epito deploy` against a scratch GitHub account: App minted, token minted, commit lands as &lt;name&gt;[bot]</td><td>manual, transcript pasted in PR (charter rule: untested = unfinished)</td><td>before merging any provider change</td></tr>
+  </table>
+  <p style="font-size:25px; color:#4E5B54">CI matrix: Node 22 + 24, ubuntu + macos. No coverage-percent worship — the golden corpus and the four failure paths above are the bar; a bug found later becomes a fixture the same day (ExO owns the lesson entry).</p>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">epito · engineering plan · internal</p>
+</section>

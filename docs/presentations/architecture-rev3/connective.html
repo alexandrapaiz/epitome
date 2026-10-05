@@ -1,0 +1,18 @@
+<section id="connective" data-transition="fade" style="background:#F2F4F0; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:30px">
+  <div style="display:flex; flex-direction:column; gap:12px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">12 · The connective stack — distribution is engineering</p>
+    <h2 style="font-size:54px; font-weight:600; line-height:1.1">The stack we build on is the stack we distribute through.</h2>
+  </div>
+  <table style="font-size:24px; color:#1F2A24; background:#FFFFFF; border:1px solid #E2E6E1; border-radius:12px">
+    <tr><th style="width:13%; text-align:left; font-size:23px">Layer</th><th style="width:19%; text-align:left; font-size:23px">Tool</th><th style="width:37%; text-align:left; font-size:23px">Role in the system</th><th style="width:31%; text-align:left; font-size:23px">Distribution value</th></tr>
+    <tr><td><b>Cloud</b></td><td>Vercel</td><td>phase-3 control plane: api + ingress as functions</td><td>Marketplace's AI-agents category listing</td></tr>
+    <tr style="background:#FAFBF9"><td><b>Data</b></td><td>Supabase Postgres</td><td>phase-3 DB (orgs→agents→principals→grants→audit); its OAuth 2.1 server = a future per-agent database IdentityProvider</td><td>partner catalog once the revenue bar clears</td></tr>
+    <tr><td><b>Human auth</b></td><td>Clerk</td><td>control-plane sign-in for owners and orgs (humans only; agents use OUR identity layer)</td><td>the vibecoder auth default; template ecosystem</td></tr>
+    <tr style="background:#FAFBF9"><td><b>Work surfaces</b></td><td>GitHub · Linear</td><td>IdentityProvider targets: App principal (v1) · app-user (re-rank pending, ADR-6)</td><td>agents demo the product inside the tools, as themselves</td></tr>
+    <tr><td><b>Models</b></td><td>Anthropic Claude · OpenAI</td><td><span style="font-family:'JetBrains Mono', Courier New, monospace">[runtime].model</span> is provider-agnostic; owner's key as a named secret in <span style="font-family:'JetBrains Mono', Courier New, monospace">[runtime].env</span>; gateway option in phase 3</td><td>model-agnostic means every lab's users are addressable</td></tr>
+    <tr style="background:#FAFBF9"><td><b>Editors</b></td><td>Claude Code · Cursor</td><td>the MCP server + skill (bet 2)</td><td>zero-listing-bar channel into daily sessions</td></tr>
+    <tr><td><b>OS</b></td><td>Omarchy / Arch</td><td>epitod + systemd providers (phase 2)</td><td>AUR package; curated-defaults pitch</td></tr>
+  </table>
+  <p style="font-size:25px; color:#1F2A24"><b>Constraint 1 still governs</b> (ADR-6): every row is a surface or a swappable backend, never a load-bearing dependency — Supabase is replaceable Postgres, Clerk is replaceable auth, each model provider is one value of <span style="font-family:'JetBrains Mono', Courier New, monospace">model</span>.</p>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">epito · engineering plan · internal</p>
+</section>

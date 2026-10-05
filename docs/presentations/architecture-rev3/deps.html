@@ -1,0 +1,18 @@
+<section id="deps" data-transition="fade" style="background:#F2F4F0; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:32px">
+  <div style="display:flex; flex-direction:column; gap:12px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">3 · Dependency budget</p>
+    <h2 style="font-size:56px; font-weight:600; line-height:1.1">The complete runtime dependency budget.</h2>
+  </div>
+  <table style="font-size:25px; color:#1F2A24; background:#FFFFFF; border:1px solid #E2E6E1; border-radius:12px">
+    <tr><th style="width:22%; text-align:left; font-size:24px">Package</th><th style="width:32%; text-align:left; font-size:24px">Runtime deps</th><th style="width:46%; text-align:left; font-size:24px">Note</th></tr>
+    <tr><td style="font-family:'JetBrains Mono', Courier New, monospace">core</td><td style="font-family:'JetBrains Mono', Courier New, monospace">smol-toml</td><td>only the parser; zod rejected — the hand-rolled validator's error voice IS product surface</td></tr>
+    <tr style="background:#FAFBF9"><td style="font-family:'JetBrains Mono', Courier New, monospace">cli</td><td style="font-family:'JetBrains Mono', Courier New, monospace">(none)</td><td>argv by hand — ships today, stays that way</td></tr>
+    <tr><td style="font-family:'JetBrains Mono', Courier New, monospace">mcp</td><td style="font-family:'JetBrains Mono', Courier New, monospace">@modelcontextprotocol/sdk</td><td>official SDK; stdio transport only</td></tr>
+    <tr style="background:#FAFBF9"><td style="font-family:'JetBrains Mono', Courier New, monospace">providers/github</td><td style="font-family:'JetBrains Mono', Courier New, monospace">jose</td><td>RS256 JWT signing; HTTP via native fetch, no octokit — 4 endpoints don't earn a client library</td></tr>
+    <tr><td style="font-family:'JetBrains Mono', Courier New, monospace">providers/systemd</td><td style="font-family:'JetBrains Mono', Courier New, monospace">(none, target)</td><td>unit/timer files written directly; systemctl exec'd; D-Bus binding decided in the phase-2 pitch</td></tr>
+    <tr style="background:#FAFBF9"><td style="font-family:'JetBrains Mono', Courier New, monospace">epitod</td><td style="font-family:'JetBrains Mono', Courier New, monospace">(none, target)</td><td>watches files, shells to systemctl, tails journald</td></tr>
+    <tr><td style="font-family:'JetBrains Mono', Courier New, monospace">control plane</td><td style="font-family:'JetBrains Mono', Courier New, monospace">hono, pg (proposed)</td><td>phase 3 — final budget set at its pitch, not before</td></tr>
+  </table>
+  <p style="font-size:26px; color:#1F2A24"><b>Budget law:</b> a new runtime dependency = a named justification line in the PR body, or the PR is rejected. Lockfile committed; npm provenance on every publish. This is the supply-chain posture (threat model, slide 10).</p>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">epito · engineering plan · internal</p>
+</section>

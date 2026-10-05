@@ -1,0 +1,24 @@
+<section id="laws" data-transition="fade" style="background:#14201A; color:#EDF3EE; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; justify-content:center; gap:36px">
+  <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:26px; color:#5FD09A; letter-spacing:3px; text-transform:uppercase">14 · Load-bearing constraints</p>
+  <h2 style="font-size:56px; font-weight:700; line-height:1.1; color:#EDF3EE">Do not design around these.</h2>
+  <div style="display:flex; flex-direction:column; gap:18px">
+    <div style="display:flex; gap:28px; align-items:center; background:#1B2620; border:1px solid #2A3A30; border-radius:12px; padding:24px 38px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:28px; font-weight:600; color:#5FD09A; width:52px">1</p>
+      <p style="font-size:29px; width:1500px"><b>Integrations are surfaces, never dependencies</b> (ADR-6). No feature may require a specific third-party product. Core, CLI, MCP, and epitod work with zero integrations beyond the user's chosen identity target.</p>
+    </div>
+    <div style="display:flex; gap:28px; align-items:center; background:#1B2620; border:1px solid #2A3A30; border-radius:12px; padding:24px 38px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:28px; font-weight:600; color:#5FD09A; width:52px">2</p>
+      <p style="font-size:29px; width:1500px"><b>The manifest is publishable, always.</b> Secrets live in .epito/ or the platform's vault, never in agent.toml. Break this once and the future marketplace is dead before it exists.</p>
+    </div>
+    <div style="display:flex; gap:28px; align-items:center; background:#1B2620; border:1px solid #2A3A30; border-radius:12px; padding:24px 38px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:28px; font-weight:600; color:#5FD09A; width:52px">3</p>
+      <p style="font-size:29px; width:1500px"><b>Core never grows a platform branch.</b> A misfit integration means the seam is wrong. Fix the interface and record the ADR.</p>
+    </div>
+    <div style="display:flex; gap:28px; align-items:center; background:#1B2620; border:1px solid #2A3A30; border-radius:12px; padding:24px 38px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:28px; font-weight:600; color:#5FD09A; width:52px">4</p>
+      <p style="font-size:29px; width:1500px"><b>Local-first survives the hosted plane.</b> Hosted mode is a provider swap. The CLI and epitod keep working with no account on our servers, permanently.</p>
+    </div>
+  </div>
+  <p style="font-size:28px; color:#9DB4A6">The owner enforces these four at every merge. Everything else in this deck is implementation and may change by ordinary ADR.</p>
+  <aside>Closing slide. These constraints are the epito equivalent of Ursa's "load-bearing constraints" section.</aside>
+</section>

@@ -1,0 +1,14 @@
+<section id="cover" data-transition="fade" style="background:#14201A; color:#EDF3EE; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; justify-content:space-between">
+  <div style="display:flex; flex-direction:column; gap:20px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; color:#5FD09A; letter-spacing:3px; text-transform:uppercase">internal · engineering plan · not for distribution</p>
+    <h1 style="font-size:92px; font-weight:700; line-height:1.08; width:1620px">epito — system architecture and engineering plan</h1>
+  </div>
+  <div style="background:#1B2620; border:1px solid #2A3A30; border-radius:14px; padding:34px 44px; display:flex; flex-direction:column">
+    <div style="display:flex; gap:24px; padding:10px 0; border-bottom:1px solid #24332B"><p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; color:#7A8C80; width:260px">status</p><p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; color:#D9E4DC">draft rev 3 — for owner sign-off; becomes the architecture ADR after EPI-4</p></div>
+    <div style="display:flex; gap:24px; padding:10px 0; border-bottom:1px solid #24332B"><p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; color:#7A8C80; width:260px">source of truth</p><p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; color:#D9E4DC">docs/architecture.md · spec/manifest.md v0.1 · agent.toml</p></div>
+    <div style="display:flex; gap:24px; padding:10px 0; border-bottom:1px solid #24332B"><p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; color:#7A8C80; width:260px">covers</p><p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; color:#D9E4DC">components · toolchain · dependency budget · contracts · data · flows · tests · threat model · epitod · control plane · infra</p></div>
+    <div style="display:flex; gap:24px; padding:10px 0"><p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; color:#7A8C80; width:260px">open decisions</p><p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; color:#D9E4DC">EPI-4 route (due 09-25) · epitod process model · phase-3 KMS · npm name</p></div>
+  </div>
+  <p style="font-size:28px; color:#9DB4A6">Organizing rule: the agent definition (identity + trigger + runtime) is the plugin architecture — one core, three provider seams, platforms only behind them.</p>
+  <aside>Rev 3 after owner feedback: tooling, dependency budget, testing, and threat model added; cover restyled from pitch to doc header.</aside>
+</section>

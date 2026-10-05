@@ -1,0 +1,30 @@
+<section id="flow" data-transition="fade" style="background:#F2F4F0; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:36px">
+  <div style="display:flex; flex-direction:column; gap:14px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">2 · What epito deploy will actually do</p>
+    <h2 style="font-size:58px; font-weight:600; line-height:1.1">Manifest in, GitHub App principal out. Five steps, one click.</h2>
+  </div>
+  <div style="display:flex; flex-direction:column; gap:14px">
+    <div style="display:flex; gap:24px; align-items:center; background:#FFFFFF; border:1px solid #E2E6E1; border-radius:12px; padding:20px 32px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:26px; font-weight:600; color:#2E7D5B; width:56px">1</p>
+      <p style="font-size:26px; flex:1">Read and validate <span style="font-family:'JetBrains Mono', Courier New, monospace">agent.toml</span>; refuse anything spec v0.1 refuses.</p>
+    </div>
+    <div style="display:flex; gap:24px; align-items:center; background:#FFFFFF; border:1px solid #E2E6E1; border-radius:12px; padding:20px 32px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:26px; font-weight:600; color:#2E7D5B; width:56px">2</p>
+      <p style="font-size:26px; flex:1">Start a one-shot localhost callback listener, then open GitHub's <b>app-manifest creation page</b>, pre-filled from <span style="font-family:'JetBrains Mono', Courier New, monospace">[identity].scopes</span>.</p>
+    </div>
+    <div style="display:flex; gap:24px; align-items:center; background:#FFFFFF; border:1px solid #E2E6E1; border-radius:12px; padding:20px 32px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:26px; font-weight:600; color:#2E7D5B; width:56px">3</p>
+      <p style="font-size:26px; flex:1">You click <b>Create</b> — the one human click. GitHub redirects back with a temporary code.</p>
+    </div>
+    <div style="display:flex; gap:24px; align-items:center; background:#FFFFFF; border:1px solid #E2E6E1; border-radius:12px; padding:20px 32px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:26px; font-weight:600; color:#2E7D5B; width:56px">4</p>
+      <p style="font-size:26px; flex:1">CLI exchanges the code for the App's <b>id + private key</b>; stores them in <span style="font-family:'JetBrains Mono', Courier New, monospace">.epito/</span> (0600, gitignored — the manifest stays publishable).</p>
+    </div>
+    <div style="display:flex; gap:24px; align-items:center; background:#FFFFFF; border:1px solid #E2E6E1; border-radius:12px; padding:20px 32px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:26px; font-weight:600; color:#2E7D5B; width:56px">5</p>
+      <p style="font-size:26px; flex:1">Install the App on the target repo. The agent now exists as <span style="font-family:'JetBrains Mono', Courier New, monospace; font-weight:600">historian[bot]</span> — a principal that is not you.</p>
+    </div>
+  </div>
+  <p style="font-size:26px; color:#4E5B54">Deploy twice = update the same principal, never a duplicate (spec rule 4: identity follows <span style="font-family:'JetBrains Mono', Courier New, monospace">name</span>).</p>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">epito.me · cycle 1 technical briefing · PM seat</p>
+</section>

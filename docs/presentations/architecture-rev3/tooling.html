@@ -1,0 +1,19 @@
+<section id="tooling" data-transition="fade" style="background:#FAFAF7; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:32px">
+  <div style="display:flex; flex-direction:column; gap:12px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">2 · Toolchain</p>
+    <h2 style="font-size:56px; font-weight:600; line-height:1.1">Toolchain: each choice, its reason, its rejected alternative.</h2>
+  </div>
+  <table style="font-size:25px; color:#1F2A24; background:#FFFFFF; border:1px solid #E2E6E1; border-radius:12px">
+    <tr><th style="width:17%; text-align:left; font-size:24px">Concern</th><th style="width:28%; text-align:left; font-size:24px">Choice</th><th style="width:29%; text-align:left; font-size:24px">Why</th><th style="width:26%; text-align:left; font-size:24px">Rejected</th></tr>
+    <tr><td><b>Language</b></td><td>TypeScript 5.x, strict</td><td>the seams are typed contracts</td><td>JS + JSDoc — interface drift</td></tr>
+    <tr style="background:#FAFBF9"><td><b>Runtime</b></td><td>Node ≥22 LTS, ESM only</td><td>native fetch, zero polyfills</td><td>Bun — Actions ubiquity wins for now</td></tr>
+    <tr><td><b>Workspace</b></td><td>pnpm workspaces</td><td>strict hoisting, cheap monorepo</td><td>turborepo — ceremony &gt; work at this size</td></tr>
+    <tr style="background:#FAFBF9"><td><b>Build</b></td><td>tsc project references → dist/</td><td>plain, debuggable output</td><td>bundlers — deferred to npm ship</td></tr>
+    <tr><td><b>Tests</b></td><td>vitest + undici MockAgent</td><td>fast ESM, native API mocking</td><td>jest — slower ESM story</td></tr>
+    <tr style="background:#FAFBF9"><td><b>Lint + format</b></td><td>biome</td><td>one tool, one config</td><td>eslint + prettier — two tools</td></tr>
+    <tr><td><b>CI</b></td><td>GitHub Actions</td><td>dogfood: our seats live there</td><td>—</td></tr>
+    <tr style="background:#FAFBF9"><td><b>Release</b></td><td>changesets → npm, provenance on</td><td>versioned per package, audited</td><td>manual publish — no trail</td></tr>
+  </table>
+  <p style="font-size:25px; color:#4E5B54">Migration note: cli/src/index.js is plain JS today; it converts to TypeScript inside scope 2a's refactor, under the byte-identical-output acceptance test.</p>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">epito · engineering plan · internal</p>
+</section>

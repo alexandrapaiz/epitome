@@ -1,0 +1,16 @@
+<section id="route" data-transition="fade" style="background:#F2F4F0; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:36px">
+  <div style="display:flex; flex-direction:column; gap:14px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">4 · The decision — due Fri 09-25 as an ADR</p>
+    <h2 style="font-size:58px; font-weight:600; line-height:1.1">One App per agent, or one shared App for all?</h2>
+  </div>
+  <table style="font-size:26px; color:#1F2A24; background:#FFFFFF; border:1px solid #E2E6E1; border-radius:12px">
+    <tr><th style="width:22%; text-align:left; font-size:25px"></th><th style="width:39%; text-align:left; font-size:25px; color:#2E7D5B">App per agent (the product's promise)</th><th style="width:39%; text-align:left; font-size:25px; color:#6A756E">One shared App (ADR-27 status quo)</th></tr>
+    <tr><td><b>Attribution</b></td><td>True per-agent: each acts as its own <span style="font-family:'JetBrains Mono', Courier New, monospace">name[bot]</span></td><td>Every agent looks like the same bot; per-agent identity is lost</td></tr>
+    <tr style="background:#FAFBF9"><td><b>Revocation</b></td><td>Per agent, one click, surgical</td><td>All or nothing</td></tr>
+    <tr><td><b>Scopes</b></td><td>Each App carries only its manifest's permissions</td><td>One App carries the union of every agent's permissions</td></tr>
+    <tr style="background:#FAFBF9"><td><b>Deploy cost</b></td><td>One browser click per agent (manifest flow)</td><td>One-time setup, then zero clicks</td></tr>
+    <tr><td><b>Unknowns</b></td><td>GitHub's App-registration caps and naming limits — <b>the spike enumerates them</b></td><td>None; it is what alexandria hand-built — i.e. what we exist to replace</td></tr>
+  </table>
+  <p style="font-size:27px; color:#1F2A24; width:1600px"><b>The spike (EPI-4):</b> run the manifest flow end-to-end by hand, hit the real limits, write the ADR. PM's prior: per-agent <i>is</i> the product — shared only if GitHub's limits force it. The owner objects over the weekend or the route stands.</p>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">epito.me · cycle 1 technical briefing · PM seat</p>
+</section>

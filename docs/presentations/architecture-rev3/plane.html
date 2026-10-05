@@ -1,0 +1,30 @@
+<section id="plane" data-transition="fade" style="background:#FAFAF7; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:36px">
+  <div style="display:flex; flex-direction:column; gap:14px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">7 · Control plane (phase 3)</p>
+    <h2 style="font-size:58px; font-weight:600; line-height:1.1">Four services, one Postgres, one test.</h2>
+  </div>
+  <div style="display:flex; gap:24px">
+    <div style="flex:1; display:flex; flex-direction:column; gap:10px; background:#FFFFFF; padding:30px 34px; border:1px solid #E2E6E1; border-radius:14px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:26px; font-weight:600; color:#2E7D5B">api</p>
+      <p style="font-size:25px; line-height:1.4; color:#4E5B54">Roster, orgs, grants — CRUD; the paid tier's surface</p>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:10px; background:#FFFFFF; padding:30px 34px; border:1px solid #E2E6E1; border-radius:14px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:26px; font-weight:600; color:#2E7D5B">mint</p>
+      <p style="font-size:25px; line-height:1.4; color:#4E5B54">App keys move from .epito/ to a KMS; tokens issued via API; per-org scope policy</p>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:10px; background:#FFFFFF; padding:30px 34px; border:1px solid #E2E6E1; border-radius:14px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:26px; font-weight:600; color:#2E7D5B">ingress</p>
+      <p style="font-size:25px; line-height:1.4; color:#4E5B54">Per-agent public webhook URLs; dispatches webhook triggers to runtimes</p>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:10px; background:#FFFFFF; padding:30px 34px; border:1px solid #E2E6E1; border-radius:14px">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:26px; font-weight:600; color:#2E7D5B">audit</p>
+      <p style="font-size:25px; line-height:1.4; color:#4E5B54">The shared, queryable trail teams pay for</p>
+    </div>
+  </div>
+  <div style="background:#1B2620; border-radius:14px; padding:30px 44px; display:flex; flex-direction:column; gap:6px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#7A8C80">db spine</p>
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:26px; color:#D9E4DC">orgs → agents (manifest snapshots) → principals → grants → audit</p>
+  </div>
+  <p style="font-size:28px; color:#1F2A24; width:1640px"><b>The architectural test:</b> clients reach the plane through the SAME provider interfaces — hosted mode is a provider swap, not a rewrite. If the control plane ever requires touching core, the seams were wrong.</p>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">epito · system architecture</p>
+</section>

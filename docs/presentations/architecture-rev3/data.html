@@ -1,0 +1,31 @@
+<section id="data" data-transition="fade" style="background:#FAFAF7; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:40px">
+  <div style="display:flex; flex-direction:column; gap:14px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">5 · Data model</p>
+    <h2 style="font-size:60px; font-weight:600; line-height:1.1">Four records, three trust levels on disk.</h2>
+  </div>
+  <div style="display:flex; gap:40px">
+    <div style="width:900px; background:#1B2620; border-radius:14px; padding:36px 44px; display:flex; flex-direction:column">
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.65; color:#5FD09A">Manifest&#160;&#160;&#160;<span style="color:#D9E4DC">= agent.toml, parsed</span>&#160;&#160;<span style="color:#7A8C80">// publishable, never secret</span></p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.65; color:#5FD09A">Principal&#160;&#160;<span style="color:#D9E4DC">= { agent, provider, externalId,</span></p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.65; color:#D9E4DC">&#160;&#160;&#160;&#160;installations[{repo, installationId}] }&#160;&#160;<span style="color:#7A8C80">// NEVER secrets</span></p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.65; color:#5FD09A">Credential&#160;<span style="color:#D9E4DC">= { token, expiresAt, scopes }</span>&#160;&#160;<span style="color:#7A8C80">// in-memory ONLY</span></p>
+      <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; line-height:1.65; color:#5FD09A">AuditEntry&#160;<span style="color:#D9E4DC">= { ts, agent, action, scopes, provider }</span>&#160;&#160;<span style="color:#7A8C80">// append-only</span></p>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:0; background:#FFFFFF; border:1px solid #E2E6E1; border-radius:12px; padding:24px 36px">
+      <div style="display:flex; flex-direction:column; gap:4px; padding:16px 0; border-bottom:1px solid #ECEFEA">
+        <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; font-weight:600">.epito/principals.json</p>
+        <p style="font-size:24px; color:#4E5B54">Safe to read aloud — records, no secrets</p>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px; padding:16px 0; border-bottom:1px solid #ECEFEA">
+        <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; font-weight:600">.epito/keys/&lt;agent&gt;.pem</p>
+        <p style="font-size:24px; color:#4E5B54">Secret — 0600, gitignored, one per principal</p>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px; padding:16px 0">
+        <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:25px; font-weight:600">.epito/audit.jsonl</p>
+        <p style="font-size:24px; color:#4E5B54">Append-only — the trail that answers "which agent did that"</p>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:27px; color:#4E5B54">The split is the marketplace's precondition: a manifest publishable without redaction, state readable, secrets isolated. Tokens never persist anywhere.</p>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">epito · system architecture</p>
+</section>

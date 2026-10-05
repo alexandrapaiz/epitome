@@ -1,0 +1,18 @@
+<section id="security" data-transition="fade" style="background:#F2F4F0; color:#1F2A24; font-family:'IBM Plex Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:32px">
+  <div style="display:flex; flex-direction:column; gap:12px">
+    <p style="font-family:'JetBrains Mono', Courier New, monospace; font-size:24px; color:#2E7D5B; letter-spacing:3px; text-transform:uppercase">9 · Threat model</p>
+    <h2 style="font-size:56px; font-weight:600; line-height:1.1">What leaks, what it costs, what contains it.</h2>
+  </div>
+  <table style="font-size:25px; color:#1F2A24; background:#FFFFFF; border:1px solid #E2E6E1; border-radius:12px">
+    <tr><th style="width:26%; text-align:left; font-size:24px">Asset / threat</th><th style="width:30%; text-align:left; font-size:24px">Blast radius</th><th style="width:44%; text-align:left; font-size:24px">Controls</th></tr>
+    <tr><td>agent.toml leaked</td><td>none, by design</td><td>publishable by construction; validator tripwires reject pasted credentials</td></tr>
+    <tr style="background:#FAFBF9"><td>principals.json leaked</td><td>metadata only</td><td>records carry ids, never secrets</td></tr>
+    <tr><td><b>keys/&lt;agent&gt;.pem stolen</b></td><td>act as that one agent until revoked</td><td>0600; .epito/ gitignored at init; revoke = uninstall (GitHub refuses all future mints); OS-keychain storage on the backlog</td></tr>
+    <tr style="background:#FAFBF9"><td>token exfiltrated from a run</td><td>≤1 h, that agent's scopes only</td><td>scope ceiling from the manifest; env-only handoff; never-log rule; never on disk</td></tr>
+    <tr><td>npm supply chain</td><td>full compromise</td><td>dependency budget (slide 3), committed lockfile, provenance publishes</td></tr>
+    <tr style="background:#FAFBF9"><td>webhook forgery (phase 3)</td><td>one agent's trigger</td><td>per-agent signing secret verified at ingress; no shared webhook secrets</td></tr>
+    <tr><td>owner's own credentials</td><td>—</td><td>structurally absent: the product exists so they never enter the system</td></tr>
+  </table>
+  <p style="font-size:25px; color:#4E5B54">Standing review: the security seat's biweekly sweep audits this table against the code; a control that exists on this slide but not in the repo is an incident.</p>
+  <p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#8A958D">epito · engineering plan · internal</p>
+</section>
