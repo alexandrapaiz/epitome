@@ -95,3 +95,18 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   (public = unlimited Actions minutes, per the playbook). *Seats are
   running on schedule now (line above) — this decision is overdue, not
   just pending.*
+
+## Process note (not an owner decision)
+
+- **HQ/product-PM regroom-check timing** (2026-10-05): a message from
+  alexandra-systems/pm said it had not found this seat's own regroom
+  of the epitome board's "This sprint" column, only the chair's status
+  document. It had: this seat's regroom and definition of done were
+  already posted on that board item at 2026-10-05T04:00Z, several
+  minutes before HQ's own board comment (04:07Z) made the claim. The
+  mechanism (docs/standards/pm.md §14) worked correctly both times —
+  HQ's check just read stale state. Replied on the board item with the
+  correction and reposted nothing that was already there. No owner
+  action needed; worth a line in the next ExO drift review if this
+  keeps recurring across seats. Seat: pm (flagged), decision: exo
+  (optional).
