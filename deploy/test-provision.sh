@@ -81,6 +81,18 @@ check "env file names the engine, on loopback" "grep -q '^TEMPORAL_ADDRESS=127.0
 check "env file names the task queue the two units share" "grep -q '^EPITO_TASK_QUEUE=seats' /srv/asc/env"
 check "health script and timer written" "[ -x /usr/local/bin/epitod-health ] && [ -f /etc/systemd/system/epitod-health.timer ]"
 check "health posts epito ps" "grep -q 'epito ps' /usr/local/bin/epitod-health"
+# The engine is not installed with the CLI any more (cli/package.json makes
+# @temporalio/* optional peers so `npm i -g epito` stays half a megabyte), so
+# this box has to ask for it by name. It got all the way through this suite
+# green once without doing that: 35 assertions about a host whose two units
+# would start, print an install line and exit 1.
+check "the CLI was installed from the checkout" "grep -q 'npm install -g --silent \.' /var/log/stubbed"
+for p in client worker activity workflow; do
+  check "the engine was installed globally too: @temporalio/$p" \
+        "grep -q 'npm install -g --silent .*@temporalio/'\"$p\" /var/log/stubbed"
+done
+check "and globally, not into the checkout where a global epito cannot see it" \
+      "grep -q 'npm install -g --silent @temporalio/client' /var/log/stubbed"
 check "ufw opened 22" "grep -q '^ufw allow 22/tcp' /var/log/stubbed"
 check "ufw was enabled" "grep -q '^ufw --force enable' /var/log/stubbed"
 check "fail2ban jail written" "grep -q 'enabled = true' /etc/fail2ban/jail.d/epitod.local"

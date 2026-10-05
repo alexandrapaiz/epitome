@@ -4,7 +4,15 @@
 // uses. Verifying the signature here is the point — it is what proves the
 // RS256 JWT epito builds by hand is one GitHub would actually accept.
 //
-//   node test/github-stub.mjs <port> <public-key.pem> <log.jsonl> [mode]
+//   node test/github-stub.mjs <port> <public-key.pem> <log.jsonl> [mode] [private-key.pem]
+//
+// The fifth argument makes it a stand-in for the OTHER half of the identity
+// leg as well: `epito deploy` exchanges a one-shot code for an App, and the
+// private key GitHub hands back at that moment is the key every later mint
+// signs with. Give this stub the private half and it returns it from
+// POST /app-manifests/<code>/conversions, so one process can play GitHub
+// across a deploy AND the mint that follows it — which is the only way to
+// prove the two halves agree about where the key lives.
 //
 // modes: ok (default) | not-installed (404 on installation lookup)
 //        | bad-app (401 on installation lookup) | refuse-perms (422 on mint)
@@ -14,8 +22,11 @@ import { createServer } from "node:http";
 import { createVerify } from "node:crypto";
 import { readFileSync, appendFileSync } from "node:fs";
 
-const [port, pubPath, logPath, mode = "ok"] = process.argv.slice(2);
+const [port, pubPath, logPath, mode = "ok", privPath] = process.argv.slice(2);
 const pub = readFileSync(pubPath, "utf8");
+// The App `epito deploy` creates here. One id, one slug, so the mint that
+// follows the deploy is verifiably minting for the App the deploy made.
+const CONVERTED = { id: 707070, slug: "epito-seat-707070" };
 const record = (o) => appendFileSync(logPath, JSON.stringify(o) + "\n");
 
 const unb64 = (s) => Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64");
@@ -49,6 +60,30 @@ createServer((req, res) => {
   req.on("data", (d) => (body += d));
   req.on("end", () => {
     const send = (code, obj) => { res.writeHead(code, { "content-type": "application/json" }); res.end(JSON.stringify(obj)); };
+
+    // POST /app-manifests/<code>/conversions is the one endpoint here that
+    // takes no credential at all, because at that instant the agent HAS no
+    // credential: possession of the single-use code is the whole proof. It is
+    // checked before the JWT for exactly that reason — requiring a signature
+    // here would be the stub being stricter than GitHub, which teaches epito
+    // the wrong lesson.
+    const conv = /^\/app-manifests\/([^/]+)\/conversions$/.exec(req.url);
+    if (req.method === "POST" && conv) {
+      record({ method: req.method, url: req.url, jwtOk: null, why: null, iss: null, body: body || null });
+      if (!privPath) return send(500, { message: "stub: started without a private key, so it cannot convert an App manifest" });
+      if (conv[1] === "expired") return send(404, { message: "Not Found" });
+      return send(201, {
+        ...CONVERTED,
+        name: "acme-bot-acme",
+        owner: { login: "acme" },
+        html_url: `https://github.com/apps/${CONVERTED.slug}`,
+        pem: readFileSync(privPath, "utf8"),
+        webhook_secret: null,
+        client_id: "Iv1.stubclientid",
+        client_secret: "stub-client-secret-not-a-real-one",
+      });
+    }
+
     const jwt = verifyJwt(req.headers.authorization);
 
     // GET /users/<login> is the one endpoint the mint reaches as the

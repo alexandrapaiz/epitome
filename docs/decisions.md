@@ -716,3 +716,396 @@ bound, and it is the whole of consequence 2.
    inside one worker process, which is the whole of a single-host
    install. Two worker hosts are two counters; the engine-side lease
    that would fix that is an idea, not a claim.
+
+## ADR-20: An agent gets its own GitHub App, created by the app-manifest flow
+
+**Date.** 2026-09-30. **Status.** Proposed by the engineer seat; the
+owner ratifies by merging, objects by editing. This is EPI-4, the route
+decision cycle 1 named as its central unknown and left open when the
+cycle was re-bet to the runtime.
+
+**Context.** `epito deploy` has printed "platform in progress" since
+founding night, and it is the command the product is named for. The mint
+(`epito token`), the trigger wiring (`epito run`) and the ledger all
+landed without it, which means every principal in existence today was
+created by a human in GitHub's 14-field App form and installed by hand.
+The question the cycle framed: does an agent get **its own App**, created
+per agent, or does one epito-owned App get **installed per agent**?
+
+**Decision.** App-per-agent, created through GitHub's app-manifest flow:
+`epito deploy` serves one local page that POSTs a manifest built from
+`[identity].scopes`, a human clicks Create once, GitHub returns a code to
+a one-shot loopback listener, and the conversion hands back the App's id
+and private key, which land in `.epito/` at 0600.
+
+**Why, on the evidence available.** Not a live spike: no App was created
+on any account for this decision, and the flow is proved end to end
+against a stand-in api.github.com (`cli/test/smoke-deploy.sh`, 52
+assertions) rather than against github.com. What decided it is three
+properties that are structural rather than empirical, so a live spike
+would not have changed them:
+
+1. **A shared App makes every agent the same someone.** ADR-2 says an
+   agent is *someone* — its own identity, never the owner's. Under the
+   shared route every PR in every customer's repository is authored by
+   `epito[bot]`, and the audit trail can no longer answer "which agent
+   did this" from the artifact itself. The market brief's differentiator
+   (§1) is exactly the leg that would be given away.
+2. **A shared App is one key for every customer's every agent.** Its
+   compromise is total and its revocation is total: "uninstall the App"
+   is ADR-2's one-click revoke, and under the shared route that click
+   revokes the whole roster. Per-agent keys make the blast radius one
+   agent, which is the promise the product sells.
+3. **Neither route costs us portability.** `lib/identity.js` already
+   reduces both to (app id, key, installation id) — it was written that
+   way deliberately, and not one line of it changed to build this. If
+   the owner overrules, the change is a second `IdentityProvider`, not a
+   rewrite.
+
+**What it costs, named plainly.** GitHub has no API that creates an App
+without a human at a keyboard, so `epito deploy` cannot be fully
+headless: creation is one click in a browser, and installation on the
+repository is a second. Everything around those two clicks is gone — the
+form, the permission guesswork, the key file in Downloads, the "which App
+was this" a month later — but the clicks stay, and a hosted callback
+service that removed them was ruled a rabbit hole for this cycle and
+still is. The redeploy path (recording the installation) *is* headless,
+which is why deploying twice is the documented shape.
+
+**Consequences.**
+
+1. **One manifest, one principal, enforced by the command.** A second
+   `epito deploy` never creates a second App: it re-discovers the
+   installation for `[runtime].repo` and updates the one record (spec
+   rule 4). Two Apps answering to one name would make the ledger unable
+   to say who acted.
+2. **App names are globally unique on GitHub, so they carry a suffix.**
+   `<agent>-<repo owner>`, capped at GitHub's 34 characters,
+   `--app-name` to override. A naming *system* was a named rabbit hole;
+   this is one suffix derived from the manifest.
+3. **The App this creates subscribes to nothing.** No `hook_attributes`,
+   no `default_events`. Triggers belong to `epito run`, and an App that
+   declares a hook URL nobody serves is a dead endpoint in somebody's
+   settings page forever. `[trigger].webhook` is served by the runtime's
+   ingress, not by GitHub.
+4. **The ceiling is set once, from the file.** `default_permissions` is
+   `[identity].scopes` through the same `SCOPE_MAP` every mint uses, so
+   an App cannot be created wider than the manifest that describes it —
+   and an unmapped scope fails before a human is sent to a browser.
+5. **An account-level cap on Apps exists and this seat has not measured
+   it.** A roster of a few hundred seats may meet it. That is an open
+   question against the per-agent route, recorded rather than guessed at.
+
+## ADR-21: `epito validate` notes what the runtime will still refuse; `--for-runtime` is the strict pass
+
+**Date.** 2026-10-01. **Status.** Proposed by the engineer seat; the
+owner ratifies by merging, objects by editing. Settles the open decision
+recorded in docs/ideas.md ("`epito validate` passes a manifest that
+`epito run` will refuse"), which named both candidate answers and
+declined to pick one.
+
+**Context.** `epito init` scaffolded a manifest, `epito validate` printed
+`✓`, and `epito run`, `epito ps <dir>`, `epito deploy` and `epito token`
+then every one refused it for a missing `[runtime].repo`. Those are the
+first three commands a vibecoder runs, in order, out of the box, and the
+sequence ended in a refusal the tick had just said would not come. The
+same shape applies to a scope outside `SCOPE_MAP`: valid, ticked, refused
+at the mint.
+
+Both gaps are the spec being deliberate, not careless. v0.1 says
+`epito validate` "accepts [repo] absent (Actions-era manifests stay
+valid)", and that an unmapped scope "fails **the mint** … not `epito
+validate`. That placement is deliberate: a stricter validator would
+refuse a running roster at startup over one word, and a live box is
+downstream of that choice." Both calls survive this ADR unchanged.
+
+**Decision.** Three parts.
+
+1. **The notes are on by default and change no exit code.** A valid
+   manifest stays valid and still exits 0. What changes is that the tick
+   stops implying the rules it does not apply do not exist: it names the
+   commands that will refuse, and carries the fix, to the bar `epito
+   validate` already sets for its errors.
+2. **`--for-runtime` is the strict pass**, exit 1 — for CI that wants the
+   refusal here instead of at 06:00. Opt-in, because the default must keep
+   saying yes to every manifest the spec blesses.
+3. **The rules live in one module** (`cli/src/lib/readiness.js`), owned by
+   the commands that enforce them, and the validator reads them out. A
+   drift test asserts the printed list of commands is the whole list of
+   commands whose source refuses over the field.
+
+**Why this and not the alternatives.** The ideas entry named the real
+risk: "a warning nobody can silence becomes noise on the 36 manifests
+that are deliberately Actions-era." That decided the shape.
+
+- **Making the validator strict** was the obvious fix and is the one the
+  spec forbids, for a reason that is still good: a live box reconciling a
+  roster must not refuse a seat over a word it does not need.
+- **`--for-runtime` only, with a silent default**, leaves the false `✓`
+  exactly where it is for everyone who does not know to pass a flag —
+  which is everyone the card is about.
+- **Noise was the objection to a default note, and it does not apply
+  here.** `epito validate` reads one `agent.toml`, in the directory the
+  user is standing in, because they asked. The 36-manifest case is a
+  roster being loaded by `epito run`, which hard-refuses already and
+  prints no notes at all.
+
+**A note fires on doubt, never on the good case.** The third note v0.1 has
+says the `✓` did not check `[runtime].entry` — the validator skips that stat
+once `repo` is set, because the runtime reads the charter inside the clone.
+It is said only when the file is also absent from the directory you are
+standing in. A note on every correctly configured manifest would be the
+noise this ADR's objection is about, and noise on the good case is worse
+than noise on the broken one: standing in the repo with the charter beside
+you is evidence, and a path that resolves nowhere on this machine is the
+case that earns a sentence.
+
+**What it costs.** One more thing on screen for a repo-less manifest that
+its author knows is repo-less. The honest mitigation was to remove the
+common case rather than argue about it: `epito init` now reads
+`[runtime].repo` off the directory's git origin, so the manifest it
+writes in the normal case has nothing to warn about.
+
+**Also settled, with no spec cover needed.** `[trigger].cron` was counted
+(five fields present) and not parsed, so `"0 99 * * *"` ticked here and
+was refused by `epito run` when it built the matcher. That was a plain
+validator bug, not a deliberate placement: it is parsed in the validator
+now, and `loadRoster`'s duplicate copy of the check is gone, so the two
+commands cannot print different sentences about the same expression.
+
+## ADR-22: The ledger is read-only from the CLI, and it is not the board
+
+**Date.** 2026-10-02. **Status.** Proposed by the engineer seat; the owner
+ratifies by merging, objects by editing. Closes cycle 1's scope 1e, whose
+read-back ("optional `epito audit`") was named the cycle's first cut on
+2026-09-21 and duly cut.
+
+**Context.** `.epito/audit.jsonl` has been written since PR #4 and is now
+appended to by six code paths: `epito deploy`, `epito token`, `epito run`'s
+ingress, the worker, and the `clone` and `execute` activities. Until this
+ADR nothing could read it. `epito ps` printed the path and told the operator
+to look at the Temporal UI for anything more.
+
+That is a gap in the product's central claim, not a missing convenience.
+epito sells agents that act as themselves under named permissions. "This
+agent held `contents:write` and `pull_requests:write` on `acme/product`,
+minted at 14:04, expiring at 15:04, as `digest[bot]`" is the sentence the
+whole identity leg exists to be able to say, every fact in it has been on
+disk for two weeks, and no command could say it.
+
+**Decision.** Three parts.
+
+1. **`epito audit` reads, and there is no way to write through it.** No
+   `--add`, no `epito audit note`, no ingress route that appends. A ledger a
+   hand can append to from outside is not a ledger: the single thing an audit
+   log sells is that every line in it was put there by the thing that did the
+   work. `epito report` exists for a seat that wants to say something, and it
+   files to the *board*.
+2. **The board and the ledger stay two files answering two questions.** The
+   board (ADR-16) is "what have the seats been doing" — run reports, folded
+   for an owner, one shape refused field by field. The ledger is "what exactly
+   happened", in the runtime's vocabulary, including the lines nobody reads
+   until something is wrong. They agree about runs because one activity files
+   both (`record`, in `temporal/activities.js`). Merging them would force one
+   of the two questions to be asked in the other's words.
+3. **An action this epito does not know still prints.** Unknown actions render
+   their own fields as `key=value`. The worst line in a ledger is the one a
+   *newer* epito wrote, and a reader that hid it would blind the auditor on
+   exactly the events that are new — upgrading the runtime would quietly
+   narrow the record.
+
+**Why this and not the alternatives.**
+
+- **A second kind of board entry** (`kind: "audit"`) was the cheap route and
+  is wrong twice: the board refuses any field not in its one shape, which is
+  ADR-16's whole point and which an audit line — different per action —
+  cannot satisfy; and it would put the ledger behind the ingress and its
+  secret, when the ledger's reader needs no network at all.
+- **Only `--json`, and let `jq` do the rest.** It is already there and it is
+  not an answer: the person who needs this most is the vibecoder the product
+  is for, and "pipe it through jq and group by agent" is the hand-wiring epito
+  exists to delete. The fold is four columns of arithmetic that nobody should
+  do twice.
+- **Deferring it to the Temporal UI**, which `epito ps` currently suggests.
+  The UI knows workflows, not permissions, and it is the engine's — ADR-15
+  and law 8 both say the product's record must outlive the engine. A mint
+  that happened in `epito token` on a laptop was never in Temporal at all.
+
+**What it costs.** One more command in `--help`, and a second reader to keep
+honest when a new action is added: `ACTIONS` in `cli/src/lib/audit.js` is the
+list, and a unit test asserts every entry in it renders a sentence. An action
+written by the runtime and missing from that list prints its fields instead of
+a sentence — degraded, never hidden, which is part 3 above working as intended
+rather than a gap.
+
+**No spec change.** `spec/manifest.md` defines the manifest, and nothing here
+touches a field in it. The audit log is the runtime's, not the manifest's.
+
+## ADR-23: The company's roster lives in `agents/`, and it does not retire the workflows
+
+**Date.** 2026-10-03. **Status.** Proposed by the engineer seat; the owner
+ratifies by merging, objects by editing. Cycle 1 closed 2026-10-02; this is
+the top open card in `docs/backlog.md`'s Now section.
+
+**Context.** epito.me runs five seats, and all five are GitHub Actions jobs:
+`.github/workflows/agent-{engineer,pm,market,okr,exo}.yml`, ~130 lines each,
+most of it identical. The product exists because that is the wrong way to run
+an agent (the cycle-1 amendment records the owner's words: "there isn't
+anything to give agents a consistent runtime... a consistent runtime that
+isn't just a cron"). Up to this ADR, nothing in this repository described a
+seat as a manifest. The only manifests were three fixtures under
+`cli/test/fixtures/shapes/`, written to freeze the spec against.
+
+So the product had never been pointed at a seat it did not invent — and
+"customer #1 is the owner's own company" (ADR-11) was a claim with no file
+behind it.
+
+**Decision.** Three parts.
+
+1. **The roster is `agents/<seat>/agent.toml`, in the repository the seats
+   work in.** One directory, one manifest per subdirectory, which is the
+   layout `epito run <dir>` already discovers (`lib/roster.js`). Not a single
+   multi-agent file, and no roster manifest describing the roster: the spec's
+   open question — team/roster fields stay out — survived contact, because
+   `epito run agents` needs a directory and nothing more.
+
+2. **Every value is translated, never invented, and the translation is
+   tested.** `cli/test/smoke-roster.sh` asserts each manifest's `max_turns`
+   still equals the `--max-turns` its workflow passes, and that the engineer's
+   two `- cron:` entries are the one list expression that means the same
+   thing. A roster that drifts from the wiring it replaces proves nothing, and
+   drift is silent by default.
+
+3. **The workflows stay.** This ADR describes the seats; it does not move
+   them. Dogfood step 2 — deleting a seat's Actions wiring — waits for a box
+   that is actually running them, and conflating the two would mean a
+   half-migrated org where a seat is described in one place and run in
+   another with no way to tell which fired.
+
+**Alternatives.**
+
+- *A single `roster.toml` listing five agents.* Rejected: a manifest is the
+  unit of everything later (a deploy is a manifest provisioned, a marketplace
+  listing is a manifest published, spec v0.1's opening). Five agents in one
+  file is one file five agents cannot be published out of, and `epito deploy
+  <name>` would need a selector where it currently needs a path.
+- *Generate the manifests from the workflows at build time.* Rejected: the
+  direction of travel is the other way. The workflows are what we intend to
+  delete; deriving the product's input from the thing it replaces makes the
+  replacement permanent.
+- *Translate one seat, not five.* Tempting — the card says "one alexandria
+  seat" — and rejected because the findings came from the spread. Three of
+  the five share an unexpressible second road, one has two crons, one has no
+  cron at all; a single-seat roster would have been the easy case and would
+  have found none of it.
+- *Wait for a live box.* Rejected: it is what every previous run did, and the
+  card has been open since founding night. The seats-as-manifests half needs
+  no box, and the two bugs it found were in the dry-run path specifically —
+  the path an operator uses *before* they have a box.
+
+**Consequence.** `agents/` is product surface now: a change to a seat's
+schedule or model has two homes until step 2, and `smoke-roster.sh` is what
+catches the one that forgot the other. Accepted deliberately — the alternative
+is a roster that is decorative, and a decorative roster is how the three
+synthetic fixtures ended up being the only evidence the spec had.
+
+**Spec delta.** Flagged in the PR, and it is a question rather than a field:
+`[[runtime.route]].base_url` is a literal URL, and the open road three of
+these seats take has its endpoint held as a repository secret, so the road
+cannot be written in a publishable manifest. `spec/manifest.md`'s open
+questions now carry it (probable shape: `base_url_env`, beside `token_env`).
+v0.1 stays frozen; nothing was added to the catalogue.
+
+## ADR-24: A validator may not speak for a command it did not ask
+
+**Date.** 2026-10-04. **Status.** Proposed by the engineer seat; the owner
+ratifies by merging, objects by editing. Cooldown (2026-10-05/06); this is a
+defect in the stack open in front of PR #45, not a new card.
+
+**Context.** ADR-21 settled that `epito validate` notes what the runtime will
+still refuse, and that `--for-runtime` is the strict pass. PR #44 extended it
+to a roster: `epito validate <dir>`, sold as "no engine required", because an
+operator with five manifests and no box had no single command that said yes.
+
+Its closing line said:
+
+```
+✓ 5 of 5 manifests are agents: 4 on a cron, 1 presence-only (exo)
+  every one is ready to run: there is nothing here `epito run agents` would refuse
+```
+
+On a box with no Temporal server — which is every box the "no engine required"
+pitch is aimed at — the very next command refused, in one line, before it read
+a manifest. `epito --help` said `--for-runtime` "asks exactly what `epito run
+<dir>` would ask"; `src/validate.js`'s own comment said "minus the engine".
+Both shipped. Only one could be true.
+
+That is the failure `src/lib/readiness.js` was written to remove, in its own
+words — "`epito validate` ticked it, and `epito run` then refused it ... a
+refusal the tick had just told them would not come" — reintroduced one level
+up, by the file that cites it.
+
+**Decision.** Three rules.
+
+1. **A command that names another command's behaviour must have asked.** The
+   roster ✓ claims something about `epito run <dir>`, so it looks: a bare TCP
+   connect to `TEMPORAL_ADDRESS`, 400ms ceiling, no `@temporalio` import, no
+   gRPC. "No engine required" is preserved exactly — the command still needs no
+   engine to run and still answers the manifest question in full without one.
+   What it loses is the right to answer for a command it never consulted.
+
+2. **The engine is a fact about the box, not about a manifest.** It is
+   therefore neither a per-seat error nor a per-seat blocker — no manifest
+   becomes invalid because a server is down. It belongs to the closing verdict,
+   which is where the overclaim was, and the default exit code stays 0: the
+   files are the half a roster validator can answer with no box, and when they
+   are good the answer is yes.
+
+3. **`--for-runtime` refuses what `epito run <dir>` refuses, engine included.**
+   That is the flag's whole contract and the help text's existing promise. A
+   missing engine exits 1 under the flag, and the refusal says the manifests
+   are not the problem and names the form that answers that half — because the
+   operator with five manifests and no box is who the command was built for and
+   must keep their yes.
+
+A corollary, in the same voice as rule 1: **a fix is only a fix if the reader
+has it.** The unreachable-engine message named `runtime/temporal/install.sh`,
+which is HQ's file (alexandra-systems). It is in neither this repository nor
+`npm i -g epito`, whose `files` ships `src`, `adapters`, `README.md`. Naming it
+was worse than naming nothing — it sent the reader looking for a path that
+exists on no machine they have.
+
+**Alternatives.**
+
+- *Scope the sentence instead: "nothing in these manifests `epito run` would
+  refuse".* Cheapest, and rejected: it is honest about the claim and useless
+  about the question. The operator still leaves the command one refusal away
+  from where they were going, which is the thing ADR-21 exists to stop.
+- *Print the caveat unconditionally, with no probe.* Rejected on readiness.js's
+  own rule — "a note that fired on every correctly configured manifest would be
+  noise on the good case, which is worse than noise on the broken one". The
+  probe is what buys the good case a clean sentence.
+- *Make `--for-runtime` require a healthy engine (connect + describeNamespace).*
+  Rejected: it needs `@temporalio/client`, which the manifest commands do not
+  install, so the strict pass would start refusing on the exact machine #44 was
+  built for. The TCP look is the half that costs nothing; `epito run` still does
+  the real connect and the real namespace check and will still refuse an engine
+  that answers and is the wrong one. Hence the wording: the address is
+  **answering**, never that the engine is healthy.
+- *Leave it; `epito run` gives a good error anyway.* Rejected. It does, and
+  that is not the point: the validator exists so the refusal arrives before
+  06:00, and a validator that is wrong about the refusal is worse than no
+  validator, because it is believed.
+
+**Consequence.** `epito validate <dir>` now reads `TEMPORAL_ADDRESS`, so the
+module it reads it through (`src/temporal/env.js`) must stay import-free, or a
+future `@temporalio` import there would quietly make the manifest commands need
+the engine. `cli/test/unit.mjs` asserts that, and asserts that `src/lib/engine.js`
+imports only node builtins and engine-free local modules. That assertion is the
+thing standing between this ADR and a 300 MB `npm i -g epito`.
+
+Two tests were replaced in the process, both of which asserted that `epito
+validate`'s output never contained the string "temporal". That reads as "no
+engine required" and is not: it is what let the ✓ be wrong in the first place.
+A test that forbids the product from mentioning the thing it is wrong about is
+a test that protects the bug.

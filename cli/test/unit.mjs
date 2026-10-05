@@ -10,21 +10,32 @@
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { reconcilePlan, scheduleShape } from "../src/temporal/schedules.js";
-import { validateManifest } from "../src/lib/manifest.js";
+import { validateManifest, loadManifest, FIELDS, TABLES } from "../src/lib/manifest.js";
+import { blockers, unchecked, REPO_REQUIRED_BY, SCOPE_REQUIRED_BY } from "../src/lib/readiness.js";
+import { parseGitHubRemote, originRepo, repoRoot } from "../src/lib/origin.js";
+import { loadRoster, rosterRules, ROSTER_RULES } from "../src/lib/roster.js";
+import { SEVERITY, checkManifest, shape } from "../src/validate.js";
+import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
 import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP } from "../src/lib/identity.js";
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
+import { parse } from "smol-toml";
 import { mkdirSync } from "node:fs";
 import { once } from "node:events";
 import { generateKeyPairSync, createVerify } from "node:crypto";
-import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, chmodSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, chmodSync, realpathSync } from "node:fs";
 import { seatOfWorkflowId, scheduleId, runId, windowId } from "../src/temporal/env.js";
 import { justCompleted, sendOrRestart } from "../src/run.js";
 import { ADAPTERS, ADAPTER_NAMES, adapterFor, unknownAdapter, LANGGRAPH_SHIM } from "../src/lib/adapters.js";
 import {
+  DEFAULT_ADDRESS, connectReason, engineAnswering, engineFix, engineMissing,
+  engineUnreachableMessage, splitAddress,
+} from "../src/lib/engine.js";
+import { createServer as createTcpServer } from "node:net";
+import {
   routesFor, routeErrors, liveRoutes, noRouteMessage, anthropicRouteEnv, routeFacts,
-  classifyAttempt, withLane, DEFAULT_ROUTE,
+  classifyAttempt, withLane, DEFAULT_ROUTE, ROUTE_FIELDS,
 } from "../src/lib/router.js";
 import {
   traceConfig, traceIdFor, spanIdFor, traceparentFor, childTraceEnv, attributes,
@@ -591,10 +602,58 @@ test("an empty board says how a report gets onto it, not just that there is none
 });
 
 test("a misspelled flag is refused by name, never silently ignored", () => {
-  assert.match(parseFlags(["--outcome", "ok", "--pr-url", "x"], ["outcome", "pr"]).error, /unknown option "--pr-url"/);
+  const { error } = parseFlags(["--outcome", "ok", "--pr-url", "x"], ["outcome", "pr"], "report");
+  assert.match(error, /--pr-url/, `the option it refused is named: ${error}`);
+  assert.match(error, /`epito report`/, "and so is the command that refused it");
   const { flags, rest } = parseFlags(["pm", "--outcome=mint", "--pr", "https://x/1", "--json"], ["outcome", "pr", "json"]);
   assert.deepEqual(rest, ["pm"]);
   assert.deepEqual(flags, { outcome: "mint", pr: "https://x/1", json: true }, "--flag=value, --flag value, and a bare --flag");
+});
+
+// --- options epito does not know (src/lib/flags.js) -----------------------
+// The rule board.js already had, now every command's. The two assertions that
+// matter are the last two: a dropped --dry-run is not a cosmetic bug, it is
+// the real mint and the real App.
+import { unknownOption, nearest } from "../src/lib/flags.js";
+
+const VALIDATE = [{ name: "for-runtime", does: "make the readiness notes an error, not a note" }];
+
+test("an unknown option is refused, and the near miss is named as one", () => {
+  const e = unknownOption("validate", ["--for-runtimes"], VALIDATE);
+  assert.ok(e, "--for-runtimes is not --for-runtime");
+  assert.match(e, /`epito validate` has no --for-runtimes option/, e);
+  assert.match(e, /Did you mean --for-runtime\?/, "the fix is the flag they meant");
+  assert.match(e, /\`epito validate --for-runtime\`/, "spelled as a command they can run");
+});
+
+test("an option close to nothing gets the real list instead of a guess", () => {
+  const e = unknownOption("validate", ["--wat"], VALIDATE);
+  assert.doesNotMatch(e, /Did you mean/, `--wat is nobody's typo for --for-runtime: ${e}`);
+  assert.match(e, /--for-runtime  make the readiness notes an error/, "so it says what the command does take");
+  assert.equal(nearest("wat", ["for-runtime"]), null);
+  assert.equal(nearest("dry-runn", ["dry-run", "json"]), "dry-run");
+});
+
+test("a command with no options says that, rather than listing nothing", () => {
+  assert.match(unknownOption("init", ["--force"], []), /takes no options, so there is nothing --force could mean/);
+});
+
+test("what epito does know still passes, values and positionals and all", () => {
+  assert.equal(unknownOption("validate", ["--for-runtime"], VALIDATE), null);
+  assert.equal(unknownOption("token", ["pm", ".", "--dry-run"], [{ name: "dry-run" }]), null, "positionals are not options");
+  const opts = [{ name: "timeout", value: true }, { name: "dry-run" }];
+  assert.equal(unknownOption("deploy", ["--timeout", "30", "--dry-run"], opts), null, "a value is not an option");
+  assert.equal(unknownOption("deploy", ["--timeout=30"], opts), null, "--flag=value too");
+  // `--timeout -5` is deploy's own range error, with deploy's own message; it
+  // must not be swallowed here as an unknown option called "5".
+  assert.equal(unknownOption("deploy", ["--timeout", "-5"], opts), null);
+});
+
+test("the two flags whose typo is not cosmetic are both refused", () => {
+  assert.match(unknownOption("token", ["pm", "--dry-runn"], [{ name: "dry-run" }]),
+    /Did you mean --dry-run/, "a dropped --dry-run on `token` is a real mint");
+  assert.match(unknownOption("deploy", ["--dry-runn"], [{ name: "dry-run" }]),
+    /Did you mean --dry-run/, "and on `deploy` it is a real GitHub App");
 });
 
 // --- adapters: what epito spawns, per kind of agent (ADR-17) --------------
@@ -1244,4 +1303,726 @@ test("any other failure is the caller's to see: a retry here would hide a broken
   const send = async () => { calls++; throw new Error("connection refused"); };
   await assert.rejects(() => sendOrRestart(send), /connection refused/);
   assert.equal(calls, 1, "it is not retried, because retrying a dead engine just fails twice");
+});
+
+// --- the freeze: spec v0.1's field catalogue, and the three seat shapes ----
+//
+// The backlog card this section closes: "spec/manifest.md reviewed against
+// the three alexandria seat shapes (daily builder, weekly writer,
+// event-driven responder); every field either earns its place or goes." The
+// shapes are real manifests in test/fixtures/shapes/, and the coverage test
+// below is that sentence made executable — a field no shape needs is a field
+// that did not earn its place, and this suite says so by name.
+
+const SHAPES = ["daily-builder", "weekly-writer", "event-responder"];
+const shapePath = (n) => fileURLToPath(new URL(`./fixtures/shapes/${n}/agent.toml`, import.meta.url));
+
+for (const shape of SHAPES) {
+  test(`seat shape "${shape}" validates against frozen v0.1`, () => {
+    const { errors } = loadManifest(shapePath(shape));
+    assert.deepEqual(errors, [], errors.join("\n"));
+  });
+}
+
+test("every field in the frozen catalogue is needed by at least one of the three shapes", () => {
+  const used = { agent: new Set(), identity: new Set(), trigger: new Set(), runtime: new Set() };
+  for (const shape of SHAPES) {
+    const { manifest } = loadManifest(shapePath(shape));
+    for (const t of TABLES) for (const k of Object.keys(manifest[t] ?? {})) used[t].add(k);
+  }
+  const orphans = [];
+  for (const t of TABLES) for (const f of FIELDS[t]) if (!used[t].has(f)) orphans.push(`[${t}].${f}`);
+  assert.deepEqual(orphans, [], `these fields are in the spec and no real seat shape needs them: ${orphans.join(", ")}`);
+});
+
+test("the three shapes together exercise every key a route has", () => {
+  const { manifest } = loadManifest(shapePath("daily-builder"));
+  const used = new Set(manifest.runtime.route.flatMap((r) => Object.keys(r)));
+  assert.deepEqual(ROUTE_FIELDS.filter((f) => !used.has(f)), []);
+});
+
+test("a misspelled field is refused, and the message carries the spelling", () => {
+  const errs = validateManifest(baseManifest({ runtime: { ...baseRuntime(), mdoel: "claude-opus-5" } }));
+  const hit = errs.find((e) => e.includes("mdoel"));
+  assert.ok(hit, `a typo must not validate: ${errs.join("\n")}`);
+  assert.match(hit, /did you mean \[runtime\]\.model\?/);
+});
+
+test("max_turn (the singular typo) is refused rather than silently meaning 100", () => {
+  const errs = validateManifest(baseManifest({ runtime: { ...baseRuntime(), max_turn: 50 } }));
+  assert.ok(errs.some((e) => e.includes("max_turn") && e.includes("max_turns")), errs.join("\n"));
+});
+
+test("[trigger].on is retired, and the message says what replaces it", () => {
+  const errs = validateManifest(baseManifest({ trigger: { on: ["issue.opened"] } }));
+  const hit = errs.find((e) => e.includes("[trigger].on"));
+  assert.ok(hit, errs.join("\n"));
+  assert.match(hit, /webhook = true/);
+  // The seat could never have fired, and the triad rule now says so too.
+  assert.ok(errs.some((e) => /needs at least one of: cron .* or webhook/.test(e)), errs.join("\n"));
+});
+
+test("[runtime].image is retired: an image is a property of the box", () => {
+  const errs = validateManifest(baseManifest({ runtime: { ...baseRuntime(), image: "default" } }));
+  assert.ok(errs.some((e) => e.includes("[runtime].image") && e.includes("property of the box")), errs.join("\n"));
+});
+
+test("a whole table the spec does not define is named as a table", () => {
+  const errs = validateManifest(baseManifest({ deploy: { target: "github" } }));
+  assert.ok(errs.some((e) => e.startsWith("[deploy] is not a table")), errs.join("\n"));
+});
+
+test("an unknown key inside a route table is refused too", () => {
+  const rt = { ...baseRuntime(), env: ["K"], route: [{ name: "open", model: "m", token_env: "K", retries: 3 }] };
+  const errs = validateManifest(baseManifest({ runtime: rt }));
+  assert.ok(errs.some((e) => e.includes("retries") && e.includes("[[runtime.route]] #1")), errs.join("\n"));
+});
+
+test("[trigger].webhook is a boolean, and the message says the URL is never the manifest's", () => {
+  const errs = validateManifest(baseManifest({ trigger: { webhook: "https://example.com/hooks/x" } }));
+  assert.ok(errs.some((e) => e.includes("[trigger].webhook") && e.includes("never the manifest's")), errs.join("\n"));
+});
+
+function baseRuntime() {
+  return { model: "claude-sonnet-5", entry: "prompts/x.md", repo: "acme/x" };
+}
+function baseManifest(over = {}) {
+  return {
+    agent: { name: "x", description: "A seat." },
+    identity: { scopes: ["github:contents"] },
+    trigger: { cron: "0 6 * * *" },
+    runtime: baseRuntime(),
+    ...over,
+  };
+}
+
+// The spec's catalogue and the validator's catalogue are the same list, and
+// this is what makes that a fact rather than a comment. The block under "##
+// The field catalogue" in spec/manifest.md is valid TOML on purpose, so the
+// document can be read by the code it governs: a field added to one side and
+// not the other fails here, by name, which is exactly the drift that let five
+// fields land as prose without ever being checked.
+test("spec/manifest.md's field catalogue is the validator's field catalogue", () => {
+  const md = readFileSync(fileURLToPath(new URL("../../spec/manifest.md", import.meta.url)), "utf8");
+  const block = md.match(/## The field catalogue[\s\S]*?```toml\n([\s\S]*?)```/);
+  assert.ok(block, "spec/manifest.md has no TOML catalogue under '## The field catalogue'");
+  const spec = parse(block[1]);
+  assert.deepEqual(Object.keys(spec).sort(), [...TABLES].sort(), "the spec and the code disagree about which tables a manifest has");
+  for (const t of TABLES) {
+    assert.deepEqual(
+      Object.keys(spec[t]).sort(),
+      [...FIELDS[t]].sort(),
+      `[${t}]: spec/manifest.md and cli/src/lib/manifest.js disagree about the fields`,
+    );
+  }
+  // The route table's keys live with the route reader; same rule.
+  assert.deepEqual(Object.keys(spec.runtime.route[0]).sort(), [...ROUTE_FIELDS].sort(),
+    "[[runtime.route]]: spec/manifest.md and cli/src/lib/router.js disagree about the fields");
+  // A retired field must not creep back into the document.
+  for (const gone of ["[trigger].on", "[runtime].image"]) {
+    const [, table, field] = gone.match(/\[(\w+)\]\.(\w+)/);
+    assert.ok(!(field in spec[table]), `${gone} is retired and is back in the spec's catalogue`);
+  }
+});
+
+// Same rule, one directory over: the runtime box's engine list and the CLI's
+// declared peers are one list. cli/package.json stopped shipping @temporalio/*
+// with the CLI so `npm i -g epito` is half a megabyte, and the box that exists
+// to run `epito run` and `epito worker` therefore has to install them by name
+// in deploy/provision-host.sh. Two places naming the same four packages is
+// drift waiting to happen — and the failure mode is a provisioned host whose
+// units start, print an install line and exit 1, which is why this is an
+// assertion and not a comment.
+test("the runtime box installs every engine peer the CLI declares", () => {
+  const pkg = JSON.parse(readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8"));
+  const peers = Object.keys(pkg.peerDependencies ?? {});
+  assert.ok(peers.length > 0, "cli/package.json declares no peerDependencies — has the engine moved back into dependencies?");
+  for (const p of peers) {
+    assert.ok(
+      (pkg.peerDependenciesMeta?.[p]?.optional) === true,
+      `${p} is a peer dependency but not an optional one, so \`npm i -g epito\` drags the engine back in`,
+    );
+  }
+
+  const sh = readFileSync(fileURLToPath(new URL("../../deploy/provision-host.sh", import.meta.url)), "utf8");
+  const line = sh.match(/^ENGINE_PKGS="([^"]*)"/m);
+  assert.ok(line, "deploy/provision-host.sh no longer sets ENGINE_PKGS — the runtime box would come up with no engine");
+  const installed = line[1].trim().split(/\s+/).map((s) => s.split("@^")[0] || s);
+  assert.deepEqual(
+    installed.map((s) => s.replace(/@[\^~]?[\d.].*$/, "")).sort(),
+    peers.sort(),
+    "deploy/provision-host.sh and cli/package.json disagree about which engine packages the runtime box needs",
+  );
+  // And it must actually be installed globally: a local `npm ci` cannot put a
+  // package where a globally installed `epito` will resolve it.
+  assert.match(sh, /npm install -g --silent \$ENGINE_PKGS/,
+    "provision-host.sh names the engine packages but does not install them globally");
+});
+
+// --- readiness: a ✓ that does not overclaim ---------------------------------
+//
+// `epito init` wrote a manifest, `epito validate` ticked it, and `epito run`,
+// `epito deploy` and `epito token` then every one refused it for a missing
+// [runtime].repo. Spec v0.1 keeps the validator permissive there on purpose
+// (Actions-era manifests stay valid) and leaves an unmapped scope to the mint
+// ("a stricter validator would refuse a running roster at startup over one
+// word"), so neither is an error — which makes the NOTE the only thing
+// standing between a vibecoder and a refusal they were just told would not
+// come. These assert the note says the true thing.
+
+const manifestFor = (runtime = {}, identity = {}) => ({
+  agent: { name: "digest", description: "One sentence." },
+  identity: { scopes: ["github:contents"], ...identity },
+  trigger: { cron: "0 6 * * *" },
+  runtime: { model: "claude-sonnet-5", entry: "prompts/digest.md", ...runtime },
+});
+
+test("a manifest with no [runtime].repo is valid, and the note names every command that will refuse it", () => {
+  const m = manifestFor();
+  assert.deepEqual(validateManifest(m, { baseDir: tmpDir() }).filter((e) => /repo/.test(e)), [],
+    "[runtime].repo became a validation error — spec v0.1 says validate accepts it absent");
+  const [b, ...rest] = blockers(m);
+  assert.equal(rest.length, 0, "one blocker expected, got more");
+  assert.deepEqual(b.commands, REPO_REQUIRED_BY);
+  assert.match(b.problem, /\[runtime\]\.repo is unset/);
+  // The bar from `epito validate`: name the rule, in the product's vocabulary,
+  // with the fix in the message.
+  assert.match(b.fix, /repo = "owner\/name"/, "the note does not carry the fix");
+  for (const c of REPO_REQUIRED_BY) assert.match(b.problem, new RegExp(`epito ${c}`), `the note does not name \`epito ${c}\``);
+});
+
+test("a manifest WITH [runtime].repo has nothing to warn about", () => {
+  assert.deepEqual(blockers(manifestFor({ repo: "acme/product" })), []);
+});
+
+test("an unmappable scope is valid, and the note sends it to the two commands that mint", () => {
+  const m = manifestFor({ repo: "acme/product" }, { scopes: ["github:contents", "github:packages"] });
+  assert.deepEqual(validateManifest(m, { baseDir: tmpDir() }), [],
+    "an unmapped scope became a validation error — spec v0.1 sends it to the mint, not the validator");
+  const [b] = blockers(m);
+  assert.deepEqual(b.commands, SCOPE_REQUIRED_BY);
+  assert.match(b.problem, /"github:packages"/, "the note does not name the offending scope");
+  assert.ok(!/github:contents"\)/.test(b.problem), "the note blames a scope that maps fine");
+  for (const s of Object.keys(SCOPE_MAP)) assert.match(b.fix, new RegExp(s), `the fix does not list the mintable scope ${s}`);
+});
+
+test("both blockers at once are both reported — a user fixes what they are shown", () => {
+  const m = manifestFor({}, { scopes: ["github:packages"] });
+  assert.equal(blockers(m).length, 2);
+});
+
+test("the ✓ says the charter was NOT checked when the charter lives in another repo", () => {
+  // validateManifest skips the entry stat when repo is set, because the
+  // runtime reads it inside the clone. The tick must not imply otherwise.
+  assert.deepEqual(validateManifest(manifestFor({ repo: "acme/product", entry: "nope.md" }), { baseDir: tmpDir() }), [],
+    "entry is checked locally even though repo is set");
+  // Said when the charter is nowhere on this machine either.
+  const d = tmpDir();
+  const [u] = unchecked(manifestFor({ repo: "acme/product" }), { baseDir: d });
+  assert.match(u, /read inside the clone of acme\/product/);
+  assert.match(u, /Fix: commit prompts\/digest\.md to acme\/product/);
+  // And NOT said when the charter is sitting right here, which is the ordinary
+  // case of running `epito validate` in the repo the agent works in. A note on
+  // every correct manifest is the noise docs/ideas.md warned about.
+  mkdirSync(join(d, "prompts"), { recursive: true });
+  writeFileSync(join(d, "prompts", "digest.md"), "# digest\n");
+  assert.deepEqual(unchecked(manifestFor({ repo: "acme/product" }), { baseDir: d }), [],
+    "the ✓ disclaims a charter that is sitting in the directory");
+  // With no repo the entry IS checked by the validator, so nothing to disclaim.
+  assert.deepEqual(unchecked(manifestFor(), { baseDir: d }), []);
+});
+
+// The roster layout, which is the layout `epito run <dir>` exists for: the
+// manifest is at agents/<seat>/agent.toml and the charter it names is at the
+// top of the repository, not beside it. Checking only the manifest's own
+// folder told all five of this company's seats to commit a charter that was
+// already committed (agents/, this branch) — a note on the good case, which
+// is the one failure the note was written to avoid.
+test("a charter at the repository root counts, when it is the repo the manifest names", () => {
+  const d = tmpDir();
+  const top = tmpDir();
+  mkdirSync(join(top, "prompts"), { recursive: true });
+  writeFileSync(join(top, "prompts", "digest.md"), "# digest\n");
+  const m = manifestFor({ repo: "acme/product" });
+
+  // The charter is not beside the manifest, but it IS at the top of the work
+  // tree the manifest sits in, and that tree's origin is the repo it names.
+  assert.deepEqual(unchecked(m, { baseDir: d, root: () => top, origin: () => "acme/product" }), [],
+    "a charter committed at the repository root is still evidence the charter exists");
+
+  // Same file on disk, but this work tree is a different repository. Finding
+  // prompts/digest.md at the top of some unrelated checkout says nothing
+  // about acme/product, so the note stands.
+  const [u] = unchecked(m, { baseDir: d, root: () => top, origin: () => "acme/other" });
+  assert.match(u, /Fix: commit prompts\/digest\.md to acme\/product/,
+    "a charter in a repo the manifest does not name was taken as evidence");
+
+  // Not in a git work tree at all: nothing to fall back to, note stands.
+  const [u2] = unchecked(m, { baseDir: d, root: () => null, origin: () => null });
+  assert.match(u2, /read inside the clone of acme\/product/);
+
+  // The root is consulted only as a fallback: a charter beside the manifest
+  // short-circuits before any git call, so `epito validate` in an ordinary
+  // single-manifest repo spawns nothing.
+  mkdirSync(join(d, "prompts"), { recursive: true });
+  writeFileSync(join(d, "prompts", "digest.md"), "# digest\n");
+  let gitCalls = 0;
+  assert.deepEqual(unchecked(m, { baseDir: d, root: () => { gitCalls++; return top; }, origin: () => "acme/product" }), []);
+  assert.equal(gitCalls, 0, "the charter was beside the manifest and git was asked anyway");
+});
+
+test("repoRoot answers the top of a work tree, and null outside one", () => {
+  const d = tmpDir();
+  assert.equal(repoRoot(d), null, "a bare temp directory is not a work tree");
+  execFileSync("git", ["init", "-q", "."], { cwd: d });
+  const sub = join(d, "agents", "pm");
+  mkdirSync(sub, { recursive: true });
+  // realpathSync: macOS hands out /var/... for /private/var/..., and git
+  // answers with the resolved one.
+  assert.equal(realpathSync(repoRoot(sub)), realpathSync(d),
+    "repoRoot from a subdirectory must answer the top, which is what a roster needs");
+});
+
+// The drift guard, same shape as the engine-peers assertion above: the note
+// prints a list of commands, and the list is only true as long as it is the
+// whole list. These are the files that refuse over [runtime].repo today, and
+// which commands each one speaks for. A new refusal in a new file fails this
+// test rather than quietly making the note a lie.
+test("the repo note names every command whose source refuses over [runtime].repo", () => {
+  const OWNERS = {
+    "lib/roster.js": ["run", "ps"],   // loadRoster, shared by `epito run` and `epito ps <dir>`
+    "deploy.js": ["deploy"],
+    "token.js": ["token"],
+    "lib/identity.js": ["deploy", "token"], // the mint path both of those reach
+    // Deliberately absent: src/validate.js. `epito validate <dir> --for-runtime`
+    // does refuse a roster over a missing [runtime].repo, but the note is the
+    // thing `epito validate` PRINTS, and a note that listed the command you are
+    // already running would be noise. The flag is also opt-in, so the default
+    // `epito validate` still says yes — which is the whole reason readiness.js
+    // exists. It carries no [runtime].repo refusal of its own either: it reads
+    // the rule from lib/readiness.js and lib/roster.js, which is why it does
+    // not show up in `refusers` below.
+  };
+  const srcDir = fileURLToPath(new URL("../src/", import.meta.url));
+  const files = [];
+  const walk = (d, prefix = "") => {
+    for (const ent of readdirSync(d, { withFileTypes: true })) {
+      if (ent.isDirectory()) walk(join(d, ent.name), `${prefix}${ent.name}/`);
+      else if (ent.name.endsWith(".js")) files.push([`${prefix}${ent.name}`, readFileSync(join(d, ent.name), "utf8")]);
+    }
+  };
+  walk(srcDir);
+  // A refusal is any of the ways this codebase says no — die(), throw, pushing
+  // onto a validator's error list, or returning a tagged rule from a rule set
+  // some caller maps to its own refusal (lib/roster.js's rosterRules, which
+  // `epito run` turns into errs and `epito validate <dir>` turns into a note).
+  // Checked on the statement, not on the file, so a file that merely mentions
+  // [runtime].repo in a comment is not counted as refusing over it.
+  //
+  // `out.push(` earns its place here the hard way: when the roster's two rules
+  // were factored into rosterRules so `epito validate <dir>` could apply them
+  // at its own severity, lib/roster.js stopped matching this pattern and this
+  // test went red — correctly. The rule had not moved out of roster.js, only
+  // into a different shape, and a detector that cannot see the shape would
+  // have quietly stopped guarding the note.
+  const REFUSES = /(?:\bdie\(|\bthrow\b|\berrs\.push\(|\berrors\.push\(|\bout\.push\()/;
+  // Refusing because the field is ABSENT, which is what the note is about.
+  // `epito validate` also refuses a repo that is present and malformed
+  // ("must be owner/name"), and that one is not a readiness blocker at all —
+  // it is an error the validator already reports on its own.
+  const MISSING = /(?:is required|but no \[runtime\]\.repo)/;
+  const refusesOverMissingRepo = (body) => {
+    for (const m of body.matchAll(/\[runtime\]\.repo/g)) {
+      const before = body.slice(Math.max(0, m.index - 200), m.index);
+      const stmt = before.slice(before.lastIndexOf(";") + 1);
+      // The phrasing can sit on either side of the field name ("is required",
+      // "but no [runtime].repo"), so the window spans both.
+      if (REFUSES.test(stmt) && MISSING.test(body.slice(Math.max(0, m.index - 100), m.index + 60))) return true;
+    }
+    return false;
+  };
+  const refusers = files
+    .filter(([rel, body]) => rel !== "lib/readiness.js" && refusesOverMissingRepo(body))
+    .map(([rel]) => rel);
+  assert.deepEqual(refusers.sort(), Object.keys(OWNERS).sort(),
+    "a file refuses over [runtime].repo that readiness.js's command list does not account for — update REPO_REQUIRED_BY (and OWNERS here) so the note stays true");
+  const expected = [...new Set(Object.values(OWNERS).flat())];
+  assert.deepEqual([...REPO_REQUIRED_BY].sort(), expected.sort(),
+    "REPO_REQUIRED_BY and the commands those files speak for have diverged");
+});
+
+test("loadRoster is where `epito run` and `epito ps <dir>` refuse, and it names the field", () => {
+  const d = tmpDir();
+  writeFileSync(join(d, "agent.toml"), `[agent]
+name = "digest"
+description = "One sentence."
+[identity]
+scopes = ["github:contents"]
+[trigger]
+cron = "0 6 * * *"
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/digest.md"
+`);
+  const errs = [];
+  const realError = console.error, realExit = process.exit;
+  console.error = (m) => errs.push(String(m));
+  process.exit = () => { throw new Error("exited"); };
+  try { loadRoster(d); } catch { /* the exit */ } finally { console.error = realError; process.exit = realExit; }
+  assert.match(errs.join("\n"), /\[runtime\]\.repo is required by `epito run`/);
+});
+
+// --- [trigger].cron: parsed by the validator, not counted ------------------
+//
+// The one outright validator bug behind the false ✓, and the only one with no
+// spec cover: the catalogue says "5-field cron, UTC", the validator counted
+// five fields, and `epito run` then refused "0 99 * * *" when it built the
+// matcher. One check now, so the two commands cannot disagree.
+
+test("[trigger].cron with five impossible fields is refused by the validator, not just by `epito run`", () => {
+  for (const [expr, why] of [
+    ["0 99 * * *", /hour "99" is outside 0-23/],
+    ["0 6 * *", /must have 5 fields, got 4/],
+    ["*/0 6 * * *", /step must be >= 1/],
+    ["0 6 * * xyz", /is not a number, \*, range, step, or list/],
+  ]) {
+    const errs = validateManifest(manifestFor({ repo: "a/b" }) && { ...manifestFor({ repo: "a/b" }), trigger: { cron: expr } }, { baseDir: tmpDir() });
+    const cron = errs.filter((e) => e.startsWith("[trigger].cron"));
+    assert.equal(cron.length, 1, `${expr}: expected exactly one cron error, got ${JSON.stringify(errs)}`);
+    assert.match(cron[0], why);
+    assert.match(cron[0], /Fix: five fields in UTC/, `${expr}: the cron error carries no fix`);
+  }
+});
+
+test("every cron the three frozen seat shapes use still validates", () => {
+  for (const expr of ["0 6 * * *", "0 7 * * 1", "*/15 * * * *", "0 0 1 1 *", "0 6 * * 0-5"]) {
+    const m = { ...manifestFor({ repo: "a/b" }), trigger: { cron: expr } };
+    assert.deepEqual(validateManifest(m, { baseDir: tmpDir() }), [], `${expr} was refused`);
+  }
+});
+
+// --- origin: the repo init no longer has to ask for ------------------------
+
+test("parseGitHubRemote reads the four spellings git writes, and refuses everything else", () => {
+  for (const u of [
+    "git@github.com:acme/product.git",
+    "ssh://git@github.com/acme/product.git",
+    "https://github.com/acme/product",
+    "https://github.com/acme/product.git",
+    "https://github.com/acme/product/",
+    "https://token@github.com/acme/product.git",
+  ]) assert.equal(parseGitHubRemote(u), "acme/product", `${u} did not read as acme/product`);
+
+  for (const u of [
+    "https://gitlab.com/acme/product.git",      // another platform is not a guess we make
+    "git@bitbucket.org:acme/product.git",
+    "https://github.com/acme",                  // no repo half
+    "https://github.com.evil.test/acme/product", // not github.com
+    "/srv/git/product.git",
+    "", null, undefined,
+  ]) assert.equal(parseGitHubRemote(u), null, `${JSON.stringify(u)} was read as a GitHub repo`);
+});
+
+test("a repo parsed off a remote is a value [runtime].repo itself accepts", () => {
+  // The whole point is that init writes it into a manifest, so a value this
+  // returns and the validator refuses would be worse than no value at all.
+  const repo = parseGitHubRemote("git@github.com:acme/product.git");
+  assert.deepEqual(validateManifest(manifestFor({ repo }), { baseDir: tmpDir() }), []);
+  assert.deepEqual(blockers(manifestFor({ repo })), []);
+});
+
+test("originRepo returns null outside a git repo instead of throwing", () => {
+  assert.equal(originRepo(tmpDir()), null);
+});
+
+// --- `epito validate <dir>`: the roster's own rules, and the one invariant that
+// --- makes --for-runtime's claim true ------------------------------------
+
+test("every rule a roster adds has a severity in `epito validate`", () => {
+  // The claim `epito validate <dir> --for-runtime` makes is that it refuses
+  // exactly what `epito run <dir>` refuses, minus the engine. That holds only
+  // while every rule roster.js can emit is one validate.js knows about: a rule
+  // missing from SEVERITY would be a rule `epito run` refuses and the strict
+  // gate passes in silence, which makes the gate a lie rather than a gate.
+  //
+  // src/validate.js throws at import if this is ever false, so reaching this
+  // line already proves it — the assertion is here so the failure reads as a
+  // test about the rule set rather than as a module that would not load.
+  for (const r of ROSTER_RULES) {
+    assert.ok(SEVERITY[r], `roster rule "${r}" has no severity in src/validate.js`);
+    assert.ok(["error", "note"].includes(SEVERITY[r]), `severity "${SEVERITY[r]}" for rule "${r}" is neither an error nor a note`);
+  }
+  assert.deepEqual(Object.keys(SEVERITY).sort(), [...ROSTER_RULES].sort(),
+    "SEVERITY and ROSTER_RULES name different rules, so one of them is describing a rule that does not exist");
+});
+
+test("rosterRules: a seat with no [runtime].repo trips the repo rule, once", () => {
+  const rules = rosterRules(manifestFor(), { path: "agents/a/agent.toml", takenBy: new Map() });
+  assert.deepEqual(rules.map((r) => r.rule), ["repo"]);
+  assert.match(rules[0].message, /\[runtime\]\.repo is required by `epito run`/);
+});
+
+test("rosterRules: a seat WITH a repo and a free name trips nothing", () => {
+  assert.deepEqual(rosterRules(manifestFor({ repo: "acme/product" }), { path: "x", takenBy: new Map() }), []);
+});
+
+test("rosterRules: two manifests, one [agent].name — spec rule 4, naming the first file", () => {
+  const m = manifestFor({ repo: "acme/product" });
+  const takenBy = new Map([[m.agent.name, "agents/first/agent.toml"]]);
+  const rules = rosterRules(m, { path: "agents/second/agent.toml", takenBy });
+  assert.deepEqual(rules.map((r) => r.rule), ["name"]);
+  assert.match(rules[0].message, /one manifest, one principal/, "the rule is not named in the spec's words");
+  assert.match(rules[0].message, /agents\/first\/agent\.toml/, "the message does not say which file claimed the name first");
+  // A refusal, not a note: no --for-runtime should be needed to hear that two
+  // seats are asking for one identity.
+  assert.equal(SEVERITY.name, "error");
+});
+
+test("rosterRules: the two rules are independent and both report", () => {
+  const m = manifestFor();                       // no repo
+  const takenBy = new Map([[m.agent.name, "agents/first/agent.toml"]]);
+  assert.deepEqual(rosterRules(m, { path: "p", takenBy }).map((r) => r.rule), ["repo", "name"]);
+});
+
+test("rosterRules tolerates a manifest that did not parse", () => {
+  // loadRoster calls it with whatever loadManifest returned, and a file that is
+  // not TOML returns manifest: null. A roster of four must still report the
+  // other three rather than dying on the first unparseable one.
+  for (const m of [null, undefined, {}, { runtime: null }]) {
+    assert.deepEqual(rosterRules(m, { path: "p", takenBy: new Map() }), []);
+  }
+});
+
+test("checkManifest spells the readiness fix with the path the reader typed", () => {
+  // findManifests returns absolute paths. Before `as` was threaded through,
+  // the fix for a seat in agents/okr named a /tmp path nobody had typed, which
+  // fails the error-message bar: the fix has to be an instruction you can run.
+  const d = tmpDir();
+  writeFileSync(join(d, "agent.toml"), `[agent]
+name = "okr"
+description = "One sentence."
+
+[identity]
+scopes = ["github:contents"]
+
+[trigger]
+cron = "0 6 * * *"
+
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/okr.md"
+`);
+  mkdirSync(join(d, "prompts"), { recursive: true });
+  writeFileSync(join(d, "prompts", "okr.md"), "# okr\n");
+
+  const r = checkManifest(join(d, "agent.toml"), { as: "agents/okr/agent.toml" });
+  assert.deepEqual(r.errors, [], `a valid manifest was refused: ${r.errors.join("; ")}`);
+  assert.equal(r.blocks.length, 1, "the missing [runtime].repo should be one readiness note");
+  assert.match(r.blocks[0].fix, /in agents\/okr\/agent\.toml/);
+  assert.doesNotMatch(r.blocks[0].fix, new RegExp(d.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+    "the fix names the absolute path the reader never typed");
+});
+
+test("checkManifest does not ask what a refused manifest would be ready for", () => {
+  const d = tmpDir();
+  writeFileSync(join(d, "agent.toml"), '[agent]\nname = "x"\n');
+  const r = checkManifest(join(d, "agent.toml"));
+  assert.ok(r.errors.length > 0, "a manifest with no triad should be refused");
+  assert.deepEqual(r.blocks, [], "readiness was computed for a file that is not a manifest");
+  assert.deepEqual(r.notes, []);
+});
+
+test("checkManifest names an unparseable file by the path the reader typed", () => {
+  const d = tmpDir();
+  writeFileSync(join(d, "agent.toml"), "[agent\nname = 'x'\n");
+  const r = checkManifest(join(d, "agent.toml"), { as: "agents/pm/agent.toml" });
+  assert.ok(r.parseError, "a broken TOML file should report a parse error");
+  assert.match(r.errors[0], /^agents\/pm\/agent\.toml is not valid TOML/);
+});
+
+test("one shape() describes a manifest, so a seat cannot read two ways", () => {
+  // The single-manifest ✓ and the roster's column are the same string by
+  // construction. This is the acceptance test for factoring `epito validate`
+  // out of index.js: the wording that already shipped is the wording both use.
+  assert.equal(shape(manifestFor({ repo: "acme/product" })), "identity (1 scope), trigger, runtime");
+  assert.equal(shape(manifestFor({}, { scopes: ["github:contents", "github:pull_requests"] })),
+    "identity (2 scopes), trigger, runtime");
+  // The adapter is named only when it is not the default, so every manifest
+  // written before adapters existed reads exactly as it always did.
+  assert.equal(shape(manifestFor({ adapter: "claude" })), "identity (1 scope), trigger, runtime");
+  assert.match(shape(manifestFor({ adapter: "langgraph", graph: "agent" })), / — a langgraph agent$/);
+});
+
+// --- the engine as a fact about the box ------------------------------------
+//
+// `epito validate agents --for-runtime` used to tick five seats and say "there
+// is nothing here `epito run agents` would refuse" on a machine where `epito
+// run agents --dry-run` refused in one line, before it read a manifest,
+// because nothing was answering at 127.0.0.1:7233. These assert the two
+// halves of the fix: that the look needs no engine, and that the sentence
+// cannot drift from the two commands that already had to say it.
+
+test("the unreachable-engine sentence exists once, and both clients use that one", () => {
+  // The same dead port used to read as "ECONNREFUSED" from `epito run` and as
+  // a nested Rust string from `epito worker`, because each file had its own
+  // copy of the sentence AND its own reason-extraction. The copies are the
+  // drift; this is the assertion that they stay gone. Same rule as
+  // REPO_REQUIRED_BY: the thing the message prints is the thing the test
+  // checks the source against.
+  const src = (f) => readFileSync(fileURLToPath(new URL(`../src/${f}`, import.meta.url)), "utf8");
+  for (const f of ["temporal/client.js", "temporal/worker.js"]) {
+    assert.ok(!/no Temporal server answering at/.test(src(f)),
+      `src/${f} has grown its own copy of the unreachable-engine sentence again — it belongs in lib/engine.js, once`);
+    assert.match(src(f), /engineUnreachableMessage/,
+      `src/${f} no longer calls engineUnreachableMessage, so the two clients can disagree about a dead port again`);
+    assert.ok(!/^function connectReason/m.test(src(f)),
+      `src/${f} has its own connectReason again — one dead port, one name for it`);
+  }
+  assert.match(src("lib/engine.js"), /no Temporal server answering at/,
+    "lib/engine.js is supposed to be the one place the sentence lives");
+});
+
+test("the engine fix names nothing the reader does not have", () => {
+  // `runtime/temporal/install.sh` is HQ's file (alexandra-systems). It is in
+  // neither this repository nor `npm i -g epito`, whose package.json `files`
+  // ships src, adapters and README.md — so the product's most likely first
+  // refusal told you to run a script that exists on no machine you have,
+  // which is worse than naming no fix, because it sends you looking. A path
+  // is only a fix if the reader has the path.
+  const fix = engineFix();
+  assert.ok(!/runtime\/temporal\/install\.sh/.test(fix),
+    "the fix names HQ's runtime/temporal/install.sh, which the reader does not have");
+  assert.match(fix, /temporal server start-dev/, "the fix no longer names the one command a laptop can run");
+  // Every repository path the fix names has to be in THIS repository, and
+  // named with the repository, since an npm install ships none of them.
+  const repoRootDir = fileURLToPath(new URL("../../", import.meta.url));
+  for (const [, p] of fix.matchAll(/\b((?:docs|deploy|spec|prompts|agents)\/[\w./-]+)/g)) {
+    assert.ok(existsSync(join(repoRootDir, p)), `the engine fix names ${p}, which is not in this repository`);
+    assert.match(fix, /github\.com\/[\w-]+\/[\w-]+/,
+      `the engine fix names the repository path ${p} without naming the repository, and \`npm i -g epito\` ships no docs`);
+
+    // The path existing is not the same as the reader arriving somewhere. The
+    // fix used to name a file that existed and whose named section's third
+    // column said "docker, via HQ `runtime/temporal/install.sh`" — so the
+    // dead end moved one hop instead of closing, and this test passed the
+    // whole time it was open. ADR-24's corollary has to hold at the
+    // DESTINATION too, or it only ever held for one string.
+    const dest = readFileSync(join(repoRootDir, p), "utf8");
+    assert.ok(!/runtime\/temporal\/install\.sh/.test(dest),
+      `the engine fix sends the reader to ${p}, and ${p} sends them on to HQ's runtime/temporal/install.sh — a file they still do not have`);
+
+    // And if the fix names a heading inside that file, the heading has to be
+    // in it. "see this file, section X" is a dead end the moment X is renamed.
+    for (const [, heading] of fix.matchAll(/"([^"]+)"/g)) {
+      assert.ok(dest.includes(heading),
+        `the engine fix sends the reader to "${heading}" in ${p}, which has no such heading`);
+    }
+  }
+});
+
+test("no operator-facing path in the repository hands the reader HQ's installer", () => {
+  // The CLI's one string is not the only place epito tells an operator how to
+  // get an engine: deploy/provision-host.sh prints a five-step NEXT block on
+  // the real host, and docs/deploy/README.md is what the refusal names. All
+  // three used to end at alexandra-systems' runtime/temporal/install.sh.
+  // Comments that explain the history are fine and necessary (lib/engine.js,
+  // decisions.md, this file); instructions are not.
+  const repoRootDir = fileURLToPath(new URL("../../", import.meta.url));
+  for (const f of ["deploy/provision-host.sh", "docs/deploy/README.md", "Dockerfile"]) {
+    assert.ok(!/runtime\/temporal\/install\.sh/.test(readFileSync(join(repoRootDir, f), "utf8")),
+      `${f} tells an operator to run HQ's runtime/temporal/install.sh, which ships in neither this repository nor npm`);
+  }
+  // And the engine section the refusal names has to carry a command, not just
+  // a statement that the engine is somebody else's problem.
+  const readme = readFileSync(join(repoRootDir, "docs/deploy/README.md"), "utf8");
+  assert.match(readme, /^## Temporal server \+ UI$/m,
+    "docs/deploy/README.md lost the heading lib/engine.js's fix line names");
+  assert.match(readme, /temporal server start-dev/,
+    "the engine section names no command the reader can run");
+});
+
+test("asking whether the engine is up pulls in no engine", async () => {
+  // This is the invariant behind "no engine required", and it is stronger than
+  // the assertion it replaced in smoke-validate.sh (which checked that the
+  // output never said the word "temporal"). What must be true is that the
+  // module `epito validate` reaches the address through imports nothing —
+  // otherwise a future edit to temporal/env.js could quietly make the manifest
+  // commands need the ~300 MB of engine that cli/package.json exists to avoid
+  // shipping.
+  const env = readFileSync(fileURLToPath(new URL("../src/temporal/env.js", import.meta.url)), "utf8");
+  assert.ok(!/^import /m.test(env),
+    "src/temporal/env.js has grown an import — lib/engine.js reads the address from it, so an @temporalio import there would make `epito validate` need the engine");
+  const engine = readFileSync(fileURLToPath(new URL("../src/lib/engine.js", import.meta.url)), "utf8");
+  for (const [, spec] of engine.matchAll(/^import .*? from "([^"]+)"/gm)) {
+    assert.ok(spec.startsWith("node:") || spec.startsWith("."),
+      `src/lib/engine.js imports ${spec}; it may import only node builtins and engine-free local modules`);
+  }
+});
+
+test("the probe reports what a TCP connect actually proves", async () => {
+  const srv = createTcpServer();
+  await new Promise((r) => srv.listen(0, "127.0.0.1", r));
+  const port = srv.address().port;
+  after(() => srv.close());
+
+  const up = await engineAnswering(`127.0.0.1:${port}`);
+  assert.equal(up.ok, true, "a listening port should read as answering");
+  assert.equal(up.malformed, false);
+
+  // Port 1 on loopback: refused immediately, which is the laptop case.
+  const down = await engineAnswering("127.0.0.1:1");
+  assert.equal(down.ok, false);
+  assert.equal(down.malformed, false);
+  assert.match(engineMissing(down), /nothing is answering at 127\.0\.0\.1:1/);
+
+  // A malformed address is a wrong variable, not a dead network, and saying
+  // "nothing is answering at garbage" would send an operator to look at the
+  // wrong thing.
+  const bad = await engineAnswering("garbage");
+  assert.equal(bad.ok, false);
+  assert.equal(bad.malformed, true);
+  assert.match(engineMissing(bad), /TEMPORAL_ADDRESS is "garbage", which is not a host:port address/);
+  assert.ok(!/answering/.test(engineMissing(bad)), "a malformed address should not be described as a dead engine");
+
+  // The ceiling is the point: a validator that hangs to tell you your files
+  // are fine is a validator people stop running. 198.51.100.x is TEST-NET-2
+  // (RFC 5737) and is not routed, so this is a timeout and not a refusal.
+  const t0 = Date.now();
+  const slow = await engineAnswering("198.51.100.1:7233", { timeoutMs: 150 });
+  assert.equal(slow.ok, false);
+  assert.ok(Date.now() - t0 < 2000, `the probe took ${Date.now() - t0}ms; it is supposed to cap at its timeout`);
+});
+
+test("splitAddress handles the forms TEMPORAL_ADDRESS takes", () => {
+  assert.deepEqual(splitAddress("127.0.0.1:7233"), { host: "127.0.0.1", port: 7233 });
+  assert.deepEqual(splitAddress("temporal.internal:7233"), { host: "temporal.internal", port: 7233 });
+  // The bracketed IPv6 form, which a lastIndexOf(":") alone would cut in half.
+  assert.deepEqual(splitAddress("[::1]:7233"), { host: "::1", port: 7233 });
+  for (const bad of ["", "7233", "host:", ":7233", undefined]) {
+    assert.ok(!splitAddress(bad).host || Number.isNaN(splitAddress(bad).port), `"${bad}" should not parse as host:port`);
+  }
+});
+
+test("the sentence says which address, and whether the address is the suspect", () => {
+  const dflt = engineUnreachableMessage(DEFAULT_ADDRESS, "ECONNREFUSED");
+  assert.match(dflt, /^no Temporal server answering at 127\.0\.0\.1:7233 \(ECONNREFUSED\)/);
+  assert.match(dflt, /set TEMPORAL_ADDRESS if your engine is somewhere other than/);
+  // A wrong TEMPORAL_ADDRESS is the one cause an operator cannot see — a stale
+  // export, or an /srv/asc/env copied between boxes, looks exactly like a dead
+  // engine. So when the address is not the default, the variable is named as a
+  // suspect and the fallback is spelled out.
+  const custom = engineUnreachableMessage("10.0.0.5:7233", "ECONNREFUSED");
+  assert.match(custom, /point TEMPORAL_ADDRESS at the engine you have — it is currently 10\.0\.0\.5:7233/);
+  assert.match(custom, /unsetting it falls back to 127\.0\.0\.1:7233/);
+});
+
+test("connectReason reads both transports' idea of a dead port", () => {
+  // @temporalio/client: an error with a cause.code.
+  assert.equal(connectReason({ cause: { code: "ECONNREFUSED" } }), "ECONNREFUSED");
+  // @temporalio/worker's native connection: a nested Rust string.
+  assert.equal(connectReason({ message: 'transport error: ConnectError("tcp connect error")' }), "tcp connect error");
+  assert.equal(connectReason({ cause: { message: 'status: Unavailable, message: "Failed to connect before the deadline"' } }),
+    "Failed to connect before the deadline");
+  // Anything else comes through whole rather than as "[object Object]".
+  assert.equal(connectReason({ message: "something else entirely" }), "something else entirely");
 });

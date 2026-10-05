@@ -1,4 +1,4 @@
-# The agent manifest (agent.toml), spec v0.1
+# The agent manifest (agent.toml), spec v0.1 — FROZEN 2026-09-30
 
 One file is the whole agent. The manifest is the unit of everything that
 comes later: a deploy is a manifest provisioned, a team is manifests with
@@ -11,6 +11,28 @@ the definition of an agent itself (ADR-2): `[identity]`, `[trigger]`,
 `[runtime]`. A manifest missing any of the three describes a skill, and
 `epito validate` says so in those words.
 
+**What frozen means.** v0.1's vocabulary is closed. The field catalogue
+below is the whole of it, and `epito validate` now refuses a key that is
+not in it — including a misspelling of one that is, which it answers with
+the spelling. That refusal is the point of freezing: while fields were
+still arriving in-band (five did, across six merged PRs), a validator that
+rejected unknown keys would have rejected the manifest introducing each
+one, so it ignored everything it did not recognise, and `max_turn = 50`
+validated with a ✓ and then ran 120 turns. New fields now go through
+v0.2 — an open question below, then a spec change, then code.
+
+The catalogue and the validator are one list in one place
+(`FIELDS` in `cli/src/lib/manifest.js`, and `ROUTE_FIELDS` beside the
+route reader in `cli/src/lib/router.js`). They cannot drift; the drift is
+what let five fields land as prose without ever being checked.
+
+## The field catalogue
+
+Every field v0.1 has. **This is a catalogue, not a file to copy** — some
+of these are mutually exclusive, and a TOML table must follow every plain
+key of the table above it. To copy something, copy a seat shape: the three
+below are real, complete, validating manifests.
+
 ```toml
 [agent]
 name = "historian"                      # required: [a-z0-9-], 1-40 chars, unique per roster
@@ -19,60 +41,60 @@ description = "Writes the daily digest" # required: one sentence, shown on the r
 [identity]
 scopes = ["github:contents", "github:pull_requests"]
                                         # required, non-empty: platform:permission strings.
-                                        # v0.1 platform: github. The deploy target maps these
-                                        # to fine-grained App permissions; anything unmapped
-                                        # fails deploy loudly.
+                                        # v0.1 platform: github. Mapped to fine-grained App
+                                        # permissions by the table under "Scopes" below;
+                                        # anything unmapped fails the mint loudly.
 
-[trigger]                               # required: at least one of the three
-cron = "0 6 * * *"                      # 5-field cron, UTC
-on   = ["issue.opened"]                 # platform event subscriptions
-webhook = true                          # deploy returns a per-agent signed URL
+[trigger]                               # required: at least one of the two
+cron = "0 6 * * *"                      # 5-field cron, UTC. The runtime registers a schedule.
+                                        # Parsed by `epito validate`, not counted: five
+                                        # impossible fields ("0 99 * * *") is refused here and
+                                        # not left for `epito run` to discover.
+webhook = true                          # the ingress may wake this seat: POST /hooks/<name>.
+                                        # Without it the ingress refuses — a trigger is
+                                        # explicit and never defaulted (rule 3).
 
 [runtime]
 model = "claude-sonnet-5"               # required: explicit, never defaulted (an unset model
                                         # is silently under-modeled — alexandria incident 9)
-entry = "prompts/historian.md"          # required: the charter file, path in repo
-repo  = "owner/historian"               # PROPOSED (v0.1, epitod v0): the GitHub repository
-                                        # the resident runtime clones fresh for every run;
-                                        # `entry` is a path inside it. Required by `epito run`.
-ref   = "main"                          # PROPOSED, optional: branch or tag the runtime checks
-                                        # out; unset = the repository's default branch
-adapter = "claude"                      # PROPOSED (v0.1, the adapter slice), optional:
-                                        # which KIND of agent this is — what the
-                                        # runtime spawns for a run. "claude" (the
-                                        # default, and what every manifest written
-                                        # before this field means) or "langgraph".
-graph = "agent"                         # PROPOSED, optional: which graph in the
-                                        # agent's own langgraph.json this seat runs.
-                                        # Only the langgraph adapter reads it, and
-                                        # `epito validate` refuses it beside any
-                                        # other adapter — the two lines above are a
-                                        # catalogue of fields, not a manifest to copy.
-image = "default"                       # optional: container image; "default" = platform base
-max_turns = 100                         # optional: run cap, default 100
+entry = "prompts/historian.md"          # required: the charter file, a path inside `repo`
+repo  = "owner/historian"               # the GitHub repository a run happens in: the runtime
+                                        # clones it fresh, reads `entry` inside the clone, and
+                                        # hands the clone to the agent as its working directory.
+                                        # Also what bounds the minted token to one repo.
+                                        # `epito validate` accepts it absent (Actions-era
+                                        # manifests stay valid) and SAYS so: `epito run`,
+                                        # `epito ps <dir>`, `epito deploy` and `epito token`
+                                        # all refuse without it, so the ✓ names them instead
+                                        # of implying they will not.
+ref   = "main"                          # optional: branch or tag the runtime checks out;
+                                        # unset = the repository's default branch
+adapter = "claude"                      # optional: which KIND of agent this is. "claude" (the
+                                        # default, and what every manifest written before this
+                                        # field means) or "langgraph".
+graph = "agent"                         # optional, and meaningful ONLY with adapter =
+                                        # "langgraph": which graph in the agent's own
+                                        # langgraph.json this seat is. Refused beside any other
+                                        # adapter rather than quietly meaning nothing.
+max_turns = 120                         # optional: run cap, default 100
 env = []                                # optional: names of secrets the runtime injects;
                                         # values never appear in the manifest, ever
 slack_webhook_env = "SLACK_WEBHOOK_URL_EPITOME"
-                                        # PROPOSED (v0.1, epitod v1), optional: the NAME of
-                                        # the webhook secret this agent's one-line post goes
-                                        # to, so a product seat speaks in its own channel.
-                                        # Must also appear in `env`. Unset = the runtime's
-                                        # default SLACK_WEBHOOK_URL, or no post if that is
-                                        # not listed in `env` either.
+                                        # optional: the NAME of the webhook secret this
+                                        # agent's one-line post goes to, so a product seat
+                                        # speaks in its own channel. Must also appear in `env`.
+                                        # Unset = the runtime's default SLACK_WEBHOOK_URL, or
+                                        # no post if that is not in `env` either.
 
-[[runtime.route]]                       # PROPOSED (v0.1, the router), optional, repeatable:
-name = "open"                           # the roads to a model, in the order the runtime tries
-model = "kimi-k2-turbo-preview"         # them; a run takes the first one that starts it.
+[[runtime.route]]                       # optional, repeatable: the roads to a model, in the
+name = "open"                           # order the runtime tries them. A run takes the first
+model = "kimi-k2-turbo-preview"         # one that starts it. No route table at all = one road,
 base_url = "https://api.moonshot.ai/anthropic"
                                         # optional: the endpoint that speaks the model's API
 token_env = "MOONSHOT_API_KEY"          # optional: the NAME of the key that opens it, which
                                         # must also appear in `env` — never the key itself
 concurrency = 1                         # optional: how many of one box's runs may be on this
                                         # road at once
-                                        # No [[runtime.route]] at all = one road: `model`
-                                        # above, on whatever login the executor already has.
-                                        # A table must follow every plain [runtime] key, which
-                                        # is TOML's rule; this is a catalogue, not a file to copy.
 ```
 
 ## Rules
@@ -85,62 +107,99 @@ concurrency = 1                         # optional: how many of one box's runs m
    the manifest doesn't declare. Widening a scope is a manifest change,
    which means a diff, which means the audit trail includes intent.
 3. **Explicit beats defaulted** for anything that changes behavior
-   silently: model, scopes, and triggers have no defaults.
+   silently: model, scopes, and triggers have no defaults. A seat that
+   did not ask to be woken by the ingress is not woken by it.
 4. **One manifest, one principal.** Deploying the same file twice updates
    the same agent; renaming creates a new one. Identity follows `name`.
 
-## Proposed in-band (epitod v1, cycle 2 bet)
+## The three seat shapes
 
-- `[runtime].slack_webhook_env`, optional. The name of the environment
-  variable holding the Slack webhook this agent posts its one line to.
-  It exists because four companies now share one runtime and one
-  `SLACK_WEBHOOK_URL` that goes to `#hq`: a product seat needs to be
-  able to speak in its own channel without the runtime growing a
-  routing table. Rule 1 governs it exactly as it governs `env`: the
-  manifest carries the NAME, never the URL. `epito validate` refuses a
-  value that looks like a URL rather than a variable name, and refuses
-  a name that is not also listed in `[runtime].env`, because the
-  runtime injects only the names the manifest lists and an unlisted
-  webhook could never resolve to a value. Absent the field, behavior
-  is exactly what it was: `SLACK_WEBHOOK_URL` if `env` lists it, no
-  post otherwise. Every existing manifest is therefore unaffected,
-  which is the compatibility bar epitod v1 had to clear.
+v0.1 was frozen by trying it against the three shapes every roster so far
+has turned out to contain. They live as real manifests, and the test suite
+validates all three and asserts that **every field in the catalogue is
+needed by at least one of them** — a field no real shape needs is a field
+that did not earn its place, and the test names it
+(`cli/test/unit.mjs`, "every field in the frozen catalogue is needed").
 
-## Proposed in-band (the adapter slice, owner priority 3)
+| Shape | File | What it exercises |
+| --- | --- | --- |
+| **Daily builder** — wakes on a schedule, writes code, leaves a PR | `cli/test/fixtures/shapes/daily-builder/agent.toml` | `cron`, `max_turns`, `slack_webhook_env`, the full route chain |
+| **Weekly writer** — wakes weekly, writes prose | `cli/test/fixtures/shapes/weekly-writer/agent.toml` | `ref`, and how few fields a real seat needs |
+| **Event-driven responder** — no schedule; answers what happened | `cli/test/fixtures/shapes/event-responder/agent.toml` | `webhook`, `adapter`, `graph`, a non-GitHub-write scope set |
 
-Two optional, additive fields. Both default to the behaviour every existing
-manifest already has, which is the compatibility bar this slice had to clear:
-an absent `adapter` is `"claude"`, and the argv the runtime spawns for such a
-manifest is byte-identical to what it spawned before adapters existed (asserted
-in `cli/test/unit.mjs`).
+The second shape is the one that does the work. Shape 1 asks whether the
+manifest can express a complicated seat; shape 2 asks how little a real
+seat needs, and every field absent from it had to justify itself against
+one of the other two or go.
 
-- **`[runtime].adapter`**, optional. Which kind of agent this is, from the set
-  the runtime can host: `"claude"` (the Claude Code CLI, headless) or
-  `"langgraph"` (a LangGraph app, run through the `langgraph.json` its author
-  already wrote). It is a *kind*, not a command: the manifest never names an
-  executable, because a manifest is publishable and a path on somebody's box is
-  not. `epito validate` refuses a value outside the set, listing the set and
-  what each member is (ADR-17).
+All three are fixtures, written by the same people who wrote the validator.
+Since 2026-10-03 there is also a roster that is not: `agents/` holds this
+company's own five seats, translated from the Actions workflows that have been
+running them for weeks (`agents/README.md`). It is the stronger evidence, and
+it is where the three "what did not translate" findings below came from — one
+of them a field v0.2 probably needs.
 
-  The field exists because the runtime had exactly one agent shape hard-coded
-  into it, which contradicts the promise that epito runs the agent you already
-  have (R4, ADR-10). An adapter adds no dependency to the product: epito spawns
-  a process and reads the last JSON object it prints.
+## Scopes
 
-- **`[runtime].graph`**, optional, and meaningful only when
-  `adapter = "langgraph"`. A LangGraph app may declare several graphs in its
-  `langgraph.json`; this names the one this seat is. Unset is fine when the app
-  declares exactly one; with several, the run refuses and names them, because
-  picking one for the operator is a guess about which agent they hired.
-  `epito validate` refuses `graph` beside any other adapter rather than letting
-  a field quietly mean nothing.
+`[identity].scopes` map to fine-grained GitHub App permissions. v0.1 maps
+three, at write:
 
-**What is deliberately NOT in the manifest.** Nothing about the interpreter, the
-virtualenv, the image, or where the framework is installed. Those are properties
-of the box, and rule 1's spirit (a manifest is publishable without redaction)
-extends to them: `EPITO_PYTHON` names the interpreter on the runtime, the way
-`$EPITO_APP_KEY_<NAME>` names the App key. A manifest that named a path would
-stop being portable at exactly the moment a second person ran it.
+| scope | GitHub App permission |
+| --- | --- |
+| `github:contents` | `contents: write` |
+| `github:pull_requests` | `pull_requests: write` |
+| `github:issues` | `issues: write` |
+
+Write, because every one of the three seat shapes commits, opens PRs, or
+comments; a read-only agent is a reader, and nothing in v0.1 can express
+one yet (see the open questions). `metadata: read` is absent because
+GitHub grants it to every installation implicitly.
+
+Anything outside the table fails **the mint**, naming the scope and the
+mapped set — not `epito validate`. That placement is deliberate: a
+stricter validator would refuse a running roster at startup over one
+word, and a live box is downstream of that choice.
+
+What that placement costs is a ✓ on a manifest the mint will refuse, so
+`epito validate` **notes** the unmapped scope without failing on it — and the
+same for an absent `[runtime].repo`. The rules belong to the other commands;
+`cli/src/lib/readiness.js` holds them once and the validator reads them out,
+so its tick is honest about what it did not promise. `epito validate
+--for-runtime` turns those notes into an error and exits 1, for CI that wants
+the stricter rule; the default stays exit 0, because these files are valid
+v0.1 manifests and a validator that refused them would break every
+Actions-era manifest on purpose.
+
+Given a directory, `--for-runtime` also refuses a roster when the engine
+`epito run <dir>` would connect to is not answering at `TEMPORAL_ADDRESS`
+(ADR-24). That is not a rule about a manifest and it adds no field: it is the
+flag's contract — refuse precisely what `epito run <dir>` refuses — and `epito
+run` asks about the engine before it reads a seat. The default still exits 0
+and still needs no engine, because whether a directory of files is a roster is
+a filesystem question; what changed is that the verdict no longer answers for
+`epito run` without having asked it.
+
+Nothing about an agent's App belongs in the manifest, and rule 1 is why:
+the App id and private key are named by convention
+(`$EPITO_APP_ID_<NAME>`, `$EPITO_APP_KEY_<NAME>`) and live on the runtime
+box, so a manifest stays publishable without redaction.
+
+## Adapters: what kind of agent this is
+
+`[runtime].adapter` is a *kind*, not a command: the manifest never names an
+executable, because a manifest is publishable and a path on somebody's box
+is not. `epito validate` refuses a value outside the set, listing the set
+and what each member is (ADR-17).
+
+The field exists because the runtime had exactly one agent shape hard-coded
+into it, which contradicts the promise that epito runs the agent you already
+have (R4, ADR-10). An adapter adds no dependency to the product: epito spawns
+a process and reads the last JSON object it prints.
+
+`[runtime].graph` names one graph in a LangGraph app that declares several.
+Unset is fine when the app declares exactly one; with several, the run
+refuses and names them, because picking one for the operator is a guess
+about which agent they hired.
 
 **Presence is a property of the adapter, not of the runtime.** A window and
 `POST /message` hold a session id the agent's executor hands back. The claude
@@ -151,12 +210,7 @@ as its prompt, and says so in the run log. No manifest field expresses this: it
 follows from the adapter, and inventing `resumable = false` would let a manifest
 claim a capability its agent does not have.
 
-## Proposed in-band (the router, owner priority 4)
-
-One optional, repeatable table: **`[[runtime.route]]`**. Absent — which is
-every manifest written before it — means one road, `[runtime].model`, on
-whatever this box authenticates the executor with, and the argv is unchanged
-(asserted in `cli/test/unit.mjs`).
+## Routes: which road to the model
 
 A route is `name`, `model`, and optionally `base_url`, `token_env` and
 `concurrency`. The runtime tries them in the order written and the run takes
@@ -191,77 +245,79 @@ its opening run took, and every follow-up message lands on that road with no
 fallback: `--resume <id>` at a different endpoint is a stranger being handed a
 conversation it never had.
 
-## Proposed in-band (the identity slice, cycle 1 bet 2)
+## What is deliberately NOT in the manifest
 
-Additive clarifications the mint (`epito token <name>`,
-cli/src/lib/identity.js) forced into the open. Neither changes a rule;
-both write down an answer the spec left to the implementation, which is
-exactly the kind of thing that drifts if it stays unwritten.
+Nothing about the interpreter, the virtualenv, the container image, or where
+the framework is installed. Those are properties of the box, and rule 1's
+spirit (a manifest is publishable without redaction) extends to them:
+`EPITO_PYTHON` names the interpreter on the runtime, the way
+`$EPITO_APP_KEY_<NAME>` names the App key. A manifest that named a path would
+stop being portable at exactly the moment a second person ran it.
 
-- **A mapped scope grants write.** v0.1 says `[identity].scopes` map to
-  fine-grained App permissions but never says at which access level. The
-  mint reads them as:
+Team and roster fields stay out too: a roster references manifests, not the
+reverse.
 
-  | scope | GitHub App permission |
-  | --- | --- |
-  | `github:contents` | `contents: write` |
-  | `github:pull_requests` | `pull_requests: write` |
-  | `github:issues` | `issues: write` |
+## What the freeze retired
 
-  Write, because every one of the three seat shapes commits, opens PRs,
-  or comments; a read-only agent is a reader, and nothing in v0.1 can
-  express one yet (see the open question below). `metadata: read` is
-  absent because GitHub grants it to every installation implicitly.
-  Anything outside the table fails the mint loudly, naming the scope and
-  the mapped set — the behavior v0.1 already requires of deploy, now
-  real. The failure lands at the mint and not at `epito validate` on
-  purpose: a stricter validator would refuse a running roster at startup
-  over one word, and a live box is downstream of that choice.
+Two fields the v0.1 draft carried and the review removed. Both are refused
+by name, with the reason — a reader who copied one out of the draft is owed
+better than "unknown field".
 
-- **`[runtime].repo` bounds the credential, not just the clone.** A
-  minted token is scoped to exactly one repository, and `repo` is what
-  says which. The field is already PROPOSED below as the resident
-  runtime's clone target; this is a second, independent reason it is
-  required in practice. `epito validate` still stays silent when it is
-  absent (Actions-era manifests remain valid); `epito run` and `epito
-  token` both refuse.
+- **`[trigger].on`** (platform event subscriptions). Nothing in v0.1
+  subscribes to platform events and nothing filters on them, so the field
+  could not change what happened: a hook runs the seat whatever event it
+  carried. Worse, a manifest whose only trigger was `on` passed `epito
+  validate` with a ✓ and was a seat that could never fire — the triad rule
+  accepted it as a trigger and no schedule was ever registered for it. It
+  returns with `epito deploy`, which is the command that would do the
+  subscribing; see the open questions.
 
-Nothing about an agent's App belongs in the manifest, and rule 1 is why:
-the App id and private key are named by convention
-(`$EPITO_APP_ID_<NAME>`, `$EPITO_APP_KEY_<NAME>`) and live on the runtime
-box, so a manifest stays publishable without redaction.
-
-## Proposed in-band (epitod v0, cycle 1 bet 1)
-
-- `[runtime].repo = "owner/name"`. The resident runtime (`epito run`)
-  needs to know which repository a run happens in: it clones it into a
-  fresh temp dir, reads `entry` inside the clone, and hands the clone to
-  the agent as its working directory. In the Actions runtime the repo
-  was implicit (the workflow lives in it); in a resident daemon that
-  hosts many agents from one directory it must be explicit. `epito
-  validate` accepts the field when present (owner/name grammar) and, when
-  it is set, checks `entry` at run time inside the clone instead of at
-  validate time on disk. Absent `repo`, `epito run` refuses the manifest
-  and says so; `epito validate` stays silent (Actions-era manifests
-  remain valid).
-- `[runtime].ref`, optional. Which branch or tag the run checks out
-  (`git clone --branch <ref>`); unset means the default branch, which
-  is what every HQ seat wants. Exists so a charter can be staged on a
-  branch and run before it merges (this PR's own smoke test needs it).
+- **`[runtime].image`** (container image). Zero consumers anywhere in the
+  tree, and the section above already says an image is a property of the
+  box. Keeping it would have been the spec contradicting itself in two
+  places one screen apart.
 
 ## Open questions (settle before v0.2)
 
 - Scope grammar for non-GitHub platforms (`asana:tasks.write`?
   `postgres:read/dbname`?) — decide with the second integration, not
   before, per the backlog.
-- Whether `[trigger]` combinations compose (cron + events on one agent)
-  or v1 forces exactly one.
-- **Access levels in the scope grammar.** Every mapped scope grants write
-  today (above), so a manifest cannot describe a read-only agent. The
-  grammar already admits a modifier — `github:contents.read` parses — but
-  inventing one before a real read-only agent exists is a guess. Decide
-  with the second integration, alongside the non-GitHub grammar question
-  above, so the two answers are designed together rather than in sequence.
-- Team/roster fields stay OUT of the manifest (a roster references
-  manifests, not the reverse) — confirm this survives contact with the
-  dogfood migration.
+- **Access levels in the scope grammar.** Every mapped scope grants write,
+  so a manifest cannot describe a read-only agent. The grammar already
+  admits a modifier — `github:contents.read` parses — but inventing one
+  before a real read-only agent exists is a guess. Decide with the
+  non-GitHub grammar question above, so the two answers are designed
+  together rather than in sequence.
+- **Event subscription, and the shape of `[trigger].on`'s replacement.**
+  `webhook = true` says the ingress may wake a seat; nothing says *what*
+  may wake it, so the filtering lives in whatever points at the hook.
+  Settle it with `epito deploy` (which is what would register a
+  subscription), and decide then whether filtering belongs in the manifest
+  at all or is the platform's job.
+- **A route endpoint that is a NAME, not a URL.** `token_env` names the key
+  that opens a road because rule 1 forbids the value; `base_url` is still a
+  literal, and that is where the first real roster hit the wall. This
+  company's own `pm`, `market` and `okr` seats take a cheaper road whose
+  endpoint it holds as a repository secret (`OPENROUTE_BASE_URL`), so the road
+  cannot be written in a publishable manifest at all — the three manifests in
+  `agents/` declare one road each and say so in a comment. The shape is
+  probably `base_url_env`, beside `token_env` and under the same rule: a name
+  that must also appear in `env`, skipped like any other road whose
+  credential is absent from the box. Not added here, because v0.1 is frozen
+  and the freeze's point is that a field arrives through a question, then a
+  spec change, then code — this is the question. Decide with v0.2.
+- ~~Whether `[trigger]` combinations compose (cron + webhook on one agent,
+  which v0.1 permits and no shape yet uses) or v1 forces exactly one.~~
+  **Answered by the dogfood, 2026-10-03: they compose, and the ordinary seat
+  needs both.** Every one of this company's five workflows can be fired by its
+  clock *and* by hand (`workflow_dispatch`), and on the runtime the second one
+  is the ingress — so four of the five manifests in `agents/` carry `cron` and
+  `webhook = true` together, and the fifth carries only the webhook because
+  its schedule block is commented out. Forcing exactly one would have made the
+  first real roster unexpressible. v0.1's permissiveness here was right;
+  nothing to change.
+- Team/roster fields stay OUT of the manifest — **holding so far**: the first
+  real roster (`agents/`, five seats, 2026-10-03) needed no field that
+  described the roster, only a directory. `epito run <dir>` discovers the
+  files; nothing in a manifest references a sibling. Confirm again at dogfood
+  step 2, when a seat's Actions wiring is actually deleted.

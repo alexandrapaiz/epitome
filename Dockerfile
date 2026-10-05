@@ -8,8 +8,9 @@
 # per-run clone, gh for the agent's draft PR, and the claude CLI as the executor
 # the `execute` activity spawns (`claude -p ...`). What is NOT here is the
 # engine: Temporal is a separate service reached at TEMPORAL_ADDRESS, self-
-# hosted (HQ runtime/temporal/install.sh), never Temporal Cloud. No supervisor
-# inside the container; the host restarts it.
+# hosted and installed separately (docs/deploy/README.md, "Temporal server +
+# UI"), never Temporal Cloud. No supervisor inside the container; the host
+# restarts it.
 FROM node:22-alpine
 
 RUN apk add --no-cache git github-cli bash ca-certificates \

@@ -1,0 +1,25 @@
+# epito.me's own OKR seat, as a manifest.
+# Translated from .github/workflows/agent-okr.yml.
+#
+# The thinnest manifest of the five, and the monthly one: "0 12 1 * *" is
+# 12:00 UTC on the first of the month. It is this roster's answer to shape 2
+# of the freeze ("how few fields does a real seat need") from a seat that
+# actually runs rather than a fixture.
+
+[agent]
+name = "okr"
+description = "Guards the mission: grades the quarter's objectives from repo evidence."
+
+[identity]
+scopes = ["github:contents", "github:pull_requests"]
+
+[trigger]
+cron = "0 12 1 * *"
+webhook = true
+
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/okr-agent.md"
+repo = "alexandrapaiz/epitome"
+max_turns = 80
+env = ["SLACK_WEBHOOK_URL"]

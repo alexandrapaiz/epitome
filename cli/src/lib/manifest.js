@@ -8,8 +8,38 @@ import { dirname, resolve } from "node:path";
 import { parse } from "smol-toml";
 import { ADAPTERS, DEFAULT_ADAPTER, unknownAdapter } from "./adapters.js";
 import { routeErrors } from "./router.js";
+import { parseCron } from "./cron.js";
+import { unknownKeys } from "./fields.js";
 
 export const NAME_RE = /^[a-z0-9-]{1,40}$/;
+
+// The frozen field catalogue, spec v0.1. This is the list the spec's table
+// section renders and the list this validator enforces, and there is exactly
+// one of it so the two cannot drift — the drift is what let five fields land
+// as prose without ever being checked.
+export const FIELDS = {
+  agent: ["name", "description"],
+  identity: ["scopes"],
+  trigger: ["cron", "webhook"],
+  // `route` is the [[runtime.route]] array; its own keys are router.js's,
+  // kept beside the code that reads them.
+  runtime: ["model", "entry", "repo", "ref", "adapter", "graph", "max_turns", "env", "slack_webhook_env", "route"],
+};
+
+export const TABLES = Object.keys(FIELDS);
+
+// Fields the v0.1 DRAFT carried that the freeze retired. A reader who copied
+// one out of an older spec is owed the reason and the replacement, not
+// "unknown field" — that is the difference between a spec that froze and a
+// product that just started refusing things.
+const RETIRED = {
+  trigger: {
+    on: '[trigger].on names platform events to subscribe to, and v0.1 subscribes to nothing and filters on nothing: a seat is woken by [trigger].cron (a schedule the runtime registers) or [trigger].webhook (the ingress), and a hook runs the seat whatever event it carried. A field that cannot change what happens is a field that misleads its author. Fix: drop it, and set webhook = true to be woken by events. Event subscription returns with `epito deploy` — spec v0.1, open questions.',
+  },
+  runtime: {
+    image: '[runtime].image names a container image, and an image is a property of the box, not of the agent — the same rule that keeps the interpreter, the virtualenv and every path out of a manifest, because a manifest has to stay publishable and runnable by a second person (spec v0.1, "what is deliberately NOT in the manifest"). Nothing has ever read this field. Fix: drop the line; a run happens in the image the runtime box already has.',
+  },
+};
 
 // Parse a manifest file. Returns { manifest } or { parseError }.
 export function parseManifest(path) {
@@ -26,6 +56,16 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
   const triad = ["identity", "trigger", "runtime"].filter((t) => !m[t]);
   if (triad.length) {
     errors.push(`missing [${triad.join("], [")}] — an agent is identity + trigger + runtime; without ${triad.length === 3 ? "them" : triad.length === 2 ? "these" : "it"} this file describes a skill`);
+  }
+
+  // A table the spec does not define reads as a whole feature the author
+  // believes in and the runtime has never heard of, so it is named first.
+  for (const t of Object.keys(m)) {
+    if (TABLES.includes(t)) continue;
+    errors.push(`[${t}] is not a table in manifest spec v0.1 — a manifest has four: [${TABLES.join("], [")}]. Fix: drop it, or move what it carries into one of the four.`);
+  }
+  for (const t of TABLES) {
+    if (m[t]) errors.push(...unknownKeys(m[t], FIELDS[t], `[${t}]`, RETIRED[t] ?? {}));
   }
 
   const a = m.agent ?? {};
@@ -45,9 +85,20 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
 
   if (m.trigger) {
     const t = m.trigger;
-    if (!t.cron && !t.on && !t.webhook) errors.push("[trigger] needs at least one of: cron, on, webhook — an agent is triggered, not prompted");
-    if (t.cron && !/^\S+ \S+ \S+ \S+ \S+$/.test(t.cron)) errors.push(`[trigger].cron "${t.cron}" must be 5-field cron`);
-    if (t.on && (!Array.isArray(t.on) || t.on.length === 0)) errors.push("[trigger].on must be a non-empty array of events");
+    if (!t.cron && !t.webhook) errors.push("[trigger] needs at least one of: cron (a schedule) or webhook (the ingress wakes it) — an agent is triggered, not prompted");
+    // Parsed, not counted. Counting five fields passed "0 99 * * *", which
+    // `epito run` then refused when it built the matcher — so a tick here
+    // promised a schedule the runtime would reject. One check, one message,
+    // and loadRoster no longer carries its own copy.
+    if (t.cron) {
+      try { parseCron(t.cron); }
+      catch (e) {
+        errors.push(`[trigger].cron "${t.cron}" is not a schedule the runtime can register — ${String(e.message).replace(/^cron /, "")}. Fix: five fields in UTC (minute hour day-of-month month day-of-week) using numbers, *, ranges, steps and lists; "0 6 * * *" is 06:00 every day.`);
+      }
+    }
+    if (t.webhook !== undefined && typeof t.webhook !== "boolean") {
+      errors.push(`[trigger].webhook is true or false — it says whether the ingress may wake this seat, not where: the URL is the runtime's to hand out, never the manifest's to name. Got "${t.webhook}".`);
+    }
   }
 
   if (m.runtime) {

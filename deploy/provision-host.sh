@@ -3,11 +3,11 @@
 # between triggers (epitod v1, docs/prfaq/epitod-v1-temporal.md).
 #
 # epitod v1 runs on Temporal, self-hosted. This script does NOT install the
-# Temporal server: that is HQ's runtime/temporal/install.sh, which brings up
-# temporalio/auto-setup and temporalio/ui in docker on the host's Postgres,
-# bound to loopback. Run that first, or run this and fill in TEMPORAL_ADDRESS
-# afterwards — the units below wait for a server they can reach and say so
-# when they cannot.
+# Temporal server, and nothing in this repository does yet: the engine is a
+# server, it is installed separately, and docs/deploy/README.md ("Temporal
+# server + UI") is where the two ways to get one are written down. Bring it up
+# first, or run this and fill in TEMPORAL_ADDRESS afterwards -- the units below
+# wait for a server they can reach and say so when they cannot.
 #
 # Target: Ubuntu 24.04 LTS, arm64, an Oracle Cloud Always Free A1 instance
 # (4 OCPU / 24 GB is the free ceiling; epitod is idle between runs and the
@@ -143,8 +143,8 @@ else
 # agent's [runtime].env — the manifest names it, this file holds it.
 EPITO_HOOK_SECRET=$(openssl rand -hex 24)
 EPITO_PORT=$PORT
-# The engine. Self-hosted Temporal on loopback, installed separately by HQ's
-# runtime/temporal/install.sh. Never Temporal Cloud.
+# The engine. Self-hosted Temporal on loopback, installed separately -- see
+# docs/deploy/README.md ("Temporal server + UI"). Never Temporal Cloud.
 TEMPORAL_ADDRESS=127.0.0.1:7233
 TEMPORAL_NAMESPACE=asc
 EPITO_TASK_QUEUE=seats
@@ -202,6 +202,22 @@ else
 fi
 (cd "$EPITO_SRC/cli" && npm ci --silent --omit=dev >/dev/null && npm install -g --silent . >/dev/null)
 echo "  $(command -v epito) installed"
+
+# The engine, by name, because the CLI no longer brings it. cli/package.json
+# declares @temporalio/* as OPTIONAL peer dependencies so that `npm i -g epito`
+# is half a megabyte instead of ~300 MB for the people who only write
+# manifests — which means the `npm ci --omit=dev` above installs everything
+# EXCEPT the one thing this host exists to run. `epito run` and `epito worker`
+# are this box's entire job; without these four they start, print the
+# install line, and exit 1.
+#
+# This list and cli/package.json's peerDependencies are one list, kept so by
+# a unit assertion ("the runtime box installs every engine peer") rather than
+# by anyone remembering to edit both.
+ENGINE_PKGS="@temporalio/client@^1.24.0 @temporalio/worker@^1.24.0 @temporalio/activity@^1.24.0 @temporalio/workflow@^1.24.0"
+# shellcheck disable=SC2086 -- the list is this script's own literal, split on purpose
+npm install -g --silent $ENGINE_PKGS >/dev/null
+echo "  engine: @temporalio/{client,worker,activity,workflow}"
 
 say "roster"
 ROSTER_DIR="$BASE/roster"
@@ -451,12 +467,18 @@ ufw status | sed 's/^/  /'
 
 say "done"
 cat <<NEXT
-  1. the engine: make sure Temporal is up and reachable at the TEMPORAL_ADDRESS
-     in $BASE/env (HQ runtime/temporal/install.sh brings it up in docker on
-     loopback). Check it, and that the namespace exists:
+  1. the engine: nothing here installed it, and the units in step 3 will not
+     start without it. Both ways to get one are in docs/deploy/README.md
+     ("Temporal server + UI") in this repository; the short one is
+       temporal server start-dev --ip 127.0.0.1 --port 7233 --ui-port 8080 \\
+           --namespace asc --db-filename /var/lib/temporal/temporal.db
+     given a unit of its own so it survives a reboot. Then check it, and that
+     the namespace exists:
        temporal operator cluster health --address 127.0.0.1:7233
        temporal operator namespace describe -n asc --address 127.0.0.1:7233
      If the namespace is missing: temporal operator namespace create asc
+     If you used docker compose instead, publish on 127.0.0.1 explicitly:
+     docker writes its own iptables chain and ufw's 22/443 does not cover it.
   2. fill in $BASE/env (CLAUDE_CODE_OAUTH_TOKEN, GH_TOKEN, SLACK_WEBHOOK_URL)
      — or point the Infisical agent at your project and let it render the file
   3. put the roster in $ROSTER_DIR (one directory per agent, each an agent.toml

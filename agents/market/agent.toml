@@ -1,0 +1,20 @@
+# epito.me's own market seat, as a manifest.
+# Translated from .github/workflows/agent-market.yml.
+
+[agent]
+name = "market"
+description = "Keeps the org's picture of the outside world current and evidenced; writes the market brief."
+
+[identity]
+scopes = ["github:contents", "github:pull_requests"]
+
+[trigger]
+cron = "0 12 * * 5"
+webhook = true
+
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/market-agent.md"
+repo = "alexandrapaiz/epitome"
+max_turns = 100
+env = ["SLACK_WEBHOOK_URL"]

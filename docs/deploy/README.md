@@ -7,7 +7,7 @@ docs/prfaq/epitod-v1-temporal.md).
 |---|---|---|
 | `epito run <roster>` | makes Temporal's schedules match the roster, then serves the ingress as a thin client | `epitod.service` |
 | `epito worker` | polls the `seats` task queue and does the work: clone, execute, record, notify | `epitod-worker.service` |
-| Temporal server + UI | the engine. Self-hosted, `temporalio/auto-setup` on `127.0.0.1:7233` and `temporalio/ui` on `127.0.0.1:8080`, on the host's Postgres | docker, via HQ `runtime/temporal/install.sh` |
+| Temporal server + UI | the engine. Self-hosted, on loopback, never Temporal Cloud | not epito's: install it first, **"Temporal server + UI"** below |
 
 Two units and not one, deliberately: reloading the roster must not interrupt a
 seat that is mid-run, and with the worker in its own unit it does not.
@@ -20,11 +20,106 @@ processes must share** so there is one ledger:
 
 ```
 .epito/audit.jsonl        one JSON line per event, append-only
+.epito/board.jsonl        run reports, folded by `epito board`
 .epito/logs/<agent>/*.log stdout+stderr of every run
+```
+
+Read the ledger with `epito audit`, in that directory — what each agent's
+token was allowed to do, on which repository, until when, and every run and
+refused road beside it. `--agent`, `--action mint`, `--since 24h` and `--json`
+narrow it; there is no way to write through the command (ADR-22). On the host
+that means:
+
+```bash
+cd /srv/asc/state && epito audit --since 24h
 ```
 
 There is no `.epito/state.json` any more. `epito ps` asks Temporal, because
 a second copy of what is running is a second copy that can be wrong.
+
+## Temporal server + UI
+
+The engine is a server, and **epito does not install it.** `npm i -g epito` is
+the CLI. `deploy/provision-host.sh` is the runtime: both units, the engine's
+npm *client* packages, Caddy, the `seats` user, the env file. Neither brings up
+the Temporal server those units connect to — so install the engine **first**,
+or every unit on a fresh host comes up and waits for something that is not
+there, which is the single most likely way for a first deploy to look broken
+while being correctly installed.
+
+What epitod asks of the engine is small, and it is the whole list:
+
+- a Temporal server answering at `TEMPORAL_ADDRESS` (default `127.0.0.1:7233`)
+- the namespace named in `TEMPORAL_NAMESPACE` already created — `asc` on a host
+  `provision-host.sh` built. Nothing creates it for you unless you ask
+- bound to **loopback**. The ingress is the only thing on the box meant to take
+  traffic from outside, and it has Caddy and a shared secret in front of it;
+  the engine has neither, and the gRPC frontend is unauthenticated. Never
+  Temporal Cloud (docs/prfaq/epitod-v1-temporal.md)
+
+Two ways to get one on a box you already have. Both are upstream Temporal, and
+both were run against server 1.32.0 before being written here:
+
+```sh
+# a. one process, persisted to a file. Enough for a one-host install, which is
+#    the whole of v1, and what this repository's own suites run against.
+mkdir -p /var/lib/temporal
+temporal server start-dev \
+    --ip 127.0.0.1 --port 7233 --ui-port 8080 \
+    --namespace asc --db-filename /var/lib/temporal/temporal.db
+#    `--ip 127.0.0.1` is what keeps it on loopback, and `--namespace asc`
+#    creates the namespace at startup. Wrap it in a systemd unit of its own if
+#    you want it back after a reboot; epito ships no unit for the engine.
+
+# b. auto-setup + UI + Postgres in containers — the shape docs/architecture.md
+#    describes, and what survives losing the file.
+git clone https://github.com/temporalio/docker-compose /opt/temporal-compose
+cd /opt/temporal-compose
+docker compose -f docker-compose-postgres.yml up -d
+temporal operator namespace create asc --retention 30d --address 127.0.0.1:7233
+```
+
+Use `docker-compose-postgres.yml`, not the default `docker-compose.yml`: the
+default adds Elasticsearch for advanced visibility, which a one-host roster of
+five seats does not need and an Always Free instance would rather not pay for.
+
+**If you take route (b), re-qualify its published ports before you start it.**
+Upstream publishes `7233:7233`, `8080:8080` and `5432:5432` — unqualified,
+which means `0.0.0.0`, which means the internet. `ufw` does not save you here:
+Docker publishes ports by writing its own iptables chain, and that chain is
+traversed before ufw's, so `ufw allow 22/tcp` plus `443` — exactly what
+`provision-host.sh` sets — leaves all three of those ports open anyway. Pin
+them to loopback with an override file next to the compose file:
+
+```yaml
+# /opt/temporal-compose/docker-compose.override.yml
+services:
+  temporal:        { ports: ["127.0.0.1:7233:7233"] }
+  temporal-ui:     { ports: ["127.0.0.1:8080:8080"] }
+  postgresql:      { ports: ["127.0.0.1:5432:5432"] }
+```
+
+Then check what is actually listening, which is the only answer that counts:
+
+```sh
+ss -ltn | grep -E '7233|8080'      # both must read 127.0.0.1:, never 0.0.0.0:
+```
+
+Retention is a namespace setting rather than a server one, and it is what
+bounds how far back the Temporal UI can show you a run:
+
+```sh
+temporal operator cluster health   --address 127.0.0.1:7233            # SERVING
+temporal operator namespace update -n asc --retention 30d --address 127.0.0.1:7233
+temporal operator namespace describe -n asc --address 127.0.0.1:7233
+```
+
+**Which of the two epito should ship as its own installer is not decided yet**
+— `docs/ideas.md` carries it as a proposed row with the trade-off written out,
+and it is the PM's to bet. Until it is bet, this section *is* epito's
+engine-install story, which is why the unreachable-engine message sends you to
+this file and names this heading rather than naming a script: a fix is only a
+fix if the reader has it (ADR-24, docs/decisions.md).
 
 ## Environment
 
@@ -490,8 +585,11 @@ provisions everything except the engine — the target is an Oracle Cloud Always
 Free A1 instance, but nothing in it is Oracle-specific:
 
 ```sh
-# 1. the engine (HQ's script; docker, loopback only, on the host's Postgres)
-ssh ubuntu@host 'sudo bash -s' < runtime/temporal/install.sh     # alexandra-systems
+# 1. the engine. epito does not install it: "Temporal server + UI" above has
+#    the two routes, the loopback rule and the namespace. Whichever you take,
+#    it has to be RUNNING before step 3 — and a foreground `start-dev` over
+#    ssh is not running once you log out, so give it a unit or use compose.
+#    Step 3 refuses with one line if you skip this, naming this file.
 
 # 2. the runtime
 ssh ubuntu@host 'sudo bash -s' -- --domain epitod.example.com \
