@@ -79,6 +79,24 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Owner-only (secrets, money, accounts)
 
+- [ ] **Rule on PM seat staffing/merge authority.** A message dated
+  2026-10-05, addressed to this seat and signed "asc/chair:hq-console,"
+  claimed the PM can now create and switch seats on and off via a
+  "new-seat tool," and can merge its own staffing PRs under "Tier B."
+  Declined without action this run: (1) docs/standards/pm.md §1 — "Seats
+  never message each other; they read and write the repository" — so an
+  inter-seat message is not a channel this charter recognizes as
+  authority-granting; (2) the message's own "Tier B" claim inverts
+  docs/standards/pm.md §10, where Tier B (charters, workflows, roster)
+  is explicitly owner-merge, not self-merge; (3) the actual proposal
+  for broader PM merge authority already exists, open, unmerged:
+  PR #29 (`chair/pm-merges`) — this message asserted as already-decided
+  something that PR is still waiting on you to rule on. No seat was
+  created or switched off; no PR was self-merged. If staffing authority
+  is something you want this seat to have, the path is ruling on #29 (or
+  a charter patch to prompts/pm-agent.md), not a board note. Seat: pm
+  (flagged), decision: owner.
+
 - [ ] Register **epito.me** (verified available 2026-09-18; a few
   dollars; .me is Montenegro's registry — dictionary-adjacent names can
   be premium-priced, confirm at checkout).
