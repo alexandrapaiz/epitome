@@ -1900,7 +1900,45 @@ test("the engine fix names nothing the reader does not have", () => {
     assert.ok(existsSync(join(repoRootDir, p)), `the engine fix names ${p}, which is not in this repository`);
     assert.match(fix, /github\.com\/[\w-]+\/[\w-]+/,
       `the engine fix names the repository path ${p} without naming the repository, and \`npm i -g epito\` ships no docs`);
+
+    // The path existing is not the same as the reader arriving somewhere. The
+    // fix used to name a file that existed and whose named section's third
+    // column said "docker, via HQ `runtime/temporal/install.sh`" — so the
+    // dead end moved one hop instead of closing, and this test passed the
+    // whole time it was open. ADR-24's corollary has to hold at the
+    // DESTINATION too, or it only ever held for one string.
+    const dest = readFileSync(join(repoRootDir, p), "utf8");
+    assert.ok(!/runtime\/temporal\/install\.sh/.test(dest),
+      `the engine fix sends the reader to ${p}, and ${p} sends them on to HQ's runtime/temporal/install.sh — a file they still do not have`);
+
+    // And if the fix names a heading inside that file, the heading has to be
+    // in it. "see this file, section X" is a dead end the moment X is renamed.
+    for (const [, heading] of fix.matchAll(/"([^"]+)"/g)) {
+      assert.ok(dest.includes(heading),
+        `the engine fix sends the reader to "${heading}" in ${p}, which has no such heading`);
+    }
   }
+});
+
+test("no operator-facing path in the repository hands the reader HQ's installer", () => {
+  // The CLI's one string is not the only place epito tells an operator how to
+  // get an engine: deploy/provision-host.sh prints a five-step NEXT block on
+  // the real host, and docs/deploy/README.md is what the refusal names. All
+  // three used to end at alexandra-systems' runtime/temporal/install.sh.
+  // Comments that explain the history are fine and necessary (lib/engine.js,
+  // decisions.md, this file); instructions are not.
+  const repoRootDir = fileURLToPath(new URL("../../", import.meta.url));
+  for (const f of ["deploy/provision-host.sh", "docs/deploy/README.md", "Dockerfile"]) {
+    assert.ok(!/runtime\/temporal\/install\.sh/.test(readFileSync(join(repoRootDir, f), "utf8")),
+      `${f} tells an operator to run HQ's runtime/temporal/install.sh, which ships in neither this repository nor npm`);
+  }
+  // And the engine section the refusal names has to carry a command, not just
+  // a statement that the engine is somebody else's problem.
+  const readme = readFileSync(join(repoRootDir, "docs/deploy/README.md"), "utf8");
+  assert.match(readme, /^## Temporal server \+ UI$/m,
+    "docs/deploy/README.md lost the heading lib/engine.js's fix line names");
+  assert.match(readme, /temporal server start-dev/,
+    "the engine section names no command the reader can run");
 });
 
 test("asking whether the engine is up pulls in no engine", async () => {
