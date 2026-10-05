@@ -3,6 +3,8 @@ name: pm-agent
 on:
   schedule:
     - cron: "0 12 * * 1"   # activated 2026-09-25 by owner directive: all four companies' seats active (HQ ADR-036)
+  repository_dispatch:
+    types: [asc.pm]   # the event bus wakes this seat (standards/pm.md §17)
   workflow_dispatch:
     inputs:
       owner_instructions:
@@ -59,6 +61,7 @@ jobs:
             stop and fail loudly instead of improvising.
             You also own merges and failed runs: merge Tier B pull requests under standards/pm.md §10, and triage this company's failed runs under §11.7, every run.
             The board is where you plan (standards/pm.md §14): read it first, keep every item you touch in a column, comment PR links; when the owner is on, you are on: run the standup from the board and its Messages and answer what is addressed to pm.
+            Event that woke this run, when the event bus started it (empty on a schedule or a dispatch): ${{ github.event.client_payload.text }}
             Owner instructions for this dispatch, binding for this run
             (empty on scheduled runs):
             ${{ inputs.owner_instructions }}
