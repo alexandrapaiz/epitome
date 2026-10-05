@@ -1,6 +1,6 @@
-<!-- vendored-from: standards/pm.md @ 2c5b526dbca5d2c1d0ad2968800baab5763e2b07 -->
+<!-- vendored-from: standards/pm.md @ 683c7dd49b9730557c4ecaa036d2bba955fcbc3c -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/pm.md` at commit `2c5b526`,
+> `alexandrapaiz/alexandra-systems` `standards/pm.md` at commit `683c7dd`,
 > vendored 2026-10-05. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
@@ -200,7 +200,7 @@ close it. Ending silently is the one outcome never acceptable.
 
 ## 10. Autonomy tiers (ADR-011)
 
-The owner's merge gates authority, not knowledge. Two tiers, company-
+The owner's merge gates authority, not knowledge. Three tiers, company-
 wide:
 
 **Tier A — self-merge.** A seat merges its own PR after verifying with
@@ -212,11 +212,35 @@ exo centralizer only — `standards/lessons.md` and each product's
 vendored `docs/standards/lessons.md`. Merge as a normal merge, never
 force. If the diff contains anything else, the PR waits for the owner.
 
-**Tier B — owner merge.** Charters (`prompts/`), workflows
-(`.github/workflows/`), standards other than lessons, ADRs in
-`docs/decisions.md`, product code, the site, anything that incurs or
-approves spend, and any ledger status the owner controls. These wait,
-and the merge-or-close rule escalates them rather than bypassing her.
+**Tier B — PM merge (owner directive, 2026-09-30: "I want them to be in
+charge of merges").** Everything that is not Tier A and not Tier C: product
+code, the site, docs beyond the knowledge surfaces, sprint and standup
+files, workflows and standards that HQ syncs into a product repo, and any
+seat's PR in the PM's own company. The PM merges it in the daily run when
+all of these hold, and records each merge in the standup PR:
+
+1. It is not the PM's own PR (a PM's own Tier B PR waits for another
+   merger: the owner, or HQ's PM for a product PM).
+2. Not a draft, no `hold` label, and no owner comment since the last push.
+3. Checks green, or no checks defined. A red check is a failed run (§11.7),
+   never a merge.
+4. `gh pr diff --name-only` shows no Tier C path.
+5. It merges clean. A conflict is not the PM's to resolve in code: it
+   messages the owning seat (`handoff`, board §15) to rebase and, if the
+   criteria fire, dispatches it. Docs-only conflicts the PM may resolve.
+6. It is under seven days old, or it has moved in the last seven days. Older
+   and idle: close it with a one-line note naming what would reopen it.
+
+Normal merge, never force, never squash a stack out of order: merge the
+base of a stack first. A PR that targets another PR's branch is merged
+into that branch, not into main.
+
+**Tier C — owner merge.** Charters (`prompts/`), this section and any
+change to the tiers or the dispatch stops, `company.yaml`'s roster and
+secret names, anything that incurs or approves spend, anything that
+touches secrets or deletes data, and any PR the owner has labelled `hold`
+or commented on. These wait, and the merge-or-close rule escalates them
+rather than bypassing her.
 
 A Tier A merge whose diff turns out to have crossed the line is an
 incident, and that seat's self-merge right is suspended until the exo
@@ -331,6 +355,35 @@ that happened and was not logged is an incident. The standup's PR is
 full; with nothing to propose and nothing red, say so and close it.
 The queue file and the standup PR are Tier A (§10) — knowledge surfaces
 the PM merges itself after the scope check.
+
+### 11.7 Failed runs are the PM's to triage (owner directive, 2026-09-30)
+
+The owner: "review which new agent processes fail … and rerunning failed
+workflows." Every standup, before the dispatch criteria:
+
+1. **List** the company's failed runs of the last 24 hours:
+   `gh run list --status failure --created ">=$(date -u -d '-24 hours' +%FT%TZ)" --json databaseId,workflowName,url,createdAt`.
+2. **Read** each one: `gh run view <id> --log-failed`, and the run's trace in
+   Langfuse (environment = this company, session = the run id) when the
+   failure is inside the model step.
+3. **Classify and act**, one line per run in the standup PR under
+   `## Failures`, and the same lines as one `note` on the board (§15):
+   - *Tripwire false alarm* (the run's PR exists): no rerun; note it, and if
+     the tripwire is still the old one, handoff to `alexandra-systems/exo-centralizer`.
+   - *Transient* (rate limit, runner lost, network, a 5xx from a service):
+     `gh run rerun --failed <id>`, once. Record the rerun's URL.
+   - *Real defect* (the seat's own code or charter): an incident entry in
+     `docs/agents/incidents.md`, a handoff to the owning seat, and a dispatch
+     if §11.3 fires. No rerun; the same input fails the same way.
+   - *Configuration* (a secret missing, a token expired, a workflow file
+     wrong): `ask` HQ (`alexandra-systems/chair` or `exo-centralizer`); these
+     surfaces are HQ's (§15).
+4. **Never** rerun a run twice, a run older than 24 hours, or a workflow the
+   owner paused. Two failures in a row on one seat is an incident, not a
+   third try.
+
+The PM workflow carries `actions: write` for the rerun; the same
+permission the dispatch already uses.
 
 ## 13. Credentials the owner may need (owner directive, 2026-09-26)
 
