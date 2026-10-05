@@ -1,5 +1,171 @@
 # Market brief — docs/market.md
 
+Maintained by the market seat. This revision: **rev 5, 2026-10-05**,
+weekly window run. Built on the unmerged rev 4 (PR #42, 2026-10-02,
+itself stacked on rev 3's PR #31, 2026-09-30) rather than re-running
+their research: `gh pr list` was checked first (L-E10), both are still
+open, and main still serves rev 2 to anyone who doesn't go looking at
+open PRs — three brief revisions are now stacked unmerged on top of
+what main shows. Rev 4 stands below, unedited, marked superseded.
+
+This is a three-day delta (2026-10-02 through 2026-10-05) and it is
+thin on purpose: the charter requires the ADR-12 check every run "even
+when nothing moved," and this run's honest finding is that nothing
+moved there. What's new: one fresh demand quote dated the day before
+this run, a correction to a standing citation two revisions let stand
+uncorrected, and a mechanism re-audit confirming the Slack build gap
+rev 4 found is still a gap. Every claim below carries a source and an
+access date; pages were fetched directly, not taken from a search
+summary alone.
+
+## Orientation: the tripwire didn't move, and that's the whole headline
+
+Checked this run, as every run must (ADR-12, L-R1): LangSmith's main
+changelog and Fleet's own changelog, fetched directly 2026-10-05. Both
+still end at 2026-09-21 — nothing has shipped since rev 4's 2026-10-02
+check found the Slack Claws-mode mechanism. The tripwire sits exactly
+where rev 4 left it: fired, escalated, one word outstanding (pull the
+passport prototype forward again, yes/no), unanswered because PR #42
+is unmerged. GitHub's agent-app waitlist (the other standing
+re-ranking trigger) was also re-checked directly and is unchanged:
+still early-access signup, no self-serve date named. Nothing below
+changes the standing recommendation (Slack, #2) or the pricing
+recommendations rev 1 and rev 4 left open for the owner's word.
+
+## 4a. Standing watch: LangChain/LangSmith (ADR-12) — re-checked, unchanged
+
+**Finding: no new mechanism.** `docs/langchain.com/langsmith/changelog`
+and `docs/langchain.com/langsmith/fleet/changelog` were fetched
+directly 2026-10-05 and asked explicitly for entries dated between
+2026-09-20 and 2026-10-05; both report their latest entry as
+**2026-09-21**, before rev 4's own 2026-10-02 check and with nothing
+added since. The tripwire's state is rev 4's, carried forward
+unmodified: Fleet's Claws mode mints a real, distinct Slack bot
+identity per agent, which fired the tripwire on its literal wording;
+GitHub's Fleet integration is still a shared App with per-user
+delegated tokens, which does not. Escalation and the one-word ask
+stand as rev 4 wrote them (§ below, carried verbatim) — logged again
+here per the charter's instruction to log the check's result even when
+nothing moved, not re-argued.
+
+## 1. Landscape delta (rev 5) — one correction, one reinforcement
+
+**Correction: a standing citation was stale across two revisions.**
+Rev 2 §6 G3 cited "Oasis Security $120M Series B" as current market
+pricing of the compliance-audit problem. It was not current when rev 2
+wrote it and nobody caught it through rev 3 or rev 4: Cyera signed a
+letter of intent to acquire Oasis on 2026-07-28 and completed the deal
+on 2026-09-03 for roughly $1B
+([Yahoo Finance / Cyera press release](https://finance.yahoo.com/technology/ai/articles/cyera-completes-acquisition-oasis-security-120000606.html),
+accessed 2026-10-05). It is one data point in a wider consolidation
+this run also verified directly: Palo Alto Networks closed its $25B
+acquisition of CyberArk on 2026-02-11
+([GovConWire](https://www.govconwire.com/articles/palo-alto-networks-cyberark-25b-acquisition),
+accessed 2026-10-05), and secondary coverage (not independently
+verified this run, flagged) places Astrix inside Cisco and Entro inside
+SailPoint in the same window
+([Dark Reading, NHI vendor-chase roundup](https://www.darkreading.com/identity-access-management-security/vendors-attackers-chase-potential-of-non-human-identities),
+accessed 2026-10-05). Read plainly: the non-human-identity/compliance
+vendors rev 2's G3 cited as independent proof of market size are now
+business units inside platform security giants. That sharpens G3's
+own claim rather than weakening it — audit-and-governance for machine
+identity is now valuable enough that Palo Alto, Cisco, SailPoint and
+Cyera all bought their way in within a year — but it means G3's
+evidence should no longer be read as a count of independent vendors,
+and the next full re-rank should re-source it from deal size, not
+funding-round count. No action item; a correction for the record.
+
+**Reinforcement, dated earlier but caught this run: GitHub's own fix
+for agent PATs is the shared-token pattern, not a principal.** GitHub
+shipped built-in `GITHUB_TOKEN` support for Agentic Workflows on
+2026-06-11, explicitly to remove the need for a personal access token:
+"You no longer need to create and store a personal access token (PAT),
+eliminating the operational and security risks of managing long-lived
+PATs for automations at scale"
+([GitHub Changelog, 2026-06-11](https://github.blog/changelog/2026-06-11-agentic-workflows-no-longer-need-a-personal-access-token/),
+accessed 2026-10-05). Read against law 3: `GITHUB_TOKEN` is scoped to
+the repository and the workflow run, not to the agent — every agentic
+workflow in that repo shares it, which is the ambient-credential shape
+our product replaces, confirmed by GitHub's own vendor behavior rather
+than inferred. This is GitHub validating that the PAT pattern was worth
+fixing while fixing it with a shared, not per-agent, token — the same
+shape rev 4 found in Fleet's GitHub integration (§4a). Three months
+old and missed until this run; flagged under L-R1 the same way the
+Oasis correction is.
+
+**Re-checked, no change:** OpenClaw (latest stable `v2026.9.8`, still in
+its declared "fix the foundation" stability phase, per
+[releasebot.io/updates/openclaw](https://releasebot.io/updates/openclaw),
+accessed 2026-10-05) and Anthropic Managed Agents (beta header
+unchanged, nothing found giving a Managed Agent a distinct
+outside-platform principal, per
+[platform.claude.com/docs/managed-agents/overview](https://platform.claude.com/docs/en/managed-agents/overview),
+accessed 2026-10-05) — neither moved enough to re-open its tier.
+
+## 2. Demand — one fresh, sharply dated quote
+
+A GitHub issue opened **2026-10-04, the day before this run**, on a
+small open-source repo, asks for exactly our mechanism and names a
+reason the brief had not yet recorded: an agent cannot review its own
+work if GitHub sees it as the same account as the human reviewing it.
+"Provide a dedicated GitHub App identity for coding agents to open and
+update implementation PRs in Nexa, so the solo maintainer can review
+bot-authored PRs using GitHub's normal approval interface" — the issue
+goes on to ask for App registration, minimal permissions, a
+credential-handling writeup, and PRs "authored by the verified App
+bot," naming "preventing credential exposure to untrusted code
+execution" as a requirement alongside identity
+([lmiguelvargasf/nexa#58](https://github.com/lmiguelvargasf/nexa/issues/58),
+accessed 2026-10-05). This sharpens rev 1 and rev 2's demand quotes
+(attribution, audit visibility, stolen credentials) with a fourth,
+mechanical reason personal-token agents fail: GitHub's own review
+tooling refuses to let an author approve their own PR, so an agent
+sharing its owner's account cannot be put through the owner's normal
+review process at all, by construction, regardless of policy.
+
+## Mechanism audit, re-run: the Slack build gap is still open
+
+Rev 4 found that `cli/src/lib/slack.js` on main is a webhook poster,
+not the bot-App identity rev 2 recommended, and flagged it as a
+build-status fact rather than a ranking change. Re-checked this run
+against main (`f639b8e`) and every engineer PR opened since rev 4's
+check (#43, #44, #45, #46, #48, #49, all open as of 2026-10-05): none
+of them touch `apps.manifest.create` or add a Slack identity mint —
+the Slack mentions in #43/#44/#45 are manifest fixtures and roster
+examples using the existing `slack_webhook_env` posting path, not new
+code. Rev 4's finding stands unchanged: the thing we'd be selling on
+Slack under law 3 is still unbuilt.
+
+## 3. Positioning and pricing — unchanged, both asks still open
+
+No new evidence this run moves either pricing recommendation. Rev 1's
+flat roster tier (buyer 1) and rev 4's proposed usage-based,
+per-mint/per-verify pricing for buyer 2 (ADR-13) both still await the
+owner's one word; nothing found this run argues either way.
+
+## 4. Integration map — no re-ranking trigger fired
+
+GitHub's agent-app waitlist and LangSmith's changelogs were the two
+live trigger conditions checked this run (above); neither fired.
+Standing recommendation unchanged: **Slack remains integration #2**,
+re-justified in rev 4 and not revisited by anything found this week.
+
+---
+
+*Charter compliance note (rev 5): research only; nothing posted, no
+one contacted, no accounts created. Checked against
+docs/standards/lessons.md before shipping, specifically L-R1 (the
+live-world check that caught the Oasis and GitHub-PAT staleness), L-A1
+(mechanism over marketing language) and L-E10 (the PR survey that put
+this revision on top of #42 and #31 instead of a fourth parallel
+build). Flagged secondary or unverified: the Astrix→Cisco and
+Entro→SailPoint placements (via Dark Reading, not independently
+confirmed with a primary source this run).*
+
+---
+
+# Market brief — docs/market.md (rev 4, superseded by rev 5 above)
+
 Maintained by the market seat. This revision: **rev 4, 2026-10-02**,
 dispatch run. Anchor: docs/backlog.md names 2026-10-02 explicitly for
 "Market re-justifies the ranking under ADR-6 in the 10-02 map refresh"
