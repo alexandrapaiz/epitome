@@ -1,4 +1,10 @@
-<!-- Vendored from alexandrapaiz/alexandra-systems standards/documents.md @ 721127d (2026-09-19). Deviations belong in docs/decisions.md. -->
+<!-- vendored-from: standards/documents.md @ fbad1b75fa09eeca4de4cc9e9ca053616d7feb9e -->
+> **Vendored copy — do not edit here.** Source of truth is
+> `alexandrapaiz/alexandra-systems` `standards/documents.md` at commit `fbad1b7`,
+> vendored 2026-10-05. Changes to a company standard are HQ
+> ADRs (standards/README.md). Deviations for this product belong in this
+> repo's own decisions file, not in this copy.
+<!-- end vendored header -->
 
 # Standard: Owner-Facing Documents and Presentations
 
@@ -60,6 +66,28 @@ taken from the exemplar:
   dashes or semicolon joins, no flourish. Sell the product, never the
   recipe.
 
+## 2b. Presentations (the alexandria exemplar)
+
+The portfolio exemplar for presentations is alexandria
+docs/sales/pitch-deck.md; study it in full before drafting any deck
+(the exemplar-first rule, lessons L-A7). Three rules it carries:
+
+- **Seat authorship.** The underlying content document for a
+  presentation is authored by the seat whose work it presents, in the
+  exemplar's form — Copy (the verbatim slide words), Speaker notes
+  (sourcing by file-line or link, context, confidence levels), Visual
+  direction (a plain-language brief). The chair renders that document
+  and never authors it.
+- **The register.** Copy is one declarative statement or one real
+  quote per slide, whitespace over density. Zero internal jargon in
+  Copy: ADR numbers, tier names, protocol verbs, and other internal
+  vocabulary live in Speaker notes only. Confidence levels are
+  carried into the Copy, never smoothed ("moderate at
+  order-of-magnitude level" is said on the slide, not hidden).
+- **Direction.** A presentation's job is to guide the owner and PM on
+  where to direct the project: it ends with recommendations the owner
+  can accept or reject one by one, never with a summary.
+
 ## 3. The pre-ship checklist
 
 A seat runs this against any owner-facing document or presentation
@@ -83,7 +111,17 @@ before it ships. Every item is yes or the artifact does not ship.
    from it (then engineering-artifacts.md applies in full)?
 9. Is the prose in the house voice throughout?
 10. If this is a presentation, does every slide or cell trace to a
-    sentence in an underlying document that itself passes 1–9?
+    sentence in an underlying content document that itself passes 1–9
+    — and is that document authored by the seat whose work it
+    presents, in Copy / Speaker notes / Visual direction form (§2b),
+    with the chair rendering only?
+11. Is every slide's Copy one declarative statement or one real
+    quote, jargon-free — internal vocabulary (ADR numbers, tier
+    names, protocol verbs) confined to Speaker notes, sources cited
+    there by file-line or link, and confidence levels carried into
+    the Copy?
+12. Does the presentation end with recommendations the owner can
+    accept or reject one by one?
 
 ## 4. Enforcement
 
@@ -92,3 +130,8 @@ trigger in that product; her words go to the ExO seat verbatim. The
 ExO seat audits by checklist item, not by impression. A defect on
 this standard recurring across products is an HQ ADR candidate, never
 a per-product patch.
+
+## Owner-facing text names decisions, never numbers (owner, 2026-09-27)
+
+"i dont want to see adrs, for me its just random codes. id rather have good descriptions." In anything the owner reads — Slack, PR descriptions' opening bullets, the board, the daily brief, the chair's replies — a decision is named by what it decides ("the rule that engineers run twice a day", "the choice of Temporal as the runtime engine"), never by its code. ADR numbers, lesson ids and incident numbers remain in the repo for cross-reference, and may appear in parentheses at the end of a line in engineering documents, but a sentence must read fully without them.
+
