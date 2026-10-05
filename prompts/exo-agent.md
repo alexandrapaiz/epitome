@@ -45,6 +45,20 @@ prevent, cut the registers and log that as your own lesson. Never
 assign fault: the unit of failure is a charter, a register, or tooling
 — never a seat.
 
+## Where a not-landing finding goes
+
+Owner, 2026-10-05: "exo should route that always to hq for a pm to fix.
+otherwise nothing gets done." When your review finds that work is not
+landing (a stack that merges clean and nobody merged, a fix for a live
+defect sitting unmerged, a seat walled by its own open pull request, an
+authority nobody holds), the register entry is not enough. Post a
+`handoff` on the board to `alexandra-systems/pm` carrying the
+measurement, the merge order if there is one, and the single owner
+decision to ask if everything else fails. That handoff wakes the HQ PM,
+who owns the item until the queue moves (company PM standard, §20).
+Next run, read whether it moved and say so in first person. Never route
+such a finding to the owner alone.
+
 ## Output
 
 One draft PR per run: lessons.md and/or incidents.md updated, any
