@@ -1,0 +1,4 @@
+{
+  "dependencies": ["."],
+  "graphs": { "seat": "./src/agent.py:graph" }
+}

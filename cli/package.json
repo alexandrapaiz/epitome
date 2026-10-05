@@ -3,9 +3,20 @@
   "version": "0.1.0",
   "description": "Mint agents: identity + trigger + runtime from one file",
   "type": "module",
-  "bin": { "epito": "src/index.js" },
-  "engines": { "node": ">=18" },
+  "bin": {
+    "epito": "src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "bash test/all.sh"
+  },
   "dependencies": {
+    "@temporalio/activity": "^1.24.0",
+    "@temporalio/client": "^1.24.0",
+    "@temporalio/worker": "^1.24.0",
+    "@temporalio/workflow": "^1.24.0",
     "smol-toml": "^1.3.0"
   },
   "license": "UNLICENSED",
