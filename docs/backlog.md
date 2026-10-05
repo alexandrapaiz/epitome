@@ -7,6 +7,14 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 - [x] Owner-directed (2026-09-20): runtime v0 resident — presence for epitod per docs/pitches/runtime-v0-resident.md. **Shipped 2026-09-24**: slice 1 (PR #4, epitod v0) + slice 2 (PR #6, held sessions/mailbox/windows/Slack/host) both merged; `deploy/provision-host.sh` hardened by four owner commits since against a real Oracle host (iptables vendor rule, HOME path, GH_TOKEN ordering, closing-hint text). Not independently verified from the repo: the pitch's full "done when" (HQ's pm manifest actually resident on the VM, a held window, a Slack post) — code and smoke tests exist, a live run does not show in this repo.
 
+- [ ] **Mark the engineer merge chain ready for review** — PR #48
+  (`engineer/2026-10-05-the-merge-candidate`) and the PRs beneath it in
+  the same stack are still drafts as of 2026-10-05, which blocks the
+  Tier B PM-merge now that PR #29 (the authority grant) has merged
+  (2026-10-05T03:56:43Z). Test-green from a cold machine and a clean
+  rebase don't substitute for this; it's the engineer's own call that
+  the work is done. Once ready, the PM merges bottom of the stack
+  first next run and closes the superseded PRs. Seat: engineer.
 - [ ] **Manifest spec v0.1 frozen** — spec/manifest.md reviewed against
   the three alexandria seat shapes (daily builder, weekly writer,
   event-driven responder); every field either earns its place or goes.
