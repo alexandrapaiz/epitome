@@ -16,10 +16,13 @@ Big batch. `epito run <dir>` is a long-lived process that loads every
 from an internal scheduler, exposes `POST /hooks/<name>` for events,
 and on either trigger executes one run — a fresh worktree of the
 seat's repo, the charter prompt, headless `claude -p` on the manifest's
-model (ADR-8), draft PR opened as the run's identity, an audit line
-appended. Ships as a Dockerfile plus a systemd unit so it runs on any
-box (first target: one small cloud machine; the unit file makes a VPS
-equally valid; ADR-6 forbids depending on either). Honors R4: the
+model (the agent is the identity, not the model — the model is a
+routable runtime detail), draft PR opened as the run's identity, an
+audit line appended. Ships as a Dockerfile plus a systemd unit so it
+runs on any box (first target: one small cloud machine; the unit file
+makes a VPS equally valid; integrations are surfaces, never
+dependencies, so nothing may require either one to exist). Honors R4:
+the
 first agent it runs is an HQ seat we already have, unmodified — BYO
 agent from day one. Identity for v0 = the existing secrets the seat
 uses today; the GitHub-App principal is bet 2's slice and plugs into
