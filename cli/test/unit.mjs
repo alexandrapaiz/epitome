@@ -9,7 +9,7 @@
 // six cases are the command's entire behavior.
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { reconcilePlan, scheduleShape } from "../src/temporal/schedules.js";
+import { reconcilePlan, scheduleShape, listSeatSchedules } from "../src/temporal/schedules.js";
 import { validateManifest, loadManifest, FIELDS, TABLES } from "../src/lib/manifest.js";
 import { blockers, unchecked, REPO_REQUIRED_BY, SCOPE_REQUIRED_BY } from "../src/lib/readiness.js";
 import { parseGitHubRemote, originRepo, repoRoot } from "../src/lib/origin.js";
@@ -126,6 +126,76 @@ test("reconcile: a schedule with no manifest behind it is deleted, and a foreign
   ]);
   assert.deepEqual(p.delete.map((d) => d.id), ["seat:gone"]);
   assert.deepEqual(p.create.map((c) => c.id), ["seat:pm"]);
+});
+
+// The bug these four cover was found on 2026-10-06 by running
+// test/smoke-temporal.sh against a real engine for the first time, and it had
+// survived precisely because the only suite that could see it is the one that
+// needs a `temporal` binary and so reports `unrun` on every box. The pure
+// planner above was correct the whole time; what was wrong was the `actual`
+// handed to it. So these stub the client: no engine, catchable anywhere.
+//
+// `epito run` stored the registered shape in the schedule's memo and read it
+// back from there. `ScheduleHandle.update()` accepts a memo and Temporal's
+// UpdateSchedule RPC has no memo field, so the SDK drops it: the memo holds the
+// CREATE-time shape forever, and reconcile reapplied the same update on every
+// restart while `epito ps` printed a cron the engine was not using.
+const fakeClient = (schedules) => ({
+  schedule: {
+    async *list() { for (const s of schedules) yield { scheduleId: s.id, note: s.note ?? null, memo: s.memo ?? undefined }; },
+    getHandle(id) {
+      const s = schedules.find((x) => x.id === id);
+      return { describe: async () => {
+        if (!s || s.describeThrows) throw new Error("schedule not found");
+        return { memo: s.memo ?? undefined, action: { type: "startWorkflow", args: s.args ?? [] } };
+      } };
+    },
+  },
+});
+
+test("listSeatSchedules: the shape comes from the action, not from the stale memo", async () => {
+  const live = seat("pm", { trigger: { cron: "0 13 * * 5" } });
+  const got = await listSeatSchedules(fakeClient([{
+    id: "seat:pm",
+    // What the engine will actually run: the manifest the action carries.
+    args: [{ name: "pm", manifest: live }],
+    // What the memo still says, because an update could not rewrite it.
+    memo: { seat: "pm", shape: JSON.stringify(scheduleShape(seat("pm", { trigger: { cron: "0 12 * * 5" } }))) },
+  }]));
+  assert.equal(got.length, 1);
+  assert.equal(got[0].shape.cron, "0 13 * * 5", "read the action's cron, not the memo's");
+});
+
+test("reconcile CONVERGES after an update: the second pass has nothing to do", async () => {
+  const live = seat("pm", { trigger: { cron: "0 13 * * 5" } });
+  const actual = await listSeatSchedules(fakeClient([{
+    id: "seat:pm",
+    args: [{ name: "pm", manifest: live }],
+    memo: { seat: "pm", shape: JSON.stringify(scheduleShape(seat("pm", { trigger: { cron: "0 12 * * 5" } }))) },
+  }]));
+  const p = reconcilePlan(desiredOf(live), actual);
+  assert.equal(p.unchanged.length, 1, "an applied update must not be reapplied forever");
+  assert.equal(p.update.length, 0);
+});
+
+test("listSeatSchedules: ids that are not seats are left out, and only seats are described", async () => {
+  const got = await listSeatSchedules(fakeClient([
+    { id: "seat:pm", args: [{ name: "pm", manifest: seat("pm") }] },
+    { id: "someone-elses-schedule", args: [] },
+  ]));
+  assert.deepEqual(got.map((g) => g.id), ["seat:pm"]);
+});
+
+test("listSeatSchedules: an unreadable schedule reads as a difference, so the next pass rewrites it", async () => {
+  const got = await listSeatSchedules(fakeClient([
+    { id: "seat:pm", describeThrows: true },
+    { id: "seat:okr", args: [{ name: "okr", manifest: { agent: { name: "okr" }, trigger: {}, runtime: {} } }] },
+  ]));
+  assert.deepEqual(got.map((g) => g.shape), [null, null]);
+  // null is not "unchanged": it must plan an update rather than leave a
+  // schedule nobody can account for in place.
+  const p = reconcilePlan(desiredOf(seat("pm")), got.filter((g) => g.id === "seat:pm"));
+  assert.equal(p.update.length, 1);
 });
 
 test("reconcile: 36 presence-only seats register nothing at all", () => {
