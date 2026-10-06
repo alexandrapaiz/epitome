@@ -158,3 +158,15 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   pull request and asked HQ's PM directly to merge it, by name, instead
   of leaving a fourth copy to pile up the same way. Seat: pm (flagged),
   decision: alexandra-systems/pm or any chair.
+- [ ] **PR #74 is the same own-PR pattern again.** The last pass's
+  confirmation note landed as #74, which this repo's PM cannot
+  self-merge for the same reason as #18/#66/#70. This pass asked HQ's
+  PM by name to merge it rather than letting it sit as a fifth copy.
+  Seat: pm (flagged), decision: alexandra-systems/pm or any chair.
+- [x] **PR #51 closed, superseded.** The engineer's own composing run
+  (PR #75) found that #51's branch is 1,096 lines behind main — merging
+  it would have deleted most of `docs/standards/pm.md`, `prompts/exo-agent.md`,
+  and other content that landed in the 2026-10-05 chain merge after
+  #51 was opened. Verified independently (`git diff origin/main`
+  against the PR's head) before closing rather than taking the
+  engineer's word for it. Seat: pm, closed 2026-10-06.
