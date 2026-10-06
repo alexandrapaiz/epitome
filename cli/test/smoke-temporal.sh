@@ -594,7 +594,10 @@ check "a changed cron is seen as an update, with the NEW cron named" "grep -qF '
 kill -HUP "$INGRESS_PID"; sleep 2
 check "SIGHUP applied it as exactly one update" "grep -q 'reconciled: 0 created, 1 updated, 0 deleted, 0 unchanged' '$ROOT/ingress.log'"
 check "the update names the field that changed, not \"(re-registered)\"" "grep -qF '~ seat:clock  changed: cron' '$ROOT/ingress.log'"
-check "the engine really took it" "'$TEMPORAL_BIN' schedule describe --schedule-id seat:clock --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -qE '\"minute\":\"0/2\"|\"step\":2'"
+# Temporal does not store the cron string: it normalizes the expression into a
+# structured calendar, which is why the shape cannot be read back from the spec
+# and why "*/2" appears here as the range "0-59/2".
+check "the engine really took it" "'$TEMPORAL_BIN' schedule describe --schedule-id seat:clock --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -qF '0-59/2'"
 # The regression, in one assertion: reconcile a third time and nothing is left
 # to do. Before the fix this printed "would update seat:clock" every time it
 # was ever run again.
