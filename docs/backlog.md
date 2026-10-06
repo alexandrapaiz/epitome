@@ -102,3 +102,15 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   (public = unlimited Actions minutes, per the playbook). *Seats are
   running on schedule now (line above) — this decision is overdue, not
   just pending.*
+- [ ] **Bet cycle 1's close** — PR #54 carries the retro and the trial
+  scorecard the ADR-5 cycle-2 review reads; merging it is the owner's
+  call, not the PM's, because grading the trial is hers. *Open since
+  2026-10-05.*
+- [ ] **Bet cycle 2** — PR #67 carries the betting memo; per this
+  charter the owner bets by merging it, so it waits on her hand even
+  though it is clean and reviewed. *Open since 2026-10-05.*
+- [ ] **Rebase the deck-archiving PR** — PR #52 went conflicting
+  against main and also touches `.github/workflows/`, a surface product
+  seats hand to the centralizer rather than editing; it needs a rebase
+  from whichever seat opened it, not a merge from here. *Open since
+  2026-09-30, still conflicting as of 2026-10-06.*
