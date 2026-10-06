@@ -1,6 +1,6 @@
-<!-- vendored-from: standards/pm.md @ 683c7dd49b9730557c4ecaa036d2bba955fcbc3c -->
+<!-- vendored-from: standards/pm.md @ bee22af1a5815ffd1154b002071152c7be872b8d -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/pm.md` at commit `683c7dd`,
+> `alexandrapaiz/alexandra-systems` `standards/pm.md` at commit `bee22af`,
 > vendored 2026-10-05. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
@@ -125,6 +125,8 @@ owner's merge; that merge is the sprint commitment.
 vs prior sprints, blockers, one process improvement>
 ```
 
+**Sprints are deployment milestones, not dates (owner directive, 2026-09-30: "we want sprints to be about goals … it's about having deployment milestones … my mind needs some sort of meaning or goal").** Every sprint carries a name a person understands and a one-sentence goal that says what ships: "Every seat run visible in the trace store", "The console's Runs and Agents tabs live". The dates stay underneath for the machines. A sprint closes when its goal ships, which may be days before its end date, and the next milestone opens the same day; a sprint that reaches its end date with its goal unmet is closed with a written reason and the goal carried, not silently extended. Names are the PM's to invent, per company, and the owner wants them creative and memorable (2026-09-30: "I want the PM to be creative in naming and defining sprints, for each subcompany and company"): a name that says what the milestone is in this company's own voice, never a date and never a number. The PM sets the name and the goal on the board (`POST /api/sprints/<id> {"company": …, "name": …, "goal": …}`, or the owner clicks the goal on the page) in the Monday ceremony, and the standup reports progress against the goal in one sentence, never as a date.
+
 ## 4. The ledger contract (`docs/ideas.md`)
 
 Every idea enters as:
@@ -199,6 +201,8 @@ close it. Ending silently is the one outcome never acceptable.
   words, no stylistic em dashes or semicolon joins.
 
 ## 10. Autonomy tiers (ADR-011)
+
+**Amended by section 21 (owner, 2026-10-05).** The PM seat merges every tier in its own company and a chair merges in any company; the tiers below still say what must be true before a merge (green, scoped, reported), but no tier waits for the owner any more except a change to a seat's own authority.
 
 The owner's merge gates authority, not knowledge. Three tiers, company-
 wide:
@@ -410,6 +414,8 @@ curl -s -X POST "$BOARD_API_URL/api/items/<id>/comments" -H "Authorization: Bear
 curl -s "$BOARD_API_URL/api/items/<id>?company=alexandria" -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN"
 ```
 
+**Items are for the owner to read (2026-09-30: "the boards and the tasks aren't human readable, they're just random codes").** An item's title is one sentence a person understands cold: what will be true when it is done. Its body says what is being done, so that what, because otherwise what, in first person; no PR numbers, decision codes, lesson codes or incident numbers anywhere in title or body, the store refuses them; the PR or the file it came from goes in `source_url`. A comment follows the same rule. The owner's own items are hers to write as she likes.
+
 Rules: the PM's ceremonies plan on the board (the sprint file in `docs/sprints/` is a rendered export of it from now on); a seat that starts work moves its item to In progress and comments the PR link when it ships; a run that finds no item for its work creates one. The daily standup reads the board before `gh pr list`.
 \n
 
@@ -434,5 +440,98 @@ curl -s -X POST "$BOARD_API_URL/api/messages" -H "Authorization: Bearer $BOARD_R
 
 **Who owns what.** Workflow files and runtime machinery in every product repo belong to HQ: a product seat that finds a fix files the lesson and hands it to HQ (`handoff` to `alexandra-systems/exo-centralizer`), and HQ applies it everywhere with one idempotent tool, the way the tracing landed in 37 files at once. A product seat does not edit `.github/workflows` in its own repo. The centralizer is the only cross-company writer of lessons; a product ExO writes its local register and stops there.
 
+**How to write one** (owner, 2026-09-30: "I want it as a conversation. Like, doing this so that such and such, otherwise it's so hard to read as a human"). Say it as you would across a table: *I am doing X so that Y, because otherwise Z.* First person, plain words, every line a whole thought with its reason, one thought per line, a blank line between thoughts. No fragments, no lists of labels, and no PR numbers, decision codes or lesson codes in the prose; the store refuses a body without a reason in words and a body with a code in it. Identifiers go in `data`; the evidence and the alternatives you ruled out go in `reasoning`. A person reads the body and understands what is happening and why; a machine reads the data and knows where.
+
+**Urgent, to the owner's phone (owner directive, 2026-09-30: "urgent stuff to get to me via WhatsApp … not spams, truly urgent").** A message addressed to `owner` with kind `ask` and `"urgent": true` in its data is forwarded to her WhatsApp, at most four a day company-wide. Urgent means a blocker only she can clear and that stops a company: a purchase or a spend approval, a credential only she holds, a decision the standard reserves for her, a balance at zero. A question that can wait for her next session is an ask without the flag. A seat that flags what was not urgent loses the flag until the exo restores it.
+
+**Two mechanics.** An MCP server starts with the chat, so a chat that was open when the launcher changed keeps the old one until it restarts; reinstalling does nothing for an open chat. A claim belongs to the chair that made it, and a release counts when it comes from the same chair name, the same chair after a rename or restart (the name before its four-character suffix), or the owner; otherwise it expires on its own.
+
 **The owner sees it all** on the board's Messages tab, and the board is the only record. A chair that dispatched something writes a `note` saying so, because the next chat starts from that line and not from the transcript.
 
+## 16. A charter is the role; a task is the assignment (owner, 2026-09-30)
+
+The owner: "each engineer in each role will have a different job, but how can we make sure that the stuff that's generalizable is generalized, and that ExO is on top of it?" And, on why the YC and MBA seats sit only at HQ: "that's not supposed to be a tailored agent. That's supposed to be standard across all of them. That's what I meant about agent charters versus specific task assignment."
+
+**The rule.** A charter describes a role, and a role is the same everywhere: what it is for, how it thinks, its cadence, its loop, its boundaries, how it reads the board and reports. One charter per role, in HQ, `standards/roles/<role>.md`, vendored into every company that holds the role. What differs between companies is never the charter; it is the assignment: the sprint item, the dispatch instruction, the company's own files and repo. A product's `prompts/<role>-agent.md` is therefore short: it names the role charter it follows and states the company's standing assignment (what this holder builds, which repo, what it must not touch). A sentence about how the role works belongs in the role charter; a sentence about what this company wants from it belongs in the assignment.
+
+**Company-wide seats.** The YC and MBA advisors, the exo centralizer and the finance seat are HQ seats whose charter already is the role and whose assignment names the company or case under review. They are not copied into subcompanies; they are pointed at them. A subcompany that wants an advisor's read files an ask on the board or the PM dispatches the HQ seat with the case.
+
+**Who keeps it.** The exo centralizer owns `standards/roles/`. Its weekly run reads the Agents tab's comparison (one role across companies, shared paragraphs against each company's own), lifts what is about the role into the role charter, moves what is about the company into the assignment, and opens the PRs: the role charter on HQ (Tier B), the trimmed product charter on each product (Tier C, the owner's). A product charter that grows role prose again is a finding in the next run.
+
+**Why.** A fix to the engineer's loop must land on four engineers at once, not four times; and the owner reads one role standard to know what an engineer is, then one short delta to know what this one does.
+
+## 17. The event bus: choreography, not orchestration (owner directive, 2026-10-04)
+
+The owner: "can we configure an event bus? i much prefer choreography over orchestration." And the evidence for it: four days of standups with zero dispatches, because the dispatch rule stops when a seat carries an open pull request, and every seat did.
+
+**The rule.** The board is the company's event producer. Every write on it is an event in `board.events`: a message posted, an item moved, a run reported or failed, a sprint changed, a claim made. Seats are not dispatched; they are woken by the events they subscribe to, and they act on the event's text. The PM still plans and still merges, but it does not start seats by hand: it posts a handoff, and the handoff is what starts the seat.
+
+**The subscriptions that exist.**
+- A message addressed to a seat wakes that seat, in the company named or in every company that has the seat.
+- A failed run wakes the company's PM.
+- An item moved into an in-progress column wakes the seat on it.
+
+**How a seat is woken.** Two doors, both recorded on the event. Its workflow on GitHub listens for the event type `asc.<seat>` and runs with the event's text in its prompt (`tools/event-bus-workflows.py` puts the trigger on every seat). When the seat holds a window on the host, the same text goes into the window. A seat is woken at most once per ten minutes per event type, so a burst is one wake.
+
+**What changes in the daily run.** The dispatch criteria of §11.3 stay for the scheduled runs. An event-driven run is not a dispatch: the open-pull-request stop of §11.4 does not apply to it, because a seat woken by a handoff addressed to it is answering a request, not opening speculative work. A seat that is woken and has nothing to do says so on the board in one line and stops.
+
+**The owner sees it** as the Events feed (`GET /api/events` today; a tab next), each event with where it went and whether it arrived.
+
+**§17 revisions of 2026-10-05.** Three things the first night taught.
+
+- The workflow door only works once a seat's workflow on `main` listens for its event type; GitHub accepts a dispatch for a branch that is not the default and starts nothing. Until the triggers-only pull requests merge, a handoff reaches a seat through its host window only, and a chair that watches the Actions list will wrongly conclude nothing woke. Look at the events feed, which records both doors.
+- The debounce guards the workflow door only. A dispatch starts a whole run, so a burst is one run; the window door coalesces a message into the session already open, so every message goes through it. A message is never dropped on delivery.
+- One wake per message. The window door is tried first, because it is cheaper and keeps the seat's context; the workflow door is used only when no window took the message. Before this, a seat holding a window was woken twice by one line and its two runs could not see each other.
+- Host window runs report themselves to the board like Actions runs do, so the Runs tab and a seat's card show them, and the daily brief counts them. Once a day the owner's phone gets the last twenty-four hours in six lines: what merged, what waits on her, what failed, who asked her for what. A PM's `ask` addressed to the owner reaches her phone as urgent without a flag, within the daily budget.
+
+## 18. The standard a PM is held to (owner directive, 2026-10-05)
+
+The owner, going to sleep: "I expect less errors, error resolving without me, and viable products once I check back. If needed, PMs need to be put to a higher standard." This is that standard. It is measured per pass (every six hours on the host, and every scheduled standup), and the ExO reads it.
+
+1. **No unanswered ask or handoff addressed to pm older than one pass.** Every one gets an answer on the board, a handoff to the seat that owns it, or a decision. Silence is a failure of the PM, not of the sender.
+2. **No failed run untriaged for more than one pass.** Each is a false alarm noted, a transient rerun once, a defect filed and handed off, or a configuration asked of HQ. A failure that reaches the owner without a triage line is the PM's failure.
+3. **The owner is asked only for what only she can do.** Before escalating, the PM has tried the seat that owns it, the ExO, and HQ. An ask to the owner names what was tried and why it did not work. Anything else resolves without her.
+4. **The queue moves every pass.** Every open pull request in the company is one of: merged under tier B, closed with a one-line reason, or named as waiting on the owner with the reason. A pull request nobody has decided on for two passes is a failure of the PM.
+5. **The sprint has a goal and the goal gets closer.** Each pass says in one sentence what moved the milestone and what will move it next. A sprint that reaches its end date with no goal shipped is closed with a written reason and the lesson filed.
+6. **Products stay viable.** Each company's product is usable at every pass: the site loads, the pipeline ran, the newsletter went out once and only once, the runtime answers. A product found broken is the PM's first item, before anything else.
+7. **The PM works like the owner would.** Prompting around: it hands work to seats through the board, asks when it does not know, pushes when a seat stalls, and writes for a person.
+
+**Enforcement.** The ExO centralizer reads every PM's passes weekly against these seven lines and files what it finds in the lessons register. Two consecutive passes failing the same line is an incident, and the ExO proposes the charter change or the replacement.
+
+## 19. The PM creates seats and switches them on and off (owner directive, 2026-10-05)
+
+The owner: "pms should have authority to create and turn on agents." A PM that can plan but cannot staff is a planner, not a PM.
+
+**What the PM may do, in its own company, without asking the owner.**
+- **Create a seat**: a role that exists in `standards/roles/` gets a holder here with `tools/new-seat.py <role> --company <this one>`, which writes the assignment charter (`prompts/<role>-agent.md`: one line naming the role charter, then the standing assignment), the workflow from the template, and for HQ the manifest under `runtime/agents/`. A role that does not exist yet is a new charter, which is Tier C: the PM drafts it in the same pull request and the owner merges that one.
+- **Turn a seat on or off**: `tools/new-seat.py <role> --on` or `--off` enables or comments the schedule and marks the manifest. Off is dormant, not deleted; the files stay.
+- **Set its cadence, model and turn cap** inside the company's budget line in the finance register.
+
+**The limits.** One seat per role per company. A new seat is a pull request the PM merges under tier B, because the files it writes are the generated workflow, the assignment and the manifest, not a charter. The owner is told on the board with a note that says why the seat exists and what it will cost. A seat that has not shipped anything in two weeks is switched off by the PM and the reason filed.
+
+**Why.** The owner should hear about a new agent as news, not as a request.
+
+
+## 20. An ExO finding goes to a PM to fix, never only to the owner (owner directive, 2026-10-05)
+
+The owner, on reading a week in which every ExO measured the merge queue and nothing moved: "exo should route that always to hq for a pm to fix. otherwise nothing gets done."
+
+**The rule.** When an ExO, the centralizer or a product's, finds that work is not landing, the finding is not a report. It is a handoff to `alexandra-systems/pm` on the board, and that handoff is what wakes the HQ PM (§17). Not landing means any of: a pull request or stack that merges clean and nobody has merged, a fix for a live defect sitting unmerged, a seat walled by its own open pull request, an authority that nobody holds, a run that keeps failing the same way. The ExO still files the lesson and the incident; the handoff is in addition, and it carries the measurement, the order of merges if there is one, and the single decision the owner would be asked if everything else fails.
+
+**What the HQ PM does with it.** The handoff becomes an item on the HQ board, in progress, with the PM on it. Every pass until it closes, the PM does one of: merges under tier B, dispatches or wakes the seat that owns it, asks the product's PM to merge what is theirs, or writes one ask to the owner naming the single decision only she can make and what was tried first (§18, line 3). The item closes when the queue moved, not when the finding was acknowledged. A handoff of this kind still open after two passes is a failure of the PM under §18, line 4.
+
+**What the ExO does afterwards.** Its next run reads whether the item moved and reports the delta in first person on the board, as its loop already requires for harness changes. An ExO whose finding went to the owner and not to a PM has routed it wrong, and the centralizer files that as a lesson against itself.
+
+**Why.** An ExO that measures and reports hands the owner a list, and the owner is the one actor the company exists to spare. A PM is the actor whose job is to make the queue move. Reports go to actors.
+
+## 21. Merges belong to the PMs and the chairs, not to the owner (owner directive, 2026-10-05)
+
+The owner, after a week in which nothing landed because every queue waited on her: "I don't want to be managing the merges. PMs and all chairs should be able to merge."
+
+**The rule.** A pull request is merged by the PM seat of the company it belongs to, or by any chair, as soon as it meets the conditions the tiers already state: the run is green, the change is scoped to what the seat was asked, the report says what shipped, and no other seat holds a claim on the surface. Standards, charters, workflows and decisions included. The owner merges nothing in the ordinary course.
+
+**What stays the owner's.** Only a change to a seat's own authority (this section, section 10, section 19, the PM charter's grant), and anything that spends money, opens an account or writes a secret.
+
+**How it is done.** The PM seat merges with the repository token its workflow already holds; a chair merges with the owner's GitHub account from her machine. Each merge is written on the board as a `done` with the reason, so that the owner supervises by reading, and the daily brief counts them.
+
+**Why.** Six pull requests that unlocked the whole company sat clean for a night while every PM correctly refused to act on authority that was not on main. The gate was the owner's hand, and the owner does not want to be a gate.
