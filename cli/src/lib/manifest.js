@@ -41,6 +41,44 @@ const RETIRED = {
   },
 };
 
+// `[runtime].repo` is a repository on github.com, and GitHub has rules for
+// what an owner and a name may be. The rule here used to be "two things with a
+// slash", which blessed values GitHub can never name — so `epito validate`
+// said ✓ and `epito run`, `epito deploy` and `epito token` then failed on the
+// network, which is the one outcome src/lib/readiness.js exists to prevent:
+//
+//   repo = "acme/roster.git"   the runtime clones https://github.com/<repo>.git,
+//                              so this asked for roster.git.git — and GitHub
+//                              refuses a repository named with that suffix anyway
+//   repo = "../.."             two legal halves, and `epito deploy` would have
+//                              put it in an api.github.com path
+//
+// An owner (user or organisation) is 1–39 characters of letters, digits and
+// hyphens, and cannot begin or end with a hyphen: no dots, no underscores. A
+// name is up to 100 characters of letters, digits, dot, dash and underscore,
+// and is not "." or "..".
+export const OWNER_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
+export const REPO_NAME_RE = /^[A-Za-z0-9._-]{1,100}$/;
+
+export function repoErrors(repo) {
+  const here = `[runtime].repo "${repo}"`;
+  const halves = repo.split("/");
+  if (halves.length !== 2 || !halves[0] || !halves[1]) {
+    return [`${here} must be owner/name — the GitHub repository the runtime clones for every run, which it does over https://github.com/owner/name.git. A URL, an scp-style git address and a path are all the same mistake: epito names the repository, and builds the rest. Fix: write the two halves only, e.g. repo = "acme/roster".`];
+  }
+  const [owner, name] = halves;
+  if (!OWNER_RE.test(owner)) {
+    return [`${here}: "${owner}" is not a GitHub owner — a user or organisation is 1–39 characters of letters, digits and hyphens, and cannot begin or end with one, so a dot, an underscore, a space or a colon rules it out. Fix: use the owner exactly as github.com spells it in the URL bar.`];
+  }
+  if (/\.git$/.test(name)) {
+    return [`${here}: GitHub refuses a repository name ending in ".git", and the runtime appends that itself when it clones (https://github.com/${owner}/${name.replace(/\.git$/, "")}.git). Fix: drop the suffix — repo = "${owner}/${name.replace(/\.git$/, "")}".`];
+  }
+  if (name === "." || name === ".." || !REPO_NAME_RE.test(name)) {
+    return [`${here}: "${name}" is not a GitHub repository name — up to 100 characters of letters, digits, dot, dash and underscore, and never "." or "..". Fix: use the name exactly as github.com spells it in the URL bar.`];
+  }
+  return [];
+}
+
 // Parse a manifest file. Returns { manifest } or { parseError }.
 export function parseManifest(path) {
   try { return { manifest: parse(readFileSync(path, "utf8")) }; }
@@ -106,9 +144,7 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
     if (!r.model) errors.push("[runtime].model is required and explicit — an unset model is silently under-modeled");
     if (!r.entry) errors.push("[runtime].entry is required: the charter file the runtime reads");
     else if (!r.repo && !existsSync(resolve(baseDir, r.entry))) errors.push(`[runtime].entry "${r.entry}" does not exist`);
-    if (r.repo !== undefined && !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(String(r.repo))) {
-      errors.push(`[runtime].repo "${r.repo}" must be owner/name — the GitHub repository the runtime clones for each run`);
-    }
+    if (r.repo !== undefined) errors.push(...repoErrors(String(r.repo)));
     if (r.ref !== undefined && (typeof r.ref !== "string" || !/^[A-Za-z0-9_./-]{1,200}$/.test(r.ref) || r.ref.startsWith("-"))) {
       errors.push(`[runtime].ref "${r.ref}" must be a branch or tag name — the ref the runtime checks out; leave it unset for the default branch`);
     }
