@@ -76,43 +76,43 @@ export function routeErrors(m) {
   if (rt.route === undefined) return [];
   const errors = [];
   if (!Array.isArray(rt.route) || rt.route.length === 0) {
-    return ['[[runtime.route]] must be one or more route tables, in the order the runtime should try them — write `[[runtime.route]]` (double brackets) once per road, or drop the field to run on [runtime].model'];
+    return ['[[runtime.route]] must be one or more route tables, in the order the runtime should try them. Fix: write `[[runtime.route]]` (double brackets, once per road) with a model under each, or drop the field to run on [runtime].model alone.'];
   }
   const seen = new Set();
   rt.route.forEach((r, i) => {
     const where = `[[runtime.route]] #${i + 1}`;
     if (typeof r !== "object" || r === null || Array.isArray(r)) {
-      errors.push(`${where} must be a table of fields (model, name, base_url, token_env, concurrency)`);
+      errors.push(`${where} must be a table of fields (model, name, base_url, token_env, concurrency), not a bare value — a road is the model AND the way to reach it. Fix: write \`[[runtime.route]]\` and put model = "..." on the line under it.`);
       return;
     }
     if (r.name !== undefined) {
       if (typeof r.name !== "string" || !ROUTE_NAME_RE.test(r.name)) {
-        errors.push(`${where}: name "${r.name}" must be [a-z0-9-], 1-40 chars — it is what the run log, the board and the audit line call this road`);
+        errors.push(`${where}: name "${r.name}" must be lower-case letters, digits and hyphens, 1-40 characters — it is what the run log, the board and the audit line call this road. Fix: name = "kimi", or drop the line and let the route be known by its model.`);
       } else if (seen.has(r.name)) {
         errors.push(`${where}: two routes are both named "${r.name}", so a run could not say which one it took. Fix: name them apart.`);
       } else seen.add(r.name);
     }
     const model = r.model ?? rt.model;
     if (!model || typeof model !== "string") {
-      errors.push(`${where}: model is required — a route is a model and the way to reach it, and an unset model is silently under-modeled`);
+      errors.push(`${where}: model is required — a route is a model and the way to reach it, and an unset model is silently under-modeled. Fix: give this route its own model = "...", or set [runtime].model as the one every route without one falls back to.`);
     }
     if (r.base_url !== undefined) {
       const u = (() => { try { return new URL(String(r.base_url)); } catch { return null; } })();
       if (!u || !/^https?:$/.test(u.protocol)) {
-        errors.push(`${where}: base_url "${r.base_url}" must be an http(s) URL — the endpoint that speaks the model's API (e.g. "https://api.moonshot.ai/anthropic")`);
+        errors.push(`${where}: base_url "${r.base_url}" must be an http(s) URL — the endpoint that speaks the model's API. Fix: write it scheme and all, e.g. base_url = "https://api.moonshot.ai/anthropic"; drop the line to use the model's own provider.`);
       } else if (u.username || u.password) {
         errors.push(`${where}: base_url carries a credential in the URL, and a manifest must be publishable without redaction. Fix: put the key in a secret and name it with token_env.`);
       }
     }
     if (r.token_env !== undefined) {
       if (typeof r.token_env !== "string" || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(r.token_env)) {
-        errors.push(`${where}: token_env "${r.token_env}" must be the NAME of an environment variable (letters, digits, underscore) — the key itself never appears in the manifest`);
+        errors.push(`${where}: token_env "${r.token_env}" must be the NAME of an environment variable (letters, digits, underscore) — the key itself never appears in the manifest. Fix: token_env = "KIMI_API_KEY", list that same name under [runtime].env, and set its value as a secret.`);
       } else if (!(Array.isArray(rt.env) && rt.env.includes(r.token_env))) {
-        errors.push(`${where}: token_env names "${r.token_env}", so "${r.token_env}" must also be listed in [runtime].env — the runtime injects only the names the manifest lists, so an unlisted key can never resolve to a value`);
+        errors.push(`${where}: token_env names "${r.token_env}", so "${r.token_env}" must also be listed in [runtime].env — the runtime injects only the names the manifest lists, so an unlisted key can never resolve to a value. Fix: add "${r.token_env}" to [runtime].env.`);
       }
     }
     if (r.concurrency !== undefined && !(Number.isInteger(r.concurrency) && r.concurrency > 0)) {
-      errors.push(`${where}: concurrency must be a positive integer — how many of this box's runs may be on this road at once (a prepaid tier that allows one is why this field exists)`);
+      errors.push(`${where}: concurrency must be a positive integer, got "${r.concurrency}" — how many of this box's runs may be on this road at once (a prepaid tier that allows one is why this field exists). Fix: concurrency = 1, or drop the line for no limit of epito's.`);
     }
     errors.push(...unknownKeys(r, ROUTE_FIELDS, where));
   });

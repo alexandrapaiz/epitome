@@ -216,19 +216,22 @@ for (const [label, manifest] of ROUTE_REFUSALS) held(label, manifest);
 
 test("the bar covers EVERY refusal these two modules print in their own voice", () => {
   const read = (f) => readFileSync(new URL(`../src/lib/${f}`, import.meta.url), "utf8");
-  // Spread pushes (`...unknownKeys`, `...routeErrors`) delegate to a module
-  // with its own bar; the literal ones are the file's own voice. router.js
-  // also refuses the whole field with a bare `return [message]`.
-  const literal = (src) => (src.match(/errors\.push\((?!\.\.\.)/g) ?? []).length;
+  // Two of the pushes delegate to a module with its own bar (`...unknownKeys`
+  // from fields.js, `...routeErrors` from router.js, counted on its own line
+  // below); every other push is the file's own voice, including the spread of
+  // its own `repoErrors`. router.js also refuses the whole field with a bare
+  // `return [message]`, which is why its count gets a +1.
+  const mine = (src) => (src.match(/errors\.push\(/g) ?? []).length
+    - (src.match(/errors\.push\(\.\.\.(unknownKeys|routeErrors)/g) ?? []).length;
   const manifestJs = read("manifest.js");
   const routerJs = read("router.js");
-  // `adapter unknown` and `model missing` are literal pushes of a message
-  // another module composed; they are still this validator's output.
-  assert.equal(literal(manifestJs), REFUSALS.length,
-    `src/lib/manifest.js prints ${literal(manifestJs)} refusals and REFUSALS covers ${REFUSALS.length}. ` +
-    `A new message needs a case above, or nobody held it to the bar.`);
-  assert.equal(literal(routerJs) + 1, ROUTE_REFUSALS.length,
-    `src/lib/router.js prints ${literal(routerJs) + 1} refusals and ROUTE_REFUSALS covers ${ROUTE_REFUSALS.length}.`);
+  // `adapter unknown` is a push of a message adapters.js composed; it is still
+  // this validator's output, and adapters.js already carries its own fix.
+  assert.equal(mine(manifestJs), REFUSALS.length,
+    `src/lib/manifest.js prints ${mine(manifestJs)} refusals in its own voice and REFUSALS covers ` +
+    `${REFUSALS.length}. A new message needs a case above, or nobody held it to the bar.`);
+  assert.equal(mine(routerJs) + 1, ROUTE_REFUSALS.length,
+    `src/lib/router.js prints ${mine(routerJs) + 1} refusals and ROUTE_REFUSALS covers ${ROUTE_REFUSALS.length}.`);
 });
 
 // --- [runtime].repo is a GitHub repository, and GitHub has rules -----------
@@ -294,13 +297,13 @@ test("[runtime].slack_webhook_env accepts a NAME that is also listed in env", ()
 test("[runtime].slack_webhook_env refuses a URL, naming the rule and the fix", () => {
   const errs = errorsFor({ runtime: { slack_webhook_env: "https://hooks.slack.com/services/x", env: [] } });
   assert.equal(errs.length, 1);
-  assert.equal(errs[0], `[runtime].slack_webhook_env "https://hooks.slack.com/services/x" must be the NAME of an environment variable (letters, digits, underscore) — the webhook URL itself never appears in the manifest`);
+  assert.equal(errs[0], `[runtime].slack_webhook_env "https://hooks.slack.com/services/x" must be the NAME of an environment variable (letters, digits, underscore) — the webhook URL itself never appears in the manifest. Fix: slack_webhook_env = "PM_SLACK_WEBHOOK", list that same name under [runtime].env, and set its value as a secret.`);
 });
 
 test("[runtime].slack_webhook_env must also be listed under [runtime].env", () => {
   const errs = errorsFor({ runtime: { slack_webhook_env: "SLACK_WEBHOOK_URL_URSA", env: ["GH_TOKEN"] } });
   assert.equal(errs.length, 1);
-  assert.equal(errs[0], `[runtime].slack_webhook_env names "SLACK_WEBHOOK_URL_URSA", so "SLACK_WEBHOOK_URL_URSA" must also be listed in [runtime].env — the runtime injects only the names the manifest lists, so an unlisted webhook can never resolve to a value`);
+  assert.equal(errs[0], `[runtime].slack_webhook_env names "SLACK_WEBHOOK_URL_URSA", so "SLACK_WEBHOOK_URL_URSA" must also be listed in [runtime].env — the runtime injects only the names the manifest lists, so an unlisted webhook can never resolve to a value. Fix: add "SLACK_WEBHOOK_URL_URSA" to [runtime].env.`);
 });
 
 test("a manifest with no slack_webhook_env is unchanged: spec v0.1 stays compatible", () => {
@@ -1628,7 +1631,11 @@ const manifestFor = (runtime = {}, identity = {}) => ({
 
 test("a manifest with no [runtime].repo is valid, and the note names every command that will refuse it", () => {
   const m = manifestFor();
-  assert.deepEqual(validateManifest(m, { baseDir: tmpDir() }).filter((e) => /repo/.test(e)), [],
+  // Anchored on the field, not on the word: the refusals about OTHER fields
+  // now name [runtime].repo in their own fix lines ("set repo = owner/name and
+  // commit the charter there"), and a filter on /repo/ counted those as a repo
+  // error. What this test is about is a refusal whose SUBJECT is the field.
+  assert.deepEqual(validateManifest(m, { baseDir: tmpDir() }).filter((e) => e.startsWith("[runtime].repo")), [],
     "[runtime].repo became a validation error — spec v0.1 says validate accepts it absent");
   const [b, ...rest] = blockers(m);
   assert.equal(rest.length, 0, "one blocker expected, got more");
