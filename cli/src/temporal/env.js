@@ -19,8 +19,48 @@ export function temporalEnv(env = process.env) {
     runTimeoutMs: Number(env.EPITO_RUN_TIMEOUT_MS) || DEFAULT_RUN_TIMEOUT_MS,
     windowMs: Number(env.EPITO_WINDOW_MS) || DEFAULT_WINDOW_MS,
     executor: env.EPITO_EXECUTOR || "claude",
+    // Set explicitly or not at all. There is no safe default: the Temporal CLI
+    // puts its UI on 8233, deploy/provision-host.sh tells you to start the
+    // engine with `--ui-port 8080`, and a docker-compose install publishes
+    // `temporalio/ui` on 8080 too. `epito ps` used to print 8080 as a fact and
+    // so sent anyone who had followed the install line in its own test suite
+    // (`temporal server start-dev`, bare) to a dead port. uiPort null means
+    // "nobody told me", and the caller is expected to look rather than guess.
+    uiPort: Number(env.TEMPORAL_UI_PORT) || null,
   };
 }
+
+// The host half of a `host:port` engine address, so a hint about the engine's
+// neighbours does not say 127.0.0.1 to someone pointed at another machine.
+export function addressHost(address) {
+  const i = address.lastIndexOf(":");
+  const host = i > 0 ? address.slice(0, i) : address;
+  return host.replace(/^\[|\]$/g, "") || "127.0.0.1";
+}
+
+export const isLoopback = (host) =>
+  host === "127.0.0.1" || host === "localhost" || host === "::1" || host === "0.0.0.0";
+
+// Is anything listening there? Used only to decide which of two conventional
+// UI ports to name, so it fails closed and fast: no answer inside the deadline
+// means "do not claim it".
+export function portAnswers(host, port, timeoutMs = 250) {
+  return new Promise((resolve) => {
+    import("node:net").then(({ Socket }) => {
+      const s = new Socket();
+      const done = (v) => { s.destroy(); resolve(v); };
+      s.setTimeout(timeoutMs);
+      s.once("connect", () => done(true));
+      s.once("timeout", () => done(false));
+      s.once("error", () => done(false));
+      s.connect(port, host === "0.0.0.0" ? "127.0.0.1" : host);
+    }).catch(() => resolve(false));
+  });
+}
+
+// The conventional ports, in the order this product is most likely to meet
+// them: the house install line first, the Temporal CLI's own default second.
+export const UI_PORTS = [8080, 8233];
 
 // The ids. A schedule is named for the seat it wakes; a run and a window are
 // named for the seat they belong to, so every id in the Temporal UI reads as a

@@ -104,6 +104,31 @@ export function startHookServer({ port, host = "0.0.0.0", secret, onRequest, onH
       } catch (e) { reply(500, { error: e.message }); }
     });
   });
+  // A port that is already taken is the normal way `epito run` is run twice,
+  // and it used to end the process with fourteen lines of Node stack trace
+  // headed "Emitted 'error' event on Server instance" -- below the bar every
+  // other error in this product is held to, and `epito deploy` already clears
+  // it for the same condition on its own listener.
+  //
+  // It also lands at the worst moment: the reconcile is finished by the time
+  // the ingress binds, so the engine HAS been changed and the operator is
+  // staring at a crash. On the host that matters twice over, because
+  // epitod.service is already holding this port, so the hand-run `epito run`
+  // of the deploy instructions is exactly the command that hits this.
+  server.on("error", (e) => {
+    if (e.code === "EADDRINUSE") {
+      console.error(`epito: the roster is on the engine, but the ingress could not start: something is already listening on ${host}:${port}.
+
+That is usually epitod itself: \`systemctl status epitod\` (the reconcile above
+already landed, so a running epitod needs \`systemctl reload epitod\`, not a
+second one). Fix: stop it, or give this one its own port with EPITO_PORT.`);
+    } else if (e.code === "EACCES") {
+      console.error(`epito: the ingress may not listen on ${host}:${port} (${e.code}) — a port below 1024 needs root. Fix: set EPITO_PORT to a port above 1024 and put Caddy in front of it, which is what deploy/provision-host.sh does.`);
+    } else {
+      console.error(`epito: the ingress could not listen on ${host}:${port} (${e.code ?? e.message})`);
+    }
+    process.exit(1);
+  });
   server.listen(port, host, () => log(`ingress listening on http://${host}:${port} (${ROUTE_LIST})`));
   return server;
 }

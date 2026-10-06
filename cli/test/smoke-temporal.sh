@@ -32,8 +32,8 @@
 #   7. a run is ONE TRACE                (ADR-18: run -> clone / mint /
 #                                        execute -> the agent's own steps, at
 #                                        an OTLP endpoint, with no token in it)
-#   + reconcile is idempotent, and deletes the schedule of a seat that loses
-#     its cron; per-agent Slack routing sends each seat's line to its own
+#   + reconcile is idempotent after a create AND after an update, and deletes
+#     the schedule of a seat that loses its cron; per-agent Slack routing sends each seat's line to its own
 #     webhook; a seat with no charter refuses loudly and leaves no clone; the
 #     ingress refuses a wrong secret, an unknown agent, an empty message and a
 #     bad scope, by name.
@@ -565,6 +565,46 @@ step "1 (idempotence): reconciling again changes nothing"
 node "$CLI/src/index.js" run "$ROSTER" --dry-run > "$ROOT/dry.log" 2>&1
 sed 's/^/  /' "$ROOT/dry.log"
 check "a second reconcile would create, update and delete nothing" "grep -q '1 unchanged' '$ROOT/dry.log' && ! grep -qE 'would (create|update|delete)' '$ROOT/dry.log'"
+
+step "1 (idempotence after an UPDATE): the second reconcile is the one that lies"
+# The step above proves reconcile converges after a CREATE, which is the easy
+# half: the shape it compares against was written by the create it just did.
+# Nothing proved the update path, and the update path did not converge. Found
+# 2026-10-06 by running this suite against a real engine for the first time:
+#
+#   `epito run` stored the shape it registered in the schedule's MEMO, and read
+#   it back from there to decide what changed. `handle.update()` accepts a memo
+#   in its return value and Temporal's UpdateSchedule RPC has no memo field, so
+#   the SDK drops it silently. The memo therefore keeps the CREATE-time shape
+#   for the life of the schedule. Consequences, both real:
+#     - every later reconcile re-issued the same update, forever: "0 updated"
+#       never happened again, and each restart wrote another schedule.update
+#       line into the ledger describing a change that had already landed.
+#     - `epito ps` printed the memo's stale cron in a column next to a NEXT
+#       computed from the live one, so the same row contradicted itself.
+#
+# The shape is now read from the schedule's action args — the manifest snapshot
+# the engine will actually run, which `handle.update()` does rewrite. Note the
+# cron cannot be read back from spec: Temporal normalizes a cron expression into
+# a structured calendar and `spec.cronExpressions` comes back undefined.
+write_manifest clock "*/2 * * * *" "SLACK_WEBHOOK_URL"   # was "* * * * *"
+node "$CLI/src/index.js" run "$ROSTER" --dry-run > "$ROOT/dry-upd.log" 2>&1
+sed 's/^/  /' "$ROOT/dry-upd.log"
+check "a changed cron is seen as an update, with the NEW cron named" "grep -qF 'would update seat:clock (*/2 * * * * UTC)' '$ROOT/dry-upd.log'"
+kill -HUP "$INGRESS_PID"; sleep 2
+check "SIGHUP applied it as exactly one update" "grep -q 'reconciled: 0 created, 1 updated, 0 deleted, 0 unchanged' '$ROOT/ingress.log'"
+check "the update names the field that changed, not \"(re-registered)\"" "grep -qF '~ seat:clock  changed: cron' '$ROOT/ingress.log'"
+# Temporal does not store the cron string: it normalizes the expression into a
+# structured calendar, which is why the shape cannot be read back from the spec
+# and why "*/2" appears here as the range "0-59/2".
+check "the engine really took it" "'$TEMPORAL_BIN' schedule describe --schedule-id seat:clock --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -qF '0-59/2'"
+# The regression, in one assertion: reconcile a third time and nothing is left
+# to do. Before the fix this printed "would update seat:clock" every time it
+# was ever run again.
+node "$CLI/src/index.js" run "$ROSTER" --dry-run > "$ROOT/dry-upd2.log" 2>&1
+sed 's/^/  /' "$ROOT/dry-upd2.log"
+check "reconcile CONVERGES: the next one would change nothing" "grep -q '1 unchanged' '$ROOT/dry-upd2.log' && ! grep -qE 'would (create|update|delete)' '$ROOT/dry-upd2.log'"
+check "epito ps reads the cron the engine holds, not the one it was born with" "node '$CLI/src/index.js' ps '$ROSTER' | grep -E '^clock' | grep -qF '*/2 * * * *'"
 
 step "1 (the other direction): a seat that loses its cron loses its schedule"
 write_manifest clock "" "SLACK_WEBHOOK_URL"        # presence-only from now on

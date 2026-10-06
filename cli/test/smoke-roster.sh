@@ -166,7 +166,16 @@ else
   dout="$(cd "$TMP" && $E run agents --dry-run 2>&1)"; drc=$?
   check "the dry run exits 0 (it used to exit 1: unknown command \"run\")" "[ $drc -eq 0 ]"
   check "it does NOT print the unknown-command error" "! printf '%s' \"\$dout\" | grep -q 'unknown command'"
-  check "it plans a schedule for every seat with a cron" "[ \"\$(printf '%s' \"\$dout\" | grep -c 'would create seat:')\" = 4 ]"
+  # Every cron'd seat is accounted for, as a create OR as already-registered.
+  # This used to demand four "would create" lines, which quietly assumed the
+  # engine at TEMPORAL_ADDRESS was empty. It is not empty anywhere this matters:
+  # on the company host epitod holds this very roster, so the suite reported
+  # FAILED for a correct product -- found 2026-10-06 running it right after
+  # `epito run agents` against a live engine. "Planned" is the property; which
+  # side of the diff a seat lands on is the engine's state, not the roster's.
+  planned=$(printf '%s' "$dout" | grep -c 'would create seat:')
+  settled=$(printf '%s' "$dout" | grep -oE '[0-9]+ unchanged' | grep -oE '[0-9]+' | tail -1)
+  check "it plans a schedule for every seat with a cron (created ${planned:-0} + already registered ${settled:-0} = 4)" "[ \$(( ${planned:-0} + ${settled:-0} )) -eq 4 ]"
   check "and names the presence-only seat instead of silently skipping it" "printf '%s' \"\$dout\" | grep -q 'presence-only (no \[trigger\].cron, so no schedule): exo'"
   check "it says in words that it wrote nothing" "printf '%s' \"\$dout\" | grep -q 'dry run: nothing was registered'"
   # The bug: four `schedule.create` lines in an append-only ledger, for four
