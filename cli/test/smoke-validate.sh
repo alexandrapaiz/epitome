@@ -45,6 +45,8 @@
 #   7. a refused roster puts nothing on stdout, so `epito validate <dir>
 #      >/dev/null` in a CI step shows exactly the problems
 #   8. validate never writes: no .epito/, no file of any kind, on any path
+#   9. and `epito init`, the command before it: two filesystem conditions that
+#      used to be a Node stack, and a name it quietly changed
 set -uo pipefail
 
 CLI="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -337,6 +339,67 @@ check "...and the fix names the fallback"           "printf '%s' \"\$OUT\" | gre
 OUT="$(cd "$CLEAN/alpha" && TEMPORAL_ADDRESS=$DEAD $E validate 2>&1)"; RC=$?
 check "one manifest with no engine exits 0"         "[ $RC -eq 0 ]"
 check "...and says nothing about an engine"         "! printf '%s' \"\$OUT\" | grep -qi 'temporal\|answering'"
+
+step "11. \`epito init\`, the command before this one"
+# The card is "init + validate error polish", and init is the first command
+# anyone runs. It answered two ordinary filesystem conditions with a Node
+# stack: a directory it could not write, and a `prompts` that was already a
+# file. The second is the worse one, because init wrote agent.toml BEFORE it
+# discovered it, so the reader got fourteen lines of EEXIST and a half-minted
+# directory behind them.
+I="$TMP/init"; mkdir -p "$I"
+
+# a. a FILE where prompts/ goes: one sentence, and nothing written
+mkdir -p "$I/prompts-is-a-file" && printf 'x' > "$I/prompts-is-a-file/prompts"
+OUT="$(cd "$I/prompts-is-a-file" && $E init digest 2>&1)"; RC=$?
+check "a file named prompts refuses, exit 1"        "[ $RC -eq 1 ]"
+check "...naming the file and where the charter goes" "printf '%s' \"\$OUT\" | grep -q 'a FILE named prompts is already here'"
+check "...with the fix in the message"              "printf '%s' \"\$OUT\" | grep -q 'Fix: rename or remove ./prompts'"
+check "...and never a Node stack"                   "! printf '%s' \"\$OUT\" | grep -q 'at mkdirSync\|node:fs'"
+check "...and it says nothing was written"          "printf '%s' \"\$OUT\" | grep -q 'Nothing was written'"
+check "...which is true: no agent.toml"             "[ ! -e \"$I/prompts-is-a-file/agent.toml\" ]"
+check "...and no .gitignore"                        "[ ! -e \"$I/prompts-is-a-file/.gitignore\" ]"
+
+# b. a directory this user cannot write. Skipped as root, which can write it.
+mkdir -p "$I/readonly" && chmod 500 "$I/readonly"
+if [ "$(id -u)" -eq 0 ]; then
+  printf '  skip an unwritable directory: this user is root and can write it anyway\n'
+else
+  OUT="$(cd "$I/readonly" && $E init digest 2>&1)"; RC=$?
+  check "an unwritable directory refuses, exit 1"   "[ $RC -eq 1 ]"
+  check "...naming the directory"                   "printf '%s' \"\$OUT\" | grep -q 'is not writable by this user'"
+  check "...with a command the reader can run"      "printf '%s' \"\$OUT\" | grep -q 'mkdir ~/digest'"
+  check "...and never a Node stack"                 "! printf '%s' \"\$OUT\" | grep -q 'at writeFileSync\|node:fs'"
+fi
+chmod 700 "$I/readonly"
+
+# c. the name. Lower-casing is the one thing init does to what it was handed,
+#    and it used to do it in silence.
+mkdir -p "$I/cased"
+OUT="$(cd "$I/cased" && $E init Historian 2>&1)"; RC=$?
+check "a name with capitals still mints, exit 0"    "[ $RC -eq 0 ]"
+check "...as the lower-case name"                   "grep -q 'name = \"historian\"' \"$I/cased/agent.toml\""
+check "...and says so, rather than silently"        "printf '%s' \"\$OUT\" | grep -q 'the name was lower-cased'"
+mkdir -p "$I/spaced"
+OUT="$(cd "$I/spaced" && $E init 'My Agent!' 2>&1)"; RC=$?
+check "a name with spaces refuses, exit 1"          "[ $RC -eq 1 ]"
+check "...naming the rule in words, not a regex"    "printf '%s' \"\$OUT\" | grep -q 'lower-case letters, digits and hyphens'"
+check "...and offering the name it would have"      "printf '%s' \"\$OUT\" | grep -q 'Fix: .epito init my-agent.'"
+check "...and nothing was minted"                   "[ ! -e \"$I/spaced/agent.toml\" ]"
+OUT="$(cd "$I/spaced" && $E init '!!!' 2>&1)"
+check "a name with nothing to rescue offers no guess" "! printf '%s' \"\$OUT\" | grep -q 'Fix: .epito init'"
+check "...and says what a name may be instead"      "printf '%s' \"\$OUT\" | grep -q 'Fix: pick a name'"
+
+# d. twice in one directory: spec rule, one manifest one agent, plus the fix
+OUT="$(cd "$I/cased" && $E init 2>&1)"; RC=$?
+check "init twice refuses, exit 1"                  "[ $RC -eq 1 ]"
+check "...on the rule: one manifest, one agent"     "printf '%s' \"\$OUT\" | grep -q 'one manifest, one agent'"
+check "...and says what to do with the one here"    "printf '%s' \"\$OUT\" | grep -q 'epito validate. checks the one that is here'"
+
+# e. and the alias says its own name back, not init's
+mkdir -p "$I/alias"
+OUT="$(cd "$I/alias" && $E me 'Bad Name' 2>&1)"
+check "\`epito me\` refuses as \`epito me\`"          "printf '%s' \"\$OUT\" | grep -q 'Fix: .epito me bad-name.'"
 
 # ---------------------------------------------------------------------------
 # The "smoke:" prefix is what test/all.sh greps for to tally a suite

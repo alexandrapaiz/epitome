@@ -24,7 +24,7 @@ const TRIAD_FIX = {
 
 // The name the author probably meant. Offered only when it comes out legal:
 // a suggestion that would itself be refused is worse than none.
-const kebab = (name) => {
+export const kebab = (name) => {
   const k = String(name).toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40).replace(/-+$/, "");
   return NAME_RE.test(k) ? k : null;
 };

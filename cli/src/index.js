@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { NAME_RE } from "./lib/manifest.js";
+import { writeFileSync, existsSync, mkdirSync, statSync, accessSync, constants } from "node:fs";
+import { NAME_RE, kebab } from "./lib/manifest.js";
 import { ignore } from "./lib/gitignore.js";
 import { engineImport } from "./lib/engine.js";
 import { originRepo } from "./lib/origin.js";
@@ -95,10 +95,41 @@ if (!cmd || cmd === "help" || cmd === "--help") {
 }
 
 if (cmd === "init") {
+  const self = `epito ${cmdRaw === "me" ? "me" : "init"}`;
   gate(cmdRaw === "me" ? "me" : "init", args, []);
-  const name = (args[0] ?? "my-agent").toLowerCase();
-  if (!NAME_RE.test(name)) die(`name must be [a-z0-9-], 1-40 chars, got "${name}"`);
-  if (existsSync("agent.toml")) die("agent.toml already exists here — one manifest, one agent");
+  const asked = args[0] ?? "my-agent";
+  const name = String(asked).toLowerCase();
+  if (!NAME_RE.test(name)) {
+    die(`name must be lower-case letters, digits and hyphens, 1-40 characters, got "${asked}" — a name becomes a schedule id, a clone directory and a column on the board. ` +
+      (kebab(asked) ? `Fix: \`${self} ${kebab(asked)}\`.` : "Fix: pick a name of lower-case letters, digits and hyphens."));
+  }
+  if (existsSync("agent.toml")) {
+    die(`agent.toml already exists here — one manifest, one agent. Fix: \`epito validate\` checks the one that is here; a second agent gets its own directory (\`mkdir ../other && cd ../other && ${self} other\`).`);
+  }
+  // Everything init is about to write, refused BEFORE it writes any of it. It
+  // used to write agent.toml first and discover the rest as it went, so a
+  // directory it could not write, or a `prompts` that was already a file,
+  // answered with a Node stack — `EEXIST: file already exists, mkdir
+  // 'prompts'`, fourteen lines of it — and left a half-minted agent behind
+  // the trace. It is the first command anyone runs, and it has the ingress's
+  // own bar to clear (src/run.js, the taken port).
+  try { accessSync(".", constants.W_OK); }
+  catch { die(`cannot mint here: ${process.cwd()} is not writable by this user, and nothing was written. Fix: run ${self} in a directory you own — \`mkdir ~/${name} && cd ~/${name} && ${self} ${name}\`.`); }
+  if (existsSync("prompts") && !statSync("prompts").isDirectory()) {
+    die(`a FILE named prompts is already here, and the charter goes in a directory of that name (prompts/${name}.md). Nothing was written. Fix: rename or remove ./prompts, then run ${self} again.`);
+  }
+  // Anything left — a race, a full disk, a read-only mount that lied to
+  // access(2) — still gets a sentence rather than a stack, and says how far
+  // the mint got, because a partly minted directory is the thing the reader
+  // has to clean up.
+  const sofar = [];
+  const wrote = (what, fn) => {
+    try { fn(); sofar.push(what); }
+    catch (e) {
+      die(`${self} could not write ${what} in ${process.cwd()}: ${e.code === "ENOSPC" ? "no space left on the device" : e.message}.` +
+        (sofar.length ? ` ${sofar.join(" and ")} ${sofar.length > 1 ? "were" : "was"} written already, so this directory is half minted. Fix: remove ${sofar.join(" and ")}, make room, and run ${self} again.` : ` Fix: make room and run ${self} again.`));
+    }
+  };
   const charter = `prompts/${name}.md`;
   // `[runtime].repo` is the one field the prompt cannot supply and every other
   // command requires, so the manifest init used to write validated and was
@@ -113,7 +144,7 @@ if (cmd === "init") {
 #   agent's token to one repo. \`epito run\`, \`epito deploy\` and \`epito token\`
 #   all need it, and \`epito validate\` says so until it is set.
 `;
-  writeFileSync("agent.toml", `[agent]
+  wrote("agent.toml", () => writeFileSync("agent.toml", `[agent]
 name = "${name}"
 description = "One sentence: what this agent does."
 
@@ -126,17 +157,22 @@ cron = "0 6 * * *"
 [runtime]
 model = "claude-sonnet-5"
 entry = "${charter}"
-${repoLine}`);
+${repoLine}`));
   // An agent's App key lands in .epito/keys/ and its ledger in
   // .epito/audit.jsonl. The manifest is publishable by design and that
   // directory is not, so init makes the difference structural rather than a
   // thing the reader has to remember (spec rule 1).
-  ignore(".epito/");
+  wrote(".gitignore", () => ignore(".epito/"));
   mkdirSync("prompts", { recursive: true });
   if (!existsSync(charter)) {
-    writeFileSync(charter, `# ${name}\n\nYou are ${name}. This file is your charter: who you are, what one\nrun accomplishes, and what you never do. Everything worth remembering\nlives in a file, because every run is a fresh context.\n`);
+    wrote(charter, () => writeFileSync(charter, `# ${name}\n\nYou are ${name}. This file is your charter: who you are, what one\nrun accomplishes, and what you never do. Everything worth remembering\nlives in a file, because every run is a fresh context.\n`));
   }
   console.log(`minted ${name}: agent.toml + ${charter}`);
+  // Lower-casing is the one thing init does to the name it was handed, and it
+  // used to do it in silence: `epito init Historian` minted `historian` and
+  // said `minted historian`, leaving the reader to notice. A name that comes
+  // back different from the one you typed is worth one line.
+  if (String(asked) !== name) console.log(`  the name was lower-cased: "${asked}" is "${name}" to the schedule, the board and every audit line`);
   if (origin) console.log(`  [runtime].repo = ${origin}, read from this directory's git origin`);
   else console.log(`  [runtime].repo is commented out: this directory has no GitHub origin to read it from, and \`epito run\`, \`epito deploy\` and \`epito token\` each need it`);
   console.log(`next: edit both, then \`epito validate\``);
