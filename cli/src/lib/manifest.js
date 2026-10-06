@@ -10,8 +10,35 @@ import { ADAPTERS, DEFAULT_ADAPTER, unknownAdapter } from "./adapters.js";
 import { routeErrors } from "./router.js";
 import { parseCron } from "./cron.js";
 import { unknownKeys } from "./fields.js";
+import { SCOPE_MAP } from "./identity.js";
 
 export const NAME_RE = /^[a-z0-9-]{1,40}$/;
+
+// What each half of the triad needs, named in the refusal that misses it, so
+// "missing [identity]" is a line a reader can act on without opening the spec.
+const TRIAD_FIX = {
+  identity: 'scopes = ["github:contents"]',
+  trigger: 'cron = "0 6 * * *"',
+  runtime: "model, entry and repo",
+};
+
+// The name the author probably meant. Offered only when it comes out legal:
+// a suggestion that would itself be refused is worse than none.
+export const kebab = (name) => {
+  const k = String(name).toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40).replace(/-+$/, "");
+  return NAME_RE.test(k) ? k : null;
+};
+
+// GitHub's classic OAuth scopes that have no colon in them, so they reach the
+// shape check rather than the mint. `repo` is the single likeliest wrong answer
+// in the whole manifest — it is what every GitHub integration guide has asked
+// for since 2013 — and it used to be answered with a regex.
+const CLASSIC = new Set([
+  "repo", "public_repo", "repo_deployment", "security_events", "gist",
+  "notifications", "user", "delete_repo", "workflow", "codespace",
+]);
+
+const MINTABLE = Object.keys(SCOPE_MAP).map((s) => `"${s}"`).join(", ");
 
 // The frozen field catalogue, spec v0.1. This is the list the spec's table
 // section renders and the list this validator enforces, and there is exactly
@@ -41,6 +68,44 @@ const RETIRED = {
   },
 };
 
+// `[runtime].repo` is a repository on github.com, and GitHub has rules for
+// what an owner and a name may be. The rule here used to be "two things with a
+// slash", which blessed values GitHub can never name — so `epito validate`
+// said ✓ and `epito run`, `epito deploy` and `epito token` then failed on the
+// network, which is the one outcome src/lib/readiness.js exists to prevent:
+//
+//   repo = "acme/roster.git"   the runtime clones https://github.com/<repo>.git,
+//                              so this asked for roster.git.git — and GitHub
+//                              refuses a repository named with that suffix anyway
+//   repo = "../.."             two legal halves, and `epito deploy` would have
+//                              put it in an api.github.com path
+//
+// An owner (user or organisation) is 1–39 characters of letters, digits and
+// hyphens, and cannot begin or end with a hyphen: no dots, no underscores. A
+// name is up to 100 characters of letters, digits, dot, dash and underscore,
+// and is not "." or "..".
+export const OWNER_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
+export const REPO_NAME_RE = /^[A-Za-z0-9._-]{1,100}$/;
+
+export function repoErrors(repo) {
+  const here = `[runtime].repo "${repo}"`;
+  const halves = repo.split("/");
+  if (halves.length !== 2 || !halves[0] || !halves[1]) {
+    return [`${here} must be owner/name — the GitHub repository the runtime clones for every run, which it does over https://github.com/owner/name.git. A URL, an scp-style git address and a path are all the same mistake: epito names the repository, and builds the rest. Fix: write the two halves only, e.g. repo = "acme/roster".`];
+  }
+  const [owner, name] = halves;
+  if (!OWNER_RE.test(owner)) {
+    return [`${here}: "${owner}" is not a GitHub owner — a user or organisation is 1–39 characters of letters, digits and hyphens, and cannot begin or end with one, so a dot, an underscore, a space or a colon rules it out. Fix: use the owner exactly as github.com spells it in the URL bar.`];
+  }
+  if (/\.git$/.test(name)) {
+    return [`${here}: GitHub refuses a repository name ending in ".git", and the runtime appends that itself when it clones (https://github.com/${owner}/${name.replace(/\.git$/, "")}.git). Fix: drop the suffix — repo = "${owner}/${name.replace(/\.git$/, "")}".`];
+  }
+  if (name === "." || name === ".." || !REPO_NAME_RE.test(name)) {
+    return [`${here}: "${name}" is not a GitHub repository name — up to 100 characters of letters, digits, dot, dash and underscore, and never "." or "..". Fix: use the name exactly as github.com spells it in the URL bar.`];
+  }
+  return [];
+}
+
 // Parse a manifest file. Returns { manifest } or { parseError }.
 export function parseManifest(path) {
   try { return { manifest: parse(readFileSync(path, "utf8")) }; }
@@ -55,7 +120,7 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
   const errors = [];
   const triad = ["identity", "trigger", "runtime"].filter((t) => !m[t]);
   if (triad.length) {
-    errors.push(`missing [${triad.join("], [")}] — an agent is identity + trigger + runtime; without ${triad.length === 3 ? "them" : triad.length === 2 ? "these" : "it"} this file describes a skill`);
+    errors.push(`missing [${triad.join("], [")}] — an agent is identity + trigger + runtime; without ${triad.length === 3 ? "them" : triad.length === 2 ? "these" : "it"} this file describes a skill. Fix: add ${triad.map((t) => `[${t}] (${TRIAD_FIX[t]})`).join(", ")}, or run \`epito init\` in an empty directory to see all three written out.`);
   }
 
   // A table the spec does not define reads as a whole feature the author
@@ -69,23 +134,23 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
   }
 
   const a = m.agent ?? {};
-  if (!a.name) errors.push("[agent].name is required");
-  else if (!NAME_RE.test(a.name)) errors.push(`[agent].name "${a.name}" must be [a-z0-9-], 1-40 chars`);
-  if (!a.description) errors.push("[agent].description is required (one sentence, shown on the roster)");
+  if (!a.name) errors.push('[agent].name is required — it is what the schedule, the board and every audit line call this agent. Fix: add name = "my-agent" to [agent].');
+  else if (!NAME_RE.test(a.name)) errors.push(`[agent].name "${a.name}" must be lower-case letters, digits and hyphens, 1-40 characters — a name becomes a schedule id, a clone directory and a column on the board, and those three cannot disagree about case. Fix: ${kebab(a.name) ? `name = "${kebab(a.name)}"` : "pick a name of lower-case letters, digits and hyphens"}.`);
+  if (!a.description) errors.push('[agent].description is required (one sentence, shown on the roster). Fix: add description = "What this agent does, in one sentence." to [agent].');
 
   if (m.identity) {
     const s = m.identity.scopes;
-    if (!Array.isArray(s) || s.length === 0) errors.push("[identity].scopes must be a non-empty array");
+    if (!Array.isArray(s) || s.length === 0) errors.push(`[identity].scopes must be a non-empty array of platform:permission strings — scopes are the whole of an agent's identity, and an agent with none has nothing to mint. Fix: scopes = ["github:contents", "github:pull_requests"]; v0.1 mints ${MINTABLE}.`);
     else for (const sc of s) {
       if (typeof sc !== "string" || !/^[a-z0-9_-]+:[a-z0-9_.-]+$/.test(sc)) {
-        errors.push(`scope "${sc}" must look like platform:permission (e.g. github:contents)`);
+        errors.push(`scope "${sc}" must look like platform:permission${CLASSIC.has(sc) ? ` — "${sc}" is one of GitHub's CLASSIC OAuth scopes, which are a different thing: a manifest scope maps to a fine-grained App permission, so the App epito creates holds only what the manifest asked for` : " — the platform the permission belongs to, then the permission"}. Fix: scopes = ["github:contents", "github:pull_requests"]; v0.1 maps ${MINTABLE} and notes anything else as unmintable.`);
       }
     }
   }
 
   if (m.trigger) {
     const t = m.trigger;
-    if (!t.cron && !t.webhook) errors.push("[trigger] needs at least one of: cron (a schedule) or webhook (the ingress wakes it) — an agent is triggered, not prompted");
+    if (!t.cron && !t.webhook) errors.push('[trigger] needs at least one of: cron (a schedule) or webhook (the ingress wakes it) — an agent is triggered, not prompted. Fix: cron = "0 6 * * *" for a clock, webhook = true to be woken by an event, or both.');
     // Parsed, not counted. Counting five fields passed "0 99 * * *", which
     // `epito run` then refused when it built the matcher — so a tick here
     // promised a schedule the runtime would reject. One check, one message,
@@ -97,20 +162,18 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
       }
     }
     if (t.webhook !== undefined && typeof t.webhook !== "boolean") {
-      errors.push(`[trigger].webhook is true or false — it says whether the ingress may wake this seat, not where: the URL is the runtime's to hand out, never the manifest's to name. Got "${t.webhook}".`);
+      errors.push(`[trigger].webhook is true or false — it says whether the ingress may wake this seat, not where: the URL is the runtime's to hand out, never the manifest's to name. Got "${t.webhook}". Fix: webhook = true, with no quotes, or drop the line.`);
     }
   }
 
   if (m.runtime) {
     const r = m.runtime;
-    if (!r.model) errors.push("[runtime].model is required and explicit — an unset model is silently under-modeled");
-    if (!r.entry) errors.push("[runtime].entry is required: the charter file the runtime reads");
-    else if (!r.repo && !existsSync(resolve(baseDir, r.entry))) errors.push(`[runtime].entry "${r.entry}" does not exist`);
-    if (r.repo !== undefined && !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(String(r.repo))) {
-      errors.push(`[runtime].repo "${r.repo}" must be owner/name — the GitHub repository the runtime clones for each run`);
-    }
+    if (!r.model) errors.push(`[runtime].model is required and explicit — an unset model is silently under-modeled, and nothing in epito guesses one for you. Fix: model = "claude-sonnet-5", or name the model this agent needs.`);
+    if (!r.entry) errors.push(`[runtime].entry is required: the charter file the runtime reads, a path inside the repository it clones. Fix: entry = "prompts/${a.name ?? "my-agent"}.md", and commit that file.`);
+    else if (!r.repo && !existsSync(resolve(baseDir, r.entry))) errors.push(`[runtime].entry "${r.entry}" does not exist, and with no [runtime].repo there is no repository for it to live in either — the runtime reads the charter inside the clone, and refuses rather than improvise one. Fix: create ${r.entry} here, or set repo = "owner/name" and commit the charter there.`);
+    if (r.repo !== undefined) errors.push(...repoErrors(String(r.repo)));
     if (r.ref !== undefined && (typeof r.ref !== "string" || !/^[A-Za-z0-9_./-]{1,200}$/.test(r.ref) || r.ref.startsWith("-"))) {
-      errors.push(`[runtime].ref "${r.ref}" must be a branch or tag name — the ref the runtime checks out; leave it unset for the default branch`);
+      errors.push(`[runtime].ref "${r.ref}" must be a branch or tag name — the ref the runtime checks out. Fix: ref = "main", or drop the line to take the repository's default branch.`);
     }
     // Which kind of agent this is (ADR-17). Absent means "claude", which is
     // what every manifest written before adapters existed means, so nothing
@@ -124,20 +187,20 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
     if (r.graph !== undefined) {
       const adapter = r.adapter ?? DEFAULT_ADAPTER;
       if (typeof r.graph !== "string" || !/^[A-Za-z0-9_.-]{1,80}$/.test(r.graph)) {
-        errors.push(`[runtime].graph "${r.graph}" must be the NAME of a graph in the agent's langgraph.json (letters, digits, dot, dash, underscore)`);
+        errors.push(`[runtime].graph "${r.graph}" must be the NAME of a graph in the agent's langgraph.json (letters, digits, dot, dash, underscore). Fix: name one key from that file's "graphs" table, e.g. graph = "agent".`);
       } else if (adapter !== "langgraph") {
         errors.push(`[runtime].graph names a graph, which only the langgraph adapter reads, and this manifest's adapter is "${adapter}". Fix: set [runtime].adapter = "langgraph", or drop [runtime].graph.`);
       }
     }
     if (r.max_turns !== undefined && !(Number.isInteger(r.max_turns) && r.max_turns > 0)) {
-      errors.push(`[runtime].max_turns must be a positive integer, got "${r.max_turns}"`);
+      errors.push(`[runtime].max_turns must be a positive integer, got "${r.max_turns}" — the ceiling on one run's turns, which is what keeps a loop from running until the bill notices. Fix: ${typeof r.max_turns === "number" ? "max_turns = 40; a run needs at least one turn" : "max_turns = 40, a number with no quotes"}.`);
     }
     // The roads this seat may take, in order (ADR-19). Absent means one road,
     // [runtime].model on whatever this box authenticates the executor with,
     // which is what every manifest written before routing existed means.
     errors.push(...routeErrors(m));
     if (r.env && Array.isArray(r.env)) for (const e of r.env) {
-      if (typeof e !== "string" || /[=:]/.test(e)) errors.push(`[runtime].env carries secret NAMES only, and "${e}" doesn't look like one — values never appear in the manifest`);
+      if (typeof e !== "string" || /[=:]/.test(e)) errors.push(`[runtime].env carries secret NAMES only, and "${e}" doesn't look like one — values never appear in the manifest, which is what keeps it publishable. Fix: env = ["${String(e).split(/[=:]/)[0] || "GH_TOKEN"}"], and set that name as a secret on the box the runtime runs on.`);
     }
     // Per-agent Slack routing: the name of the webhook secret this agent
     // posts to, so a product seat can speak in its own channel instead of
@@ -148,9 +211,9 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
     if (r.slack_webhook_env !== undefined) {
       const w = r.slack_webhook_env;
       if (typeof w !== "string" || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(w)) {
-        errors.push(`[runtime].slack_webhook_env "${w}" must be the NAME of an environment variable (letters, digits, underscore) — the webhook URL itself never appears in the manifest`);
+        errors.push(`[runtime].slack_webhook_env "${w}" must be the NAME of an environment variable (letters, digits, underscore) — the webhook URL itself never appears in the manifest. Fix: slack_webhook_env = "PM_SLACK_WEBHOOK", list that same name under [runtime].env, and set its value as a secret.`);
       } else if (!(Array.isArray(r.env) && r.env.includes(w))) {
-        errors.push(`[runtime].slack_webhook_env names "${w}", so "${w}" must also be listed in [runtime].env — the runtime injects only the names the manifest lists, so an unlisted webhook can never resolve to a value`);
+        errors.push(`[runtime].slack_webhook_env names "${w}", so "${w}" must also be listed in [runtime].env — the runtime injects only the names the manifest lists, so an unlisted webhook can never resolve to a value. Fix: add "${w}" to [runtime].env.`);
       }
     }
   }
