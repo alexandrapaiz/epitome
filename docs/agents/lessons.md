@@ -208,3 +208,88 @@ L-A8.
 
 **Binds:** every seat producing presentations (market, pm, engineer,
 exo); the chair, as renderer only.
+
+## L13 — One landing attempt per stack; the second one is a report, not a run
+
+**Trigger (2026-10-05)**, the weekly drift review, with no owner
+correction behind it: five engineer runs in five days shipped five pull
+requests whose subject is the same unmerged chain of work (#37 composed
+three branches, #40 five, #45 nine, #48 verified the composition cold,
+#51 refreshed it after it went stale), and the role that would end the
+sequence by merging is itself an open pull request, #29, filed
+2026-09-30.
+
+**Rule.** When a charter tells a seat to do work that can only be
+completed by an authority the seat does not hold, the clause names its
+own stopping point, or the duty re-fires on every run and quietly
+becomes the seat's whole cadence. For the landing case specifically: a
+run may compose a stack and verify it once. After that, the stack is a
+queue-depth report to whoever holds the gate — the number, the oldest
+item's age, and the conflicts it has already caused, in the form the
+company rule on unshippable fixes requires — and the run returns to the
+work its cycle file names, or it ends and says why. Composing a chain
+that is already composed is not a complete run even when every test is
+green, because it changes nothing a merge would not have changed and it
+adds one more link to the queue it is draining.
+
+The test, two commands, before any run decides to land anything: does a
+pull request already exist whose branch contains every link
+(`git merge-base --is-ancestor`), and is `main` an ancestor of that
+branch? If both are yes, there is nothing to land, and saying so in one
+paragraph is the entire run.
+
+Note the second cost, which is what makes this structural rather than
+tidiness. Verification of an unmerged stack has the shelf life of the
+next merge to anything. On 2026-10-05 the stack was verified green from
+a cold box at 02:27Z, an unrelated register sync merged at 02:28Z, and
+the candidate was stale one minute later. So the work of holding a deep
+stack current grows with how long it stays unmerged, and it is paid out
+of the building cadence.
+
+**Binds:** engineer (the stopping point, proposed as a charter patch in
+`docs/agents/patches/`); pm, as the destination of the report and the
+holder of the gate once #29 lands; exo, which reports the depth in its
+weekly review. Companion to L9: a landing pull request that nobody reads
+has reported nothing either.
+
+`portable: yes`
+
+## L14 — The owner-facing surface this org has most of is a pull request description
+
+**Trigger (2026-09-27)**, the owner, ruling on what she reads, verbatim:
+"i dont want to see adrs, for me its just random codes. id rather have
+good descriptions."
+
+**Rule.** Name a decision by what it decides, never by its code, in
+anything she reads. The rule itself is owned by the company documents
+standard, section "Owner-facing text names decisions, never numbers",
+and this entry does not restate it; it records where the rule lands in
+this product and what it costs here. Two facts make that worth an entry.
+
+First, the ruling was given eight days before this review and is still
+not in this repository: `grep -r "random codes"` over `main` returns
+nothing, because the section lives in the copy of the standard that
+arrives in #49 and the copy on `main` has been behind since 2026-09-19.
+A rule the seats do not have is a rule the seats cannot check against.
+
+Second, the previous correction on this axis (L8) fixed presentation
+slide copy, and this org ships almost no presentations and fifty pull
+requests in seventeen days. So every seat obeyed the lesson and the
+surface she actually reads stayed uncovered. Measured over the week to
+2026-10-05, across twelve seat pull requests: 43 decision-record codes
+and 8 rule identifiers, ten of them inside the opening ten lines, and
+the densest body belongs to the one seat whose entire job is to be read.
+
+The check, before you open or ready a pull request: read your title and
+your first paragraph as someone who has never seen this repository. If
+deleting a code from a sentence stops the sentence making sense, rewrite
+the sentence. Codes stay in the repository for cross-reference and may
+sit in parentheses at the end of a line, which is where a reader who
+wants one will look.
+
+**Binds:** every seat that opens a pull request, and the chair, which
+writes more of them than any seat. The engineer charter is the one with
+no pre-ship check against this register at all; a patch adding it is in
+`docs/agents/patches/`.
+
+`portable: yes`
