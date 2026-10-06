@@ -163,7 +163,7 @@ ${repoLine}`));
   // directory is not, so init makes the difference structural rather than a
   // thing the reader has to remember (spec rule 1).
   wrote(".gitignore", () => ignore(".epito/"));
-  mkdirSync("prompts", { recursive: true });
+  wrote("prompts/", () => mkdirSync("prompts", { recursive: true }));
   if (!existsSync(charter)) {
     wrote(charter, () => writeFileSync(charter, `# ${name}\n\nYou are ${name}. This file is your charter: who you are, what one\nrun accomplishes, and what you never do. Everything worth remembering\nlives in a file, because every run is a fresh context.\n`));
   }
