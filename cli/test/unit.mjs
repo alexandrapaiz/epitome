@@ -133,6 +133,155 @@ test("reconcile: 36 presence-only seats register nothing at all", () => {
   assert.deepEqual(p, { create: [], update: [], delete: [], unchanged: [] });
 });
 
+// --- the bar on a refusal: name the rule, in our words, with the fix -------
+//
+// The spec states the bar once and `epito validate` is where a vibecoder meets
+// it: "name the rule broken, in the product's own vocabulary, with the fix in
+// the message". The messages written after the bar was set carry an explicit
+// `Fix:`; the ones written before it said only what was wrong — nineteen of
+// the twenty-five refusals `epito validate` can print, including the three a
+// newcomer is most likely to see.
+//
+// So the bar is a test. Every refusal the validator can print in its own voice
+// is named below with a manifest that provokes it, and each has to carry a fix
+// the reader can act on. The count assertions are the drift catch: a new
+// `errors.push` with no case here fails this test rather than shipping a
+// message nobody held to the bar.
+
+// A fix is an instruction, not a diagnosis. Ours say it as `Fix:` — except the
+// credential tripwire, which was written as "Move it to a secret" and reads
+// better that way.
+const carriesAFix = (msg) => /Fix:|\bMove it to\b/.test(msg);
+
+// `seat()` with fields set, removed (undefined) or whole tables stripped.
+const provoke = ({ strip = [], tables = {}, raw = "", ...over }) => {
+  const m = seat("pm");
+  for (const t of strip) delete m[t];
+  for (const [t, fields] of Object.entries(over)) {
+    m[t] = { ...m[t], ...fields };
+    for (const [k, v] of Object.entries(fields)) if (v === undefined) delete m[t][k];
+  }
+  return validateManifest({ ...m, ...tables }, { baseDir: "/nonexistent", raw });
+};
+
+const held = (label, manifest) => test(`a refusal carries the fix: ${label}`, () => {
+  const errors = provoke(manifest);
+  assert.ok(errors.length > 0, `"${label}" was meant to be refused and validated clean`);
+  for (const e of errors) assert.ok(carriesAFix(e), `says what is wrong and not what to do:\n    ${e}`);
+});
+
+// One per literal `errors.push` in src/lib/manifest.js, in source order.
+const REFUSALS = [
+  ["missing triad",         { strip: ["identity"] }],
+  ["unknown table",         { tables: { cron: { at: "0 6" } } }],
+  ["name missing",          { agent: { name: undefined } }],
+  ["name shape",            { agent: { name: "Historian" } }],
+  ["description missing",   { agent: { description: undefined } }],
+  ["scopes not an array",   { identity: { scopes: "github:contents" } }],
+  ["scope shape",           { identity: { scopes: ["repo"] } }],
+  ["trigger empty",         { trigger: { cron: undefined } }],
+  ["cron unparseable",      { trigger: { cron: "@daily" } }],
+  ["webhook not a bool",    { trigger: { webhook: "yes" } }],
+  ["model missing",         { runtime: { model: undefined } }],
+  ["entry missing",         { runtime: { entry: undefined } }],
+  ["entry absent on disk",  { runtime: { entry: "prompts/nope.md", repo: undefined } }],
+  ["repo shape",            { runtime: { repo: "github.com/acme/roster" } }],
+  ["ref shape",             { runtime: { ref: "-rf" } }],
+  ["adapter unknown",       { runtime: { adapter: "crewai" } }],
+  ["graph shape",           { runtime: { graph: "a b" } }],
+  ["graph without adapter", { runtime: { graph: "digest" } }],
+  ["max_turns shape",       { runtime: { max_turns: "40" } }],
+  ["env holds a value",     { runtime: { env: ["TOKEN=abc"] } }],
+  ["slack name shape",      { runtime: { slack_webhook_env: "https://hooks.slack.com/x" } }],
+  ["slack name unlisted",   { runtime: { slack_webhook_env: "PM_SLACK" } }],
+  ["a pasted credential",   { raw: `token = "ghp_${"A".repeat(36)}"` }],
+];
+for (const [label, manifest] of REFUSALS) held(label, manifest);
+
+// And one per literal push in src/lib/router.js, which prints through the same
+// `epito validate` and so answers to the same bar.
+const ROUTE_REFUSALS = [
+  ["route table not a list", { runtime: { route: "kimi" } }],
+  ["route not a table",      { runtime: { route: ["kimi"] } }],
+  ["route name shape",       { runtime: { route: [{ name: "Kimi!", model: "m" }] } }],
+  ["two routes one name",    { runtime: { route: [{ name: "k", model: "m" }, { name: "k", model: "m" }] } }],
+  ["route model missing",    { runtime: { model: undefined, route: [{ name: "k" }] } }],
+  ["base_url not a URL",     { runtime: { route: [{ name: "k", model: "m", base_url: "moonshot.ai" }] } }],
+  ["base_url holds a key",   { runtime: { route: [{ name: "k", model: "m", base_url: "https://u:p@x.ai" }] } }],
+  ["token_env shape",        { runtime: { route: [{ name: "k", model: "m", token_env: "my key" }] } }],
+  ["token_env unlisted",     { runtime: { route: [{ name: "k", model: "m", token_env: "KIMI_KEY" }] } }],
+  ["concurrency shape",      { runtime: { route: [{ name: "k", model: "m", concurrency: 0 }] } }],
+];
+for (const [label, manifest] of ROUTE_REFUSALS) held(label, manifest);
+
+test("the bar covers EVERY refusal these two modules print in their own voice", () => {
+  const read = (f) => readFileSync(new URL(`../src/lib/${f}`, import.meta.url), "utf8");
+  // Spread pushes (`...unknownKeys`, `...routeErrors`) delegate to a module
+  // with its own bar; the literal ones are the file's own voice. router.js
+  // also refuses the whole field with a bare `return [message]`.
+  const literal = (src) => (src.match(/errors\.push\((?!\.\.\.)/g) ?? []).length;
+  const manifestJs = read("manifest.js");
+  const routerJs = read("router.js");
+  // `adapter unknown` and `model missing` are literal pushes of a message
+  // another module composed; they are still this validator's output.
+  assert.equal(literal(manifestJs), REFUSALS.length,
+    `src/lib/manifest.js prints ${literal(manifestJs)} refusals and REFUSALS covers ${REFUSALS.length}. ` +
+    `A new message needs a case above, or nobody held it to the bar.`);
+  assert.equal(literal(routerJs) + 1, ROUTE_REFUSALS.length,
+    `src/lib/router.js prints ${literal(routerJs) + 1} refusals and ROUTE_REFUSALS covers ${ROUTE_REFUSALS.length}.`);
+});
+
+// --- [runtime].repo is a GitHub repository, and GitHub has rules -----------
+//
+// The old rule was "two things with a slash". It blessed `acme/roster.git` —
+// GitHub refuses a name ending in .git, and `epito run` clones
+// `https://github.com/<repo>.git`, so that manifest asked for roster.git.git —
+// and it blessed `../..`, which `epito deploy` and `epito token` would have put
+// in an api.github.com path. Both got a ✓ and then failed at clone or mint
+// time, which is the one thing src/lib/readiness.js exists to prevent.
+test("[runtime].repo: GitHub's own rules for an owner and a name", () => {
+  const refused = (repo) => validateManifest(seat("pm", { runtime: { repo } }), { baseDir: "/nonexistent" })
+    .filter((e) => e.startsWith("[runtime].repo"));
+  for (const repo of [
+    "acme/roster.git",                 // GitHub: a name cannot end in .git
+    "../..",                           // a path, in a field that becomes a URL
+    "acme/..",
+    "acme/.",
+    "-acme/roster",                    // an owner cannot begin with a hyphen
+    "acme-/roster",                    // nor end with one
+    "acme.co/roster",                  // nor hold a dot
+    "acme_co/roster",                  // nor an underscore
+    `${"a".repeat(40)}/roster`,        // 39 is GitHub's ceiling for an owner
+    `acme/${"r".repeat(101)}`,         // 100 is its ceiling for a name
+    "github.com/acme/roster",
+    "https://github.com/acme/roster",
+    "git@github.com:acme/roster.git",
+    "acme/roster/",
+    "/acme/roster",
+    "acme//roster",
+    "acme roster",
+    "acme",
+  ]) assert.equal(refused(repo).length, 1, `[runtime].repo "${repo}" was accepted`);
+
+  for (const repo of [
+    "alexandrapaiz/epitome",           // this company's own
+    "acme/roster",
+    "a/b",
+    "acme-co/my_roster.v2",
+    `${"a".repeat(39)}/${"r".repeat(100)}`,
+    "99designs/aws-vault",             // a real repo whose owner starts with a digit
+  ]) assert.deepEqual(refused(repo), [], `[runtime].repo "${repo}" is a real repository and was refused`);
+});
+
+test("the repo refusal names the half that is wrong", () => {
+  const one = (repo) => validateManifest(seat("pm", { runtime: { repo } }), { baseDir: "/nonexistent" })
+    .find((e) => e.startsWith("[runtime].repo"));
+  assert.match(one("acme/roster.git"), /\.git/);
+  assert.match(one("acme.co/roster"), /owner/);
+  assert.match(one("acme/ros ter"), /name/);
+  assert.match(one("github.com/acme/roster"), /owner\/name/);
+});
+
 // --- the manifest addition -------------------------------------------------
 
 const errorsFor = (over) => validateManifest({ ...seat("pm", over) }, { baseDir: "/nonexistent" });
