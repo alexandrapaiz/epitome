@@ -10,7 +10,8 @@ wiring second (see runtime-v0-actions.md, shaped but not bet). Evidence
 the identity leg is the wedge: every demand quote in docs/market.md §2
 ends in a hand-built GitHub App ("my PAT and SSH key are off the machine
 entirely" — dev.to, 2026-03-15), best practice has converged on exactly
-our mechanism (Zylos, 2026-09-02), and alexandria ADR-27 is our own n=1.
+our mechanism (Zylos, 2026-09-02), and alexandria's own hand-wired
+GitHub App per seat is our own n=1.
 The founding minutes (item 2) say the product is the primitive; the
 primitive's differentiating leg — the one Cloudflare and Anthropic each
 lack (market brief §1) — is the agent as a credentialed principal.
