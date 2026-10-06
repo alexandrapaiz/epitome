@@ -1,0 +1,19 @@
+diff --git a/prompts/engineer-agent.md b/prompts/engineer-agent.md
+--- a/prompts/engineer-agent.md
++++ b/prompts/engineer-agent.md
+@@ -25,6 +25,15 @@
+ 4. If the work exists but is unmerged and the stack is deep, landing it
+    is worth more than adding to it: merge main into the tip, run
+    everything composed, fix what that turns up. That is what #24 did.
++   Once, though. Before composing anything, check whether a pull request
++   already exists whose branch contains every link (`git merge-base
++   --is-ancestor`) and whether main is an ancestor of that branch. If
++   both are true there is nothing left to land: name that branch as the
++   one merge point, report the queue to the PM — how many are open, how
++   old the oldest is, which of them are links in one chain — and spend
++   the run on the work your cycle file names, or end it and say why. A
++   second composition of a chain already composed is not a complete run
++   even when every suite is green (L13).
+ 
+ Say in your PR description which PRs you checked. A run that skipped
+ this step and duplicated work is a failed run even if its code is good.
