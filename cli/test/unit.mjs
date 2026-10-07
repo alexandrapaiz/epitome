@@ -1369,6 +1369,16 @@ test("base_url_env: a value where a name belongs is refused, and the message say
     "the reader who wanted the other field is told which one it is");
 });
 
+test("base_url_env: a variable's NAME in base_url is told which field it belongs in", () => {
+  const named = routeErrors(gated({ route: [{ name: "open", model: "m", base_url: "$OPENROUTE_BASE_URL" }] }));
+  assert.equal(named.length, 1);
+  assert.match(named[0], /if you meant the variable called OPENROUTE_BASE_URL, that is base_url_env = "OPENROUTE_BASE_URL"/,
+    "the reader who reached for indirection is told where the indirection lives");
+  // Same hint, generic, for a value that is simply not a URL and not a name.
+  const other = routeErrors(gated({ route: [{ name: "open", model: "m", base_url: "moonshot.ai" }] }));
+  assert.match(other[0], /name the variable with base_url_env instead if the endpoint is confidential/);
+});
+
 test("base_url_env: a road with two endpoints is refused — nothing says which one the runtime takes", () => {
   const errs = routeErrors(gated({
     route: [{ name: "open", model: "m", base_url_env: "OPENROUTE_BASE_URL", base_url: "https://api.moonshot.ai/anthropic" }],

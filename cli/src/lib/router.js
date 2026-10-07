@@ -45,9 +45,11 @@ import { unknownKeys } from "./fields.js";
 // file — one small regexp is cheaper than a cycle between the two.
 const ROUTE_NAME_RE = /^[a-z0-9-]{1,40}$/;
 
-// A route's whole vocabulary, frozen with the rest of v0.1. Kept here, beside
-// the reader above, for the reason this file already gives: a field accepted
-// by the validator and misread by the reader is the bug the pairing prevents.
+// A route's whole vocabulary — five fields frozen with the rest of v0.1 and
+// one added by v0.2. Kept here, beside the reader above, for the reason this
+// file already gives: a field accepted by the validator and misread by the
+// reader is the bug the pairing prevents. `cli/test/unit.mjs` asserts this
+// list against the spec's own catalogue, so the two cannot drift.
 export const ROUTE_FIELDS = ["name", "model", "base_url", "base_url_env", "token_env", "concurrency"];
 
 // The label a manifest with no [[runtime.route]] gets: one route, the model
@@ -112,7 +114,12 @@ export function routeErrors(m) {
     if (r.base_url !== undefined) {
       const u = (() => { try { return new URL(String(r.base_url)); } catch { return null; } })();
       if (!u || !/^https?:$/.test(u.protocol)) {
-        errors.push(`${where}: base_url "${r.base_url}" must be an http(s) URL — the endpoint that speaks the model's API. Fix: write it scheme and all, e.g. base_url = "https://api.moonshot.ai/anthropic"; drop the line to use the model's own provider.`);
+        // The one mistake `base_url_env` invites: writing a variable's name,
+        // or a shell expansion of one, in the field that takes a literal. The
+        // other field is the fix and is named here, because a reader who
+        // reached for indirection is told where the indirection lives.
+        const looksLikeAName = /^\$?[A-Z][A-Z0-9_]*$/.test(String(r.base_url).trim());
+        errors.push(`${where}: base_url "${r.base_url}" must be an http(s) URL — the endpoint that speaks the model's API. Fix: write it scheme and all, e.g. base_url = "https://api.moonshot.ai/anthropic"${looksLikeAName ? `; if you meant the variable called ${String(r.base_url).replace(/^\$/, "")}, that is base_url_env = "${String(r.base_url).replace(/^\$/, "")}", which must also be listed in [runtime].env` : "; name the variable with base_url_env instead if the endpoint is confidential"}; drop the line to use the model's own provider.`);
       } else if (u.username || u.password) {
         errors.push(`${where}: base_url carries a credential in the URL, and a manifest must be publishable without redaction. Fix: put the key in a secret and name it with token_env.`);
       }
