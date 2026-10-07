@@ -56,8 +56,9 @@ smoke: SKIPPED — the `temporal` CLI is not on PATH, and this test needs a loca
 engine to be a test of anything. epitod v1 runs on Temporal, so there is no
 in-process stand-in to fall back to.
 
-  install it:  curl -sSf https://temporal.download/cli.sh | sh
-  then:        PATH="$PATH:$HOME/.temporalio/bin" bash test/smoke-temporal.sh
+  all of it at once:  bash test/all.sh --with-prereqs
+  or by hand:         curl -sSf https://temporal.download/cli.sh | sh
+  then:               PATH="$PATH:$HOME/.temporalio/bin" bash test/smoke-temporal.sh
 
 Nothing was asserted. Treat this run as no evidence, not as a pass.
 MSG

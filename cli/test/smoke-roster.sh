@@ -158,7 +158,8 @@ engine_answers() {
 }
 if ! engine_answers; then
   echo "  == 4: SKIPPED — no engine to plan against: nothing is answering at ${TEMPORAL_ADDRESS:-127.0.0.1:7233}"
-  echo "     install it (curl -sSf https://temporal.download/cli.sh | sh) and run \`temporal server start-dev\`"
+  echo "     install it (curl -sSf https://temporal.download/cli.sh | sh) and run \`temporal server start-dev\`,"
+  echo "     or let the harness do both: bash test/all.sh --with-prereqs"
 else
   # A copy, because the assertion is about what a dry run WRITES and the real
   # directory is a git checkout somebody is working in.
