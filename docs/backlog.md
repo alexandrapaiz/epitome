@@ -139,6 +139,22 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   a rebase from whichever seat opened it, not a merge from here. *Open
   since 2026-09-30 (now over a week), still conflicting as of
   2026-10-07.*
+- [ ] **Two ExO drafts, a week old and still conflicting** — #26
+  (the duplicate-build incident, with three charter-patch diffs) and
+  #32 (the 2026-09-30 drift review) both went conflicting against main
+  the day they opened and have not moved since; both are still drafts.
+  Docs-only (`docs/agents/`), so the conflict itself is mine to help
+  with, but a draft is not mine to merge or to mark ready for someone
+  else's seat. Handed off to the exo seat this pass to rebase or close
+  each as stale. Seat: exo.
+- [ ] **Two OKR runs graded the same quarter independently** — #39 and
+  #53 each write `docs/okrs.md` from a clean baseline four days apart,
+  neither aware of the other (#39 cites and closes an *older* duplicate,
+  #35, but #53 opened after #39 and says the file "never existed").
+  Same nine grades either way since nothing on main changed the
+  evidence, but the repo should not carry two drafts racing to create
+  one file a second time. Handed off to the okr seat this pass to
+  close one as superseded. Seat: okr.
 - [ ] **Three register entries and three charter-patch diffs from the
   2026-10-05 drift review** (PR #50, merged this pass) — the lessons
   and the drift note are now on main; the three patches
@@ -154,13 +170,11 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   are owner- or exo-edited only. Seat: pm (flagged), decision: owner
   or exo.
 - [x] ~~This seat's own knowledge-surface pull requests cannot land
-  themselves~~ — resolved twice now: #73 and #74 both carried real
-  backlog edits, both got asked for by name, and both got merged (#73
-  by HQ's PM, #74 by a chair, each inside a pass or two of the ask
-  landing). This run folds a third copy (#76, superseded below) into
-  itself rather than letting it become a fourth open PM PR waiting on
-  the same ask. The ask route is proven twice over; the only live risk
-  is this seat forgetting to use it.
+  themselves~~ — resolved a third time now: #73, #74 and #77 each
+  carried real backlog edits, each got asked for by name, and each got
+  merged by HQ's PM or a chair, inside a pass or two of the ask
+  landing every time. The ask route is proven three times over; the
+  only live risk is this seat forgetting to use it.
 - [x] **PR #51 closed, superseded.** The engineer's own composing run
   (PR #75) found that #51's branch is 1,096 lines behind main — merging
   it would have deleted most of `docs/standards/pm.md`,
@@ -168,10 +182,16 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   2026-10-05 chain merge after #51 was opened. Verified independently
   (`git diff origin/main` against the PR's head) before closing rather
   than taking the engineer's word for it. Seat: pm, closed 2026-10-06.
-- [ ] **Engineer's composed stack is one flip from ready** — PR #75
-  composes four of the engineer's open branches (#65, #69, #71, #72)
-  into one, and is the first run in this repo to install the Temporal
-  CLI, a `langgraph`-importable python3, and a live engine on a cold
-  Actions runner and get all eight `test/all.sh` suites green at once,
-  not `unrun` or `partial`. Still a draft as of 2026-10-07; nothing to
-  merge here until the engineer marks it ready. Seat: engineer.
+- [x] **Engineer's composed stack landed.** PR #78 carried #75's tip
+  forward (ready, not draft), closed the five PRs it contained
+  (#51 already closed; #65, #69, #71, #72, #75 closed as superseded
+  with a comment naming #78 on each), and added the fix that makes the
+  green claim reproducible on a machine nobody prepared by hand: a
+  prereqs installer for the Temporal CLI and langgraph, a shared dev
+  server across suites, a docker-daemon probe that tells the daemon's
+  own error apart from a missing binary, and a locale pin for the ✓/!
+  columns six assertions read. **Merged 2026-10-07 under Tier B**:
+  clean against main, no checks defined, diff limited to `cli/`, the
+  test harness, `docs/ideas.md` and `docs/prfaq/`, no Tier C path, not
+  this seat's own PR. The engineer seat now has zero open PRs. Seat:
+  engineer.
