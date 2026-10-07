@@ -108,7 +108,11 @@ check "a charter absent from the whole repo is still named" "printf '%s' \"\$gou
 mkdir -p "$TMP/repo/prompts" && echo charter > "$TMP/repo/prompts/ghost.md"
 gout2="$(cd "$TMP/repo/agents/ghost" && $E validate 2>&1)"
 check "committing it at the repo root silences the note" "! printf '%s' \"\$gout2\" | grep -q 'before the first run'"
-sed -i 's|repo = "acme/other"|repo = "acme/unrelated"|' "$TMP/repo/agents/ghost/agent.toml"
+# `sed -i` with no suffix is GNU-only: BSD sed reads the next argument as the
+# backup suffix and the file as the script, and says `invalid command code f`.
+# Every in-place edit in this harness uses the one form both accept.
+sed -i.bak 's|repo = "acme/other"|repo = "acme/unrelated"|' "$TMP/repo/agents/ghost/agent.toml" \
+  && rm -f "$TMP/repo/agents/ghost/agent.toml.bak"
 gout3="$(cd "$TMP/repo/agents/ghost" && $E validate 2>&1)"
 check "a charter in a repo the manifest does NOT name is not evidence" "printf '%s' \"\$gout3\" | grep -q 'commit prompts/ghost.md to acme/unrelated'"
 
@@ -154,7 +158,8 @@ engine_answers() {
 }
 if ! engine_answers; then
   echo "  == 4: SKIPPED — no engine to plan against: nothing is answering at ${TEMPORAL_ADDRESS:-127.0.0.1:7233}"
-  echo "     install it (curl -sSf https://temporal.download/cli.sh | sh) and run \`temporal server start-dev\`"
+  echo "     install it (curl -sSf https://temporal.download/cli.sh | sh) and run \`temporal server start-dev\`,"
+  echo "     or let the harness do both: bash test/all.sh --with-prereqs"
 else
   # A copy, because the assertion is about what a dry run WRITES and the real
   # directory is a git checkout somebody is working in.
@@ -162,7 +167,16 @@ else
   dout="$(cd "$TMP" && $E run agents --dry-run 2>&1)"; drc=$?
   check "the dry run exits 0 (it used to exit 1: unknown command \"run\")" "[ $drc -eq 0 ]"
   check "it does NOT print the unknown-command error" "! printf '%s' \"\$dout\" | grep -q 'unknown command'"
-  check "it plans a schedule for every seat with a cron" "[ \"\$(printf '%s' \"\$dout\" | grep -c 'would create seat:')\" = 4 ]"
+  # Every cron'd seat is accounted for, as a create OR as already-registered.
+  # This used to demand four "would create" lines, which quietly assumed the
+  # engine at TEMPORAL_ADDRESS was empty. It is not empty anywhere this matters:
+  # on the company host epitod holds this very roster, so the suite reported
+  # FAILED for a correct product -- found 2026-10-06 running it right after
+  # `epito run agents` against a live engine. "Planned" is the property; which
+  # side of the diff a seat lands on is the engine's state, not the roster's.
+  planned=$(printf '%s' "$dout" | grep -c 'would create seat:')
+  settled=$(printf '%s' "$dout" | grep -oE '[0-9]+ unchanged' | grep -oE '[0-9]+' | tail -1)
+  check "it plans a schedule for every seat with a cron (created ${planned:-0} + already registered ${settled:-0} = 4)" "[ \$(( ${planned:-0} + ${settled:-0} )) -eq 4 ]"
   check "and names the presence-only seat instead of silently skipping it" "printf '%s' \"\$dout\" | grep -q 'presence-only (no \[trigger\].cron, so no schedule): exo'"
   check "it says in words that it wrote nothing" "printf '%s' \"\$dout\" | grep -q 'dry run: nothing was registered'"
   # The bug: four `schedule.create` lines in an append-only ledger, for four
@@ -209,7 +223,11 @@ check "it answers whether or not this box has an engine" "[ $vrc -eq 0 ]"
 nseats=$(printf '%s ' $SEATS | wc -w | tr -d ' ')
 check "it counts every seat in agents/" "printf '%s' \"\$vout\" | grep -q '$nseats of $nseats manifests are agents'"
 for s in $SEATS; do
-  check "it reports $s by name" "printf '%s\n' \"\$vout\" | grep -qE '^[✓!] $s +identity'"
+  # `(✓|!)`, not `[✓!]`: a bracket expression holding a multibyte character is
+  # matched byte by byte by BSD grep and by any grep in a non-UTF-8 locale, so
+  # the three bytes of ✓ could never be the one character the class asks for.
+  # Alternation compares the same bytes either way.
+  check "it reports $s by name" "printf '%s\n' \"\$vout\" | grep -qE '^(✓|!) $s +identity'"
 done
 check "it names the presence-only seat as presence-only" "printf '%s' \"\$vout\" | grep -q 'presence-only (exo)'"
 # The claim the strict gate makes: it asks exactly what `epito run <dir>` asks.

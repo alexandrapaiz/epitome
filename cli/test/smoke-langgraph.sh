@@ -141,6 +141,7 @@ else
   The real-framework half of this test did not run. That is an unrun test, not
   a pass: it proves nothing about LangGraph on this machine.
 
+    bash test/all.sh --with-prereqs          # every suite's prerequisites, one command
     python3 -m venv /tmp/lgvenv && /tmp/lgvenv/bin/pip install langgraph
     EPITO_PYTHON=/tmp/lgvenv/bin/python bash test/smoke-langgraph.sh
 

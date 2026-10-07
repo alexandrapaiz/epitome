@@ -9,7 +9,7 @@
 // six cases are the command's entire behavior.
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { reconcilePlan, scheduleShape } from "../src/temporal/schedules.js";
+import { reconcilePlan, scheduleShape, listSeatSchedules } from "../src/temporal/schedules.js";
 import { validateManifest, loadManifest, FIELDS, TABLES } from "../src/lib/manifest.js";
 import { blockers, unchecked, REPO_REQUIRED_BY, SCOPE_REQUIRED_BY } from "../src/lib/readiness.js";
 import { parseGitHubRemote, originRepo, repoRoot } from "../src/lib/origin.js";
@@ -128,9 +128,231 @@ test("reconcile: a schedule with no manifest behind it is deleted, and a foreign
   assert.deepEqual(p.create.map((c) => c.id), ["seat:pm"]);
 });
 
+// The bug these four cover was found on 2026-10-06 by running
+// test/smoke-temporal.sh against a real engine for the first time, and it had
+// survived precisely because the only suite that could see it is the one that
+// needs a `temporal` binary and so reports `unrun` on every box. The pure
+// planner above was correct the whole time; what was wrong was the `actual`
+// handed to it. So these stub the client: no engine, catchable anywhere.
+//
+// `epito run` stored the registered shape in the schedule's memo and read it
+// back from there. `ScheduleHandle.update()` accepts a memo and Temporal's
+// UpdateSchedule RPC has no memo field, so the SDK drops it: the memo holds the
+// CREATE-time shape forever, and reconcile reapplied the same update on every
+// restart while `epito ps` printed a cron the engine was not using.
+const fakeClient = (schedules) => ({
+  schedule: {
+    async *list() { for (const s of schedules) yield { scheduleId: s.id, note: s.note ?? null, memo: s.memo ?? undefined }; },
+    getHandle(id) {
+      const s = schedules.find((x) => x.id === id);
+      return { describe: async () => {
+        if (!s || s.describeThrows) throw new Error("schedule not found");
+        return { memo: s.memo ?? undefined, action: { type: "startWorkflow", args: s.args ?? [] } };
+      } };
+    },
+  },
+});
+
+test("listSeatSchedules: the shape comes from the action, not from the stale memo", async () => {
+  const live = seat("pm", { trigger: { cron: "0 13 * * 5" } });
+  const got = await listSeatSchedules(fakeClient([{
+    id: "seat:pm",
+    // What the engine will actually run: the manifest the action carries.
+    args: [{ name: "pm", manifest: live }],
+    // What the memo still says, because an update could not rewrite it.
+    memo: { seat: "pm", shape: JSON.stringify(scheduleShape(seat("pm", { trigger: { cron: "0 12 * * 5" } }))) },
+  }]));
+  assert.equal(got.length, 1);
+  assert.equal(got[0].shape.cron, "0 13 * * 5", "read the action's cron, not the memo's");
+});
+
+test("reconcile CONVERGES after an update: the second pass has nothing to do", async () => {
+  const live = seat("pm", { trigger: { cron: "0 13 * * 5" } });
+  const actual = await listSeatSchedules(fakeClient([{
+    id: "seat:pm",
+    args: [{ name: "pm", manifest: live }],
+    memo: { seat: "pm", shape: JSON.stringify(scheduleShape(seat("pm", { trigger: { cron: "0 12 * * 5" } }))) },
+  }]));
+  const p = reconcilePlan(desiredOf(live), actual);
+  assert.equal(p.unchanged.length, 1, "an applied update must not be reapplied forever");
+  assert.equal(p.update.length, 0);
+});
+
+test("listSeatSchedules: ids that are not seats are left out, and only seats are described", async () => {
+  const got = await listSeatSchedules(fakeClient([
+    { id: "seat:pm", args: [{ name: "pm", manifest: seat("pm") }] },
+    { id: "someone-elses-schedule", args: [] },
+  ]));
+  assert.deepEqual(got.map((g) => g.id), ["seat:pm"]);
+});
+
+test("listSeatSchedules: an unreadable schedule reads as a difference, so the next pass rewrites it", async () => {
+  const got = await listSeatSchedules(fakeClient([
+    { id: "seat:pm", describeThrows: true },
+    { id: "seat:okr", args: [{ name: "okr", manifest: { agent: { name: "okr" }, trigger: {}, runtime: {} } }] },
+  ]));
+  assert.deepEqual(got.map((g) => g.shape), [null, null]);
+  // null is not "unchanged": it must plan an update rather than leave a
+  // schedule nobody can account for in place.
+  const p = reconcilePlan(desiredOf(seat("pm")), got.filter((g) => g.id === "seat:pm"));
+  assert.equal(p.update.length, 1);
+});
+
 test("reconcile: 36 presence-only seats register nothing at all", () => {
   const p = reconcilePlan(new Map(), []);
   assert.deepEqual(p, { create: [], update: [], delete: [], unchanged: [] });
+});
+
+// --- the bar on a refusal: name the rule, in our words, with the fix -------
+//
+// The spec states the bar once and `epito validate` is where a vibecoder meets
+// it: "name the rule broken, in the product's own vocabulary, with the fix in
+// the message". The messages written after the bar was set carry an explicit
+// `Fix:`; the ones written before it said only what was wrong — nineteen of
+// the twenty-five refusals `epito validate` can print, including the three a
+// newcomer is most likely to see.
+//
+// So the bar is a test. Every refusal the validator can print in its own voice
+// is named below with a manifest that provokes it, and each has to carry a fix
+// the reader can act on. The count assertions are the drift catch: a new
+// `errors.push` with no case here fails this test rather than shipping a
+// message nobody held to the bar.
+
+// A fix is an instruction, not a diagnosis. Ours say it as `Fix:` — except the
+// credential tripwire, which was written as "Move it to a secret" and reads
+// better that way.
+const carriesAFix = (msg) => /Fix:|\bMove it to\b/.test(msg);
+
+// `seat()` with fields set, removed (undefined) or whole tables stripped.
+const provoke = ({ strip = [], tables = {}, raw = "", ...over }) => {
+  const m = seat("pm");
+  for (const t of strip) delete m[t];
+  for (const [t, fields] of Object.entries(over)) {
+    m[t] = { ...m[t], ...fields };
+    for (const [k, v] of Object.entries(fields)) if (v === undefined) delete m[t][k];
+  }
+  return validateManifest({ ...m, ...tables }, { baseDir: "/nonexistent", raw });
+};
+
+const held = (label, manifest) => test(`a refusal carries the fix: ${label}`, () => {
+  const errors = provoke(manifest);
+  assert.ok(errors.length > 0, `"${label}" was meant to be refused and validated clean`);
+  for (const e of errors) assert.ok(carriesAFix(e), `says what is wrong and not what to do:\n    ${e}`);
+});
+
+// One per literal `errors.push` in src/lib/manifest.js, in source order.
+const REFUSALS = [
+  ["missing triad",         { strip: ["identity"] }],
+  ["unknown table",         { tables: { cron: { at: "0 6" } } }],
+  ["name missing",          { agent: { name: undefined } }],
+  ["name shape",            { agent: { name: "Historian" } }],
+  ["description missing",   { agent: { description: undefined } }],
+  ["scopes not an array",   { identity: { scopes: "github:contents" } }],
+  ["scope shape",           { identity: { scopes: ["repo"] } }],
+  ["trigger empty",         { trigger: { cron: undefined } }],
+  ["cron unparseable",      { trigger: { cron: "@daily" } }],
+  ["webhook not a bool",    { trigger: { webhook: "yes" } }],
+  ["model missing",         { runtime: { model: undefined } }],
+  ["entry missing",         { runtime: { entry: undefined } }],
+  ["entry absent on disk",  { runtime: { entry: "prompts/nope.md", repo: undefined } }],
+  ["repo shape",            { runtime: { repo: "github.com/acme/roster" } }],
+  ["ref shape",             { runtime: { ref: "-rf" } }],
+  ["adapter unknown",       { runtime: { adapter: "crewai" } }],
+  ["graph shape",           { runtime: { graph: "a b" } }],
+  ["graph without adapter", { runtime: { graph: "digest" } }],
+  ["max_turns shape",       { runtime: { max_turns: "40" } }],
+  ["env holds a value",     { runtime: { env: ["TOKEN=abc"] } }],
+  ["slack name shape",      { runtime: { slack_webhook_env: "https://hooks.slack.com/x" } }],
+  ["slack name unlisted",   { runtime: { slack_webhook_env: "PM_SLACK" } }],
+  ["a pasted credential",   { raw: `token = "ghp_${"A".repeat(36)}"` }],
+];
+for (const [label, manifest] of REFUSALS) held(label, manifest);
+
+// And one per literal push in src/lib/router.js, which prints through the same
+// `epito validate` and so answers to the same bar.
+const ROUTE_REFUSALS = [
+  ["route table not a list", { runtime: { route: "kimi" } }],
+  ["route not a table",      { runtime: { route: ["kimi"] } }],
+  ["route name shape",       { runtime: { route: [{ name: "Kimi!", model: "m" }] } }],
+  ["two routes one name",    { runtime: { route: [{ name: "k", model: "m" }, { name: "k", model: "m" }] } }],
+  ["route model missing",    { runtime: { model: undefined, route: [{ name: "k" }] } }],
+  ["base_url not a URL",     { runtime: { route: [{ name: "k", model: "m", base_url: "moonshot.ai" }] } }],
+  ["base_url holds a key",   { runtime: { route: [{ name: "k", model: "m", base_url: "https://u:p@x.ai" }] } }],
+  ["token_env shape",        { runtime: { route: [{ name: "k", model: "m", token_env: "my key" }] } }],
+  ["token_env unlisted",     { runtime: { route: [{ name: "k", model: "m", token_env: "KIMI_KEY" }] } }],
+  ["concurrency shape",      { runtime: { route: [{ name: "k", model: "m", concurrency: 0 }] } }],
+];
+for (const [label, manifest] of ROUTE_REFUSALS) held(label, manifest);
+
+test("the bar covers EVERY refusal these two modules print in their own voice", () => {
+  const read = (f) => readFileSync(new URL(`../src/lib/${f}`, import.meta.url), "utf8");
+  // Two of the pushes delegate to a module with its own bar (`...unknownKeys`
+  // from fields.js, `...routeErrors` from router.js, counted on its own line
+  // below); every other push is the file's own voice, including the spread of
+  // its own `repoErrors`. router.js also refuses the whole field with a bare
+  // `return [message]`, which is why its count gets a +1.
+  const mine = (src) => (src.match(/errors\.push\(/g) ?? []).length
+    - (src.match(/errors\.push\(\.\.\.(unknownKeys|routeErrors)/g) ?? []).length;
+  const manifestJs = read("manifest.js");
+  const routerJs = read("router.js");
+  // `adapter unknown` is a push of a message adapters.js composed; it is still
+  // this validator's output, and adapters.js already carries its own fix.
+  assert.equal(mine(manifestJs), REFUSALS.length,
+    `src/lib/manifest.js prints ${mine(manifestJs)} refusals in its own voice and REFUSALS covers ` +
+    `${REFUSALS.length}. A new message needs a case above, or nobody held it to the bar.`);
+  assert.equal(mine(routerJs) + 1, ROUTE_REFUSALS.length,
+    `src/lib/router.js prints ${mine(routerJs) + 1} refusals and ROUTE_REFUSALS covers ${ROUTE_REFUSALS.length}.`);
+});
+
+// --- [runtime].repo is a GitHub repository, and GitHub has rules -----------
+//
+// The old rule was "two things with a slash". It blessed `acme/roster.git` —
+// GitHub refuses a name ending in .git, and `epito run` clones
+// `https://github.com/<repo>.git`, so that manifest asked for roster.git.git —
+// and it blessed `../..`, which `epito deploy` and `epito token` would have put
+// in an api.github.com path. Both got a ✓ and then failed at clone or mint
+// time, which is the one thing src/lib/readiness.js exists to prevent.
+test("[runtime].repo: GitHub's own rules for an owner and a name", () => {
+  const refused = (repo) => validateManifest(seat("pm", { runtime: { repo } }), { baseDir: "/nonexistent" })
+    .filter((e) => e.startsWith("[runtime].repo"));
+  for (const repo of [
+    "acme/roster.git",                 // GitHub: a name cannot end in .git
+    "../..",                           // a path, in a field that becomes a URL
+    "acme/..",
+    "acme/.",
+    "-acme/roster",                    // an owner cannot begin with a hyphen
+    "acme-/roster",                    // nor end with one
+    "acme.co/roster",                  // nor hold a dot
+    "acme_co/roster",                  // nor an underscore
+    `${"a".repeat(40)}/roster`,        // 39 is GitHub's ceiling for an owner
+    `acme/${"r".repeat(101)}`,         // 100 is its ceiling for a name
+    "github.com/acme/roster",
+    "https://github.com/acme/roster",
+    "git@github.com:acme/roster.git",
+    "acme/roster/",
+    "/acme/roster",
+    "acme//roster",
+    "acme roster",
+    "acme",
+  ]) assert.equal(refused(repo).length, 1, `[runtime].repo "${repo}" was accepted`);
+
+  for (const repo of [
+    "alexandrapaiz/epitome",           // this company's own
+    "acme/roster",
+    "a/b",
+    "acme-co/my_roster.v2",
+    `${"a".repeat(39)}/${"r".repeat(100)}`,
+    "99designs/aws-vault",             // a real repo whose owner starts with a digit
+  ]) assert.deepEqual(refused(repo), [], `[runtime].repo "${repo}" is a real repository and was refused`);
+});
+
+test("the repo refusal names the half that is wrong", () => {
+  const one = (repo) => validateManifest(seat("pm", { runtime: { repo } }), { baseDir: "/nonexistent" })
+    .find((e) => e.startsWith("[runtime].repo"));
+  assert.match(one("acme/roster.git"), /\.git/);
+  assert.match(one("acme.co/roster"), /owner/);
+  assert.match(one("acme/ros ter"), /name/);
+  assert.match(one("github.com/acme/roster"), /owner\/name/);
 });
 
 // --- the manifest addition -------------------------------------------------
@@ -145,13 +367,13 @@ test("[runtime].slack_webhook_env accepts a NAME that is also listed in env", ()
 test("[runtime].slack_webhook_env refuses a URL, naming the rule and the fix", () => {
   const errs = errorsFor({ runtime: { slack_webhook_env: "https://hooks.slack.com/services/x", env: [] } });
   assert.equal(errs.length, 1);
-  assert.equal(errs[0], `[runtime].slack_webhook_env "https://hooks.slack.com/services/x" must be the NAME of an environment variable (letters, digits, underscore) — the webhook URL itself never appears in the manifest`);
+  assert.equal(errs[0], `[runtime].slack_webhook_env "https://hooks.slack.com/services/x" must be the NAME of an environment variable (letters, digits, underscore) — the webhook URL itself never appears in the manifest. Fix: slack_webhook_env = "PM_SLACK_WEBHOOK", list that same name under [runtime].env, and set its value as a secret.`);
 });
 
 test("[runtime].slack_webhook_env must also be listed under [runtime].env", () => {
   const errs = errorsFor({ runtime: { slack_webhook_env: "SLACK_WEBHOOK_URL_URSA", env: ["GH_TOKEN"] } });
   assert.equal(errs.length, 1);
-  assert.equal(errs[0], `[runtime].slack_webhook_env names "SLACK_WEBHOOK_URL_URSA", so "SLACK_WEBHOOK_URL_URSA" must also be listed in [runtime].env — the runtime injects only the names the manifest lists, so an unlisted webhook can never resolve to a value`);
+  assert.equal(errs[0], `[runtime].slack_webhook_env names "SLACK_WEBHOOK_URL_URSA", so "SLACK_WEBHOOK_URL_URSA" must also be listed in [runtime].env — the runtime injects only the names the manifest lists, so an unlisted webhook can never resolve to a value. Fix: add "SLACK_WEBHOOK_URL_URSA" to [runtime].env.`);
 });
 
 test("a manifest with no slack_webhook_env is unchanged: spec v0.1 stays compatible", () => {
@@ -1479,7 +1701,11 @@ const manifestFor = (runtime = {}, identity = {}) => ({
 
 test("a manifest with no [runtime].repo is valid, and the note names every command that will refuse it", () => {
   const m = manifestFor();
-  assert.deepEqual(validateManifest(m, { baseDir: tmpDir() }).filter((e) => /repo/.test(e)), [],
+  // Anchored on the field, not on the word: the refusals about OTHER fields
+  // now name [runtime].repo in their own fix lines ("set repo = owner/name and
+  // commit the charter there"), and a filter on /repo/ counted those as a repo
+  // error. What this test is about is a refusal whose SUBJECT is the field.
+  assert.deepEqual(validateManifest(m, { baseDir: tmpDir() }).filter((e) => e.startsWith("[runtime].repo")), [],
     "[runtime].repo became a validation error — spec v0.1 says validate accepts it absent");
   const [b, ...rest] = blockers(m);
   assert.equal(rest.length, 0, "one blocker expected, got more");

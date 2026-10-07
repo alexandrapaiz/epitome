@@ -13,7 +13,7 @@
 // to see the presence-only seats alongside it.
 import { connect } from "./client.js";
 import { listSeatSchedules } from "./schedules.js";
-import { seatOfScheduleId, seatOfWorkflowId, windowId } from "./env.js";
+import { seatOfScheduleId, seatOfWorkflowId, windowId, addressHost, isLoopback, portAnswers, UI_PORTS } from "./env.js";
 import { loadRoster } from "../lib/roster.js";
 
 const RECENT = 200;
@@ -26,6 +26,27 @@ function leftUntil(iso) {
   if (!(ms > 0)) return "closing";
   const m = Math.round(ms / 60000);
   return m >= 60 ? `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}m left` : `${m}m left`;
+}
+
+// Where the engine's own UI is. This line used to assert `127.0.0.1:8080` on
+// every machine, which is right on the company host (provision-host.sh starts
+// the engine with `--ui-port 8080`) and wrong on every laptop, because a bare
+// `temporal server start-dev` -- the exact command this repository's test
+// suites tell you to run -- puts the UI on 8233. A footer that sends an
+// operator to a dead port while they are mid-incident is worse than no footer,
+// so this says only what it can see: TEMPORAL_UI_PORT if it was set, otherwise
+// whichever conventional port actually answers, otherwise nothing but the
+// knob's name.
+async function uiHint(cfg) {
+  const host = addressHost(cfg.address);
+  const link = (p) => (isLoopback(host)
+    ? `the Temporal UI on 127.0.0.1:${p} (over an SSH tunnel if the engine is not this machine: ssh -L ${p}:127.0.0.1:${p} <host>)`
+    : `the Temporal UI on ${host}:${p}`);
+  if (cfg.uiPort) return link(cfg.uiPort);
+  if (isLoopback(host)) {
+    for (const p of UI_PORTS) if (await portAnswers(host, p)) return link(p);
+  }
+  return `the Temporal UI of the engine at ${cfg.address} — nothing is answering on ${UI_PORTS.join(" or ")} here, so set TEMPORAL_UI_PORT if it is somewhere else`;
 }
 
 export async function psCmd(dirArg) {
@@ -109,7 +130,7 @@ export async function psCmd(dirArg) {
     const w = rows[0].map((_, i) => Math.max(...rows.map((r) => r[i].length)));
     for (const r of rows) console.log(r.map((c, i) => c.padEnd(w[i])).join("  ").trimEnd());
     console.log(`\nthe record: \`epito audit\` (what was granted, to whom, until when)   the runs: \`epito board\``);
-    console.log(`per-run engine detail — retries, timers, the event history: the Temporal UI on 127.0.0.1:8080 (ssh -L 8080:127.0.0.1:8080)`);
+    console.log(`per-run engine detail — retries, timers, the event history: ${await uiHint(cfg)}`);
   } finally {
     await connection.close().catch(() => {});
   }

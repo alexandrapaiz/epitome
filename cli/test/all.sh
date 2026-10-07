@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Every suite this repository has, in one command.
 #
-#   bash test/all.sh            # from cli/  (also: npm test)
-#   bash test/all.sh --strict   # a suite that could not run is a failure
+#   bash test/all.sh                 # from cli/  (also: npm test)
+#   bash test/all.sh --strict        # a suite that could not run is a failure
+#   bash test/all.sh --with-prereqs  # install what the suites need, then run
 #
 # Why this exists. Each suite already refuses to lie about itself: with no
 # `temporal` binary, no docker, or no langgraph importable, it says SKIPPED and
@@ -29,10 +30,21 @@ ROOT="$(cd "$CLI/.." && pwd)"
 LOGS="${TMPDIR:-/tmp}/epito-test-all-$$"
 STRICT=0
 KEEP=0
+PREREQS=0
 for a in "$@"; do
   case "$a" in
     --strict) STRICT=1 ;;
-    *) echo "test/all.sh: unknown option \"$a\" — the only option is --strict (a suite that could not run is a failure)"; exit 2 ;;
+    --with-prereqs) PREREQS=1 ;;
+    *) cat <<EOF
+test/all.sh: unknown option "$a". There are two:
+
+  --strict         a suite that could not run is a failure (exit 1, not 0)
+  --with-prereqs   install the Temporal CLI and a langgraph venv first, and
+                   start one dev server for the length of the run, so that no
+                   suite is incomplete merely because this box is cold
+
+EOF
+       exit 2 ;;
   esac
 done
 mkdir -p "$LOGS"
@@ -52,6 +64,100 @@ test/all.sh: this checkout has no dependencies installed, so no suite can run.
 Everything else a suite needs, the suite names itself when it skips.
 EOF
   exit 2
+fi
+
+# ---- the locale, pinned -----------------------------------------------------
+# Six assertions in this run read a padded column and grep for ✓ and !, and in a
+# non-UTF-8 locale `awk`'s index() counts the three bytes of ✓ as three columns
+# and `grep '[✓!]'` becomes a bracket of bytes. The product's own output is
+# byte-identical either way, so a failure here is the box talking, not the code —
+# and the cold re-verification of a stack is the one place a phantom failure
+# costs most. (Reported on 2026-10-06 against a box with LANG unset; it does not
+# reproduce under GNU grep, which is exactly why it must not be left to chance —
+# the next cold box is as likely to be a Mac, where PR #69's six harness fixes
+# came from.)
+#
+# Pinning a literal C.UTF-8 would be the one-liner and it would be wrong: macOS
+# has no C.UTF-8, and setting a locale the box does not have makes tools fall
+# back to C — the thing this is trying to avoid. So: keep a UTF-8 locale if this
+# shell already has one, else take the first one the box admits to having, else
+# say so and carry on, because an un-pinnable locale is a fact about the machine
+# and not a reason to refuse to test anything.
+pin_locale() {
+  case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
+    *UTF-8|*utf8|*UTF8) return 0 ;;
+  esac
+  local have
+  for have in C.UTF-8 C.utf8 en_US.UTF-8; do
+    if locale -a 2>/dev/null | grep -qixF "$have"; then
+      export LC_ALL="$have"
+      return 0
+    fi
+  done
+  cat <<EOF
+test/all.sh: this shell has no UTF-8 locale (LC_ALL/LC_CTYPE/LANG) and this box
+offers none of C.UTF-8, C.utf8 or en_US.UTF-8, so six assertions that read a
+column of ✓ and ! are reading bytes rather than characters.
+
+  Everything still runs. If something fails only in those six, generate a UTF-8
+  locale (Debian/Ubuntu: sudo locale-gen C.UTF-8) and run this again before
+  believing it.
+
+EOF
+}
+pin_locale
+
+# ---- the prerequisites, on request ------------------------------------------
+# Three suites were permanently incomplete on any box nobody had prepared by
+# hand: smoke-temporal unrun, smoke-roster partial, smoke-langgraph partial. The
+# install is two downloads and fifteen seconds (measured, 2026-10-07, cold
+# GitHub runner), and smoke-roster additionally wants an engine ALREADY
+# answering — the one thing test/prereqs.sh deliberately does not leave running.
+#
+# This still detects nothing. prereqs.sh writes down where it put things and
+# this sources that file; whether a suite can run stays the suite's own
+# question, as the note at the top says.
+if [ "$PREREQS" = 1 ]; then
+  PREREQS_DIR="${EPITO_PREREQS_DIR:-${TMPDIR:-/tmp}/epito-prereqs}"
+  printf '\n\033[1m== prerequisites\033[0m\n'
+  if ! bash "$CLI/test/prereqs.sh" "$PREREQS_DIR" 2>&1 | sed 's/^/  /'; then
+    echo "test/all.sh: --with-prereqs could not install everything (above). Running"
+    echo "anyway — the suites that are still missing something will say so themselves."
+  fi
+  # shellcheck disable=SC1090
+  [ -f "$PREREQS_DIR/env.sh" ] && . "$PREREQS_DIR/env.sh"
+
+  # One engine for the whole run, on a port nobody else is using. smoke-temporal
+  # starts its own regardless (its assertions need a namespace it owns); this one
+  # exists for smoke-roster's planning section, which asks whether something is
+  # already answering and is the only suite that cannot start what it needs.
+  if [ -n "${TEMPORAL_BIN:-}" ] && [ -x "${TEMPORAL_BIN}" ]; then
+    ENGINE_PORT="${EPITO_TEST_ENGINE_PORT:-17233}"
+    ENGINE_LOG="$LOGS/shared-engine.log"
+    "$TEMPORAL_BIN" server start-dev --headless --port "$ENGINE_PORT" \
+      --namespace epito-all >"$ENGINE_LOG" 2>&1 &
+    ENGINE_PID=$!
+    # Reap it, do not just signal it: `kill` returns before the engine is gone,
+    # so a caller that checks for a leftover dev server the instant all.sh exits
+    # finds one and is right to complain. `wait` on our own child makes "this
+    # left nothing running" true at exit rather than a moment after.
+    stop_engine() { [ -n "${ENGINE_PID:-}" ] || return 0; kill "$ENGINE_PID" 2>/dev/null; wait "$ENGINE_PID" 2>/dev/null; ENGINE_PID=""; }
+    trap 'stop_engine; [ "$KEEP" = 1 ] && echo "full output kept in $LOGS" || rm -rf "$LOGS"' EXIT
+    for _ in $(seq 1 40); do
+      if node -e 'const n=require("net"),s=n.connect({host:"127.0.0.1",port:Number(process.argv[1])});s.on("connect",()=>{s.end();process.exit(0)});s.on("error",()=>process.exit(1));' "$ENGINE_PORT" 2>/dev/null; then
+        break
+      fi
+      sleep 0.25
+    done
+    if kill -0 "$ENGINE_PID" 2>/dev/null; then
+      export TEMPORAL_ADDRESS="127.0.0.1:$ENGINE_PORT" TEMPORAL_NAMESPACE=epito-all
+      echo "  engine: temporal server start-dev on $TEMPORAL_ADDRESS, namespace epito-all"
+    else
+      echo "  engine: it did not stay up, so smoke-roster will skip its planning section."
+      tail -3 "$ENGINE_LOG" | sed 's/^/    /'
+      ENGINE_PID=""
+    fi
+  fi
 fi
 
 names=(); results=(); counts=(); notes=()
