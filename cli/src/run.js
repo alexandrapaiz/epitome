@@ -25,6 +25,7 @@
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { loadRoster } from "./lib/roster.js";
+import { SPEC_VERSION } from "./lib/fields.js";
 import { startHookServer } from "./lib/hooks.js";
 import { windowInstruction } from "./lib/runner.js";
 import { appendAudit, AUDIT_PATH } from "./lib/audit.js";
@@ -170,7 +171,7 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
   }
 
   // Scope is "all" (or absent) or a comma-separated list of [agent].name
-  // values. It matches on names only: the manifest spec is v0.1 and inventing
+  // values. It matches on names only: the manifest spec has no tag field and inventing
   // a tag field to group by is somebody else's pitch.
   function resolveScope(scope) {
     if (scope === undefined || scope === null || scope === "" || scope === "all" || scope === "*") return { names: [...roster.keys()] };
@@ -230,7 +231,7 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
         const cron = roster.get(name).manifest.trigger?.cron;
         appendAudit({ agent: name, action: "hook", trigger: "hook", bytes: raw.length, refused: "no-webhook-trigger" });
         log(`${name}: hook refused — the manifest does not declare [trigger].webhook`);
-        return { status: 403, body: { error: `"${name}" does not declare [trigger].webhook, so the ingress may not wake it — a trigger is explicit and never defaulted (spec v0.1 rule 3). ${cron ? `It runs on its schedule, ${cron} UTC.` : "It has no trigger this runtime can fire at all."} Fix: add \`webhook = true\` under [trigger] in its agent.toml and restart \`epito run\`.` } };
+        return { status: 403, body: { error: `"${name}" does not declare [trigger].webhook, so the ingress may not wake it — a trigger is explicit and never defaulted (spec ${SPEC_VERSION} rule 3). ${cron ? `It runs on its schedule, ${cron} UTC.` : "It has no trigger this runtime can fire at all."} Fix: add \`webhook = true\` under [trigger] in its agent.toml and restart \`epito run\`.` } };
       }
 
       if (route === "hook") {

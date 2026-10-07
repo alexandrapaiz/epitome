@@ -6,11 +6,10 @@
 # (prompts/pm-agent.md). Scopes are a ceiling (spec rule 2), so the other
 # four do not get it just because this one does.
 #
-# The workflow's open road (ANTHROPIC_BASE_URL from the OPENROUTE_BASE_URL
-# secret, gated on the OPEN_ROUTING repo variable) is NOT written here, and
-# it is not an omission: [[runtime.route]].base_url is a literal URL, and
-# this company holds its endpoint as a secret. See agents/README.md, "what
-# did not translate", and the new open question in spec/manifest.md.
+# The workflow's open road IS written here now, at the bottom: the open question
+# that blocked it ("a route endpoint that is a NAME, not a URL") was answered by
+# spec v0.2's `base_url_env` on 2026-10-07, and this seat is one of the three
+# that asked for it.
 
 [agent]
 name = "pm"
@@ -28,4 +27,30 @@ model = "claude-sonnet-5"
 entry = "prompts/pm-agent.md"
 repo = "alexandrapaiz/epitome"
 max_turns = 100
-env = ["SLACK_WEBHOOK_URL", "BOARD_API_URL", "BOARD_RUNTIME_TOKEN", "LINEAR_API_KEY"]
+env = ["SLACK_WEBHOOK_URL", "BOARD_API_URL", "BOARD_RUNTIME_TOKEN", "LINEAR_API_KEY", "OPENROUTE_BASE_URL", "OPENROUTE_API_KEY"]
+
+# The open road, finally writable (spec v0.2). Two roads, tried in order, which
+# is what this seat's workflow does with eleven lines of YAML and a
+# `continue-on-error: true`: the cheap model first, the subscription under it.
+#
+# `base_url_env` is why this could not be written before. The endpoint is held
+# as a repository secret, so a literal `base_url` would have put in git the one
+# value that is deliberately not in git; the field names the variable instead,
+# and `[runtime].env` lists it the way it lists the key.
+#
+# Two things in the workflow still do not translate, and neither is a missing
+# field. `vars.OPEN_ROUTING` is a manual kill switch a human flips; on the
+# runtime the equivalent is removing the key from the box, because a road whose
+# credential is absent is skipped by rule, out loud, in the run log. And
+# `vars.OPENROUTE_MODEL || 'kimi-k2.7-code'` is an override with a default —
+# the manifest writes the default, because which model a seat runs on is the
+# thing a manifest is for, and an override is a box talking.
+[[runtime.route]]
+name = "open"
+model = "kimi-k2.7-code"
+base_url_env = "OPENROUTE_BASE_URL"
+token_env = "OPENROUTE_API_KEY"
+
+[[runtime.route]]
+name = "subscription"
+model = "claude-sonnet-5"

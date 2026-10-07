@@ -11,6 +11,15 @@
 //
 // The freeze is what earns the right to say no. These helpers are that no.
 
+// The version of spec/manifest.md this build implements, in ONE place because
+// a dozen error messages name it and the field list inside them is generated.
+// When v0.2 added `base_url_env`, every message that said "v0.1's
+// [[runtime.route]] is: ..." would have listed the new field under the old
+// version's name — the validator telling a reader to check a spec that does
+// not have what it just offered. `cli/test/unit.mjs` asserts this string
+// matches the heading of spec/manifest.md, so the two cannot drift.
+export const SPEC_VERSION = "v0.2";
+
 // Levenshtein, bounded: we only ever ask "is this within two edits", so the
 // full matrix is never interesting and a row pair is enough.
 function distance(a, b) {
@@ -38,7 +47,7 @@ export function nearest(key, known) {
   return best;
 }
 
-// Every key in `table` that spec v0.1 does not define, as sentences.
+// Every key in `table` that the current spec does not define, as sentences.
 //
 // `where` is how the reader finds the line: "[runtime]", "[agent]",
 // "[[runtime.route]] #2". `retired` maps a key that WAS in the v0.1 draft to
@@ -52,11 +61,11 @@ export function unknownKeys(table, known, where, retired = {}) {
     if (retired[key]) { errors.push(retired[key]); continue; }
     const guess = nearest(key, known);
     errors.push(
-      `${where}.${key} is not a field in manifest spec v0.1, so nothing reads it — ` +
+      `${where}.${key} is not a field in manifest spec ${SPEC_VERSION}, so nothing reads it — ` +
       (guess
         ? `did you mean ${where}.${guess}? Fix: correct the spelling, or drop the line.`
         : `a field the spec does not define is one the runtime will never act on. Fix: drop the line.`) +
-      ` v0.1's ${where} is: ${[...known].sort().join(", ")}.`
+      ` ${SPEC_VERSION}'s ${where} is: ${[...known].sort().join(", ")}.`
     );
   }
   return errors;

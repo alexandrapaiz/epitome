@@ -14,7 +14,7 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
 
   epito init [name]   scaffold agent.toml and a charter (alias: epito me)
   epito validate [dir]
-                      check agent.toml against spec v0.1, and name what the
+                      check agent.toml against the manifest spec, and name what the
                       runtime will still need before it can run this agent.
                       Given a directory, check the WHOLE ROSTER — every
                       manifest under it plus the rules about the set — needing
