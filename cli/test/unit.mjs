@@ -1588,6 +1588,50 @@ test("the detour: no key on this box means the closed road is announced, not att
   assert.match(r.logged, /route "kimi" \(kimi-k2-turbo-preview\) skipped: MOONSHOT_API_KEY is not set/);
 });
 
+// A named endpoint, end to end: the child is really pointed at the address the
+// box holds, and nothing that gets written down knows what it is. The stub
+// echoes ANTHROPIC_BASE_URL back in its result on purpose, which is both how
+// this test can see where the child went and exactly what a provider error
+// path does — so the same line proves the pointing and the scrubbing.
+const GATEWAY = "https://gw-unit-7f3a1c.invalid/anthropic";
+const gatedSeat = (over = {}) => stubSeat({
+  env: ["OPENROUTE_BASE_URL", "OPENROUTE_API_KEY", "EPITO_STUB_DIR", "EPITO_STUB_REFUSE_BASE_URL", "EPITO_STUB_ECHO_ROUTE"],
+  route: [
+    { name: "open", model: "kimi-k2.7-code", base_url_env: "OPENROUTE_BASE_URL", token_env: "OPENROUTE_API_KEY" },
+    { name: "subscription", model: "claude-opus-5" },
+  ],
+  ...over,
+});
+
+test("the detour: a road whose endpoint is a NAME points the child at it, and writes down neither", async () => {
+  const r = await stubRun(gatedSeat(), {}, {
+    OPENROUTE_BASE_URL: GATEWAY, OPENROUTE_API_KEY: "sk-gateway-unit-key", EPITO_STUB_ECHO_ROUTE: "1",
+  });
+  assert.equal(r.exit, 0);
+  assert.equal(r.route, "open", "the cheap road opened, because the box holds both halves of it");
+  assert.match(r.logged, /model=kimi-k2\.7-code endpoint=\$OPENROUTE_BASE_URL key=\$OPENROUTE_API_KEY/,
+    "the log names the variables, which is the half an operator acts on");
+  assert.ok(!r.logged.includes(GATEWAY),
+    "and never the address — the child echoed it straight back and the scrubber caught it");
+  assert.match(r.logged, /endpoint=\[redacted: \$OPENROUTE_BASE_URL, the endpoint for route open\]/,
+    "the redaction says which secret stood there, the way it already does for a key");
+  assert.doesNotMatch(r.logged, /sk-gateway-unit-key/);
+});
+
+test("the detour: an endpoint set to the wrong thing is announced as a typo, and the run still happens", async () => {
+  const said = [];
+  const r = await stubRun(gatedSeat(), { log: (m) => said.push(m) }, {
+    OPENROUTE_BASE_URL: "gw-unit-7f3a1c.invalid", OPENROUTE_API_KEY: "sk-gateway-unit-key", EPITO_STUB_ECHO_ROUTE: "1",
+  });
+  assert.equal(r.exit, 0, "a run in progress never refuses over a road it has an alternative to");
+  assert.equal(r.route, "subscription");
+  assert.equal(r.attempts.length, 1, "a closed road is not an attempt, however it came to be closed");
+  assert.ok(said.some((m) => /configured on this machine and configured wrongly/.test(m)),
+    "the operator-facing line separates a box that never had it from a box that has it wrong");
+  assert.ok(said.some((m) => /Fix: set OPENROUTE_BASE_URL to the address scheme and all/.test(m)));
+  assert.ok(!said.join("\n").includes("gw-unit-7f3a1c.invalid"), "and still prints no value");
+});
+
 test("the detour: a seat with every road closed refuses the run and names each one", async () => {
   const seatNoFloor = stubSeat({ route: [{ name: "kimi", base_url: "https://api.moonshot.ai/anthropic", token_env: "MOONSHOT_API_KEY" }] });
   const r = await stubRun(seatNoFloor, {}, { MOONSHOT_API_KEY: "" });
