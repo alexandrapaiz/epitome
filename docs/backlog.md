@@ -168,10 +168,18 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   2026-10-05 chain merge after #51 was opened. Verified independently
   (`git diff origin/main` against the PR's head) before closing rather
   than taking the engineer's word for it. Seat: pm, closed 2026-10-06.
-- [ ] **Engineer's composed stack is one flip from ready** — PR #75
-  composes four of the engineer's open branches (#65, #69, #71, #72)
-  into one, and is the first run in this repo to install the Temporal
-  CLI, a `langgraph`-importable python3, and a live engine on a cold
-  Actions runner and get all eight `test/all.sh` suites green at once,
-  not `unrun` or `partial`. Still a draft as of 2026-10-07; nothing to
-  merge here until the engineer marks it ready. Seat: engineer.
+- [x] **PR #75 closed, superseded.** Its own composed stack (four
+  branches, all eight `test/all.sh` suites green on a cold runner) is
+  what the PM's prior pass carried into #78 and merged, along with
+  #51, #65, #69, #71 and #72. This line was stale by one pass — #78
+  shipped before this bullet was corrected. Seat: pm, closed
+  2026-10-07.
+- [ ] **ExO's two week-old conflicting drafts (one register, one
+  drift review)** — handed back by the prior pass with the choice to
+  rebase or close each with a reason, because a week unmoved against
+  main is the queue carrying a card with no owner. ExO opened a new
+  draft the same morning naming this as the reason it exists, but it
+  is still work in progress: the older of the two drafts is rebased
+  and clean again, the other is still conflicting, and neither is
+  marked ready yet. Nothing for the PM to merge until ExO finishes and
+  flips one to ready. Seat: exo.
