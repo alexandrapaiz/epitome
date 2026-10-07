@@ -124,13 +124,16 @@ check "epito validate works and ticks, exit 0"     "[ $RC = 0 ] && said '✓'"
 # --- the ✓ must not overclaim. $WORK is a bare temp directory with no git
 # origin, so init cannot know [runtime].repo and leaves it commented out --
 # which is exactly the manifest that used to tick here and then get refused by
-# the four commands below. The tick stays (spec v0.1 says this file is valid);
+# the four commands below. The tick stays (the spec says this file is valid);
 # what it now also does is say what the runtime will still need.
 check "init says it could not read [runtime].repo here" "grep -q '^# repo = \"owner/name\"' '$WORK/agent.toml'"
 check "the ✓ names what is still missing"            "said 'not ready to run'"
 check "...and which commands will refuse it"          "said 'epito run' && said 'epito deploy' && said 'epito token'"
 check "...and the fix, in the field's own words"      "said 'repo = \"owner/name\"'"
-check "...without claiming the file is invalid"       "[ $RC = 0 ] && said 'valid v0.1 manifest either way'"
+# The version in that sentence comes from SPEC_VERSION, not from this script:
+# the packed tarball is the one place a stale copy of the catalogue would ship.
+SPEC_V="$(grep -o 'spec v[0-9]*\.[0-9]*' "$CLI/../spec/manifest.md" | head -1 | sed 's/spec //')"
+check "...without claiming the file is invalid"       "[ $RC = 0 ] && said 'valid $SPEC_V manifest either way'"
 run_epito validate --for-runtime
 check "--for-runtime makes the same note an error"    "[ $RC = 1 ] && said 'the runtime would accept this manifest, and it would not'"
 

@@ -22,13 +22,17 @@ Each file was translated **field by field** from the workflow beside it, and
 manifest that no longer matches the `--model` and `--max-turns` its workflow
 passes is a dogfood that proves nothing.
 
-| Seat | Schedule | Model | Turn cap | Translated from |
+| Seat | Schedule | Road(s) to a model | Turn cap | Translated from |
 |---|---|---|---|---|
 | `engineer` | `46 11,23 * * *` | claude-opus-5 | 150 | `agent-engineer.yml` |
-| `pm` | `0 12 * * 1` | claude-sonnet-5 | 100 | `agent-pm.yml` |
-| `market` | `0 12 * * 5` | claude-sonnet-5 | 100 | `agent-market.yml` |
-| `okr` | `0 12 1 * *` | claude-sonnet-5 | 80 | `agent-okr.yml` |
+| `pm` | `0 12 * * 1` | kimi-k2.7-code → claude-sonnet-5 | 100 | `agent-pm.yml` |
+| `market` | `0 12 * * 5` | kimi-k2.7-code → claude-sonnet-5 | 100 | `agent-market.yml` |
+| `okr` | `0 12 1 * *` | kimi-k2.7-code → claude-sonnet-5 | 80 | `agent-okr.yml` |
 | `exo` | none — presence only | claude-opus-5 | 120 | `agent-exo.yml` |
+
+The arrow is a route chain: the cheap road first, the subscription under it,
+tried in that order (ADR-19). Three seats have one; two do not, because their
+workflows do not either.
 
 ## Three things the translation had to decide
 
@@ -61,30 +65,47 @@ happens to inject rather than of what the agent needs, and rule 2's spirit —
 the ceiling is declared, and widening it is a diff — is worth more than the
 convenience.
 
-## What did not translate, and why that is a finding and not an omission
+## The open road: the finding that became a field
 
-**The open road.** `pm`, `market` and `okr` each have a second, cheaper road
-in Actions: `ANTHROPIC_BASE_URL` set from the `OPENROUTE_BASE_URL` secret,
-gated on the `OPEN_ROUTING` repo variable. `[[runtime.route]]` is exactly the
-field for that — except `base_url` is a **literal URL**, and this company
-holds its endpoint as a secret. There is no `base_url_env`, so the road cannot
-be written here without putting a value in git that is deliberately not in
-git. The three manifests therefore declare one road each, which is honest
-about what they can express and not about what the seats do.
+**This was the one thing the roster could not say, and now it says it.**
+`pm`, `market` and `okr` each have a second, cheaper road in Actions:
+`ANTHROPIC_BASE_URL` set from the `OPENROUTE_BASE_URL` secret, gated on the
+`OPEN_ROUTING` repo variable. `[[runtime.route]]` was exactly the field for it
+— except `base_url` was a **literal URL**, and this company holds its endpoint
+as a secret, so writing the road here meant putting in git the one value that
+is deliberately not in git. The three manifests declared one road each and said
+so in a comment, which was honest about what they could express and not about
+what the seats do.
 
-This is now an open question in `spec/manifest.md` rather than a field
-invented on the spot: v0.1 is frozen, and the freeze's whole point is that new
-fields go through a question and a spec change before code.
+That is what an open question is for. It was recorded in `spec/manifest.md` on
+the day of the freeze, this roster is what proved it needed answering, and
+**spec v0.2 answered it on 2026-10-07 with one field, `base_url_env`** — a
+name, beside `token_env`, under the same rule. The three manifests now carry
+the road they actually take, and `epito routes` is what reads it back per box.
+The whole path, question → evidence → spec change → code, is the freeze's
+process working rather than a field invented on the spot.
 
-Worth recording beside it: the Actions gate is a **manual variable** a human
-flips, and its comment says why — "every Kimi attempt so far has died at turn
-one (2026-09-21 x2, 2026-09-24 epitome pm) and each doomed attempt burned ~3
-minutes before the Claude fallback took over." ADR-19's rule is *fall back
-only when the attempt ended with no pull request and at most one turn*, which
-is that failure exactly. The runtime would have taken the detour by itself.
+**Two things in those workflows still do not translate, and neither is a
+missing field.**
 
-**The tripwire and the Slack post.** Both workflows' trailing steps are the
-runtime's own job on epitod: it files each run's report to the board and posts
+`vars.OPEN_ROUTING` is a **manual kill switch** a human flips, and its comment
+says why — "every Kimi attempt so far has died at turn one (2026-09-21 x2,
+2026-09-24 epitome pm) and each doomed attempt burned ~3 minutes before the
+Claude fallback took over." ADR-19's rule is *fall back only when the attempt
+ended with no pull request and at most one turn*, which is that failure
+exactly: the runtime would have taken the detour by itself, which is the point
+of it being in the runtime. On a box the switch is removing the key, and a road
+whose credential is absent is skipped by rule, out loud, in the run log — so
+the gate exists and is not a field.
+
+`vars.OPENROUTE_MODEL || 'kimi-k2.7-code'` is an **override with a default**.
+The manifests write the default, because which model a seat runs on is the
+thing a manifest is for and an override is a box talking. A company that wants
+the other model changes three files and the change is a diff — which is rule
+2's spirit applied to the model the way it already applies to scopes.
+
+**The tripwire and the Slack post**, for completeness: both workflows'
+trailing steps are the runtime's own job on epitod: it files each run's report to the board and posts
 the one-line window itself (`slack_webhook_env`, `epito board`). Nothing in a
 manifest replaces them because nothing has to.
 

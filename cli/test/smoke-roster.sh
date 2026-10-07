@@ -21,14 +21,17 @@
 #
 # What it proves:
 #
-#   1. every manifest in agents/ is a valid v0.1 manifest, and the strict gate
+#   1. every manifest in agents/ is a valid manifest against the current spec,
+#      and the strict gate
 #      (`--for-runtime`) passes too: nothing in the real roster relies on the
 #      validator's permissive half
 #   2. the ✓ is CLEAN — no note telling a seat to commit a charter that is
 #      already committed (the roster layout bug), and the note still fires for
 #      a charter that really is absent
 #   3. the roster loads WHOLE: `epito routes` names all five, and the names,
-#      models and max_turns match the workflow each was translated from
+#      models, max_turns and ROUTE CHAINS match the workflow each was
+#      translated from — including that the endpoint a seat holds as a secret
+#      is read back by name and never printed
 #   4. `epito run agents --dry-run` plans four schedules and one presence-only
 #      seat, EXITS 0, and writes NOTHING — not to the engine, not to the ledger
 #   5. `epito token` and `epito deploy` agree with the manifests about scopes,
@@ -63,7 +66,7 @@ SEATS=""
 for d in "$AGENTS"/*/; do [ -d "$d" ] || continue; SEATS="$SEATS$(basename "$d") "; done
 [ -n "${SEATS// /}" ] || { echo "smoke: SKIPPED — agents/ holds no seat directories"; exit 0; }
 
-step "1. every seat in the real roster is a valid v0.1 manifest, strictly"
+step "1. every seat in the real roster is a valid manifest, strictly"
 for s in $SEATS; do
   [ -f "$AGENTS/$s/agent.toml" ] || { bad "$s has an agent.toml"; continue; }
   out="$(cd "$AGENTS/$s" && $E validate 2>&1)"; rc=$?
@@ -130,6 +133,86 @@ for s in $SEATS; do
   w="$(wf "$s")"; m="$(grep -E '^max_turns' "$AGENTS/$s/agent.toml" | grep -o '[0-9]*' || true)"
   if [ -n "$w" ]; then check "$s max_turns=$m matches its workflow's --max-turns $w" "[ \"$m\" = \"$w\" ]"; fi
 done
+# The open road, which is the one thing this roster could not express until
+# spec v0.2 (agents/README.md, "the open road"). A seat whose workflow has an
+# open-routed step must declare the chain, and a seat whose workflow has none
+# must not have invented one — the asymmetry is the translation, and a dogfood
+# that drifted from the YAML it replaces proves nothing.
+for s in $SEATS; do
+  wf="$ROOT/.github/workflows/agent-$s.yml"
+  [ -f "$wf" ] || continue
+  if grep -q 'ANTHROPIC_BASE_URL' "$wf"; then
+    check "$s declares the open road its workflow takes" \
+      "grep -q 'base_url_env = \"OPENROUTE_BASE_URL\"' '$AGENTS/$s/agent.toml'"
+    check "$s names the key, not the key's value" \
+      "grep -q 'token_env = \"OPENROUTE_API_KEY\"' '$AGENTS/$s/agent.toml'"
+    check "$s injects both names, so both can resolve on a box" \
+      "grep -E '^env =' '$AGENTS/$s/agent.toml' | grep -q 'OPENROUTE_BASE_URL' && grep -E '^env =' '$AGENTS/$s/agent.toml' | grep -q 'OPENROUTE_API_KEY'"
+    wfmodel="$(grep -o "OPENROUTE_MODEL || '[^']*'" "$wf" | head -1 | sed "s/.*'\(.*\)'/\1/")"
+    if [ -n "$wfmodel" ]; then
+      check "$s's open road is the model its workflow defaults to ($wfmodel)" \
+        "grep -q 'model = \"$wfmodel\"' '$AGENTS/$s/agent.toml'"
+    fi
+    check "$s keeps the subscription under it as the floor" \
+      "grep -q 'name = \"subscription\"' '$AGENTS/$s/agent.toml'"
+  else
+    check "$s declares no route chain, because its workflow has no second road" \
+      "! grep -q 'runtime.route' '$AGENTS/$s/agent.toml'"
+  fi
+done
+
+# The promise of naming an endpoint instead of writing it: the command that
+# reads the roster back on a box prints the NAME even when the box holds the
+# value. If this ever prints the URL, the field bought nothing.
+#
+# Written with plain if/then rather than `check`, because these conditions grep
+# for a literal `$OPENROUTE_BASE_URL` and `check` evals its argument — a `$` in
+# an eval'd string is a variable, and under `set -u` the first draft of this
+# died with "OPENROUTE_BASE_URL: unbound variable" while testing that the
+# product prints that exact text.
+routed_seat=""
+for s in $SEATS; do
+  if grep -q 'base_url_env' "$AGENTS/$s/agent.toml"; then routed_seat="$s"; break; fi
+done
+if [ -n "$routed_seat" ]; then
+  SECRET_URL="https://gw-smoke-$$.invalid/anthropic"
+  export OPENROUTE_API_KEY="sk-smoke-$$"
+
+  OPENROUTE_BASE_URL="$SECRET_URL" $E routes "$AGENTS" >"$TMP/routes-set.txt" 2>&1
+  rsrc=$?
+  if [ $rsrc -eq 0 ] && grep -q "^$routed_seat .* takes open" "$TMP/routes-set.txt"
+    then ok   "with both secrets on the box, $routed_seat takes the open road (exit 0)"
+    else bad  "with both secrets on the box, $routed_seat takes the open road (exit 0) [exit $rsrc]"
+  fi
+  if grep -qF 'at $OPENROUTE_BASE_URL' "$TMP/routes-set.txt" && ! grep -qF "$SECRET_URL" "$TMP/routes-set.txt"
+    then ok   'the endpoint is read back as $OPENROUTE_BASE_URL, never as its value'
+    else bad  'the endpoint is read back as $OPENROUTE_BASE_URL, never as its value'
+  fi
+
+  # The third outcome: set, and set wrong. The seat still runs on the floor, and
+  # `epito routes` is the one place that refuses, so the typo is not silent.
+  OPENROUTE_BASE_URL="gw-smoke-$$.invalid" $E routes "$AGENTS" >"$TMP/routes-bad.txt" 2>&1
+  rbrc=$?
+  if [ $rbrc -eq 1 ]
+    then ok  "an endpoint set to a non-URL exits 1 rather than falling through in silence"
+    else bad "an endpoint set to a non-URL exits 1 rather than falling through in silence [exit $rbrc]"
+  fi
+  if grep -q 'configured and configured wrongly' "$TMP/routes-bad.txt" \
+     && grep -q 'Fix: set OPENROUTE_BASE_URL' "$TMP/routes-bad.txt"
+    then ok  "...and the refusal names the variable and the fix"
+    else bad "...and the refusal names the variable and the fix"
+  fi
+  if grep -q "^$routed_seat .* takes subscription" "$TMP/routes-bad.txt"
+    then ok  "...while the seat still has a road, so nothing stops running"
+    else bad "...while the seat still has a road, so nothing stops running"
+  fi
+  if ! grep -qF "gw-smoke-$$.invalid" "$TMP/routes-bad.txt"
+    then ok  "...and even the wrong value is not printed back"
+    else bad "...and even the wrong value is not printed back"
+  fi
+  unset OPENROUTE_API_KEY
+fi
+
 check "the engineer's two workflow crons are one expression here" "grep -q '46 11,23 \* \* \*' '$AGENTS/engineer/agent.toml'"
 check "exo has no cron (its workflow's schedule block is commented out)" "! grep -qE '^cron' '$AGENTS/exo/agent.toml'"
 check "exo is still triggerable: webhook = true" "grep -q 'webhook = true' '$AGENTS/exo/agent.toml'"

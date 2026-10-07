@@ -35,8 +35,10 @@ import {
 import { createServer as createTcpServer } from "node:net";
 import {
   routesFor, routeErrors, liveRoutes, noRouteMessage, anthropicRouteEnv, routeFacts,
+  resolveEndpoint, endpointLabel,
   classifyAttempt, withLane, DEFAULT_ROUTE, ROUTE_FIELDS,
 } from "../src/lib/router.js";
+import { SPEC_VERSION } from "../src/lib/fields.js";
 import {
   traceConfig, traceIdFor, spanIdFor, traceparentFor, childTraceEnv, attributes,
   span, payload, emit, parseHeaders, traceNote, resetQuiet,
@@ -278,6 +280,9 @@ const ROUTE_REFUSALS = [
   ["route model missing",    { runtime: { model: undefined, route: [{ name: "k" }] } }],
   ["base_url not a URL",     { runtime: { route: [{ name: "k", model: "m", base_url: "moonshot.ai" }] } }],
   ["base_url holds a key",   { runtime: { route: [{ name: "k", model: "m", base_url: "https://u:p@x.ai" }] } }],
+  ["base_url_env shape",     { runtime: { route: [{ name: "k", model: "m", base_url_env: "my var" }] } }],
+  ["base_url_env unlisted",  { runtime: { route: [{ name: "k", model: "m", base_url_env: "GATEWAY_URL" }] } }],
+  ["base_url_env + base_url", { runtime: { env: ["GATEWAY_URL"], route: [{ name: "k", model: "m", base_url_env: "GATEWAY_URL", base_url: "https://x.ai" }] } }],
   ["token_env shape",        { runtime: { route: [{ name: "k", model: "m", token_env: "my key" }] } }],
   ["token_env unlisted",     { runtime: { route: [{ name: "k", model: "m", token_env: "KIMI_KEY" }] } }],
   ["concurrency shape",      { runtime: { route: [{ name: "k", model: "m", concurrency: 0 }] } }],
@@ -1314,6 +1319,135 @@ test("router: every road closed is a refusal that names all of them and the fix"
   assert.match(msg, /the subscription is the floor/);
 });
 
+// --- base_url_env: an endpoint that is a NAME (spec v0.2) -----------------
+//
+// The field this company's own roster asked for. `pm`, `market` and `okr` take
+// a cheaper road whose ADDRESS is the confidential part, so a literal
+// `base_url` would have put the one value that is deliberately not in git into
+// a file whose whole promise is that it is publishable.
+//
+// Everything below is one of three claims: the manifest side is `token_env`'s
+// rule exactly; the box side has THREE outcomes rather than two, because a
+// variable set to the wrong thing is not the same as a variable nobody set;
+// and the resolved address is never written down anywhere.
+
+const gated = (over = {}) => ({
+  agent: { name: "pm", description: "A seat." },
+  identity: { scopes: ["github:contents"] },
+  trigger: { cron: "0 6 * * *" },
+  runtime: {
+    model: "claude-opus-5", entry: "prompts/pm.md", repo: "acme/roster",
+    env: ["OPENROUTE_BASE_URL", "OPENROUTE_API_KEY"],
+    route: [
+      { name: "open", model: "kimi-k2.7-code", base_url_env: "OPENROUTE_BASE_URL", token_env: "OPENROUTE_API_KEY" },
+      { name: "subscription", model: "claude-opus-5" },
+    ],
+    ...over,
+  },
+});
+const BOX = { OPENROUTE_BASE_URL: "https://gateway.example.com/anthropic", OPENROUTE_API_KEY: "sk-test" };
+
+test("base_url_env: the manifest carries the NAME and resolves nothing, so validate works standing anywhere", () => {
+  const [open] = routesFor(gated());
+  assert.equal(open.baseUrlEnv, "OPENROUTE_BASE_URL");
+  assert.equal(open.baseUrl, null, "resolving in routesFor would make the reader depend on the box it is read on");
+  assert.deepEqual(routeErrors(gated()), [], "and the road is legal");
+});
+
+test("base_url_env: a name the manifest does not inject can never resolve to an endpoint", () => {
+  const errs = routeErrors(gated({ env: ["OPENROUTE_API_KEY"] }));
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /base_url_env names "OPENROUTE_BASE_URL".*must also be listed in \[runtime\]\.env/s);
+  assert.match(errs[0], /Fix: add "OPENROUTE_BASE_URL" to \[runtime\]\.env/, "token_env's rule, and token_env's fix");
+});
+
+test("base_url_env: a value where a name belongs is refused, and the message says which field wants a URL", () => {
+  const errs = routeErrors(gated({ route: [{ name: "open", model: "m", base_url_env: "https://gateway.example.com" }] }));
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /must be the NAME of an environment variable/);
+  assert.match(errs[0], /use base_url = "https:\/\/\.\.\." instead if the endpoint is a public URL/,
+    "the reader who wanted the other field is told which one it is");
+});
+
+test("base_url_env: a road with two endpoints is refused — nothing says which one the runtime takes", () => {
+  const errs = routeErrors(gated({
+    route: [{ name: "open", model: "m", base_url_env: "OPENROUTE_BASE_URL", base_url: "https://api.moonshot.ai/anthropic" }],
+  }));
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /declares both base_url and base_url_env/);
+  assert.match(errs[0], /keep base_url_env .* if the endpoint is confidential/s, "both halves of the fix, so either reader can act");
+});
+
+test("base_url_env: an absent variable closes the road exactly the way an absent key does", () => {
+  const { live, skipped } = liveRoutes(routesFor(gated()), { OPENROUTE_API_KEY: "sk-test" });
+  assert.deepEqual(live.map((r) => r.name), ["subscription"], "an endpoint you do not have is a road you cannot take");
+  assert.match(skipped[0].reason, /OPENROUTE_BASE_URL is not set on this machine/);
+  assert.equal(skipped[0].misconfigured, false, "a box that never had it is routing working as designed");
+});
+
+test("base_url_env: a variable set to something that is NOT an endpoint is a typo, not an absence", () => {
+  // Values chosen so that nothing in the message could contain one by accident:
+  // the first draft of this test used "gateway.example.com" and failed on the
+  // message's own `e.g. https://gateway.example.com/...`, which is a collision
+  // and not a leak — but a no-leak assertion that can pass by coincidence is
+  // worth no more than no assertion.
+  for (const bad of ["internal-gw-7f3a1c.corp", "ftp://internal-gw-7f3a1c.corp", "not a url at all"]) {
+    const { live, skipped } = liveRoutes(routesFor(gated()), { ...BOX, OPENROUTE_BASE_URL: bad });
+    assert.deepEqual(live.map((r) => r.name), ["subscription"], `the run still happens: ${bad}`);
+    assert.equal(skipped[0].misconfigured, true, `and somebody has to go fix it: ${bad}`);
+    assert.match(skipped[0].reason, /is set on this machine but does not hold an http\(s\) URL/);
+    assert.match(skipped[0].reason, /Fix: set OPENROUTE_BASE_URL to the address scheme and all/);
+    assert.ok(!skipped[0].reason.includes(bad),
+      "the value is printed nowhere, which is the entire reason the manifest named a variable");
+  }
+});
+
+test("base_url_env: a URL with a credential in it closes the road, because the endpoint IS logged", () => {
+  const { skipped } = liveRoutes(routesFor(gated()), { ...BOX, OPENROUTE_BASE_URL: "https://u:sk-live-abc@gateway.example.com" });
+  assert.equal(skipped[0].misconfigured, true);
+  assert.match(skipped[0].reason, /holds a URL with a credential in it/);
+  assert.match(skipped[0].reason, /name the key with token_env, which is never logged/, "the other field is the fix");
+  assert.ok(!skipped[0].reason.includes("sk-live-abc"), "and the refusal does not leak what it is refusing");
+});
+
+test("base_url_env: a live road comes back resolved, so nothing downstream asks how it was spelled", () => {
+  const { live } = liveRoutes(routesFor(gated()), BOX);
+  assert.deepEqual(live.map((r) => r.name), ["open", "subscription"]);
+  assert.equal(live[0].baseUrl, "https://gateway.example.com/anthropic");
+  assert.deepEqual(anthropicRouteEnv(live[0], BOX), {
+    ANTHROPIC_BASE_URL: "https://gateway.example.com/anthropic", ANTHROPIC_AUTH_TOKEN: "sk-test",
+  }, "exactly what the workflow sets by hand from the same two secrets");
+  assert.equal(routeFacts(live[0]).EPITO_BASE_URL, "https://gateway.example.com/anthropic",
+    "a foreign adapter reads one field whichever way the manifest wrote it");
+});
+
+test("base_url_env: a log says $NAME and never the address", () => {
+  const { live } = liveRoutes(routesFor(gated()), BOX);
+  assert.equal(endpointLabel(live[0]), "$OPENROUTE_BASE_URL",
+    "the name is the half an operator has to act on, and the only half that is safe in a file");
+  assert.equal(endpointLabel(routesFor(routed())[0]), "https://api.moonshot.ai/anthropic",
+    "a public provider's published URL is still printed as itself");
+  assert.equal(endpointLabel(routesFor(routed())[1]), null);
+});
+
+test("base_url_env: resolveEndpoint is the one answer, and a literal road passes through it unchanged", () => {
+  const [kimi, sub] = routesFor(routed());
+  assert.deepEqual(resolveEndpoint(kimi, {}), { url: "https://api.moonshot.ai/anthropic", problem: null, misconfigured: false });
+  assert.deepEqual(resolveEndpoint(sub, {}), { url: null, problem: null, misconfigured: false });
+});
+
+test("base_url_env: stranded by a typo gets the stronger fix, not \"set one of those keys\"", () => {
+  const one = routesFor(gated({ route: [{ name: "open", model: "m", base_url_env: "OPENROUTE_BASE_URL" }] }));
+  const { live, skipped } = liveRoutes(one, { OPENROUTE_BASE_URL: "gateway.example.com" });
+  assert.equal(live.length, 0);
+  const msg = noRouteMessage("pm", skipped);
+  assert.match(msg, /"open" is configured on this box and configured wrongly/);
+  assert.doesNotMatch(msg, /Fix: set one of those keys/,
+    "useless advice to the operator who set one and got the value wrong");
+  // And the ordinary case keeps the ordinary sentence.
+  assert.match(noRouteMessage("pm", liveRoutes(one, {}).skipped), /Fix: set one of those keys on the box/);
+});
+
 test("router: the endpoint and the key reach the claude CLI under the names it reads", () => {
   const [kimi, sub] = routesFor(routed());
   assert.deepEqual(anthropicRouteEnv(kimi, { MOONSHOT_API_KEY: "sk-test" }), {
@@ -1545,6 +1679,19 @@ for (const shape of SHAPES) {
     assert.deepEqual(errors, [], errors.join("\n"));
   });
 }
+
+// The one thing a version constant can get wrong: being a different version
+// from the document it names. Every "not a field in manifest spec X" message
+// generates its field list from the catalogue, so a stale constant makes the
+// validator offer a field and then send the reader to a spec without it.
+test("SPEC_VERSION is the version spec/manifest.md's own heading claims", () => {
+  const spec = readFileSync(new URL("../../spec/manifest.md", import.meta.url), "utf8");
+  const heading = spec.split("\n", 1)[0];
+  const claimed = heading.match(/spec (v\d+\.\d+)/)?.[1];
+  assert.ok(claimed, `spec/manifest.md's first line does not name a version: ${heading}`);
+  assert.equal(SPEC_VERSION, claimed,
+    "the code implements one version and the document is another — one of the two moved alone");
+});
 
 test("every field in the frozen catalogue is needed by at least one of the three shapes", () => {
   const used = { agent: new Set(), identity: new Set(), trigger: new Set(), runtime: new Set() };
