@@ -123,18 +123,22 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   just pending.*
 - [ ] **Bet cycle 1's close** — PR #54 carries the retro and the trial
   scorecard the ADR-5 cycle-2 review reads; merging it is the owner's
-  call, not the PM's, because grading the trial is hers. *Open since
-  2026-10-05, conflicting against main as of 2026-10-06 — needs a
-  rebase before it can merge either way.*
+  call, not the PM's, because grading the trial is hers. *Rebased onto
+  current main this pass (was conflicting since 2026-10-06) — clean and
+  mergeable as of 2026-10-07. No technical blocker left; this is purely
+  her reading and her grade now.*
 - [ ] **Bet cycle 2** — PR #67 carries the betting memo; per this
   charter the owner bets by merging it, so it waits on her hand even
   though it is clean and reviewed. *Open since 2026-10-05. Cooldown
-  closes today (2026-10-06); cycle 2 cannot open until this merges.*
+  closed 2026-10-06 and today (2026-10-07) is the first day past it with
+  cycle 2 still not bet — the gap is no longer "cooldown's last day,"
+  it is cycle 2 running late.*
 - [ ] **Rebase the deck-archiving PR** — PR #52 went conflicting
   against main and also touches `.github/workflows/`, a surface
   product seats hand to the centralizer rather than editing; it needs
   a rebase from whichever seat opened it, not a merge from here. *Open
-  since 2026-09-30, still conflicting as of 2026-10-06.*
+  since 2026-09-30 (now over a week), still conflicting as of
+  2026-10-07.*
 - [ ] **Three register entries and three charter-patch diffs from the
   2026-10-05 drift review** (PR #50, merged this pass) — the lessons
   and the drift note are now on main; the three patches
@@ -150,9 +154,24 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   are owner- or exo-edited only. Seat: pm (flagged), decision: owner
   or exo.
 - [x] ~~This seat's own knowledge-surface pull requests cannot land
-  themselves~~ — resolved this pass: the consolidated pull request
-  (#73) that asked HQ's PM by name to merge it did get merged, by
-  HQ's PM, inside one pass. The ask route the standard names for a
-  PM's own stuck Tier B work is proven to work when actually invoked;
-  this is not a standing gap any more, just a reminder to ask by name
-  again if a future own-PR sits past one pass.
+  themselves~~ — resolved twice now: #73 and #74 both carried real
+  backlog edits, both got asked for by name, and both got merged (#73
+  by HQ's PM, #74 by a chair, each inside a pass or two of the ask
+  landing). This run folds a third copy (#76, superseded below) into
+  itself rather than letting it become a fourth open PM PR waiting on
+  the same ask. The ask route is proven twice over; the only live risk
+  is this seat forgetting to use it.
+- [x] **PR #51 closed, superseded.** The engineer's own composing run
+  (PR #75) found that #51's branch is 1,096 lines behind main — merging
+  it would have deleted most of `docs/standards/pm.md`,
+  `prompts/exo-agent.md`, and other content that landed in the
+  2026-10-05 chain merge after #51 was opened. Verified independently
+  (`git diff origin/main` against the PR's head) before closing rather
+  than taking the engineer's word for it. Seat: pm, closed 2026-10-06.
+- [ ] **Engineer's composed stack is one flip from ready** — PR #75
+  composes four of the engineer's open branches (#65, #69, #71, #72)
+  into one, and is the first run in this repo to install the Temporal
+  CLI, a `langgraph`-importable python3, and a live engine on a cold
+  Actions runner and get all eight `test/all.sh` suites green at once,
+  not `unrun` or `partial`. Still a draft as of 2026-10-07; nothing to
+  merge here until the engineer marks it ready. Seat: engineer.
