@@ -11,7 +11,36 @@
 # box, and the pitch's definition of done covers them with one.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-command -v docker >/dev/null || { echo "test-provision: needs docker (skipping)"; exit 0; }
+# Probe the daemon, not the binary. `command -v docker` passes on a box whose
+# runtime user is not in the `docker` group, and then the first `docker run`
+# dies on "permission denied … /var/run/docker.sock" — so test/all.sh prints
+# FAILED for a box that has nothing wrong with it, which is the opposite of the
+# "a machine without the binary is not a failing test, it is an unrun one"
+# distinction this suite's skip line exists to make. `docker info` is the
+# cheapest question that only a usable daemon can answer.
+if ! docker info >/dev/null 2>&1; then
+  echo "test-provision: needs docker (skipping)"
+  if command -v docker >/dev/null 2>&1; then
+    # The binary is here and the daemon is not reachable, which is a different
+    # fix from "install docker" — and the only place the actual reason exists is
+    # docker's own stderr. Carry it, rather than guessing which of the two it is.
+    said="$(docker info 2>&1 || true)"
+    # docker's own first line is the diagnosis ("ERROR: Cannot connect …",
+    # "permission denied while trying to connect …"); the lines after it are
+    # pretty-printer noise, so take the diagnosis and stop.
+    reason="$(printf '%s\n' "$said" | grep -E '^ERROR' | head -1)"
+    [ -n "$reason" ] || reason="$(printf '%s\n' "$said" | grep -iE 'cannot connect|permission denied|refused' | head -1)"
+    [ -n "$reason" ] || reason="$(printf '%s\n' "$said" | tail -3)"
+    echo "  the \`docker\` binary is here but the daemon did not answer:"
+    printf '%s\n' "$reason" | sed 's/^[[:space:]]*/    /'
+    echo
+    echo "  start it:          sudo systemctl start docker"
+    echo "  or join its group: sudo usermod -aG docker \"${USER:-$(id -un)}\" && newgrp docker"
+  else
+    echo "  install it: https://docs.docker.com/engine/install/"
+  fi
+  exit 0
+fi
 
 docker run --rm -i -v "$HERE/provision-host.sh:/provision-host.sh:ro" ubuntu:24.04 bash -s <<'IN_CONTAINER'
 set -euo pipefail

@@ -114,6 +114,32 @@ gone() {
   bad "$label (still there after 15s: $(ls -d $glob 2>/dev/null | tr '\n' ' '))"
 }
 
+# gone()'s reason, for a question asked of the ENGINE rather than of the
+# filesystem. `kill -HUP` returns when the signal is delivered, not when the
+# reconcile it triggers has finished, and even after the reconcile's own log line
+# lands a `temporal schedule describe` issued in the next millisecond can read
+# the pre-update calendar back. Found 2026-10-07 running every suite in one pass
+# on a box that also had a second dev server on it: 169 ok, 1 failed on "the
+# engine really took it" — while the two assertions AFTER it both proved the
+# engine had taken the change, which is the signature of a race and not of a bug.
+#
+# The fix is not a longer `sleep 2`: that is a cost every green run pays to lose
+# the race less often, and it never stops losing it on a loaded two-core runner.
+# A deadline costs nothing when the answer is already true. On failure this
+# prints what the engine actually said — `2>/dev/null` in the predicate is right
+# while polling and wrong once it has given up, since a transport error and a
+# wrong calendar look identical through it.
+eventually() { # <label> <predicate> [seconds] [what-to-print-if-it-never-became-true]
+  local label="$1" pred="$2" secs="${3:-15}" diag="${4:-}" deadline=$((SECONDS + ${3:-15}))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    eval "$pred" && { ok "$label"; return; }
+    sleep 0.25
+  done
+  bad "$label (still not true ${secs}s later)"
+  [ -n "$diag" ] && eval "$diag" 2>&1 | sed 's/^/       /'
+  return 0
+}
+
 cleanup() {
   for pid in ${INGRESS_PID:-} ${WORKER_PID:-} ${SINK1_PID:-} ${SINK2_PID:-} ${GH_PID:-} ${OTLP_PID:-} ${SERVER_PID:-}; do
     kill "$pid" 2>/dev/null
@@ -591,13 +617,17 @@ write_manifest clock "*/2 * * * *" "SLACK_WEBHOOK_URL"   # was "* * * * *"
 node "$CLI/src/index.js" run "$ROSTER" --dry-run > "$ROOT/dry-upd.log" 2>&1
 sed 's/^/  /' "$ROOT/dry-upd.log"
 check "a changed cron is seen as an update, with the NEW cron named" "grep -qF 'would update seat:clock (*/2 * * * * UTC)' '$ROOT/dry-upd.log'"
-kill -HUP "$INGRESS_PID"; sleep 2
-check "SIGHUP applied it as exactly one update" "grep -q 'reconciled: 0 created, 1 updated, 0 deleted, 0 unchanged' '$ROOT/ingress.log'"
+kill -HUP "$INGRESS_PID"
+eventually "SIGHUP applied it as exactly one update" \
+  "grep -q 'reconciled: 0 created, 1 updated, 0 deleted, 0 unchanged' '$ROOT/ingress.log'" 15 \
+  "tail -5 '$ROOT/ingress.log'"
 check "the update names the field that changed, not \"(re-registered)\"" "grep -qF '~ seat:clock  changed: cron' '$ROOT/ingress.log'"
 # Temporal does not store the cron string: it normalizes the expression into a
 # structured calendar, which is why the shape cannot be read back from the spec
 # and why "*/2" appears here as the range "0-59/2".
-check "the engine really took it" "'$TEMPORAL_BIN' schedule describe --schedule-id seat:clock --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -qF '0-59/2'"
+eventually "the engine really took it" \
+  "'$TEMPORAL_BIN' schedule describe --schedule-id seat:clock --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -qF '0-59/2'" 15 \
+  "'$TEMPORAL_BIN' schedule describe --schedule-id seat:clock --address 127.0.0.1:$GRPC_PORT --namespace $NS"
 # The regression, in one assertion: reconcile a third time and nothing is left
 # to do. Before the fix this printed "would update seat:clock" every time it
 # was ever run again.
@@ -608,9 +638,13 @@ check "epito ps reads the cron the engine holds, not the one it was born with" "
 
 step "1 (the other direction): a seat that loses its cron loses its schedule"
 write_manifest clock "" "SLACK_WEBHOOK_URL"        # presence-only from now on
-kill -HUP "$INGRESS_PID"; sleep 2
-check "SIGHUP re-read the roster and deleted the schedule" "grep -qF -e '- seat:clock  (no manifest with a [trigger].cron behind it any more)' '$ROOT/ingress.log'"
-check "temporal has no seat schedules left" "! '$TEMPORAL_BIN' schedule list --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -q seat:clock"
+kill -HUP "$INGRESS_PID"
+eventually "SIGHUP re-read the roster and deleted the schedule" \
+  "grep -qF -e '- seat:clock  (no manifest with a [trigger].cron behind it any more)' '$ROOT/ingress.log'" 15 \
+  "tail -5 '$ROOT/ingress.log'"
+eventually "temporal has no seat schedules left" \
+  "! '$TEMPORAL_BIN' schedule list --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -q seat:clock" 15 \
+  "'$TEMPORAL_BIN' schedule list --address 127.0.0.1:$GRPC_PORT --namespace $NS"
 audit "the deletion is in the audit log too" '{"agent":"clock","action":"schedule.delete","schedule":"seat:clock"}'
 
 step "the runs outlive the ingress: restart it and the engine is unchanged"
