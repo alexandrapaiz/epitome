@@ -153,6 +153,16 @@ GH_TOKEN=replace-me
 # The default webhook, which is #hq. A seat that wants its own channel names a
 # different variable in [runtime].slack_webhook_env and it is added here.
 SLACK_WEBHOOK_URL=replace-me
+# An open road's endpoint and key (optional). Three of this company's own seats
+# -- pm, market and okr -- declare a cheaper road above their subscription in
+# agents/, and name both halves of it rather than writing either down: the
+# endpoint with base_url_env, the key with token_env, which is why these are
+# here and not in a manifest. Absent, those seats take the subscription and the
+# run log says which road it skipped and why. Present and wrong, epito routes
+# exits 1 and names the variable -- a seat whose cheap road is broken still
+# runs on the floor forever, so nothing else would tell you.
+#   OPENROUTE_BASE_URL=https://the-gateway/anthropic
+#   OPENROUTE_API_KEY=sk-...
 # Per-agent identity (optional; docs/deploy/README.md, "Giving an agent its own
 # identity"). Two lines per agent, its [agent].name uppercased with - as _.
 # When they are here, every run of that agent mints its own short-lived tokens

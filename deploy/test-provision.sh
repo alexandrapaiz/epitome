@@ -108,6 +108,12 @@ check "env file has a generated hook secret" "grep -q '^EPITO_HOOK_SECRET=deadbe
 check "env file names the three secrets to fill in" "[ \$(grep -c 'replace-me' /srv/asc/env) = 3 ]"
 check "env file names the engine, on loopback" "grep -q '^TEMPORAL_ADDRESS=127.0.0.1:7233' /srv/asc/env && grep -q '^TEMPORAL_NAMESPACE=asc' /srv/asc/env"
 check "env file names the task queue the two units share" "grep -q '^EPITO_TASK_QUEUE=seats' /srv/asc/env"
+# The box has to know the names of a road the manifests only NAME. Three seats
+# in agents/ declare base_url_env = "OPENROUTE_BASE_URL"; if this file never
+# mentions it, the operator's only clue is a run log on a box they have not
+# started yet. Commented, because this script never writes a secret.
+check "env file names the open road's endpoint and key, commented" \
+  "grep -q '^#   OPENROUTE_BASE_URL=' /srv/asc/env && grep -q '^#   OPENROUTE_API_KEY=' /srv/asc/env"
 check "health script and timer written" "[ -x /usr/local/bin/epitod-health ] && [ -f /etc/systemd/system/epitod-health.timer ]"
 check "health posts epito ps" "grep -q 'epito ps' /usr/local/bin/epitod-health"
 # The engine is not installed with the CLI any more (cli/package.json makes
