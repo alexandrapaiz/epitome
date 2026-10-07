@@ -1,4 +1,4 @@
-# The agent manifest (agent.toml), spec v0.1 — FROZEN 2026-09-30
+# The agent manifest (agent.toml), spec v0.2 — v0.1 frozen 2026-09-30, v0.2 opened 2026-10-07
 
 One file is the whole agent. The manifest is the unit of everything that
 comes later: a deploy is a manifest provisioned, a team is manifests with
@@ -18,8 +18,23 @@ the spelling. That refusal is the point of freezing: while fields were
 still arriving in-band (five did, across six merged PRs), a validator that
 rejected unknown keys would have rejected the manifest introducing each
 one, so it ignored everything it did not recognise, and `max_turn = 50`
-validated with a ✓ and then ran 120 turns. New fields now go through
-v0.2 — an open question below, then a spec change, then code.
+validated with a ✓ and then ran 120 turns. A new field now goes through the
+next version — an open question below, then a spec change, then code, in that
+order and never two of them at once.
+
+**What v0.2 opened with: one field, `[[runtime.route]].base_url_env`.**
+The freeze's process ran exactly as written, which is the only reason this
+field is here. The question was recorded under "open questions" on
+2026-09-30 and it named the shape it would probably take; the first real
+roster (`agents/`, 2026-10-03) hit the wall it described — this company's
+`pm`, `market` and `okr` seats take a cheaper road whose endpoint it holds
+as a repository secret, so the road could not be written in a publishable
+manifest at all and the three files declared one road each with a comment
+saying why; and this spec change came before the code, in the same pull
+request as it, so the catalogue and the validator could not disagree about
+whether the field exists. Nothing else in v0.1's vocabulary moved. A
+manifest that validated under v0.1 validates under v0.2, because the one
+field is optional and no rule changed around it.
 
 The catalogue and the validator are one list in one place
 (`FIELDS` in `cli/src/lib/manifest.js`, and `ROUTE_FIELDS` beside the
@@ -90,7 +105,14 @@ slack_webhook_env = "SLACK_WEBHOOK_URL_EPITOME"
 name = "open"                           # order the runtime tries them. A run takes the first
 model = "kimi-k2-turbo-preview"         # one that starts it. No route table at all = one road,
 base_url = "https://api.moonshot.ai/anthropic"
-                                        # optional: the endpoint that speaks the model's API
+                                        # optional: the endpoint that speaks the model's API,
+                                        # as a literal. For a public provider's published URL.
+base_url_env = "OPENROUTE_BASE_URL"     # optional (v0.2): the NAME of the variable holding
+                                        # that endpoint, for a road whose URL is itself
+                                        # confidential. Must also appear in `env`, like
+                                        # token_env; refused beside base_url, because two
+                                        # endpoints for one road is a guess about which the
+                                        # operator meant. Absent from the box = road skipped.
 token_env = "MOONSHOT_API_KEY"          # optional: the NAME of the key that opens it, which
                                         # must also appear in `env` — never the key itself
 concurrency = 1                         # optional: how many of one box's runs may be on this
@@ -137,7 +159,8 @@ Since 2026-10-03 there is also a roster that is not: `agents/` holds this
 company's own five seats, translated from the Actions workflows that have been
 running them for weeks (`agents/README.md`). It is the stronger evidence, and
 it is where the three "what did not translate" findings below came from — one
-of them a field v0.2 probably needs.
+of them the field v0.2 opened with, now built, which is the whole case for
+keeping a roster that nobody wrote for the validator's benefit.
 
 ## Scopes
 
@@ -212,9 +235,9 @@ claim a capability its agent does not have.
 
 ## Routes: which road to the model
 
-A route is `name`, `model`, and optionally `base_url`, `token_env` and
-`concurrency`. The runtime tries them in the order written and the run takes
-the first one that starts it (ADR-19).
+A route is `name`, `model`, and optionally `base_url` *or* `base_url_env`,
+`token_env` and `concurrency`. The runtime tries them in the order written and
+the run takes the first one that starts it (ADR-19).
 
 - **`token_env` is a name, never a value**, and rule 1 is why. It must also
   appear in `[runtime].env`: the runtime injects only the names the manifest
@@ -222,10 +245,36 @@ the first one that starts it (ADR-19).
   `epito validate` says that rather than letting a seat discover it at 06:00.
   A `base_url` carrying a credential in the URL is refused for the same reason.
 
+- **An endpoint may be a name too (`base_url_env`), under exactly `token_env`'s
+  rule.** Rule 1 forbids a *value* that cannot be published, and for some roads
+  the URL is that value: a private gateway's address is the thing you are not
+  supposed to know. So `base_url_env` names the variable holding it, must also
+  appear in `[runtime].env`, and is **refused beside `base_url`** — a road with
+  two endpoints is a guess about which one the operator meant, and rule 3's
+  spirit (never default anything that changes behaviour silently) says guess
+  nothing. `base_url` stays for the ordinary case, a public provider's
+  published URL, because naming a variable to hold a URL anyone can read is
+  indirection that buys nothing and costs a line in `env`.
+
+  What this does NOT do is let the manifest describe which endpoint. "Which
+  model is this company actually running on" was already a per-box question
+  (the bullet below); it is now a per-box question for the address as well, and
+  `epito routes` is still the one place either is answerable.
+
 - **A route whose key is not on this box is skipped**, not failed: the same
   roster runs on a machine that holds a Moonshot key and on one that does not.
   That makes "which model is this company actually running on" unanswerable
   from the manifests alone, which is what `epito routes` answers, per box.
+
+  A route whose `base_url_env` is unset is skipped the same way and for the
+  same reason — an endpoint you do not have is a road you cannot take. One case
+  is louder than a skip, though, and it is the operator's typo: a variable that
+  IS set and does not hold an http(s) URL, or holds one with a credential in
+  it. That road is closed with the reason named (the variable, and what is
+  wrong with what it holds — never the value itself, which goes in no log), so
+  "the gateway is misconfigured" cannot read as "the gateway is not configured
+  here". Both sentences end in the same fallback; only one of them is a bug
+  somebody has to go fix.
 
 - **`concurrency` is a property of the road, not of the seat.** A prepaid tier
   that allows one request at a time is a single-lane road, and two seats that
@@ -277,7 +326,11 @@ better than "unknown field".
   box. Keeping it would have been the spec contradicting itself in two
   places one screen apart.
 
-## Open questions (settle before v0.2)
+## Open questions (settle before v0.3)
+
+Four open, one answered by v0.2 and one answered by the dogfood. The two
+struck-through entries stay struck rather than deleted: the record of what a
+question asked for is how the next one gets judged.
 
 - Scope grammar for non-GitHub platforms (`asana:tasks.write`?
   `postgres:read/dbname`?) — decide with the second integration, not
@@ -294,18 +347,16 @@ better than "unknown field".
   Settle it with `epito deploy` (which is what would register a
   subscription), and decide then whether filtering belongs in the manifest
   at all or is the platform's job.
-- **A route endpoint that is a NAME, not a URL.** `token_env` names the key
-  that opens a road because rule 1 forbids the value; `base_url` is still a
-  literal, and that is where the first real roster hit the wall. This
-  company's own `pm`, `market` and `okr` seats take a cheaper road whose
-  endpoint it holds as a repository secret (`OPENROUTE_BASE_URL`), so the road
-  cannot be written in a publishable manifest at all — the three manifests in
-  `agents/` declare one road each and say so in a comment. The shape is
-  probably `base_url_env`, beside `token_env` and under the same rule: a name
-  that must also appear in `env`, skipped like any other road whose
-  credential is absent from the box. Not added here, because v0.1 is frozen
-  and the freeze's point is that a field arrives through a question, then a
-  spec change, then code — this is the question. Decide with v0.2.
+- ~~A route endpoint that is a NAME, not a URL.~~ **Answered, and shipped as
+  v0.2's one field, 2026-10-07: `base_url_env`.** The question asked for it on
+  2026-09-30 and guessed the shape right — a name beside `token_env`, under the
+  same rule, skipped like any other road the box cannot open — so the field is
+  what the question described and nothing more. What building it added, which
+  the question had not seen: the variable that is *set to something wrong* is a
+  third outcome, not a second, and it is closed by name rather than skipped in
+  silence (see the routes section). This company's `pm`, `market` and `okr`
+  seats now declare the road they actually take, so the three comments
+  explaining what could not be written are gone from `agents/`.
 - ~~Whether `[trigger]` combinations compose (cron + webhook on one agent,
   which v0.1 permits and no shape yet uses) or v1 forces exactly one.~~
   **Answered by the dogfood, 2026-10-03: they compose, and the ordinary seat
