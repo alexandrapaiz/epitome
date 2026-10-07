@@ -19,8 +19,8 @@ and its closing line tells you whether the other two would work from here
 
 Each file was translated **field by field** from the workflow beside it, and
 `cli/test/smoke-roster.sh` asserts the translation has not drifted — a
-manifest that no longer matches the `--model` and `--max-turns` its workflow
-passes is a dogfood that proves nothing.
+manifest that no longer matches the `--max-turns`, the model or the route chain
+its workflow passes is a dogfood that proves nothing.
 
 | Seat | Schedule | Road(s) to a model | Turn cap | Translated from |
 |---|---|---|---|---|
@@ -54,7 +54,9 @@ That makes this roster the first real answer to one of the spec's open
 questions — *whether `[trigger]` combinations compose, "which v0.1 permits and
 no shape yet uses"*. They compose, and four of this company's five seats need
 them to: a seat that is both scheduled and hand-pokeable is the ordinary case,
-not an exotic one.
+not an exotic one. It has since answered a second, in the other direction: the
+open road below is a question this roster could not stop asking until the spec
+grew a field for it.
 
 **`env` lists only what a charter actually reads.** The workflows hand
 `BOARD_API_URL` and `BOARD_RUNTIME_TOKEN` to all five seats; only `pm` lists
