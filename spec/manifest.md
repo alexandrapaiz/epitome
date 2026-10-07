@@ -11,10 +11,10 @@ the definition of an agent itself (ADR-2): `[identity]`, `[trigger]`,
 `[runtime]`. A manifest missing any of the three describes a skill, and
 `epito validate` says so in those words.
 
-**What frozen means.** v0.1's vocabulary is closed. The field catalogue
-below is the whole of it, and `epito validate` now refuses a key that is
-not in it — including a misspelling of one that is, which it answers with
-the spelling. That refusal is the point of freezing: while fields were
+**What frozen means.** A shipped version's vocabulary is closed. The field
+catalogue below is the whole of the current one, and `epito validate` refuses
+a key that is not in it — including a misspelling of one that is, which it
+answers with the spelling. That refusal is the point of freezing: while fields were
 still arriving in-band (five did, across six merged PRs), a validator that
 rejected unknown keys would have rejected the manifest introducing each
 one, so it ignored everything it did not recognise, and `max_turn = 50`
