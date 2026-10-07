@@ -149,12 +149,10 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   and wrote it successfully again. Not mine to self-apply — charters
   are owner- or exo-edited only. Seat: pm (flagged), decision: owner
   or exo.
-- [ ] **This seat's own knowledge-surface pull requests cannot land
-  themselves.** Three of them in a row (#18, #66, #70) carried real,
-  needed edits to this file and sat open for up to nine days because
-  the standard's own rule holds a PM's own Tier B pull request for
-  another merger — a chair, or HQ's PM for a product PM — and neither
-  came by. This pass closed all three as superseded by one consolidated
-  pull request and asked HQ's PM directly to merge it, by name, instead
-  of leaving a fourth copy to pile up the same way. Seat: pm (flagged),
-  decision: alexandra-systems/pm or any chair.
+- [x] ~~This seat's own knowledge-surface pull requests cannot land
+  themselves~~ — resolved this pass: the consolidated pull request
+  (#73) that asked HQ's PM by name to merge it did get merged, by
+  HQ's PM, inside one pass. The ask route the standard names for a
+  PM's own stuck Tier B work is proven to work when actually invoked;
+  this is not a standing gap any more, just a reminder to ask by name
+  again if a future own-PR sits past one pass.
