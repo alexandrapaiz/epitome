@@ -134,6 +134,38 @@ concurrency = 1                         # optional: how many of one box's runs m
 4. **One manifest, one principal.** Deploying the same file twice updates
    the same agent; renaming creates a new one. Identity follows `name`.
 
+## `env`: names in the file, values on the box
+
+`env` is the list the runtime injects **from**, and it injects only the names
+the box it is running on actually holds. Three consequences, written down here
+because each of them was found on a box rather than read in this document:
+
+- **A name the box does not hold is dropped, and the run goes ahead without
+  it.** That is what makes one roster portable across boxes — the same rule a
+  road whose key is absent follows — and it is silent in a way a skipped road
+  is not: a skipped road leaves the seat on another road, while a missing name
+  leaves the seat running, exiting 0, and doing less than it was built to do.
+  So the run log names what went missing, and `epito env <dir>` answers "what
+  does this box owe each seat" per box, the way `epito routes` answers it for
+  the model.
+
+- **Nothing in a manifest says a name is REQUIRED.** v0.1 did not distinguish
+  "the agent cannot work without this" from "the agent uses it if it is there",
+  and v0.2 does not either. Both live in one list, and this company's own PM
+  seat holds both kinds: its `LINEAR_API_KEY` is genuinely optional (the
+  charter skips the mirror and says so) while its `BOARD_RUNTIME_TOKEN` is not.
+  So no command refuses a box for being short of a name; `epito env --complete`
+  is the *operator* asserting that this box should hold all of them, which is a
+  box's claim and not a manifest's. Whether the distinction belongs in the
+  manifest is an open question below.
+
+- **A name set to an empty value is held, not absent.** The runtime injects it,
+  empty, and the agent reads it and fails somewhere far away. It is the
+  env-file twin of a `base_url_env` that does not hold a URL, and it gets the
+  same treatment for the same reason: the box has this one and has it wrong, so
+  `epito env` refuses by name rather than letting it read as a box that was
+  never configured.
+
 ## The three seat shapes
 
 v0.1 was frozen by trying it against the three shapes every roster so far
@@ -328,7 +360,7 @@ better than "unknown field".
 
 ## Open questions (settle before v0.3)
 
-Four open, one answered by v0.2 and one answered by the dogfood. The two
+Five open, one answered by v0.2 and one answered by the dogfood. The two
 struck-through entries stay struck rather than deleted: the record of what a
 question asked for is how the next one gets judged.
 
@@ -367,6 +399,18 @@ question asked for is how the next one gets judged.
   its schedule block is commented out. Forcing exactly one would have made the
   first real roster unexpressible. v0.1's permissiveness here was right;
   nothing to change.
+- **Whether `env` should say which names are required.** A seat's `env` is one
+  flat list of names, and the box either holds a name or does not; nothing
+  distinguishes a name whose absence costs a feature from one whose absence
+  costs the seat its job. The evidence that the question is real is this
+  company's own PM manifest, which names both kinds in one line (see "`env`:
+  names in the file, values on the box"). The evidence that it should wait is
+  that the shape is not obvious — a second list (`env_required`), a modifier on
+  the name, or nothing at all, because a charter that reads a name it did not
+  get is in a position to say so itself and is the only thing that knows what
+  the name was for. Decide it with a seat that actually failed for want of a
+  name, not before; until then `epito env --complete` lets the box assert what
+  the manifest cannot.
 - Team/roster fields stay OUT of the manifest — **holding so far**: the first
   real roster (`agents/`, five seats, 2026-10-03) needed no field that
   described the roster, only a directory. `epito run <dir>` discovers the

@@ -17,6 +17,7 @@ import { loadRoster, rosterRules, ROSTER_RULES } from "../src/lib/roster.js";
 import { SEVERITY, checkManifest, shape } from "../src/validate.js";
 import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
+import { rosterEnv, namesFor, envTemplate, holding, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
 import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP } from "../src/lib/identity.js";
 import { spawn, execFileSync } from "node:child_process";
@@ -2452,4 +2453,108 @@ test("connectReason reads both transports' idea of a dead port", () => {
     "Failed to connect before the deadline");
   // Anything else comes through whole rather than as "[object Object]".
   assert.equal(connectReason({ message: "something else entirely" }), "something else entirely");
+});
+
+// --- what a roster asks of the box ----------------------------------------
+// `epito env`'s half that needs no box: given a roster and an environment,
+// which names does this machine owe each seat, and what is it doing about
+// them. The silence this closes is in runner.js's one line — the runtime
+// injects only the names it HOLDS, so a box short of one produces a seat that
+// runs, exits 0, and quietly does less (src/lib/boxenv.js tells the story).
+
+const rosterOf = (...manifests) => new Map(manifests.map((m) => [m.agent.name, { manifest: m, path: `${m.agent.name}/agent.toml` }]));
+
+test("rosterEnv: one row per name, who asks for it, and what this box is doing about it", () => {
+  const pm = seat("pm", { runtime: {
+    model: "claude-sonnet-5", entry: "prompts/pm.md", repo: "acme/roster",
+    env: ["SLACK_WEBHOOK_URL", "BOARD_API_URL", "GATEWAY_URL", "GATEWAY_KEY"],
+    route: [
+      { name: "open", model: "kimi", base_url_env: "GATEWAY_URL", token_env: "GATEWAY_KEY" },
+      { name: "subscription", model: "claude-sonnet-5" },
+    ],
+  } });
+  const okr = seat("okr", { runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["SLACK_WEBHOOK_URL"] } });
+  const r = rosterEnv(rosterOf(pm, okr), { SLACK_WEBHOOK_URL: "https://hooks.example/x", BOARD_API_URL: "" });
+
+  assert.deepEqual(r.names.map((x) => x.name), ["BOARD_API_URL", "GATEWAY_KEY", "GATEWAY_URL", "SLACK_WEBHOOK_URL"],
+    "alphabetical, because what is generated from it is a file of KEY= lines read by eye");
+  assert.deepEqual(r.names.map((x) => x.state), [EMPTY, ABSENT, ABSENT, HELD]);
+  // The three states, and the one that is neither "here" nor "not here": an
+  // env-file line somebody half filled in. The runtime injects it, empty.
+  assert.equal(holding("BOARD_API_URL", { BOARD_API_URL: "" }), EMPTY);
+  assert.equal(holding("BOARD_API_URL", {}), ABSENT);
+  assert.equal(holding("BOARD_API_URL", { BOARD_API_URL: "x" }), HELD);
+
+  const hook = r.names.find((x) => x.name === "SLACK_WEBHOOK_URL");
+  assert.deepEqual(hook.uses.map((u) => u.agent), ["pm", "okr"], "every seat that asks is named");
+  assert.equal(hook.uses[0].role, "the one-line post after every run");
+  assert.equal(r.names.find((x) => x.name === "GATEWAY_URL").uses[0].role, 'the endpoint for route "open"',
+    "a road's halves say which road, so the reader knows to go read `epito routes`");
+  assert.equal(r.names.find((x) => x.name === "GATEWAY_KEY").uses[0].role, 'the key for route "open"');
+
+  const pmRow = r.seats.find((s) => s.agent === "pm");
+  assert.deepEqual(pmRow.held, ["SLACK_WEBHOOK_URL"]);
+  assert.deepEqual(pmRow.missing, ["GATEWAY_URL", "GATEWAY_KEY"]);
+  assert.deepEqual(pmRow.empty, ["BOARD_API_URL"]);
+  assert.deepEqual(pmRow.short, ["BOARD_API_URL", "GATEWAY_URL", "GATEWAY_KEY"], "short is everything the run will not get, whichever way");
+  assert.deepEqual(r.seats.find((s) => s.agent === "okr").short, [], "a seat whose names are all here gets no line");
+});
+
+test("namesFor unions a road's halves rather than trusting another file's rule", () => {
+  // The validator refuses a token_env or base_url_env that is not also in
+  // [runtime].env. This reader is what an operator fills a box in from, so a
+  // name missing because of a rule enforced elsewhere is a name they will not
+  // put in the file — and the adapter reads a route's key out of the box's
+  // environment directly either way.
+  const m = seat("pm", { runtime: {
+    model: "m", entry: "e", repo: "acme/roster", env: [],
+    route: [{ name: "open", model: "kimi", base_url_env: "GW_URL", token_env: "GW_KEY" }],
+  } });
+  assert.deepEqual(namesFor(m), ["GW_URL", "GW_KEY"]);
+  assert.deepEqual(namesFor(seat("pm")), [], "and a manifest that names nothing asks the box for nothing");
+});
+
+test("the env template covers every name the manifests ask for, and blanks none that are set", () => {
+  const pm = seat("pm", { runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["HELD_ONE", "MISSING_ONE"] } });
+  const env = { HELD_ONE: "a-real-value-nobody-should-see" };
+  const out = envTemplate(rosterEnv(rosterOf(pm), env), { dir: "agents" });
+  assert.match(out, /^MISSING_ONE=$/m, "a name the box lacks is a line to fill in");
+  assert.match(out, /^# HELD_ONE=/m, "a name the box HAS comes out commented");
+  assert.match(out, /pasting this cannot blank it/, "and says why, because that is the failure it avoids");
+  assert.ok(!out.includes("a-real-value-nobody-should-see"), "the template is names only — it is pasted into the one file secrets live in");
+  assert.match(out, /# pm$/m, "each name says which seats asked for it");
+  assert.match(out, /systemd EnvironmentFile/, "and what kind of file this is");
+});
+
+test("a run says which of its declared names the box did not have", async () => {
+  const dir = tmpDir();
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const work = mkdtempSync(cloneDirPrefix("pm"));
+  const said = [];
+  try {
+    const agent = seat("pm", { runtime: {
+      model: "m", entry: "e", repo: "acme/roster",
+      env: ["EPITO_STUB_DIR", "BOARD_RUNTIME_TOKEN", "GH_TOKEN"],
+    } });
+    process.env.EPITO_STUB_DIR = join(dir, "stub");
+    delete process.env.BOARD_RUNTIME_TOKEN;
+    const r = await executeAgent({
+      agent, trigger: "cron", runId: "r-env-1", workDir: work, timeoutMs: 30_000, log: (m) => said.push(m),
+      executor: new URL("./stub-executor.mjs", import.meta.url).pathname,
+      // The mint supplies GH_TOKEN, so the box not holding it is not the box
+      // being short of it — which is why the line is computed after the mint.
+      inject: { GH_TOKEN: "ghs_ENVTESTTOKEN0000000000000000000" }, redact: ["ghs_ENVTESTTOKEN0000000000000000000"],
+    });
+    assert.equal(r.exit, 0, "the run goes ahead without it: a roster is portable, and this is a note");
+    const logged = readFileSync(r.log, "utf8");
+    assert.match(logged, /# env missing: BOARD_RUNTIME_TOKEN — listed in \[runtime\]\.env, not set on this box/);
+    assert.ok(!/env missing:.*GH_TOKEN/.test(logged), "a name this run mints for itself is not a name the box is short of");
+    assert.ok(said.some((m) => /pm: 1 name from \[runtime\]\.env is not set on this box \(BOARD_RUNTIME_TOKEN\)/.test(m)),
+      "and the operator watching journalctl hears it, not only the log file");
+  } finally {
+    process.chdir(cwd);
+    rmSync(work, { recursive: true, force: true });
+    delete process.env.EPITO_STUB_DIR;
+  }
 });

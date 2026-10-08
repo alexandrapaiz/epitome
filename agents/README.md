@@ -7,11 +7,12 @@ org instead of 150 lines of YAML per seat.
 ```bash
 epito validate agents          # is this roster good — no engine needed to answer
 epito routes agents            # which road each seat takes on THIS box
+epito env agents               # which NAMES this box owes each seat, and holds
 epito run agents --dry-run     # what the runtime would register, and nothing else
 epito ps agents                # the roster, read back from the engine
 ```
 
-The first two need nothing but the files. The last two connect to Temporal
+The first three need nothing but the files. The last two connect to Temporal
 first and refuse by name when it is not answering — which is why `epito
 validate agents` leads: it is the question you can ask standing anywhere,
 and its closing line tells you whether the other two would work from here
@@ -110,6 +111,33 @@ the other model changes three files and the change is a diff — which is rule
 trailing steps are the runtime's own job on epitod: it files each run's report to the board and posts
 the one-line window itself (`slack_webhook_env`, `epito board`). Nothing in a
 manifest replaces them because nothing has to.
+
+## The names this roster asks a box for, and the copy that had drifted
+
+`env` lists names; a box holds values. The runtime injects **only the names the
+box it is on actually holds**, which is what makes these five files portable —
+and it is silent. A seat short of a name runs, exits 0, and does less than it
+was built to do.
+
+This roster had already paid for that, before it ever reached a box.
+`pm/agent.toml` asks for `BOARD_API_URL`, `BOARD_RUNTIME_TOKEN` and
+`LINEAR_API_KEY`; `deploy/provision-host.sh` wrote an env file naming none of
+the three, because that file carried a hand-copied list of the roster's names
+and the copy stopped matching the day the roster grew. A box provisioned with
+it would have run the PM seat green and filed nothing to the board — and the
+board is where an owner looks to see that the seats ran.
+
+One of the two copies is generated now:
+
+```
+epito env agents               # every name, who asks for it, which are here
+epito env agents --template    # those names as lines for the box's env file
+```
+
+`epito routes` and `epito env` are the same question asked twice — which model
+each seat reaches here, and what else each seat gets here. Neither is
+answerable from the manifests alone, which is the price of a portable roster
+and the reason both commands exist.
 
 ## These files do not retire the workflows
 
