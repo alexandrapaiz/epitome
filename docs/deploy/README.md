@@ -379,6 +379,55 @@ $ epito board --agent pm --limit 3
 18:56  pm  cron  ok  kimi-k2-turbo-preview  1 turn  https://github.com/…/pull/41
 ```
 
+## What this box owes the roster
+
+The other half of the same idea, and the one with no error message of its own.
+A manifest names the secrets a seat sees — `[runtime].env`, plus a road's
+`token_env` and `base_url_env` — and the runtime injects **only the names this
+box holds**. That is what makes one roster portable; it is also silent. A seat
+short of a name runs, exits 0, and quietly does less: no board report, no Slack
+line, no Linear mirror, depending on which name went missing.
+
+So the names are not kept in two places. They are in the manifests, and the box
+asks:
+
+```
+$ epito env /srv/asc/roster
+roster /srv/asc/roster — 6 names the manifests ask this box to hold, and it holds 1
+
+✓ SLACK_WEBHOOK_URL    held here — engineer, exo, market, okr, pm (the one-line post after every run)
+— BOARD_API_URL        not set here — pm
+— BOARD_RUNTIME_TOKEN  not set here — pm
+— OPENROUTE_API_KEY    not set here — market, okr, pm (the key for route "open")
+…
+
+! pm runs here with 1 of 6 names: BOARD_API_URL, BOARD_RUNTIME_TOKEN, … are not available to its runs
+```
+
+`provision-host.sh` runs this for you once the roster is cloned, and
+`epito env /srv/asc/roster --template` prints those names as lines for
+`/srv/asc/env` — one commented `KEY=` each, with the names this box already
+holds commented out so pasting the output cannot blank a working value. Add the
+lines, fill in the values, then `systemctl restart epitod-worker epitod`.
+
+Three outcomes per name, and only one of them is an error:
+
+- **held** — the run gets it.
+- **not set here** — the run does not, and that is not refused: nothing in a
+  manifest says which names a seat cannot work without (`LINEAR_API_KEY` is
+  genuinely optional to the seat that names it; `BOARD_RUNTIME_TOKEN` is not).
+  `epito env <dir> --complete` is where *you* assert that this box should hold
+  all of them, which is the form for a deploy check.
+- **set here, and set to nothing** — `KEY=` with nothing after it, which the
+  runtime injects as an empty value. That exits 1 and names the variable: this
+  box has that one and has it wrong, the same split `epito routes` makes for a
+  road whose endpoint is set to something that is not a URL.
+
+Every run says it too, in its own log — `# env missing: BOARD_RUNTIME_TOKEN —
+listed in [runtime].env, not set on this box` — and in `journalctl`, so a run
+that did less than it should have says why where somebody is reading. It prints
+no value, ever; names only.
+
 ## Seeing inside a run
 
 Set `OTEL_EXPORTER_OTLP_ENDPOINT` and every run files a trace (ADR-18). One

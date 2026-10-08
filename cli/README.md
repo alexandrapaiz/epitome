@@ -31,7 +31,7 @@ max_turns = 40
 
 ```bash
 epito init historian   # scaffold agent.toml and a charter (alias: epito me)
-epito validate         # check it against manifest spec v0.1
+epito validate         # check it against manifest spec v0.2
 epito deploy           # give it its own GitHub App: its identity, its key
 epito token historian  # mint its own short-lived token, scoped to the manifest
 epito run ./roster     # put every agent.toml under ./roster on the runtime
@@ -61,7 +61,7 @@ historian is valid, and not ready to run:
     Fix: add repo = "owner/name" to [runtime] in agent.toml.
 ```
 
-That is a note, not an error: the file is a valid v0.1 manifest and the
+That is a note, not an error: the file is a valid v0.2 manifest and the
 exit code stays 0. `epito validate --for-runtime` turns the notes into an
 error, for CI that would rather fail here than at 06:00. And in the normal
 case you will not see it at all — run `epito init` inside the repository
@@ -91,6 +91,41 @@ can answer with no box, and they are good. `--for-runtime` is what makes
 the second one exit 1, because that is the flag that asks whether the
 runtime would accept this roster, and in the second case there is no
 runtime (ADR-24).
+
+## What this box owes the roster
+
+A manifest names the secrets a seat sees — `[runtime].env`, plus a road's
+`token_env` and `base_url_env` — and never their values (spec rule 1). The
+runtime injects the ones the box it is running on actually holds, which is
+what makes one roster portable across boxes, and is silent: a seat short of
+a name runs, exits 0, and quietly does less.
+
+`epito env` is that question, per box, the way `epito routes` is the same
+question about which model each seat reaches:
+
+```
+$ epito env agents
+roster agents — 6 names the manifests ask this box to hold, and it holds 1
+
+✓ SLACK_WEBHOOK_URL    held here — engineer, exo, market, okr, pm (the one-line post after every run)
+— BOARD_API_URL        not set here — pm
+— BOARD_RUNTIME_TOKEN  not set here — pm
+— LINEAR_API_KEY       not set here — pm
+— OPENROUTE_API_KEY    not set here — market, okr, pm (the key for route "open")
+— OPENROUTE_BASE_URL   not set here — market, okr, pm (the endpoint for route "open")
+
+! pm runs here with 1 of 6 names: BOARD_API_URL, BOARD_RUNTIME_TOKEN, … are not available to its runs
+```
+
+Exit 0: nothing in a manifest says which of those names a seat cannot work
+without, so this reports and does not guess. `--complete` is where you assert
+that this box should hold all of them, for a deploy check; `--template` prints
+the env file those names belong in, one commented `KEY=` per name, and comments
+out the ones already set so pasting it cannot blank a working value. A name
+that *is* set and set to nothing exits 1 either way — the box has that one and
+has it wrong.
+
+It reads the environment for presence and prints no value, ever.
 
 ## What it gives an agent
 
@@ -144,7 +179,7 @@ ledger is "what exactly happened".
 ## The engine is optional
 
 The manifest commands — `init`, `validate`, `deploy`, `token`, `board`,
-`audit`, `report`, `note`, `routes` — need nothing but this package. They are the
+`audit`, `report`, `note`, `routes`, `env` — need nothing but this package. They are the
 whole CLI for most people, so `npm i -g epito` does not drag in Temporal's
 ~300 MB of prebuilt core.
 
@@ -168,9 +203,10 @@ tells you before you get there.
 
 ## Spec and source
 
-The manifest is law and it is frozen at v0.1: four tables, a fixed field
-catalogue, and a validator that is tested against the spec document itself
-so the two cannot drift.
+The manifest is law. v0.1 froze it — four tables, a fixed field catalogue,
+and a validator that is tested against the spec document itself so the two
+cannot drift — and v0.2 opened with exactly one optional field, so every
+manifest that validated before validates now.
 
 - Spec: [`spec/manifest.md`](https://github.com/alexandrapaiz/epitome/blob/main/spec/manifest.md)
 - Source, decisions and design notes: <https://github.com/alexandrapaiz/epitome>

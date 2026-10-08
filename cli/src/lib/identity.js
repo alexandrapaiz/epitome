@@ -25,6 +25,7 @@ import { createSign, createPrivateKey } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { EPITO_DIR } from "./audit.js";
+import { SPEC_VERSION } from "./fields.js";
 
 // A mint failure is either the kind that passes (GitHub throttling, a network
 // blip) or the kind that never will (a key that is not a PEM, a scope with no
@@ -61,7 +62,7 @@ export function permissionsFor(scopes) {
   if (unmapped.length) {
     throw permanent(
       `[identity].scopes has ${unmapped.length === 1 ? "a scope" : "scopes"} this deploy target cannot mint: ${unmapped.map((s) => `"${s}"`).join(", ")}. ` +
-      `v0.1 maps ${Object.keys(SCOPE_MAP).map((s) => `"${s}"`).join(", ")} to GitHub App permissions and refuses the rest rather than minting a token narrower than the manifest promises. ` +
+      `${SPEC_VERSION} maps ${Object.keys(SCOPE_MAP).map((s) => `"${s}"`).join(", ")} to GitHub App permissions and refuses the rest rather than minting a token narrower than the manifest promises. ` +
       `Fix: remove the scope from agent.toml, or open a card to map it.`
     );
   }

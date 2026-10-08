@@ -21,18 +21,25 @@
 #
 # What it proves:
 #
-#   1. every manifest in agents/ is a valid v0.1 manifest, and the strict gate
+#   1. every manifest in agents/ is a valid manifest against the current spec,
+#      and the strict gate
 #      (`--for-runtime`) passes too: nothing in the real roster relies on the
 #      validator's permissive half
 #   2. the ✓ is CLEAN — no note telling a seat to commit a charter that is
 #      already committed (the roster layout bug), and the note still fires for
 #      a charter that really is absent
 #   3. the roster loads WHOLE: `epito routes` names all five, and the names,
-#      models and max_turns match the workflow each was translated from
+#      models, max_turns and ROUTE CHAINS match the workflow each was
+#      translated from — including that the endpoint a seat holds as a secret
+#      is read back by name and never printed
 #   4. `epito run agents --dry-run` plans four schedules and one presence-only
 #      seat, EXITS 0, and writes NOTHING — not to the engine, not to the ledger
 #   5. `epito token` and `epito deploy` agree with the manifests about scopes,
 #      and refuse cleanly with no identity on the machine
+#   6. `epito validate agents` is the one command that says yes with no engine
+#   7. `epito env agents` says what this roster asks of the BOX — every name,
+#      who asks for it, which of them are here — and the three things a box
+#      can be doing about a name, including the one that refuses
 set -uo pipefail
 
 CLI="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -63,7 +70,7 @@ SEATS=""
 for d in "$AGENTS"/*/; do [ -d "$d" ] || continue; SEATS="$SEATS$(basename "$d") "; done
 [ -n "${SEATS// /}" ] || { echo "smoke: SKIPPED — agents/ holds no seat directories"; exit 0; }
 
-step "1. every seat in the real roster is a valid v0.1 manifest, strictly"
+step "1. every seat in the real roster is a valid manifest, strictly"
 for s in $SEATS; do
   [ -f "$AGENTS/$s/agent.toml" ] || { bad "$s has an agent.toml"; continue; }
   out="$(cd "$AGENTS/$s" && $E validate 2>&1)"; rc=$?
@@ -130,6 +137,101 @@ for s in $SEATS; do
   w="$(wf "$s")"; m="$(grep -E '^max_turns' "$AGENTS/$s/agent.toml" | grep -o '[0-9]*' || true)"
   if [ -n "$w" ]; then check "$s max_turns=$m matches its workflow's --max-turns $w" "[ \"$m\" = \"$w\" ]"; fi
 done
+# The open road, which is the one thing this roster could not express until
+# spec v0.2 (agents/README.md, "the open road"). A seat whose workflow has an
+# open-routed step must declare the chain, and a seat whose workflow has none
+# must not have invented one — the asymmetry is the translation, and a dogfood
+# that drifted from the YAML it replaces proves nothing.
+for s in $SEATS; do
+  wf="$ROOT/.github/workflows/agent-$s.yml"
+  [ -f "$wf" ] || continue
+  if grep -q 'ANTHROPIC_BASE_URL' "$wf"; then
+    check "$s declares the open road its workflow takes" \
+      "grep -q 'base_url_env = \"OPENROUTE_BASE_URL\"' '$AGENTS/$s/agent.toml'"
+    check "$s names the key, not the key's value" \
+      "grep -q 'token_env = \"OPENROUTE_API_KEY\"' '$AGENTS/$s/agent.toml'"
+    check "$s injects both names, so both can resolve on a box" \
+      "grep -E '^env =' '$AGENTS/$s/agent.toml' | grep -q 'OPENROUTE_BASE_URL' && grep -E '^env =' '$AGENTS/$s/agent.toml' | grep -q 'OPENROUTE_API_KEY'"
+    wfmodel="$(grep -o "OPENROUTE_MODEL || '[^']*'" "$wf" | head -1 | sed "s/.*'\(.*\)'/\1/")"
+    if [ -n "$wfmodel" ]; then
+      check "$s's open road is the model its workflow defaults to ($wfmodel)" \
+        "grep -q 'model = \"$wfmodel\"' '$AGENTS/$s/agent.toml'"
+    fi
+    check "$s keeps the subscription under it as the floor" \
+      "grep -q 'name = \"subscription\"' '$AGENTS/$s/agent.toml'"
+  else
+    check "$s declares no route chain, because its workflow has no second road" \
+      "! grep -q 'runtime.route' '$AGENTS/$s/agent.toml'"
+  fi
+done
+
+# The promise of naming an endpoint instead of writing it: the command that
+# reads the roster back on a box prints the NAME even when the box holds the
+# value. If this ever prints the URL, the field bought nothing.
+#
+# Written with plain if/then rather than `check`, because these conditions grep
+# for a literal `$OPENROUTE_BASE_URL` and `check` evals its argument — a `$` in
+# an eval'd string is a variable, and under `set -u` the first draft of this
+# died with "OPENROUTE_BASE_URL: unbound variable" while testing that the
+# product prints that exact text.
+routed_seat=""
+for s in $SEATS; do
+  if grep -q 'base_url_env' "$AGENTS/$s/agent.toml"; then routed_seat="$s"; break; fi
+done
+if [ -n "$routed_seat" ]; then
+  SECRET_URL="https://gw-smoke-$$.invalid/anthropic"
+  export OPENROUTE_API_KEY="sk-smoke-$$"
+
+  OPENROUTE_BASE_URL="$SECRET_URL" $E routes "$AGENTS" >"$TMP/routes-set.txt" 2>&1
+  rsrc=$?
+  if [ $rsrc -eq 0 ] && grep -q "^$routed_seat .* takes open" "$TMP/routes-set.txt"
+    then ok   "with both secrets on the box, $routed_seat takes the open road (exit 0)"
+    else bad  "with both secrets on the box, $routed_seat takes the open road (exit 0) [exit $rsrc]"
+  fi
+  if grep -qF 'at $OPENROUTE_BASE_URL' "$TMP/routes-set.txt" && ! grep -qF "$SECRET_URL" "$TMP/routes-set.txt"
+    then ok   'the endpoint is read back as $OPENROUTE_BASE_URL, never as its value'
+    else bad  'the endpoint is read back as $OPENROUTE_BASE_URL, never as its value'
+  fi
+
+  # The third outcome: set, and set wrong. The seat still runs on the floor, and
+  # `epito routes` is the one place that refuses, so the typo is not silent.
+  OPENROUTE_BASE_URL="gw-smoke-$$.invalid" $E routes "$AGENTS" >"$TMP/routes-bad.txt" 2>&1
+  rbrc=$?
+  if [ $rbrc -eq 1 ]
+    then ok  "an endpoint set to a non-URL exits 1 rather than falling through in silence"
+    else bad "an endpoint set to a non-URL exits 1 rather than falling through in silence [exit $rbrc]"
+  fi
+  if grep -q 'configured and configured wrongly' "$TMP/routes-bad.txt" \
+     && grep -q 'Fix: set OPENROUTE_BASE_URL' "$TMP/routes-bad.txt"
+    then ok  "...and the refusal names the variable and the fix"
+    else bad "...and the refusal names the variable and the fix"
+  fi
+  if grep -q "^$routed_seat .* takes subscription" "$TMP/routes-bad.txt"
+    then ok  "...while the seat still has a road, so nothing stops running"
+    else bad "...while the seat still has a road, so nothing stops running"
+  fi
+  if ! grep -qF "gw-smoke-$$.invalid" "$TMP/routes-bad.txt"
+    then ok  "...and even the wrong value is not printed back"
+    else bad "...and even the wrong value is not printed back"
+  fi
+  # Blank is the third outcome's quieter half, and the one an env file invites:
+  # `OPENROUTE_API_KEY=` with nothing after it. It closes the road exactly like
+  # an absent key and it is NOT the same box, so it does not get the same
+  # sentence — `epito env` calls it "set and set to nothing" and this has to
+  # agree with it.
+  OPENROUTE_API_KEY="" OPENROUTE_BASE_URL="$SECRET_URL" $E routes "$AGENTS" >"$TMP/routes-blank.txt" 2>&1
+  rblrc=$?
+  if [ $rblrc -eq 1 ] && grep -q 'holds nothing' "$TMP/routes-blank.txt"
+    then ok  "a key set to nothing is a line to fix, not a road this box never had"
+    else bad "a key set to nothing is a line to fix, not a road this box never had [exit $rblrc]"
+  fi
+  if ! grep -q 'OPENROUTE_API_KEY is not set on this machine' "$TMP/routes-blank.txt"
+    then ok  "...and is never described as unset, which is a different box"
+    else bad "...and is never described as unset, which is a different box"
+  fi
+  unset OPENROUTE_API_KEY
+fi
+
 check "the engineer's two workflow crons are one expression here" "grep -q '46 11,23 \* \* \*' '$AGENTS/engineer/agent.toml'"
 check "exo has no cron (its workflow's schedule block is commented out)" "! grep -qE '^cron' '$AGENTS/exo/agent.toml'"
 check "exo is still triggerable: webhook = true" "grep -q 'webhook = true' '$AGENTS/exo/agent.toml'"
@@ -265,6 +367,78 @@ check "validate created no .epito/ in the repository" "[ ! -e '$ROOT/.epito' ]"
 # for the filename, so it cannot be fooled — but the count above is what would
 # have caught it, and this suite has already been bitten once by `ls`.
 check "the roster count ignores agents/README.md" "[ -f '$AGENTS/README.md' ] && printf '%s' \"\$vout\" | grep -q '$nseats of $nseats manifests'"
+
+step "7. what this roster asks of the BOX, and what a box short of a name does"
+# The other side of step 3. `epito routes` says which model each seat gets
+# here; this says what else each seat gets here — and the answer on this
+# company's own roster was the card: three names agents/pm/agent.toml asks for
+# were in no line of deploy/provision-host.sh, so the PM seat on a fresh box
+# would have run, green, and filed nothing to the board.
+#
+# Run in a scrubbed environment (`env -i`), because the suite has to assert on
+# what a BARE box does and this one is a CI runner that really does hold some
+# of these names. PATH and HOME are what node itself needs; nothing else is
+# inherited, so every name below is genuinely absent.
+BARE="env -i PATH=$PATH HOME=$TMP"
+# The union of every name the manifests ask for, read out of the files rather
+# than typed here: a name added to a manifest tomorrow is a name this loop
+# checks tomorrow.
+NAMES="$(sed -nE 's/^env = \[(.*)\]$/\1/p' "$AGENTS"/*/agent.toml | tr -d '" ' | tr ',' '\n' | sort -u)"
+check "the roster declares at least one name for the box to hold" "[ -n \"\$NAMES\" ]"
+
+eout="$($BARE node "$CLI/src/index.js" env "$AGENTS" 2>&1)"; erc=$?
+check "epito env reads the whole roster (exit 0 on a box that holds none of it)" "[ $erc -eq 0 ]"
+for n in $NAMES; do
+  check "it names $n, and says this box does not have it" \
+    "printf '%s' \"\$eout\" | grep -q '$n .*not set here'"
+done
+check "it says who asks for each name" "printf '%s' \"\$eout\" | grep -q 'engineer, exo, market, okr, pm'"
+check "a road's halves are named as a road's halves" "printf '%s' \"\$eout\" | grep -q 'the key for route \"open\"'"
+check "it refuses to guess which are required" "printf '%s' \"\$eout\" | grep -q 'does not guess'"
+check "and points at the command that opens or closes a road" "printf '%s' \"\$eout\" | grep -q 'epito routes'"
+check "every seat short of a name is named, with its count" "printf '%s' \"\$eout\" | grep -q '! pm runs here with 0 of'"
+
+# --complete is the operator asserting what the manifest cannot say.
+$BARE node "$CLI/src/index.js" env "$AGENTS" --complete >"$TMP/env-complete.txt" 2>&1
+ecrc=$?
+check "--complete refuses a box short of a name (exit 1)" "[ $ecrc -eq 1 ]"
+check "...and the refusal lists them and names the template" \
+  "grep -q 'does not: BOARD_API_URL' '$TMP/env-complete.txt' && grep -q -- '--template' '$TMP/env-complete.txt'"
+
+# The generated env file IS the fix, and it has to cover every name the
+# manifests ask for — that coverage is the whole reason the hand-kept list in
+# provision-host.sh could go away.
+tmpl="$($BARE node "$CLI/src/index.js" env "$AGENTS" --template 2>&1)"
+for n in $NAMES; do
+  check "--template writes a line for $n" "printf '%s' \"\$tmpl\" | grep -q '^$n='"
+done
+check "--template says what it is and where it goes" "printf '%s' \"\$tmpl\" | grep -q 'systemd EnvironmentFile'"
+
+# A box that holds everything, and a box that holds a name set to nothing.
+FULL="env -i PATH=$PATH HOME=$TMP"
+for n in $NAMES; do FULL="$FULL $n=smoke-value-$$"; done
+fout="$($FULL node "$CLI/src/index.js" env "$AGENTS" 2>&1)"; frc=$?
+check "a box that holds every name is told so (exit 0)" "[ $frc -eq 0 ]"
+check "...in one line, naming the runtime's own names as not counted" \
+  "printf '%s' \"\$fout\" | grep -q 'holds every name' && printf '%s' \"\$fout\" | grep -q 'CLAUDE_CODE_OAUTH_TOKEN'"
+check "...and no value it read is printed back" "! printf '%s' \"\$fout\" | grep -q 'smoke-value-$$'"
+check "a held name is commented out in the template, so pasting cannot blank it" \
+  "$FULL node '$CLI/src/index.js' env '$AGENTS' --template | grep -q '^# SLACK_WEBHOOK_URL='"
+
+# Set, and set to nothing: the env-file line somebody half filled in. The box
+# HAS this one and has it wrong, so it refuses — the same split `epito routes`
+# makes between a road this box never had and a road it has wrong.
+eout2="$($BARE SLACK_WEBHOOK_URL= node "$CLI/src/index.js" env "$AGENTS" 2>&1)"; e2rc=$?
+check "a name set to nothing exits 1 rather than reading as absent" "[ $e2rc -eq 1 ]"
+check "...and a seat's line tells an empty name apart from an absent one" \
+  "printf '%s' \"\$eout2\" | grep -q 'SLACK_WEBHOOK_URL arrives empty'"
+check "...named, with both ways to fix it" \
+  "printf '%s' \"\$eout2\" | grep -q 'set and set to nothing (SLACK_WEBHOOK_URL)' && printf '%s' \"\$eout2\" | grep -q 'delete the line entirely'"
+
+ejson="$($BARE node "$CLI/src/index.js" env "$AGENTS" --json 2>&1)"
+check "--json is JSON, with a row per name and a row per seat" \
+  "printf '%s' \"\$ejson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); process.exit(r.names.length>0 && r.seats.length===$nseats && r.missing.length===r.names.length ? 0 : 1)'"
+check "epito env wrote no .epito/ either" "[ ! -e '$ROOT/.epito' ]"
 
 step "rule 1: nothing personal in the roster"
 # The manifests are published with the repository. A credential in one would

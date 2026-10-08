@@ -22,4 +22,20 @@ model = "claude-sonnet-5"
 entry = "prompts/okr-agent.md"
 repo = "alexandrapaiz/epitome"
 max_turns = 80
-env = ["SLACK_WEBHOOK_URL"]
+env = ["SLACK_WEBHOOK_URL", "OPENROUTE_BASE_URL", "OPENROUTE_API_KEY"]
+
+# The open road (spec v0.2's `base_url_env`). Two roads, tried in order, which
+# is what this seat's workflow does with eleven lines of YAML and a
+# `continue-on-error: true`: the cheap model first, the subscription under it.
+# The endpoint is a repository secret, so it is named and not written — see
+# agents/README.md for what in the workflow still does not translate, and why
+# none of it is a missing field.
+[[runtime.route]]
+name = "open"
+model = "kimi-k2.7-code"
+base_url_env = "OPENROUTE_BASE_URL"
+token_env = "OPENROUTE_API_KEY"
+
+[[runtime.route]]
+name = "subscription"
+model = "claude-sonnet-5"

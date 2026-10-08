@@ -1,4 +1,4 @@
-# The agent manifest (agent.toml), spec v0.1 — FROZEN 2026-09-30
+# The agent manifest (agent.toml), spec v0.2 — v0.1 frozen 2026-09-30, v0.2 opened 2026-10-07
 
 One file is the whole agent. The manifest is the unit of everything that
 comes later: a deploy is a manifest provisioned, a team is manifests with
@@ -11,15 +11,30 @@ the definition of an agent itself (ADR-2): `[identity]`, `[trigger]`,
 `[runtime]`. A manifest missing any of the three describes a skill, and
 `epito validate` says so in those words.
 
-**What frozen means.** v0.1's vocabulary is closed. The field catalogue
-below is the whole of it, and `epito validate` now refuses a key that is
-not in it — including a misspelling of one that is, which it answers with
-the spelling. That refusal is the point of freezing: while fields were
+**What frozen means.** A shipped version's vocabulary is closed. The field
+catalogue below is the whole of the current one, and `epito validate` refuses
+a key that is not in it — including a misspelling of one that is, which it
+answers with the spelling. That refusal is the point of freezing: while fields were
 still arriving in-band (five did, across six merged PRs), a validator that
 rejected unknown keys would have rejected the manifest introducing each
 one, so it ignored everything it did not recognise, and `max_turn = 50`
-validated with a ✓ and then ran 120 turns. New fields now go through
-v0.2 — an open question below, then a spec change, then code.
+validated with a ✓ and then ran 120 turns. A new field now goes through the
+next version — an open question below, then a spec change, then code, in that
+order and never two of them at once.
+
+**What v0.2 opened with: one field, `[[runtime.route]].base_url_env`.**
+The freeze's process ran exactly as written, which is the only reason this
+field is here. The question was recorded under "open questions" on
+2026-09-30 and it named the shape it would probably take; the first real
+roster (`agents/`, 2026-10-03) hit the wall it described — this company's
+`pm`, `market` and `okr` seats take a cheaper road whose endpoint it holds
+as a repository secret, so the road could not be written in a publishable
+manifest at all and the three files declared one road each with a comment
+saying why; and this spec change came before the code, in the same pull
+request as it, so the catalogue and the validator could not disagree about
+whether the field exists. Nothing else in v0.1's vocabulary moved. A
+manifest that validated under v0.1 validates under v0.2, because the one
+field is optional and no rule changed around it.
 
 The catalogue and the validator are one list in one place
 (`FIELDS` in `cli/src/lib/manifest.js`, and `ROUTE_FIELDS` beside the
@@ -90,7 +105,14 @@ slack_webhook_env = "SLACK_WEBHOOK_URL_EPITOME"
 name = "open"                           # order the runtime tries them. A run takes the first
 model = "kimi-k2-turbo-preview"         # one that starts it. No route table at all = one road,
 base_url = "https://api.moonshot.ai/anthropic"
-                                        # optional: the endpoint that speaks the model's API
+                                        # optional: the endpoint that speaks the model's API,
+                                        # as a literal. For a public provider's published URL.
+base_url_env = "OPENROUTE_BASE_URL"     # optional (v0.2): the NAME of the variable holding
+                                        # that endpoint, for a road whose URL is itself
+                                        # confidential. Must also appear in `env`, like
+                                        # token_env; refused beside base_url, because two
+                                        # endpoints for one road is a guess about which the
+                                        # operator meant. Absent from the box = road skipped.
 token_env = "MOONSHOT_API_KEY"          # optional: the NAME of the key that opens it, which
                                         # must also appear in `env` — never the key itself
 concurrency = 1                         # optional: how many of one box's runs may be on this
@@ -111,6 +133,38 @@ concurrency = 1                         # optional: how many of one box's runs m
    did not ask to be woken by the ingress is not woken by it.
 4. **One manifest, one principal.** Deploying the same file twice updates
    the same agent; renaming creates a new one. Identity follows `name`.
+
+## `env`: names in the file, values on the box
+
+`env` is the list the runtime injects **from**, and it injects only the names
+the box it is running on actually holds. Three consequences, written down here
+because each of them was found on a box rather than read in this document:
+
+- **A name the box does not hold is dropped, and the run goes ahead without
+  it.** That is what makes one roster portable across boxes — the same rule a
+  road whose key is absent follows — and it is silent in a way a skipped road
+  is not: a skipped road leaves the seat on another road, while a missing name
+  leaves the seat running, exiting 0, and doing less than it was built to do.
+  So the run log names what went missing, and `epito env <dir>` answers "what
+  does this box owe each seat" per box, the way `epito routes` answers it for
+  the model.
+
+- **Nothing in a manifest says a name is REQUIRED.** v0.1 did not distinguish
+  "the agent cannot work without this" from "the agent uses it if it is there",
+  and v0.2 does not either. Both live in one list, and this company's own PM
+  seat holds both kinds: its `LINEAR_API_KEY` is genuinely optional (the
+  charter skips the mirror and says so) while its `BOARD_RUNTIME_TOKEN` is not.
+  So no command refuses a box for being short of a name; `epito env --complete`
+  is the *operator* asserting that this box should hold all of them, which is a
+  box's claim and not a manifest's. Whether the distinction belongs in the
+  manifest is an open question below.
+
+- **A name set to an empty value is held, not absent.** The runtime injects it,
+  empty, and the agent reads it and fails somewhere far away. It is the
+  env-file twin of a `base_url_env` that does not hold a URL, and it gets the
+  same treatment for the same reason: the box has this one and has it wrong, so
+  `epito env` refuses by name rather than letting it read as a box that was
+  never configured.
 
 ## The three seat shapes
 
@@ -137,7 +191,8 @@ Since 2026-10-03 there is also a roster that is not: `agents/` holds this
 company's own five seats, translated from the Actions workflows that have been
 running them for weeks (`agents/README.md`). It is the stronger evidence, and
 it is where the three "what did not translate" findings below came from — one
-of them a field v0.2 probably needs.
+of them the field v0.2 opened with, now built, which is the whole case for
+keeping a roster that nobody wrote for the validator's benefit.
 
 ## Scopes
 
@@ -212,9 +267,9 @@ claim a capability its agent does not have.
 
 ## Routes: which road to the model
 
-A route is `name`, `model`, and optionally `base_url`, `token_env` and
-`concurrency`. The runtime tries them in the order written and the run takes
-the first one that starts it (ADR-19).
+A route is `name`, `model`, and optionally `base_url` *or* `base_url_env`,
+`token_env` and `concurrency`. The runtime tries them in the order written and
+the run takes the first one that starts it (ADR-19).
 
 - **`token_env` is a name, never a value**, and rule 1 is why. It must also
   appear in `[runtime].env`: the runtime injects only the names the manifest
@@ -222,10 +277,41 @@ the first one that starts it (ADR-19).
   `epito validate` says that rather than letting a seat discover it at 06:00.
   A `base_url` carrying a credential in the URL is refused for the same reason.
 
+- **An endpoint may be a name too (`base_url_env`), under exactly `token_env`'s
+  rule.** Rule 1 forbids a *value* that cannot be published, and for some roads
+  the URL is that value: a private gateway's address is the thing you are not
+  supposed to know. So `base_url_env` names the variable holding it, must also
+  appear in `[runtime].env`, and is **refused beside `base_url`** — a road with
+  two endpoints is a guess about which one the operator meant, and rule 3's
+  spirit (never default anything that changes behaviour silently) says guess
+  nothing. `base_url` stays for the ordinary case, a public provider's
+  published URL, because naming a variable to hold a URL anyone can read is
+  indirection that buys nothing and costs a line in `env`.
+
+  What this does NOT do is let the manifest describe which endpoint. "Which
+  model is this company actually running on" was already a per-box question
+  (the bullet below); it is now a per-box question for the address as well, and
+  `epito routes` is still the one place either is answerable.
+
 - **A route whose key is not on this box is skipped**, not failed: the same
   roster runs on a machine that holds a Moonshot key and on one that does not.
   That makes "which model is this company actually running on" unanswerable
   from the manifests alone, which is what `epito routes` answers, per box.
+
+  A route whose `base_url_env` is unset is skipped the same way and for the
+  same reason — an endpoint you do not have is a road you cannot take. One case
+  is louder than a skip, though, and it is the operator's typo: a variable that
+  IS set and does not hold an http(s) URL, holds one with a credential in it,
+  or holds nothing at all. That road is closed with the reason named (the
+  variable, and what is wrong with what it holds — never the value itself,
+  which goes in no log), so "the gateway is misconfigured" cannot read as "the
+  gateway is not configured here". Both sentences end in the same fallback;
+  only one of them is a bug somebody has to go fix.
+
+  "Holds nothing at all" is in that list because an env file is where these
+  values live and `KEY=` is what a half-filled line looks like. A box that
+  never had the road and a box whose line is blank are not the same box, and
+  do not get the same sentence — in `epito routes` or in `epito env`.
 
 - **`concurrency` is a property of the road, not of the seat.** A prepaid tier
   that allows one request at a time is a single-lane road, and two seats that
@@ -277,7 +363,11 @@ better than "unknown field".
   box. Keeping it would have been the spec contradicting itself in two
   places one screen apart.
 
-## Open questions (settle before v0.2)
+## Open questions (settle before v0.3)
+
+Five open, one answered by v0.2 and one answered by the dogfood. The two
+struck-through entries stay struck rather than deleted: the record of what a
+question asked for is how the next one gets judged.
 
 - Scope grammar for non-GitHub platforms (`asana:tasks.write`?
   `postgres:read/dbname`?) — decide with the second integration, not
@@ -294,18 +384,16 @@ better than "unknown field".
   Settle it with `epito deploy` (which is what would register a
   subscription), and decide then whether filtering belongs in the manifest
   at all or is the platform's job.
-- **A route endpoint that is a NAME, not a URL.** `token_env` names the key
-  that opens a road because rule 1 forbids the value; `base_url` is still a
-  literal, and that is where the first real roster hit the wall. This
-  company's own `pm`, `market` and `okr` seats take a cheaper road whose
-  endpoint it holds as a repository secret (`OPENROUTE_BASE_URL`), so the road
-  cannot be written in a publishable manifest at all — the three manifests in
-  `agents/` declare one road each and say so in a comment. The shape is
-  probably `base_url_env`, beside `token_env` and under the same rule: a name
-  that must also appear in `env`, skipped like any other road whose
-  credential is absent from the box. Not added here, because v0.1 is frozen
-  and the freeze's point is that a field arrives through a question, then a
-  spec change, then code — this is the question. Decide with v0.2.
+- ~~A route endpoint that is a NAME, not a URL.~~ **Answered, and shipped as
+  v0.2's one field, 2026-10-07: `base_url_env`.** The question asked for it on
+  2026-09-30 and guessed the shape right — a name beside `token_env`, under the
+  same rule, skipped like any other road the box cannot open — so the field is
+  what the question described and nothing more. What building it added, which
+  the question had not seen: the variable that is *set to something wrong* is a
+  third outcome, not a second, and it is closed by name rather than skipped in
+  silence (see the routes section). This company's `pm`, `market` and `okr`
+  seats now declare the road they actually take, so the three comments
+  explaining what could not be written are gone from `agents/`.
 - ~~Whether `[trigger]` combinations compose (cron + webhook on one agent,
   which v0.1 permits and no shape yet uses) or v1 forces exactly one.~~
   **Answered by the dogfood, 2026-10-03: they compose, and the ordinary seat
@@ -316,6 +404,18 @@ better than "unknown field".
   its schedule block is commented out. Forcing exactly one would have made the
   first real roster unexpressible. v0.1's permissiveness here was right;
   nothing to change.
+- **Whether `env` should say which names are required.** A seat's `env` is one
+  flat list of names, and the box either holds a name or does not; nothing
+  distinguishes a name whose absence costs a feature from one whose absence
+  costs the seat its job. The evidence that the question is real is this
+  company's own PM manifest, which names both kinds in one line (see "`env`:
+  names in the file, values on the box"). The evidence that it should wait is
+  that the shape is not obvious — a second list (`env_required`), a modifier on
+  the name, or nothing at all, because a charter that reads a name it did not
+  get is in a position to say so itself and is the only thing that knows what
+  the name was for. Decide it with a seat that actually failed for want of a
+  name, not before; until then `epito env --complete` lets the box assert what
+  the manifest cannot.
 - Team/roster fields stay OUT of the manifest — **holding so far**: the first
   real roster (`agents/`, five seats, 2026-10-03) needed no field that
   described the roster, only a directory. `epito run <dir>` discovers the

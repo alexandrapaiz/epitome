@@ -150,9 +150,25 @@ TEMPORAL_NAMESPACE=asc
 EPITO_TASK_QUEUE=seats
 CLAUDE_CODE_OAUTH_TOKEN=replace-me
 GH_TOKEN=replace-me
-# The default webhook, which is #hq. A seat that wants its own channel names a
-# different variable in [runtime].slack_webhook_env and it is added here.
+# The default webhook, which is #hq, and also what the daily health post below
+# uses. A seat that wants its own channel names a different variable in
+# [runtime].slack_webhook_env and it is added here.
 SLACK_WEBHOOK_URL=replace-me
+#
+# THE SEATS' OWN NAMES ARE NOT LISTED HERE, on purpose. They are in the
+# manifests -- [runtime].env, plus a route's token_env and base_url_env -- and
+# this file used to carry a hand-copied subset of them, which had already
+# drifted: three names agents/pm/agent.toml asks for (BOARD_API_URL,
+# BOARD_RUNTIME_TOKEN, LINEAR_API_KEY) were never in here, so that seat would
+# have run on this box, green, and filed nothing to the board. The runtime
+# injects only the names the box holds, so a missing one is silent by design.
+# The list is generated from the roster now, and the step after the roster
+# clone prints it for this box:
+#
+#   epito env $BASE/roster             every name the roster asks for, and
+#                                      which of them this box holds
+#   epito env $BASE/roster --template  the same names as lines for THIS file,
+#                                      commented, values blank
 # Per-agent identity (optional; docs/deploy/README.md, "Giving an agent its own
 # identity"). Two lines per agent, its [agent].name uppercased with - as _.
 # When they are here, every run of that agent mints its own short-lived tokens
@@ -167,6 +183,7 @@ ENV
   chown "$SEATS_USER:$SEATS_USER" "$BASE/env"; chmod 0600 "$BASE/env"
   umask 022
   echo "  wrote $BASE/env with a fresh EPITO_HOOK_SECRET; fill in the three replace-me lines"
+  echo "  the SEATS' names are not in it yet: \`epito env $BASE/roster --template\` prints them from the roster (the step below says which are missing)"
   echo "  $BASE/keys/ is where a per-agent GitHub App .pem goes (0600); no agent needs one to run"
   echo "  TEMPORAL_ADDRESS=127.0.0.1:7233 TEMPORAL_NAMESPACE=asc assumed: change them if the engine is elsewhere"
 fi
@@ -232,6 +249,31 @@ else
   echo "  $ROSTER_DIR (empty — put one directory per agent, each with an agent.toml, in it)"
 fi
 unset GH_TOKEN
+
+# What the ROSTER asks of this box, read from the manifests this box is holding
+# rather than from a list written in this script. The two used to be separate
+# lists and they drifted (see $BASE/env above): the runtime injects only the
+# names the box has, so a seat short of one runs, exits 0, and quietly does
+# less -- no refusal anywhere, because nothing in a manifest says which names a
+# seat cannot work without.
+#
+# Run with $BASE/env loaded, in a subshell, because the question is what the
+# UNITS will hold, not what this provisioning shell holds. `epito env` reads
+# the environment for presence and prints no value, ever -- names only, which
+# is the whole reason it is safe to run here and paste the output anywhere.
+# Not through sudo: this reads manifests and writes nothing, and sudo's
+# secure_path would drop the environment the question is about.
+#
+# Never fatal: a half-filled env line is worth a sentence on the screen, not an
+# aborted provision of a box that is otherwise finished. `set -e` is on.
+say "what this roster asks of this box"
+if [ -n "$(find -L "$ROSTER_DIR/" -name agent.toml -print -quit 2>/dev/null)" ]; then
+  ( set -a; . "$BASE/env"; set +a; epito env "$ROSTER_DIR" ) || true
+  echo "  add any name above that this box should hold to $BASE/env, then: systemctl restart epitod-worker epitod"
+  echo "  \`epito env $ROSTER_DIR --template\` prints those lines ready to paste (it comments out the names already set, so pasting cannot blank one)"
+else
+  echo "  no agent.toml under $ROSTER_DIR yet -- run \`epito env $ROSTER_DIR\` once the roster is in place"
+fi
 
 say "infisical agent (optional: it renders $BASE/env for you)"
 if ! command -v infisical >/dev/null; then
@@ -479,8 +521,14 @@ cat <<NEXT
      If the namespace is missing: temporal operator namespace create asc
      If you used docker compose instead, publish on 127.0.0.1 explicitly:
      docker writes its own iptables chain and ufw's 22/443 does not cover it.
-  2. fill in $BASE/env (CLAUDE_CODE_OAUTH_TOKEN, GH_TOKEN, SLACK_WEBHOOK_URL)
-     — or point the Infisical agent at your project and let it render the file
+  2. fill in $BASE/env — the box's own three first (CLAUDE_CODE_OAUTH_TOKEN,
+     GH_TOKEN, SLACK_WEBHOOK_URL), or point the Infisical agent at your project
+     and let it render the file. Then the SEATS' names, which are not those
+     three and are not in this script: they are in the manifests, and
+       epito env $ROSTER_DIR              says which this box is short of
+       epito env $ROSTER_DIR --template   prints them as lines for that file
+     A name the box does not hold is dropped silently into every run of the
+     seat that asked for it, so this is the step with no error message.
   3. put the roster in $ROSTER_DIR (one directory per agent, each an agent.toml
      with [runtime].repo set), then start the worker first and the ingress second:
        systemctl restart epitod-worker

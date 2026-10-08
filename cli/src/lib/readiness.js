@@ -28,6 +28,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { SCOPE_MAP } from "./identity.js";
 import { repoRoot, originRepo } from "./origin.js";
+import { SPEC_VERSION } from "./fields.js";
 
 // The commands that refuse a manifest with no `[runtime].repo`. This list is
 // the one the note prints AND the one the drift test checks the source
@@ -69,7 +70,7 @@ export function blockers(m, path = "agent.toml") {
   if (unmapped.length) {
     out.push({
       commands: SCOPE_REQUIRED_BY,
-      problem: `[identity].scopes names ${unmapped.length === 1 ? "a scope" : "scopes"} v0.1 cannot mint (${unmapped.map((s) => `"${s}"`).join(", ")}), so ${list(SCOPE_REQUIRED_BY)} will refuse rather than mint a token narrower than the manifest promises`,
+      problem: `[identity].scopes names ${unmapped.length === 1 ? "a scope" : "scopes"} ${SPEC_VERSION} cannot mint (${unmapped.map((s) => `"${s}"`).join(", ")}), so ${list(SCOPE_REQUIRED_BY)} will refuse rather than mint a token narrower than the manifest promises`,
       fix: `declare only ${Object.keys(SCOPE_MAP).map((s) => `"${s}"`).join(", ")} in ${path}, or open a card to map the rest`,
     });
   }
