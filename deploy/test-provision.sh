@@ -108,12 +108,18 @@ check "env file has a generated hook secret" "grep -q '^EPITO_HOOK_SECRET=deadbe
 check "env file names the three secrets to fill in" "[ \$(grep -c 'replace-me' /srv/asc/env) = 3 ]"
 check "env file names the engine, on loopback" "grep -q '^TEMPORAL_ADDRESS=127.0.0.1:7233' /srv/asc/env && grep -q '^TEMPORAL_NAMESPACE=asc' /srv/asc/env"
 check "env file names the task queue the two units share" "grep -q '^EPITO_TASK_QUEUE=seats' /srv/asc/env"
-# The box has to know the names of a road the manifests only NAME. Three seats
-# in agents/ declare base_url_env = "OPENROUTE_BASE_URL"; if this file never
-# mentions it, the operator's only clue is a run log on a box they have not
-# started yet. Commented, because this script never writes a secret.
-check "env file names the open road's endpoint and key, commented" \
-  "grep -q '^#   OPENROUTE_BASE_URL=' /srv/asc/env && grep -q '^#   OPENROUTE_API_KEY=' /srv/asc/env"
+# The box has to know the names the manifests only NAME — a road's endpoint and
+# key, the board's two, every other one a seat lists in [runtime].env. This file
+# used to carry a hand-copied subset of them and the copy had drifted: three
+# names agents/pm/agent.toml asks for were never in it, so that seat would have
+# run on this box, green, and filed nothing to the board. The list is generated
+# from the roster now, so what is asserted is the pointer and not a copy.
+check "env file sends the operator to the generator, not to a list in here" \
+  "grep -q 'epito env /srv/asc/roster --template' /srv/asc/env"
+check "and names the drift that is the reason why" \
+  "grep -q 'BOARD_RUNTIME_TOKEN' /srv/asc/env"
+check "an empty roster is said to be empty, not asked" \
+  "grep -q 'no agent.toml under /srv/asc/roster yet' /run1.log"
 check "health script and timer written" "[ -x /usr/local/bin/epitod-health ] && [ -f /etc/systemd/system/epitod-health.timer ]"
 check "health posts epito ps" "grep -q 'epito ps' /usr/local/bin/epitod-health"
 # The engine is not installed with the CLI any more (cli/package.json makes
@@ -141,6 +147,34 @@ bash /provision-host.sh --domain epitod.example.com --no-caddy > /run2.log 2>&1 
 check "the second run did not touch the secrets" "[ \"\$before\" = \"\$(cat /srv/asc/env)\" ]"
 check "it says so, by name" "grep -q 'left untouched' /run2.log"
 check "the unit is still there and unchanged" "grep -q '^User=seats' /etc/systemd/system/epitod.service"
+
+echo "== the roster's own names, asked of the roster"
+# Give the box a manifest and an epito, and prove the script ASKS it rather
+# than printing a list somebody typed in. The env file and the roster are two
+# copies of one set of names unless exactly one of them is generated.
+mkdir -p /srv/asc/roster/pm
+cat > /srv/asc/roster/pm/agent.toml <<'TOML'
+[agent]
+name = "pm"
+description = "A seat with two names this box does not hold."
+[identity]
+scopes = ["github:contents"]
+[trigger]
+cron = "0 12 * * 1"
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/pm-agent.md"
+repo = "alexandrapaiz/epitome"
+env = ["BOARD_API_URL", "BOARD_RUNTIME_TOKEN"]
+TOML
+chown -R seats:seats /srv/asc/roster
+printf '#!/bin/sh\necho "epito $*" >> /var/log/stubbed\necho "(stub epito: 2 names, 0 held)"\n' > /stub/epito
+chmod +x /stub/epito
+bash /provision-host.sh --domain epitod.example.com --no-caddy > /run4.log 2>&1 || { echo "run 4 failed:"; tail -20 /run4.log; exit 1; }
+check "the script asks the roster what this box must hold" "grep -q '^epito env /srv/asc/roster$' /var/log/stubbed"
+check "it prints the answer where the operator is reading" "grep -q 'stub epito: 2 names' /run4.log"
+check "and says what to do with it" "grep -q 'add any name above that this box should hold' /run4.log"
+check "the secrets survived a run that read them" "grep -q '^EPITO_HOOK_SECRET=deadbeefcafe' /srv/asc/env"
 
 echo "== caddy (--domain, no --no-caddy)"
 bash /provision-host.sh --domain epitod.example.com --email ops@example.com > /run3.log 2>&1 || { tail -20 /run3.log; exit 1; }
