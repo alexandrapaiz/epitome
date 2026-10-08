@@ -130,9 +130,10 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **Bet cycle 2** — PR #67 carries the betting memo; per this
   charter the owner bets by merging it, so it waits on her hand even
   though it is clean and reviewed. *Open since 2026-10-05. Cooldown
-  closed 2026-10-06 and today (2026-10-07) is the first day past it with
-  cycle 2 still not bet — the gap is no longer "cooldown's last day,"
-  it is cycle 2 running late.*
+  closed 2026-10-06; this is now the third day past it (2026-10-08)
+  with cycle 2 still not bet, and the engineer has had nowhere to point
+  cycle work since — it has been building off `docs/backlog.md`'s Now
+  section instead (PR #82, the open-road manifest field).*
 - [ ] **Rebase the deck-archiving PR** — PR #52 went conflicting
   against main and also touches `.github/workflows/`, a surface
   product seats hand to the centralizer rather than editing; it needs
@@ -195,3 +196,9 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   test harness, `docs/ideas.md` and `docs/prfaq/`, no Tier C path, not
   this seat's own PR. The engineer seat now has zero open PRs. Seat:
   engineer.
+- [ ] **The open road is now a named field.** PR #82 (draft, clean)
+  adds `[[runtime.route]].base_url_env` — spec change plus code in one
+  branch — so the pm/market/okr manifests can declare the cheap routed
+  endpoint without a literal secret URL in git, the gap
+  `agents/README.md` flagged as an open question the day the roster
+  landed. Still a draft; not Tier B yet. Seat: engineer.
