@@ -349,6 +349,19 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     if (rt.env?.includes(k) && process.env[k] !== undefined) write(`# identity: ${k} from [runtime].env is overridden by this run's own minted credential\n`);
     baseEnv[k] = v;
   }
+  // What the box did NOT have. The loop above injects only the names this
+  // worker holds, which is the rule that keeps a roster portable — and it is
+  // silent: a seat whose BOARD_RUNTIME_TOKEN is missing here runs, exits 0 and
+  // files nothing to the board, and nothing in the log said the name went
+  // missing. The run log is where somebody reads a run back, so it says so by
+  // name. Computed AFTER the mint above, because a name this run injects
+  // itself is not a name the box is short of.
+  const short = (rt.env ?? []).filter((k) => baseEnv[k] === undefined);
+  if (short.length) {
+    write(`# env missing: ${short.join(", ")} — listed in [runtime].env, not set on this box, so this run does not have ${short.length > 1 ? "them" : "it"} (\`epito env\` is the roster-wide view)\n`);
+    log(`${name}: ${short.length} name${short.length > 1 ? "s" : ""} from [runtime].env ${short.length > 1 ? "are" : "is"} not set on this box (${short.join(", ")}) — the run goes ahead without ${short.length > 1 ? "them" : "it"}`);
+  }
+
   // Who the commits belong to. An installation token makes the PR open as
   // `<name>[bot]`; it does nothing at all for the commits inside it, because
   // GitHub links a commit to an account by the author's email and by nothing
