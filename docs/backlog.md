@@ -63,7 +63,15 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   runtime lives on only as HQ's own async heartbeat (its seats still
   run as Actions jobs, per .github/workflows/agent-*.yml).
 - [ ] **Dogfood migration, step 1** — one alexandria seat runs on
-  epito.me. Seat: engineer + owner.
+  epito.me. Seat: engineer + owner. *Code-side risk closed this pass
+  (PR #84, merged under Tier B): a box provisioned from
+  `deploy/provision-host.sh` was silently losing roster secrets
+  because the hand-copied env list had drifted from the manifests;
+  `epito env` now generates that list from the roster itself and
+  refuses a name that is set to nothing instead of running silently
+  short. Carries #82's two road-naming commits forward (#82 closed,
+  superseded, nothing lost). What's left is not code: one real
+  alexandria seat actually running on the owner's box.*
 - [ ] **Dogfood migration, step 2** — delete that seat's ADR-27
   hand-wiring from alexandria. Seat: engineer.
 - [ ] **Dogfood migration, step 3** — write the before/after; this is
