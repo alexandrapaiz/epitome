@@ -167,12 +167,10 @@ export async function doctorCmd(args = []) {
   const engine = await engineLook();
 
   // --- the verdict ---------------------------------------------------------
-  // One list, built from the sections, and the exit code is whether it is
-  // empty. Every entry is a thing that makes a RUN on this box refuse; the
-  // wording is the section's own, because the section is where the fix lives.
-  // Grouped by the problem itself, because that is the shape of the fix: five
-  // seats sharing one `claude` share one missing `claude`, and a seat whose
-  // [runtime].env differs enough to fail on its own gets its own line.
+  // The executor's problems, grouped by the problem itself, because that is
+  // the shape of the fix: five seats sharing one `claude` share one missing
+  // `claude`, and a seat whose [runtime].env differs enough to fail on its own
+  // gets its own line.
   const execProblems = new Map();
   for (const p of perSeat) {
     if (p.executor.state === "ok") continue;
@@ -186,10 +184,11 @@ export async function doctorCmd(args = []) {
   const noExecutor = perSeat.filter((p) => p.executor.state !== "ok");
   const refusedDeep = [...deepByKey.values()].filter((d) => d.state === "refused");
 
-  // Each refusal carries the seat it belongs to (or null for a fact about the
-  // box), so the per-seat verdict in --json is read off this list rather than
-  // recomputed from it — two answers to "is this seat ready" is one answer too
-  // many.
+  // One list, and the exit code is whether it is empty. Every entry is a thing
+  // that makes a RUN on this box refuse, carrying the seats it covers — an
+  // empty list of seats means a fact about the box itself, like the engine. The
+  // per-seat verdict in --json is read OFF this list rather than recomputed
+  // from the sections: two answers to "is this seat ready" is one too many.
   const refusals = [
     ...stranded.map((p) => ({ agents: [p.agent], says: "no open road on this box" })),
     ...brokenRoads.map((r) => ({ agents: [r.agent], says: `the road "${r.name}" is configured here and configured wrongly` })),
@@ -236,7 +235,7 @@ export async function doctorCmd(args = []) {
   // manifests
   const withBlocks = perSeat.filter((p) => p.blocks.length);
   row("manifests", withBlocks.length ? "note" : "ok",
-    `${n} of ${plural(n, "manifest")} load and pass spec ${SPEC_VERSION}${withBlocks.length ? `, and ${plural(withBlocks.length, "seat")} ${withBlocks.length === 1 ? "names something" : "name something"} another command will refuse` : ""}`);
+    `${n} of ${plural(n, "manifest")} ${n === 1 ? "loads and passes" : "load and pass"} spec ${SPEC_VERSION}${withBlocks.length ? `, and ${plural(withBlocks.length, "seat")} ${withBlocks.length === 1 ? "names something" : "name something"} another command will refuse` : ""}`);
 
   // names
   const askedNames = env.names.length;
@@ -368,10 +367,13 @@ export async function doctorCmd(args = []) {
     process.exit(1);
   }
 
-  const look = probeFor(perSeat[0]?.executor.adapter ?? "claude");
+  // What the look did not look at, once per kind of executor in this roster: a
+  // claude seat and a LangGraph seat are unproven in different ways, and the
+  // first seat's sentence is not the other's.
+  const unproven = [...new Set(perSeat.map((p) => probeFor(p.executor.adapter).unproven))];
   out(`✓ nothing here would make a run on this box refuse: ${plural(n, "manifest")} good, every seat on an open road, the executor starts under a run's own environment, and ${engine.address} is ${engine.depth === "connect" ? "Temporal with namespace " + engine.namespace : "answering"}.`);
   if (!deep) {
-    out(`  Not proven: ${look.unproven}. \`epito doctor ${dirArg} --deep\` runs ONE turn per road ("${DEEP_PROMPT}") — which costs a model call and is the only thing that proves credentials from here.`);
+    out(`  Not proven: ${unproven.join("; and ")}. \`epito doctor ${dirArg} --deep\` runs ONE turn per road ("${DEEP_PROMPT}") — which costs a model call and is the only thing that proves credentials from here.`);
   }
   for (const a of asides) out(`  ${a}`);
   process.exit(0);
