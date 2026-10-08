@@ -127,6 +127,48 @@ has it wrong.
 
 It reads the environment for presence and prints no value, ever.
 
+## Would a run on this box start?
+
+Four of this CLI's commands each answer a quarter of that: `epito validate
+<dir>` reads the manifests, `epito routes` says which model road each seat
+takes here, `epito env` says which names this box holds, and `validate
+--for-runtime` adds a look at the engine. None of them touches the executable
+epito spawns — which is what ended the runtime's first real run on a real host
+at turn zero with `Not logged in`, because the environment a run hands its
+child is an allowlist (`PATH`, `HOME`, `USER`, plus `[runtime].env`) and the
+executor's credential lookup needed a name the allowlist did not carry.
+
+`epito doctor` is the preflight, with one contract: **exit 1 if a run on this
+box would refuse, and name the piece.**
+
+```
+$ epito doctor agents
+roster agents on this box — 5 seats, checked in the order a run needs them
+
+✓ manifests  5 of 5 manifests load and pass spec v0.2
+! names      6 names asked for, 2 held, 4 not set here
+✗ roads      1 seat has no open road here (market)
+✓ executor   /usr/local/bin/claude started under the environment a run gives it, for 5 seats
+✗ engine     nothing is answering at 127.0.0.1:7233 (ECONNREFUSED)
+
+epito: a run on this box would refuse — 2 reasons:
+  ✗ no open road on this box — market
+  ✗ no engine: nothing is answering at 127.0.0.1:7233 (ECONNREFUSED). Fix: …
+```
+
+The executor section is the one that is new, and it is the only one that spawns
+anything: it resolves the binary on the PATH a **run** gets and starts it under
+the environment a **run** gives it. It is free, offline and instant — and for
+exactly that reason it proves the file starts and nothing about the account
+behind it, which it says rather than implies. `--deep` is the half that proves
+credentials: one real turn per *road* (five seats sharing one key cost one
+call), with the executor's own refusal read back verbatim. It costs a model
+call, which is why it is a flag.
+
+A name this box does not hold at all is a report and exits 0; a name it holds
+and holds empty exits 1. That is the same split `epito env` makes, for the same
+reason — nothing in a manifest says which names a seat cannot work without.
+
 ## What it gives an agent
 
 - **Identity** — its own GitHub App, created from `[identity].scopes` and

@@ -37,6 +37,11 @@ cd /srv/asc/state && epito audit --since 24h
 There is no `.epito/state.json` any more. `epito ps` asks Temporal, because
 a second copy of what is running is a second copy that can be wrong.
 
+Whether this box actually has those four, on the PATH the **unit** gets rather
+than the one your login shell has, is not a thing to take on trust:
+`epito doctor <roster>` is below, and it is the command to run before the
+first `epito run`.
+
 ## Temporal server + UI
 
 The engine is a server, and **epito does not install it.** `npm i -g epito` is
@@ -552,6 +557,71 @@ is a board that means something different depending on which seat wrote to it
 last. Widening it is a change to `KINDS` in `cli/src/lib/board.js`, in a PR,
 with a reason.
 
+## Before the first run: `epito doctor`
+
+Everything above is a thing this box has to be true for a run to start, and
+until now each one had its own command and its own exit code: `epito validate
+<roster>` for the manifests, `epito routes` for the model roads, `epito env`
+for the names, and a 400ms look at the engine inside `validate --for-runtime`.
+Four commands, three exit codes, and one piece that none of them touched — the
+executable the `execute` activity spawns.
+
+That last one is not hypothetical. epitod v0's first run on a real host exited
+1 at turn zero with `Not logged in`: the environment a run hands its child is
+an **allowlist** (`PATH`, `HOME`, `USER`, plus the names `[runtime].env` asks
+for and this box holds), and the executor's credential lookup needed a name the
+allowlist did not carry. Every piece of that was knowable before 06:00.
+
+```
+$ epito doctor /srv/asc/roster
+roster /srv/asc/roster on this box — 5 seats, checked in the order a run needs them
+
+✓ manifests  5 of 5 manifests load and pass spec v0.2
+! names      6 names asked for, 2 held, 4 not set here
+✓ roads      every seat has an open road — 2 on [runtime].model, no route declared, 3 on "subscription"
+✓ executor   /usr/local/bin/claude started under the environment a run gives it, for 5 seats
+✓ engine     127.0.0.1:7233 is Temporal, namespace "default" exists (a real connect: the engine client is installed here)
+
+✓ nothing here would make a run on this box refuse: 5 manifests good, every
+  seat on an open road, the executor starts under a run's own environment, and
+  127.0.0.1:7233 is Temporal with namespace default.
+  Not proven: that it is logged in — the look never reaches a provider, so a
+  box with an expired session passes it. `epito doctor … --deep` runs ONE turn
+  per road, which costs a model call and is the only thing that proves
+  credentials from here.
+```
+
+One contract: **exit 1 if a run on this box would refuse, and name the piece.**
+That is a refused manifest, a seat with no open road, a road this box has and
+has wrong, a name set to nothing, an executor that is missing or will not
+start, or an engine that is not answering. A name this box does not hold at all
+stays a report and exits 0 — `[runtime].env` is the list the runtime injects
+*from*, nothing in a manifest says which names a seat cannot work without, and
+`epito env <dir> --complete` is where you assert it should hold them all.
+
+Three things worth knowing about what it does and does not prove:
+
+- **The executor is resolved on the PATH a RUN gets**, then started under the
+  environment a run gives it. A `claude` that is on your interactive PATH and
+  not on `epitod-worker.service`'s is exactly the failure this catches, and the
+  fix it prints names `EPITO_EXECUTOR` and its current value.
+- **The look is free and offline, so it says nothing about the account.**
+  `--deep` is the half that proves credentials: one real turn per *road* (not
+  per seat — five seats sharing one key cost one call), with the executor's own
+  refusal read back verbatim.
+- **A TCP connect is not a Temporal server.** When `@temporalio/client` is
+  installed here — it is, on a box provisioned by `provision-host.sh` — the
+  engine section does the real connect and the real namespace check, so a port
+  that answers and is not Temporal, or the right server with a namespace nobody
+  created, is caught here rather than at the first schedule. Where the client
+  is absent (a plain `npm i -g epito`) it falls back to the cheap look and says
+  that is what it did.
+
+A LangGraph seat is the one case a preflight cannot finish: its graph is
+resolved from the `langgraph.json` in *its own* repository, which exists on
+this box only inside a clone a run makes. The report says so rather than
+ticking it.
+
 ## Schedules: what `epito run` actually does
 
 ```sh
@@ -691,6 +761,7 @@ docker exec epitod epito ps
 ```sh
 cd cli
 node --test test/unit.mjs              # the reconcile diff and the validator, no server
+bash test/smoke-doctor.sh              # the preflight, including three broken executors
 bash test/smoke-temporal.sh            # the whole runtime against a local dev server
 bash test/smoke-langgraph.sh           # the langgraph adapter, against the real framework
 ```
