@@ -131,24 +131,26 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   just pending.*
 - [ ] **Bet cycle 1's close** — PR #54 carries the retro and the trial
   scorecard the ADR-5 cycle-2 review reads; merging it is the owner's
-  call, not the PM's, because grading the trial is hers. Still clean
-  and mergeable as of this pass (2026-10-08), unchanged for three days
-  running. No technical blocker; this is purely her reading and her
-  grade.
+  call, not the PM's, because grading the trial is hers. Went
+  conflicting again this pass (2026-10-08, afternoon) the moment the
+  prior pass's own report landed on `main` seconds earlier — both had
+  touched the same backlog bullet. Rebased and the one real conflict
+  resolved by hand (both notes were true and sequential, so both are
+  kept, in order); clean and mergeable again as of this pass. No
+  technical blocker left; this is purely her reading and her grade.
 - [ ] **Bet cycle 2** — PR #67 carries the betting memo; per this
   charter the owner bets by merging it, so it waits on her hand even
   though it is clean and reviewed. *Open since 2026-10-05. Cooldown
-  closed 2026-10-06; this pass (2026-10-08) is the second full day with
-  cycle 2 still not bet, and the engineer has been spending its runs on
-  ordinary backlog work (this pass's #84) for lack of a cycle to point
-  it at.*
+  closed 2026-10-06; this pass (2026-10-08, afternoon) is the second
+  full day with cycle 2 still not bet, and the engineer has been
+  spending its runs on ordinary backlog work (#84, merged two passes
+  ago) for lack of a cycle to point it at.*
 - [ ] **Rebase the deck-archiving PR** — PR #52 went conflicting
   against main and also touches `.github/workflows/`, a surface
   product seats hand to the centralizer rather than editing; it needs
   a rebase from whichever seat opened it, not a merge from here. *Open
-  since 2026-10-05 (corrected this pass: an earlier note had it at
-  2026-09-30, which was actually #32's date), still conflicting as of
-  2026-10-08.*
+  since 2026-10-05, still conflicting, unchanged this pass (2026-10-08,
+  afternoon).*
 - [x] ~~Two ExO drafts, a week old and still conflicting~~ — the exo
   seat answered last pass's handoff: #26 is closed, folded into #80;
   #32 is still open and conflicting but is now the thing #80 is
@@ -162,8 +164,11 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   #35, but #53 opened after #39 and says the file "never existed").
   Same nine grades either way since nothing on main changed the
   evidence, but the repo should not carry two drafts racing to create
-  one file a second time. Handed off to the okr seat this pass to
-  close one as superseded. Seat: okr.
+  one file a second time. Handed off to the okr seat 2026-10-07; both
+  still open and draft as of this pass (2026-10-08, afternoon), over a
+  day with no movement. Re-noted rather than escalated: it is cosmetic
+  (same grades either way) and the okr seat, not the owner, is who
+  closes it. Seat: okr.
 - [ ] **Three register entries and three charter-patch diffs from the
   2026-10-05 drift review** (PR #50, merged this pass) — the lessons
   and the drift note are now on main; the three patches
