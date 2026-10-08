@@ -214,6 +214,21 @@ if [ -n "$routed_seat" ]; then
     then ok  "...and even the wrong value is not printed back"
     else bad "...and even the wrong value is not printed back"
   fi
+  # Blank is the third outcome's quieter half, and the one an env file invites:
+  # `OPENROUTE_API_KEY=` with nothing after it. It closes the road exactly like
+  # an absent key and it is NOT the same box, so it does not get the same
+  # sentence — `epito env` calls it "set and set to nothing" and this has to
+  # agree with it.
+  OPENROUTE_API_KEY="" OPENROUTE_BASE_URL="$SECRET_URL" $E routes "$AGENTS" >"$TMP/routes-blank.txt" 2>&1
+  rblrc=$?
+  if [ $rblrc -eq 1 ] && grep -q 'holds nothing' "$TMP/routes-blank.txt"
+    then ok  "a key set to nothing is a line to fix, not a road this box never had"
+    else bad "a key set to nothing is a line to fix, not a road this box never had [exit $rblrc]"
+  fi
+  if ! grep -q 'OPENROUTE_API_KEY is not set on this machine' "$TMP/routes-blank.txt"
+    then ok  "...and is never described as unset, which is a different box"
+    else bad "...and is never described as unset, which is a different box"
+  fi
   unset OPENROUTE_API_KEY
 fi
 
@@ -415,6 +430,8 @@ check "a held name is commented out in the template, so pasting cannot blank it"
 # makes between a road this box never had and a road it has wrong.
 eout2="$($BARE SLACK_WEBHOOK_URL= node "$CLI/src/index.js" env "$AGENTS" 2>&1)"; e2rc=$?
 check "a name set to nothing exits 1 rather than reading as absent" "[ $e2rc -eq 1 ]"
+check "...and a seat's line tells an empty name apart from an absent one" \
+  "printf '%s' \"\$eout2\" | grep -q 'SLACK_WEBHOOK_URL arrives empty'"
 check "...named, with both ways to fix it" \
   "printf '%s' \"\$eout2\" | grep -q 'set and set to nothing (SLACK_WEBHOOK_URL)' && printf '%s' \"\$eout2\" | grep -q 'delete the line entirely'"
 

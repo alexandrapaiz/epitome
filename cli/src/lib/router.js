@@ -172,7 +172,14 @@ export function resolveEndpoint(route, env = process.env) {
   if (!route?.baseUrlEnv) return { url: route?.baseUrl ?? null, problem: null, misconfigured: false };
   const name = route.baseUrlEnv;
   const raw = (env[name] ?? "").trim();
-  if (!raw) return { url: null, problem: `${name} is not set on this machine`, misconfigured: false };
+  // Absent and blank are two different boxes. Absent is a box that never had
+  // this road, which is routing working as designed; blank is an env-file line
+  // somebody filled in halfway, which is a setting to correct — the same split
+  // this function already makes for a variable holding something that is not a
+  // URL, and the one `epito env` reports per name.
+  if (!raw) return env[name] === undefined
+    ? { url: null, problem: `${name} is not set on this machine`, misconfigured: false }
+    : { url: null, misconfigured: true, problem: `${name} is set on this machine and holds nothing, so this road has no endpoint — an env-file line with nothing after the =. Fix: put the address after the =, or delete the line entirely, which is how a box says it does not have this road` };
   const u = (() => { try { return new URL(raw); } catch { return null; } })();
   if (!u || !/^https?:$/.test(u.protocol)) {
     return {
@@ -203,7 +210,15 @@ export function liveRoutes(routes, env = process.env) {
   const live = [], skipped = [];
   for (const r of routes) {
     if (r.tokenEnv && !(env[r.tokenEnv] ?? "").trim()) {
-      skipped.push({ route: r, reason: `${r.tokenEnv} is not set on this machine`, misconfigured: false });
+      // Same split as the endpoint above: a key this box never had closes the
+      // road quietly, a key set to nothing is a line to go fix.
+      const blank = env[r.tokenEnv] !== undefined;
+      skipped.push({
+        route: r, misconfigured: blank,
+        reason: blank
+          ? `${r.tokenEnv} is set on this machine and holds nothing, so this road has no key — an env-file line with nothing after the =. Fix: put the key after the =, or delete the line entirely, which is how a box says it does not have this road`
+          : `${r.tokenEnv} is not set on this machine`,
+      });
       continue;
     }
     const { url, problem, misconfigured } = resolveEndpoint(r, env);

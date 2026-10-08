@@ -1525,7 +1525,10 @@ const stubRun = async (agent, over = {}, env = {}) => {
   process.chdir(dir);
   const work = mkdtempSync(cloneDirPrefix(agent.agent.name));
   const saved = {};
-  for (const [k, v] of Object.entries(env)) { saved[k] = process.env[k]; process.env[k] = v; }
+  // `null` means this box does NOT hold the name, which stopped being the same
+  // thing as holding it empty: a blank value is an env-file line somebody
+  // filled in halfway, and the router now says so rather than calling it unset.
+  for (const [k, v] of Object.entries(env)) { saved[k] = process.env[k]; if (v === null) delete process.env[k]; else process.env[k] = v; }
   process.env.EPITO_STUB_DIR = join(dir, "stub");
   try {
     const r = await executeAgent({
@@ -1582,7 +1585,7 @@ test("the detour: the cheap road is taken when it works, and nothing else runs",
 });
 
 test("the detour: no key on this box means the closed road is announced, not attempted", async () => {
-  const r = await stubRun(stubSeat(), {}, { MOONSHOT_API_KEY: "" });
+  const r = await stubRun(stubSeat(), {}, { MOONSHOT_API_KEY: null });
   assert.equal(r.exit, 0);
   assert.equal(r.route, "subscription");
   assert.equal(r.attempts.length, 1, "a skipped road is not an attempt");
@@ -2557,4 +2560,24 @@ test("a run says which of its declared names the box did not have", async () => 
     rmSync(work, { recursive: true, force: true });
     delete process.env.EPITO_STUB_DIR;
   }
+});
+
+test("a road's credential set to NOTHING is a line to fix, not a road this box never had", () => {
+  const route = { name: "open", model: "kimi", baseUrl: null, baseUrlEnv: "GW_URL", tokenEnv: "GW_KEY", concurrency: null };
+  // Absent: routing working as designed, and no box has to be corrected.
+  const gone = liveRoutes([route], {});
+  assert.equal(gone.skipped[0].misconfigured, false);
+  assert.match(gone.skipped[0].reason, /^GW_KEY is not set on this machine$/);
+  // Blank: an env-file line with nothing after the =, which is a box that HAS
+  // this one and has it wrong. `epito env` calls it "set and set to nothing"
+  // and refuses; this is the same box, so it cannot be called unset here.
+  const blank = liveRoutes([route], { GW_KEY: "", GW_URL: "https://gw.test/x" });
+  assert.equal(blank.skipped[0].misconfigured, true);
+  assert.match(blank.skipped[0].reason, /GW_KEY is set on this machine and holds nothing/);
+  assert.doesNotMatch(blank.skipped[0].reason, /is not set on this machine/);
+  // And the endpoint half, the same way.
+  const noUrl = resolveEndpoint({ ...route, tokenEnv: null }, { GW_URL: "   " });
+  assert.equal(noUrl.misconfigured, true);
+  assert.match(noUrl.problem, /GW_URL is set on this machine and holds nothing/);
+  assert.equal(resolveEndpoint({ ...route, tokenEnv: null }, {}).misconfigured, false);
 });

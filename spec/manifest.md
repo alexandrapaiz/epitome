@@ -301,12 +301,17 @@ the run takes the first one that starts it (ADR-19).
   A route whose `base_url_env` is unset is skipped the same way and for the
   same reason — an endpoint you do not have is a road you cannot take. One case
   is louder than a skip, though, and it is the operator's typo: a variable that
-  IS set and does not hold an http(s) URL, or holds one with a credential in
-  it. That road is closed with the reason named (the variable, and what is
-  wrong with what it holds — never the value itself, which goes in no log), so
-  "the gateway is misconfigured" cannot read as "the gateway is not configured
-  here". Both sentences end in the same fallback; only one of them is a bug
-  somebody has to go fix.
+  IS set and does not hold an http(s) URL, holds one with a credential in it,
+  or holds nothing at all. That road is closed with the reason named (the
+  variable, and what is wrong with what it holds — never the value itself,
+  which goes in no log), so "the gateway is misconfigured" cannot read as "the
+  gateway is not configured here". Both sentences end in the same fallback;
+  only one of them is a bug somebody has to go fix.
+
+  "Holds nothing at all" is in that list because an env file is where these
+  values live and `KEY=` is what a half-filled line looks like. A box that
+  never had the road and a box whose line is blank are not the same box, and
+  do not get the same sentence — in `epito routes` or in `epito env`.
 
 - **`concurrency` is a property of the road, not of the seat.** A prepaid tier
   that allows one request at a time is a single-lane road, and two seats that

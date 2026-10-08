@@ -86,8 +86,17 @@ export async function envCmd(args = []) {
   // Per seat, and only for the seats that are short: a seat whose every name
   // is here needs no line, and five lines saying "nothing missing" would bury
   // the one line that is not.
+  //
+  // The two kinds of shortfall are said apart, because they are not the same
+  // thing to the agent: a name the box lacks never reaches the run at all,
+  // and a name set to nothing reaches it as an empty string — which is the
+  // one the agent will act on and fail somewhere else.
   for (const s of report.seats.filter((x) => x.short.length)) {
-    console.log(`! ${s.agent} runs here with ${s.held.length} of ${plural(s.asked.length, "name")}: ${s.short.join(", ")} ${s.short.length > 1 ? "are" : "is"} not available to its runs`);
+    const says = [
+      s.missing.length ? `${s.missing.join(", ")} ${s.missing.length > 1 ? "are" : "is"} not available to its runs` : null,
+      s.empty.length ? `${s.empty.join(", ")} ${s.empty.length > 1 ? "arrive" : "arrives"} empty` : null,
+    ].filter(Boolean).join("; ");
+    console.log(`! ${s.agent} runs here with ${s.held.length} of ${plural(s.asked.length, "name")}: ${says}`);
   }
   if (report.seats.some((s) => s.short.length)) console.log("");
 
