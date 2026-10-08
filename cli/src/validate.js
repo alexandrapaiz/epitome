@@ -20,7 +20,7 @@
 //     would be a second spelling of an idea this CLI has already spelled.
 //   - `--for-runtime` does NOT become implicit when a directory is named, even
 //     though asking about a roster is nearly asking the runtime's question. It
-//     would make `epito validate agents` refuse a roster spec v0.1 blesses, and
+//     would make `epito validate agents` refuse a roster the spec blesses, and
 //     the default has to keep saying yes to every manifest the spec blesses
 //     (src/lib/readiness.js argues this at length). What the flag buys instead
 //     is exact: `epito validate <dir> --for-runtime` refuses precisely what
@@ -50,6 +50,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import { parseManifest, validateManifest } from "./lib/manifest.js";
 import { blockers, unchecked } from "./lib/readiness.js";
+import { SPEC_VERSION } from "./lib/fields.js";
 import { ROSTER_RULES, findManifests, rosterRules } from "./lib/roster.js";
 // The address and the look, through a module that imports no @temporalio: the
 // roster form has to be able to say whether the engine is up on a machine that
@@ -63,7 +64,7 @@ export const VALIDATE_FLAGS = [{ name: "for-runtime", does: "make the readiness 
 // about the files, and no --for-runtime should be needed to hear that two seats
 // are asking for one identity. `repo` is a note, because readiness.js already
 // carries it with a better sentence and a fix, and because a manifest without
-// it is a valid v0.1 manifest.
+// it is a valid manifest.
 //
 // Every rule ROSTER_RULES names MUST appear here. A rule missing from this table
 // would be a rule `epito run` refuses and `epito validate --for-runtime` passes
@@ -136,7 +137,7 @@ function one(path, strict, self) {
     say(`\n${name} is valid, and not ready to run:\n`);
     for (const b of r.blocks) say(`  ! ${b.problem}.\n    Fix: ${b.fix}.`);
     if (strict) { console.error(`\nepito: --for-runtime asks whether the runtime would accept this manifest, and it would not.`); process.exit(1); }
-    say(`\nThis file is a valid v0.1 manifest either way — run \`${self} --for-runtime\` to make the above an error instead of a note.`);
+    say(`\nThis file is a valid ${SPEC_VERSION} manifest either way — run \`${self} --for-runtime\` to make the above an error instead of a note.`);
   }
   process.exit(0);
 }
@@ -192,7 +193,7 @@ async function roster(dirArg, strict, self) {
   // still exact — nothing below needs a server to be true. The engine line in
   // the closing verdict is about what was FOUND on the box. Header: what was
   // needed. Footer: what is there. Do not "fix" one to match the other.
-  out(`roster ${rel(dir)} — ${plural(n, "manifest")}, against spec v0.1 (no engine)\n`);
+  out(`roster ${rel(dir)} — ${plural(n, "manifest")}, against spec ${SPEC_VERSION} (no engine)\n`);
   // Only the ✓/! rows are padded, so only they set the width — a refused
   // manifest is named by its path, and letting a long path set the column
   // pushed every good seat's description halfway across the terminal.
@@ -211,7 +212,7 @@ async function roster(dirArg, strict, self) {
 
   if (bad.length) {
     out(`epito: ${bad.length} of ${plural(n, "manifest")} refused; fix them and start again — a roster runs whole or not at all`);
-    if (notReady.length) out(`  ${plural(notReady.length, "other")} ${notReady.length === 1 ? "is a valid v0.1 manifest that is" : "are valid v0.1 manifests that are"} not ready to run either — the ! lines say what and how`);
+    if (notReady.length) out(`  ${plural(notReady.length, "other")} ${notReady.length === 1 ? `is a valid ${SPEC_VERSION} manifest that is` : `are valid ${SPEC_VERSION} manifests that are`} not ready to run either — the ! lines say what and how`);
     process.exit(1);
   }
   if (strict && notReady.length) {

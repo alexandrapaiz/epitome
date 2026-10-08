@@ -1,4 +1,5 @@
-// The manifest (agent.toml) parser and validator, spec v0.1.
+// The manifest (agent.toml) parser and validator, against the spec version
+// `SPEC_VERSION` names (spec/manifest.md).
 // Factored out of index.js so `epito run` can load a directory of manifests
 // with the same rules `epito validate` applies. The error strings are product
 // surface (spec: "name the rule broken, in the product's own vocabulary, with
@@ -9,7 +10,7 @@ import { parse } from "smol-toml";
 import { ADAPTERS, DEFAULT_ADAPTER, unknownAdapter } from "./adapters.js";
 import { routeErrors } from "./router.js";
 import { parseCron } from "./cron.js";
-import { unknownKeys } from "./fields.js";
+import { unknownKeys, SPEC_VERSION } from "./fields.js";
 import { SCOPE_MAP } from "./identity.js";
 
 export const NAME_RE = /^[a-z0-9-]{1,40}$/;
@@ -40,7 +41,7 @@ const CLASSIC = new Set([
 
 const MINTABLE = Object.keys(SCOPE_MAP).map((s) => `"${s}"`).join(", ");
 
-// The frozen field catalogue, spec v0.1. This is the list the spec's table
+// The field catalogue. This is the list the spec's table
 // section renders and the list this validator enforces, and there is exactly
 // one of it so the two cannot drift — the drift is what let five fields land
 // as prose without ever being checked.
@@ -61,10 +62,10 @@ export const TABLES = Object.keys(FIELDS);
 // product that just started refusing things.
 const RETIRED = {
   trigger: {
-    on: '[trigger].on names platform events to subscribe to, and v0.1 subscribes to nothing and filters on nothing: a seat is woken by [trigger].cron (a schedule the runtime registers) or [trigger].webhook (the ingress), and a hook runs the seat whatever event it carried. A field that cannot change what happens is a field that misleads its author. Fix: drop it, and set webhook = true to be woken by events. Event subscription returns with `epito deploy` — spec v0.1, open questions.',
+    on: `[trigger].on names platform events to subscribe to, and ${SPEC_VERSION} subscribes to nothing and filters on nothing: a seat is woken by [trigger].cron (a schedule the runtime registers) or [trigger].webhook (the ingress), and a hook runs the seat whatever event it carried. A field that cannot change what happens is a field that misleads its author. Fix: drop it, and set webhook = true to be woken by events. Event subscription returns with \`epito deploy\` — spec ${SPEC_VERSION}, open questions.`,
   },
   runtime: {
-    image: '[runtime].image names a container image, and an image is a property of the box, not of the agent — the same rule that keeps the interpreter, the virtualenv and every path out of a manifest, because a manifest has to stay publishable and runnable by a second person (spec v0.1, "what is deliberately NOT in the manifest"). Nothing has ever read this field. Fix: drop the line; a run happens in the image the runtime box already has.',
+    image: `[runtime].image names a container image, and an image is a property of the box, not of the agent — the same rule that keeps the interpreter, the virtualenv and every path out of a manifest, because a manifest has to stay publishable and runnable by a second person (spec ${SPEC_VERSION}, "what is deliberately NOT in the manifest"). Nothing has ever read this field. Fix: drop the line; a run happens in the image the runtime box already has.`,
   },
 };
 
@@ -127,7 +128,7 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
   // believes in and the runtime has never heard of, so it is named first.
   for (const t of Object.keys(m)) {
     if (TABLES.includes(t)) continue;
-    errors.push(`[${t}] is not a table in manifest spec v0.1 — a manifest has four: [${TABLES.join("], [")}]. Fix: drop it, or move what it carries into one of the four.`);
+    errors.push(`[${t}] is not a table in manifest spec ${SPEC_VERSION} — a manifest has four: [${TABLES.join("], [")}]. Fix: drop it, or move what it carries into one of the four.`);
   }
   for (const t of TABLES) {
     if (m[t]) errors.push(...unknownKeys(m[t], FIELDS[t], `[${t}]`, RETIRED[t] ?? {}));
@@ -140,10 +141,10 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
 
   if (m.identity) {
     const s = m.identity.scopes;
-    if (!Array.isArray(s) || s.length === 0) errors.push(`[identity].scopes must be a non-empty array of platform:permission strings — scopes are the whole of an agent's identity, and an agent with none has nothing to mint. Fix: scopes = ["github:contents", "github:pull_requests"]; v0.1 mints ${MINTABLE}.`);
+    if (!Array.isArray(s) || s.length === 0) errors.push(`[identity].scopes must be a non-empty array of platform:permission strings — scopes are the whole of an agent's identity, and an agent with none has nothing to mint. Fix: scopes = ["github:contents", "github:pull_requests"]; ${SPEC_VERSION} mints ${MINTABLE}.`);
     else for (const sc of s) {
       if (typeof sc !== "string" || !/^[a-z0-9_-]+:[a-z0-9_.-]+$/.test(sc)) {
-        errors.push(`scope "${sc}" must look like platform:permission${CLASSIC.has(sc) ? ` — "${sc}" is one of GitHub's CLASSIC OAuth scopes, which are a different thing: a manifest scope maps to a fine-grained App permission, so the App epito creates holds only what the manifest asked for` : " — the platform the permission belongs to, then the permission"}. Fix: scopes = ["github:contents", "github:pull_requests"]; v0.1 maps ${MINTABLE} and notes anything else as unmintable.`);
+        errors.push(`scope "${sc}" must look like platform:permission${CLASSIC.has(sc) ? ` — "${sc}" is one of GitHub's CLASSIC OAuth scopes, which are a different thing: a manifest scope maps to a fine-grained App permission, so the App epito creates holds only what the manifest asked for` : " — the platform the permission belongs to, then the permission"}. Fix: scopes = ["github:contents", "github:pull_requests"]; ${SPEC_VERSION} maps ${MINTABLE} and notes anything else as unmintable.`);
       }
     }
   }

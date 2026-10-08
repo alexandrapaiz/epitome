@@ -17,6 +17,7 @@ import { loadRoster, rosterRules, ROSTER_RULES } from "../src/lib/roster.js";
 import { SEVERITY, checkManifest, shape } from "../src/validate.js";
 import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
+import { rosterEnv, namesFor, envTemplate, holding, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
 import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP } from "../src/lib/identity.js";
 import { spawn, execFileSync } from "node:child_process";
@@ -35,8 +36,10 @@ import {
 import { createServer as createTcpServer } from "node:net";
 import {
   routesFor, routeErrors, liveRoutes, noRouteMessage, anthropicRouteEnv, routeFacts,
+  resolveEndpoint, endpointLabel,
   classifyAttempt, withLane, DEFAULT_ROUTE, ROUTE_FIELDS,
 } from "../src/lib/router.js";
+import { SPEC_VERSION } from "../src/lib/fields.js";
 import {
   traceConfig, traceIdFor, spanIdFor, traceparentFor, childTraceEnv, attributes,
   span, payload, emit, parseHeaders, traceNote, resetQuiet,
@@ -278,6 +281,9 @@ const ROUTE_REFUSALS = [
   ["route model missing",    { runtime: { model: undefined, route: [{ name: "k" }] } }],
   ["base_url not a URL",     { runtime: { route: [{ name: "k", model: "m", base_url: "moonshot.ai" }] } }],
   ["base_url holds a key",   { runtime: { route: [{ name: "k", model: "m", base_url: "https://u:p@x.ai" }] } }],
+  ["base_url_env shape",     { runtime: { route: [{ name: "k", model: "m", base_url_env: "my var" }] } }],
+  ["base_url_env unlisted",  { runtime: { route: [{ name: "k", model: "m", base_url_env: "GATEWAY_URL" }] } }],
+  ["base_url_env + base_url", { runtime: { env: ["GATEWAY_URL"], route: [{ name: "k", model: "m", base_url_env: "GATEWAY_URL", base_url: "https://x.ai" }] } }],
   ["token_env shape",        { runtime: { route: [{ name: "k", model: "m", token_env: "my key" }] } }],
   ["token_env unlisted",     { runtime: { route: [{ name: "k", model: "m", token_env: "KIMI_KEY" }] } }],
   ["concurrency shape",      { runtime: { route: [{ name: "k", model: "m", concurrency: 0 }] } }],
@@ -1314,6 +1320,145 @@ test("router: every road closed is a refusal that names all of them and the fix"
   assert.match(msg, /the subscription is the floor/);
 });
 
+// --- base_url_env: an endpoint that is a NAME (spec v0.2) -----------------
+//
+// The field this company's own roster asked for. `pm`, `market` and `okr` take
+// a cheaper road whose ADDRESS is the confidential part, so a literal
+// `base_url` would have put the one value that is deliberately not in git into
+// a file whose whole promise is that it is publishable.
+//
+// Everything below is one of three claims: the manifest side is `token_env`'s
+// rule exactly; the box side has THREE outcomes rather than two, because a
+// variable set to the wrong thing is not the same as a variable nobody set;
+// and the resolved address is never written down anywhere.
+
+const gated = (over = {}) => ({
+  agent: { name: "pm", description: "A seat." },
+  identity: { scopes: ["github:contents"] },
+  trigger: { cron: "0 6 * * *" },
+  runtime: {
+    model: "claude-opus-5", entry: "prompts/pm.md", repo: "acme/roster",
+    env: ["OPENROUTE_BASE_URL", "OPENROUTE_API_KEY"],
+    route: [
+      { name: "open", model: "kimi-k2.7-code", base_url_env: "OPENROUTE_BASE_URL", token_env: "OPENROUTE_API_KEY" },
+      { name: "subscription", model: "claude-opus-5" },
+    ],
+    ...over,
+  },
+});
+const BOX = { OPENROUTE_BASE_URL: "https://gateway.example.com/anthropic", OPENROUTE_API_KEY: "sk-test" };
+
+test("base_url_env: the manifest carries the NAME and resolves nothing, so validate works standing anywhere", () => {
+  const [open] = routesFor(gated());
+  assert.equal(open.baseUrlEnv, "OPENROUTE_BASE_URL");
+  assert.equal(open.baseUrl, null, "resolving in routesFor would make the reader depend on the box it is read on");
+  assert.deepEqual(routeErrors(gated()), [], "and the road is legal");
+});
+
+test("base_url_env: a name the manifest does not inject can never resolve to an endpoint", () => {
+  const errs = routeErrors(gated({ env: ["OPENROUTE_API_KEY"] }));
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /base_url_env names "OPENROUTE_BASE_URL".*must also be listed in \[runtime\]\.env/s);
+  assert.match(errs[0], /Fix: add "OPENROUTE_BASE_URL" to \[runtime\]\.env/, "token_env's rule, and token_env's fix");
+});
+
+test("base_url_env: a value where a name belongs is refused, and the message says which field wants a URL", () => {
+  const errs = routeErrors(gated({ route: [{ name: "open", model: "m", base_url_env: "https://gateway.example.com" }] }));
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /must be the NAME of an environment variable/);
+  assert.match(errs[0], /use base_url = "https:\/\/\.\.\." instead if the endpoint is a public URL/,
+    "the reader who wanted the other field is told which one it is");
+});
+
+test("base_url_env: a variable's NAME in base_url is told which field it belongs in", () => {
+  const named = routeErrors(gated({ route: [{ name: "open", model: "m", base_url: "$OPENROUTE_BASE_URL" }] }));
+  assert.equal(named.length, 1);
+  assert.match(named[0], /if you meant the variable called OPENROUTE_BASE_URL, that is base_url_env = "OPENROUTE_BASE_URL"/,
+    "the reader who reached for indirection is told where the indirection lives");
+  // Same hint, generic, for a value that is simply not a URL and not a name.
+  const other = routeErrors(gated({ route: [{ name: "open", model: "m", base_url: "moonshot.ai" }] }));
+  assert.match(other[0], /name the variable with base_url_env instead if the endpoint is confidential/);
+});
+
+test("base_url_env: a road with two endpoints is refused — nothing says which one the runtime takes", () => {
+  const errs = routeErrors(gated({
+    route: [{ name: "open", model: "m", base_url_env: "OPENROUTE_BASE_URL", base_url: "https://api.moonshot.ai/anthropic" }],
+  }));
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /declares both base_url and base_url_env/);
+  assert.match(errs[0], /keep base_url_env .* if the endpoint is confidential/s, "both halves of the fix, so either reader can act");
+});
+
+test("base_url_env: an absent variable closes the road exactly the way an absent key does", () => {
+  const { live, skipped } = liveRoutes(routesFor(gated()), { OPENROUTE_API_KEY: "sk-test" });
+  assert.deepEqual(live.map((r) => r.name), ["subscription"], "an endpoint you do not have is a road you cannot take");
+  assert.match(skipped[0].reason, /OPENROUTE_BASE_URL is not set on this machine/);
+  assert.equal(skipped[0].misconfigured, false, "a box that never had it is routing working as designed");
+});
+
+test("base_url_env: a variable set to something that is NOT an endpoint is a typo, not an absence", () => {
+  // Values chosen so that nothing in the message could contain one by accident:
+  // the first draft of this test used "gateway.example.com" and failed on the
+  // message's own `e.g. https://gateway.example.com/...`, which is a collision
+  // and not a leak — but a no-leak assertion that can pass by coincidence is
+  // worth no more than no assertion.
+  for (const bad of ["internal-gw-7f3a1c.corp", "ftp://internal-gw-7f3a1c.corp", "not a url at all"]) {
+    const { live, skipped } = liveRoutes(routesFor(gated()), { ...BOX, OPENROUTE_BASE_URL: bad });
+    assert.deepEqual(live.map((r) => r.name), ["subscription"], `the run still happens: ${bad}`);
+    assert.equal(skipped[0].misconfigured, true, `and somebody has to go fix it: ${bad}`);
+    assert.match(skipped[0].reason, /is set on this machine but does not hold an http\(s\) URL/);
+    assert.match(skipped[0].reason, /Fix: set OPENROUTE_BASE_URL to the address scheme and all/);
+    assert.ok(!skipped[0].reason.includes(bad),
+      "the value is printed nowhere, which is the entire reason the manifest named a variable");
+  }
+});
+
+test("base_url_env: a URL with a credential in it closes the road, because the endpoint IS logged", () => {
+  const { skipped } = liveRoutes(routesFor(gated()), { ...BOX, OPENROUTE_BASE_URL: "https://u:sk-live-abc@gateway.example.com" });
+  assert.equal(skipped[0].misconfigured, true);
+  assert.match(skipped[0].reason, /holds a URL with a credential in it/);
+  assert.match(skipped[0].reason, /name the key with token_env, which is never logged/, "the other field is the fix");
+  assert.ok(!skipped[0].reason.includes("sk-live-abc"), "and the refusal does not leak what it is refusing");
+});
+
+test("base_url_env: a live road comes back resolved, so nothing downstream asks how it was spelled", () => {
+  const { live } = liveRoutes(routesFor(gated()), BOX);
+  assert.deepEqual(live.map((r) => r.name), ["open", "subscription"]);
+  assert.equal(live[0].baseUrl, "https://gateway.example.com/anthropic");
+  assert.deepEqual(anthropicRouteEnv(live[0], BOX), {
+    ANTHROPIC_BASE_URL: "https://gateway.example.com/anthropic", ANTHROPIC_AUTH_TOKEN: "sk-test",
+  }, "exactly what the workflow sets by hand from the same two secrets");
+  assert.equal(routeFacts(live[0]).EPITO_BASE_URL, "https://gateway.example.com/anthropic",
+    "a foreign adapter reads one field whichever way the manifest wrote it");
+});
+
+test("base_url_env: a log says $NAME and never the address", () => {
+  const { live } = liveRoutes(routesFor(gated()), BOX);
+  assert.equal(endpointLabel(live[0]), "$OPENROUTE_BASE_URL",
+    "the name is the half an operator has to act on, and the only half that is safe in a file");
+  assert.equal(endpointLabel(routesFor(routed())[0]), "https://api.moonshot.ai/anthropic",
+    "a public provider's published URL is still printed as itself");
+  assert.equal(endpointLabel(routesFor(routed())[1]), null);
+});
+
+test("base_url_env: resolveEndpoint is the one answer, and a literal road passes through it unchanged", () => {
+  const [kimi, sub] = routesFor(routed());
+  assert.deepEqual(resolveEndpoint(kimi, {}), { url: "https://api.moonshot.ai/anthropic", problem: null, misconfigured: false });
+  assert.deepEqual(resolveEndpoint(sub, {}), { url: null, problem: null, misconfigured: false });
+});
+
+test("base_url_env: stranded by a typo gets the stronger fix, not \"set one of those keys\"", () => {
+  const one = routesFor(gated({ route: [{ name: "open", model: "m", base_url_env: "OPENROUTE_BASE_URL" }] }));
+  const { live, skipped } = liveRoutes(one, { OPENROUTE_BASE_URL: "gateway.example.com" });
+  assert.equal(live.length, 0);
+  const msg = noRouteMessage("pm", skipped);
+  assert.match(msg, /"open" is configured on this box and configured wrongly/);
+  assert.doesNotMatch(msg, /Fix: set one of those keys/,
+    "useless advice to the operator who set one and got the value wrong");
+  // And the ordinary case keeps the ordinary sentence.
+  assert.match(noRouteMessage("pm", liveRoutes(one, {}).skipped), /Fix: set one of those keys on the box/);
+});
+
 test("router: the endpoint and the key reach the claude CLI under the names it reads", () => {
   const [kimi, sub] = routesFor(routed());
   assert.deepEqual(anthropicRouteEnv(kimi, { MOONSHOT_API_KEY: "sk-test" }), {
@@ -1380,7 +1525,10 @@ const stubRun = async (agent, over = {}, env = {}) => {
   process.chdir(dir);
   const work = mkdtempSync(cloneDirPrefix(agent.agent.name));
   const saved = {};
-  for (const [k, v] of Object.entries(env)) { saved[k] = process.env[k]; process.env[k] = v; }
+  // `null` means this box does NOT hold the name, which stopped being the same
+  // thing as holding it empty: a blank value is an env-file line somebody
+  // filled in halfway, and the router now says so rather than calling it unset.
+  for (const [k, v] of Object.entries(env)) { saved[k] = process.env[k]; if (v === null) delete process.env[k]; else process.env[k] = v; }
   process.env.EPITO_STUB_DIR = join(dir, "stub");
   try {
     const r = await executeAgent({
@@ -1437,11 +1585,55 @@ test("the detour: the cheap road is taken when it works, and nothing else runs",
 });
 
 test("the detour: no key on this box means the closed road is announced, not attempted", async () => {
-  const r = await stubRun(stubSeat(), {}, { MOONSHOT_API_KEY: "" });
+  const r = await stubRun(stubSeat(), {}, { MOONSHOT_API_KEY: null });
   assert.equal(r.exit, 0);
   assert.equal(r.route, "subscription");
   assert.equal(r.attempts.length, 1, "a skipped road is not an attempt");
   assert.match(r.logged, /route "kimi" \(kimi-k2-turbo-preview\) skipped: MOONSHOT_API_KEY is not set/);
+});
+
+// A named endpoint, end to end: the child is really pointed at the address the
+// box holds, and nothing that gets written down knows what it is. The stub
+// echoes ANTHROPIC_BASE_URL back in its result on purpose, which is both how
+// this test can see where the child went and exactly what a provider error
+// path does — so the same line proves the pointing and the scrubbing.
+const GATEWAY = "https://gw-unit-7f3a1c.invalid/anthropic";
+const gatedSeat = (over = {}) => stubSeat({
+  env: ["OPENROUTE_BASE_URL", "OPENROUTE_API_KEY", "EPITO_STUB_DIR", "EPITO_STUB_REFUSE_BASE_URL", "EPITO_STUB_ECHO_ROUTE"],
+  route: [
+    { name: "open", model: "kimi-k2.7-code", base_url_env: "OPENROUTE_BASE_URL", token_env: "OPENROUTE_API_KEY" },
+    { name: "subscription", model: "claude-opus-5" },
+  ],
+  ...over,
+});
+
+test("the detour: a road whose endpoint is a NAME points the child at it, and writes down neither", async () => {
+  const r = await stubRun(gatedSeat(), {}, {
+    OPENROUTE_BASE_URL: GATEWAY, OPENROUTE_API_KEY: "sk-gateway-unit-key", EPITO_STUB_ECHO_ROUTE: "1",
+  });
+  assert.equal(r.exit, 0);
+  assert.equal(r.route, "open", "the cheap road opened, because the box holds both halves of it");
+  assert.match(r.logged, /model=kimi-k2\.7-code endpoint=\$OPENROUTE_BASE_URL key=\$OPENROUTE_API_KEY/,
+    "the log names the variables, which is the half an operator acts on");
+  assert.ok(!r.logged.includes(GATEWAY),
+    "and never the address — the child echoed it straight back and the scrubber caught it");
+  assert.match(r.logged, /endpoint=\[redacted: \$OPENROUTE_BASE_URL, the endpoint for route open\]/,
+    "the redaction says which secret stood there, the way it already does for a key");
+  assert.doesNotMatch(r.logged, /sk-gateway-unit-key/);
+});
+
+test("the detour: an endpoint set to the wrong thing is announced as a typo, and the run still happens", async () => {
+  const said = [];
+  const r = await stubRun(gatedSeat(), { log: (m) => said.push(m) }, {
+    OPENROUTE_BASE_URL: "gw-unit-7f3a1c.invalid", OPENROUTE_API_KEY: "sk-gateway-unit-key", EPITO_STUB_ECHO_ROUTE: "1",
+  });
+  assert.equal(r.exit, 0, "a run in progress never refuses over a road it has an alternative to");
+  assert.equal(r.route, "subscription");
+  assert.equal(r.attempts.length, 1, "a closed road is not an attempt, however it came to be closed");
+  assert.ok(said.some((m) => /configured on this machine and configured wrongly/.test(m)),
+    "the operator-facing line separates a box that never had it from a box that has it wrong");
+  assert.ok(said.some((m) => /Fix: set OPENROUTE_BASE_URL to the address scheme and all/.test(m)));
+  assert.ok(!said.join("\n").includes("gw-unit-7f3a1c.invalid"), "and still prints no value");
 });
 
 test("the detour: a seat with every road closed refuses the run and names each one", async () => {
@@ -1545,6 +1737,19 @@ for (const shape of SHAPES) {
     assert.deepEqual(errors, [], errors.join("\n"));
   });
 }
+
+// The one thing a version constant can get wrong: being a different version
+// from the document it names. Every "not a field in manifest spec X" message
+// generates its field list from the catalogue, so a stale constant makes the
+// validator offer a field and then send the reader to a spec without it.
+test("SPEC_VERSION is the version spec/manifest.md's own heading claims", () => {
+  const spec = readFileSync(new URL("../../spec/manifest.md", import.meta.url), "utf8");
+  const heading = spec.split("\n", 1)[0];
+  const claimed = heading.match(/spec (v\d+\.\d+)/)?.[1];
+  assert.ok(claimed, `spec/manifest.md's first line does not name a version: ${heading}`);
+  assert.equal(SPEC_VERSION, claimed,
+    "the code implements one version and the document is another — one of the two moved alone");
+});
 
 test("every field in the frozen catalogue is needed by at least one of the three shapes", () => {
   const used = { agent: new Set(), identity: new Set(), trigger: new Set(), runtime: new Set() };
@@ -2251,4 +2456,128 @@ test("connectReason reads both transports' idea of a dead port", () => {
     "Failed to connect before the deadline");
   // Anything else comes through whole rather than as "[object Object]".
   assert.equal(connectReason({ message: "something else entirely" }), "something else entirely");
+});
+
+// --- what a roster asks of the box ----------------------------------------
+// `epito env`'s half that needs no box: given a roster and an environment,
+// which names does this machine owe each seat, and what is it doing about
+// them. The silence this closes is in runner.js's one line — the runtime
+// injects only the names it HOLDS, so a box short of one produces a seat that
+// runs, exits 0, and quietly does less (src/lib/boxenv.js tells the story).
+
+const rosterOf = (...manifests) => new Map(manifests.map((m) => [m.agent.name, { manifest: m, path: `${m.agent.name}/agent.toml` }]));
+
+test("rosterEnv: one row per name, who asks for it, and what this box is doing about it", () => {
+  const pm = seat("pm", { runtime: {
+    model: "claude-sonnet-5", entry: "prompts/pm.md", repo: "acme/roster",
+    env: ["SLACK_WEBHOOK_URL", "BOARD_API_URL", "GATEWAY_URL", "GATEWAY_KEY"],
+    route: [
+      { name: "open", model: "kimi", base_url_env: "GATEWAY_URL", token_env: "GATEWAY_KEY" },
+      { name: "subscription", model: "claude-sonnet-5" },
+    ],
+  } });
+  const okr = seat("okr", { runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["SLACK_WEBHOOK_URL"] } });
+  const r = rosterEnv(rosterOf(pm, okr), { SLACK_WEBHOOK_URL: "https://hooks.example/x", BOARD_API_URL: "" });
+
+  assert.deepEqual(r.names.map((x) => x.name), ["BOARD_API_URL", "GATEWAY_KEY", "GATEWAY_URL", "SLACK_WEBHOOK_URL"],
+    "alphabetical, because what is generated from it is a file of KEY= lines read by eye");
+  assert.deepEqual(r.names.map((x) => x.state), [EMPTY, ABSENT, ABSENT, HELD]);
+  // The three states, and the one that is neither "here" nor "not here": an
+  // env-file line somebody half filled in. The runtime injects it, empty.
+  assert.equal(holding("BOARD_API_URL", { BOARD_API_URL: "" }), EMPTY);
+  assert.equal(holding("BOARD_API_URL", {}), ABSENT);
+  assert.equal(holding("BOARD_API_URL", { BOARD_API_URL: "x" }), HELD);
+
+  const hook = r.names.find((x) => x.name === "SLACK_WEBHOOK_URL");
+  assert.deepEqual(hook.uses.map((u) => u.agent), ["pm", "okr"], "every seat that asks is named");
+  assert.equal(hook.uses[0].role, "the one-line post after every run");
+  assert.equal(r.names.find((x) => x.name === "GATEWAY_URL").uses[0].role, 'the endpoint for route "open"',
+    "a road's halves say which road, so the reader knows to go read `epito routes`");
+  assert.equal(r.names.find((x) => x.name === "GATEWAY_KEY").uses[0].role, 'the key for route "open"');
+
+  const pmRow = r.seats.find((s) => s.agent === "pm");
+  assert.deepEqual(pmRow.held, ["SLACK_WEBHOOK_URL"]);
+  assert.deepEqual(pmRow.missing, ["GATEWAY_URL", "GATEWAY_KEY"]);
+  assert.deepEqual(pmRow.empty, ["BOARD_API_URL"]);
+  assert.deepEqual(pmRow.short, ["BOARD_API_URL", "GATEWAY_URL", "GATEWAY_KEY"], "short is everything the run will not get, whichever way");
+  assert.deepEqual(r.seats.find((s) => s.agent === "okr").short, [], "a seat whose names are all here gets no line");
+});
+
+test("namesFor unions a road's halves rather than trusting another file's rule", () => {
+  // The validator refuses a token_env or base_url_env that is not also in
+  // [runtime].env. This reader is what an operator fills a box in from, so a
+  // name missing because of a rule enforced elsewhere is a name they will not
+  // put in the file — and the adapter reads a route's key out of the box's
+  // environment directly either way.
+  const m = seat("pm", { runtime: {
+    model: "m", entry: "e", repo: "acme/roster", env: [],
+    route: [{ name: "open", model: "kimi", base_url_env: "GW_URL", token_env: "GW_KEY" }],
+  } });
+  assert.deepEqual(namesFor(m), ["GW_URL", "GW_KEY"]);
+  assert.deepEqual(namesFor(seat("pm")), [], "and a manifest that names nothing asks the box for nothing");
+});
+
+test("the env template covers every name the manifests ask for, and blanks none that are set", () => {
+  const pm = seat("pm", { runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["HELD_ONE", "MISSING_ONE"] } });
+  const env = { HELD_ONE: "a-real-value-nobody-should-see" };
+  const out = envTemplate(rosterEnv(rosterOf(pm), env), { dir: "agents" });
+  assert.match(out, /^MISSING_ONE=$/m, "a name the box lacks is a line to fill in");
+  assert.match(out, /^# HELD_ONE=/m, "a name the box HAS comes out commented");
+  assert.match(out, /pasting this cannot blank it/, "and says why, because that is the failure it avoids");
+  assert.ok(!out.includes("a-real-value-nobody-should-see"), "the template is names only — it is pasted into the one file secrets live in");
+  assert.match(out, /# pm$/m, "each name says which seats asked for it");
+  assert.match(out, /systemd EnvironmentFile/, "and what kind of file this is");
+});
+
+test("a run says which of its declared names the box did not have", async () => {
+  const dir = tmpDir();
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const work = mkdtempSync(cloneDirPrefix("pm"));
+  const said = [];
+  try {
+    const agent = seat("pm", { runtime: {
+      model: "m", entry: "e", repo: "acme/roster",
+      env: ["EPITO_STUB_DIR", "BOARD_RUNTIME_TOKEN", "GH_TOKEN"],
+    } });
+    process.env.EPITO_STUB_DIR = join(dir, "stub");
+    delete process.env.BOARD_RUNTIME_TOKEN;
+    const r = await executeAgent({
+      agent, trigger: "cron", runId: "r-env-1", workDir: work, timeoutMs: 30_000, log: (m) => said.push(m),
+      executor: new URL("./stub-executor.mjs", import.meta.url).pathname,
+      // The mint supplies GH_TOKEN, so the box not holding it is not the box
+      // being short of it — which is why the line is computed after the mint.
+      inject: { GH_TOKEN: "ghs_ENVTESTTOKEN0000000000000000000" }, redact: ["ghs_ENVTESTTOKEN0000000000000000000"],
+    });
+    assert.equal(r.exit, 0, "the run goes ahead without it: a roster is portable, and this is a note");
+    const logged = readFileSync(r.log, "utf8");
+    assert.match(logged, /# env missing: BOARD_RUNTIME_TOKEN — listed in \[runtime\]\.env, not set on this box/);
+    assert.ok(!/env missing:.*GH_TOKEN/.test(logged), "a name this run mints for itself is not a name the box is short of");
+    assert.ok(said.some((m) => /pm: 1 name from \[runtime\]\.env is not set on this box \(BOARD_RUNTIME_TOKEN\)/.test(m)),
+      "and the operator watching journalctl hears it, not only the log file");
+  } finally {
+    process.chdir(cwd);
+    rmSync(work, { recursive: true, force: true });
+    delete process.env.EPITO_STUB_DIR;
+  }
+});
+
+test("a road's credential set to NOTHING is a line to fix, not a road this box never had", () => {
+  const route = { name: "open", model: "kimi", baseUrl: null, baseUrlEnv: "GW_URL", tokenEnv: "GW_KEY", concurrency: null };
+  // Absent: routing working as designed, and no box has to be corrected.
+  const gone = liveRoutes([route], {});
+  assert.equal(gone.skipped[0].misconfigured, false);
+  assert.match(gone.skipped[0].reason, /^GW_KEY is not set on this machine$/);
+  // Blank: an env-file line with nothing after the =, which is a box that HAS
+  // this one and has it wrong. `epito env` calls it "set and set to nothing"
+  // and refuses; this is the same box, so it cannot be called unset here.
+  const blank = liveRoutes([route], { GW_KEY: "", GW_URL: "https://gw.test/x" });
+  assert.equal(blank.skipped[0].misconfigured, true);
+  assert.match(blank.skipped[0].reason, /GW_KEY is set on this machine and holds nothing/);
+  assert.doesNotMatch(blank.skipped[0].reason, /is not set on this machine/);
+  // And the endpoint half, the same way.
+  const noUrl = resolveEndpoint({ ...route, tokenEnv: null }, { GW_URL: "   " });
+  assert.equal(noUrl.misconfigured, true);
+  assert.match(noUrl.problem, /GW_URL is set on this machine and holds nothing/);
+  assert.equal(resolveEndpoint({ ...route, tokenEnv: null }, {}).misconfigured, false);
 });

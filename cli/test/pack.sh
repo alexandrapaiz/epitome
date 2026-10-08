@@ -80,7 +80,7 @@ has()    { grep -qx "$1" "$ROOT/files.txt"; }
 hasnt()  { ! grep -q "$1" "$ROOT/files.txt"; }
 
 check "the bin entry is in it"                     'has src/index.js'
-check "and every module it lazily imports"         'has src/run.js && has src/deploy.js && has src/token.js && has src/board.js && has src/routes.js'
+check "and every module it lazily imports"         'has src/run.js && has src/deploy.js && has src/token.js && has src/board.js && has src/routes.js && has src/env.js'
 check "  including the engine-missing message"     'has src/lib/engine.js'
 check "  and the field catalogue the frozen spec is tested against" 'has src/lib/fields.js'
 # `epito validate` is the first command a user runs and these two are what make
@@ -124,24 +124,41 @@ check "epito validate works and ticks, exit 0"     "[ $RC = 0 ] && said '✓'"
 # --- the ✓ must not overclaim. $WORK is a bare temp directory with no git
 # origin, so init cannot know [runtime].repo and leaves it commented out --
 # which is exactly the manifest that used to tick here and then get refused by
-# the four commands below. The tick stays (spec v0.1 says this file is valid);
+# the four commands below. The tick stays (the spec says this file is valid);
 # what it now also does is say what the runtime will still need.
 check "init says it could not read [runtime].repo here" "grep -q '^# repo = \"owner/name\"' '$WORK/agent.toml'"
 check "the ✓ names what is still missing"            "said 'not ready to run'"
 check "...and which commands will refuse it"          "said 'epito run' && said 'epito deploy' && said 'epito token'"
 check "...and the fix, in the field's own words"      "said 'repo = \"owner/name\"'"
-check "...without claiming the file is invalid"       "[ $RC = 0 ] && said 'valid v0.1 manifest either way'"
+# The version in that sentence comes from SPEC_VERSION, not from this script:
+# the packed tarball is the one place a stale copy of the catalogue would ship.
+SPEC_V="$(grep -o 'spec v[0-9]*\.[0-9]*' "$CLI/../spec/manifest.md" | head -1 | sed 's/spec //')"
+check "...without claiming the file is invalid"       "[ $RC = 0 ] && said 'valid $SPEC_V manifest either way'"
 run_epito validate --for-runtime
 check "--for-runtime makes the same note an error"    "[ $RC = 1 ] && said 'the runtime would accept this manifest, and it would not'"
 
 printf 'repo = "acme/roster"\n' >> "$WORK/agent.toml"
 run_epito validate
 check "with repo set, the ✓ has nothing left to warn about" "[ $RC = 0 ] && ! said 'not ready to run'"
-for c in "deploy --dry-run" "token digest --dry-run" "routes" "board" "audit" "--help"; do
+for c in "deploy --dry-run" "token digest --dry-run" "routes" "env" "board" "audit" "--help"; do
   # shellcheck disable=SC2086 -- $c is this script's own literal, split on purpose
   run_epito $c
   check "epito $c runs with no engine, and prints no stack" "! said ERR_MODULE_NOT_FOUND"
 done
+
+# The seat this step minted names no secret at all, which is the first thing a
+# vibecoder's manifest looks like — so the box-names command has to answer that
+# with a sentence instead of an empty table and an exit code nobody can read.
+run_epito env .
+check "epito env on a manifest that names no secret says so, exit 0" \
+  "[ $RC = 0 ] && said 'this box needs nothing beyond the runtime'"
+printf 'env = ["DIGEST_WEBHOOK_URL"]\n' >> "$WORK/agent.toml"
+run_epito env .
+check "and once it names one, the command names it back"  "[ $RC = 0 ] && said 'DIGEST_WEBHOOK_URL' && said 'not set here'"
+run_epito env . --complete
+check "--complete turns that into the box check it is for" "[ $RC = 1 ] && said 'DIGEST_WEBHOOK_URL'"
+run_epito env . --template
+check "--template prints the line for the env file"        "[ $RC = 0 ] && said 'DIGEST_WEBHOOK_URL='"
 
 # ----------------------- 4. the engine commands refuse in the product's voice
 step "4: the five commands that NEED the engine say so — the bar \`epito validate\` sets"

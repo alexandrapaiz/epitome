@@ -14,7 +14,7 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
 
   epito init [name]   scaffold agent.toml and a charter (alias: epito me)
   epito validate [dir]
-                      check agent.toml against spec v0.1, and name what the
+                      check agent.toml against the manifest spec, and name what the
                       runtime will still need before it can run this agent.
                       Given a directory, check the WHOLE ROSTER — every
                       manifest under it plus the rules about the set — needing
@@ -29,6 +29,12 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
   epito ps [dir]      the roster, read from the runtime
   epito routes [dir]  which model road each seat takes on THIS machine, and
                       which declared roads are closed here (--json)
+  epito env [dir]     which NAMES this roster asks this machine to hold, who
+                      asks for each and whether it is here — the runtime
+                      injects only the names it has, so a box short of one
+                      makes a seat that runs and quietly does less
+                      (--template prints the env file, --complete makes a
+                      missing name an error, --json)
   epito board         what the seats have been doing: run reports, newest
                       last (--agent, --kind, --limit, --json)
   epito audit [name]  the ledger: every App created, every token minted and
@@ -241,6 +247,11 @@ if (cmd === "run") {
   gate("routes", args, [{ name: "json", does: "the report as JSON" }]);
   const { routesCmd } = await import("./routes.js");
   await routesCmd(args);
+  process.exit(0);
+} else if (cmd === "env") {
+  const { envCmd, ENV_FLAGS } = await import("./env.js");
+  gate("env", args, ENV_FLAGS);
+  await envCmd(args);
   process.exit(0);
 } else if (cmd === "board") {
   const { boardCmd } = await import("./board.js");
