@@ -153,8 +153,13 @@ export async function doctorCmd(args = []) {
       if (row.executor.state !== "ok" || !row.roads.takes) continue;
       const key = deepKey(row.executor.binary, row.roads.takes);
       if (!deepByKey.has(key)) {
-        deepByKey.set(key, { key, agent: s.name, route: row.roads.takes.name, model: row.roads.takes.model, binary: row.executor.binary, ...(await deepProbe(s.manifest, row.roads.takes)) });
+        deepByKey.set(key, { key, agents: [], route: row.roads.takes.name, model: row.roads.takes.model, binary: row.executor.binary, ...(await deepProbe(s.manifest, row.roads.takes)) });
       }
+      // Which seats this one call speaks for. The call is keyed by the things
+      // that change its answer — the binary, the endpoint, the key — so three
+      // seats on one road are one call, and the report says whose turn it
+      // stood in for rather than printing the same proof three times.
+      deepByKey.get(key).agents.push(s.name);
       row.deep = deepByKey.get(key);
     }
   }
@@ -165,6 +170,17 @@ export async function doctorCmd(args = []) {
   // One list, built from the sections, and the exit code is whether it is
   // empty. Every entry is a thing that makes a RUN on this box refuse; the
   // wording is the section's own, because the section is where the fix lives.
+  // Grouped by the problem itself, because that is the shape of the fix: five
+  // seats sharing one `claude` share one missing `claude`, and a seat whose
+  // [runtime].env differs enough to fail on its own gets its own line.
+  const execProblems = new Map();
+  for (const p of perSeat) {
+    if (p.executor.state === "ok") continue;
+    const key = `${p.executor.state}|${p.executor.says}|${p.executor.fix}`;
+    if (!execProblems.has(key)) execProblems.set(key, { ...p.executor, agents: [] });
+    execProblems.get(key).agents.push(p.agent);
+  }
+
   const stranded = perSeat.filter((p) => !p.roads.takes);
   const brokenRoads = perSeat.flatMap((p) => p.roads.misconfigured.map((m) => ({ agent: p.agent, ...m })));
   const noExecutor = perSeat.filter((p) => p.executor.state !== "ok");
@@ -175,18 +191,24 @@ export async function doctorCmd(args = []) {
   // recomputed from it — two answers to "is this seat ready" is one answer too
   // many.
   const refusals = [
-    ...stranded.map((p) => ({ agent: p.agent, says: `${p.agent} has no open road on this box` })),
-    ...brokenRoads.map((r) => ({ agent: r.agent, says: `${r.agent}'s road "${r.name}" is configured here and configured wrongly` })),
-    ...noExecutor.map((p) => ({ agent: p.agent, says: `${p.agent}'s executor ${p.executor.state === "missing" ? "is not on the PATH a run gets" : "will not start here"}` })),
-    ...env.empty.flatMap((r) => r.uses.map((u) => ({ agent: u.agent, says: `${r.name} is set on this box and set to nothing, and ${u.agent} asks for it` }))),
-    ...refusedDeep.map((d) => ({ agent: null, says: `the executor refused one turn on route "${d.route}"` })),
-    ...(engine.ok ? [] : [{ agent: null, says: `no engine: ${engine.depth === "connect" ? engine.reason : engineMissing(engine)}. Fix: ${engineFix(engine.address)}` }]),
+    ...stranded.map((p) => ({ agents: [p.agent], says: "no open road on this box" })),
+    ...brokenRoads.map((r) => ({ agents: [r.agent], says: `the road "${r.name}" is configured here and configured wrongly` })),
+    ...[...execProblems.values()].map((e) => ({ agents: e.agents, says: `the executor ${e.state === "missing" ? "is not on the PATH a run gets" : "will not start here"}` })),
+    ...env.empty.map((r) => ({ agents: r.uses.map((u) => u.agent), says: `${r.name} is set on this box and set to nothing` })),
+    ...refusedDeep.map((d) => ({ agents: d.agents, says: `the executor refused one turn on the road "${d.route}"` })),
+    // The engine's own sentence, and a fix appended only when it does not
+    // already carry one. A real connect that failed has said the exact thing
+    // — an unreachable address, or a namespace that does not exist with the
+    // command that creates it — and bolting "run `temporal server start-dev`"
+    // onto "namespace nope does not exist" names the wrong fix for the
+    // problem the line above just described.
+    ...(engine.ok ? [] : [{ agents: [], says: `no engine: ${engine.depth === "connect" ? engine.reason : `${engineMissing(engine)}. Fix: ${engineFix(engine.address)}`}` }]),
   ];
 
   const report = {
     dir: dirArg, spec: SPEC_VERSION, seats: perSeat.map((p) => ({
       agent: p.agent,
-      ready: !refusals.some((r) => r.agent === p.agent),
+      ready: !refusals.some((r) => r.agents.includes(p.agent)),
       road: p.roads.takes ? { name: p.roads.takes.name, model: p.roads.takes.model, endpoint: endpointLabel(p.roads.takes) } : null,
       closedRoads: p.roads.closed,
       executor: { adapter: p.executor.adapter, binary: p.executor.binary, path: p.executor.path, state: p.executor.state, version: p.executor.version },
@@ -197,7 +219,7 @@ export async function doctorCmd(args = []) {
     })),
     engine: { address: engine.address, namespace: engine.namespace, ok: engine.ok, depth: engine.depth, reason: engine.reason ?? null },
     deep: deep ? [...deepByKey.values()].map((d) => ({ route: d.route, model: d.model, state: d.state, turns: d.turns ?? null, says: d.says ?? null })) : null,
-    refusals: refusals.map((r) => ({ agent: r.agent, says: r.says })),
+    refusals: refusals.map((r) => ({ agents: r.agents, says: r.says })),
   };
   if (json) {
     console.log(JSON.stringify(report, null, 2));
@@ -258,6 +280,30 @@ export async function doctorCmd(args = []) {
   }
   out("");
 
+  // --- the executor, once per binary ---------------------------------------
+  if (execProblems.size) {
+    out("executor, per binary");
+    for (const e of execProblems.values()) {
+      out(`  ✗ ${e.says} — covers ${e.agents.join(", ")}`);
+      out(`      Fix: ${e.fix}.`);
+    }
+    out("");
+  }
+
+  // --- the names this box has and has wrong --------------------------------
+  // Absent names are reported once in the closing verdict; these are the other
+  // kind, and they are the kind that exits 1: the box HAS the name and has it
+  // set to nothing, so the runtime injects an empty string, the agent reads it
+  // and whatever it builds out of it fails somewhere far from here.
+  if (env.empty.length) {
+    out("names, per name");
+    for (const r of env.empty) {
+      out(`  ✗ ${r.name} is set here and set to nothing — ${askers(r.uses)}`);
+      out(`      Fix: put the value after the = in this box's env file, or delete the line entirely, which is the honest way to say this box does not have it.`);
+    }
+    out("");
+  }
+
   // --- the detail, only where there is something to act on -----------------
   for (const p of perSeat) {
     const lines = [];
@@ -269,32 +315,55 @@ export async function doctorCmd(args = []) {
     for (const m of p.roads.misconfigured) {
       lines.push(`✗ road "${m.name}" is configured here and configured wrongly — ${m.reason}.\n    Fix: correct it, or unset it: this seat falls through to the next road and runs, so nothing else would have told you.`);
     }
-    if (p.executor.state !== "ok") {
-      lines.push(`✗ executor: ${p.executor.says}.\n    Fix: ${p.executor.fix}.`);
-    }
-    if (p.env.empty.length) {
-      lines.push(`✗ ${p.env.empty.join(", ")} ${p.env.empty.length > 1 ? "arrive" : "arrives"} empty: this box has ${p.env.empty.length > 1 ? "them" : "it"} and has ${p.env.empty.length > 1 ? "them" : "it"} set to nothing.\n    Fix: put the value after the = in this box's env file, or delete the line, which is the honest way to say this box does not have it.`);
-    }
+    // The executor is said once per BINARY, below, and not per seat: one
+    // missing `claude` is one fact about the box, and five identical blocks
+    // of it bury the seat that has a problem of its own.
+    // A half-filled name is a fact about the box and is said once, below,
+    // with everyone who asks for it named — not once per asker.
     // A name this box does not hold is said ONCE, in the closing verdict, and
     // not per seat: five seats short of the same webhook printed five
     // identical lines and buried the one seat that had a real problem. `epito
     // env` is the per-seat view and it is one command away.
-    if (p.deep?.state === "refused") lines.push(`✗ one turn: ${p.deep.says}.\n    Fix: that sentence is the executor's own — fix what it names, then run this again.`);
-    if (p.deep?.state === "ok") lines.push(`✓ one real turn on "${p.deep.route}" answered in ${p.deep.turns ?? "?"} turn${p.deep.turns === 1 ? "" : "s"}: this seat's credentials work here.`);
     if (!lines.length) continue;
     out(`${p.agent}`);
     for (const l of lines) out(`  ${l}`);
     out("");
   }
 
-  if (env.empty.length) {
-    out(`epito: ${plural(env.empty.length, "name")} on this box ${env.empty.length > 1 ? "are" : "is"} set and set to nothing (${env.empty.map((r) => `${r.name} — ${askers(r.uses)}`).join("; ")}).`);
+  // The deep calls, one line each, named by the road rather than by the seat:
+  // one call stands in for every seat that shares its binary, endpoint and
+  // key, and saying it per seat would read as five calls when two were made.
+  if (deep && deepByKey.size) {
+    out("one turn, per road");
+    for (const d of deepByKey.values()) {
+      const covers = `covers ${d.agents.join(", ")}`;
+      if (d.state === "ok") out(`  ✓ "${d.route}" (${d.model}) answered in ${d.turns ?? "?"} turn${d.turns === 1 ? "" : "s"} — ${covers}: the credentials this box holds for that road work`);
+      else if (d.state === "unavailable") out(`  — "${d.route}" was not tried — ${covers}: ${d.says}`);
+      else out(`  ✗ "${d.route}" refused — ${covers}: ${d.says}.\n      Fix: that sentence is the executor's own, verbatim — fix what it names and run this again.`);
+    }
+    out("");
+  }
+
+
+  // --- the two reports that are true whichever way the verdict goes --------
+  // Said before the split, because an operator whose box is short of a name
+  // AND has no engine wants to hear both before they start, not to fix one and
+  // be stopped by the other. These used to live under the ✓ only, which meant
+  // a refused box never mentioned the names at all — `epito validate` makes
+  // the same point at length about its own two halves.
+  const asides = [];
+  if (env.missing.length) {
+    asides.push(`${plural(env.missing.length, "name")} the manifests ask for ${env.missing.length > 1 ? "are" : "is"} not on this box (${env.missing.map((r) => r.name).join(", ")}): the runtime drops ${env.missing.length > 1 ? "them" : "it"} and the seats run without ${env.missing.length > 1 ? "them" : "it"} — a report, not a refusal, because nothing in a manifest says which names a seat cannot work without. \`epito env ${dirArg}\` says who asks for what, and \`--complete\` is where you assert the box should hold them all.`);
+  }
+  if (withBlocks.length) {
+    asides.push(`${plural(withBlocks.length, "seat")} above ${withBlocks.length === 1 ? "names a scope" : "name scopes"} this spec cannot mint: a RUN does not care, \`epito deploy\` and \`epito token\` refuse.`);
   }
 
   // --- the closing verdict -------------------------------------------------
   if (refusals.length) {
     out(`epito: a run on this box would refuse — ${plural(refusals.length, "reason")}:`);
-    for (const r of refusals) out(`  ✗ ${r.says}`);
+    for (const r of refusals) out(`  ✗ ${r.says}${r.agents.length ? ` — ${r.agents.join(", ")}` : ""}`);
+    for (const a of asides) out(`  — ${a}`);
     out(`\nThe ✗ lines above each name a fix. Nothing was started, nothing was registered on the engine, and nothing in ${dirArg} was changed.`);
     process.exit(1);
   }
@@ -302,13 +371,8 @@ export async function doctorCmd(args = []) {
   const look = probeFor(perSeat[0]?.executor.adapter ?? "claude");
   out(`✓ nothing here would make a run on this box refuse: ${plural(n, "manifest")} good, every seat on an open road, the executor starts under a run's own environment, and ${engine.address} is ${engine.depth === "connect" ? "Temporal with namespace " + engine.namespace : "answering"}.`);
   if (!deep) {
-    out(`  Not proven: ${look.unproven}. \`epito doctor ${dirArg} --deep\` runs ONE turn per road — ${DEEP_PROMPT.toLowerCase().replace(/\.$/, "")} — which costs a model call and is the only thing that proves credentials from here.`);
+    out(`  Not proven: ${look.unproven}. \`epito doctor ${dirArg} --deep\` runs ONE turn per road ("${DEEP_PROMPT}") — which costs a model call and is the only thing that proves credentials from here.`);
   }
-  if (env.missing.length) {
-    out(`  ${plural(env.missing.length, "name")} the manifests ask for ${env.missing.length > 1 ? "are" : "is"} not on this box (${env.missing.map((r) => r.name).join(", ")}): the runtime drops ${env.missing.length > 1 ? "them" : "it"} and the seats run without ${env.missing.length > 1 ? "them" : "it"}. \`epito env ${dirArg}\` says who asks for what.`);
-  }
-  if (withBlocks.length) {
-    out(`  And ${plural(withBlocks.length, "seat")} above ${withBlocks.length === 1 ? "names a scope" : "name scopes"} this spec cannot mint: a RUN does not care, \`epito deploy\` and \`epito token\` refuse.`);
-  }
+  for (const a of asides) out(`  ${a}`);
   process.exit(0);
 }

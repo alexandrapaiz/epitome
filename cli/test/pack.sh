@@ -140,7 +140,7 @@ check "--for-runtime makes the same note an error"    "[ $RC = 1 ] && said 'the 
 printf 'repo = "acme/roster"\n' >> "$WORK/agent.toml"
 run_epito validate
 check "with repo set, the ✓ has nothing left to warn about" "[ $RC = 0 ] && ! said 'not ready to run'"
-for c in "deploy --dry-run" "token digest --dry-run" "routes" "env" "board" "audit" "--help"; do
+for c in "deploy --dry-run" "token digest --dry-run" "routes" "env" "board" "audit" "doctor" "--help"; do
   # shellcheck disable=SC2086 -- $c is this script's own literal, split on purpose
   run_epito $c
   check "epito $c runs with no engine, and prints no stack" "! said ERR_MODULE_NOT_FOUND"
@@ -159,6 +159,17 @@ run_epito env . --complete
 check "--complete turns that into the box check it is for" "[ $RC = 1 ] && said 'DIGEST_WEBHOOK_URL'"
 run_epito env . --template
 check "--template prints the line for the env file"        "[ $RC = 0 ] && said 'DIGEST_WEBHOOK_URL='"
+
+# `epito doctor` asks whether a run would start HERE, and one of its five
+# sections is the engine — so it is the one manifest-family command that can be
+# tempted into importing the engine client to answer properly. In this prefix
+# that client does not exist (asserted in step 2), and the fallback has to be a
+# sentence about what a TCP connect proves, never a stack and never a claim
+# that a real connect happened.
+run_epito doctor .
+check "epito doctor runs in a prefix with no engine client" "! said 'ERR_MODULE_NOT_FOUND\|at ModuleLoader'"
+check "...and never claims a real connect it could not make" "! said 'a real connect'"
+check "...saying instead what this box can actually ask"     "said 'engine'"
 
 # ----------------------- 4. the engine commands refuse in the product's voice
 step "4: the five commands that NEED the engine say so — the bar \`epito validate\` sets"

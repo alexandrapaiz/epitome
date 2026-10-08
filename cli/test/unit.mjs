@@ -40,6 +40,9 @@ import {
   classifyAttempt, withLane, DEFAULT_ROUTE, ROUTE_FIELDS,
 } from "../src/lib/router.js";
 import { SPEC_VERSION } from "../src/lib/fields.js";
+import { baseRunEnv, RUNTIME_GIVEN } from "../src/lib/runenv.js";
+import { whichIn, lookAtExecutor, deepKey, probeFor, PROBES } from "../src/lib/probe.js";
+import { engineLook } from "../src/doctor.js";
 import {
   traceConfig, traceIdFor, spanIdFor, traceparentFor, childTraceEnv, attributes,
   span, payload, emit, parseHeaders, traceNote, resetQuiet,
@@ -2580,4 +2583,140 @@ test("a road's credential set to NOTHING is a line to fix, not a road this box n
   assert.equal(noUrl.misconfigured, true);
   assert.match(noUrl.problem, /GW_URL is set on this machine and holds nothing/);
   assert.equal(resolveEndpoint({ ...route, tokenEnv: null }, {}).misconfigured, false);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// `epito doctor`: the preflight, and the piece of it nothing checked before.
+
+test("the environment a run gets is one list, and runner.js no longer spells it", () => {
+  const m = seat("pm", { runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["HELD_NAME", "ABSENT_NAME"] } });
+  const env = { PATH: "/bin", HOME: "/home/pm", USER: "pm", HELD_NAME: "yes", UNASKED: "no" };
+  const built = baseRunEnv(m, env);
+  assert.deepEqual(Object.keys(built).sort(), ["HELD_NAME", "HOME", "PATH", "USER"],
+    "the allowlist is PATH, HOME, USER plus the [runtime].env names this box holds — and nothing else reaches the child");
+  assert.equal("ABSENT_NAME" in built, false, "a name the box does not hold is dropped, not faked: that is what keeps a roster portable");
+  assert.deepEqual(RUNTIME_GIVEN, ["PATH", "HOME", "USER"]);
+  // The drift this module exists to prevent: a probe that spawns the executor
+  // under its OWN idea of the run environment proves nothing about a run. The
+  // list is read from one place by both, and this is what fails if a second
+  // copy appears.
+  const runnerSrc = readFileSync(fileURLToPath(new URL("../src/lib/runner.js", import.meta.url)), "utf8");
+  assert.ok(!/PATH:\s*process\.env\.PATH/.test(runnerSrc),
+    "src/lib/runner.js has grown its own copy of the child's env allowlist again — it belongs in lib/runenv.js, once, because `epito doctor` spawns the executor under the same one");
+  assert.match(runnerSrc, /baseRunEnv\(agent, process\.env\)/,
+    "src/lib/runner.js no longer builds the child's environment through baseRunEnv, so the preflight and the run can disagree about what a run gets");
+});
+
+test("the executor is resolved on the PATH a RUN gets, and the two failures are different fixes", () => {
+  const dir = mkdtempSync(join(tmpdir(), "epito-which-"));
+  after(() => rmSync(dir, { recursive: true, force: true }));
+  const good = join(dir, "claude");
+  writeFileSync(good, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+  const dull = join(dir, "dull");
+  writeFileSync(dull, "#!/bin/sh\nexit 0\n", { mode: 0o644 });
+
+  assert.equal(whichIn("claude", { PATH: dir }).path, good);
+  assert.equal(whichIn("claude", { PATH: "/nowhere-at-all" }).path, null);
+  assert.match(whichIn("claude", { PATH: "/nowhere-at-all" }).reason,
+    /"claude" is not on the PATH a run gets \(1 directory\)/);
+  // There and not executable is not the same mistake as not there, and every
+  // other tool says one word for both.
+  assert.equal(whichIn("dull", { PATH: dir }).path, null);
+  assert.match(whichIn("dull", { PATH: dir }).reason, /is on the PATH a run gets and is not executable by this user/);
+  // An empty PATH is the systemd unit case: a service with no Environment=PATH
+  // resolves no bare name at all, and "not found" would send the reader
+  // looking for a missing install.
+  assert.match(whichIn("claude", {}).reason, /the PATH a run gets is empty/);
+  // An absolute path skips the search and is stat'd where it says.
+  assert.equal(whichIn(good, {}).path, good);
+  assert.match(whichIn(join(dir, "ghost"), {}).reason, /no such file/);
+});
+
+test("the look spawns the real binary under the run's own environment, and says what that proves", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "epito-look-"));
+  after(() => rmSync(dir, { recursive: true, force: true }));
+  const bin = join(dir, "claude");
+  // Answers --version only when the name its credential lookup needs is in the
+  // allowlist. That is epitod v0's first real run, in four lines.
+  writeFileSync(bin, '#!/bin/sh\n[ -n "$NEEDED_NAME" ] || { echo "Not logged in" >&2; exit 1; }\necho "claude 9.9.9"\n', { mode: 0o755 });
+
+  const without = seat("pm", { runtime: { model: "m", entry: "e", repo: "acme/roster" } });
+  const r1 = await lookAtExecutor(without, { env: { PATH: dir, HOME: dir, USER: "pm", EPITO_EXECUTOR: bin, NEEDED_NAME: "x" } });
+  assert.equal(r1.state, "broken", "the name is in the worker's environment and NOT in [runtime].env, so the child never sees it — which is the whole bug");
+  assert.match(r1.says, /exited 1 on `--version` under the environment a run gives it: Not logged in/);
+  assert.match(r1.fix, /only PATH, HOME, USER and this seat's \[runtime\]\.env/);
+
+  const with_ = seat("pm", { runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["NEEDED_NAME"] } });
+  const r2 = await lookAtExecutor(with_, { env: { PATH: dir, HOME: dir, USER: "pm", EPITO_EXECUTOR: bin, NEEDED_NAME: "x" } });
+  assert.equal(r2.state, "ok");
+  assert.equal(r2.version, "claude 9.9.9", "the executor's own first line, so the report names what it found rather than that it found something");
+  assert.match(r2.unproven, /that it is logged in/, "and the look never claims the half it did not look at");
+
+  const gone = await lookAtExecutor(with_, { env: { PATH: dir, HOME: dir, USER: "pm", EPITO_EXECUTOR: "claude-nowhere" } });
+  assert.equal(gone.state, "missing");
+  assert.match(gone.fix, /EPITO_EXECUTOR/, "the fix names the variable that overrides it, with its current value");
+});
+
+test("every adapter has a probe, and the one that cannot have a one-turn probe says so", () => {
+  // A new adapter with no probe would silently fall back to claude's
+  // `--version`, which is a claim about an executable nobody checked. ADAPTERS
+  // is the list; PROBES has to answer it.
+  for (const name of ADAPTER_NAMES) {
+    assert.ok(PROBES[name], `src/lib/probe.js has no probe for the "${name}" adapter, so \`epito doctor\` would check it with another adapter's argv`);
+    assert.ok(PROBES[name].proves && PROBES[name].unproven,
+      `the "${name}" probe does not say what it proves and what it does not, and a preflight that overclaims is worse than none`);
+  }
+  assert.equal(PROBES.langgraph.deep, false);
+  assert.match(PROBES.langgraph.unproven, /read inside the run's clone/,
+    "a LangGraph seat's graph lives in its own repository; no preflight on this box has it");
+  assert.equal(probeFor("something-nobody-wrote").look.join(" "), "--version", "an unknown adapter still gets a probe rather than a crash");
+});
+
+test("the deep probe is keyed by what changes its answer, so seats sharing a road share one call", () => {
+  const a = { name: "open", model: "kimi", baseUrl: null, baseUrlEnv: "GW_URL", tokenEnv: "GW_KEY", concurrency: null };
+  const b = { ...a };
+  assert.equal(deepKey("claude", a), deepKey("claude", b), "same binary, same road: one call stands in for both seats");
+  assert.notEqual(deepKey("claude", a), deepKey("claude", { ...a, tokenEnv: "OTHER_KEY" }), "a different key is a different credential and has to be tried");
+  assert.notEqual(deepKey("claude", a), deepKey("claude", { ...a, model: "other" }), "a model the provider may not have is a different answer");
+  assert.notEqual(deepKey("claude", a), deepKey("python3", a), "and a different executor is a different question entirely");
+  // The endpoint reaches the key by NAME, never by value: `epito routes` made
+  // that rule for the same reason (a confidential gateway stays out of the
+  // terminal), and a cache key printed in --json must obey it too.
+  assert.ok(!deepKey("claude", a).includes("https://"));
+});
+
+test("the engine look falls back to the TCP answer when the engine client is not installed", async () => {
+  const answering = () => Promise.resolve({ ok: true, address: "127.0.0.1:7233", malformed: false, reason: null });
+  const notInstalled = () => {
+    const e = new Error("Cannot find package '@temporalio/client' imported from /x/y.js");
+    e.code = "ERR_MODULE_NOT_FOUND";
+    throw e;
+  };
+  const tcp = await engineLook({ env: {}, probe: answering, importClient: notInstalled });
+  assert.equal(tcp.depth, "tcp");
+  assert.equal(tcp.client, false);
+  assert.equal(tcp.ok, true, "a box without the engine packages is the ordinary case and is not a failure of anything");
+
+  // Our own broken module is not an optional peer, and swallowing it would
+  // turn an epito bug into a sentence about the user's install.
+  await assert.rejects(
+    () => engineLook({ env: {}, probe: answering, importClient: () => { throw new TypeError("doctor.js is broken"); } }),
+    /doctor\.js is broken/);
+
+  // And when the client IS there, the answer is the real connect's — including
+  // its refusal, which already names the namespace and the command that
+  // creates it.
+  const refused = await engineLook({
+    env: {}, probe: answering,
+    importClient: () => ({ connect: () => { throw new Error('namespace "nope" does not exist on 127.0.0.1:7233'); } }),
+  });
+  assert.equal(refused.depth, "connect");
+  assert.equal(refused.ok, false);
+  assert.match(refused.reason, /namespace "nope" does not exist/);
+  const up = await engineLook({
+    env: {}, probe: answering,
+    importClient: () => ({ connect: () => ({ connection: { close: async () => {} } }) }),
+  });
+  assert.equal(up.depth, "connect");
+  assert.equal(up.ok, true);
 });
