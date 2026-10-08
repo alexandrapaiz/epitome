@@ -64,6 +64,14 @@ export const DOCTOR_FLAGS = [
 ];
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+// How a road is spelled back to the reader. A seat with no `[[runtime.route]]`
+// has exactly one road, named "default" by the router, and quoting that name at
+// an operator reads as a route they wrote — `epito routes` already prints "(no
+// routes declared)" rather than the name for the same reason. The field it
+// actually comes from is the honest label, and it is said once here so the rows
+// and the --deep block cannot name one road two ways.
+const roadLabel = (name) => (name === DEFAULT_ROUTE ? "[runtime].model" : `"${name}"`);
 const MARK = { ok: "✓", note: "!", bad: "✗" };
 
 // The engine, as far as this box can honestly be asked.
@@ -194,7 +202,7 @@ export async function doctorCmd(args = []) {
     ...brokenRoads.map((r) => ({ agents: [r.agent], says: `the road "${r.name}" is configured here and configured wrongly` })),
     ...[...execProblems.values()].map((e) => ({ agents: e.agents, says: `the executor ${e.state === "missing" ? "is not on the PATH a run gets" : "will not start here"}` })),
     ...env.empty.map((r) => ({ agents: r.uses.map((u) => u.agent), says: `${r.name} is set on this box and set to nothing` })),
-    ...refusedDeep.map((d) => ({ agents: d.agents, says: `the executor refused one turn on the road "${d.route}"` })),
+    ...refusedDeep.map((d) => ({ agents: d.agents, says: `the executor refused one turn on the road ${roadLabel(d.route)}` })),
     // The engine's own sentence, and a fix appended only when it does not
     // already carry one. A real connect that failed has said the exact thing
     // — an unreachable address, or a namespace that does not exist with the
@@ -225,7 +233,7 @@ export async function doctorCmd(args = []) {
     process.exit(refusals.length ? 1 : 0);
   }
 
-  // --- the report, five lines and then the detail --------------------------
+  // --- the report: one row per section, then the detail --------------------
   const out = refusals.length ? console.error : console.log;
   const n = seats.length;
   out(`roster ${dirArg} on this box — ${plural(n, "seat")}, checked in the order a run needs them\n`);
@@ -251,7 +259,7 @@ export async function doctorCmd(args = []) {
   row("roads", stranded.length || brokenRoads.length ? "bad" : "ok",
     stranded.length
       ? `${plural(stranded.length, "seat")} ${stranded.length === 1 ? "has" : "have"} no open road here (${stranded.map((p) => p.agent).join(", ")})`
-      : `every seat has an open road — ${[...takers].map(([name, c]) => `${c} on ${name === DEFAULT_ROUTE ? "[runtime].model, no route declared" : `"${name}"`}`).join(", ")}${brokenRoads.length ? `; ${plural(brokenRoads.length, "road")} here ${brokenRoads.length === 1 ? "is" : "are"} configured wrongly` : ""}`);
+      : `every seat has an open road — ${[...takers].map(([name, c]) => `${c} on ${roadLabel(name)}`).join(", ")}${brokenRoads.length ? `; ${plural(brokenRoads.length, "road")} here ${brokenRoads.length === 1 ? "is" : "are"} configured wrongly` : ""}`);
 
   // executor
   const execOk = perSeat.filter((p) => p.executor.state === "ok");
@@ -275,7 +283,7 @@ export async function doctorCmd(args = []) {
     row("one turn", refusedDeep.length ? "bad" : okCalls.length ? "ok" : "note",
       calls.length === 0
         ? "no road was in a state to try"
-        : `${plural(calls.length, "road")} tried, ${okCalls.length} answered${refusedDeep.length ? `, ${refusedDeep.length} refused` : ""}${unavailable.length ? `, ${unavailable.length} has no one-turn probe` : ""}`);
+        : `${plural(calls.length, "road")} tried, ${okCalls.length} answered${refusedDeep.length ? `, ${refusedDeep.length} refused` : ""}${unavailable.length ? `, ${unavailable.length} ${unavailable.length === 1 ? "has" : "have"} no one-turn probe` : ""}`);
   }
   out("");
 
@@ -312,17 +320,15 @@ export async function doctorCmd(args = []) {
       lines.push(`✗ no open road: ${p.roads.closed.map((c) => `"${c.name}" — ${c.reason}`).join("; ")}.\n    Fix: set one of the keys those name, or give this seat a final route that needs none. \`epito routes ${dirArg}\` is the long version.`);
     }
     for (const m of p.roads.misconfigured) {
-      lines.push(`✗ road "${m.name}" is configured here and configured wrongly — ${m.reason}.\n    Fix: correct it, or unset it: this seat falls through to the next road and runs, so nothing else would have told you.`);
+      lines.push(`✗ road ${roadLabel(m.name)} is configured here and configured wrongly — ${m.reason}.\n    Fix: correct it, or unset it: this seat falls through to the next road and runs, so nothing else would have told you.`);
     }
-    // The executor is said once per BINARY, below, and not per seat: one
-    // missing `claude` is one fact about the box, and five identical blocks
-    // of it bury the seat that has a problem of its own.
-    // A half-filled name is a fact about the box and is said once, below,
-    // with everyone who asks for it named — not once per asker.
-    // A name this box does not hold is said ONCE, in the closing verdict, and
-    // not per seat: five seats short of the same webhook printed five
-    // identical lines and buried the one seat that had a real problem. `epito
-    // env` is the per-seat view and it is one command away.
+    // What is deliberately NOT here: the executor, a name held empty, and a
+    // name the box does not hold. Those three are facts about the BOX, said
+    // once each below or in the verdict with every seat they cover named. The
+    // first draft said all three per seat, and five seats short of the same
+    // webhook printed five identical paragraphs that buried the one seat with
+    // a problem of its own. What stays here is what is genuinely this seat's:
+    // its scopes, its charter, and its roads.
     if (!lines.length) continue;
     out(`${p.agent}`);
     for (const l of lines) out(`  ${l}`);
@@ -336,13 +342,12 @@ export async function doctorCmd(args = []) {
     out("one turn, per road");
     for (const d of deepByKey.values()) {
       const covers = `covers ${d.agents.join(", ")}`;
-      if (d.state === "ok") out(`  ✓ "${d.route}" (${d.model}) answered in ${d.turns ?? "?"} turn${d.turns === 1 ? "" : "s"} — ${covers}: the credentials this box holds for that road work`);
-      else if (d.state === "unavailable") out(`  — "${d.route}" was not tried — ${covers}: ${d.says}`);
-      else out(`  ✗ "${d.route}" refused — ${covers}: ${d.says}.\n      Fix: that sentence is the executor's own, verbatim — fix what it names and run this again.`);
+      if (d.state === "ok") out(`  ✓ ${roadLabel(d.route)} (${d.model}) answered in ${d.turns ?? "?"} turn${d.turns === 1 ? "" : "s"} — ${covers}: the credentials this box holds for that road work`);
+      else if (d.state === "unavailable") out(`  — ${roadLabel(d.route)} was not tried — ${covers}: ${d.says}`);
+      else out(`  ✗ ${roadLabel(d.route)} refused — ${covers}: ${d.says}.\n      Fix: that sentence is the executor's own, verbatim — fix what it names and run this again.`);
     }
     out("");
   }
-
 
   // --- the two reports that are true whichever way the verdict goes --------
   // Said before the split, because an operator whose box is short of a name
