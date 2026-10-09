@@ -83,7 +83,7 @@ import { SPEC_VERSION } from "./lib/fields.js";
 
 export const DOCTOR_FLAGS = [
   { name: "json", does: "the report as JSON" },
-  { name: "deep", does: "also ask the two questions that leave this box: whether each agent's App is installed where it would mint (free), and ONE real turn per road, to prove the executor's credentials (this one costs a model call)" },
+  { name: "deep", does: "ask the two questions that leave this box: is each agent's App installed where it would mint (free), and ONE real turn per road to prove the executor's credentials (a model call)" },
 ];
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;

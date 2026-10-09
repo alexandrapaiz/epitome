@@ -59,7 +59,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   loadPrincipal, envNames, appJwt, permissionsFor, installationAt,
-  PRINCIPALS_PATH, KEYS_DIR, noRepoMessage,
+  PRINCIPALS_PATH, KEYS_DIR, GITHUB_API, noRepoMessage,
 } from "./identity.js";
 import { holding, HELD, ABSENT, EMPTY } from "./boxenv.js";
 
@@ -306,7 +306,7 @@ const withDeadline = (p, ms) => {
   if (!(ms > 0)) return p;
   let timer;
   const bell = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`GitHub did not answer within ${ms / 1000}s. A preflight does not wait longer than that on purpose — the same look will be instant on a box with a route to api.github.com, and the mint at 06:00 is the thing that genuinely has to wait.`)), ms);
+    timer = setTimeout(() => reject(new Error(`GitHub did not answer within ${ms / 1000}s, which is as long as a preflight waits on purpose (the same look is instant on a box with a route to api.github.com, and the mint at 06:00 is the thing that genuinely has to wait). Fix: check this box's route to ${GITHUB_API}, then run this again.`)), ms);
     timer.unref?.();
   });
   return Promise.race([p, bell]).finally(() => clearTimeout(timer));
