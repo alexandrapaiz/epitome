@@ -103,7 +103,15 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   maker-map column shipped in rev 4, 2026-10-02 (docs/market.md,
   "ADR-13: the agent-maker-as-customer column, and pricing buyer 2
   separately") — usage-based per-mint/per-verify pricing recommended,
-  owner has not yet ruled one word on it.*
+  owner has not yet ruled one word on it. Rev 6 merged under Tier B
+  this pass (PR #94, 2026-10-09): a second data point for the
+  already-escalated ADR-12 tripwire (LangChain's Managed Deep Agents
+  also provisions a per-deployment Slack app, not just Fleet) and four
+  more independent per-agent-GitHub-App implementations found. Pricing
+  and the ADR-12 escalation are still the owner's one word each; #94's
+  own queue table tracks both plus the cycle-2 bet as the same decision
+  asked two ways. Market's own run closed #31, #42 and #55 as
+  superseded by #94 — nothing left of them to merge or rebase.*
 - [x] **Second integration verdict: Linear REJECTED** (owner,
   2026-09-18 — ADR-6: integrations are surfaces, never dependencies).
   Market re-justifies the ranking under ADR-6 in the 10-02 map
