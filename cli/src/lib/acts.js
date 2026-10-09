@@ -324,7 +324,13 @@ async function askGitHub(row, { env, dir, lookup, deadline }) {
   const jwt = appJwt(principal.appId, principal.privateKey);
   try {
     const inst = await withDeadline(lookup(jwt, row.repo), deadline);
-    return { state: INSTALLED, installation: String(inst?.id ?? ""), permissions: inst?.permissions ?? null };
+    // A 200 with no id in it. Not reachable through api.github.com, and this
+    // is the one call in the preflight whose endpoint an operator can move
+    // ($EPITO_GITHUB_API, for GitHub Enterprise) — and the id is the whole
+    // answer, so the honest report is that it was not given rather than a
+    // sentence with a hole where the number goes.
+    if (!inst?.id) return { state: UNREACHABLE, says: `GitHub answered about ${row.repo} without an installation id, and the id is the whole answer. Fix: if $EPITO_GITHUB_API points at a GitHub Enterprise host, check it is the API root (/api/v3) and not the web root.` };
+    return { state: INSTALLED, installation: String(inst.id), permissions: inst.permissions ?? null };
   } catch (e) {
     // The flag, not the status: see the note above.
     if (e.permanent) return { state: GH_REFUSED, status: e.status ?? null, says: e.message };
@@ -371,6 +377,9 @@ function idSource(row) {
 function verdictFor(row, call) {
   const base = { agent: row.agent, appId: row.appId, repo: row.repo, declared: row.installation ?? null, installation: call.installation ?? null, status: call.status ?? null };
   if (call.state === INSTALLED) {
+    // Mismatch before grant, deliberately: with the wrong id the mint never
+    // reaches the permission check, so naming the grant first would be naming
+    // the second thing an operator would have to fix.
     const named = row.installation ? String(row.installation) : null;
     if (named && named !== call.installation) {
       return {

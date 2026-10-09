@@ -330,7 +330,10 @@ export async function doctorCmd(args = []) {
     })),
     engine: { address: engine.address, namespace: engine.namespace, ok: engine.ok, depth: engine.depth, reason: engine.reason ?? null },
     deep: deep ? [...deepByKey.values()].map((d) => ({ route: d.route, model: d.model, state: d.state, turns: d.turns ?? null, says: d.says ?? null })) : null,
-    installed: deep ? installed.map((i) => ({ agents: [i.agent], appId: i.appId, repo: i.repo, state: i.state, declared: i.declared, installation: i.installation, status: i.status })) : null,
+    // One entry per seat with an App — not per request, which is what `deep`
+    // above is — and `key` is what says which of them shared one: two seats on
+    // the same App and repo carry the same key and cost one request.
+    installed: deep ? installed.map((i) => ({ agent: i.agent, key: i.key, appId: i.appId, repo: i.repo, state: i.state, declared: i.declared, installation: i.installation, status: i.status })) : null,
     refusals: refusals.map((r) => ({ agents: r.agents, says: r.says })),
   };
   if (json) {
