@@ -307,8 +307,15 @@ const withDeadline = (p, ms) => {
   let timer;
   const bell = new Promise((_, reject) => {
     timer = setTimeout(() => reject(new Error(`GitHub did not answer within ${ms / 1000}s, which is as long as a preflight waits on purpose (the same look is instant on a box with a route to api.github.com, and the mint at 06:00 is the thing that genuinely has to wait). Fix: check this box's route to ${GITHUB_API}, then run this again.`)), ms);
-    timer.unref?.();
   });
+  // Deliberately NOT unref'd, and the first draft was: an unref'd timer does
+  // not hold the event loop open, so a lookup that never settles — which is
+  // precisely the case this exists for — leaves the loop with nothing to do
+  // and the await never resolves. (node --test says it in those words:
+  // "Promise resolution is still pending but the event loop has already
+  // resolved". It is the test for this function that found it.) The timer
+  // cannot outlive the race either way, because `finally` clears it the
+  // moment either side settles.
   return Promise.race([p, bell]).finally(() => clearTimeout(timer));
 };
 

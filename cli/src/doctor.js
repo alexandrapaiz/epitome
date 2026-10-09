@@ -395,8 +395,10 @@ export async function doctorCmd(args = []) {
     row("installed", badSeats.length ? "bad" : unasked.length ? "note" : "ok",
       badSeats.length
         ? `${plural(badSeats.length, "seat")} ${badSeats.length === 1 ? "has an App" : "have Apps"} GitHub will not mint for (${badSeats.join(", ")})`
-        : unasked.length
-          ? `${plural(apps, "App")} asked at GitHub for ${plural(installed.length, "seat")}, ${unasked.length} GitHub could not be asked about from this box${okInstall.length ? `, ${okInstall.length} installed where ${okInstall.length === 1 ? "it" : "they"} would mint` : ""}`
+        : unasked.length === installed.length
+          ? `GitHub could not be asked from this box about ${plural(apps, "App")}, covering ${plural(installed.length, "seat")}`
+          : unasked.length
+            ? `${plural(apps, "App")} asked at GitHub for ${plural(installed.length, "seat")}, ${okInstall.length} installed where ${okInstall.length === 1 ? "it" : "they"} would mint, ${unasked.length} GitHub did not answer about`
           : `${plural(apps, "App")} asked at GitHub for ${plural(installed.length, "seat")}, every one installed on the ${apps === 1 ? "repository" : "repositories"} it would mint for`);
   }
 
