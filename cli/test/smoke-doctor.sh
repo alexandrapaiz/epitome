@@ -391,6 +391,10 @@ UJ2="$(EPITO_APP_ID_SCOPED=123456 EPITO_APP_KEY_FILE_SCOPED="$TMP/plain.pem" $E 
 check "the same scope WITH an App on the box is a refusal"          "printf '%s' \"\$UJ2\" | grep -q '\"refused\"' && jq_refusals \"\$UJ2\" | grep -q 'mint would refuse'"
 out="$(EPITO_APP_ID_SCOPED=123456 EPITO_APP_KEY_FILE_SCOPED="$TMP/plain.pem" $E doctor "$RU" 2>&1)"
 check "...naming the scope, and no longer calling it harmless"      "said 'github:packages' && ! said 'a RUN does not care'"
+# readiness.js's note names `epito deploy` and `epito token` and not `run`,
+# which is right for a seat with no App and wrong for this one. The note is
+# extended rather than left to contradict the section above it.
+check "...and the seat's own note adds the run, for this box"       "said 'a RUN of this seat too'"
 
 # 10g. the file store, which is what `epito deploy` writes on a laptop: both
 # halves together, or the runtime reads neither.

@@ -392,7 +392,16 @@ export async function doctorCmd(args = []) {
   // --- the detail, only where there is something to act on -----------------
   for (const p of perSeat) {
     const lines = [];
-    for (const b of p.blocks) lines.push(`! ${b.problem}.\n    Fix: ${b.fix}.`);
+    for (const b of p.blocks) {
+      // readiness.js names the commands that refuse over an unmintable scope
+      // or an absent [runtime].repo, and `run` is not among them on purpose:
+      // for a seat with no App a run never mints, so a run never cares. This
+      // box may say otherwise about THIS seat — it holds an App for it, and
+      // then the mint is the run's first step — so the note is extended here
+      // rather than left to contradict the section above it.
+      const alsoTheRun = (p.acts.state === OWN || p.acts.state === REFUSED) && b.commands.includes("token");
+      lines.push(`! ${b.problem}${alsoTheRun ? `, and on this box a RUN of this seat too: it has its own App here, so the mint is the first thing a run does` : ""}.\n    Fix: ${b.fix}.`);
+    }
     for (const u of p.notes) lines.push(`— ${u}`);
     if (!p.roads.takes) {
       lines.push(`✗ no open road: ${p.roads.closed.map((c) => `"${c.name}" — ${c.reason}`).join("; ")}.\n    Fix: set one of the keys those name, or give this seat a final route that needs none. \`epito routes ${dirArg}\` is the long version.`);
