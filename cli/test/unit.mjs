@@ -19,7 +19,8 @@ import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
 import { rosterEnv, namesFor, envTemplate, holding, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
 import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, GIT_TOKEN_ENV } from "../src/lib/runner.js";
-import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP } from "../src/lib/identity.js";
+import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP, noRepoMessage } from "../src/lib/identity.js";
+import { actsAs, rosterActs, IDENTITY_FIX, OWN, REFUSED, HALF, SHARED, NONE } from "../src/lib/acts.js";
 import { spawn, execFileSync } from "node:child_process";
 import { parse } from "smol-toml";
 import { mkdirSync } from "node:fs";
@@ -512,6 +513,142 @@ test("loadPrincipal reads a PEM whose newlines arrived escaped, and is null with
   assert.equal(p.privateKey, pem, "a single-line PEM is unescaped before use");
   assert.equal(p.installationId, null, "discovered from [runtime].repo when unnamed");
   assert.equal(loadPrincipal("okr", { env, dir: "." }), null, "no App is not an error here");
+});
+
+// --- who a seat acts as on this box (src/lib/acts.js) --------------------
+// The question `epito doctor` could not answer until now: not "would a run
+// start" but "and whose name would the pull request open under". Every case
+// below is read through the RUN path's own loadPrincipal, which is the point —
+// a preflight that keeps its own copy of the precedence would eventually
+// predict a seat the runtime does not run.
+
+const rsaPem = () => generateKeyPairSync("rsa", { modulusLength: 2048 }).privateKey.export({ type: "pkcs1", format: "pem" }).toString();
+
+test("acts as itself: an App id and a key this box can read and sign with", () => {
+  const dir = tmpDir();
+  const pem = rsaPem();
+  const keyPath = join(dir, "pm.pem");
+  writeFileSync(keyPath, pem, { mode: 0o600 });
+  const row = actsAs("pm", seat("pm"), { env: { EPITO_APP_ID_PM: "123456", EPITO_APP_KEY_FILE_PM: keyPath }, dir });
+  assert.equal(row.state, OWN);
+  assert.match(row.says, /its own GitHub App: id 123456/);
+  assert.match(row.says, /\$EPITO_APP_ID_PM\/\$EPITO_APP_KEY_FILE_PM/, "and where the key came from");
+  assert.equal(row.appId, "123456");
+  assert.ok(!row.says.includes(pem.split("\n")[1]), "never a byte of the key itself");
+});
+
+test("an App whose mint cannot start is a refusal, because the mint is step one of the run", () => {
+  const dir = tmpDir();
+  // A PEM mangled on its way into an EnvironmentFile is the ordinary case: the
+  // file has no multi-line values, so the escaping is done by hand.
+  const mangled = actsAs("pm", seat("pm"), { env: { EPITO_APP_ID_PM: "1", EPITO_APP_KEY_PM: "-----BEGIN RSA PRIVATE KEY-----\ntruncated\n" }, dir });
+  assert.equal(mangled.state, REFUSED);
+  assert.match(mangled.says, /an App whose mint cannot start/);
+  assert.match(mangled.says, /not a readable PEM/);
+  assert.match(mangled.says, /Fix:/);
+
+  // A scope v0.2 cannot mint. `epito doctor` calls this a report for a seat
+  // with no App — a run never mints, so a run never cares — and it is the
+  // opposite for this seat: the mint IS the run's first step.
+  const scoped = actsAs("pm", seat("pm", {}), { env: { EPITO_APP_ID_PM: "1", EPITO_APP_KEY_PM: rsaPem() }, dir });
+  assert.equal(scoped.state, OWN, "github:contents is mintable");
+  const unmintable = { ...seat("pm"), identity: { scopes: ["github:packages"] } };
+  const row = actsAs("pm", unmintable, { env: { EPITO_APP_ID_PM: "1", EPITO_APP_KEY_PM: rsaPem() }, dir });
+  assert.equal(row.state, REFUSED);
+  assert.match(row.says, /"github:packages"/);
+
+  // An App and nothing to scope the token to.
+  const noRepo = { ...seat("pm"), runtime: { model: "claude-sonnet-5", entry: "prompts/pm.md" } };
+  const r2 = actsAs("pm", noRepo, { env: { EPITO_APP_ID_PM: "1", EPITO_APP_KEY_PM: rsaPem() }, dir });
+  assert.equal(r2.state, REFUSED);
+  assert.match(r2.says, /\[runtime\]\.repo/);
+});
+
+test("half an identity is loud, because the runtime reads it as none", () => {
+  const dir = tmpDir();
+  // An App id and no key: loadPrincipal returns null, the seat falls back to
+  // the box's shared credential, and nothing ever said so.
+  const idOnly = actsAs("pm", seat("pm"), { env: { EPITO_APP_ID_PM: "123456" }, dir });
+  assert.equal(idOnly.state, HALF);
+  assert.match(idOnly.says, /half an identity/);
+  assert.match(idOnly.says, /\$EPITO_APP_KEY_FILE_PM/);
+  assert.match(idOnly.fix, /shared credential/);
+
+  // A key and no id.
+  const keyOnly = actsAs("pm", seat("pm"), { env: { EPITO_APP_KEY_PM: rsaPem() }, dir });
+  assert.equal(keyOnly.state, HALF);
+  assert.match(keyOnly.says, /\$EPITO_APP_ID_PM is not/);
+
+  // A line somebody half-filled in. Same third state `epito env` names, same
+  // answer: the box HAS this one and has it wrong.
+  const empty = actsAs("pm", seat("pm"), { env: { EPITO_APP_ID_PM: "", EPITO_APP_KEY_FILE_PM: "" }, dir });
+  assert.equal(empty.state, HALF);
+  assert.match(empty.says, /set here and set to nothing/);
+});
+
+test("half an identity in the file store names both paths it looked at", () => {
+  const dir = tmpDir();
+  mkdirSync(join(dir, ".epito/keys"), { recursive: true });
+  writeFileSync(join(dir, ".epito/principals.json"), JSON.stringify([{ agent: "pm", externalId: "9" }]));
+  const row = actsAs("pm", seat("pm"), { env: {}, dir });
+  assert.equal(row.state, HALF);
+  assert.match(row.says, /principals\.json records an App for this seat/);
+  assert.match(row.says, /keys\/pm\.pem/);
+
+  // The other half: a key with no record of which App it is.
+  const d2 = tmpDir();
+  mkdirSync(join(d2, ".epito/keys"), { recursive: true });
+  writeFileSync(join(d2, ".epito/keys/pm.pem"), rsaPem(), { mode: 0o600 });
+  const r2 = actsAs("pm", seat("pm"), { env: {}, dir: d2 });
+  assert.equal(r2.state, HALF);
+  assert.match(r2.says, /does not exist/);
+});
+
+test("no App: a shared credential has an owner, and no credential at all is a different sentence", () => {
+  const dir = tmpDir();
+  const withToken = seat("pm", { runtime: { env: ["GH_TOKEN"] } });
+  const shared = actsAs("pm", withToken, { env: { GH_TOKEN: "a-token-nobody-will-call" }, dir });
+  assert.equal(shared.state, SHARED);
+  assert.match(shared.says, /the owner of \$GH_TOKEN, a person/);
+  assert.ok(!shared.says.includes("a-token-nobody-will-call"), "presence, never a value");
+  assert.equal(shared.fix, null, "the fix is one line under the block, not one per seat");
+
+  // Named and not held: `epito env` reports the absent name; this says what it
+  // means for who the seat is.
+  const absent = actsAs("pm", withToken, { env: {}, dir });
+  assert.equal(absent.state, NONE);
+  assert.match(absent.says, /not set here, so nothing reaches the run/);
+
+  // Named nowhere. This is the state every seat in this company's own roster
+  // is in: a run starts, and its `gh` has nothing to authenticate with.
+  const none = actsAs("pm", seat("pm"), { env: { GH_TOKEN: "held-but-unnamed" }, dir });
+  assert.equal(none.state, NONE);
+  assert.match(none.says, /names neither GH_TOKEN nor GITHUB_TOKEN/);
+  assert.match(IDENTITY_FIX, /EPITO_APP_ID_<SEAT>/, "the two names, with the rule for the suffix");
+});
+
+test("rosterActs: only a broken or half identity may reach the exit code", () => {
+  const dir = tmpDir();
+  const roster = new Map([
+    ["pm", { manifest: seat("pm") }],
+    ["okr", { manifest: seat("okr") }],
+  ]);
+  const clean = rosterActs(roster, { env: {}, dir });
+  assert.equal(clean.refusals.length, 0, "no App is nobody's error");
+  assert.equal(clean.none.length, 2);
+  const broken = rosterActs(roster, { env: { EPITO_APP_ID_PM: "1" }, dir });
+  assert.deepEqual(broken.refusals.map((r) => r.agent), ["pm"]);
+});
+
+test("the preflight and the run read one precedence: only acts.js asks who a seat is", () => {
+  // The same guard src/lib/runenv.js has for the environment allowlist, for
+  // the same reason: two readers of loadPrincipal drift, and the one that
+  // drifts is the one that stops predicting the run.
+  for (const f of ["src/doctor.js", "src/env.js"]) {
+    const src = readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
+    assert.ok(!/from "\.\/lib\/identity\.js"/.test(src) && !/from "\.\.\/lib\/identity\.js"/.test(src),
+      `${f} must read identity through src/lib/acts.js, not reach into identity.js itself`);
+  }
 });
 
 // --- identity: the token reaches the child and not the log ----------------
@@ -2059,7 +2196,14 @@ test("the repo note names every command whose source refuses over [runtime].repo
   // test went red — correctly. The rule had not moved out of roster.js, only
   // into a different shape, and a detector that cannot see the shape would
   // have quietly stopped guarding the note.
-  const REFUSES = /(?:\bdie\(|\bthrow\b|\berrs\.push\(|\berrors\.push\(|\bout\.push\()/;
+  // `function no*Message(` is the same lesson a second time, and the second
+  // time it was this test that caught it: `epito doctor` reports the mint's
+  // own refusals as a preflight, so the sentence moved out of the `throw` and
+  // into a named message builder beside noPrincipalMessage — one sentence, two
+  // readers, which is the point of the refactor. The refusal did not move out
+  // of identity.js; only its shape changed, and a detector blind to the shape
+  // would have dropped the file from this list and called the note true.
+  const REFUSES = /(?:\bdie\(|\bthrow\b|\berrs\.push\(|\berrors\.push\(|\bout\.push\(|\bfunction no\w+Message\()/;
   // Refusing because the field is ABSENT, which is what the note is about.
   // `epito validate` also refuses a repo that is present and malformed
   // ("must be owner/name"), and that one is not a readiness blocker at all —

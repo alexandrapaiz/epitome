@@ -14,12 +14,15 @@
 // was knowable before 06:00 and nothing looked.
 //
 // So this is the preflight, and its contract is one sentence: exit 1 if a run
-// on this box would refuse, and name the piece. Five sections, in the order a
+// on this box would refuse, and name the piece. Six sections, in the order a
 // run needs them —
 //
 //   manifests  the roster loads and passes the spec (the validator's own code)
 //   names      what [runtime].env asks this box for, and what it holds
 //   roads      which model road each seat takes here, and the dead ones
+//   identity   who each seat acts as here: its own GitHub App, or the box's
+//              shared credential, or an identity this box holds half of
+//              (src/lib/acts.js, reading the run path's own loadPrincipal)
 //   executor   the binary a run spawns, resolved on the PATH a RUN gets and
 //              started under the environment a RUN gives it (src/lib/probe.js)
 //   engine     something answering at TEMPORAL_ADDRESS — and, when the engine
@@ -34,14 +37,19 @@
 // What exits 1 and what does not, deliberately:
 //
 //   exit 1   a refused manifest, a seat with no open road, a road this box has
-//            and has wrong, a name set to nothing, an executor that is missing
-//            or will not start, an engine that is not answering
+//            and has wrong, a name set to nothing, HALF of an identity, an App
+//            whose mint could not start, an executor that is missing or will
+//            not start, an engine that is not answering
 //   exit 0   a name this box does not hold (`[runtime].env` is the list the
 //            runtime injects FROM, and nothing in a manifest says which names
 //            a seat cannot work without — `epito env --complete` is where an
 //            operator asserts that, and this command does not guess), and a
 //            scope v0.2 cannot mint (that refusal belongs to `epito deploy`
-//            and `epito token`, not to a run)
+//            and `epito token`, not to a run — UNLESS this box holds an App
+//            for that seat, because then the mint is part of the run and the
+//            unmintable scope is what stops it), and a seat with no App at
+//            all, which is how every seat ran before the identity leg and is
+//            still how this company's own five run
 //
 // And one thing it refuses to claim: that the executor is logged in. The look
 // is free and offline, so it proves the file starts and nothing about the
@@ -54,6 +62,7 @@ import { blockers, unchecked } from "./lib/readiness.js";
 import { rosterEnv, askers, HELD, EMPTY, ABSENT } from "./lib/boxenv.js";
 import { routesFor, liveRoutes, endpointLabel, DEFAULT_ROUTE } from "./lib/router.js";
 import { lookAtExecutor, deepProbe, deepKey, probeFor, DEEP_PROMPT } from "./lib/probe.js";
+import { actsAs, IDENTITY_FIX, OWN, REFUSED, HALF, SHARED, NONE } from "./lib/acts.js";
 import { engineAddress, engineAnswering, engineFix, engineMissing, missingEnginePackage } from "./lib/engine.js";
 import { temporalEnv } from "./temporal/env.js";
 import { SPEC_VERSION } from "./lib/fields.js";
@@ -149,6 +158,12 @@ export async function doctorCmd(args = []) {
       roads: roadsFor(s.manifest),
       env: env.seats.find((x) => x.agent === s.name) ?? { asked: [], held: [], missing: [], empty: [] },
       executor: await lookAtExecutor(s.manifest),
+      // Deliberately on the default `dir`, which is the "." mintForRun itself
+      // defaults to: the file store is resolved relative to the process's
+      // working directory, so a preflight run from somewhere else than the
+      // run would be answering about a different store. The report prints the
+      // absolute path it looked at for exactly that reason.
+      acts: actsAs(s.name, s.manifest),
     });
   }
 
@@ -187,6 +202,20 @@ export async function doctorCmd(args = []) {
     execProblems.get(key).agents.push(p.agent);
   }
 
+  // Identity, grouped the way the executor's problems are: one sentence per
+  // distinct answer, carrying the seats it covers. Five seats with no App of
+  // their own share one sentence and one fix; a seat with its own App has an
+  // App id nobody else has, so it keeps its own line.
+  const actGroups = [];
+  for (const p of perSeat) {
+    const a = p.acts;
+    const key = a.state === OWN ? `own|${a.agent}` : `${a.state}|${a.says}|${a.fix}`;
+    const found = actGroups.find((g) => g.key === key);
+    if (found) found.agents.push(a.agent);
+    else actGroups.push({ key, state: a.state, says: a.says, fix: a.fix, agents: [a.agent] });
+  }
+  const badIdentity = actGroups.filter((g) => g.state === REFUSED || g.state === HALF);
+
   const stranded = perSeat.filter((p) => !p.roads.takes);
   const brokenRoads = perSeat.flatMap((p) => p.roads.misconfigured.map((m) => ({ agent: p.agent, ...m })));
   const noExecutor = perSeat.filter((p) => p.executor.state !== "ok");
@@ -202,6 +231,16 @@ export async function doctorCmd(args = []) {
     ...brokenRoads.map((r) => ({ agents: [r.agent], says: `the road "${r.name}" is configured here and configured wrongly` })),
     ...[...execProblems.values()].map((e) => ({ agents: e.agents, says: `the executor ${e.state === "missing" ? "is not on the PATH a run gets" : "will not start here"}` })),
     ...env.empty.map((r) => ({ agents: r.uses.map((u) => u.agent), says: `${r.name} is set on this box and set to nothing` })),
+    // An identity this box holds and holds wrong. Not "has no App" — that one
+    // is how this product worked before the identity leg and is reported, not
+    // refused. These two are a mint that would throw permanently, and half a
+    // pair the runtime reads as nothing at all.
+    ...badIdentity.map((g) => ({
+      agents: g.agents,
+      says: g.state === HALF
+        ? "this box holds half of an identity for it, so its runs fall back to the shared credential silently"
+        : "it has a GitHub App on this box and the mint would refuse before it reached GitHub",
+    })),
     ...refusedDeep.map((d) => ({ agents: d.agents, says: `the executor refused one turn on the road ${roadLabel(d.route)}` })),
     // The engine's own sentence, and a fix appended only when it does not
     // already carry one. A real connect that failed has said the exact thing
@@ -219,6 +258,9 @@ export async function doctorCmd(args = []) {
       road: p.roads.takes ? { name: p.roads.takes.name, model: p.roads.takes.model, endpoint: endpointLabel(p.roads.takes) } : null,
       closedRoads: p.roads.closed,
       executor: { adapter: p.executor.adapter, binary: p.executor.binary, path: p.executor.path, state: p.executor.state, version: p.executor.version },
+      // The App id and the source are facts about which principal, never the
+      // key itself: the same line the audit log keeps (spec rule 1).
+      identity: { state: p.acts.state, source: p.acts.source, appId: p.acts.appId, installation: p.acts.installation, says: p.acts.says },
       names: { asked: p.env.asked.length, held: p.env.held.length, missing: p.env.missing, empty: p.env.empty },
       blocks: p.blocks.map((b) => b.problem),
       notes: p.notes,
@@ -261,6 +303,20 @@ export async function doctorCmd(args = []) {
       ? `${plural(stranded.length, "seat")} ${stranded.length === 1 ? "has" : "have"} no open road here (${stranded.map((p) => p.agent).join(", ")})`
       : `every seat has an open road — ${[...takers].map(([name, c]) => `${c} on ${roadLabel(name)}`).join(", ")}${brokenRoads.length ? `; ${plural(brokenRoads.length, "road")} here ${brokenRoads.length === 1 ? "is" : "are"} configured wrongly` : ""}`);
 
+  // identity
+  const ownSeats = perSeat.filter((p) => p.acts.state === OWN);
+  const sharedSeats = perSeat.filter((p) => p.acts.state === SHARED);
+  const noneSeats = perSeat.filter((p) => p.acts.state === NONE);
+  const identityParts = [
+    ownSeats.length ? `${plural(ownSeats.length, "seat")} ${ownSeats.length === 1 ? "acts" : "act"} as ${ownSeats.length === 1 ? "its" : "their"} own GitHub App` : null,
+    sharedSeats.length ? `${plural(sharedSeats.length, "seat")} ${sharedSeats.length === 1 ? "acts" : "act"} as the owner of a shared credential` : null,
+    noneSeats.length ? `${plural(noneSeats.length, "seat")} ${noneSeats.length === 1 ? "has" : "have"} no GitHub identity in ${noneSeats.length === 1 ? "its runs" : "their runs"}` : null,
+  ].filter(Boolean);
+  row("identity", badIdentity.length ? "bad" : ownSeats.length === n ? "ok" : "note",
+    badIdentity.length
+      ? `${plural(badIdentity.reduce((t, g) => t + g.agents.length, 0), "seat")} ${badIdentity.reduce((t, g) => t + g.agents.length, 0) === 1 ? "has an identity" : "have identities"} on this box a run cannot use (${badIdentity.flatMap((g) => g.agents).join(", ")})`
+      : identityParts.join(", "));
+
   // executor
   const execOk = perSeat.filter((p) => p.executor.state === "ok");
   const execWhere = [...new Set(execOk.map((p) => p.executor.path))];
@@ -294,6 +350,24 @@ export async function doctorCmd(args = []) {
       out(`  ✗ ${e.says} — covers ${e.agents.join(", ")}`);
       out(`      Fix: ${e.fix}.`);
     }
+    out("");
+  }
+
+  // --- who each seat acts as, once per answer ------------------------------
+  // Printed whenever a single seat is not acting as itself, and then for EVERY
+  // seat: "who opens the pull request" is a table read whole, not a list of
+  // exceptions, and a roster where two of five act as themselves is a fact an
+  // operator wants in front of them rather than inferred from a count.
+  if (actGroups.some((g) => g.state !== OWN)) {
+    out("identity, per answer");
+    for (const g of actGroups) {
+      const mark = g.state === OWN ? "✓" : g.state === SHARED || g.state === NONE ? "!" : "✗";
+      out(`  ${mark} ${g.says} — covers ${g.agents.join(", ")}`);
+      if (g.fix) out(`      Fix: ${g.fix}.`);
+    }
+    // Once, under the block, for every seat in it that has no App: the two
+    // names are the same rule for all of them.
+    if (actGroups.some((g) => g.state === SHARED || g.state === NONE)) out(`  Fix: ${IDENTITY_FIX}.`);
     out("");
   }
 
@@ -360,7 +434,14 @@ export async function doctorCmd(args = []) {
     asides.push(`${plural(env.missing.length, "name")} the manifests ask for ${env.missing.length > 1 ? "are" : "is"} not on this box (${env.missing.map((r) => r.name).join(", ")}): the runtime drops ${env.missing.length > 1 ? "them" : "it"} and the seats run without ${env.missing.length > 1 ? "them" : "it"} — a report, not a refusal, because nothing in a manifest says which names a seat cannot work without. \`epito env ${dirArg}\` says who asks for what, and \`--complete\` is where you assert the box should hold them all.`);
   }
   if (withBlocks.length) {
-    asides.push(`${plural(withBlocks.length, "seat")} above ${withBlocks.length === 1 ? "names a scope" : "name scopes"} this spec cannot mint: a RUN does not care, \`epito deploy\` and \`epito token\` refuse.`);
+    // True only for a seat with no App here: the mint is not part of its runs.
+    // A seat that HAS an App and an unmintable scope is in the refusals above,
+    // because for that one the mint is the first thing the run does.
+    const noMint = withBlocks.filter((p) => p.acts.state !== OWN && p.acts.state !== REFUSED);
+    if (noMint.length) asides.push(`${plural(noMint.length, "seat")} above ${noMint.length === 1 ? "names a scope" : "name scopes"} this spec cannot mint: with no App on this box a RUN does not care, \`epito deploy\` and \`epito token\` refuse.`);
+  }
+  if (sharedSeats.length || noneSeats.length) {
+    asides.push(`${plural(sharedSeats.length + noneSeats.length, "seat")} here ${sharedSeats.length + noneSeats.length === 1 ? "does" : "do"} not act as ${sharedSeats.length + noneSeats.length === 1 ? "itself" : "themselves"} (${[...sharedSeats, ...noneSeats].map((p) => p.agent).join(", ")}): ${sharedSeats.length ? "a shared credential belongs to a person, and every PR it opens is theirs" : "nothing authenticates the run's own \`gh\`"}. That is a report, not a refusal — it is how every seat ran before the identity leg. The block above names the two environment variables that change it per seat.`);
   }
 
   // --- the closing verdict -------------------------------------------------

@@ -159,6 +159,15 @@ export function noPrincipalMessage(name) {
     `Fix: put the agent's GitHub App id and private key on this machine under those names (the key as a .pem at 0600 named by $${n.keyFile}, or escaped into $${n.key}), or run \`epito deploy\` once the mint lands to create them.`;
 }
 
+// The other refusal an agent with an App can hit before a single byte leaves
+// this box: a token is scoped to exactly one repository, so there is nothing to
+// mint without one. Said here beside the message above because `epito doctor`
+// reports it as a preflight and mintForRun throws it as a run — one sentence,
+// so the preflight cannot promise a fix the mint does not name.
+export function noRepoMessage(name) {
+  return `"${name}" has a GitHub App on this box but no [runtime].repo, and a token is scoped to exactly one repository — there is nothing to scope the mint to, so the run refuses rather than minting something broader. Fix: add repo = "owner/name" to [runtime] in this agent's agent.toml.`;
+}
+
 const b64url = (buf) => Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
 // A GitHub App JWT: RS256, iss = App id, <=10 minutes, backdated 60s because
@@ -322,9 +331,7 @@ export async function mintForRun({ name, manifest, dir = ".", env = process.env,
   const scopes = manifest?.identity?.scopes ?? [];
   const principal = loadPrincipal(name, { env, dir });
   if (!principal) return null;
-  if (!repo) {
-    throw permanent(`"${name}" has a GitHub App but no [runtime].repo, and a token is scoped to exactly one repository — there is nothing to scope this mint to. Fix: add repo = "owner/name" to [runtime] in this agent's agent.toml.`);
-  }
+  if (!repo) throw permanent(noRepoMessage(name));
   const minted = await mintToken({ name, scopes, repo, principal, log });
   return {
     token: minted.token,
