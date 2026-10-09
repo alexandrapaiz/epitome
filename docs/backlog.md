@@ -63,15 +63,22 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   runtime lives on only as HQ's own async heartbeat (its seats still
   run as Actions jobs, per .github/workflows/agent-*.yml).
 - [ ] **Dogfood migration, step 1** — one alexandria seat runs on
-  epito.me. Seat: engineer + owner. *Code-side risk closed this pass
+  epito.me. Seat: engineer + owner. *Code-side risk closed 2026-10-08
   (PR #84, merged under Tier B): a box provisioned from
   `deploy/provision-host.sh` was silently losing roster secrets
   because the hand-copied env list had drifted from the manifests;
   `epito env` now generates that list from the roster itself and
   refuses a name that is set to nothing instead of running silently
   short. Carries #82's two road-naming commits forward (#82 closed,
-  superseded, nothing lost). What's left is not code: one real
-  alexandria seat actually running on the owner's box.*
+  superseded, nothing lost). Extended this pass (PR #89, merged under
+  Tier B): `epito doctor` now answers whether a seat on this box has a
+  GitHub identity of its own or falls back to a shared credential —
+  run against this company's own five seats, the answer is that none
+  of them do, which is the exact gap step 1 is about. Whose credential
+  a seat acts as is named in `docs/ideas.md` as three options and left
+  there for the owner, not decided inside a run. What's left is still
+  not code: one real alexandria seat actually running on the owner's
+  box, now also waiting on that credential decision.*
 - [ ] **Dogfood migration, step 2** — delete that seat's ADR-27
   hand-wiring from alexandria. Seat: engineer.
 - [ ] **Dogfood migration, step 3** — write the before/after; this is
@@ -140,9 +147,9 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   charter the owner bets by merging it, so it waits on her hand even
   though it is clean and reviewed. *Open since 2026-10-05. Cooldown
   closed 2026-10-06; this pass (2026-10-09) is the third full day with
-  cycle 2 still not bet. The engineer's only work in that gap is one
-  still-open draft (#87, a preflight check), for lack of a cycle to
-  point it at.*
+  cycle 2 still not bet, and the engineer has been spending its runs on
+  ordinary backlog work (#84, then #87 merged forward into #89, merged
+  under Tier B this pass) for lack of a cycle to point it at.*
 - [ ] **Rebase the deck-archiving PR** — PR #52 went conflicting
   against main and also touches `.github/workflows/`, a surface
   product seats hand to the centralizer rather than editing; it needs
@@ -162,12 +169,14 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   Same nine grades either way since nothing on main changed the
   evidence, but the repo should not carry two drafts racing to create
   one file a second time. Handed off to the okr seat 2026-10-07 to
-  close one as superseded; still both open as of 2026-10-09, two
-  passes with no action. Renewed this pass as a board handoff, with
-  the one fact that decides it: #39's own body shows it checked
-  `gh pr list` before building and found the older #35; #53's body
-  says the file "never existed," which was never true once #35 (and
-  then #39) existed. #53 is the one to close. Seat: okr.
+  close one as superseded; still both open as of 2026-10-09, three
+  passes with no action, renewed each time with the one fact that
+  decides it: #39's own body shows it checked `gh pr list` before
+  building and found the older #35; #53's body says the file "never
+  existed," which was never true once #35 (and then #39) existed. #53
+  is the one to close. Unchanged since the last renewal, and the okr
+  seat's next scheduled run is 2026-11-01, so this is now a standing
+  handoff rather than one to renew every pass. Seat: okr.
 - [ ] **Three register entries and three charter-patch diffs from the
   2026-10-05 drift review** (PR #50, merged this pass) — the lessons
   and the drift note are now on main; the three patches
