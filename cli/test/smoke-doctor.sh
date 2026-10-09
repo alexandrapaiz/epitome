@@ -6,8 +6,10 @@
 #
 # It spends nothing and reaches no provider: the executor under test is
 # test/stub-executor.mjs, the same stand-in the runtime suites spawn, plus two
-# deliberately broken ones this suite writes. The one prerequisite it cannot
-# stand in for is an engine — doctor's last section asks whether Temporal is
+# deliberately broken ones this suite writes, and api.github.com is
+# test/github-stub.mjs on loopback — which verifies the App JWT epito signs
+# against a throwaway public key, so section 12 tests the real credential and
+# not a mock of one. The one prerequisite it cannot stand in for is an engine — doctor's last section asks whether Temporal is
 # answering, and a box with none is a box where a run genuinely would refuse —
 # so the sections that need an engine skip and say so, and everything else
 # still runs.
@@ -33,6 +35,13 @@
 #   7. --json carries the same verdict the text does, and a misspelled flag is
 #      refused by name
 #   8. it writes nothing: no .epito/, no ledger line, nothing on the engine
+#   9. who each seat acts as on this box: its own App, a person's shared
+#      credential, nobody, or half an identity — and which of those exit 1
+#  10. and whether GitHub HAS that App, which is the one question no offline
+#      check can answer: installed where it would mint, an id this box names
+#      that GitHub does not have, a grant short of [identity].scopes, and a
+#      GitHub this box cannot reach — four refusals and one report, one
+#      request per (App, repo), and none of it without --deep
 set -uo pipefail
 
 CLI="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -432,6 +441,154 @@ env -u GH_TOKEN EPITO_APP_ID_PLAIN=123456 $E env "$R" >/dev/null 2>&1; erc=$?
 check "a half identity does not change what epito env exits"        "[ $erc -eq 0 ]"
 eout="$(env -u GH_TOKEN EPITO_APP_ID_PLAIN=123456 $E env "$R" 2>&1)"
 check "...and it hands that refusal to doctor by name"              "printf '%s' \"\$eout\" | grep -q 'epito doctor'"
+
+step "12. and whether GitHub has that App: the half --deep leaves the box for"
+# The identity section above proves the key on this box signs the JWT a mint
+# starts with. It cannot prove the App is installed on the repository the seat
+# would mint for — an App installed nowhere mints nothing, however valid its
+# key — because that answer is a network call. So: `--deep`, the flag that
+# already means "leave this box", and test/github-stub.mjs standing in for
+# api.github.com. The stub VERIFIES the JWT epito signs against a throwaway
+# public key, which is what makes this a test of the real credential and not
+# of a mock.
+#
+# Nothing personal and nothing spent: the key is generated into $TMP two lines
+# from here, no model is called by this section, and the stub records every
+# request so "one request per App" is counted rather than believed.
+node -e 'const{generateKeyPairSync}=require("crypto");const{privateKey,publicKey}=generateKeyPairSync("rsa",{modulusLength:2048});const fs=require("fs");fs.writeFileSync(process.argv[1],privateKey.export({type:"pkcs1",format:"pem"}),{mode:0o600});fs.writeFileSync(process.argv[2],publicKey.export({type:"spki",format:"pem"}))' "$TMP/app.pem" "$TMP/app.pub.pem"
+GH_LOG="$TMP/gh.jsonl"
+GH_PID=""
+gh_stop() { [ -n "${GH_PID:-}" ] || return 0; kill "$GH_PID" 2>/dev/null; wait "$GH_PID" 2>/dev/null; GH_PID=""; }
+# Reaped on the way out as well as between modes: a suite that leaves a
+# listener behind is a suite the next one blames.
+trap 'gh_stop; cleanup' EXIT
+gh_start() {
+  gh_stop
+  : > "$GH_LOG"
+  node "$CLI/test/github-stub.mjs" 0 "$TMP/app.pub.pem" "$GH_LOG" "$1" > "$TMP/gh-$1.log" 2>&1 &
+  GH_PID=$!
+  GH_PORT=""
+  for _ in $(seq 1 60); do
+    GH_PORT="$(sed -n 's/github-stub on \([0-9]*\).*/\1/p' "$TMP/gh-$1.log")"
+    [ -n "$GH_PORT" ] && break
+    sleep 0.2
+  done
+  if [ -z "$GH_PORT" ]; then echo "  the stand-in GitHub API never came up"; cat "$TMP/gh-$1.log"; return 1; fi
+  GH_API="http://127.0.0.1:$GH_PORT"
+}
+# Two seats on ONE App, both on acme/box; `graph` has no App at all and is on a
+# different repo, so it is the seat that proves only `own` seats are asked.
+ident() {
+  env EPITO_GITHUB_API="$GH_API" \
+      EPITO_APP_ID_PLAIN=123456  EPITO_APP_KEY_FILE_PLAIN="$TMP/app.pem" \
+      EPITO_APP_ID_ROADED=123456 EPITO_APP_KEY_FILE_ROADED="$TMP/app.pem" \
+      "$@"
+}
+irun() { out="$(ident $E doctor "$@" 2>&1)"; rc=$?; }
+ijson() { ident $E doctor "$@" --json 2>&1; }
+# One field of the --deep answer, per seat, compared inside node for the reason
+# istate above is: `check` evals its argument.
+iseat() { printf '%s' "$1" | node -e 'const r=JSON.parse(require("fs").readFileSync(0,"utf8"));const got=r.seats.map(s=>`${s.agent}=${s.identity.installed?s.identity.installed.state:"unasked"}`).join(" ");if(got!==process.argv[1]){console.error(`installed states: got "${got}", wanted "${process.argv[1]}"`);process.exit(1)}' "$2"; }
+asked() { grep -c "repos/$1/installation" "$GH_LOG" 2>/dev/null || true; }
+
+# 12a. installed, and one request standing in for two seats.
+if gh_start ok; then
+  IJA="$(ijson "$R" --deep)"
+  check "two seats on one App are ONE request, not two"       "[ \"\$(asked acme/box)\" = 1 ]"
+  check "and a seat with no App of its own is not asked at all" "[ \"\$(asked acme/graph)\" = 0 ]"
+  check "GitHub accepted the JWT epito signed for that ask"   "grep -q '\"jwtOk\":true' '$GH_LOG'"
+  check "no token was minted to answer a preflight"           "! grep -q 'access_tokens' '$GH_LOG'"
+  check "--json carries the answer per seat, graph unasked"   "iseat \"\$IJA\" 'graph=unasked plain=installed roaded=installed'"
+  irun "$R" --deep
+  check "the row says how many Apps were asked, for how many seats" "said 'App asked at GitHub for 2 seats'"
+  check "and the block names the installation, once, for both" "said 'installed on acme/box as installation 4242' && [ \$(printf '%s' \"\$out\" | grep -c 'installation 4242') -eq 1 ]"
+  check "...with the grant it found there"                     "said 'granted there everything its .identity..scopes ask to mint'"
+  check "...and the seats that one request covers"             "said 'covers plain, roaded'"
+  check "no identity refusal reached the verdict"              "! jq_refusals \"\$IJA\" | grep -q 'installation\|mint'"
+else
+  bad "the stand-in GitHub API never came up (12a)"
+fi
+
+# 12b. the mistake this whole section exists for: an App created and never
+# installed on the repository it would mint for.
+if gh_start not-installed; then
+  IJB="$(ijson "$R" --deep)"
+  check "an App installed nowhere is a refusal, not a tick"    "iseat \"\$IJB\" 'graph=unasked plain=refused roaded=refused'"
+  check "...and it reaches the list the exit code is read off" "jq_refusals \"\$IJB\" | grep -q 'App on this box that GitHub will not mint for'"
+  irun "$R" --deep
+  check "...in the run path's own sentence, not a paraphrase"  "said 'is not installed on acme/box' && said 'can mint nothing, however valid its key'"
+  check "...carrying the fix and whose job it is"              "said 'install the App on acme/box (its owner does this once)'"
+  check "...and the identity row above it still says ✓"        "said '2 seats act as their own GitHub App'"
+fi
+
+# 12c. an App id and a private key that are not from the same App. GitHub
+# answers 401 where it answers 404 above, and they are two different fixes —
+# which is why the status is in --json rather than only in the sentence.
+if gh_start bad-app; then
+  IJC="$(ijson "$R" --deep)"
+  check "credentials GitHub rejects are a refusal too"         "iseat \"\$IJC\" 'graph=unasked plain=refused roaded=refused'"
+  check "...and --json carries the status, so 404 and 401 part" \
+    "printf '%s' \"\$IJC\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));process.exit(r.installed.every(i=>i.status===401)?0:1)'"
+  irun "$R" --deep
+  check "...saying which two things could be wrong"            "said 'not from the same App, or the key has been revoked'"
+fi
+
+# 12d. the per-seat answer: an installation id this box names that GitHub does
+# not have. The mint uses the id the box names rather than discovering one, so
+# this is a run that stops at its first step — and it is `plain`'s problem
+# alone, on the same App `roaded` is fine on.
+if gh_start ok; then
+  IJD="$(EPITO_INSTALLATION_ID_PLAIN=9999 ijson "$R" --deep)"
+  check "an id this box names that GitHub does not have refuses" "iseat \"\$IJD\" 'graph=unasked plain=mismatch roaded=installed'"
+  check "...and the ask is still one request, for both seats"   "[ \"\$(asked acme/box)\" = 1 ]"
+  check "...for that seat only, on an App the other seat shares" "jq_refusals \"\$IJD\" | grep -q 'names an installation id'"
+  out="$(EPITO_INSTALLATION_ID_PLAIN=9999 ident $E doctor "$R" --deep 2>&1)"
+  check "...saying both ids, and which of them the mint uses"   "said 'installation 4242, while this box tells its runs to mint from 9999'"
+  check "...and the fix names the variable an operator edits"   "said 'EPITO_INSTALLATION_ID_PLAIN' && said 'correct it to 4242'"
+fi
+
+# 12e. installed, and granted less there than [identity].scopes need. An
+# installation can only hand out permissions the App was granted, which the
+# mint learns as a 422 at 06:00 — and the answer GitHub has already given says
+# so, at no extra cost.
+if gh_start thin-perms; then
+  IJE="$(ijson "$R" --deep)"
+  check "a grant short of the manifest's scopes is a refusal"  "iseat \"\$IJE\" 'graph=unasked plain=ungranted roaded=ungranted'"
+  check "...named as the 422 the mint would get"               "jq_refusals \"\$IJE\" | grep -q '422'"
+  irun "$R" --deep
+  check "...with the level it has and the level it needs"       "said 'contents is read and the manifest needs write'"
+  check "...and the fix names the grant, or the scope to drop"  "said 'grant the App contents:write' && said 'scopes are the ceiling'"
+fi
+
+# 12f. the one answer that is a report: a GitHub this box cannot reach. The
+# run path RETRIES that one (identity.js marks a mint failure permanent or not,
+# because the clone activity retries), so a preflight must not call it a
+# refusal — it would be the one lie in the section.
+GH_API="http://127.0.0.1:1"
+gh_stop
+IJF="$(ijson "$R" --deep)"
+check "a GitHub this box cannot reach is NOT a refusal"        "iseat \"\$IJF\" 'graph=unasked plain=unreachable roaded=unreachable'"
+check "...and nothing about it reaches the refusals list"      "! jq_refusals \"\$IJF\" | grep -q 'installation\|will not mint'"
+irun "$R" --deep
+check "...said as a report, with why that line is drawn there" "said 'could not be checked at GitHub from this box' && said 'the kind of mint failure that passes'"
+check "...and it does not cast doubt on what IS proven"        "said 'their key signs here'"
+
+# 12g. and none of it happens without the flag.
+: > "$GH_LOG"   # the count below is about THIS invocation, not the section's
+out="$(ident $E doctor "$R" 2>&1)"; rc=$?
+check "no --deep, no request: the preflight stays offline"      "[ \"\$(asked acme/box)\" = 0 ]"
+if [ "$HAVE_ENGINE" = 1 ]; then
+  # The "not proven" line is in the ✓ half of the verdict, so a box with no
+  # engine never reaches it — the same reason step 6 skips.
+  check "...and the gap is named rather than ticked"            "said 'whether each App is installed on the repository it would mint for'"
+  check "...with the price of each half said apart"             "said 'one free GET at GitHub per App'"
+else
+  echo "  SKIPPED -- no engine at $ENGINE_ADDR, so the verdict never reaches its ✓ half, where the \"not proven\" line lives."
+  echo "  install it (curl -sSf https://temporal.download/cli.sh | sh) and run \`temporal server start-dev\`, or: npm run test:cold"
+fi
+# A roster with no App of its own is not told about a gap it does not have.
+out="$(env -u GH_TOKEN -u GITHUB_TOKEN $E doctor "$R" 2>&1)"
+check "a roster with no App is not offered that half at all"    "! said 'installed on the repository it would mint for'"
 
 printf '\nsmoke: %d ok, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

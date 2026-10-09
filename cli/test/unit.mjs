@@ -20,7 +20,11 @@ import { webhookName } from "../src/lib/slack.js";
 import { rosterEnv, namesFor, envTemplate, holding, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
 import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP, noRepoMessage } from "../src/lib/identity.js";
-import { actsAs, rosterActs, IDENTITY_FIX, OWN, REFUSED, HALF, SHARED, NONE } from "../src/lib/acts.js";
+import {
+  actsAs, rosterActs, rosterInstalled, grantGap, IDENTITY_FIX,
+  OWN, REFUSED, HALF, SHARED, NONE,
+  INSTALLED, MISMATCH, UNGRANTED, GH_REFUSED, UNREACHABLE, INSTALL_REFUSES,
+} from "../src/lib/acts.js";
 import { spawn, execFileSync } from "node:child_process";
 import { parse } from "smol-toml";
 import { mkdirSync } from "node:fs";
@@ -656,6 +660,137 @@ test("rosterActs: only a broken or half identity may reach the exit code", () =>
   assert.equal(clean.none.length, 2);
   const broken = rosterActs(roster, { env: { EPITO_APP_ID_PM: "1" }, dir });
   assert.deepEqual(broken.refusals.map((r) => r.agent), ["pm"]);
+});
+
+// --- and the half that has to leave the box (rosterInstalled) ------------
+// `own` proves the key here signs the JWT a mint starts with. It cannot prove
+// the App is installed on the repository it would mint for, which is the most
+// ordinary setup mistake there is — so these cases are the online half, with
+// GitHub stood in for by `lookup`. Nothing below reaches the network.
+
+// A box that holds an App for one seat, and the rows actsAs makes of it.
+const ownRow = (name = "pm", over = {}, manifest = seat(name)) => {
+  const dir = tmpDir();
+  const keyPath = join(dir, `${name}.pem`);
+  writeFileSync(keyPath, rsaPem(), { mode: 0o600 });
+  const env = { [`EPITO_APP_ID_${name.toUpperCase()}`]: "123456", [`EPITO_APP_KEY_FILE_${name.toUpperCase()}`]: keyPath, ...(over.env ?? {}) };
+  return { row: actsAs(name, manifest, { env, dir }), env, dir };
+};
+// What GitHub answers GET /repos/{repo}/installation with, as far as this
+// matters: the id, and what the App was granted there.
+const ghSays = (over = {}) => ({ id: 4242, permissions: { metadata: "read", contents: "write", pull_requests: "write", issues: "write" }, ...over });
+
+test("installed: GitHub names the installation, and one request covers every seat on that App", async () => {
+  const dir = tmpDir();
+  const keyPath = join(dir, "key.pem");
+  writeFileSync(keyPath, rsaPem(), { mode: 0o600 });
+  const env = {
+    EPITO_APP_ID_PM: "123456", EPITO_APP_KEY_FILE_PM: keyPath,
+    EPITO_APP_ID_OKR: "123456", EPITO_APP_KEY_FILE_OKR: keyPath,
+  };
+  const rows = [actsAs("pm", seat("pm"), { env, dir }), actsAs("okr", seat("okr"), { env, dir })];
+  assert.deepEqual(rows.map((r) => r.state), [OWN, OWN]);
+  const asked = [];
+  const lookup = async (jwt, repo) => { asked.push({ jwt, repo }); return ghSays(); };
+  const out = await rosterInstalled(rows, { env, dir, lookup });
+  assert.equal(asked.length, 1, "two seats on one App and one repo are ONE request, not two");
+  assert.match(asked[0].jwt, /^[\w-]+\.[\w-]+\.[\w-]+$/, "asked as the App, with a signed JWT");
+  assert.equal(asked[0].repo, "acme/roster", "about the repo the manifest names");
+  assert.deepEqual(out.map((o) => [o.agent, o.state]), [["pm", INSTALLED], ["okr", INSTALLED]]);
+  assert.equal(out[0].installation, "4242");
+  assert.match(out[0].says, /installed on acme\/roster as installation 4242/);
+  assert.ok(!out[0].says.includes("—"), "no em dash: doctor appends '— covers a, b' to this line");
+  assert.equal(out[0].fix, null);
+});
+
+test("installed: a seat with no App of its own is not asked about at all", async () => {
+  const dir = tmpDir();
+  const rows = [actsAs("pm", seat("pm"), { env: {}, dir }), actsAs("okr", seat("okr"), { env: { GH_TOKEN: "t" }, dir })];
+  let calls = 0;
+  const out = await rosterInstalled(rows, { env: {}, dir, lookup: async () => { calls++; return ghSays(); } });
+  assert.deepEqual(out, [], "no App is nothing to ask GitHub about");
+  assert.equal(calls, 0, "and a roster of them spends no requests — this company's own, today");
+});
+
+test("mismatch: the id this box names is not the one GitHub has, so the mint 404s", async () => {
+  const { row, env, dir } = ownRow("pm", { env: { EPITO_INSTALLATION_ID_PM: "9999" } });
+  assert.equal(row.installation, "9999", "the mint uses the id the box names rather than discovering one");
+  const [out] = await rosterInstalled([row], { env, dir, lookup: async () => ghSays() });
+  assert.equal(out.state, MISMATCH);
+  assert.equal(out.declared, "9999");
+  assert.equal(out.installation, "4242");
+  assert.match(out.says, /installation 4242, while this box tells its runs to mint from 9999/);
+  assert.match(out.fix, /\$EPITO_INSTALLATION_ID_PM/, "the fix names the thing an operator would edit");
+  assert.match(out.fix, /correct it to 4242/);
+
+  // The same id, right: not a refusal, and the sentence says whose id it is.
+  const ok = ownRow("pm", { env: { EPITO_INSTALLATION_ID_PM: "4242" } });
+  const [good] = await rosterInstalled([ok.row], { env: ok.env, dir: ok.dir, lookup: async () => ghSays() });
+  assert.equal(good.state, INSTALLED);
+  assert.match(good.says, /the id this box names for it/);
+});
+
+test("ungranted: installed, and granted less there than [identity].scopes need", async () => {
+  // The 422 the mint learns at 06:00, knowable now from the answer GitHub has
+  // already given — no second request.
+  const manifest = { ...seat("pm"), identity: { scopes: ["github:contents", "github:pull_requests"] } };
+  const { row, env, dir } = ownRow("pm", {}, manifest);
+  const lookup = async () => ghSays({ permissions: { metadata: "read", contents: "read" } });
+  const [out] = await rosterInstalled([row], { env, dir, lookup });
+  assert.equal(out.state, UNGRANTED);
+  assert.match(out.says, /contents is read and the manifest needs write/);
+  assert.match(out.says, /pull_requests is not granted at all and the manifest needs write/);
+  assert.match(out.fix, /grant the App contents:write, pull_requests:write/);
+  assert.match(out.fix, /scopes are the ceiling/);
+});
+
+test("grantGap says nothing rather than guessing when GitHub described no permissions", () => {
+  assert.deepEqual(grantGap(["github:contents"], null), [], "an older answer is not evidence of a shortfall");
+  assert.deepEqual(grantGap(["github:contents"], { contents: "write" }), []);
+  assert.deepEqual(grantGap(["github:contents"], { contents: "admin" }), [], "admin outranks write");
+  assert.deepEqual(grantGap(["github:contents"], { contents: "read" }),
+    [{ permission: "contents", need: "write", granted: "read" }]);
+  assert.deepEqual(grantGap(["github:contents"], { contents: "something-new" }),
+    [{ permission: "contents", need: "write", granted: "something-new" }],
+    "a level this CLI does not know ranks below everything: report a mint you are unsure of, never tick it");
+  assert.deepEqual(grantGap(["github:packages"], { contents: "write" }), [],
+    "an unmintable scope is the OFFLINE half's refusal, and this one does not speak for it");
+});
+
+test("GitHub's two permanent refusals arrive as its own sentences, with the status for a machine", async () => {
+  const { row, env, dir } = ownRow();
+  const notThere = Object.assign(new Error("this agent's GitHub App is not installed on acme/roster — an App with no installation there can mint nothing, however valid its key. Fix: install the App on acme/roster (its owner does this once), then mint again."), { permanent: true, status: 404 });
+  const [a] = await rosterInstalled([row], { env, dir, lookup: async () => { throw notThere; } });
+  assert.equal(a.state, GH_REFUSED);
+  assert.equal(a.status, 404, "404 and 401 are two different fixes, and --json reads which off this");
+  assert.match(a.says, /is not installed on acme\/roster/, "the run path's own words, not a paraphrase");
+  assert.match(a.says, /Fix: install the App/);
+
+  const badPair = Object.assign(new Error("GitHub rejected this agent's App credentials (401)."), { permanent: true, status: 401 });
+  const [b] = await rosterInstalled([row], { env, dir, lookup: async () => { throw badPair; } });
+  assert.equal(b.state, GH_REFUSED);
+  assert.equal(b.status, 401);
+});
+
+test("a GitHub this box cannot reach is a report, because the run path retries that one", async () => {
+  // The line this file does not draw itself: identity.js marks a mint failure
+  // `permanent` because the clone activity retries, and this reads that flag
+  // rather than re-deciding by status code.
+  const { row, env, dir } = ownRow();
+  const blip = new Error("could not reach GitHub at https://api.github.com/repos/acme/roster/installation (fetch failed). Fix: check this machine's network.");
+  const [out] = await rosterInstalled([row], { env, dir, lookup: async () => { throw blip; } });
+  assert.equal(out.state, UNREACHABLE);
+  assert.match(out.says, /could not reach GitHub/);
+  assert.ok(!INSTALL_REFUSES.has(out.state), "and it never reaches the exit code");
+});
+
+test("a preflight does not wait on a half-open socket for the length of the kernel's patience", async () => {
+  const { row, env, dir } = ownRow();
+  const started = Date.now();
+  const [out] = await rosterInstalled([row], { env, dir, deadline: 40, lookup: () => new Promise(() => {}) });
+  assert.equal(out.state, UNREACHABLE, "a deadline spent is not evidence against the App");
+  assert.match(out.says, /did not answer within 0.04s/);
+  assert.ok(Date.now() - started < 2000, "and it came back rather than hanging the operator's terminal");
 });
 
 test("the preflight and the run read one precedence: only acts.js asks who a seat is", () => {
