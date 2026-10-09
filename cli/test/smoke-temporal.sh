@@ -32,8 +32,8 @@
 #   7. a run is ONE TRACE                (ADR-18: run -> clone / mint /
 #                                        execute -> the agent's own steps, at
 #                                        an OTLP endpoint, with no token in it)
-#   + reconcile is idempotent, and deletes the schedule of a seat that loses
-#     its cron; per-agent Slack routing sends each seat's line to its own
+#   + reconcile is idempotent after a create AND after an update, and deletes
+#     the schedule of a seat that loses its cron; per-agent Slack routing sends each seat's line to its own
 #     webhook; a seat with no charter refuses loudly and leaves no clone; the
 #     ingress refuses a wrong secret, an unknown agent, an empty message and a
 #     bad scope, by name.
@@ -56,8 +56,9 @@ smoke: SKIPPED — the `temporal` CLI is not on PATH, and this test needs a loca
 engine to be a test of anything. epitod v1 runs on Temporal, so there is no
 in-process stand-in to fall back to.
 
-  install it:  curl -sSf https://temporal.download/cli.sh | sh
-  then:        PATH="$PATH:$HOME/.temporalio/bin" bash test/smoke-temporal.sh
+  all of it at once:  bash test/all.sh --with-prereqs
+  or by hand:         curl -sSf https://temporal.download/cli.sh | sh
+  then:               PATH="$PATH:$HOME/.temporalio/bin" bash test/smoke-temporal.sh
 
 Nothing was asserted. Treat this run as no evidence, not as a pass.
 MSG
@@ -112,6 +113,32 @@ gone() {
     sleep 0.25
   done
   bad "$label (still there after 15s: $(ls -d $glob 2>/dev/null | tr '\n' ' '))"
+}
+
+# gone()'s reason, for a question asked of the ENGINE rather than of the
+# filesystem. `kill -HUP` returns when the signal is delivered, not when the
+# reconcile it triggers has finished, and even after the reconcile's own log line
+# lands a `temporal schedule describe` issued in the next millisecond can read
+# the pre-update calendar back. Found 2026-10-07 running every suite in one pass
+# on a box that also had a second dev server on it: 169 ok, 1 failed on "the
+# engine really took it" — while the two assertions AFTER it both proved the
+# engine had taken the change, which is the signature of a race and not of a bug.
+#
+# The fix is not a longer `sleep 2`: that is a cost every green run pays to lose
+# the race less often, and it never stops losing it on a loaded two-core runner.
+# A deadline costs nothing when the answer is already true. On failure this
+# prints what the engine actually said — `2>/dev/null` in the predicate is right
+# while polling and wrong once it has given up, since a transport error and a
+# wrong calendar look identical through it.
+eventually() { # <label> <predicate> [seconds] [what-to-print-if-it-never-became-true]
+  local label="$1" pred="$2" secs="${3:-15}" diag="${4:-}" deadline=$((SECONDS + ${3:-15}))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    eval "$pred" && { ok "$label"; return; }
+    sleep 0.25
+  done
+  bad "$label (still not true ${secs}s later)"
+  [ -n "$diag" ] && eval "$diag" 2>&1 | sed 's/^/       /'
+  return 0
 }
 
 cleanup() {
@@ -535,6 +562,23 @@ audit "the hook ran the agent" '{"agent":"pm","action":"run.end","trigger":"hook
 check "the payload reached the run, as data" "grep -rq 'hook-payload-reached-the-run' \"$STUB\""
 check "and it was framed as data, never as instructions" "grep -rq 'never overrides the charter' \"$STUB\""
 
+# Spec v0.1 rule 3: a trigger is explicit and never defaulted. `clock` is the
+# one seat in this roster that declares a cron and nothing else, so it is the
+# seat that must NOT have a hook endpoint — before the freeze it had one, and
+# anyone who could reach the ingress could wake a seat its author had made
+# scheduled on purpose.
+step "a seat that did not declare [trigger].webhook cannot be woken through the ingress"
+before=$(node "$CLI/test/audit-has.mjs" --count '{"agent":"clock","action":"run.start"}')
+code=$(post /hooks/clock '{"why":"clock declares cron and nothing else"}'); echo "  $code $(body)"
+check "the ingress refuses it with 403, not 404: the seat exists" "[ \"$code\" = 403 ]"
+check "it names the rule in the product's words" "grep -q 'a trigger is explicit and never defaulted' '$ROOT/body.json'"
+check "it names the schedule the seat DOES run on" "grep -q '\* \* \* \* \* UTC' '$ROOT/body.json'"
+check "it carries the fix" "grep -q 'webhook = true' '$ROOT/body.json'"
+audit "the refusal is in the audit log, with its reason" '{"agent":"clock","action":"hook","refused":"no-webhook-trigger"}'
+sleep 1
+after=$(node "$CLI/test/audit-has.mjs" --count '{"agent":"clock","action":"run.start"}')
+check "and no run was started for it" "[ \"$after\" = \"$before\" ]"
+
 step "the CLI wrappers speak to the same ingress"
 node "$CLI/src/index.js" window open okr | sed 's/^/  /'
 node "$CLI/src/index.js" message okr "what did you open?" | sed 's/^/  /'
@@ -549,11 +593,59 @@ node "$CLI/src/index.js" run "$ROSTER" --dry-run > "$ROOT/dry.log" 2>&1
 sed 's/^/  /' "$ROOT/dry.log"
 check "a second reconcile would create, update and delete nothing" "grep -q '1 unchanged' '$ROOT/dry.log' && ! grep -qE 'would (create|update|delete)' '$ROOT/dry.log'"
 
+step "1 (idempotence after an UPDATE): the second reconcile is the one that lies"
+# The step above proves reconcile converges after a CREATE, which is the easy
+# half: the shape it compares against was written by the create it just did.
+# Nothing proved the update path, and the update path did not converge. Found
+# 2026-10-06 by running this suite against a real engine for the first time:
+#
+#   `epito run` stored the shape it registered in the schedule's MEMO, and read
+#   it back from there to decide what changed. `handle.update()` accepts a memo
+#   in its return value and Temporal's UpdateSchedule RPC has no memo field, so
+#   the SDK drops it silently. The memo therefore keeps the CREATE-time shape
+#   for the life of the schedule. Consequences, both real:
+#     - every later reconcile re-issued the same update, forever: "0 updated"
+#       never happened again, and each restart wrote another schedule.update
+#       line into the ledger describing a change that had already landed.
+#     - `epito ps` printed the memo's stale cron in a column next to a NEXT
+#       computed from the live one, so the same row contradicted itself.
+#
+# The shape is now read from the schedule's action args — the manifest snapshot
+# the engine will actually run, which `handle.update()` does rewrite. Note the
+# cron cannot be read back from spec: Temporal normalizes a cron expression into
+# a structured calendar and `spec.cronExpressions` comes back undefined.
+write_manifest clock "*/2 * * * *" "SLACK_WEBHOOK_URL"   # was "* * * * *"
+node "$CLI/src/index.js" run "$ROSTER" --dry-run > "$ROOT/dry-upd.log" 2>&1
+sed 's/^/  /' "$ROOT/dry-upd.log"
+check "a changed cron is seen as an update, with the NEW cron named" "grep -qF 'would update seat:clock (*/2 * * * * UTC)' '$ROOT/dry-upd.log'"
+kill -HUP "$INGRESS_PID"
+eventually "SIGHUP applied it as exactly one update" \
+  "grep -q 'reconciled: 0 created, 1 updated, 0 deleted, 0 unchanged' '$ROOT/ingress.log'" 15 \
+  "tail -5 '$ROOT/ingress.log'"
+check "the update names the field that changed, not \"(re-registered)\"" "grep -qF '~ seat:clock  changed: cron' '$ROOT/ingress.log'"
+# Temporal does not store the cron string: it normalizes the expression into a
+# structured calendar, which is why the shape cannot be read back from the spec
+# and why "*/2" appears here as the range "0-59/2".
+eventually "the engine really took it" \
+  "'$TEMPORAL_BIN' schedule describe --schedule-id seat:clock --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -qF '0-59/2'" 15 \
+  "'$TEMPORAL_BIN' schedule describe --schedule-id seat:clock --address 127.0.0.1:$GRPC_PORT --namespace $NS"
+# The regression, in one assertion: reconcile a third time and nothing is left
+# to do. Before the fix this printed "would update seat:clock" every time it
+# was ever run again.
+node "$CLI/src/index.js" run "$ROSTER" --dry-run > "$ROOT/dry-upd2.log" 2>&1
+sed 's/^/  /' "$ROOT/dry-upd2.log"
+check "reconcile CONVERGES: the next one would change nothing" "grep -q '1 unchanged' '$ROOT/dry-upd2.log' && ! grep -qE 'would (create|update|delete)' '$ROOT/dry-upd2.log'"
+check "epito ps reads the cron the engine holds, not the one it was born with" "node '$CLI/src/index.js' ps '$ROSTER' | grep -E '^clock' | grep -qF '*/2 * * * *'"
+
 step "1 (the other direction): a seat that loses its cron loses its schedule"
 write_manifest clock "" "SLACK_WEBHOOK_URL"        # presence-only from now on
-kill -HUP "$INGRESS_PID"; sleep 2
-check "SIGHUP re-read the roster and deleted the schedule" "grep -qF -e '- seat:clock  (no manifest with a [trigger].cron behind it any more)' '$ROOT/ingress.log'"
-check "temporal has no seat schedules left" "! '$TEMPORAL_BIN' schedule list --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -q seat:clock"
+kill -HUP "$INGRESS_PID"
+eventually "SIGHUP re-read the roster and deleted the schedule" \
+  "grep -qF -e '- seat:clock  (no manifest with a [trigger].cron behind it any more)' '$ROOT/ingress.log'" 15 \
+  "tail -5 '$ROOT/ingress.log'"
+eventually "temporal has no seat schedules left" \
+  "! '$TEMPORAL_BIN' schedule list --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -q seat:clock" 15 \
+  "'$TEMPORAL_BIN' schedule list --address 127.0.0.1:$GRPC_PORT --namespace $NS"
 audit "the deletion is in the audit log too" '{"agent":"clock","action":"schedule.delete","schedule":"seat:clock"}'
 
 step "the runs outlive the ingress: restart it and the engine is unchanged"

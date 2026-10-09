@@ -1,0 +1,31 @@
+# epito.me's own ExO seat, as a manifest.
+# Translated from .github/workflows/agent-exo.yml.
+#
+# The one seat with no schedule. Its workflow's `schedule:` block is
+# commented out — "uncomment only after a supervised smoke run" — so the only
+# thing that wakes it today is a human pressing dispatch, and its owner's
+# standing instruction is "exo agent should launch whenever i fine tune"
+# (prompts/exo-agent.md). That is an event, not a clock.
+#
+# On the runtime that is `webhook = true` and nothing else: POST /hooks/exo.
+# Spec v0.1 rule 3 is why the line has to be there at all — a seat that did
+# not ask to be woken by the ingress is not woken by it, so a manifest with
+# neither trigger would be a seat that can never fire, which `epito validate`
+# refuses by name.
+
+[agent]
+name = "exo"
+description = "Improves the seats themselves from evidence; owns the incident register and lesson capture."
+
+[identity]
+scopes = ["github:contents", "github:pull_requests"]
+
+[trigger]
+webhook = true
+
+[runtime]
+model = "claude-opus-5"
+entry = "prompts/exo-agent.md"
+repo = "alexandrapaiz/epitome"
+max_turns = 120
+env = ["SLACK_WEBHOOK_URL"]

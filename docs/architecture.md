@@ -259,8 +259,10 @@ proposals, never TBDs:
   Always Free A1 today, any Ubuntu box by design), two systemd system
   units as the unprivileged user `seats`. Engine: Temporal self-hosted
   in two containers (`temporalio/auto-setup`, `temporalio/ui`) on the
-  host's Postgres, bound to loopback, installed by HQ
-  `runtime/temporal/install.sh`. Data: `.epito/audit.jsonl` plus
+  host's Postgres, bound to loopback. Installed separately from epito and
+  by nothing epito ships yet — docs/deploy/README.md ("Temporal server +
+  UI") carries the two routes; which one epito adopts as its own
+  installer is an open proposal in docs/ideas.md. Data: `.epito/audit.jsonl` plus
   Temporal's own workflow history (retention is a namespace setting; 30
   days is the starting value for 36 seats). Secrets: `/srv/asc/env` at
   0600, optionally rendered by an Infisical agent; secret values are

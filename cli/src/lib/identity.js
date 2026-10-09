@@ -25,6 +25,7 @@ import { createSign, createPrivateKey } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { EPITO_DIR } from "./audit.js";
+import { SPEC_VERSION } from "./fields.js";
 
 // A mint failure is either the kind that passes (GitHub throttling, a network
 // blip) or the kind that never will (a key that is not a PEM, a scope with no
@@ -61,7 +62,7 @@ export function permissionsFor(scopes) {
   if (unmapped.length) {
     throw permanent(
       `[identity].scopes has ${unmapped.length === 1 ? "a scope" : "scopes"} this deploy target cannot mint: ${unmapped.map((s) => `"${s}"`).join(", ")}. ` +
-      `v0.1 maps ${Object.keys(SCOPE_MAP).map((s) => `"${s}"`).join(", ")} to GitHub App permissions and refuses the rest rather than minting a token narrower than the manifest promises. ` +
+      `${SPEC_VERSION} maps ${Object.keys(SCOPE_MAP).map((s) => `"${s}"`).join(", ")} to GitHub App permissions and refuses the rest rather than minting a token narrower than the manifest promises. ` +
       `Fix: remove the scope from agent.toml, or open a card to map it.`
     );
   }
@@ -136,14 +137,20 @@ export function loadPrincipal(name, { env = process.env, dir = "." } = {}) {
     catch (e) {
       throw permanent(`$${n.keyFile} points at ${keyFile}, which this machine cannot read (${e.code ?? e.message}) — that file is "${name}"'s GitHub App private key, and without it the agent has no identity to mint from. Fix: put the .pem GitHub downloaded there (0600, readable by the user the runtime runs as), or unset $${n.keyFile} and use $${n.key} instead.`);
     }
-    return { appId: String(appId), privateKey: pem, installationId: env[n.installation] ?? null, source: `$${n.id}/$${n.keyFile}` };
+    return { appId: String(appId), privateKey: pem, installationId: env[n.installation] || null, source: `$${n.id}/$${n.keyFile}` };
   }
   if (appId && key) {
     return {
       appId: String(appId),
       // A PEM in an env var arrives with its newlines escaped as often as not.
       privateKey: key.includes("\\n") ? key.replace(/\\n/g, "\n") : key,
-      installationId: env[n.installation] ?? null,
+      // `||`, not `??`: an EnvironmentFile line somebody left as
+      // `EPITO_INSTALLATION_ID_PM=` holds the empty string, and an empty
+      // string here is not an installation — it is an id the mint must
+      // discover from [runtime].repo. Read as present it would POST to
+      // /app/installations//access_tokens and come back 404, which reads like
+      // an App installed nowhere and is not.
+      installationId: env[n.installation] || null,
       source: `$${n.id}/$${n.key}`,
     };
   }
@@ -156,6 +163,15 @@ export function noPrincipalMessage(name) {
   const n = envNames(name);
   return `"${name}" has no identity to mint from: no principal in ${PRINCIPALS_PATH} with a key at ${KEYS_DIR}/${name}.pem, and no $${n.id} with either $${n.keyFile} or $${n.key} in the environment. ` +
     `Fix: put the agent's GitHub App id and private key on this machine under those names (the key as a .pem at 0600 named by $${n.keyFile}, or escaped into $${n.key}), or run \`epito deploy\` once the mint lands to create them.`;
+}
+
+// The other refusal an agent with an App can hit before a single byte leaves
+// this box: a token is scoped to exactly one repository, so there is nothing to
+// mint without one. Said here beside the message above because `epito doctor`
+// reports it as a preflight and mintForRun throws it as a run — one sentence,
+// so the preflight cannot promise a fix the mint does not name.
+export function noRepoMessage(name) {
+  return `"${name}" has a GitHub App on this box but no [runtime].repo, and a token is scoped to exactly one repository — there is nothing to scope the mint to, so the run refuses rather than minting something broader. Fix: add repo = "owner/name" to [runtime] in this agent's agent.toml.`;
 }
 
 const b64url = (buf) => Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -321,9 +337,7 @@ export async function mintForRun({ name, manifest, dir = ".", env = process.env,
   const scopes = manifest?.identity?.scopes ?? [];
   const principal = loadPrincipal(name, { env, dir });
   if (!principal) return null;
-  if (!repo) {
-    throw permanent(`"${name}" has a GitHub App but no [runtime].repo, and a token is scoped to exactly one repository — there is nothing to scope this mint to. Fix: add repo = "owner/name" to [runtime] in this agent's agent.toml.`);
-  }
+  if (!repo) throw permanent(noRepoMessage(name));
   const minted = await mintToken({ name, scopes, repo, principal, log });
   return {
     token: minted.token,

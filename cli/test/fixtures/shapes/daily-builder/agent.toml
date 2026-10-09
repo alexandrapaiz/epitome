@@ -1,0 +1,53 @@
+# Shape 1 of 3: the daily builder.
+#
+# A seat that wakes on a schedule, writes code in a repository it owns, and
+# leaves a pull request behind. It is the heaviest of the three shapes: it is
+# the only one that needs more than one road to a model, and the only one that
+# posts somewhere other than the runtime's default channel.
+#
+# It is also the only shape that needs BOTH ways of writing an endpoint, which
+# is why it has three roads rather than two. A public provider's address is a
+# literal anyone may read; a company gateway's address is the confidential part
+# and can only be a variable's name (spec v0.2). A seat that has one of each is
+# not contrived — it is this company's own pm seat, with the subscription under
+# it as the floor.
+
+[agent]
+name = "daily-builder"
+description = "Wakes each morning, works one card, and leaves a draft pull request."
+
+[identity]
+scopes = ["github:contents", "github:pull_requests"]
+
+[trigger]
+cron = "0 6 * * *"
+
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/daily-builder.md"
+repo = "acme/product"
+max_turns = 120
+slack_webhook_env = "SLACK_WEBHOOK_URL_PRODUCT"
+env = ["SLACK_WEBHOOK_URL_PRODUCT", "MOONSHOT_API_KEY", "GATEWAY_BASE_URL", "GATEWAY_API_KEY"]
+
+# Three roads, tried in order: the cheap public one, the company's own gateway,
+# then the floor (ADR-19). A box that holds neither key goes straight to the
+# bottom road and says so, once, in the run log.
+[[runtime.route]]
+name = "open"
+model = "kimi-k2-turbo-preview"
+base_url = "https://api.moonshot.ai/anthropic"
+token_env = "MOONSHOT_API_KEY"
+concurrency = 1
+
+# The address is the secret here, not just the key, so it is a NAME — and
+# `base_url` must not also appear, because a road has one endpoint.
+[[runtime.route]]
+name = "gateway"
+model = "claude-sonnet-5"
+base_url_env = "GATEWAY_BASE_URL"
+token_env = "GATEWAY_API_KEY"
+
+[[runtime.route]]
+name = "subscription"
+model = "claude-sonnet-5"

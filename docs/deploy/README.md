@@ -7,7 +7,7 @@ docs/prfaq/epitod-v1-temporal.md).
 |---|---|---|
 | `epito run <roster>` | makes Temporal's schedules match the roster, then serves the ingress as a thin client | `epitod.service` |
 | `epito worker` | polls the `seats` task queue and does the work: clone, execute, record, notify | `epitod-worker.service` |
-| Temporal server + UI | the engine. Self-hosted, `temporalio/auto-setup` on `127.0.0.1:7233` and `temporalio/ui` on `127.0.0.1:8080`, on the host's Postgres | docker, via HQ `runtime/temporal/install.sh` |
+| Temporal server + UI | the engine. Self-hosted, on loopback, never Temporal Cloud | not epito's: install it first, **"Temporal server + UI"** below |
 
 Two units and not one, deliberately: reloading the roster must not interrupt a
 seat that is mid-run, and with the worker in its own unit it does not.
@@ -20,11 +20,111 @@ processes must share** so there is one ledger:
 
 ```
 .epito/audit.jsonl        one JSON line per event, append-only
+.epito/board.jsonl        run reports, folded by `epito board`
 .epito/logs/<agent>/*.log stdout+stderr of every run
+```
+
+Read the ledger with `epito audit`, in that directory — what each agent's
+token was allowed to do, on which repository, until when, and every run and
+refused road beside it. `--agent`, `--action mint`, `--since 24h` and `--json`
+narrow it; there is no way to write through the command (ADR-22). On the host
+that means:
+
+```bash
+cd /srv/asc/state && epito audit --since 24h
 ```
 
 There is no `.epito/state.json` any more. `epito ps` asks Temporal, because
 a second copy of what is running is a second copy that can be wrong.
+
+Whether this box actually has those four, on the PATH the **unit** gets rather
+than the one your login shell has, is not a thing to take on trust:
+`epito doctor <roster>` is below, and it is the command to run before the
+first `epito run`.
+
+## Temporal server + UI
+
+The engine is a server, and **epito does not install it.** `npm i -g epito` is
+the CLI. `deploy/provision-host.sh` is the runtime: both units, the engine's
+npm *client* packages, Caddy, the `seats` user, the env file. Neither brings up
+the Temporal server those units connect to — so install the engine **first**,
+or every unit on a fresh host comes up and waits for something that is not
+there, which is the single most likely way for a first deploy to look broken
+while being correctly installed.
+
+What epitod asks of the engine is small, and it is the whole list:
+
+- a Temporal server answering at `TEMPORAL_ADDRESS` (default `127.0.0.1:7233`)
+- the namespace named in `TEMPORAL_NAMESPACE` already created — `asc` on a host
+  `provision-host.sh` built. Nothing creates it for you unless you ask
+- bound to **loopback**. The ingress is the only thing on the box meant to take
+  traffic from outside, and it has Caddy and a shared secret in front of it;
+  the engine has neither, and the gRPC frontend is unauthenticated. Never
+  Temporal Cloud (docs/prfaq/epitod-v1-temporal.md)
+
+Two ways to get one on a box you already have. Both are upstream Temporal, and
+both were run against server 1.32.0 before being written here:
+
+```sh
+# a. one process, persisted to a file. Enough for a one-host install, which is
+#    the whole of v1, and what this repository's own suites run against.
+mkdir -p /var/lib/temporal
+temporal server start-dev \
+    --ip 127.0.0.1 --port 7233 --ui-port 8080 \
+    --namespace asc --db-filename /var/lib/temporal/temporal.db
+#    `--ip 127.0.0.1` is what keeps it on loopback, and `--namespace asc`
+#    creates the namespace at startup. Wrap it in a systemd unit of its own if
+#    you want it back after a reboot; epito ships no unit for the engine.
+
+# b. auto-setup + UI + Postgres in containers — the shape docs/architecture.md
+#    describes, and what survives losing the file.
+git clone https://github.com/temporalio/docker-compose /opt/temporal-compose
+cd /opt/temporal-compose
+docker compose -f docker-compose-postgres.yml up -d
+temporal operator namespace create asc --retention 30d --address 127.0.0.1:7233
+```
+
+Use `docker-compose-postgres.yml`, not the default `docker-compose.yml`: the
+default adds Elasticsearch for advanced visibility, which a one-host roster of
+five seats does not need and an Always Free instance would rather not pay for.
+
+**If you take route (b), re-qualify its published ports before you start it.**
+Upstream publishes `7233:7233`, `8080:8080` and `5432:5432` — unqualified,
+which means `0.0.0.0`, which means the internet. `ufw` does not save you here:
+Docker publishes ports by writing its own iptables chain, and that chain is
+traversed before ufw's, so `ufw allow 22/tcp` plus `443` — exactly what
+`provision-host.sh` sets — leaves all three of those ports open anyway. Pin
+them to loopback with an override file next to the compose file:
+
+```yaml
+# /opt/temporal-compose/docker-compose.override.yml
+services:
+  temporal:        { ports: ["127.0.0.1:7233:7233"] }
+  temporal-ui:     { ports: ["127.0.0.1:8080:8080"] }
+  postgresql:      { ports: ["127.0.0.1:5432:5432"] }
+```
+
+Then check what is actually listening, which is the only answer that counts:
+
+```sh
+ss -ltn | grep -E '7233|8080'      # both must read 127.0.0.1:, never 0.0.0.0:
+```
+
+Retention is a namespace setting rather than a server one, and it is what
+bounds how far back the Temporal UI can show you a run:
+
+```sh
+temporal operator cluster health   --address 127.0.0.1:7233            # SERVING
+temporal operator namespace update -n asc --retention 30d --address 127.0.0.1:7233
+temporal operator namespace describe -n asc --address 127.0.0.1:7233
+```
+
+**Which of the two epito should ship as its own installer is not decided yet**
+— `docs/ideas.md` carries it as a proposed row with the trade-off written out,
+and it is the PM's to bet. Until it is bet, this section *is* epito's
+engine-install story, which is why the unreachable-engine message sends you to
+this file and names this heading rather than naming a script: a fix is only a
+fix if the reader has it (ADR-24, docs/decisions.md).
 
 ## Environment
 
@@ -96,9 +196,21 @@ systemctl restart epitod-worker        # the WORKER mints; the ingress never see
 schedule depends on it:
 
 ```sh
+epito doctor /srv/asc/agents               # who every seat on this box acts as
 epito token pm /srv/asc/agents --dry-run   # the mapping only: no network, no key
 epito token pm /srv/asc/agents             # the real mint; the token is stdout, alone
 ```
+
+`epito doctor`'s identity section is the one that catches the mistake this
+file's two lines invite: an `EnvironmentFile` has no multi-line values, so a
+key pasted in by hand arrives truncated or with its newlines escaped away, and
+an `EPITO_APP_ID_` line added without its key — or a `systemctl restart` that
+never happened — leaves the box holding **half** an identity. The runtime reads
+half as none and the seat quietly goes back to the shared credential; the
+preflight calls that out by name and exits 1, having signed a throwaway JWT
+with the key to prove the mint's own first step works offline. Run it as the
+user the units run as (`sudo -u seats`), because what it reads is what that
+user can read.
 
 Three rules the runtime keeps, each asserted in `cli/test/smoke-temporal.sh`:
 
@@ -121,10 +233,23 @@ Three rules the runtime keeps, each asserted in `cli/test/smoke-temporal.sh`:
   A run that resumes a held window borrows that window's clone and mints once.
 - **The minted token wins.** If `[runtime].env` also names `GH_TOKEN`, the
   agent's own credential is used instead, and the run log says so by name.
-- **No silent fallback.** An agent with no App runs on the shared `GH_TOKEN`
-  exactly as it did before — clone included. An agent that *has* one and
-  cannot mint stops, and the run is recorded `exit=mint` with the reason. A PR
-  opened by the wrong identity is worse than a PR not opened.
+- **No silent fallback.** An agent that *has* an App and cannot mint stops, and
+  the run is recorded `exit=mint` with the reason. A PR opened by the wrong
+  identity is worse than a PR not opened.
+
+  An agent with **no** App runs as it did before, and that sentence is worth
+  one more line of precision than it used to have, because the two halves of a
+  run do not get their credential from the same place. The **clone** is the
+  worker's own `git`, so it reaches the box's `GH_TOKEN` through the system
+  credential helper below. The **run** is a child spawned with an allowlist —
+  `PATH`, `HOME`, `USER`, plus the names its `[runtime].env` asks for — so the
+  box's `GH_TOKEN` reaches the agent's own `gh` only if its manifest names it.
+  A seat with no App and no `GH_TOKEN` in `[runtime].env` therefore clones
+  fine and has nothing to open a pull request with, which is the state every
+  seat in this repository's own `agents/` is in today. `epito doctor <roster>`
+  names it per seat ("acts as nobody"), and it is a report rather than a
+  refusal: whether a seat needs to reach GitHub at all is in its charter, not
+  in its manifest.
 
 ### What the box's own `GH_TOKEN` is still for
 
@@ -284,6 +409,55 @@ $ epito board --agent pm --limit 3
 18:56  pm  cron  ok  kimi-k2-turbo-preview  1 turn  https://github.com/…/pull/41
 ```
 
+## What this box owes the roster
+
+The other half of the same idea, and the one with no error message of its own.
+A manifest names the secrets a seat sees — `[runtime].env`, plus a road's
+`token_env` and `base_url_env` — and the runtime injects **only the names this
+box holds**. That is what makes one roster portable; it is also silent. A seat
+short of a name runs, exits 0, and quietly does less: no board report, no Slack
+line, no Linear mirror, depending on which name went missing.
+
+So the names are not kept in two places. They are in the manifests, and the box
+asks:
+
+```
+$ epito env /srv/asc/roster
+roster /srv/asc/roster — 6 names the manifests ask this box to hold, and it holds 1
+
+✓ SLACK_WEBHOOK_URL    held here — engineer, exo, market, okr, pm (the one-line post after every run)
+— BOARD_API_URL        not set here — pm
+— BOARD_RUNTIME_TOKEN  not set here — pm
+— OPENROUTE_API_KEY    not set here — market, okr, pm (the key for route "open")
+…
+
+! pm runs here with 1 of 6 names: BOARD_API_URL, BOARD_RUNTIME_TOKEN, … are not available to its runs
+```
+
+`provision-host.sh` runs this for you once the roster is cloned, and
+`epito env /srv/asc/roster --template` prints those names as lines for
+`/srv/asc/env` — one commented `KEY=` each, with the names this box already
+holds commented out so pasting the output cannot blank a working value. Add the
+lines, fill in the values, then `systemctl restart epitod-worker epitod`.
+
+Three outcomes per name, and only one of them is an error:
+
+- **held** — the run gets it.
+- **not set here** — the run does not, and that is not refused: nothing in a
+  manifest says which names a seat cannot work without (`LINEAR_API_KEY` is
+  genuinely optional to the seat that names it; `BOARD_RUNTIME_TOKEN` is not).
+  `epito env <dir> --complete` is where *you* assert that this box should hold
+  all of them, which is the form for a deploy check.
+- **set here, and set to nothing** — `KEY=` with nothing after it, which the
+  runtime injects as an empty value. That exits 1 and names the variable: this
+  box has that one and has it wrong, the same split `epito routes` makes for a
+  road whose endpoint is set to something that is not a URL.
+
+Every run says it too, in its own log — `# env missing: BOARD_RUNTIME_TOKEN —
+listed in [runtime].env, not set on this box` — and in `journalctl`, so a run
+that did less than it should have says why where somebody is reading. It prints
+no value, ever; names only.
+
 ## Seeing inside a run
 
 Set `OTEL_EXPORTER_OTLP_ENDPOINT` and every run files a trace (ADR-18). One
@@ -408,6 +582,71 @@ is a board that means something different depending on which seat wrote to it
 last. Widening it is a change to `KINDS` in `cli/src/lib/board.js`, in a PR,
 with a reason.
 
+## Before the first run: `epito doctor`
+
+Everything above is a thing this box has to be true for a run to start, and
+until now each one had its own command and its own exit code: `epito validate
+<roster>` for the manifests, `epito routes` for the model roads, `epito env`
+for the names, and a 400ms look at the engine inside `validate --for-runtime`.
+Four commands, three exit codes, and one piece that none of them touched — the
+executable the `execute` activity spawns.
+
+That last one is not hypothetical. epitod v0's first run on a real host exited
+1 at turn zero with `Not logged in`: the environment a run hands its child is
+an **allowlist** (`PATH`, `HOME`, `USER`, plus the names `[runtime].env` asks
+for and this box holds), and the executor's credential lookup needed a name the
+allowlist did not carry. Every piece of that was knowable before 06:00.
+
+```
+$ epito doctor /srv/asc/roster
+roster /srv/asc/roster on this box — 5 seats, checked in the order a run needs them
+
+✓ manifests  5 of 5 manifests load and pass spec v0.2
+! names      6 names asked for, 2 held, 4 not set here
+✓ roads      every seat has an open road — 2 on [runtime].model, no route declared, 3 on "subscription"
+✓ executor   /usr/local/bin/claude started under the environment a run gives it, for 5 seats
+✓ engine     127.0.0.1:7233 is Temporal, namespace "default" exists (a real connect: the engine client is installed here)
+
+✓ nothing here would make a run on this box refuse: 5 manifests good, every
+  seat on an open road, the executor starts under a run's own environment, and
+  127.0.0.1:7233 is Temporal with namespace default.
+  Not proven: that it is logged in — the look never reaches a provider, so a
+  box with an expired session passes it. `epito doctor … --deep` runs ONE turn
+  per road, which costs a model call and is the only thing that proves
+  credentials from here.
+```
+
+One contract: **exit 1 if a run on this box would refuse, and name the piece.**
+That is a refused manifest, a seat with no open road, a road this box has and
+has wrong, a name set to nothing, an executor that is missing or will not
+start, or an engine that is not answering. A name this box does not hold at all
+stays a report and exits 0 — `[runtime].env` is the list the runtime injects
+*from*, nothing in a manifest says which names a seat cannot work without, and
+`epito env <dir> --complete` is where you assert it should hold them all.
+
+Three things worth knowing about what it does and does not prove:
+
+- **The executor is resolved on the PATH a RUN gets**, then started under the
+  environment a run gives it. A `claude` that is on your interactive PATH and
+  not on `epitod-worker.service`'s is exactly the failure this catches, and the
+  fix it prints names `EPITO_EXECUTOR` and its current value.
+- **The look is free and offline, so it says nothing about the account.**
+  `--deep` is the half that proves credentials: one real turn per *road* (not
+  per seat — five seats sharing one key cost one call), with the executor's own
+  refusal read back verbatim.
+- **A TCP connect is not a Temporal server.** When `@temporalio/client` is
+  installed here — it is, on a box provisioned by `provision-host.sh` — the
+  engine section does the real connect and the real namespace check, so a port
+  that answers and is not Temporal, or the right server with a namespace nobody
+  created, is caught here rather than at the first schedule. Where the client
+  is absent (a plain `npm i -g epito`) it falls back to the cheap look and says
+  that is what it did.
+
+A LangGraph seat is the one case a preflight cannot finish: its graph is
+resolved from the `langgraph.json` in *its own* repository, which exists on
+this box only inside a clone a run makes. The report says so rather than
+ticking it.
+
 ## Schedules: what `epito run` actually does
 
 ```sh
@@ -490,8 +729,11 @@ provisions everything except the engine — the target is an Oracle Cloud Always
 Free A1 instance, but nothing in it is Oracle-specific:
 
 ```sh
-# 1. the engine (HQ's script; docker, loopback only, on the host's Postgres)
-ssh ubuntu@host 'sudo bash -s' < runtime/temporal/install.sh     # alexandra-systems
+# 1. the engine. epito does not install it: "Temporal server + UI" above has
+#    the two routes, the loopback rule and the namespace. Whichever you take,
+#    it has to be RUNNING before step 3 — and a foreground `start-dev` over
+#    ssh is not running once you log out, so give it a unit or use compose.
+#    Step 3 refuses with one line if you skip this, naming this file.
 
 # 2. the runtime
 ssh ubuntu@host 'sudo bash -s' -- --domain epitod.example.com \
@@ -544,6 +786,7 @@ docker exec epitod epito ps
 ```sh
 cd cli
 node --test test/unit.mjs              # the reconcile diff and the validator, no server
+bash test/smoke-doctor.sh              # the preflight, including three broken executors
 bash test/smoke-temporal.sh            # the whole runtime against a local dev server
 bash test/smoke-langgraph.sh           # the langgraph adapter, against the real framework
 ```

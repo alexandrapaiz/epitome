@@ -41,7 +41,8 @@ import { join, resolve, sep } from "node:path";
 import { EPITO_DIR } from "./audit.js";
 import { redactor } from "./redact.js";
 import { adapterFor } from "./adapters.js";
-import { routesFor, liveRoutes, noRouteMessage, classifyAttempt, withLane } from "./router.js";
+import { routesFor, liveRoutes, noRouteMessage, classifyAttempt, withLane, resolveEndpoint, endpointLabel } from "./router.js";
+import { baseRunEnv } from "./runenv.js";
 import { childTraceEnv, traceNote } from "./trace.js";
 
 const PR_URL_RE = /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/\d+/g;
@@ -238,13 +239,22 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   const logPath = runLogPath(name, runId);
   mkdirSync(join(EPITO_DIR, "logs", name), { recursive: true });
   const fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
-  // Every secret this run can print: the minted token the caller named, plus
-  // the key of every route this box could take. A provider that refuses is
-  // exactly the child that echoes the key it tried.
-  const routeKeys = routesFor(agent)
-    .map((r) => (r.tokenEnv && process.env[r.tokenEnv] ? { value: process.env[r.tokenEnv], as: `the key for route ${r.name}` } : null))
-    .filter(Boolean);
-  const scrub = redactor([...(redact ?? []), ...routeKeys]);
+  // Every secret this run can print: the minted token the caller named, the
+  // key of every route this box could take, and — since v0.2 — the ADDRESS of
+  // every road whose address is itself confidential. A provider that refuses
+  // is exactly the child that echoes both back at you, and a gateway named
+  // with `base_url_env` is a gateway whose URL was kept out of git on purpose;
+  // letting the child spill it into this log would undo that in one line.
+  const routeSecrets = routesFor(agent).flatMap((r) => {
+    const out = [];
+    if (r.tokenEnv && process.env[r.tokenEnv]) out.push({ value: process.env[r.tokenEnv], as: `the key for route ${r.name}` });
+    if (r.baseUrlEnv) {
+      const { url } = resolveEndpoint(r, process.env);
+      if (url) out.push({ value: url, as: `$${r.baseUrlEnv}, the endpoint for route ${r.name}` });
+    }
+    return out;
+  });
+  const scrub = redactor([...(redact ?? []), ...routeSecrets]);
   const write = (s) => { if (fd !== null) writeSync(fd, scrub(s)); };
   const finish = (exit, extra = {}) => {
     if (fd !== null) closeSync(fd);
@@ -290,7 +300,12 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   const { live, skipped } = liveRoutes(declared, process.env);
   for (const s of skipped) {
     write(`# route "${s.route.name}" (${s.route.model}) skipped: ${s.reason}\n`);
-    log(`${name}: the route "${s.route.name}" is closed on this machine — ${s.reason}`);
+    // A road closed because this box never had it is routing working as
+    // designed; a road closed because this box has it WRONG is a line somebody
+    // has to act on, so the two do not get the same sentence.
+    log(s.misconfigured
+      ? `${name}: the route "${s.route.name}" is configured on this machine and configured wrongly, so the run is taking the next road — ${s.reason}`
+      : `${name}: the route "${s.route.name}" is closed on this machine — ${s.reason}`);
   }
   if (live.length === 0) {
     const msg = noRouteMessage(name, skipped);
@@ -320,8 +335,10 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   // route is computed once, above; the route contributes the model (through
   // the adapter's argv) and the endpoint or key that reaches it, read out of
   // this worker's own environment at the last possible moment.
-  const baseEnv = { PATH: process.env.PATH, HOME: process.env.HOME, USER: process.env.USER };
-  for (const k of rt.env ?? []) if (process.env[k] !== undefined) baseEnv[k] = process.env[k];
+  // The allowlist lives in lib/runenv.js: `epito doctor` spawns the executor
+  // under the same one, and a second copy of it here is how that check would
+  // quietly stop proving anything about a run.
+  const baseEnv = baseRunEnv(agent, process.env);
   // The trace the agent's own spans belong to (ADR-18). Empty when nothing on
   // this runtime is listening, and never carrying the export headers, which
   // are the worker's secret and not this run's.
@@ -335,6 +352,19 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     if (rt.env?.includes(k) && process.env[k] !== undefined) write(`# identity: ${k} from [runtime].env is overridden by this run's own minted credential\n`);
     baseEnv[k] = v;
   }
+  // What the box did NOT have. The loop above injects only the names this
+  // worker holds, which is the rule that keeps a roster portable — and it is
+  // silent: a seat whose BOARD_RUNTIME_TOKEN is missing here runs, exits 0 and
+  // files nothing to the board, and nothing in the log said the name went
+  // missing. The run log is where somebody reads a run back, so it says so by
+  // name. Computed AFTER the mint above, because a name this run injects
+  // itself is not a name the box is short of.
+  const short = (rt.env ?? []).filter((k) => baseEnv[k] === undefined);
+  if (short.length) {
+    write(`# env missing: ${short.join(", ")} — listed in [runtime].env, not set on this box, so this run does not have ${short.length > 1 ? "them" : "it"} (\`epito env\` is the roster-wide view)\n`);
+    log(`${name}: ${short.length} name${short.length > 1 ? "s" : ""} from [runtime].env ${short.length > 1 ? "are" : "is"} not set on this box (${short.join(", ")}) — the run goes ahead without ${short.length > 1 ? "them" : "it"}`);
+  }
+
   // Who the commits belong to. An installation token makes the PR open as
   // `<name>[bot]`; it does nothing at all for the commits inside it, because
   // GitHub links a commit to an account by the author's email and by nothing
@@ -356,7 +386,11 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   const attempt = (route) => new Promise((res) => {
     const { file, args, env: adapterEnv = {} } = adapter.command({ manifest: agent, name, runId, trigger, prompt, resume, binary, route });
     const env = { ...baseEnv, ...adapterEnv, ...(adapter.routeEnv?.(route, process.env) ?? {}) };
-    write(`$ ${file} ${args.map((a) => (a.includes("\n") ? "<prompt>" : a)).join(" ")}\n# route=${route.name} model=${route.model}${route.baseUrl ? ` endpoint=${route.baseUrl}` : ""}${route.tokenEnv ? ` key=$${route.tokenEnv}` : ""}\n# env passed: ${Object.keys(env).join(", ")}\n---\n`);
+    // `endpointLabel` prints `$NAME` for a road that named its address, so a
+    // confidential gateway stays out of the log even before the scrubber sees
+    // it — and the name is the half an operator needs anyway.
+    const endpoint = endpointLabel(route);
+    write(`$ ${file} ${args.map((a) => (a.includes("\n") ? "<prompt>" : a)).join(" ")}\n# route=${route.name} model=${route.model}${endpoint ? ` endpoint=${endpoint}` : ""}${route.tokenEnv ? ` key=$${route.tokenEnv}` : ""}\n# env passed: ${Object.keys(env).join(", ")}\n---\n`);
     let child;
     try { child = spawn(file, args, { cwd: workDir, env, stdio: ["ignore", "pipe", "pipe"], detached: true }); }
     catch (e) { write(`spawn failed: ${e.message}\n`); return res({ exit: "spawn", pr: null, sessionId: null, turns: null, detail: null }); }

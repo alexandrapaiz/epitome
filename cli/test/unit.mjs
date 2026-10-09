@@ -9,23 +9,41 @@
 // six cases are the command's entire behavior.
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { reconcilePlan, scheduleShape } from "../src/temporal/schedules.js";
-import { validateManifest } from "../src/lib/manifest.js";
+import { reconcilePlan, scheduleShape, listSeatSchedules } from "../src/temporal/schedules.js";
+import { validateManifest, loadManifest, FIELDS, TABLES } from "../src/lib/manifest.js";
+import { blockers, unchecked, REPO_REQUIRED_BY, SCOPE_REQUIRED_BY } from "../src/lib/readiness.js";
+import { parseGitHubRemote, originRepo, repoRoot } from "../src/lib/origin.js";
+import { loadRoster, rosterRules, ROSTER_RULES } from "../src/lib/roster.js";
+import { SEVERITY, checkManifest, shape } from "../src/validate.js";
+import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
+import { rosterEnv, namesFor, envTemplate, holding, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
 import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, GIT_TOKEN_ENV } from "../src/lib/runner.js";
-import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP } from "../src/lib/identity.js";
-import { spawn } from "node:child_process";
+import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP, noRepoMessage } from "../src/lib/identity.js";
+import { actsAs, rosterActs, IDENTITY_FIX, OWN, REFUSED, HALF, SHARED, NONE } from "../src/lib/acts.js";
+import { spawn, execFileSync } from "node:child_process";
+import { parse } from "smol-toml";
 import { mkdirSync } from "node:fs";
 import { once } from "node:events";
 import { generateKeyPairSync, createVerify } from "node:crypto";
-import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, chmodSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, chmodSync, realpathSync } from "node:fs";
 import { seatOfWorkflowId, scheduleId, runId, windowId } from "../src/temporal/env.js";
 import { justCompleted, sendOrRestart } from "../src/run.js";
 import { ADAPTERS, ADAPTER_NAMES, adapterFor, unknownAdapter, LANGGRAPH_SHIM } from "../src/lib/adapters.js";
 import {
+  DEFAULT_ADDRESS, connectReason, engineAnswering, engineFix, engineMissing,
+  engineUnreachableMessage, splitAddress,
+} from "../src/lib/engine.js";
+import { createServer as createTcpServer } from "node:net";
+import {
   routesFor, routeErrors, liveRoutes, noRouteMessage, anthropicRouteEnv, routeFacts,
-  classifyAttempt, withLane, DEFAULT_ROUTE,
+  resolveEndpoint, endpointLabel,
+  classifyAttempt, withLane, DEFAULT_ROUTE, ROUTE_FIELDS,
 } from "../src/lib/router.js";
+import { SPEC_VERSION } from "../src/lib/fields.js";
+import { baseRunEnv, RUNTIME_GIVEN } from "../src/lib/runenv.js";
+import { whichIn, lookAtExecutor, deepKey, probeFor, PROBES } from "../src/lib/probe.js";
+import { engineLook } from "../src/doctor.js";
 import {
   traceConfig, traceIdFor, spanIdFor, traceparentFor, childTraceEnv, attributes,
   span, payload, emit, parseHeaders, traceNote, resetQuiet,
@@ -117,9 +135,234 @@ test("reconcile: a schedule with no manifest behind it is deleted, and a foreign
   assert.deepEqual(p.create.map((c) => c.id), ["seat:pm"]);
 });
 
+// The bug these four cover was found on 2026-10-06 by running
+// test/smoke-temporal.sh against a real engine for the first time, and it had
+// survived precisely because the only suite that could see it is the one that
+// needs a `temporal` binary and so reports `unrun` on every box. The pure
+// planner above was correct the whole time; what was wrong was the `actual`
+// handed to it. So these stub the client: no engine, catchable anywhere.
+//
+// `epito run` stored the registered shape in the schedule's memo and read it
+// back from there. `ScheduleHandle.update()` accepts a memo and Temporal's
+// UpdateSchedule RPC has no memo field, so the SDK drops it: the memo holds the
+// CREATE-time shape forever, and reconcile reapplied the same update on every
+// restart while `epito ps` printed a cron the engine was not using.
+const fakeClient = (schedules) => ({
+  schedule: {
+    async *list() { for (const s of schedules) yield { scheduleId: s.id, note: s.note ?? null, memo: s.memo ?? undefined }; },
+    getHandle(id) {
+      const s = schedules.find((x) => x.id === id);
+      return { describe: async () => {
+        if (!s || s.describeThrows) throw new Error("schedule not found");
+        return { memo: s.memo ?? undefined, action: { type: "startWorkflow", args: s.args ?? [] } };
+      } };
+    },
+  },
+});
+
+test("listSeatSchedules: the shape comes from the action, not from the stale memo", async () => {
+  const live = seat("pm", { trigger: { cron: "0 13 * * 5" } });
+  const got = await listSeatSchedules(fakeClient([{
+    id: "seat:pm",
+    // What the engine will actually run: the manifest the action carries.
+    args: [{ name: "pm", manifest: live }],
+    // What the memo still says, because an update could not rewrite it.
+    memo: { seat: "pm", shape: JSON.stringify(scheduleShape(seat("pm", { trigger: { cron: "0 12 * * 5" } }))) },
+  }]));
+  assert.equal(got.length, 1);
+  assert.equal(got[0].shape.cron, "0 13 * * 5", "read the action's cron, not the memo's");
+});
+
+test("reconcile CONVERGES after an update: the second pass has nothing to do", async () => {
+  const live = seat("pm", { trigger: { cron: "0 13 * * 5" } });
+  const actual = await listSeatSchedules(fakeClient([{
+    id: "seat:pm",
+    args: [{ name: "pm", manifest: live }],
+    memo: { seat: "pm", shape: JSON.stringify(scheduleShape(seat("pm", { trigger: { cron: "0 12 * * 5" } }))) },
+  }]));
+  const p = reconcilePlan(desiredOf(live), actual);
+  assert.equal(p.unchanged.length, 1, "an applied update must not be reapplied forever");
+  assert.equal(p.update.length, 0);
+});
+
+test("listSeatSchedules: ids that are not seats are left out, and only seats are described", async () => {
+  const got = await listSeatSchedules(fakeClient([
+    { id: "seat:pm", args: [{ name: "pm", manifest: seat("pm") }] },
+    { id: "someone-elses-schedule", args: [] },
+  ]));
+  assert.deepEqual(got.map((g) => g.id), ["seat:pm"]);
+});
+
+test("listSeatSchedules: an unreadable schedule reads as a difference, so the next pass rewrites it", async () => {
+  const got = await listSeatSchedules(fakeClient([
+    { id: "seat:pm", describeThrows: true },
+    { id: "seat:okr", args: [{ name: "okr", manifest: { agent: { name: "okr" }, trigger: {}, runtime: {} } }] },
+  ]));
+  assert.deepEqual(got.map((g) => g.shape), [null, null]);
+  // null is not "unchanged": it must plan an update rather than leave a
+  // schedule nobody can account for in place.
+  const p = reconcilePlan(desiredOf(seat("pm")), got.filter((g) => g.id === "seat:pm"));
+  assert.equal(p.update.length, 1);
+});
+
 test("reconcile: 36 presence-only seats register nothing at all", () => {
   const p = reconcilePlan(new Map(), []);
   assert.deepEqual(p, { create: [], update: [], delete: [], unchanged: [] });
+});
+
+// --- the bar on a refusal: name the rule, in our words, with the fix -------
+//
+// The spec states the bar once and `epito validate` is where a vibecoder meets
+// it: "name the rule broken, in the product's own vocabulary, with the fix in
+// the message". The messages written after the bar was set carry an explicit
+// `Fix:`; the ones written before it said only what was wrong — nineteen of
+// the twenty-five refusals `epito validate` can print, including the three a
+// newcomer is most likely to see.
+//
+// So the bar is a test. Every refusal the validator can print in its own voice
+// is named below with a manifest that provokes it, and each has to carry a fix
+// the reader can act on. The count assertions are the drift catch: a new
+// `errors.push` with no case here fails this test rather than shipping a
+// message nobody held to the bar.
+
+// A fix is an instruction, not a diagnosis. Ours say it as `Fix:` — except the
+// credential tripwire, which was written as "Move it to a secret" and reads
+// better that way.
+const carriesAFix = (msg) => /Fix:|\bMove it to\b/.test(msg);
+
+// `seat()` with fields set, removed (undefined) or whole tables stripped.
+const provoke = ({ strip = [], tables = {}, raw = "", ...over }) => {
+  const m = seat("pm");
+  for (const t of strip) delete m[t];
+  for (const [t, fields] of Object.entries(over)) {
+    m[t] = { ...m[t], ...fields };
+    for (const [k, v] of Object.entries(fields)) if (v === undefined) delete m[t][k];
+  }
+  return validateManifest({ ...m, ...tables }, { baseDir: "/nonexistent", raw });
+};
+
+const held = (label, manifest) => test(`a refusal carries the fix: ${label}`, () => {
+  const errors = provoke(manifest);
+  assert.ok(errors.length > 0, `"${label}" was meant to be refused and validated clean`);
+  for (const e of errors) assert.ok(carriesAFix(e), `says what is wrong and not what to do:\n    ${e}`);
+});
+
+// One per literal `errors.push` in src/lib/manifest.js, in source order.
+const REFUSALS = [
+  ["missing triad",         { strip: ["identity"] }],
+  ["unknown table",         { tables: { cron: { at: "0 6" } } }],
+  ["name missing",          { agent: { name: undefined } }],
+  ["name shape",            { agent: { name: "Historian" } }],
+  ["description missing",   { agent: { description: undefined } }],
+  ["scopes not an array",   { identity: { scopes: "github:contents" } }],
+  ["scope shape",           { identity: { scopes: ["repo"] } }],
+  ["trigger empty",         { trigger: { cron: undefined } }],
+  ["cron unparseable",      { trigger: { cron: "@daily" } }],
+  ["webhook not a bool",    { trigger: { webhook: "yes" } }],
+  ["model missing",         { runtime: { model: undefined } }],
+  ["entry missing",         { runtime: { entry: undefined } }],
+  ["entry absent on disk",  { runtime: { entry: "prompts/nope.md", repo: undefined } }],
+  ["repo shape",            { runtime: { repo: "github.com/acme/roster" } }],
+  ["ref shape",             { runtime: { ref: "-rf" } }],
+  ["adapter unknown",       { runtime: { adapter: "crewai" } }],
+  ["graph shape",           { runtime: { graph: "a b" } }],
+  ["graph without adapter", { runtime: { graph: "digest" } }],
+  ["max_turns shape",       { runtime: { max_turns: "40" } }],
+  ["env holds a value",     { runtime: { env: ["TOKEN=abc"] } }],
+  ["slack name shape",      { runtime: { slack_webhook_env: "https://hooks.slack.com/x" } }],
+  ["slack name unlisted",   { runtime: { slack_webhook_env: "PM_SLACK" } }],
+  ["a pasted credential",   { raw: `token = "ghp_${"A".repeat(36)}"` }],
+];
+for (const [label, manifest] of REFUSALS) held(label, manifest);
+
+// And one per literal push in src/lib/router.js, which prints through the same
+// `epito validate` and so answers to the same bar.
+const ROUTE_REFUSALS = [
+  ["route table not a list", { runtime: { route: "kimi" } }],
+  ["route not a table",      { runtime: { route: ["kimi"] } }],
+  ["route name shape",       { runtime: { route: [{ name: "Kimi!", model: "m" }] } }],
+  ["two routes one name",    { runtime: { route: [{ name: "k", model: "m" }, { name: "k", model: "m" }] } }],
+  ["route model missing",    { runtime: { model: undefined, route: [{ name: "k" }] } }],
+  ["base_url not a URL",     { runtime: { route: [{ name: "k", model: "m", base_url: "moonshot.ai" }] } }],
+  ["base_url holds a key",   { runtime: { route: [{ name: "k", model: "m", base_url: "https://u:p@x.ai" }] } }],
+  ["base_url_env shape",     { runtime: { route: [{ name: "k", model: "m", base_url_env: "my var" }] } }],
+  ["base_url_env unlisted",  { runtime: { route: [{ name: "k", model: "m", base_url_env: "GATEWAY_URL" }] } }],
+  ["base_url_env + base_url", { runtime: { env: ["GATEWAY_URL"], route: [{ name: "k", model: "m", base_url_env: "GATEWAY_URL", base_url: "https://x.ai" }] } }],
+  ["token_env shape",        { runtime: { route: [{ name: "k", model: "m", token_env: "my key" }] } }],
+  ["token_env unlisted",     { runtime: { route: [{ name: "k", model: "m", token_env: "KIMI_KEY" }] } }],
+  ["concurrency shape",      { runtime: { route: [{ name: "k", model: "m", concurrency: 0 }] } }],
+];
+for (const [label, manifest] of ROUTE_REFUSALS) held(label, manifest);
+
+test("the bar covers EVERY refusal these two modules print in their own voice", () => {
+  const read = (f) => readFileSync(new URL(`../src/lib/${f}`, import.meta.url), "utf8");
+  // Two of the pushes delegate to a module with its own bar (`...unknownKeys`
+  // from fields.js, `...routeErrors` from router.js, counted on its own line
+  // below); every other push is the file's own voice, including the spread of
+  // its own `repoErrors`. router.js also refuses the whole field with a bare
+  // `return [message]`, which is why its count gets a +1.
+  const mine = (src) => (src.match(/errors\.push\(/g) ?? []).length
+    - (src.match(/errors\.push\(\.\.\.(unknownKeys|routeErrors)/g) ?? []).length;
+  const manifestJs = read("manifest.js");
+  const routerJs = read("router.js");
+  // `adapter unknown` is a push of a message adapters.js composed; it is still
+  // this validator's output, and adapters.js already carries its own fix.
+  assert.equal(mine(manifestJs), REFUSALS.length,
+    `src/lib/manifest.js prints ${mine(manifestJs)} refusals in its own voice and REFUSALS covers ` +
+    `${REFUSALS.length}. A new message needs a case above, or nobody held it to the bar.`);
+  assert.equal(mine(routerJs) + 1, ROUTE_REFUSALS.length,
+    `src/lib/router.js prints ${mine(routerJs) + 1} refusals and ROUTE_REFUSALS covers ${ROUTE_REFUSALS.length}.`);
+});
+
+// --- [runtime].repo is a GitHub repository, and GitHub has rules -----------
+//
+// The old rule was "two things with a slash". It blessed `acme/roster.git` —
+// GitHub refuses a name ending in .git, and `epito run` clones
+// `https://github.com/<repo>.git`, so that manifest asked for roster.git.git —
+// and it blessed `../..`, which `epito deploy` and `epito token` would have put
+// in an api.github.com path. Both got a ✓ and then failed at clone or mint
+// time, which is the one thing src/lib/readiness.js exists to prevent.
+test("[runtime].repo: GitHub's own rules for an owner and a name", () => {
+  const refused = (repo) => validateManifest(seat("pm", { runtime: { repo } }), { baseDir: "/nonexistent" })
+    .filter((e) => e.startsWith("[runtime].repo"));
+  for (const repo of [
+    "acme/roster.git",                 // GitHub: a name cannot end in .git
+    "../..",                           // a path, in a field that becomes a URL
+    "acme/..",
+    "acme/.",
+    "-acme/roster",                    // an owner cannot begin with a hyphen
+    "acme-/roster",                    // nor end with one
+    "acme.co/roster",                  // nor hold a dot
+    "acme_co/roster",                  // nor an underscore
+    `${"a".repeat(40)}/roster`,        // 39 is GitHub's ceiling for an owner
+    `acme/${"r".repeat(101)}`,         // 100 is its ceiling for a name
+    "github.com/acme/roster",
+    "https://github.com/acme/roster",
+    "git@github.com:acme/roster.git",
+    "acme/roster/",
+    "/acme/roster",
+    "acme//roster",
+    "acme roster",
+    "acme",
+  ]) assert.equal(refused(repo).length, 1, `[runtime].repo "${repo}" was accepted`);
+
+  for (const repo of [
+    "alexandrapaiz/epitome",           // this company's own
+    "acme/roster",
+    "a/b",
+    "acme-co/my_roster.v2",
+    `${"a".repeat(39)}/${"r".repeat(100)}`,
+    "99designs/aws-vault",             // a real repo whose owner starts with a digit
+  ]) assert.deepEqual(refused(repo), [], `[runtime].repo "${repo}" is a real repository and was refused`);
+});
+
+test("the repo refusal names the half that is wrong", () => {
+  const one = (repo) => validateManifest(seat("pm", { runtime: { repo } }), { baseDir: "/nonexistent" })
+    .find((e) => e.startsWith("[runtime].repo"));
+  assert.match(one("acme/roster.git"), /\.git/);
+  assert.match(one("acme.co/roster"), /owner/);
+  assert.match(one("acme/ros ter"), /name/);
+  assert.match(one("github.com/acme/roster"), /owner\/name/);
 });
 
 // --- the manifest addition -------------------------------------------------
@@ -134,13 +377,13 @@ test("[runtime].slack_webhook_env accepts a NAME that is also listed in env", ()
 test("[runtime].slack_webhook_env refuses a URL, naming the rule and the fix", () => {
   const errs = errorsFor({ runtime: { slack_webhook_env: "https://hooks.slack.com/services/x", env: [] } });
   assert.equal(errs.length, 1);
-  assert.equal(errs[0], `[runtime].slack_webhook_env "https://hooks.slack.com/services/x" must be the NAME of an environment variable (letters, digits, underscore) — the webhook URL itself never appears in the manifest`);
+  assert.equal(errs[0], `[runtime].slack_webhook_env "https://hooks.slack.com/services/x" must be the NAME of an environment variable (letters, digits, underscore) — the webhook URL itself never appears in the manifest. Fix: slack_webhook_env = "PM_SLACK_WEBHOOK", list that same name under [runtime].env, and set its value as a secret.`);
 });
 
 test("[runtime].slack_webhook_env must also be listed under [runtime].env", () => {
   const errs = errorsFor({ runtime: { slack_webhook_env: "SLACK_WEBHOOK_URL_URSA", env: ["GH_TOKEN"] } });
   assert.equal(errs.length, 1);
-  assert.equal(errs[0], `[runtime].slack_webhook_env names "SLACK_WEBHOOK_URL_URSA", so "SLACK_WEBHOOK_URL_URSA" must also be listed in [runtime].env — the runtime injects only the names the manifest lists, so an unlisted webhook can never resolve to a value`);
+  assert.equal(errs[0], `[runtime].slack_webhook_env names "SLACK_WEBHOOK_URL_URSA", so "SLACK_WEBHOOK_URL_URSA" must also be listed in [runtime].env — the runtime injects only the names the manifest lists, so an unlisted webhook can never resolve to a value. Fix: add "SLACK_WEBHOOK_URL_URSA" to [runtime].env.`);
 });
 
 test("a manifest with no slack_webhook_env is unchanged: spec v0.1 stays compatible", () => {
@@ -270,6 +513,160 @@ test("loadPrincipal reads a PEM whose newlines arrived escaped, and is null with
   assert.equal(p.privateKey, pem, "a single-line PEM is unescaped before use");
   assert.equal(p.installationId, null, "discovered from [runtime].repo when unnamed");
   assert.equal(loadPrincipal("okr", { env, dir: "." }), null, "no App is not an error here");
+});
+
+// --- who a seat acts as on this box (src/lib/acts.js) --------------------
+// The question `epito doctor` could not answer until now: not "would a run
+// start" but "and whose name would the pull request open under". Every case
+// below is read through the RUN path's own loadPrincipal, which is the point —
+// a preflight that keeps its own copy of the precedence would eventually
+// predict a seat the runtime does not run.
+
+const rsaPem = () => generateKeyPairSync("rsa", { modulusLength: 2048 }).privateKey.export({ type: "pkcs1", format: "pem" }).toString();
+
+test("acts as itself: an App id and a key this box can read and sign with", () => {
+  const dir = tmpDir();
+  const pem = rsaPem();
+  const keyPath = join(dir, "pm.pem");
+  writeFileSync(keyPath, pem, { mode: 0o600 });
+  const row = actsAs("pm", seat("pm"), { env: { EPITO_APP_ID_PM: "123456", EPITO_APP_KEY_FILE_PM: keyPath }, dir });
+  assert.equal(row.state, OWN);
+  assert.match(row.says, /its own GitHub App: id 123456/);
+  assert.match(row.says, /\$EPITO_APP_ID_PM\/\$EPITO_APP_KEY_FILE_PM/, "and where the key came from");
+  assert.equal(row.appId, "123456");
+  assert.ok(!row.says.includes(pem.split("\n")[1]), "never a byte of the key itself");
+});
+
+test("an App whose mint cannot start is a refusal, because the mint is step one of the run", () => {
+  const dir = tmpDir();
+  // A PEM mangled on its way into an EnvironmentFile is the ordinary case: the
+  // file has no multi-line values, so the escaping is done by hand.
+  const mangled = actsAs("pm", seat("pm"), { env: { EPITO_APP_ID_PM: "1", EPITO_APP_KEY_PM: "-----BEGIN RSA PRIVATE KEY-----\ntruncated\n" }, dir });
+  assert.equal(mangled.state, REFUSED);
+  assert.match(mangled.says, /an App whose mint cannot start/);
+  assert.match(mangled.says, /not a readable PEM/);
+  assert.match(mangled.says, /Fix:/);
+
+  // A scope v0.2 cannot mint. `epito doctor` calls this a report for a seat
+  // with no App — a run never mints, so a run never cares — and it is the
+  // opposite for this seat: the mint IS the run's first step.
+  const scoped = actsAs("pm", seat("pm", {}), { env: { EPITO_APP_ID_PM: "1", EPITO_APP_KEY_PM: rsaPem() }, dir });
+  assert.equal(scoped.state, OWN, "github:contents is mintable");
+  const unmintable = { ...seat("pm"), identity: { scopes: ["github:packages"] } };
+  const row = actsAs("pm", unmintable, { env: { EPITO_APP_ID_PM: "1", EPITO_APP_KEY_PM: rsaPem() }, dir });
+  assert.equal(row.state, REFUSED);
+  assert.match(row.says, /"github:packages"/);
+
+  // An App and nothing to scope the token to.
+  const noRepo = { ...seat("pm"), runtime: { model: "claude-sonnet-5", entry: "prompts/pm.md" } };
+  const r2 = actsAs("pm", noRepo, { env: { EPITO_APP_ID_PM: "1", EPITO_APP_KEY_PM: rsaPem() }, dir });
+  assert.equal(r2.state, REFUSED);
+  assert.match(r2.says, /\[runtime\]\.repo/);
+});
+
+test("half an identity is loud, because the runtime reads it as none", () => {
+  const dir = tmpDir();
+  // An App id and no key: loadPrincipal returns null, the seat falls back to
+  // the box's shared credential, and nothing ever said so.
+  const idOnly = actsAs("pm", seat("pm"), { env: { EPITO_APP_ID_PM: "123456" }, dir });
+  assert.equal(idOnly.state, HALF);
+  assert.match(idOnly.says, /half an identity/);
+  assert.match(idOnly.says, /\$EPITO_APP_KEY_FILE_PM/);
+  // The fallback is whatever else the box gives this seat, and for a manifest
+  // that names no GitHub credential that is nothing at all — the same
+  // precision docs/deploy/README.md needed this pass.
+  assert.match(idOnly.fix, /falls back to whatever else this box gives it — nothing/);
+  const sharer = seat("pm", { runtime: { env: ["GH_TOKEN"] } });
+  assert.match(actsAs("pm", sharer, { env: { EPITO_APP_ID_PM: "1", GH_TOKEN: "t" }, dir }).fix,
+    /\$GH_TOKEN, a person's credential/, "and a person's credential where the manifest names one");
+
+  // A key and no id.
+  const keyOnly = actsAs("pm", seat("pm"), { env: { EPITO_APP_KEY_PM: rsaPem() }, dir });
+  assert.equal(keyOnly.state, HALF);
+  assert.match(keyOnly.says, /\$EPITO_APP_ID_PM is not/);
+
+  // A line somebody half-filled in. Same third state `epito env` names, same
+  // answer: the box HAS this one and has it wrong.
+  const empty = actsAs("pm", seat("pm"), { env: { EPITO_APP_ID_PM: "", EPITO_APP_KEY_FILE_PM: "" }, dir });
+  assert.equal(empty.state, HALF);
+  assert.match(empty.says, /set here and set to nothing/);
+});
+
+test("half an identity in the file store names both paths it looked at", () => {
+  const dir = tmpDir();
+  mkdirSync(join(dir, ".epito/keys"), { recursive: true });
+  writeFileSync(join(dir, ".epito/principals.json"), JSON.stringify([{ agent: "pm", externalId: "9" }]));
+  const row = actsAs("pm", seat("pm"), { env: {}, dir });
+  assert.equal(row.state, HALF);
+  assert.match(row.says, /principals\.json records an App for this seat/);
+  assert.match(row.says, /keys\/pm\.pem/);
+
+  // The other half: a key with no record of which App it is.
+  const d2 = tmpDir();
+  mkdirSync(join(d2, ".epito/keys"), { recursive: true });
+  writeFileSync(join(d2, ".epito/keys/pm.pem"), rsaPem(), { mode: 0o600 });
+  const r2 = actsAs("pm", seat("pm"), { env: {}, dir: d2 });
+  assert.equal(r2.state, HALF);
+  assert.match(r2.says, /does not exist/);
+});
+
+test("no App: a shared credential has an owner, and no credential at all is a different sentence", () => {
+  const dir = tmpDir();
+  const withToken = seat("pm", { runtime: { env: ["GH_TOKEN"] } });
+  const shared = actsAs("pm", withToken, { env: { GH_TOKEN: "a-token-nobody-will-call" }, dir });
+  assert.equal(shared.state, SHARED);
+  assert.match(shared.says, /the owner of \$GH_TOKEN, a person/);
+  assert.ok(!shared.says.includes("a-token-nobody-will-call"), "presence, never a value");
+  assert.equal(shared.fix, null, "the fix is one line under the block, not one per seat");
+
+  // Named and not held: `epito env` reports the absent name; this says what it
+  // means for who the seat is.
+  const absent = actsAs("pm", withToken, { env: {}, dir });
+  assert.equal(absent.state, NONE);
+  assert.match(absent.says, /not set here, so nothing reaches the run/);
+
+  // Named nowhere. This is the state every seat in this company's own roster
+  // is in: a run starts, and its `gh` has nothing to authenticate with.
+  const none = actsAs("pm", seat("pm"), { env: { GH_TOKEN: "held-but-unnamed" }, dir });
+  assert.equal(none.state, NONE);
+  assert.match(none.says, /names neither GH_TOKEN nor GITHUB_TOKEN/);
+  assert.match(IDENTITY_FIX, /EPITO_APP_ID_<SEAT>/, "the two names, with the rule for the suffix");
+});
+
+test("an installation id left empty is an id to discover, not an id of nothing", () => {
+  // `EPITO_INSTALLATION_ID_PM=` in an EnvironmentFile holds the empty string.
+  // Read as present, the mint POSTs to /app/installations//access_tokens and
+  // GitHub answers 404 — which the run reports as an App installed nowhere,
+  // naming the wrong fix for a line somebody half-filled in.
+  const env = { EPITO_APP_ID_PM: "7", EPITO_APP_KEY_PM: rsaPem(), EPITO_INSTALLATION_ID_PM: "" };
+  assert.equal(loadPrincipal("pm", { env, dir: tmpDir() }).installationId, null);
+  const row = actsAs("pm", seat("pm"), { env, dir: tmpDir() });
+  assert.equal(row.state, OWN, "and it is not half an identity: the pair is the id and the key");
+  assert.match(row.says, /installation discovered from \[runtime\]\.repo/);
+});
+
+test("rosterActs: only a broken or half identity may reach the exit code", () => {
+  const dir = tmpDir();
+  const roster = new Map([
+    ["pm", { manifest: seat("pm") }],
+    ["okr", { manifest: seat("okr") }],
+  ]);
+  const clean = rosterActs(roster, { env: {}, dir });
+  assert.equal(clean.refusals.length, 0, "no App is nobody's error");
+  assert.equal(clean.none.length, 2);
+  const broken = rosterActs(roster, { env: { EPITO_APP_ID_PM: "1" }, dir });
+  assert.deepEqual(broken.refusals.map((r) => r.agent), ["pm"]);
+});
+
+test("the preflight and the run read one precedence: only acts.js asks who a seat is", () => {
+  // The same guard src/lib/runenv.js has for the environment allowlist, for
+  // the same reason: two readers of loadPrincipal drift, and the one that
+  // drifts is the one that stops predicting the run.
+  for (const f of ["src/doctor.js", "src/env.js"]) {
+    const src = readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
+    assert.ok(!/from "\.\/lib\/identity\.js"/.test(src) && !/from "\.\.\/lib\/identity\.js"/.test(src),
+      `${f} must read identity through src/lib/acts.js, not reach into identity.js itself`);
+  }
 });
 
 // --- identity: the token reaches the child and not the log ----------------
@@ -591,10 +988,58 @@ test("an empty board says how a report gets onto it, not just that there is none
 });
 
 test("a misspelled flag is refused by name, never silently ignored", () => {
-  assert.match(parseFlags(["--outcome", "ok", "--pr-url", "x"], ["outcome", "pr"]).error, /unknown option "--pr-url"/);
+  const { error } = parseFlags(["--outcome", "ok", "--pr-url", "x"], ["outcome", "pr"], "report");
+  assert.match(error, /--pr-url/, `the option it refused is named: ${error}`);
+  assert.match(error, /`epito report`/, "and so is the command that refused it");
   const { flags, rest } = parseFlags(["pm", "--outcome=mint", "--pr", "https://x/1", "--json"], ["outcome", "pr", "json"]);
   assert.deepEqual(rest, ["pm"]);
   assert.deepEqual(flags, { outcome: "mint", pr: "https://x/1", json: true }, "--flag=value, --flag value, and a bare --flag");
+});
+
+// --- options epito does not know (src/lib/flags.js) -----------------------
+// The rule board.js already had, now every command's. The two assertions that
+// matter are the last two: a dropped --dry-run is not a cosmetic bug, it is
+// the real mint and the real App.
+import { unknownOption, nearest } from "../src/lib/flags.js";
+
+const VALIDATE = [{ name: "for-runtime", does: "make the readiness notes an error, not a note" }];
+
+test("an unknown option is refused, and the near miss is named as one", () => {
+  const e = unknownOption("validate", ["--for-runtimes"], VALIDATE);
+  assert.ok(e, "--for-runtimes is not --for-runtime");
+  assert.match(e, /`epito validate` has no --for-runtimes option/, e);
+  assert.match(e, /Did you mean --for-runtime\?/, "the fix is the flag they meant");
+  assert.match(e, /\`epito validate --for-runtime\`/, "spelled as a command they can run");
+});
+
+test("an option close to nothing gets the real list instead of a guess", () => {
+  const e = unknownOption("validate", ["--wat"], VALIDATE);
+  assert.doesNotMatch(e, /Did you mean/, `--wat is nobody's typo for --for-runtime: ${e}`);
+  assert.match(e, /--for-runtime  make the readiness notes an error/, "so it says what the command does take");
+  assert.equal(nearest("wat", ["for-runtime"]), null);
+  assert.equal(nearest("dry-runn", ["dry-run", "json"]), "dry-run");
+});
+
+test("a command with no options says that, rather than listing nothing", () => {
+  assert.match(unknownOption("init", ["--force"], []), /takes no options, so there is nothing --force could mean/);
+});
+
+test("what epito does know still passes, values and positionals and all", () => {
+  assert.equal(unknownOption("validate", ["--for-runtime"], VALIDATE), null);
+  assert.equal(unknownOption("token", ["pm", ".", "--dry-run"], [{ name: "dry-run" }]), null, "positionals are not options");
+  const opts = [{ name: "timeout", value: true }, { name: "dry-run" }];
+  assert.equal(unknownOption("deploy", ["--timeout", "30", "--dry-run"], opts), null, "a value is not an option");
+  assert.equal(unknownOption("deploy", ["--timeout=30"], opts), null, "--flag=value too");
+  // `--timeout -5` is deploy's own range error, with deploy's own message; it
+  // must not be swallowed here as an unknown option called "5".
+  assert.equal(unknownOption("deploy", ["--timeout", "-5"], opts), null);
+});
+
+test("the two flags whose typo is not cosmetic are both refused", () => {
+  assert.match(unknownOption("token", ["pm", "--dry-runn"], [{ name: "dry-run" }]),
+    /Did you mean --dry-run/, "a dropped --dry-run on `token` is a real mint");
+  assert.match(unknownOption("deploy", ["--dry-runn"], [{ name: "dry-run" }]),
+    /Did you mean --dry-run/, "and on `deploy` it is a real GitHub App");
 });
 
 // --- adapters: what epito spawns, per kind of agent (ADR-17) --------------
@@ -1033,6 +1478,145 @@ test("router: every road closed is a refusal that names all of them and the fix"
   assert.match(msg, /the subscription is the floor/);
 });
 
+// --- base_url_env: an endpoint that is a NAME (spec v0.2) -----------------
+//
+// The field this company's own roster asked for. `pm`, `market` and `okr` take
+// a cheaper road whose ADDRESS is the confidential part, so a literal
+// `base_url` would have put the one value that is deliberately not in git into
+// a file whose whole promise is that it is publishable.
+//
+// Everything below is one of three claims: the manifest side is `token_env`'s
+// rule exactly; the box side has THREE outcomes rather than two, because a
+// variable set to the wrong thing is not the same as a variable nobody set;
+// and the resolved address is never written down anywhere.
+
+const gated = (over = {}) => ({
+  agent: { name: "pm", description: "A seat." },
+  identity: { scopes: ["github:contents"] },
+  trigger: { cron: "0 6 * * *" },
+  runtime: {
+    model: "claude-opus-5", entry: "prompts/pm.md", repo: "acme/roster",
+    env: ["OPENROUTE_BASE_URL", "OPENROUTE_API_KEY"],
+    route: [
+      { name: "open", model: "kimi-k2.7-code", base_url_env: "OPENROUTE_BASE_URL", token_env: "OPENROUTE_API_KEY" },
+      { name: "subscription", model: "claude-opus-5" },
+    ],
+    ...over,
+  },
+});
+const BOX = { OPENROUTE_BASE_URL: "https://gateway.example.com/anthropic", OPENROUTE_API_KEY: "sk-test" };
+
+test("base_url_env: the manifest carries the NAME and resolves nothing, so validate works standing anywhere", () => {
+  const [open] = routesFor(gated());
+  assert.equal(open.baseUrlEnv, "OPENROUTE_BASE_URL");
+  assert.equal(open.baseUrl, null, "resolving in routesFor would make the reader depend on the box it is read on");
+  assert.deepEqual(routeErrors(gated()), [], "and the road is legal");
+});
+
+test("base_url_env: a name the manifest does not inject can never resolve to an endpoint", () => {
+  const errs = routeErrors(gated({ env: ["OPENROUTE_API_KEY"] }));
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /base_url_env names "OPENROUTE_BASE_URL".*must also be listed in \[runtime\]\.env/s);
+  assert.match(errs[0], /Fix: add "OPENROUTE_BASE_URL" to \[runtime\]\.env/, "token_env's rule, and token_env's fix");
+});
+
+test("base_url_env: a value where a name belongs is refused, and the message says which field wants a URL", () => {
+  const errs = routeErrors(gated({ route: [{ name: "open", model: "m", base_url_env: "https://gateway.example.com" }] }));
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /must be the NAME of an environment variable/);
+  assert.match(errs[0], /use base_url = "https:\/\/\.\.\." instead if the endpoint is a public URL/,
+    "the reader who wanted the other field is told which one it is");
+});
+
+test("base_url_env: a variable's NAME in base_url is told which field it belongs in", () => {
+  const named = routeErrors(gated({ route: [{ name: "open", model: "m", base_url: "$OPENROUTE_BASE_URL" }] }));
+  assert.equal(named.length, 1);
+  assert.match(named[0], /if you meant the variable called OPENROUTE_BASE_URL, that is base_url_env = "OPENROUTE_BASE_URL"/,
+    "the reader who reached for indirection is told where the indirection lives");
+  // Same hint, generic, for a value that is simply not a URL and not a name.
+  const other = routeErrors(gated({ route: [{ name: "open", model: "m", base_url: "moonshot.ai" }] }));
+  assert.match(other[0], /name the variable with base_url_env instead if the endpoint is confidential/);
+});
+
+test("base_url_env: a road with two endpoints is refused — nothing says which one the runtime takes", () => {
+  const errs = routeErrors(gated({
+    route: [{ name: "open", model: "m", base_url_env: "OPENROUTE_BASE_URL", base_url: "https://api.moonshot.ai/anthropic" }],
+  }));
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /declares both base_url and base_url_env/);
+  assert.match(errs[0], /keep base_url_env .* if the endpoint is confidential/s, "both halves of the fix, so either reader can act");
+});
+
+test("base_url_env: an absent variable closes the road exactly the way an absent key does", () => {
+  const { live, skipped } = liveRoutes(routesFor(gated()), { OPENROUTE_API_KEY: "sk-test" });
+  assert.deepEqual(live.map((r) => r.name), ["subscription"], "an endpoint you do not have is a road you cannot take");
+  assert.match(skipped[0].reason, /OPENROUTE_BASE_URL is not set on this machine/);
+  assert.equal(skipped[0].misconfigured, false, "a box that never had it is routing working as designed");
+});
+
+test("base_url_env: a variable set to something that is NOT an endpoint is a typo, not an absence", () => {
+  // Values chosen so that nothing in the message could contain one by accident:
+  // the first draft of this test used "gateway.example.com" and failed on the
+  // message's own `e.g. https://gateway.example.com/...`, which is a collision
+  // and not a leak — but a no-leak assertion that can pass by coincidence is
+  // worth no more than no assertion.
+  for (const bad of ["internal-gw-7f3a1c.corp", "ftp://internal-gw-7f3a1c.corp", "not a url at all"]) {
+    const { live, skipped } = liveRoutes(routesFor(gated()), { ...BOX, OPENROUTE_BASE_URL: bad });
+    assert.deepEqual(live.map((r) => r.name), ["subscription"], `the run still happens: ${bad}`);
+    assert.equal(skipped[0].misconfigured, true, `and somebody has to go fix it: ${bad}`);
+    assert.match(skipped[0].reason, /is set on this machine but does not hold an http\(s\) URL/);
+    assert.match(skipped[0].reason, /Fix: set OPENROUTE_BASE_URL to the address scheme and all/);
+    assert.ok(!skipped[0].reason.includes(bad),
+      "the value is printed nowhere, which is the entire reason the manifest named a variable");
+  }
+});
+
+test("base_url_env: a URL with a credential in it closes the road, because the endpoint IS logged", () => {
+  const { skipped } = liveRoutes(routesFor(gated()), { ...BOX, OPENROUTE_BASE_URL: "https://u:sk-live-abc@gateway.example.com" });
+  assert.equal(skipped[0].misconfigured, true);
+  assert.match(skipped[0].reason, /holds a URL with a credential in it/);
+  assert.match(skipped[0].reason, /name the key with token_env, which is never logged/, "the other field is the fix");
+  assert.ok(!skipped[0].reason.includes("sk-live-abc"), "and the refusal does not leak what it is refusing");
+});
+
+test("base_url_env: a live road comes back resolved, so nothing downstream asks how it was spelled", () => {
+  const { live } = liveRoutes(routesFor(gated()), BOX);
+  assert.deepEqual(live.map((r) => r.name), ["open", "subscription"]);
+  assert.equal(live[0].baseUrl, "https://gateway.example.com/anthropic");
+  assert.deepEqual(anthropicRouteEnv(live[0], BOX), {
+    ANTHROPIC_BASE_URL: "https://gateway.example.com/anthropic", ANTHROPIC_AUTH_TOKEN: "sk-test",
+  }, "exactly what the workflow sets by hand from the same two secrets");
+  assert.equal(routeFacts(live[0]).EPITO_BASE_URL, "https://gateway.example.com/anthropic",
+    "a foreign adapter reads one field whichever way the manifest wrote it");
+});
+
+test("base_url_env: a log says $NAME and never the address", () => {
+  const { live } = liveRoutes(routesFor(gated()), BOX);
+  assert.equal(endpointLabel(live[0]), "$OPENROUTE_BASE_URL",
+    "the name is the half an operator has to act on, and the only half that is safe in a file");
+  assert.equal(endpointLabel(routesFor(routed())[0]), "https://api.moonshot.ai/anthropic",
+    "a public provider's published URL is still printed as itself");
+  assert.equal(endpointLabel(routesFor(routed())[1]), null);
+});
+
+test("base_url_env: resolveEndpoint is the one answer, and a literal road passes through it unchanged", () => {
+  const [kimi, sub] = routesFor(routed());
+  assert.deepEqual(resolveEndpoint(kimi, {}), { url: "https://api.moonshot.ai/anthropic", problem: null, misconfigured: false });
+  assert.deepEqual(resolveEndpoint(sub, {}), { url: null, problem: null, misconfigured: false });
+});
+
+test("base_url_env: stranded by a typo gets the stronger fix, not \"set one of those keys\"", () => {
+  const one = routesFor(gated({ route: [{ name: "open", model: "m", base_url_env: "OPENROUTE_BASE_URL" }] }));
+  const { live, skipped } = liveRoutes(one, { OPENROUTE_BASE_URL: "gateway.example.com" });
+  assert.equal(live.length, 0);
+  const msg = noRouteMessage("pm", skipped);
+  assert.match(msg, /"open" is configured on this box and configured wrongly/);
+  assert.doesNotMatch(msg, /Fix: set one of those keys/,
+    "useless advice to the operator who set one and got the value wrong");
+  // And the ordinary case keeps the ordinary sentence.
+  assert.match(noRouteMessage("pm", liveRoutes(one, {}).skipped), /Fix: set one of those keys on the box/);
+});
+
 test("router: the endpoint and the key reach the claude CLI under the names it reads", () => {
   const [kimi, sub] = routesFor(routed());
   assert.deepEqual(anthropicRouteEnv(kimi, { MOONSHOT_API_KEY: "sk-test" }), {
@@ -1099,7 +1683,10 @@ const stubRun = async (agent, over = {}, env = {}) => {
   process.chdir(dir);
   const work = mkdtempSync(cloneDirPrefix(agent.agent.name));
   const saved = {};
-  for (const [k, v] of Object.entries(env)) { saved[k] = process.env[k]; process.env[k] = v; }
+  // `null` means this box does NOT hold the name, which stopped being the same
+  // thing as holding it empty: a blank value is an env-file line somebody
+  // filled in halfway, and the router now says so rather than calling it unset.
+  for (const [k, v] of Object.entries(env)) { saved[k] = process.env[k]; if (v === null) delete process.env[k]; else process.env[k] = v; }
   process.env.EPITO_STUB_DIR = join(dir, "stub");
   try {
     const r = await executeAgent({
@@ -1156,11 +1743,55 @@ test("the detour: the cheap road is taken when it works, and nothing else runs",
 });
 
 test("the detour: no key on this box means the closed road is announced, not attempted", async () => {
-  const r = await stubRun(stubSeat(), {}, { MOONSHOT_API_KEY: "" });
+  const r = await stubRun(stubSeat(), {}, { MOONSHOT_API_KEY: null });
   assert.equal(r.exit, 0);
   assert.equal(r.route, "subscription");
   assert.equal(r.attempts.length, 1, "a skipped road is not an attempt");
   assert.match(r.logged, /route "kimi" \(kimi-k2-turbo-preview\) skipped: MOONSHOT_API_KEY is not set/);
+});
+
+// A named endpoint, end to end: the child is really pointed at the address the
+// box holds, and nothing that gets written down knows what it is. The stub
+// echoes ANTHROPIC_BASE_URL back in its result on purpose, which is both how
+// this test can see where the child went and exactly what a provider error
+// path does — so the same line proves the pointing and the scrubbing.
+const GATEWAY = "https://gw-unit-7f3a1c.invalid/anthropic";
+const gatedSeat = (over = {}) => stubSeat({
+  env: ["OPENROUTE_BASE_URL", "OPENROUTE_API_KEY", "EPITO_STUB_DIR", "EPITO_STUB_REFUSE_BASE_URL", "EPITO_STUB_ECHO_ROUTE"],
+  route: [
+    { name: "open", model: "kimi-k2.7-code", base_url_env: "OPENROUTE_BASE_URL", token_env: "OPENROUTE_API_KEY" },
+    { name: "subscription", model: "claude-opus-5" },
+  ],
+  ...over,
+});
+
+test("the detour: a road whose endpoint is a NAME points the child at it, and writes down neither", async () => {
+  const r = await stubRun(gatedSeat(), {}, {
+    OPENROUTE_BASE_URL: GATEWAY, OPENROUTE_API_KEY: "sk-gateway-unit-key", EPITO_STUB_ECHO_ROUTE: "1",
+  });
+  assert.equal(r.exit, 0);
+  assert.equal(r.route, "open", "the cheap road opened, because the box holds both halves of it");
+  assert.match(r.logged, /model=kimi-k2\.7-code endpoint=\$OPENROUTE_BASE_URL key=\$OPENROUTE_API_KEY/,
+    "the log names the variables, which is the half an operator acts on");
+  assert.ok(!r.logged.includes(GATEWAY),
+    "and never the address — the child echoed it straight back and the scrubber caught it");
+  assert.match(r.logged, /endpoint=\[redacted: \$OPENROUTE_BASE_URL, the endpoint for route open\]/,
+    "the redaction says which secret stood there, the way it already does for a key");
+  assert.doesNotMatch(r.logged, /sk-gateway-unit-key/);
+});
+
+test("the detour: an endpoint set to the wrong thing is announced as a typo, and the run still happens", async () => {
+  const said = [];
+  const r = await stubRun(gatedSeat(), { log: (m) => said.push(m) }, {
+    OPENROUTE_BASE_URL: "gw-unit-7f3a1c.invalid", OPENROUTE_API_KEY: "sk-gateway-unit-key", EPITO_STUB_ECHO_ROUTE: "1",
+  });
+  assert.equal(r.exit, 0, "a run in progress never refuses over a road it has an alternative to");
+  assert.equal(r.route, "subscription");
+  assert.equal(r.attempts.length, 1, "a closed road is not an attempt, however it came to be closed");
+  assert.ok(said.some((m) => /configured on this machine and configured wrongly/.test(m)),
+    "the operator-facing line separates a box that never had it from a box that has it wrong");
+  assert.ok(said.some((m) => /Fix: set OPENROUTE_BASE_URL to the address scheme and all/.test(m)));
+  assert.ok(!said.join("\n").includes("gw-unit-7f3a1c.invalid"), "and still prints no value");
 });
 
 test("the detour: a seat with every road closed refuses the run and names each one", async () => {
@@ -1244,4 +1875,1010 @@ test("any other failure is the caller's to see: a retry here would hide a broken
   const send = async () => { calls++; throw new Error("connection refused"); };
   await assert.rejects(() => sendOrRestart(send), /connection refused/);
   assert.equal(calls, 1, "it is not retried, because retrying a dead engine just fails twice");
+});
+
+// --- the freeze: spec v0.1's field catalogue, and the three seat shapes ----
+//
+// The backlog card this section closes: "spec/manifest.md reviewed against
+// the three alexandria seat shapes (daily builder, weekly writer,
+// event-driven responder); every field either earns its place or goes." The
+// shapes are real manifests in test/fixtures/shapes/, and the coverage test
+// below is that sentence made executable — a field no shape needs is a field
+// that did not earn its place, and this suite says so by name.
+
+const SHAPES = ["daily-builder", "weekly-writer", "event-responder"];
+const shapePath = (n) => fileURLToPath(new URL(`./fixtures/shapes/${n}/agent.toml`, import.meta.url));
+
+for (const shape of SHAPES) {
+  test(`seat shape "${shape}" validates against frozen v0.1`, () => {
+    const { errors } = loadManifest(shapePath(shape));
+    assert.deepEqual(errors, [], errors.join("\n"));
+  });
+}
+
+// The one thing a version constant can get wrong: being a different version
+// from the document it names. Every "not a field in manifest spec X" message
+// generates its field list from the catalogue, so a stale constant makes the
+// validator offer a field and then send the reader to a spec without it.
+test("SPEC_VERSION is the version spec/manifest.md's own heading claims", () => {
+  const spec = readFileSync(new URL("../../spec/manifest.md", import.meta.url), "utf8");
+  const heading = spec.split("\n", 1)[0];
+  const claimed = heading.match(/spec (v\d+\.\d+)/)?.[1];
+  assert.ok(claimed, `spec/manifest.md's first line does not name a version: ${heading}`);
+  assert.equal(SPEC_VERSION, claimed,
+    "the code implements one version and the document is another — one of the two moved alone");
+});
+
+test("every field in the frozen catalogue is needed by at least one of the three shapes", () => {
+  const used = { agent: new Set(), identity: new Set(), trigger: new Set(), runtime: new Set() };
+  for (const shape of SHAPES) {
+    const { manifest } = loadManifest(shapePath(shape));
+    for (const t of TABLES) for (const k of Object.keys(manifest[t] ?? {})) used[t].add(k);
+  }
+  const orphans = [];
+  for (const t of TABLES) for (const f of FIELDS[t]) if (!used[t].has(f)) orphans.push(`[${t}].${f}`);
+  assert.deepEqual(orphans, [], `these fields are in the spec and no real seat shape needs them: ${orphans.join(", ")}`);
+});
+
+test("the three shapes together exercise every key a route has", () => {
+  const { manifest } = loadManifest(shapePath("daily-builder"));
+  const used = new Set(manifest.runtime.route.flatMap((r) => Object.keys(r)));
+  assert.deepEqual(ROUTE_FIELDS.filter((f) => !used.has(f)), []);
+});
+
+test("a misspelled field is refused, and the message carries the spelling", () => {
+  const errs = validateManifest(baseManifest({ runtime: { ...baseRuntime(), mdoel: "claude-opus-5" } }));
+  const hit = errs.find((e) => e.includes("mdoel"));
+  assert.ok(hit, `a typo must not validate: ${errs.join("\n")}`);
+  assert.match(hit, /did you mean \[runtime\]\.model\?/);
+});
+
+test("max_turn (the singular typo) is refused rather than silently meaning 100", () => {
+  const errs = validateManifest(baseManifest({ runtime: { ...baseRuntime(), max_turn: 50 } }));
+  assert.ok(errs.some((e) => e.includes("max_turn") && e.includes("max_turns")), errs.join("\n"));
+});
+
+test("[trigger].on is retired, and the message says what replaces it", () => {
+  const errs = validateManifest(baseManifest({ trigger: { on: ["issue.opened"] } }));
+  const hit = errs.find((e) => e.includes("[trigger].on"));
+  assert.ok(hit, errs.join("\n"));
+  assert.match(hit, /webhook = true/);
+  // The seat could never have fired, and the triad rule now says so too.
+  assert.ok(errs.some((e) => /needs at least one of: cron .* or webhook/.test(e)), errs.join("\n"));
+});
+
+test("[runtime].image is retired: an image is a property of the box", () => {
+  const errs = validateManifest(baseManifest({ runtime: { ...baseRuntime(), image: "default" } }));
+  assert.ok(errs.some((e) => e.includes("[runtime].image") && e.includes("property of the box")), errs.join("\n"));
+});
+
+test("a whole table the spec does not define is named as a table", () => {
+  const errs = validateManifest(baseManifest({ deploy: { target: "github" } }));
+  assert.ok(errs.some((e) => e.startsWith("[deploy] is not a table")), errs.join("\n"));
+});
+
+test("an unknown key inside a route table is refused too", () => {
+  const rt = { ...baseRuntime(), env: ["K"], route: [{ name: "open", model: "m", token_env: "K", retries: 3 }] };
+  const errs = validateManifest(baseManifest({ runtime: rt }));
+  assert.ok(errs.some((e) => e.includes("retries") && e.includes("[[runtime.route]] #1")), errs.join("\n"));
+});
+
+test("[trigger].webhook is a boolean, and the message says the URL is never the manifest's", () => {
+  const errs = validateManifest(baseManifest({ trigger: { webhook: "https://example.com/hooks/x" } }));
+  assert.ok(errs.some((e) => e.includes("[trigger].webhook") && e.includes("never the manifest's")), errs.join("\n"));
+});
+
+function baseRuntime() {
+  return { model: "claude-sonnet-5", entry: "prompts/x.md", repo: "acme/x" };
+}
+function baseManifest(over = {}) {
+  return {
+    agent: { name: "x", description: "A seat." },
+    identity: { scopes: ["github:contents"] },
+    trigger: { cron: "0 6 * * *" },
+    runtime: baseRuntime(),
+    ...over,
+  };
+}
+
+// The spec's catalogue and the validator's catalogue are the same list, and
+// this is what makes that a fact rather than a comment. The block under "##
+// The field catalogue" in spec/manifest.md is valid TOML on purpose, so the
+// document can be read by the code it governs: a field added to one side and
+// not the other fails here, by name, which is exactly the drift that let five
+// fields land as prose without ever being checked.
+test("spec/manifest.md's field catalogue is the validator's field catalogue", () => {
+  const md = readFileSync(fileURLToPath(new URL("../../spec/manifest.md", import.meta.url)), "utf8");
+  const block = md.match(/## The field catalogue[\s\S]*?```toml\n([\s\S]*?)```/);
+  assert.ok(block, "spec/manifest.md has no TOML catalogue under '## The field catalogue'");
+  const spec = parse(block[1]);
+  assert.deepEqual(Object.keys(spec).sort(), [...TABLES].sort(), "the spec and the code disagree about which tables a manifest has");
+  for (const t of TABLES) {
+    assert.deepEqual(
+      Object.keys(spec[t]).sort(),
+      [...FIELDS[t]].sort(),
+      `[${t}]: spec/manifest.md and cli/src/lib/manifest.js disagree about the fields`,
+    );
+  }
+  // The route table's keys live with the route reader; same rule.
+  assert.deepEqual(Object.keys(spec.runtime.route[0]).sort(), [...ROUTE_FIELDS].sort(),
+    "[[runtime.route]]: spec/manifest.md and cli/src/lib/router.js disagree about the fields");
+  // A retired field must not creep back into the document.
+  for (const gone of ["[trigger].on", "[runtime].image"]) {
+    const [, table, field] = gone.match(/\[(\w+)\]\.(\w+)/);
+    assert.ok(!(field in spec[table]), `${gone} is retired and is back in the spec's catalogue`);
+  }
+});
+
+// Same rule, one directory over: the runtime box's engine list and the CLI's
+// declared peers are one list. cli/package.json stopped shipping @temporalio/*
+// with the CLI so `npm i -g epito` is half a megabyte, and the box that exists
+// to run `epito run` and `epito worker` therefore has to install them by name
+// in deploy/provision-host.sh. Two places naming the same four packages is
+// drift waiting to happen — and the failure mode is a provisioned host whose
+// units start, print an install line and exit 1, which is why this is an
+// assertion and not a comment.
+test("the runtime box installs every engine peer the CLI declares", () => {
+  const pkg = JSON.parse(readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8"));
+  const peers = Object.keys(pkg.peerDependencies ?? {});
+  assert.ok(peers.length > 0, "cli/package.json declares no peerDependencies — has the engine moved back into dependencies?");
+  for (const p of peers) {
+    assert.ok(
+      (pkg.peerDependenciesMeta?.[p]?.optional) === true,
+      `${p} is a peer dependency but not an optional one, so \`npm i -g epito\` drags the engine back in`,
+    );
+  }
+
+  const sh = readFileSync(fileURLToPath(new URL("../../deploy/provision-host.sh", import.meta.url)), "utf8");
+  const line = sh.match(/^ENGINE_PKGS="([^"]*)"/m);
+  assert.ok(line, "deploy/provision-host.sh no longer sets ENGINE_PKGS — the runtime box would come up with no engine");
+  const installed = line[1].trim().split(/\s+/).map((s) => s.split("@^")[0] || s);
+  assert.deepEqual(
+    installed.map((s) => s.replace(/@[\^~]?[\d.].*$/, "")).sort(),
+    peers.sort(),
+    "deploy/provision-host.sh and cli/package.json disagree about which engine packages the runtime box needs",
+  );
+  // And it must actually be installed globally: a local `npm ci` cannot put a
+  // package where a globally installed `epito` will resolve it.
+  assert.match(sh, /npm install -g --silent \$ENGINE_PKGS/,
+    "provision-host.sh names the engine packages but does not install them globally");
+});
+
+// --- readiness: a ✓ that does not overclaim ---------------------------------
+//
+// `epito init` wrote a manifest, `epito validate` ticked it, and `epito run`,
+// `epito deploy` and `epito token` then every one refused it for a missing
+// [runtime].repo. Spec v0.1 keeps the validator permissive there on purpose
+// (Actions-era manifests stay valid) and leaves an unmapped scope to the mint
+// ("a stricter validator would refuse a running roster at startup over one
+// word"), so neither is an error — which makes the NOTE the only thing
+// standing between a vibecoder and a refusal they were just told would not
+// come. These assert the note says the true thing.
+
+const manifestFor = (runtime = {}, identity = {}) => ({
+  agent: { name: "digest", description: "One sentence." },
+  identity: { scopes: ["github:contents"], ...identity },
+  trigger: { cron: "0 6 * * *" },
+  runtime: { model: "claude-sonnet-5", entry: "prompts/digest.md", ...runtime },
+});
+
+test("a manifest with no [runtime].repo is valid, and the note names every command that will refuse it", () => {
+  const m = manifestFor();
+  // Anchored on the field, not on the word: the refusals about OTHER fields
+  // now name [runtime].repo in their own fix lines ("set repo = owner/name and
+  // commit the charter there"), and a filter on /repo/ counted those as a repo
+  // error. What this test is about is a refusal whose SUBJECT is the field.
+  assert.deepEqual(validateManifest(m, { baseDir: tmpDir() }).filter((e) => e.startsWith("[runtime].repo")), [],
+    "[runtime].repo became a validation error — spec v0.1 says validate accepts it absent");
+  const [b, ...rest] = blockers(m);
+  assert.equal(rest.length, 0, "one blocker expected, got more");
+  assert.deepEqual(b.commands, REPO_REQUIRED_BY);
+  assert.match(b.problem, /\[runtime\]\.repo is unset/);
+  // The bar from `epito validate`: name the rule, in the product's vocabulary,
+  // with the fix in the message.
+  assert.match(b.fix, /repo = "owner\/name"/, "the note does not carry the fix");
+  for (const c of REPO_REQUIRED_BY) assert.match(b.problem, new RegExp(`epito ${c}`), `the note does not name \`epito ${c}\``);
+});
+
+test("a manifest WITH [runtime].repo has nothing to warn about", () => {
+  assert.deepEqual(blockers(manifestFor({ repo: "acme/product" })), []);
+});
+
+test("an unmappable scope is valid, and the note sends it to the two commands that mint", () => {
+  const m = manifestFor({ repo: "acme/product" }, { scopes: ["github:contents", "github:packages"] });
+  assert.deepEqual(validateManifest(m, { baseDir: tmpDir() }), [],
+    "an unmapped scope became a validation error — spec v0.1 sends it to the mint, not the validator");
+  const [b] = blockers(m);
+  assert.deepEqual(b.commands, SCOPE_REQUIRED_BY);
+  assert.match(b.problem, /"github:packages"/, "the note does not name the offending scope");
+  assert.ok(!/github:contents"\)/.test(b.problem), "the note blames a scope that maps fine");
+  for (const s of Object.keys(SCOPE_MAP)) assert.match(b.fix, new RegExp(s), `the fix does not list the mintable scope ${s}`);
+});
+
+test("both blockers at once are both reported — a user fixes what they are shown", () => {
+  const m = manifestFor({}, { scopes: ["github:packages"] });
+  assert.equal(blockers(m).length, 2);
+});
+
+test("the ✓ says the charter was NOT checked when the charter lives in another repo", () => {
+  // validateManifest skips the entry stat when repo is set, because the
+  // runtime reads it inside the clone. The tick must not imply otherwise.
+  assert.deepEqual(validateManifest(manifestFor({ repo: "acme/product", entry: "nope.md" }), { baseDir: tmpDir() }), [],
+    "entry is checked locally even though repo is set");
+  // Said when the charter is nowhere on this machine either.
+  const d = tmpDir();
+  const [u] = unchecked(manifestFor({ repo: "acme/product" }), { baseDir: d });
+  assert.match(u, /read inside the clone of acme\/product/);
+  assert.match(u, /Fix: commit prompts\/digest\.md to acme\/product/);
+  // And NOT said when the charter is sitting right here, which is the ordinary
+  // case of running `epito validate` in the repo the agent works in. A note on
+  // every correct manifest is the noise docs/ideas.md warned about.
+  mkdirSync(join(d, "prompts"), { recursive: true });
+  writeFileSync(join(d, "prompts", "digest.md"), "# digest\n");
+  assert.deepEqual(unchecked(manifestFor({ repo: "acme/product" }), { baseDir: d }), [],
+    "the ✓ disclaims a charter that is sitting in the directory");
+  // With no repo the entry IS checked by the validator, so nothing to disclaim.
+  assert.deepEqual(unchecked(manifestFor(), { baseDir: d }), []);
+});
+
+// The roster layout, which is the layout `epito run <dir>` exists for: the
+// manifest is at agents/<seat>/agent.toml and the charter it names is at the
+// top of the repository, not beside it. Checking only the manifest's own
+// folder told all five of this company's seats to commit a charter that was
+// already committed (agents/, this branch) — a note on the good case, which
+// is the one failure the note was written to avoid.
+test("a charter at the repository root counts, when it is the repo the manifest names", () => {
+  const d = tmpDir();
+  const top = tmpDir();
+  mkdirSync(join(top, "prompts"), { recursive: true });
+  writeFileSync(join(top, "prompts", "digest.md"), "# digest\n");
+  const m = manifestFor({ repo: "acme/product" });
+
+  // The charter is not beside the manifest, but it IS at the top of the work
+  // tree the manifest sits in, and that tree's origin is the repo it names.
+  assert.deepEqual(unchecked(m, { baseDir: d, root: () => top, origin: () => "acme/product" }), [],
+    "a charter committed at the repository root is still evidence the charter exists");
+
+  // Same file on disk, but this work tree is a different repository. Finding
+  // prompts/digest.md at the top of some unrelated checkout says nothing
+  // about acme/product, so the note stands.
+  const [u] = unchecked(m, { baseDir: d, root: () => top, origin: () => "acme/other" });
+  assert.match(u, /Fix: commit prompts\/digest\.md to acme\/product/,
+    "a charter in a repo the manifest does not name was taken as evidence");
+
+  // Not in a git work tree at all: nothing to fall back to, note stands.
+  const [u2] = unchecked(m, { baseDir: d, root: () => null, origin: () => null });
+  assert.match(u2, /read inside the clone of acme\/product/);
+
+  // The root is consulted only as a fallback: a charter beside the manifest
+  // short-circuits before any git call, so `epito validate` in an ordinary
+  // single-manifest repo spawns nothing.
+  mkdirSync(join(d, "prompts"), { recursive: true });
+  writeFileSync(join(d, "prompts", "digest.md"), "# digest\n");
+  let gitCalls = 0;
+  assert.deepEqual(unchecked(m, { baseDir: d, root: () => { gitCalls++; return top; }, origin: () => "acme/product" }), []);
+  assert.equal(gitCalls, 0, "the charter was beside the manifest and git was asked anyway");
+});
+
+test("repoRoot answers the top of a work tree, and null outside one", () => {
+  const d = tmpDir();
+  assert.equal(repoRoot(d), null, "a bare temp directory is not a work tree");
+  execFileSync("git", ["init", "-q", "."], { cwd: d });
+  const sub = join(d, "agents", "pm");
+  mkdirSync(sub, { recursive: true });
+  // realpathSync: macOS hands out /var/... for /private/var/..., and git
+  // answers with the resolved one.
+  assert.equal(realpathSync(repoRoot(sub)), realpathSync(d),
+    "repoRoot from a subdirectory must answer the top, which is what a roster needs");
+});
+
+// The drift guard, same shape as the engine-peers assertion above: the note
+// prints a list of commands, and the list is only true as long as it is the
+// whole list. These are the files that refuse over [runtime].repo today, and
+// which commands each one speaks for. A new refusal in a new file fails this
+// test rather than quietly making the note a lie.
+test("the repo note names every command whose source refuses over [runtime].repo", () => {
+  const OWNERS = {
+    "lib/roster.js": ["run", "ps"],   // loadRoster, shared by `epito run` and `epito ps <dir>`
+    "deploy.js": ["deploy"],
+    "token.js": ["token"],
+    "lib/identity.js": ["deploy", "token"], // the mint path both of those reach
+    // Deliberately absent: src/validate.js. `epito validate <dir> --for-runtime`
+    // does refuse a roster over a missing [runtime].repo, but the note is the
+    // thing `epito validate` PRINTS, and a note that listed the command you are
+    // already running would be noise. The flag is also opt-in, so the default
+    // `epito validate` still says yes — which is the whole reason readiness.js
+    // exists. It carries no [runtime].repo refusal of its own either: it reads
+    // the rule from lib/readiness.js and lib/roster.js, which is why it does
+    // not show up in `refusers` below.
+  };
+  const srcDir = fileURLToPath(new URL("../src/", import.meta.url));
+  const files = [];
+  const walk = (d, prefix = "") => {
+    for (const ent of readdirSync(d, { withFileTypes: true })) {
+      if (ent.isDirectory()) walk(join(d, ent.name), `${prefix}${ent.name}/`);
+      else if (ent.name.endsWith(".js")) files.push([`${prefix}${ent.name}`, readFileSync(join(d, ent.name), "utf8")]);
+    }
+  };
+  walk(srcDir);
+  // A refusal is any of the ways this codebase says no — die(), throw, pushing
+  // onto a validator's error list, or returning a tagged rule from a rule set
+  // some caller maps to its own refusal (lib/roster.js's rosterRules, which
+  // `epito run` turns into errs and `epito validate <dir>` turns into a note).
+  // Checked on the statement, not on the file, so a file that merely mentions
+  // [runtime].repo in a comment is not counted as refusing over it.
+  //
+  // `out.push(` earns its place here the hard way: when the roster's two rules
+  // were factored into rosterRules so `epito validate <dir>` could apply them
+  // at its own severity, lib/roster.js stopped matching this pattern and this
+  // test went red — correctly. The rule had not moved out of roster.js, only
+  // into a different shape, and a detector that cannot see the shape would
+  // have quietly stopped guarding the note.
+  // `function no*Message(` is the same lesson a second time, and the second
+  // time it was this test that caught it: `epito doctor` reports the mint's
+  // own refusals as a preflight, so the sentence moved out of the `throw` and
+  // into a named message builder beside noPrincipalMessage — one sentence, two
+  // readers, which is the point of the refactor. The refusal did not move out
+  // of identity.js; only its shape changed, and a detector blind to the shape
+  // would have dropped the file from this list and called the note true.
+  const REFUSES = /(?:\bdie\(|\bthrow\b|\berrs\.push\(|\berrors\.push\(|\bout\.push\(|\bfunction no\w+Message\()/;
+  // Refusing because the field is ABSENT, which is what the note is about.
+  // `epito validate` also refuses a repo that is present and malformed
+  // ("must be owner/name"), and that one is not a readiness blocker at all —
+  // it is an error the validator already reports on its own.
+  const MISSING = /(?:is required|but no \[runtime\]\.repo)/;
+  const refusesOverMissingRepo = (body) => {
+    for (const m of body.matchAll(/\[runtime\]\.repo/g)) {
+      const before = body.slice(Math.max(0, m.index - 200), m.index);
+      const stmt = before.slice(before.lastIndexOf(";") + 1);
+      // The phrasing can sit on either side of the field name ("is required",
+      // "but no [runtime].repo"), so the window spans both.
+      if (REFUSES.test(stmt) && MISSING.test(body.slice(Math.max(0, m.index - 100), m.index + 60))) return true;
+    }
+    return false;
+  };
+  const refusers = files
+    .filter(([rel, body]) => rel !== "lib/readiness.js" && refusesOverMissingRepo(body))
+    .map(([rel]) => rel);
+  assert.deepEqual(refusers.sort(), Object.keys(OWNERS).sort(),
+    "a file refuses over [runtime].repo that readiness.js's command list does not account for — update REPO_REQUIRED_BY (and OWNERS here) so the note stays true");
+  const expected = [...new Set(Object.values(OWNERS).flat())];
+  assert.deepEqual([...REPO_REQUIRED_BY].sort(), expected.sort(),
+    "REPO_REQUIRED_BY and the commands those files speak for have diverged");
+});
+
+test("loadRoster is where `epito run` and `epito ps <dir>` refuse, and it names the field", () => {
+  const d = tmpDir();
+  writeFileSync(join(d, "agent.toml"), `[agent]
+name = "digest"
+description = "One sentence."
+[identity]
+scopes = ["github:contents"]
+[trigger]
+cron = "0 6 * * *"
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/digest.md"
+`);
+  const errs = [];
+  const realError = console.error, realExit = process.exit;
+  console.error = (m) => errs.push(String(m));
+  process.exit = () => { throw new Error("exited"); };
+  try { loadRoster(d); } catch { /* the exit */ } finally { console.error = realError; process.exit = realExit; }
+  assert.match(errs.join("\n"), /\[runtime\]\.repo is required by `epito run`/);
+});
+
+// --- [trigger].cron: parsed by the validator, not counted ------------------
+//
+// The one outright validator bug behind the false ✓, and the only one with no
+// spec cover: the catalogue says "5-field cron, UTC", the validator counted
+// five fields, and `epito run` then refused "0 99 * * *" when it built the
+// matcher. One check now, so the two commands cannot disagree.
+
+test("[trigger].cron with five impossible fields is refused by the validator, not just by `epito run`", () => {
+  for (const [expr, why] of [
+    ["0 99 * * *", /hour "99" is outside 0-23/],
+    ["0 6 * *", /must have 5 fields, got 4/],
+    ["*/0 6 * * *", /step must be >= 1/],
+    ["0 6 * * xyz", /is not a number, \*, range, step, or list/],
+  ]) {
+    const errs = validateManifest(manifestFor({ repo: "a/b" }) && { ...manifestFor({ repo: "a/b" }), trigger: { cron: expr } }, { baseDir: tmpDir() });
+    const cron = errs.filter((e) => e.startsWith("[trigger].cron"));
+    assert.equal(cron.length, 1, `${expr}: expected exactly one cron error, got ${JSON.stringify(errs)}`);
+    assert.match(cron[0], why);
+    assert.match(cron[0], /Fix: five fields in UTC/, `${expr}: the cron error carries no fix`);
+  }
+});
+
+test("every cron the three frozen seat shapes use still validates", () => {
+  for (const expr of ["0 6 * * *", "0 7 * * 1", "*/15 * * * *", "0 0 1 1 *", "0 6 * * 0-5"]) {
+    const m = { ...manifestFor({ repo: "a/b" }), trigger: { cron: expr } };
+    assert.deepEqual(validateManifest(m, { baseDir: tmpDir() }), [], `${expr} was refused`);
+  }
+});
+
+// --- origin: the repo init no longer has to ask for ------------------------
+
+test("parseGitHubRemote reads the four spellings git writes, and refuses everything else", () => {
+  for (const u of [
+    "git@github.com:acme/product.git",
+    "ssh://git@github.com/acme/product.git",
+    "https://github.com/acme/product",
+    "https://github.com/acme/product.git",
+    "https://github.com/acme/product/",
+    "https://token@github.com/acme/product.git",
+  ]) assert.equal(parseGitHubRemote(u), "acme/product", `${u} did not read as acme/product`);
+
+  for (const u of [
+    "https://gitlab.com/acme/product.git",      // another platform is not a guess we make
+    "git@bitbucket.org:acme/product.git",
+    "https://github.com/acme",                  // no repo half
+    "https://github.com.evil.test/acme/product", // not github.com
+    "/srv/git/product.git",
+    "", null, undefined,
+  ]) assert.equal(parseGitHubRemote(u), null, `${JSON.stringify(u)} was read as a GitHub repo`);
+});
+
+test("a repo parsed off a remote is a value [runtime].repo itself accepts", () => {
+  // The whole point is that init writes it into a manifest, so a value this
+  // returns and the validator refuses would be worse than no value at all.
+  const repo = parseGitHubRemote("git@github.com:acme/product.git");
+  assert.deepEqual(validateManifest(manifestFor({ repo }), { baseDir: tmpDir() }), []);
+  assert.deepEqual(blockers(manifestFor({ repo })), []);
+});
+
+test("originRepo returns null outside a git repo instead of throwing", () => {
+  assert.equal(originRepo(tmpDir()), null);
+});
+
+// --- `epito validate <dir>`: the roster's own rules, and the one invariant that
+// --- makes --for-runtime's claim true ------------------------------------
+
+test("every rule a roster adds has a severity in `epito validate`", () => {
+  // The claim `epito validate <dir> --for-runtime` makes is that it refuses
+  // exactly what `epito run <dir>` refuses, minus the engine. That holds only
+  // while every rule roster.js can emit is one validate.js knows about: a rule
+  // missing from SEVERITY would be a rule `epito run` refuses and the strict
+  // gate passes in silence, which makes the gate a lie rather than a gate.
+  //
+  // src/validate.js throws at import if this is ever false, so reaching this
+  // line already proves it — the assertion is here so the failure reads as a
+  // test about the rule set rather than as a module that would not load.
+  for (const r of ROSTER_RULES) {
+    assert.ok(SEVERITY[r], `roster rule "${r}" has no severity in src/validate.js`);
+    assert.ok(["error", "note"].includes(SEVERITY[r]), `severity "${SEVERITY[r]}" for rule "${r}" is neither an error nor a note`);
+  }
+  assert.deepEqual(Object.keys(SEVERITY).sort(), [...ROSTER_RULES].sort(),
+    "SEVERITY and ROSTER_RULES name different rules, so one of them is describing a rule that does not exist");
+});
+
+test("rosterRules: a seat with no [runtime].repo trips the repo rule, once", () => {
+  const rules = rosterRules(manifestFor(), { path: "agents/a/agent.toml", takenBy: new Map() });
+  assert.deepEqual(rules.map((r) => r.rule), ["repo"]);
+  assert.match(rules[0].message, /\[runtime\]\.repo is required by `epito run`/);
+});
+
+test("rosterRules: a seat WITH a repo and a free name trips nothing", () => {
+  assert.deepEqual(rosterRules(manifestFor({ repo: "acme/product" }), { path: "x", takenBy: new Map() }), []);
+});
+
+test("rosterRules: two manifests, one [agent].name — spec rule 4, naming the first file", () => {
+  const m = manifestFor({ repo: "acme/product" });
+  const takenBy = new Map([[m.agent.name, "agents/first/agent.toml"]]);
+  const rules = rosterRules(m, { path: "agents/second/agent.toml", takenBy });
+  assert.deepEqual(rules.map((r) => r.rule), ["name"]);
+  assert.match(rules[0].message, /one manifest, one principal/, "the rule is not named in the spec's words");
+  assert.match(rules[0].message, /agents\/first\/agent\.toml/, "the message does not say which file claimed the name first");
+  // A refusal, not a note: no --for-runtime should be needed to hear that two
+  // seats are asking for one identity.
+  assert.equal(SEVERITY.name, "error");
+});
+
+test("rosterRules: the two rules are independent and both report", () => {
+  const m = manifestFor();                       // no repo
+  const takenBy = new Map([[m.agent.name, "agents/first/agent.toml"]]);
+  assert.deepEqual(rosterRules(m, { path: "p", takenBy }).map((r) => r.rule), ["repo", "name"]);
+});
+
+test("rosterRules tolerates a manifest that did not parse", () => {
+  // loadRoster calls it with whatever loadManifest returned, and a file that is
+  // not TOML returns manifest: null. A roster of four must still report the
+  // other three rather than dying on the first unparseable one.
+  for (const m of [null, undefined, {}, { runtime: null }]) {
+    assert.deepEqual(rosterRules(m, { path: "p", takenBy: new Map() }), []);
+  }
+});
+
+test("checkManifest spells the readiness fix with the path the reader typed", () => {
+  // findManifests returns absolute paths. Before `as` was threaded through,
+  // the fix for a seat in agents/okr named a /tmp path nobody had typed, which
+  // fails the error-message bar: the fix has to be an instruction you can run.
+  const d = tmpDir();
+  writeFileSync(join(d, "agent.toml"), `[agent]
+name = "okr"
+description = "One sentence."
+
+[identity]
+scopes = ["github:contents"]
+
+[trigger]
+cron = "0 6 * * *"
+
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/okr.md"
+`);
+  mkdirSync(join(d, "prompts"), { recursive: true });
+  writeFileSync(join(d, "prompts", "okr.md"), "# okr\n");
+
+  const r = checkManifest(join(d, "agent.toml"), { as: "agents/okr/agent.toml" });
+  assert.deepEqual(r.errors, [], `a valid manifest was refused: ${r.errors.join("; ")}`);
+  assert.equal(r.blocks.length, 1, "the missing [runtime].repo should be one readiness note");
+  assert.match(r.blocks[0].fix, /in agents\/okr\/agent\.toml/);
+  assert.doesNotMatch(r.blocks[0].fix, new RegExp(d.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+    "the fix names the absolute path the reader never typed");
+});
+
+test("checkManifest does not ask what a refused manifest would be ready for", () => {
+  const d = tmpDir();
+  writeFileSync(join(d, "agent.toml"), '[agent]\nname = "x"\n');
+  const r = checkManifest(join(d, "agent.toml"));
+  assert.ok(r.errors.length > 0, "a manifest with no triad should be refused");
+  assert.deepEqual(r.blocks, [], "readiness was computed for a file that is not a manifest");
+  assert.deepEqual(r.notes, []);
+});
+
+test("checkManifest names an unparseable file by the path the reader typed", () => {
+  const d = tmpDir();
+  writeFileSync(join(d, "agent.toml"), "[agent\nname = 'x'\n");
+  const r = checkManifest(join(d, "agent.toml"), { as: "agents/pm/agent.toml" });
+  assert.ok(r.parseError, "a broken TOML file should report a parse error");
+  assert.match(r.errors[0], /^agents\/pm\/agent\.toml is not valid TOML/);
+});
+
+test("one shape() describes a manifest, so a seat cannot read two ways", () => {
+  // The single-manifest ✓ and the roster's column are the same string by
+  // construction. This is the acceptance test for factoring `epito validate`
+  // out of index.js: the wording that already shipped is the wording both use.
+  assert.equal(shape(manifestFor({ repo: "acme/product" })), "identity (1 scope), trigger, runtime");
+  assert.equal(shape(manifestFor({}, { scopes: ["github:contents", "github:pull_requests"] })),
+    "identity (2 scopes), trigger, runtime");
+  // The adapter is named only when it is not the default, so every manifest
+  // written before adapters existed reads exactly as it always did.
+  assert.equal(shape(manifestFor({ adapter: "claude" })), "identity (1 scope), trigger, runtime");
+  assert.match(shape(manifestFor({ adapter: "langgraph", graph: "agent" })), / — a langgraph agent$/);
+});
+
+// --- the engine as a fact about the box ------------------------------------
+//
+// `epito validate agents --for-runtime` used to tick five seats and say "there
+// is nothing here `epito run agents` would refuse" on a machine where `epito
+// run agents --dry-run` refused in one line, before it read a manifest,
+// because nothing was answering at 127.0.0.1:7233. These assert the two
+// halves of the fix: that the look needs no engine, and that the sentence
+// cannot drift from the two commands that already had to say it.
+
+test("the unreachable-engine sentence exists once, and both clients use that one", () => {
+  // The same dead port used to read as "ECONNREFUSED" from `epito run` and as
+  // a nested Rust string from `epito worker`, because each file had its own
+  // copy of the sentence AND its own reason-extraction. The copies are the
+  // drift; this is the assertion that they stay gone. Same rule as
+  // REPO_REQUIRED_BY: the thing the message prints is the thing the test
+  // checks the source against.
+  const src = (f) => readFileSync(fileURLToPath(new URL(`../src/${f}`, import.meta.url)), "utf8");
+  for (const f of ["temporal/client.js", "temporal/worker.js"]) {
+    assert.ok(!/no Temporal server answering at/.test(src(f)),
+      `src/${f} has grown its own copy of the unreachable-engine sentence again — it belongs in lib/engine.js, once`);
+    assert.match(src(f), /engineUnreachableMessage/,
+      `src/${f} no longer calls engineUnreachableMessage, so the two clients can disagree about a dead port again`);
+    assert.ok(!/^function connectReason/m.test(src(f)),
+      `src/${f} has its own connectReason again — one dead port, one name for it`);
+  }
+  assert.match(src("lib/engine.js"), /no Temporal server answering at/,
+    "lib/engine.js is supposed to be the one place the sentence lives");
+});
+
+test("the engine fix names nothing the reader does not have", () => {
+  // `runtime/temporal/install.sh` is HQ's file (alexandra-systems). It is in
+  // neither this repository nor `npm i -g epito`, whose package.json `files`
+  // ships src, adapters and README.md — so the product's most likely first
+  // refusal told you to run a script that exists on no machine you have,
+  // which is worse than naming no fix, because it sends you looking. A path
+  // is only a fix if the reader has the path.
+  const fix = engineFix();
+  assert.ok(!/runtime\/temporal\/install\.sh/.test(fix),
+    "the fix names HQ's runtime/temporal/install.sh, which the reader does not have");
+  assert.match(fix, /temporal server start-dev/, "the fix no longer names the one command a laptop can run");
+  // Every repository path the fix names has to be in THIS repository, and
+  // named with the repository, since an npm install ships none of them.
+  const repoRootDir = fileURLToPath(new URL("../../", import.meta.url));
+  for (const [, p] of fix.matchAll(/\b((?:docs|deploy|spec|prompts|agents)\/[\w./-]+)/g)) {
+    assert.ok(existsSync(join(repoRootDir, p)), `the engine fix names ${p}, which is not in this repository`);
+    assert.match(fix, /github\.com\/[\w-]+\/[\w-]+/,
+      `the engine fix names the repository path ${p} without naming the repository, and \`npm i -g epito\` ships no docs`);
+
+    // The path existing is not the same as the reader arriving somewhere. The
+    // fix used to name a file that existed and whose named section's third
+    // column said "docker, via HQ `runtime/temporal/install.sh`" — so the
+    // dead end moved one hop instead of closing, and this test passed the
+    // whole time it was open. ADR-24's corollary has to hold at the
+    // DESTINATION too, or it only ever held for one string.
+    const dest = readFileSync(join(repoRootDir, p), "utf8");
+    assert.ok(!/runtime\/temporal\/install\.sh/.test(dest),
+      `the engine fix sends the reader to ${p}, and ${p} sends them on to HQ's runtime/temporal/install.sh — a file they still do not have`);
+
+    // And if the fix names a heading inside that file, the heading has to be
+    // in it. "see this file, section X" is a dead end the moment X is renamed.
+    for (const [, heading] of fix.matchAll(/"([^"]+)"/g)) {
+      assert.ok(dest.includes(heading),
+        `the engine fix sends the reader to "${heading}" in ${p}, which has no such heading`);
+    }
+  }
+});
+
+test("no operator-facing path in the repository hands the reader HQ's installer", () => {
+  // The CLI's one string is not the only place epito tells an operator how to
+  // get an engine: deploy/provision-host.sh prints a five-step NEXT block on
+  // the real host, and docs/deploy/README.md is what the refusal names. All
+  // three used to end at alexandra-systems' runtime/temporal/install.sh.
+  // Comments that explain the history are fine and necessary (lib/engine.js,
+  // decisions.md, this file); instructions are not.
+  const repoRootDir = fileURLToPath(new URL("../../", import.meta.url));
+  for (const f of ["deploy/provision-host.sh", "docs/deploy/README.md", "Dockerfile"]) {
+    assert.ok(!/runtime\/temporal\/install\.sh/.test(readFileSync(join(repoRootDir, f), "utf8")),
+      `${f} tells an operator to run HQ's runtime/temporal/install.sh, which ships in neither this repository nor npm`);
+  }
+  // And the engine section the refusal names has to carry a command, not just
+  // a statement that the engine is somebody else's problem.
+  const readme = readFileSync(join(repoRootDir, "docs/deploy/README.md"), "utf8");
+  assert.match(readme, /^## Temporal server \+ UI$/m,
+    "docs/deploy/README.md lost the heading lib/engine.js's fix line names");
+  assert.match(readme, /temporal server start-dev/,
+    "the engine section names no command the reader can run");
+});
+
+test("asking whether the engine is up pulls in no engine", async () => {
+  // This is the invariant behind "no engine required", and it is stronger than
+  // the assertion it replaced in smoke-validate.sh (which checked that the
+  // output never said the word "temporal"). What must be true is that the
+  // module `epito validate` reaches the address through imports nothing —
+  // otherwise a future edit to temporal/env.js could quietly make the manifest
+  // commands need the ~300 MB of engine that cli/package.json exists to avoid
+  // shipping.
+  const env = readFileSync(fileURLToPath(new URL("../src/temporal/env.js", import.meta.url)), "utf8");
+  assert.ok(!/^import /m.test(env),
+    "src/temporal/env.js has grown an import — lib/engine.js reads the address from it, so an @temporalio import there would make `epito validate` need the engine");
+  const engine = readFileSync(fileURLToPath(new URL("../src/lib/engine.js", import.meta.url)), "utf8");
+  for (const [, spec] of engine.matchAll(/^import .*? from "([^"]+)"/gm)) {
+    assert.ok(spec.startsWith("node:") || spec.startsWith("."),
+      `src/lib/engine.js imports ${spec}; it may import only node builtins and engine-free local modules`);
+  }
+});
+
+test("the probe reports what a TCP connect actually proves", async () => {
+  const srv = createTcpServer();
+  await new Promise((r) => srv.listen(0, "127.0.0.1", r));
+  const port = srv.address().port;
+  after(() => srv.close());
+
+  const up = await engineAnswering(`127.0.0.1:${port}`);
+  assert.equal(up.ok, true, "a listening port should read as answering");
+  assert.equal(up.malformed, false);
+
+  // Port 1 on loopback: refused immediately, which is the laptop case.
+  const down = await engineAnswering("127.0.0.1:1");
+  assert.equal(down.ok, false);
+  assert.equal(down.malformed, false);
+  assert.match(engineMissing(down), /nothing is answering at 127\.0\.0\.1:1/);
+
+  // A malformed address is a wrong variable, not a dead network, and saying
+  // "nothing is answering at garbage" would send an operator to look at the
+  // wrong thing.
+  const bad = await engineAnswering("garbage");
+  assert.equal(bad.ok, false);
+  assert.equal(bad.malformed, true);
+  assert.match(engineMissing(bad), /TEMPORAL_ADDRESS is "garbage", which is not a host:port address/);
+  assert.ok(!/answering/.test(engineMissing(bad)), "a malformed address should not be described as a dead engine");
+
+  // The ceiling is the point: a validator that hangs to tell you your files
+  // are fine is a validator people stop running. 198.51.100.x is TEST-NET-2
+  // (RFC 5737) and is not routed, so this is a timeout and not a refusal.
+  const t0 = Date.now();
+  const slow = await engineAnswering("198.51.100.1:7233", { timeoutMs: 150 });
+  assert.equal(slow.ok, false);
+  assert.ok(Date.now() - t0 < 2000, `the probe took ${Date.now() - t0}ms; it is supposed to cap at its timeout`);
+});
+
+test("splitAddress handles the forms TEMPORAL_ADDRESS takes", () => {
+  assert.deepEqual(splitAddress("127.0.0.1:7233"), { host: "127.0.0.1", port: 7233 });
+  assert.deepEqual(splitAddress("temporal.internal:7233"), { host: "temporal.internal", port: 7233 });
+  // The bracketed IPv6 form, which a lastIndexOf(":") alone would cut in half.
+  assert.deepEqual(splitAddress("[::1]:7233"), { host: "::1", port: 7233 });
+  for (const bad of ["", "7233", "host:", ":7233", undefined]) {
+    assert.ok(!splitAddress(bad).host || Number.isNaN(splitAddress(bad).port), `"${bad}" should not parse as host:port`);
+  }
+});
+
+test("the sentence says which address, and whether the address is the suspect", () => {
+  const dflt = engineUnreachableMessage(DEFAULT_ADDRESS, "ECONNREFUSED");
+  assert.match(dflt, /^no Temporal server answering at 127\.0\.0\.1:7233 \(ECONNREFUSED\)/);
+  assert.match(dflt, /set TEMPORAL_ADDRESS if your engine is somewhere other than/);
+  // A wrong TEMPORAL_ADDRESS is the one cause an operator cannot see — a stale
+  // export, or an /srv/asc/env copied between boxes, looks exactly like a dead
+  // engine. So when the address is not the default, the variable is named as a
+  // suspect and the fallback is spelled out.
+  const custom = engineUnreachableMessage("10.0.0.5:7233", "ECONNREFUSED");
+  assert.match(custom, /point TEMPORAL_ADDRESS at the engine you have — it is currently 10\.0\.0\.5:7233/);
+  assert.match(custom, /unsetting it falls back to 127\.0\.0\.1:7233/);
+});
+
+test("connectReason reads both transports' idea of a dead port", () => {
+  // @temporalio/client: an error with a cause.code.
+  assert.equal(connectReason({ cause: { code: "ECONNREFUSED" } }), "ECONNREFUSED");
+  // @temporalio/worker's native connection: a nested Rust string.
+  assert.equal(connectReason({ message: 'transport error: ConnectError("tcp connect error")' }), "tcp connect error");
+  assert.equal(connectReason({ cause: { message: 'status: Unavailable, message: "Failed to connect before the deadline"' } }),
+    "Failed to connect before the deadline");
+  // Anything else comes through whole rather than as "[object Object]".
+  assert.equal(connectReason({ message: "something else entirely" }), "something else entirely");
+});
+
+// --- what a roster asks of the box ----------------------------------------
+// `epito env`'s half that needs no box: given a roster and an environment,
+// which names does this machine owe each seat, and what is it doing about
+// them. The silence this closes is in runner.js's one line — the runtime
+// injects only the names it HOLDS, so a box short of one produces a seat that
+// runs, exits 0, and quietly does less (src/lib/boxenv.js tells the story).
+
+const rosterOf = (...manifests) => new Map(manifests.map((m) => [m.agent.name, { manifest: m, path: `${m.agent.name}/agent.toml` }]));
+
+test("rosterEnv: one row per name, who asks for it, and what this box is doing about it", () => {
+  const pm = seat("pm", { runtime: {
+    model: "claude-sonnet-5", entry: "prompts/pm.md", repo: "acme/roster",
+    env: ["SLACK_WEBHOOK_URL", "BOARD_API_URL", "GATEWAY_URL", "GATEWAY_KEY"],
+    route: [
+      { name: "open", model: "kimi", base_url_env: "GATEWAY_URL", token_env: "GATEWAY_KEY" },
+      { name: "subscription", model: "claude-sonnet-5" },
+    ],
+  } });
+  const okr = seat("okr", { runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["SLACK_WEBHOOK_URL"] } });
+  const r = rosterEnv(rosterOf(pm, okr), { SLACK_WEBHOOK_URL: "https://hooks.example/x", BOARD_API_URL: "" });
+
+  assert.deepEqual(r.names.map((x) => x.name), ["BOARD_API_URL", "GATEWAY_KEY", "GATEWAY_URL", "SLACK_WEBHOOK_URL"],
+    "alphabetical, because what is generated from it is a file of KEY= lines read by eye");
+  assert.deepEqual(r.names.map((x) => x.state), [EMPTY, ABSENT, ABSENT, HELD]);
+  // The three states, and the one that is neither "here" nor "not here": an
+  // env-file line somebody half filled in. The runtime injects it, empty.
+  assert.equal(holding("BOARD_API_URL", { BOARD_API_URL: "" }), EMPTY);
+  assert.equal(holding("BOARD_API_URL", {}), ABSENT);
+  assert.equal(holding("BOARD_API_URL", { BOARD_API_URL: "x" }), HELD);
+
+  const hook = r.names.find((x) => x.name === "SLACK_WEBHOOK_URL");
+  assert.deepEqual(hook.uses.map((u) => u.agent), ["pm", "okr"], "every seat that asks is named");
+  assert.equal(hook.uses[0].role, "the one-line post after every run");
+  assert.equal(r.names.find((x) => x.name === "GATEWAY_URL").uses[0].role, 'the endpoint for route "open"',
+    "a road's halves say which road, so the reader knows to go read `epito routes`");
+  assert.equal(r.names.find((x) => x.name === "GATEWAY_KEY").uses[0].role, 'the key for route "open"');
+
+  const pmRow = r.seats.find((s) => s.agent === "pm");
+  assert.deepEqual(pmRow.held, ["SLACK_WEBHOOK_URL"]);
+  assert.deepEqual(pmRow.missing, ["GATEWAY_URL", "GATEWAY_KEY"]);
+  assert.deepEqual(pmRow.empty, ["BOARD_API_URL"]);
+  assert.deepEqual(pmRow.short, ["BOARD_API_URL", "GATEWAY_URL", "GATEWAY_KEY"], "short is everything the run will not get, whichever way");
+  assert.deepEqual(r.seats.find((s) => s.agent === "okr").short, [], "a seat whose names are all here gets no line");
+});
+
+test("namesFor unions a road's halves rather than trusting another file's rule", () => {
+  // The validator refuses a token_env or base_url_env that is not also in
+  // [runtime].env. This reader is what an operator fills a box in from, so a
+  // name missing because of a rule enforced elsewhere is a name they will not
+  // put in the file — and the adapter reads a route's key out of the box's
+  // environment directly either way.
+  const m = seat("pm", { runtime: {
+    model: "m", entry: "e", repo: "acme/roster", env: [],
+    route: [{ name: "open", model: "kimi", base_url_env: "GW_URL", token_env: "GW_KEY" }],
+  } });
+  assert.deepEqual(namesFor(m), ["GW_URL", "GW_KEY"]);
+  assert.deepEqual(namesFor(seat("pm")), [], "and a manifest that names nothing asks the box for nothing");
+});
+
+test("the env template covers every name the manifests ask for, and blanks none that are set", () => {
+  const pm = seat("pm", { runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["HELD_ONE", "MISSING_ONE"] } });
+  const env = { HELD_ONE: "a-real-value-nobody-should-see" };
+  const out = envTemplate(rosterEnv(rosterOf(pm), env), { dir: "agents" });
+  assert.match(out, /^MISSING_ONE=$/m, "a name the box lacks is a line to fill in");
+  assert.match(out, /^# HELD_ONE=/m, "a name the box HAS comes out commented");
+  assert.match(out, /pasting this cannot blank it/, "and says why, because that is the failure it avoids");
+  assert.ok(!out.includes("a-real-value-nobody-should-see"), "the template is names only — it is pasted into the one file secrets live in");
+  assert.match(out, /# pm$/m, "each name says which seats asked for it");
+  assert.match(out, /systemd EnvironmentFile/, "and what kind of file this is");
+});
+
+test("a run says which of its declared names the box did not have", async () => {
+  const dir = tmpDir();
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const work = mkdtempSync(cloneDirPrefix("pm"));
+  const said = [];
+  try {
+    const agent = seat("pm", { runtime: {
+      model: "m", entry: "e", repo: "acme/roster",
+      env: ["EPITO_STUB_DIR", "BOARD_RUNTIME_TOKEN", "GH_TOKEN"],
+    } });
+    process.env.EPITO_STUB_DIR = join(dir, "stub");
+    delete process.env.BOARD_RUNTIME_TOKEN;
+    const r = await executeAgent({
+      agent, trigger: "cron", runId: "r-env-1", workDir: work, timeoutMs: 30_000, log: (m) => said.push(m),
+      executor: new URL("./stub-executor.mjs", import.meta.url).pathname,
+      // The mint supplies GH_TOKEN, so the box not holding it is not the box
+      // being short of it — which is why the line is computed after the mint.
+      inject: { GH_TOKEN: "ghs_ENVTESTTOKEN0000000000000000000" }, redact: ["ghs_ENVTESTTOKEN0000000000000000000"],
+    });
+    assert.equal(r.exit, 0, "the run goes ahead without it: a roster is portable, and this is a note");
+    const logged = readFileSync(r.log, "utf8");
+    assert.match(logged, /# env missing: BOARD_RUNTIME_TOKEN — listed in \[runtime\]\.env, not set on this box/);
+    assert.ok(!/env missing:.*GH_TOKEN/.test(logged), "a name this run mints for itself is not a name the box is short of");
+    assert.ok(said.some((m) => /pm: 1 name from \[runtime\]\.env is not set on this box \(BOARD_RUNTIME_TOKEN\)/.test(m)),
+      "and the operator watching journalctl hears it, not only the log file");
+  } finally {
+    process.chdir(cwd);
+    rmSync(work, { recursive: true, force: true });
+    delete process.env.EPITO_STUB_DIR;
+  }
+});
+
+test("a road's credential set to NOTHING is a line to fix, not a road this box never had", () => {
+  const route = { name: "open", model: "kimi", baseUrl: null, baseUrlEnv: "GW_URL", tokenEnv: "GW_KEY", concurrency: null };
+  // Absent: routing working as designed, and no box has to be corrected.
+  const gone = liveRoutes([route], {});
+  assert.equal(gone.skipped[0].misconfigured, false);
+  assert.match(gone.skipped[0].reason, /^GW_KEY is not set on this machine$/);
+  // Blank: an env-file line with nothing after the =, which is a box that HAS
+  // this one and has it wrong. `epito env` calls it "set and set to nothing"
+  // and refuses; this is the same box, so it cannot be called unset here.
+  const blank = liveRoutes([route], { GW_KEY: "", GW_URL: "https://gw.test/x" });
+  assert.equal(blank.skipped[0].misconfigured, true);
+  assert.match(blank.skipped[0].reason, /GW_KEY is set on this machine and holds nothing/);
+  assert.doesNotMatch(blank.skipped[0].reason, /is not set on this machine/);
+  // And the endpoint half, the same way.
+  const noUrl = resolveEndpoint({ ...route, tokenEnv: null }, { GW_URL: "   " });
+  assert.equal(noUrl.misconfigured, true);
+  assert.match(noUrl.problem, /GW_URL is set on this machine and holds nothing/);
+  assert.equal(resolveEndpoint({ ...route, tokenEnv: null }, {}).misconfigured, false);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// `epito doctor`: the preflight, and the piece of it nothing checked before.
+
+test("the environment a run gets is one list, and runner.js no longer spells it", () => {
+  const m = seat("pm", { runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["HELD_NAME", "ABSENT_NAME"] } });
+  const env = { PATH: "/bin", HOME: "/home/pm", USER: "pm", HELD_NAME: "yes", UNASKED: "no" };
+  const built = baseRunEnv(m, env);
+  assert.deepEqual(Object.keys(built).sort(), ["HELD_NAME", "HOME", "PATH", "USER"],
+    "the allowlist is PATH, HOME, USER plus the [runtime].env names this box holds — and nothing else reaches the child");
+  assert.equal("ABSENT_NAME" in built, false, "a name the box does not hold is dropped, not faked: that is what keeps a roster portable");
+  assert.deepEqual(RUNTIME_GIVEN, ["PATH", "HOME", "USER"]);
+  // The drift this module exists to prevent: a probe that spawns the executor
+  // under its OWN idea of the run environment proves nothing about a run. The
+  // list is read from one place by both, and this is what fails if a second
+  // copy appears.
+  const runnerSrc = readFileSync(fileURLToPath(new URL("../src/lib/runner.js", import.meta.url)), "utf8");
+  assert.ok(!/PATH:\s*process\.env\.PATH/.test(runnerSrc),
+    "src/lib/runner.js has grown its own copy of the child's env allowlist again — it belongs in lib/runenv.js, once, because `epito doctor` spawns the executor under the same one");
+  assert.match(runnerSrc, /baseRunEnv\(agent, process\.env\)/,
+    "src/lib/runner.js no longer builds the child's environment through baseRunEnv, so the preflight and the run can disagree about what a run gets");
+});
+
+test("the executor is resolved on the PATH a RUN gets, and the two failures are different fixes", () => {
+  const dir = mkdtempSync(join(tmpdir(), "epito-which-"));
+  after(() => rmSync(dir, { recursive: true, force: true }));
+  const good = join(dir, "claude");
+  writeFileSync(good, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+  const dull = join(dir, "dull");
+  writeFileSync(dull, "#!/bin/sh\nexit 0\n", { mode: 0o644 });
+
+  assert.equal(whichIn("claude", { PATH: dir }).path, good);
+  assert.equal(whichIn("claude", { PATH: "/nowhere-at-all" }).path, null);
+  assert.match(whichIn("claude", { PATH: "/nowhere-at-all" }).reason,
+    /"claude" is not on the PATH a run gets \(1 directory\)/);
+  // There and not executable is not the same mistake as not there, and every
+  // other tool says one word for both.
+  assert.equal(whichIn("dull", { PATH: dir }).path, null);
+  assert.match(whichIn("dull", { PATH: dir }).reason, /is on the PATH a run gets and is not executable by this user/);
+  // An empty PATH is the systemd unit case: a service with no Environment=PATH
+  // resolves no bare name at all, and "not found" would send the reader
+  // looking for a missing install.
+  assert.match(whichIn("claude", {}).reason, /the PATH a run gets is empty/);
+  // An absolute path skips the search and is stat'd where it says.
+  assert.equal(whichIn(good, {}).path, good);
+  assert.match(whichIn(join(dir, "ghost"), {}).reason, /no such file/);
+});
+
+test("the look spawns the real binary under the run's own environment, and says what that proves", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "epito-look-"));
+  after(() => rmSync(dir, { recursive: true, force: true }));
+  const bin = join(dir, "claude");
+  // Answers --version only when the name its credential lookup needs is in the
+  // allowlist. That is epitod v0's first real run, in four lines.
+  writeFileSync(bin, '#!/bin/sh\n[ -n "$NEEDED_NAME" ] || { echo "Not logged in" >&2; exit 1; }\necho "claude 9.9.9"\n', { mode: 0o755 });
+
+  const without = seat("pm", { runtime: { model: "m", entry: "e", repo: "acme/roster" } });
+  const r1 = await lookAtExecutor(without, { env: { PATH: dir, HOME: dir, USER: "pm", EPITO_EXECUTOR: bin, NEEDED_NAME: "x" } });
+  assert.equal(r1.state, "broken", "the name is in the worker's environment and NOT in [runtime].env, so the child never sees it — which is the whole bug");
+  assert.match(r1.says, /exited 1 on `--version` under the environment a run gives it: Not logged in/);
+  assert.match(r1.fix, /only PATH, HOME, USER and this seat's \[runtime\]\.env/);
+
+  const with_ = seat("pm", { runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["NEEDED_NAME"] } });
+  const r2 = await lookAtExecutor(with_, { env: { PATH: dir, HOME: dir, USER: "pm", EPITO_EXECUTOR: bin, NEEDED_NAME: "x" } });
+  assert.equal(r2.state, "ok");
+  assert.equal(r2.version, "claude 9.9.9", "the executor's own first line, so the report names what it found rather than that it found something");
+  assert.match(r2.unproven, /that it is logged in/, "and the look never claims the half it did not look at");
+
+  const gone = await lookAtExecutor(with_, { env: { PATH: dir, HOME: dir, USER: "pm", EPITO_EXECUTOR: "claude-nowhere" } });
+  assert.equal(gone.state, "missing");
+  assert.match(gone.fix, /EPITO_EXECUTOR/, "the fix names the variable that overrides it, with its current value");
+});
+
+test("every adapter has a probe, and the one that cannot have a one-turn probe says so", () => {
+  // A new adapter with no probe would silently fall back to claude's
+  // `--version`, which is a claim about an executable nobody checked. ADAPTERS
+  // is the list; PROBES has to answer it.
+  for (const name of ADAPTER_NAMES) {
+    assert.ok(PROBES[name], `src/lib/probe.js has no probe for the "${name}" adapter, so \`epito doctor\` would check it with another adapter's argv`);
+    assert.ok(PROBES[name].proves && PROBES[name].unproven,
+      `the "${name}" probe does not say what it proves and what it does not, and a preflight that overclaims is worse than none`);
+  }
+  assert.equal(PROBES.langgraph.deep, false);
+  assert.match(PROBES.langgraph.unproven, /read inside the run's clone/,
+    "a LangGraph seat's graph lives in its own repository; no preflight on this box has it");
+  assert.equal(probeFor("something-nobody-wrote").look.join(" "), "--version", "an unknown adapter still gets a probe rather than a crash");
+});
+
+test("the deep probe is keyed by what changes its answer, so seats sharing a road share one call", () => {
+  const a = { name: "open", model: "kimi", baseUrl: null, baseUrlEnv: "GW_URL", tokenEnv: "GW_KEY", concurrency: null };
+  const b = { ...a };
+  assert.equal(deepKey("claude", a), deepKey("claude", b), "same binary, same road: one call stands in for both seats");
+  assert.notEqual(deepKey("claude", a), deepKey("claude", { ...a, tokenEnv: "OTHER_KEY" }), "a different key is a different credential and has to be tried");
+  assert.notEqual(deepKey("claude", a), deepKey("claude", { ...a, model: "other" }), "a model the provider may not have is a different answer");
+  assert.notEqual(deepKey("claude", a), deepKey("python3", a), "and a different executor is a different question entirely");
+  // The endpoint reaches the key by NAME, never by value: `epito routes` made
+  // that rule for the same reason (a confidential gateway stays out of the
+  // terminal), and a cache key printed in --json must obey it too.
+  assert.ok(!deepKey("claude", a).includes("https://"));
+});
+
+test("the engine look falls back to the TCP answer when the engine client is not installed", async () => {
+  const answering = () => Promise.resolve({ ok: true, address: "127.0.0.1:7233", malformed: false, reason: null });
+  const notInstalled = () => {
+    const e = new Error("Cannot find package '@temporalio/client' imported from /x/y.js");
+    e.code = "ERR_MODULE_NOT_FOUND";
+    throw e;
+  };
+  const tcp = await engineLook({ env: {}, probe: answering, importClient: notInstalled });
+  assert.equal(tcp.depth, "tcp");
+  assert.equal(tcp.client, false);
+  assert.equal(tcp.ok, true, "a box without the engine packages is the ordinary case and is not a failure of anything");
+
+  // Our own broken module is not an optional peer, and swallowing it would
+  // turn an epito bug into a sentence about the user's install.
+  await assert.rejects(
+    () => engineLook({ env: {}, probe: answering, importClient: () => { throw new TypeError("doctor.js is broken"); } }),
+    /doctor\.js is broken/);
+
+  // And when the client IS there, the answer is the real connect's — including
+  // its refusal, which already names the namespace and the command that
+  // creates it.
+  const refused = await engineLook({
+    env: {}, probe: answering,
+    importClient: () => ({ connect: () => { throw new Error('namespace "nope" does not exist on 127.0.0.1:7233'); } }),
+  });
+  assert.equal(refused.depth, "connect");
+  assert.equal(refused.ok, false);
+  assert.match(refused.reason, /namespace "nope" does not exist/);
+  const up = await engineLook({
+    env: {}, probe: answering,
+    importClient: () => ({ connect: () => ({ connection: { close: async () => {} } }) }),
+  });
+  assert.equal(up.depth, "connect");
+  assert.equal(up.ok, true);
 });

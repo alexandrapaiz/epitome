@@ -25,6 +25,7 @@
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { loadRoster } from "./lib/roster.js";
+import { SPEC_VERSION } from "./lib/fields.js";
 import { startHookServer } from "./lib/hooks.js";
 import { windowInstruction } from "./lib/runner.js";
 import { appendAudit, AUDIT_PATH } from "./lib/audit.js";
@@ -70,12 +71,25 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
   const secret = process.env.EPITO_HOOK_SECRET || "";
 
   const { client, connection } = await connect();
-  appendAudit({ agent: null, action: "reconcile.start", dir, address: cfg.address, namespace: cfg.namespace, queue: cfg.taskQueue });
+  // A dry run writes nothing to the ledger, and the guard is HERE rather than
+  // three lines down because that is where it used to be: `epito run <dir>
+  // --dry-run` reconciled nothing on the engine, said "would create", and
+  // then appended one `reconcile.start` and one `schedule.create` per seat
+  // anyway. The ledger is append-only and is the answer to "what exactly
+  // happened" (ADR-22), so four lines claiming four schedules that do not
+  // exist are not noise — they are a record that cannot be corrected, written
+  // by the one flag whose whole promise is that it touches nothing.
+  const record = dryRun ? () => {} : appendAudit;
+  record({ agent: null, action: "reconcile.start", dir, address: cfg.address, namespace: cfg.namespace, queue: cfg.taskQueue });
   const plan = await reconcile({ client, roster, dryRun, log: (m) => log(m) });
   for (const k of ["create", "update", "delete"]) {
-    for (const s of plan[k]) appendAudit({ agent: s.name, action: `schedule.${k}`, schedule: s.id, cron: s.shape?.cron ?? null });
+    for (const s of plan[k]) record({ agent: s.name, action: `schedule.${k}`, schedule: s.id, cron: s.shape?.cron ?? null });
   }
-  if (dryRun) { await connection.close().catch(() => {}); return; }
+  if (dryRun) {
+    await connection.close().catch(() => {});
+    log(`dry run: nothing was registered on the engine and nothing was written to ${AUDIT_PATH}`);
+    return;
+  }
 
   // --- starting and signalling ---------------------------------------------
 
@@ -157,7 +171,7 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
   }
 
   // Scope is "all" (or absent) or a comma-separated list of [agent].name
-  // values. It matches on names only: the manifest spec is v0.1 and inventing
+  // values. It matches on names only: the manifest spec has no tag field and inventing
   // a tag field to group by is somebody else's pitch.
   function resolveScope(scope) {
     if (scope === undefined || scope === null || scope === "" || scope === "all" || scope === "*") return { names: [...roster.keys()] };
@@ -204,6 +218,20 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
 
       if ((route === "hook" || route === "message") && !roster.has(name)) {
         return { status: 404, body: { error: `no agent named "${name}" in this roster — it hosts: ${[...roster.keys()].join(", ")}` } };
+      }
+
+      // Spec rule 3: triggers are explicit and never defaulted. Until this
+      // check existed the ingress woke ANY rostered seat, so a seat that
+      // declared only `cron = "0 6 * * *"` — deliberately a scheduled seat,
+      // and nothing else — had a live hook endpoint it never asked for, and
+      // `[trigger].webhook` was decoration. The refusal is 403 rather than
+      // 404 on purpose: the seat exists, and saying otherwise would make a
+      // misconfigured manifest look like a typo in the URL.
+      if (route === "hook" && roster.get(name).manifest.trigger?.webhook !== true) {
+        const cron = roster.get(name).manifest.trigger?.cron;
+        appendAudit({ agent: name, action: "hook", trigger: "hook", bytes: raw.length, refused: "no-webhook-trigger" });
+        log(`${name}: hook refused — the manifest does not declare [trigger].webhook`);
+        return { status: 403, body: { error: `"${name}" does not declare [trigger].webhook, so the ingress may not wake it — a trigger is explicit and never defaulted (spec ${SPEC_VERSION} rule 3). ${cron ? `It runs on its schedule, ${cron} UTC.` : "It has no trigger this runtime can fire at all."} Fix: add \`webhook = true\` under [trigger] in its agent.toml and restart \`epito run\`.` } };
       }
 
       if (route === "hook") {

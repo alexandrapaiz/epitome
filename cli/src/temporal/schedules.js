@@ -12,9 +12,10 @@
 // A seat with no [trigger].cron registers nothing. That is the normal case
 // today: all 36 manifests across the four companies are presence-only until
 // the cutover, so a first reconcile against the live server creates zero
-// schedules and fires nothing. `[trigger].on` and `[trigger].webhook` are
-// served by the ingress, not by a schedule, which is the division of labor
-// epitod v0 already had.
+// schedules and fires nothing. `[trigger].webhook` is served by the ingress,
+// not by a schedule, which is the division of labor epitod v0 already had —
+// and since v0.1 froze, the ingress reads the field instead of waking any seat
+// that happens to be in the roster.
 import { ScheduleOverlapPolicy } from "@temporalio/client";
 import { scheduleId, seatOfScheduleId, runId, temporalEnv } from "./env.js";
 
@@ -75,18 +76,53 @@ function action({ name, manifest, cfg }) {
   };
 }
 
-// The memo is what `epito ps` reads back, so it never has to guess which
-// manifest a schedule came from.
-const memo = (name, shape) => ({ seat: name, shape: JSON.stringify(shape) });
+// A label, so a human reading Temporal's own UI can tell whose schedule this
+// is. Nothing reads it back: see listSeatSchedules for why it must not.
+const memo = (name) => ({ seat: name });
 
+// What is actually registered, shaped like the roster so reconcilePlan can
+// diff the two.
+//
+// The shape comes from the schedule's ACTION — the manifest snapshot the engine
+// will hand the workflow — and not from the schedule's memo, where this used to
+// keep a copy. The memo cannot be kept true: `handle.update()` takes a memo in
+// its return value, Temporal's UpdateSchedule RPC has no memo field, and the
+// SDK drops it without complaining. So a memo holds the shape the schedule was
+// CREATED with for the rest of its life, and reconcile, comparing the roster
+// against it, reapplied the same update on every restart forever while `epito
+// ps` printed a cron that contradicted the NEXT in its own row. `epito ps`
+// opens by claiming v0's state file is gone "and with it the class of bug where
+// the file and the truth disagree"; the memo was that file, in the engine.
+//
+// Nor can the cron be read back from the spec: Temporal normalizes a cron
+// expression into a structured calendar, and `spec.cronExpressions` comes back
+// undefined. The action args are the one place the original string survives,
+// and they are also the thing a run is actually made of, which makes them the
+// right thing to diff against anyway.
+//
+// list() does not carry action args, so each seat is described. That is one
+// call per scheduled seat, on reconcile and on `epito ps` — both of which
+// already wait on the network, and neither of which is in a run's hot path.
 async function listSeatSchedules(client) {
-  const out = [];
+  const summaries = [];
   for await (const s of client.schedule.list()) {
-    if (!s.scheduleId.startsWith("seat:")) continue;
-    let shape = null;
-    try { shape = s.memo?.shape ? JSON.parse(s.memo.shape) : null; } catch { shape = null; }
-    out.push({ id: s.scheduleId, shape, note: s.note ?? null, raw: s });
+    if (s.scheduleId.startsWith("seat:")) summaries.push(s);
   }
+  const out = await Promise.all(summaries.map(async (s) => {
+    let shape = null;
+    try {
+      const d = await client.schedule.getHandle(s.scheduleId).describe();
+      const manifest = d.action?.args?.[0]?.manifest;
+      // A shape of null is not an error, it is "this schedule was not
+      // registered from a manifest this version understands" — and an
+      // unreadable shape must read as a difference, so the next reconcile
+      // rewrites the action and the one after it converges.
+      if (manifest?.trigger?.cron && manifest?.runtime) shape = scheduleShape(manifest);
+    } catch {
+      shape = null;   // deleted between the list and the describe, or undecodable
+    }
+    return { id: s.scheduleId, shape, note: s.note ?? null, raw: s };
+  }));
   return out;
 }
 
@@ -117,7 +153,7 @@ export async function reconcile({ client, roster, env = process.env, dryRun = fa
       // coalesced into a single follow-up, never dropped, never stacked.
       policies: { overlap: ScheduleOverlapPolicy.BUFFER_ONE, catchupWindow: "1 hour" },
       action: action({ name: s.name, manifest: desired.get(s.name), cfg }),
-      memo: memo(s.name, s.shape),
+      memo: memo(s.name),
       note: `epito seat ${s.name}: ${desired.get(s.name).agent.description}`,
     });
     log(`  + ${s.id}  ${s.shape.cron} UTC  ${s.shape.model}  ${s.shape.repo}`);
@@ -129,7 +165,6 @@ export async function reconcile({ client, roster, env = process.env, dryRun = fa
       ...prev,
       spec: { ...prev.spec, cronExpressions: [s.shape.cron], timezone: "UTC", calendars: [], intervals: [] },
       action: action({ name: s.name, manifest: desired.get(s.name), cfg }),
-      memo: memo(s.name, s.shape),
     }));
     const changed = Object.keys(s.shape).filter((k) => JSON.stringify(s.shape[k]) !== JSON.stringify(s.was?.[k]));
     log(`  ~ ${s.id}  changed: ${changed.join(", ") || "(re-registered)"}`);

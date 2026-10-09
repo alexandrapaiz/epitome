@@ -1,0 +1,15 @@
+diff --git a/prompts/engineer-agent.md b/prompts/engineer-agent.md
+--- a/prompts/engineer-agent.md
++++ b/prompts/engineer-agent.md
+@@ -51,6 +51,11 @@ Standards, non-negotiable:
+   no owner credentials, no live-account calls without a card saying so.
+ - New ideas found while building go to docs/ideas.md on the same branch,
+   status `proposed`, never acted on in the same run.
++- Your PR body is an owner-facing artifact and it is the one she reads
++  most of, so check it against docs/agents/lessons.md before you ready
++  it, the way the PM and market charters already require. Name decisions
++  by what they decide, never by their code: if deleting a code from a
++  sentence stops the sentence making sense, rewrite the sentence (L14).
+ 
+ ## What you never do
+ 

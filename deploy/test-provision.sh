@@ -11,7 +11,36 @@
 # box, and the pitch's definition of done covers them with one.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-command -v docker >/dev/null || { echo "test-provision: needs docker (skipping)"; exit 0; }
+# Probe the daemon, not the binary. `command -v docker` passes on a box whose
+# runtime user is not in the `docker` group, and then the first `docker run`
+# dies on "permission denied … /var/run/docker.sock" — so test/all.sh prints
+# FAILED for a box that has nothing wrong with it, which is the opposite of the
+# "a machine without the binary is not a failing test, it is an unrun one"
+# distinction this suite's skip line exists to make. `docker info` is the
+# cheapest question that only a usable daemon can answer.
+if ! docker info >/dev/null 2>&1; then
+  echo "test-provision: needs docker (skipping)"
+  if command -v docker >/dev/null 2>&1; then
+    # The binary is here and the daemon is not reachable, which is a different
+    # fix from "install docker" — and the only place the actual reason exists is
+    # docker's own stderr. Carry it, rather than guessing which of the two it is.
+    said="$(docker info 2>&1 || true)"
+    # docker's own first line is the diagnosis ("ERROR: Cannot connect …",
+    # "permission denied while trying to connect …"); the lines after it are
+    # pretty-printer noise, so take the diagnosis and stop.
+    reason="$(printf '%s\n' "$said" | grep -E '^ERROR' | head -1)"
+    [ -n "$reason" ] || reason="$(printf '%s\n' "$said" | grep -iE 'cannot connect|permission denied|refused' | head -1)"
+    [ -n "$reason" ] || reason="$(printf '%s\n' "$said" | tail -3)"
+    echo "  the \`docker\` binary is here but the daemon did not answer:"
+    printf '%s\n' "$reason" | sed 's/^[[:space:]]*/    /'
+    echo
+    echo "  start it:          sudo systemctl start docker"
+    echo "  or join its group: sudo usermod -aG docker \"${USER:-$(id -un)}\" && newgrp docker"
+  else
+    echo "  install it: https://docs.docker.com/engine/install/"
+  fi
+  exit 0
+fi
 
 docker run --rm -i -v "$HERE/provision-host.sh:/provision-host.sh:ro" ubuntu:24.04 bash -s <<'IN_CONTAINER'
 set -euo pipefail
@@ -79,8 +108,32 @@ check "env file has a generated hook secret" "grep -q '^EPITO_HOOK_SECRET=deadbe
 check "env file names the three secrets to fill in" "[ \$(grep -c 'replace-me' /srv/asc/env) = 3 ]"
 check "env file names the engine, on loopback" "grep -q '^TEMPORAL_ADDRESS=127.0.0.1:7233' /srv/asc/env && grep -q '^TEMPORAL_NAMESPACE=asc' /srv/asc/env"
 check "env file names the task queue the two units share" "grep -q '^EPITO_TASK_QUEUE=seats' /srv/asc/env"
+# The box has to know the names the manifests only NAME — a road's endpoint and
+# key, the board's two, every other one a seat lists in [runtime].env. This file
+# used to carry a hand-copied subset of them and the copy had drifted: three
+# names agents/pm/agent.toml asks for were never in it, so that seat would have
+# run on this box, green, and filed nothing to the board. The list is generated
+# from the roster now, so what is asserted is the pointer and not a copy.
+check "env file sends the operator to the generator, not to a list in here" \
+  "grep -q 'epito env /srv/asc/roster --template' /srv/asc/env"
+check "and names the drift that is the reason why" \
+  "grep -q 'BOARD_RUNTIME_TOKEN' /srv/asc/env"
+check "an empty roster is said to be empty, not asked" \
+  "grep -q 'no agent.toml under /srv/asc/roster yet' /run1.log"
 check "health script and timer written" "[ -x /usr/local/bin/epitod-health ] && [ -f /etc/systemd/system/epitod-health.timer ]"
 check "health posts epito ps" "grep -q 'epito ps' /usr/local/bin/epitod-health"
+# The engine is not installed with the CLI any more (cli/package.json makes
+# @temporalio/* optional peers so `npm i -g epito` stays half a megabyte), so
+# this box has to ask for it by name. It got all the way through this suite
+# green once without doing that: 35 assertions about a host whose two units
+# would start, print an install line and exit 1.
+check "the CLI was installed from the checkout" "grep -q 'npm install -g --silent \.' /var/log/stubbed"
+for p in client worker activity workflow; do
+  check "the engine was installed globally too: @temporalio/$p" \
+        "grep -q 'npm install -g --silent .*@temporalio/'\"$p\" /var/log/stubbed"
+done
+check "and globally, not into the checkout where a global epito cannot see it" \
+      "grep -q 'npm install -g --silent @temporalio/client' /var/log/stubbed"
 check "ufw opened 22" "grep -q '^ufw allow 22/tcp' /var/log/stubbed"
 check "ufw was enabled" "grep -q '^ufw --force enable' /var/log/stubbed"
 check "fail2ban jail written" "grep -q 'enabled = true' /etc/fail2ban/jail.d/epitod.local"
@@ -94,6 +147,34 @@ bash /provision-host.sh --domain epitod.example.com --no-caddy > /run2.log 2>&1 
 check "the second run did not touch the secrets" "[ \"\$before\" = \"\$(cat /srv/asc/env)\" ]"
 check "it says so, by name" "grep -q 'left untouched' /run2.log"
 check "the unit is still there and unchanged" "grep -q '^User=seats' /etc/systemd/system/epitod.service"
+
+echo "== the roster's own names, asked of the roster"
+# Give the box a manifest and an epito, and prove the script ASKS it rather
+# than printing a list somebody typed in. The env file and the roster are two
+# copies of one set of names unless exactly one of them is generated.
+mkdir -p /srv/asc/roster/pm
+cat > /srv/asc/roster/pm/agent.toml <<'TOML'
+[agent]
+name = "pm"
+description = "A seat with two names this box does not hold."
+[identity]
+scopes = ["github:contents"]
+[trigger]
+cron = "0 12 * * 1"
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/pm-agent.md"
+repo = "alexandrapaiz/epitome"
+env = ["BOARD_API_URL", "BOARD_RUNTIME_TOKEN"]
+TOML
+chown -R seats:seats /srv/asc/roster
+printf '#!/bin/sh\necho "epito $*" >> /var/log/stubbed\necho "(stub epito: 2 names, 0 held)"\n' > /stub/epito
+chmod +x /stub/epito
+bash /provision-host.sh --domain epitod.example.com --no-caddy > /run4.log 2>&1 || { echo "run 4 failed:"; tail -20 /run4.log; exit 1; }
+check "the script asks the roster what this box must hold" "grep -q '^epito env /srv/asc/roster$' /var/log/stubbed"
+check "it prints the answer where the operator is reading" "grep -q 'stub epito: 2 names' /run4.log"
+check "and says what to do with it" "grep -q 'add any name above that this box should hold' /run4.log"
+check "the secrets survived a run that read them" "grep -q '^EPITO_HOOK_SECRET=deadbeefcafe' /srv/asc/env"
 
 echo "== caddy (--domain, no --no-caddy)"
 bash /provision-host.sh --domain epitod.example.com --email ops@example.com > /run3.log 2>&1 || { tail -20 /run3.log; exit 1; }

@@ -21,7 +21,7 @@ description = "Writes the daily digest of what changed and why."
 scopes = ["github:contents", "github:pull_requests"]
 
 [trigger]
-cron = "0 6 * * *"        # or: on = ["issue.opened"], or: webhook = true
+cron = "0 6 * * *"        # and/or: webhook = true, to be woken by an event
 
 [runtime]
 model = "claude-sonnet-5"
@@ -30,7 +30,8 @@ entry = "prompts/historian.md"
 
 ```bash
 epito init      # scaffold an agent (alias: `epito me`)
-epito validate  # check the manifest
+epito validate  # check the manifest, and name what the runtime will still need
+                # (`epito validate <dir>` checks a whole roster, with no engine)
 epito run       # put a roster on the runtime: a schedule per trigger, plus the ingress
 epito worker    # do the work: run seats off the queue
 epito ps        # the roster, read from the runtime
@@ -38,8 +39,27 @@ epito board     # what the seats have been doing: every run, one place
 epito report    # file a run report on the board from anywhere
 epito token     # mint one agent's own short-lived GitHub token
 epito routes    # which model road each seat takes on this machine
-epito deploy    # mint identity, wire trigger, start runtime  (platform, WIP)
+epito deploy    # give the agent its own identity on GitHub: its App, its key,
+                # its installation  (--dry-run says what it would create)
 ```
+
+`epito deploy` is the one that makes an agent *someone*:
+
+```bash
+epito deploy              # the agent here; `epito deploy <name> <dir>` for a roster
+epito deploy --dry-run    # the exact App manifest it would send, no browser, no network
+```
+
+It builds a GitHub App from the manifest — the permissions are
+`[identity].scopes` mapped by the same table every mint uses, so the App
+cannot be created wider than the file — serves one local page for the
+single click GitHub requires of a human, and keeps the private key it
+gets back in `.epito/keys/<name>.pem` at 0600, gitignored, on your
+machine. Then install the App on the repository and run it again: a
+second deploy never creates a second App, it records the installation
+(spec rule 4, one manifest one principal). After that `epito token
+<name>` mints, and the agent's pull requests open as `<name>[bot]`. The
+route — its own App per agent, not one shared epito App — is ADR-20.
 
 What the platform provisions on deploy, so you never do:
 
@@ -55,6 +75,44 @@ What the platform provisions on deploy, so you never do:
   manifest, a run as a workflow with its retries declared, and a work
   window you can speak into while it is open. A reboot mid-run no longer
   loses the run. See docs/prfaq/epitod-v1-temporal.md.
+
+### The roster, and ours
+
+Several manifests in one directory are a roster, and the runtime takes the
+directory:
+
+```bash
+epito validate agents        # is every manifest an agent, and is the ROSTER one:
+                             # no engine, no network, nothing written
+epito run agents --dry-run   # the schedules it would register, and nothing else:
+                             # no engine writes, no ledger lines
+epito routes agents          # which road each seat takes on THIS box
+```
+
+`epito validate <dir>` is the one you reach for before you have a box. It
+checks every manifest under the directory *and* the two rules that are about
+the set rather than any one file — two seats may not claim one `[agent].name`
+(rule 4), and every seat needs a `[runtime].repo` before the runtime will
+clone for it. It exits 1 if any manifest is refused, because a roster runs
+whole or not at all, and it prints the whole report to stderr when it refuses,
+so `epito validate agents >/dev/null` in a CI step shows exactly the problems.
+
+`--for-runtime` turns the readiness notes into errors, and on a directory that
+makes it exact: it refuses precisely what `epito run <dir>` would refuse,
+engine included. The engine is the one `epito run` asks about first, before it
+reads a seat, so the roster verdict looks too — a bare TCP connect to
+`TEMPORAL_ADDRESS`, no engine package loaded. Without the flag it stays exit 0
+and still needs no engine: your manifests are the half a roster validator can
+answer with no box, and it says which half is missing rather than ticking both
+(ADR-24).
+
+`agents/` in this repository is not an example — it is the five seats that run
+epito.me, translated field by field from the GitHub Actions workflows that
+have been running them for weeks (`agents/README.md`). Pointing the product at
+its own company is what found the bugs the three synthetic fixtures could not:
+a `--dry-run` that wrote to an append-only ledger, a `--dry-run` that exited 1
+after succeeding, and a ✓ that told five seats to commit a charter that was
+already committed.
 
 And it runs the agent you already have:
 
@@ -109,6 +167,8 @@ a principal you grant scopes to.
 - `spec/manifest.md` — the agent.toml spec (v0.1)
 - `cli/` — the `epito` CLI
 - `cli/adapters/` — one file per agent kind epito can host (`langgraph_run.py`)
+- `agents/` — **this company's own roster**: one `agent.toml` per seat, the
+  dogfood (`agents/README.md`, ADR-23)
 - `deploy/` — `provision-host.sh`: one always-on host for the runtime
 - `docs/` — vision, decisions (ADRs), backlog, ideas ledger, press release
 - `prompts/` — seat charters (this company is itself run as an agent org)

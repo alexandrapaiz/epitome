@@ -1,0 +1,23 @@
+# Shape 2 of 3: the weekly writer.
+#
+# A seat that wakes once a week and writes prose into a repository. It is here
+# to answer the opposite question from shape 1: not "can the manifest express
+# a complicated seat" but "how few fields does a real seat need". Everything
+# absent from this file is a field that earns its place elsewhere or not at
+# all — which is the whole test the freeze had to pass.
+
+[agent]
+name = "weekly-writer"
+description = "Writes the Monday digest from the week's merged pull requests."
+
+[identity]
+scopes = ["github:contents", "github:pull_requests"]
+
+[trigger]
+cron = "0 7 * * 1"
+
+[runtime]
+model = "claude-opus-5"
+entry = "prompts/weekly-writer.md"
+repo = "acme/handbook"
+ref = "drafts"

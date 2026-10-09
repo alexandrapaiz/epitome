@@ -34,7 +34,9 @@ on record from day one, and so the owner has one page to veto from.
   gets re-bet in cycle 2 with the dependency resolved. Nothing on the
   owner's timeline (dogfood, launch) assumed runtime in cycle 1.
 - **Everything in backlog Later** (teams, convening, repository):
-  ADR-1 wedge rule; not shaped, per the charter these stay untouched.
+  the wedge-first rule (the product ships the identity+trigger+runtime
+  primitive before any marketplace or convening feature); not shaped,
+  per the charter these stay untouched.
 
 ## What the owner can veto
 

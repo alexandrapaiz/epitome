@@ -564,6 +564,7 @@ an event wakes a seat while it is already running
 | `EPITO_RUN_TIMEOUT_MS` | `3600000` | per-run cap: the `execute` timeout and the workflow run timeout |
 | `EPITO_WINDOW_MS` | `14400000` | default window TTL |
 | `EPITO_HOOK_SECRET`, `EPITO_PORT` | — , `4747` | the ingress, unchanged |
+| `TEMPORAL_UI_PORT` | unset | where the engine's own UI is, for the hint `epito ps` prints. Unset means ps looks: it names 8080 or 8233 if one of them answers, and claims nothing if neither does |
 | `CLAUDE_CODE_OAUTH_TOKEN`, `GH_TOKEN`, `SLACK_WEBHOOK_URL` | — | held by the worker, injected per run only when the manifest names them |
 
 `TEMPORAL_NAMESPACE` defaults to `default` so a laptop and a dev server

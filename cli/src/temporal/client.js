@@ -4,6 +4,11 @@
 // validate` sets for a broken manifest.
 import { Client, Connection } from "@temporalio/client";
 import { temporalEnv } from "./env.js";
+// The unreachable-engine sentence is not written here. It is one sentence in
+// src/lib/engine.js, shared with worker.js — the two files had two copies and
+// two different ways of reading the reason out of a gRPC error, which is how
+// the wording was already drifting apart.
+import { connectReason, engineUnreachableMessage } from "../lib/engine.js";
 
 export async function connect({ env = process.env, quiet = false } = {}) {
   const cfg = temporalEnv(env);
@@ -11,7 +16,7 @@ export async function connect({ env = process.env, quiet = false } = {}) {
   try {
     connection = await Connection.connect({ address: cfg.address, connectTimeout: "10s" });
   } catch (e) {
-    throw new Error(`no Temporal server answering at ${cfg.address} (${e.cause?.code ?? e.message}) — start it on the host with runtime/temporal/install.sh, or locally with \`temporal server start-dev\`, and set TEMPORAL_ADDRESS if it is not 127.0.0.1:7233`);
+    throw new Error(engineUnreachableMessage(cfg.address, connectReason(e)));
   }
   const client = new Client({ connection, namespace: cfg.namespace });
   // Fail here rather than at the first schedule: a missing namespace is the
