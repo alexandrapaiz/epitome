@@ -139,6 +139,44 @@ each seat reaches here, and what else each seat gets here. Neither is
 answerable from the manifests alone, which is the price of a portable roster
 and the reason both commands exist.
 
+## The name that did not translate at all: who these seats act as
+
+The section above is about names a manifest asks for. This one is about a name
+none of these five asks for, and the answer it decides.
+
+In `.github/workflows/agent-*.yml` a seat's `gh` is authenticated by a token
+the workflow hands it. In the resident runtime a run is a child spawned with an
+allowlist — `PATH`, `HOME`, `USER`, plus the names its `[runtime].env` asks for
+— so a GitHub credential reaches the agent only two ways: the seat mints its
+own (it has a GitHub App on the box: `EPITO_APP_ID_<SEAT>` and its key), or its
+manifest names a shared one. **None of these five does either.** Translating
+the workflows carried `SLACK_WEBHOOK_URL`, the board's two names, the open
+road's two, and `LINEAR_API_KEY` — and not the GitHub token, because in a
+workflow nobody writes it down.
+
+So on a box provisioned today, every seat here clones fine (the clone is the
+worker's own `git`, which reaches the box's shared token through the system
+credential helper) and has nothing to open a pull request with. `epito doctor
+agents` says so per seat, and it is a report rather than a refusal: whether a
+seat must reach GitHub at all is in its charter, not in its manifest.
+
+```
+! identity   5 seats have no GitHub identity in their runs
+
+identity, per answer
+  ! nobody: no App on this box, and [runtime].env names neither GH_TOKEN nor
+    GITHUB_TOKEN, so a run's child gets no GitHub credential at all — covers
+    engineer, exo, market, okr, pm
+```
+
+Three answers are coherent and only one is this product's, so the choice is
+not the engineer's to make inside a run: name `GH_TOKEN` in each seat's
+`[runtime].env` (what the workflows do today, and it puts a person's
+credential in five manifests), give each seat its own App (the dogfood card,
+and the thing epito.me is for), or pass the box's token through unnamed (which
+breaks the rule that nothing reaches a run its manifest did not name). It is a
+row in `docs/ideas.md`, proposed, waiting on the owner.
+
 ## These files do not retire the workflows
 
 `.github/workflows/agent-*.yml` are still what runs these five seats today,

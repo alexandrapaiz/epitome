@@ -27,8 +27,19 @@
 //           hold a URL, and the same answer: it exits 1, by name, because the
 //           box HAS this one and has it wrong (`epito routes` made that split
 //           first, and the reasoning is the same there).
+// And one block of names that is NOT in any manifest, which is why it was
+// missing from the first version of this command: a seat's own identity.
+// `EPITO_APP_ID_<SEAT>` and its key are derived from `[agent].name` rather
+// than declared by the manifest, and whether this box holds them decides
+// whether that seat's pull requests open as `<name>[bot]` or as a person. That
+// is a visible difference in every PR the seat opens, and the only commands
+// that could see it were `epito token` and the run itself. src/lib/acts.js is
+// the reader, shared with `epito doctor`, so the two cannot disagree about who
+// a seat is — and the exit code stays this command's own: whether a run would
+// REFUSE is doctor's contract, not this one's.
 import { loadRoster } from "./lib/roster.js";
 import { rosterEnv, envTemplate, askers, HELD, EMPTY, ABSENT } from "./lib/boxenv.js";
+import { rosterActs, IDENTITY_FIX, OWN, REFUSED, HALF, SHARED, NONE } from "./lib/acts.js";
 
 export const ENV_FLAGS = [
   { name: "json", does: "the report as JSON" },
@@ -51,13 +62,44 @@ const SAYS = {
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
+// --- the second block: the names no manifest declares ---------------------
+// Grouped by the answer rather than listed per seat, the same way doctor's
+// identity section is: five seats with no App of their own share one sentence
+// and one fix, and the first draft that printed a paragraph each buried the
+// one seat that had something wrong.
+function printIdentity(roster, dir) {
+  const acts = rosterActs(roster, { env: process.env });
+  const groups = [];
+  for (const row of acts.seats) {
+    const key = row.state === OWN ? `own|${row.agent}` : `${row.state}|${row.says}`;
+    const found = groups.find((g) => g.key === key);
+    if (found) found.agents.push(row.agent);
+    else groups.push({ key, state: row.state, says: row.says, fix: row.fix, agents: [row.agent] });
+  }
+  const MARKS = { [OWN]: "✓", [SHARED]: "!", [NONE]: "!", [HALF]: "✗", [REFUSED]: "✗" };
+  console.log(`and the names no manifest declares — who each seat acts as here, from $EPITO_APP_ID_<SEAT> and its key (the seat's name uppercased, - as _)\n`);
+  for (const g of groups) {
+    console.log(`${MARKS[g.state]} ${g.says} — ${g.agents.join(", ")}`);
+    if (g.fix) console.log(`    Fix: ${g.fix}.`);
+  }
+  if (acts.shared.length || acts.none.length) console.log(`  Fix: ${IDENTITY_FIX}.`);
+  if (acts.refusals.length) {
+    console.log(`  ${plural(acts.refusals.length, "seat")} above ${acts.refusals.length === 1 ? "has an identity" : "have identities"} on this box a run cannot use: \`epito doctor ${dir}\` is the command that refuses over ${acts.refusals.length === 1 ? "it" : "them"}, because a run that cannot mint is a run that does not start.`);
+  }
+  console.log(`  These names are not in \`--template\`: no manifest declares them, and that file is generated from the manifests. docs/deploy/README.md ("Giving an agent its own identity") is where they go on a box.\n`);
+  return acts;
+}
+
 export async function envCmd(args = []) {
   const dir = args.find((a) => !a.startsWith("-")) ?? ".";
   const roster = loadRoster(dir);
   const report = rosterEnv(roster, process.env);
 
   if (args.includes("--json")) {
-    console.log(JSON.stringify(report, null, 2));
+    // The identity half rides along rather than needing a second command and a
+    // second JSON shape. Which App, never the key (spec rule 1).
+    const acts = rosterActs(roster, { env: process.env });
+    console.log(JSON.stringify({ ...report, identity: acts.seats.map((r) => ({ agent: r.agent, state: r.state, source: r.source, appId: r.appId, installation: r.installation, says: r.says })) }, null, 2));
     process.exit(report.empty.length ? 1 : 0);
   }
   if (args.includes("--template")) {
@@ -71,7 +113,10 @@ export async function envCmd(args = []) {
   const strict = args.includes("--complete");
   const n = report.names.length;
   if (n === 0) {
-    console.log(`roster ${dir} — no manifest under it names a variable, so this box needs nothing beyond the runtime's own environment (${RUNTIME_OWN.join(", ")}).`);
+    console.log(`roster ${dir} — no manifest under it names a variable, so this box needs nothing beyond the runtime's own environment (${RUNTIME_OWN.join(", ")}).\n`);
+    // A roster that declares no variables still has identities, and those are
+    // the names nobody declares: this block is the whole report here.
+    printIdentity(roster, dir);
     process.exit(0);
   }
   const held = report.names.filter((r) => r.state === HELD).length;
@@ -99,6 +144,8 @@ export async function envCmd(args = []) {
     console.log(`! ${s.agent} runs here with ${s.held.length} of ${plural(s.asked.length, "name")}: ${says}`);
   }
   if (report.seats.some((s) => s.short.length)) console.log("");
+
+  printIdentity(roster, dir);
 
   if (report.empty.length) {
     const names = report.empty.map((r) => r.name);

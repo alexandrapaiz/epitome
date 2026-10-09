@@ -127,6 +127,80 @@ has it wrong.
 
 It reads the environment for presence and prints no value, ever.
 
+## Would a run on this box start?
+
+Four of this CLI's commands each answer a quarter of that: `epito validate
+<dir>` reads the manifests, `epito routes` says which model road each seat
+takes here, `epito env` says which names this box holds, and `validate
+--for-runtime` adds a look at the engine. None of them touches the executable
+epito spawns — which is what ended the runtime's first real run on a real host
+at turn zero with `Not logged in`, because the environment a run hands its
+child is an allowlist (`PATH`, `HOME`, `USER`, plus `[runtime].env`) and the
+executor's credential lookup needed a name the allowlist did not carry.
+
+`epito doctor` is the preflight, with one contract: **exit 1 if a run on this
+box would refuse, and name the piece.**
+
+```
+$ epito doctor agents
+roster agents on this box — 5 seats, checked in the order a run needs them
+
+✓ manifests  5 of 5 manifests load and pass spec v0.2
+! names      6 names asked for, 2 held, 4 not set here
+✗ roads      1 seat has no open road here (market)
+! identity   1 seat acts as its own GitHub App, 4 seats have no GitHub identity in their runs
+✓ executor   /usr/local/bin/claude started under the environment a run gives it, for 5 seats
+✗ engine     nothing is answering at 127.0.0.1:7233 (ECONNREFUSED)
+
+epito: a run on this box would refuse — 2 reasons:
+  ✗ no open road on this box — market
+  ✗ no engine: nothing is answering at 127.0.0.1:7233 (ECONNREFUSED). Fix: …
+```
+
+The executor section is the one that is new, and it is the only one that spawns
+anything: it resolves the binary on the PATH a **run** gets and starts it under
+the environment a **run** gives it. It is free, offline and instant — and for
+exactly that reason it proves the file starts and nothing about the account
+behind it, which it says rather than implies. `--deep` is the half that proves
+credentials: one real turn per *road* (five seats sharing one key cost one
+call), with the executor's own refusal read back verbatim. It costs a model
+call, which is why it is a flag.
+
+A name this box does not hold at all is a report and exits 0; a name it holds
+and holds empty exits 1. That is the same split `epito env` makes, for the same
+reason — nothing in a manifest says which names a seat cannot work without.
+
+The **identity** section answers the other question a box decides: not whether
+a run would start but whose name its pull request would open under. It reads
+the run path's own credential lookup, so it cannot predict a seat the runtime
+would not run, and it has five answers:
+
+```
+identity, per answer
+  ✓ its own GitHub App: id 1234567, from $EPITO_APP_ID_PM/$EPITO_APP_KEY_FILE_PM — covers pm
+  ✗ half an identity, which the runtime reads as none: $EPITO_APP_ID_OKR is set
+    here and neither $EPITO_APP_KEY_FILE_OKR nor $EPITO_APP_KEY_OKR is — an App
+    id alone signs nothing — covers okr
+  ! nobody: no App on this box, and [runtime].env names neither GH_TOKEN nor
+    GITHUB_TOKEN, so a run's child gets no GitHub credential at all — covers
+    engineer, exo, market
+```
+
+`half` and an App whose mint could not start — an unreadable key file, a PEM
+that is not one, a key that is not RSA, a scope this spec cannot mint, an App
+with no `[runtime].repo` to scope a token to — exit 1, for the reason a road
+this box *has* and has wrong exits 1: the box holds this one and holds it
+wrong, and a seat that silently falls back to a human's credential is the one
+outcome the operator who set those names did not ask for. The App check is free
+and offline: it signs a throwaway JWT, which is the mint's own first step, and
+it reaches no network.
+
+`nobody` and `the owner of $GH_TOKEN` are reports, not refusals. They are how
+every seat ran before the identity leg existed, and `epito env <roster>` prints
+the same block under the names a manifest *does* declare — those two variables
+are derived from `[agent].name` rather than named by any manifest, which is
+why no command saw them before.
+
 ## What it gives an agent
 
 - **Identity** — its own GitHub App, created from `[identity].scopes` and

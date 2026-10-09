@@ -42,6 +42,7 @@ import { EPITO_DIR } from "./audit.js";
 import { redactor } from "./redact.js";
 import { adapterFor } from "./adapters.js";
 import { routesFor, liveRoutes, noRouteMessage, classifyAttempt, withLane, resolveEndpoint, endpointLabel } from "./router.js";
+import { baseRunEnv } from "./runenv.js";
 import { childTraceEnv, traceNote } from "./trace.js";
 
 const PR_URL_RE = /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/\d+/g;
@@ -334,8 +335,10 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   // route is computed once, above; the route contributes the model (through
   // the adapter's argv) and the endpoint or key that reaches it, read out of
   // this worker's own environment at the last possible moment.
-  const baseEnv = { PATH: process.env.PATH, HOME: process.env.HOME, USER: process.env.USER };
-  for (const k of rt.env ?? []) if (process.env[k] !== undefined) baseEnv[k] = process.env[k];
+  // The allowlist lives in lib/runenv.js: `epito doctor` spawns the executor
+  // under the same one, and a second copy of it here is how that check would
+  // quietly stop proving anything about a run.
+  const baseEnv = baseRunEnv(agent, process.env);
   // The trace the agent's own spans belong to (ADR-18). Empty when nothing on
   // this runtime is listening, and never carrying the export headers, which
   // are the worker's secret and not this run's.

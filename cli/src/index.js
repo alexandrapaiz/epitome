@@ -22,6 +22,12 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       runtime would use is up (--for-runtime makes both the
                       notes and a missing engine errors, which is exactly what
                       \`epito run <dir>\` would refuse)
+  epito doctor [dir]  would a run on THIS box start? the manifests, the names,
+                      the roads, the EXECUTOR epito spawns (resolved on the PATH
+                      a run gets, started under the environment a run gives it)
+                      and the engine — exit 1 naming the piece that is missing
+                      (--deep also runs one real turn per road, which costs a
+                      model call and is the only thing that proves credentials)
   epito run <dir>     put every agent.toml under <dir> on the runtime: one
                       schedule per [trigger].cron, then serve the ingress
                       (--dry-run prints the schedule changes and stops)
@@ -247,6 +253,11 @@ if (cmd === "run") {
   gate("routes", args, [{ name: "json", does: "the report as JSON" }]);
   const { routesCmd } = await import("./routes.js");
   await routesCmd(args);
+  process.exit(0);
+} else if (cmd === "doctor") {
+  const { doctorCmd, DOCTOR_FLAGS } = await import("./doctor.js");
+  gate("doctor", args, DOCTOR_FLAGS);
+  await doctorCmd(args);
   process.exit(0);
 } else if (cmd === "env") {
   const { envCmd, ENV_FLAGS } = await import("./env.js");

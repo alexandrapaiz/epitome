@@ -440,6 +440,52 @@ check "--json is JSON, with a row per name and a row per seat" \
   "printf '%s' \"\$ejson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); process.exit(r.names.length>0 && r.seats.length===$nseats && r.missing.length===r.names.length ? 0 : 1)'"
 check "epito env wrote no .epito/ either" "[ ! -e '$ROOT/.epito' ]"
 
+step '8. would a run of THIS roster start on this box? (epito doctor)' 
+# The dogfood question, asked by the product about the product's own seats.
+# Run bare for the same reason step 7 is: this is a CI runner that holds some
+# of these names, and the assertions have to be about what a box does, not
+# about what this box happens to have. So they are written to hold either way
+# — whether or not this machine has an executor or an engine — because the
+# facts under test are that every seat is reported, that a missing NAME is not
+# a refusal, and that nothing is written.
+dout="$($BARE node "$CLI/src/index.js" doctor "$AGENTS" 2>&1)"; drc=$?
+check "epito doctor reads the whole roster"            "printf '%s' \"\$dout\" | grep -q '$nseats seats, checked in the order a run needs them'"
+check "...with a row for each of the five things a run needs" \
+  "printf '%s' \"\$dout\" | grep -q 'manifests' && printf '%s' \"\$dout\" | grep -q 'names' && printf '%s' \"\$dout\" | grep -q 'roads' && printf '%s' \"\$dout\" | grep -q 'executor' && printf '%s' \"\$dout\" | grep -q 'engine'"
+check "...and the manifests of the real roster pass"   "printf '%s' \"\$dout\" | grep -q '✓ manifests'"
+check "...and never a stack, whatever the box lacks"   "! printf '%s' \"\$dout\" | grep -q 'at findManifests\|ERR_MODULE_NOT_FOUND\|node:internal'"
+check "it either says a run would start, or says which piece is missing" \
+  "printf '%s' \"\$dout\" | grep -q 'nothing here would make a run on this box refuse\|a run on this box would refuse'"
+
+djson="$($BARE node "$CLI/src/index.js" doctor "$AGENTS" --json 2>&1)"
+check "--json carries one verdict per seat and a refusals list" \
+  "printf '%s' \"\$djson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); process.exit(r.seats.length===$nseats && Array.isArray(r.refusals) && r.seats.every(s=>s.executor&&typeof s.ready===\"boolean\") ? 0 : 1)'"
+# The rule the whole command rests on: a name this box does not hold is a
+# report, not a refusal. On a bare box every name this roster asks for is
+# absent, and not one of them may appear as a reason a run would refuse.
+check "a bare box is short of every name, and that refuses nothing" \
+  "printf '%s' \"\$djson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); const names=r.seats.flatMap(s=>s.names.missing); process.exit(names.length>0 && !r.refusals.some(x=>/set to nothing|not set/.test(x.says)) ? 0 : 1)'"
+check "and doctor wrote no .epito/ into this repository" "[ ! -e '$ROOT/.epito' ]"
+# And the question this product is FOR, asked of its own seats: who does each
+# one act as on a box? The answer today is nobody — no seat in this roster has
+# a GitHub App anywhere, and not one of them names GH_TOKEN in [runtime].env,
+# so a run's child gets no GitHub credential at all. That is a true report
+# about this roster and not a defect in the command, which is why it is
+# asserted rather than fixed here: giving a seat an App is two names on a box
+# and a card nobody has run yet.
+check "doctor says who each seat acts as, for all $nseats" \
+  "printf '%s' \"\$djson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); process.exit(r.seats.length===$nseats && r.seats.every(s=>s.identity && s.identity.state) ? 0 : 1)'"
+check "...and on a bare box that answer is nobody, for every one of them" \
+  "printf '%s' \"\$djson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); process.exit(r.seats.every(s=>s.identity.state===\"none\") ? 0 : 1)'"
+check "...which is a report, not a reason a run would refuse" \
+  "printf '%s' \"\$djson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); process.exit(r.refusals.some(x=>/identity|mint/.test(x.says)) ? 1 : 0)'"
+check "...and no seat's identity row carries a key, only which App" \
+  "! printf '%s' \"\$djson\" | grep -q 'PRIVATE KEY'"
+# The same reader, from `epito env`: the names no manifest declares.
+check "epito env carries the identity block for this roster too" \
+  "printf '%s' \"\$eout\" | grep -q 'the names no manifest declares'"
+
+
 step "rule 1: nothing personal in the roster"
 # The manifests are published with the repository. A credential in one would
 # be a leak, and `epito validate`'s tripwires only know three shapes.

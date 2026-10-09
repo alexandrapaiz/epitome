@@ -37,6 +37,11 @@ cd /srv/asc/state && epito audit --since 24h
 There is no `.epito/state.json` any more. `epito ps` asks Temporal, because
 a second copy of what is running is a second copy that can be wrong.
 
+Whether this box actually has those four, on the PATH the **unit** gets rather
+than the one your login shell has, is not a thing to take on trust:
+`epito doctor <roster>` is below, and it is the command to run before the
+first `epito run`.
+
 ## Temporal server + UI
 
 The engine is a server, and **epito does not install it.** `npm i -g epito` is
@@ -191,9 +196,21 @@ systemctl restart epitod-worker        # the WORKER mints; the ingress never see
 schedule depends on it:
 
 ```sh
+epito doctor /srv/asc/agents               # who every seat on this box acts as
 epito token pm /srv/asc/agents --dry-run   # the mapping only: no network, no key
 epito token pm /srv/asc/agents             # the real mint; the token is stdout, alone
 ```
+
+`epito doctor`'s identity section is the one that catches the mistake this
+file's two lines invite: an `EnvironmentFile` has no multi-line values, so a
+key pasted in by hand arrives truncated or with its newlines escaped away, and
+an `EPITO_APP_ID_` line added without its key — or a `systemctl restart` that
+never happened — leaves the box holding **half** an identity. The runtime reads
+half as none and the seat quietly goes back to the shared credential; the
+preflight calls that out by name and exits 1, having signed a throwaway JWT
+with the key to prove the mint's own first step works offline. Run it as the
+user the units run as (`sudo -u seats`), because what it reads is what that
+user can read.
 
 Three rules the runtime keeps, each asserted in `cli/test/smoke-temporal.sh`:
 
@@ -216,10 +233,23 @@ Three rules the runtime keeps, each asserted in `cli/test/smoke-temporal.sh`:
   A run that resumes a held window borrows that window's clone and mints once.
 - **The minted token wins.** If `[runtime].env` also names `GH_TOKEN`, the
   agent's own credential is used instead, and the run log says so by name.
-- **No silent fallback.** An agent with no App runs on the shared `GH_TOKEN`
-  exactly as it did before — clone included. An agent that *has* one and
-  cannot mint stops, and the run is recorded `exit=mint` with the reason. A PR
-  opened by the wrong identity is worse than a PR not opened.
+- **No silent fallback.** An agent that *has* an App and cannot mint stops, and
+  the run is recorded `exit=mint` with the reason. A PR opened by the wrong
+  identity is worse than a PR not opened.
+
+  An agent with **no** App runs as it did before, and that sentence is worth
+  one more line of precision than it used to have, because the two halves of a
+  run do not get their credential from the same place. The **clone** is the
+  worker's own `git`, so it reaches the box's `GH_TOKEN` through the system
+  credential helper below. The **run** is a child spawned with an allowlist —
+  `PATH`, `HOME`, `USER`, plus the names its `[runtime].env` asks for — so the
+  box's `GH_TOKEN` reaches the agent's own `gh` only if its manifest names it.
+  A seat with no App and no `GH_TOKEN` in `[runtime].env` therefore clones
+  fine and has nothing to open a pull request with, which is the state every
+  seat in this repository's own `agents/` is in today. `epito doctor <roster>`
+  names it per seat ("acts as nobody"), and it is a report rather than a
+  refusal: whether a seat needs to reach GitHub at all is in its charter, not
+  in its manifest.
 
 ### What the box's own `GH_TOKEN` is still for
 
@@ -552,6 +582,71 @@ is a board that means something different depending on which seat wrote to it
 last. Widening it is a change to `KINDS` in `cli/src/lib/board.js`, in a PR,
 with a reason.
 
+## Before the first run: `epito doctor`
+
+Everything above is a thing this box has to be true for a run to start, and
+until now each one had its own command and its own exit code: `epito validate
+<roster>` for the manifests, `epito routes` for the model roads, `epito env`
+for the names, and a 400ms look at the engine inside `validate --for-runtime`.
+Four commands, three exit codes, and one piece that none of them touched — the
+executable the `execute` activity spawns.
+
+That last one is not hypothetical. epitod v0's first run on a real host exited
+1 at turn zero with `Not logged in`: the environment a run hands its child is
+an **allowlist** (`PATH`, `HOME`, `USER`, plus the names `[runtime].env` asks
+for and this box holds), and the executor's credential lookup needed a name the
+allowlist did not carry. Every piece of that was knowable before 06:00.
+
+```
+$ epito doctor /srv/asc/roster
+roster /srv/asc/roster on this box — 5 seats, checked in the order a run needs them
+
+✓ manifests  5 of 5 manifests load and pass spec v0.2
+! names      6 names asked for, 2 held, 4 not set here
+✓ roads      every seat has an open road — 2 on [runtime].model, no route declared, 3 on "subscription"
+✓ executor   /usr/local/bin/claude started under the environment a run gives it, for 5 seats
+✓ engine     127.0.0.1:7233 is Temporal, namespace "default" exists (a real connect: the engine client is installed here)
+
+✓ nothing here would make a run on this box refuse: 5 manifests good, every
+  seat on an open road, the executor starts under a run's own environment, and
+  127.0.0.1:7233 is Temporal with namespace default.
+  Not proven: that it is logged in — the look never reaches a provider, so a
+  box with an expired session passes it. `epito doctor … --deep` runs ONE turn
+  per road, which costs a model call and is the only thing that proves
+  credentials from here.
+```
+
+One contract: **exit 1 if a run on this box would refuse, and name the piece.**
+That is a refused manifest, a seat with no open road, a road this box has and
+has wrong, a name set to nothing, an executor that is missing or will not
+start, or an engine that is not answering. A name this box does not hold at all
+stays a report and exits 0 — `[runtime].env` is the list the runtime injects
+*from*, nothing in a manifest says which names a seat cannot work without, and
+`epito env <dir> --complete` is where you assert it should hold them all.
+
+Three things worth knowing about what it does and does not prove:
+
+- **The executor is resolved on the PATH a RUN gets**, then started under the
+  environment a run gives it. A `claude` that is on your interactive PATH and
+  not on `epitod-worker.service`'s is exactly the failure this catches, and the
+  fix it prints names `EPITO_EXECUTOR` and its current value.
+- **The look is free and offline, so it says nothing about the account.**
+  `--deep` is the half that proves credentials: one real turn per *road* (not
+  per seat — five seats sharing one key cost one call), with the executor's own
+  refusal read back verbatim.
+- **A TCP connect is not a Temporal server.** When `@temporalio/client` is
+  installed here — it is, on a box provisioned by `provision-host.sh` — the
+  engine section does the real connect and the real namespace check, so a port
+  that answers and is not Temporal, or the right server with a namespace nobody
+  created, is caught here rather than at the first schedule. Where the client
+  is absent (a plain `npm i -g epito`) it falls back to the cheap look and says
+  that is what it did.
+
+A LangGraph seat is the one case a preflight cannot finish: its graph is
+resolved from the `langgraph.json` in *its own* repository, which exists on
+this box only inside a clone a run makes. The report says so rather than
+ticking it.
+
 ## Schedules: what `epito run` actually does
 
 ```sh
@@ -691,6 +786,7 @@ docker exec epitod epito ps
 ```sh
 cd cli
 node --test test/unit.mjs              # the reconcile diff and the validator, no server
+bash test/smoke-doctor.sh              # the preflight, including three broken executors
 bash test/smoke-temporal.sh            # the whole runtime against a local dev server
 bash test/smoke-langgraph.sh           # the langgraph adapter, against the real framework
 ```

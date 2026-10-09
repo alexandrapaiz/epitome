@@ -5,15 +5,34 @@
 // worker deliberately does NOT: a workflow's input carries its manifest as a
 // snapshot, so the worker never reads this directory (law 3 of the design,
 // docs/prfaq/epitod-v1-temporal.md).
-import { readdirSync, statSync } from "node:fs";
+import { readdirSync, statSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { loadManifest } from "./manifest.js";
 import { parseCron } from "./cron.js";
 
 const SKIP = new Set(["node_modules", ".git", ".epito"]);
 
+// Why this reads the directory through a try. Every command that takes a
+// roster path reaches it here — `epito run`, `epito ps`, `epito routes`,
+// `epito env`, `epito doctor` — and a path that is not a readable directory
+// came back as ten lines of Node: `node:fs:1590 / const result =
+// binding.readdir` and a stack through our own files. A typo'd roster path and
+// a /srv the runtime user cannot read are both ordinary operating conditions
+// on exactly the box this is run on, and `epito validate <dir>` has always
+// answered the first one with a sentence. The error-message bar is the
+// product's, not one command's: name the rule, in the product's words, with
+// the fix in the message.
 export function findManifests(dir, depth = 0, out = []) {
-  for (const ent of readdirSync(dir)) {
+  let entries;
+  try { entries = readdirSync(dir); }
+  catch (e) {
+    const err = new Error(e.code === "EACCES" || e.code === "EPERM"
+      ? `${dir} cannot be read by this user, so the seats under it cannot be found. Fix: run as the user that owns the roster, or \`chmod +rx ${dir}\` — on a runtime host the roster is read by the service user, not by you`
+      : `${dir} cannot be read: ${e.message}`);
+    err.epitoHandled = true;
+    throw err;
+  }
+  for (const ent of entries) {
     if (SKIP.has(ent)) continue;
     const p = join(dir, ent);
     const st = statSync(p);
@@ -59,7 +78,25 @@ export function rosterRules(manifest, { path, takenBy = new Map() } = {}) {
 // expression fails the command before anything is registered on the engine.
 export function loadRoster(dirArg) {
   const dir = resolve(dirArg);
-  const paths = findManifests(dir);
+  // A path that is not a directory, said in one line rather than in a stack.
+  // The two cases get different fixes because they are different mistakes: a
+  // path that is not there is usually a typo, and a path that is a FILE is
+  // usually somebody reaching for the one command that takes one.
+  if (!existsSync(dir)) {
+    console.error(`epito: no such directory "${dirArg}" — a roster is a directory of seats, each with its own agent.toml. Fix: name the directory that holds them — in this repository that is \`agents\` — or \`epito init <name>\` inside a new one`);
+    process.exit(1);
+  }
+  if (!statSync(dir).isDirectory()) {
+    console.error(`epito: "${dirArg}" is a file, and this command reads a ROSTER — the directory the seats live in, one agent.toml each. Fix: name that directory, or \`epito validate ${dirArg}\`, which is the command that checks a single manifest`);
+    process.exit(1);
+  }
+  let paths;
+  try { paths = findManifests(dir); }
+  catch (e) {
+    if (!e?.epitoHandled) throw e;
+    console.error(`epito: ${e.message}`);
+    process.exit(1);
+  }
   if (paths.length === 0) {
     console.error(`epito: no agent.toml found under ${dir} — an empty roster has nothing to run`);
     process.exit(1);
