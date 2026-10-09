@@ -1,5 +1,149 @@
 # Market brief — docs/market.md
 
+Maintained by the market seat. This revision: **rev 6, 2026-10-09**,
+weekly window run. Built on the unmerged rev 5 (PR #55, 2026-10-05,
+itself stacked on rev 4's PR #42 and rev 3's PR #31) rather than
+re-running their research: `gh pr list` was checked first (L-E10).
+Rev 5 stands below, unedited, marked superseded. Once this lands,
+PRs #31, #42 and #55 carry nothing this branch does not already
+contain and are closed from this same run (L-A27, "close what you
+supersede").
+
+This is a four-day delta (2026-10-05 through 2026-10-09). The ADR-12
+tripwire was checked directly against LangChain's own changelog and
+blog, as every run must, and it turned up a second data point for an
+already-fired finding rather than a new one: the per-agent Slack-app
+mechanism rev 4 found in Fleet now also exists in LangChain's other
+hosted-agent product, Managed Deep Agents, shipped three days before
+this run. Three other things moved: a third-party demand signal for
+per-agent GitHub identity that rev 4 found as one solo developer's
+weekend project turns out to have several more data points once
+searched again; nothing on the GitHub or OpenClaw watch items; and the
+owner now has three one-word asks queued behind one unmerged artifact,
+reported here as a depth, not a fourth request (L-X7).
+
+## Orientation: the tripwire's second data point, and a queue of three
+
+**ADR-12, checked directly (L-R1):** LangChain's main blog (fetched
+2026-10-09) lists five posts between 2026-10-02 and 2026-10-09, and
+one of them is new evidence for a finding this brief already
+escalated rather than a new mechanism. "Managed Deep Agents v0.9:
+schedules, per-run configuration, and Slack reactions"
+([langchain.com/blog](https://www.langchain.com/blog/managed-deep-agents-schedules-per-run-configuration-slack),
+2026-10-07, accessed 2026-10-09) ships alongside docs describing each
+Managed Deep Agent deployment provisioning its own Slack app: "the
+Slack app that Managed Deep Agents provisioned for the deployment"
+holds a connection slug reserved per deployment
+([agent-owned interrupts](https://docs.langchain.com/langsmith/python/managed-deep-agents-agent-owned-interrupts),
+accessed 2026-10-09), and the channel declaration that configures it
+names "The agent name in Slack" per deployment, with an icon generated
+automatically if none is given
+([connect a Managed Deep Agent to Slack](https://docs.langchain.com/langsmith/managed-deep-agents-channels-slack),
+accessed 2026-10-09). This is Fleet's already-escalated mechanism
+(rev 4 §4a) found a second time in LangChain's other product line,
+not a new tripwire event — read against G4 the verdict is identical:
+a real, distinct principal inside LangChain's walls, following no
+agent to GitHub or anywhere else, gone the day the customer cancels.
+Primary-source digging this run (the `managed-deepagents` CHANGELOG on
+GitHub, 0.5.0 through 0.9.0) found the same product went
+bring-your-own-app for Slack on 2026-08-07 and back to
+LangChain-provisioned per-deployment apps on 2026-08-24 — a reversal
+worth naming because it shows LangChain treating "who provisions the
+Slack identity" as a live design question it has changed its mind on
+twice in two months, which is the opposite of a settled wall.
+
+**The tripwire's status is unchanged from rev 4: fired, escalated, one
+word outstanding, now seven days unanswered** because PR #42 is still
+unmerged. GitHub's agent-app waitlist was re-checked directly against
+its own changelog page and still reads "over the coming months, we'll
+open up access to allow anyone to build agent apps"
+([GitHub changelog, 2026-06-02](https://github.blog/changelog/2026-06-02-extend-github-with-agent-apps/),
+accessed 2026-10-09) — unchanged, no re-ranking trigger.
+
+**The queue, reported as a depth (L-X7), not re-asked:**
+
+| Ask | First raised | Age | Where it sits |
+|---|---|---|---|
+| ADR-12: pull the passport prototype forward, yes/no | rev 4, 2026-10-02 | 7 days | Unactioned; also now proposed as the cycle-2 bet `passport-v0-github` in the PM's betting memo, PR #67. |
+| ADR-13: usage-based buyer-2 pricing, yes/no | rev 4, 2026-10-02 | 7 days | Unactioned. |
+| Cycle-2 bet itself (`slack-identity-v0` + `passport-v0-github`) | PM, PR #67, 2026-10-05 | 4 days | Unmerged; betting it would substantively answer the row above without a separate ruling. |
+
+All three sit behind the same gate (the owner's merge), and the second
+and third are now the same decision asked two ways — betting PR #67
+builds the thing ADR-12's escalation asked for. This is an
+observation about where the queue is, not a request to shorten it.
+
+## 1. Landscape delta — the per-agent-GitHub-App pattern has more data points
+
+Rev 4 found one weekend project (qwts/agent-bot-identity, 1 star)
+building the narrowest slice of v1 — per-agent GitHub identity — and
+read that as proof the mechanism is cheap to copy, not a traction
+threat. Re-searching this run surfaces the same pattern built
+independently into at least four more tools, none found in rev 4's
+search: ChatBotKit's GitHub integration runs each connection as its
+own GitHub App rather than a shared one; Vellum ships a setup skill
+that "creates a GitHub App under a GitHub organization, giving the
+assistant its own bot identity for git operations"; a community plugin
+for Nous Research's Hermes agent prefers `GITHUB_APP_ID` /
+`GITHUB_APP_INSTALLATION_ID` / `GITHUB_APP_PRIVATE_KEY_PATH` over a
+personal token when both are configured; and a published Claude Code
+skill ("github bot," Skillselion) authenticates as an App installation
+and mints its own 1-hour installation tokens. None of these are dated
+precisely enough to call "new since rev 4" with confidence — flagged —
+but the count moving from one hit to five within two searches six days
+apart reads as the mechanism continuing to commoditize exactly as rev 4
+said it would, which sharpens the same conclusion rev 4 already drew:
+what we sell past this point is the roster, the audit trail, and one
+manifest that scales from 1 agent to 100, not the App-per-agent trick
+itself.
+
+**Re-checked, no change:** OpenClaw's own changelog cadence (several
+point releases a week per prior coverage) was checked for anything
+past the 2.0 (`v2026.8.1`) line and nothing material turned up in this
+run's search window; still reads as the declared "fix the foundation"
+phase rev 5 found. Logged per the charter even though nothing moved.
+
+## 2. Demand — no new quote this run
+
+Nothing dated this week surfaced beyond the landscape count above,
+which is itself a demand signal (five independent builders solving the
+same per-agent-GitHub-identity problem is what unmet demand looks like
+from the supply side). No new forum or issue quote found; this run's
+search budget went to the ADR-12 and landscape checks above and one
+search here came back empty rather than thin — recorded as a miss, not
+stretched into a citation.
+
+## 3. Positioning and pricing — both asks still open, now in the queue table above
+
+No evidence this run moves either pricing recommendation. Rev 1's flat
+roster tier and rev 4's usage-based buyer-2 recommendation both still
+await the owner's word; see the queue table above rather than a
+restatement here.
+
+## 4. Integration map — no re-ranking trigger fired
+
+GitHub's agent-app waitlist and LangChain's blog/changelog were the two
+live trigger conditions checked this run; neither fired a re-rank.
+Standing recommendation unchanged: Slack remains integration #2.
+
+---
+
+*Charter compliance note (rev 6): research only; nothing posted, no
+one contacted, no accounts created. Checked against
+docs/standards/lessons.md before shipping: L-R1 (the live-world check
+that found the MDA v0.9 corroboration and the four additional
+GitHub-App-per-agent tools), L-X7 (report queue depth rather than
+re-ask), L-E10 (the PR survey that put this revision on top of
+#55/#42/#31 instead of a sixth parallel build), L-A27 (closing the
+superseded drafts from this run rather than leaving a fourth to pile
+on). Flagged: the four additional GitHub-App-per-agent tools (landscape
+§1) are undated and may predate rev 4's own search; the demand section
+this run is an honest empty rather than a stretch.*
+
+---
+
+# Market brief — docs/market.md (rev 5, superseded by rev 6 above)
+
 Maintained by the market seat. This revision: **rev 5, 2026-10-05**,
 weekly window run. Built on the unmerged rev 4 (PR #42, 2026-10-02,
 itself stacked on rev 3's PR #31, 2026-09-30) rather than re-running
