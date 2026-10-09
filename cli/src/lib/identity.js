@@ -228,21 +228,37 @@ async function gh(path, { method = "GET", jwt, token, body } = {}) {
   return json;
 }
 
-// Which installation of this App covers the manifest's repo. Skipped when the
-// principal already records one (a deploy that installed it knows the id).
-export async function installationFor(jwt, repo) {
+// Which installation of this App covers the manifest's repo, as GitHub
+// describes it: the id, and the permissions the App was actually granted
+// there. One function, two readers — the mint (which wants the id) and `epito
+// doctor --deep` (which wants to know, before 06:00, whether the mint it is
+// about to predict can succeed at all).
+//
+// The two refusals it names are the only ones in the mint path that are
+// PERMANENT at this step, and `permanent` is what the difference is for: the
+// `clone` activity retries, so a throttled GitHub and an App installed nowhere
+// must not look alike. The status is carried on the error beside the flag so a
+// caller that reports rather than throws can tell the two fixes apart in
+// --json without re-parsing the sentence.
+export async function installationAt(jwt, repo) {
   try {
-    const inst = await gh(`/repos/${repo}/installation`, { jwt });
-    return String(inst.id);
+    return await gh(`/repos/${repo}/installation`, { jwt });
   } catch (e) {
     if (e.status === 404) {
-      throw permanent(`this agent's GitHub App is not installed on ${repo} — an App with no installation there can mint nothing, however valid its key. Fix: install the App on ${repo} (its owner does this once), then mint again.`);
+      throw Object.assign(permanent(`this agent's GitHub App is not installed on ${repo} — an App with no installation there can mint nothing, however valid its key. Fix: install the App on ${repo} (its owner does this once), then mint again.`), { status: 404 });
     }
     if (e.status === 401) {
-      throw permanent(`GitHub rejected this agent's App credentials (401). Either the App id and the private key are not from the same App, or the key has been revoked. Fix: re-copy both from the App's settings page.`);
+      throw Object.assign(permanent(`GitHub rejected this agent's App credentials (401). Either the App id and the private key are not from the same App, or the key has been revoked. Fix: re-copy both from the App's settings page.`), { status: 401 });
     }
     throw e;
   }
+}
+
+// The mint's own half of that: the id alone. Skipped when the principal
+// already records one (a deploy that installed it knows the id).
+export async function installationFor(jwt, repo) {
+  const inst = await installationAt(jwt, repo);
+  return String(inst.id);
 }
 
 // --- the agent's commit identity ------------------------------------------
