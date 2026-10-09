@@ -195,6 +195,35 @@ outcome the operator who set those names did not ask for. The App check is free
 and offline: it signs a throwaway JWT, which is the mint's own first step, and
 it reaches no network.
 
+And the one thing that check cannot reach, because an App installed nowhere
+mints nothing however valid its key: whether GitHub *has* that App on the
+repository the seat would mint for. That answer is a network call — the mint's
+own next step — so it rides `--deep`, the flag that already means "leave this
+box", and unlike the one-turn probe beside it, it costs nothing: one `GET
+/repos/{owner}/{name}/installation` per (App, repo) pair, no token minted, no
+ledger line.
+
+```
+✓ installed  1 App asked at GitHub for 2 seats, every one installed on the repository it would mint for
+
+installed, per App
+  ✓ its own GitHub App, installed on acme/box as installation 4242, which is
+    the id its runs discover from [runtime].repo, since nothing on this box
+    names one, and granted there everything its [identity].scopes ask to mint
+    — covers pm, okr
+```
+
+Four of its five answers exit 1 — an App installed nowhere, an installation id
+*this box* names that GitHub does not have (the mint uses the id the box names
+rather than discovering one, so GitHub refuses it), a grant short of what
+`[identity].scopes` map to (an installation can only hand out permissions the
+App was granted, which the mint learns as a 422), and credentials GitHub
+rejects outright. The fifth is a report: a GitHub this box could not reach is
+the kind of mint failure that *passes*, and the run path retries it. That line
+is not redrawn here — `src/lib/identity.js` marks a mint failure `permanent`
+or not, because the clone activity retries, and the preflight reads that flag
+rather than deciding by status code.
+
 `nobody` and `the owner of $GH_TOKEN` are reports, not refusals. They are how
 every seat ran before the identity leg existed, and `epito env <roster>` prints
 the same block under the names a manifest *does* declare — those two variables

@@ -212,6 +212,36 @@ with the key to prove the mint's own first step works offline. Run it as the
 user the units run as (`sudo -u seats`), because what it reads is what that
 user can read.
 
+What that offline check cannot prove is step 4 above: **an App installed
+nowhere mints nothing, however valid its key.** `epito doctor <roster> --deep`
+asks GitHub, once per (App, repo) pair — no token minted, no ledger line, no
+model call — and it is the one command that tells these four apart before
+06:00 does:
+
+```sh
+sudo -u seats epito doctor /srv/asc/agents --deep
+```
+
+- **installed**, and the installation id this box names (if it names one) is
+  the one GitHub has. ✓
+- **an id this box names that GitHub does not have.** The mint uses the id in
+  `EPITO_INSTALLATION_ID_<NAME>` rather than discovering one, so GitHub
+  refuses it and the run stops at its first step. The fix is to unset that
+  name — discovery from `[runtime].repo` is the default for a reason — or to
+  correct it to the id the report prints.
+- **installed, and granted less there than `[identity].scopes` need.** An
+  installation can only hand out permissions the App was granted, so an App
+  granted `contents:read` where the manifest asks to write gets a 422 at mint
+  time. Step 3's permission page is where that is fixed; the report names the
+  level it found and the level the manifest needs.
+- **not installed on `[runtime].repo` at all**, or an id and a key that are not
+  from the same App — GitHub answers those 404 and 401, and they are two
+  different fixes.
+
+A GitHub this box cannot reach is reported and does **not** exit 1: a blocked
+route and a rate limit are the kind of mint failure that passes, and the
+runtime already retries them.
+
 Three rules the runtime keeps, each asserted in `cli/test/smoke-temporal.sh`:
 
 - **Per run, never stored.** A run mints its own tokens and forgets them. They
@@ -631,9 +661,14 @@ Three things worth knowing about what it does and does not prove:
   not on `epitod-worker.service`'s is exactly the failure this catches, and the
   fix it prints names `EPITO_EXECUTOR` and its current value.
 - **The look is free and offline, so it says nothing about the account.**
-  `--deep` is the half that proves credentials: one real turn per *road* (not
-  per seat — five seats sharing one key cost one call), with the executor's own
-  refusal read back verbatim.
+  `--deep` is the half that leaves this box, and it asks two questions at two
+  prices. One real turn per *road* (not per seat — five seats sharing one key
+  cost one call), with the executor's own refusal read back verbatim: that one
+  costs a model call. And, for every seat with an App of its own, whether
+  GitHub has that App installed on the repository it would mint for and
+  granted there what `[identity].scopes` ask to mint: that one costs nothing —
+  one request per (App, repo) pair, no token minted, no ledger line. The
+  identity section above is the long version.
 - **A TCP connect is not a Temporal server.** When `@temporalio/client` is
   installed here — it is, on a box provisioned by `provision-host.sh` — the
   engine section does the real connect and the real namespace check, so a port
