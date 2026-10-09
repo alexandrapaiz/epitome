@@ -238,7 +238,11 @@ export async function doctorCmd(args = []) {
     ...badIdentity.map((g) => ({
       agents: g.agents,
       says: g.state === HALF
-        ? "this box holds half of an identity for it, so its runs fall back to the shared credential silently"
+        // Not "falls back to the shared credential": that is true only where
+        // the manifest names one, and this box's half-set names say nothing
+        // about whether it does. The per-answer block above names the actual
+        // fallback per seat.
+        ? "this box holds half of an identity for it, so its runs silently fall back to whatever else the box gives them"
         : "it has a GitHub App on this box and the mint would refuse before it reached GitHub",
     })),
     ...refusedDeep.map((d) => ({ agents: d.agents, says: `the executor refused one turn on the road ${roadLabel(d.route)}` })),

@@ -137,14 +137,20 @@ export function loadPrincipal(name, { env = process.env, dir = "." } = {}) {
     catch (e) {
       throw permanent(`$${n.keyFile} points at ${keyFile}, which this machine cannot read (${e.code ?? e.message}) — that file is "${name}"'s GitHub App private key, and without it the agent has no identity to mint from. Fix: put the .pem GitHub downloaded there (0600, readable by the user the runtime runs as), or unset $${n.keyFile} and use $${n.key} instead.`);
     }
-    return { appId: String(appId), privateKey: pem, installationId: env[n.installation] ?? null, source: `$${n.id}/$${n.keyFile}` };
+    return { appId: String(appId), privateKey: pem, installationId: env[n.installation] || null, source: `$${n.id}/$${n.keyFile}` };
   }
   if (appId && key) {
     return {
       appId: String(appId),
       // A PEM in an env var arrives with its newlines escaped as often as not.
       privateKey: key.includes("\\n") ? key.replace(/\\n/g, "\n") : key,
-      installationId: env[n.installation] ?? null,
+      // `||`, not `??`: an EnvironmentFile line somebody left as
+      // `EPITO_INSTALLATION_ID_PM=` holds the empty string, and an empty
+      // string here is not an installation — it is an id the mint must
+      // discover from [runtime].repo. Read as present it would POST to
+      // /app/installations//access_tokens and come back 404, which reads like
+      // an App installed nowhere and is not.
+      installationId: env[n.installation] || null,
       source: `$${n.id}/$${n.key}`,
     };
   }

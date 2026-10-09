@@ -98,7 +98,12 @@ export function actsAs(name, manifest, { env = process.env, dir = "." } = {}) {
   const store = fileStore(name, dir);
   const repo = manifest?.runtime?.repo ?? null;
   const declared = manifest?.runtime?.env ?? [];
-  const sharedName = SHARED_NAMES.find((n) => declared.includes(n)) ?? null;
+  // A manifest may name both. The one that decides who the seat acts as is the
+  // one this box actually holds (`gh` reads GH_TOKEN first and GITHUB_TOKEN
+  // second, and a run's child only ever receives the names the box holds), so
+  // a held name outranks the order they are declared in.
+  const named = SHARED_NAMES.filter((n) => declared.includes(n));
+  const sharedName = named.find((n) => holding(n, env) === HELD) ?? named[0] ?? null;
   const base = {
     agent: name,
     names,
@@ -150,7 +155,12 @@ export function actsAs(name, manifest, { env = process.env, dir = "." } = {}) {
   // No principal. Is that because this box was never given one for this seat,
   // or because it was given half of one?
   const half = [];
-  for (const [role, key] of [["App id", names.id], ["key file", names.keyFile], ["key", names.key], ["installation id", names.installation]]) {
+  // The three names that ARE an identity. `EPITO_INSTALLATION_ID_<SEAT>` is
+  // deliberately not among them: it is optional and the mint discovers it from
+  // [runtime].repo, so a leftover empty line is not half an identity and must
+  // not refuse a run (identity.js reads an empty one as unset for the same
+  // reason).
+  for (const [role, key] of [["App id", names.id], ["key file", names.keyFile], ["key", names.key]]) {
     const state = holding(key, env);
     if (state === EMPTY) half.push(`$${key} is set here and set to nothing (${role})`);
   }
@@ -165,7 +175,7 @@ export function actsAs(name, manifest, { env = process.env, dir = "." } = {}) {
       ...base,
       state: HALF,
       says: `half an identity, which the runtime reads as none: ${half.join("; ")}`,
-      fix: `finish the pair or remove it: this seat needs $${names.id} AND one of $${names.keyFile} (a .pem at 0600, the form a systemd EnvironmentFile can hold) or $${names.key}, or both halves of the file store. As it stands the runtime reads this as "no App" and the seat runs on the box's shared credential, which is the one outcome setting those names asked it not to do`,
+      fix: `finish the pair or remove it: this seat needs $${names.id} AND one of $${names.keyFile} (a .pem at 0600, the form a systemd EnvironmentFile can hold) or $${names.key}, or both halves of the file store. As it stands the runtime reads this as "no App" and the seat falls back to whatever else this box gives it — ${sharedName ? `$${sharedName}, a person's credential` : "nothing, since its [runtime].env names no GitHub credential either"} — which is the one outcome setting those names asked it not to do`,
     };
   }
 

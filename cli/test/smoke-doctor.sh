@@ -352,7 +352,11 @@ check "an App id with no key is half an identity"                   "istate \"\$
 check "...and THAT refuses, like a road this box has and has wrong" "jq_refusals \"\$HJ\" | grep -q 'half of an identity'"
 out="$(EPITO_APP_ID_PLAIN=123456 $E doctor "$R" 2>&1)"
 check "...naming the key variable it is missing"                    "said 'EPITO_APP_KEY_FILE_PLAIN'"
-check "...and what the runtime would do with it"                    "said 'shared credential'"
+check "...and what the runtime would do with it"                    "said 'silently fall back to whatever else the box gives them'"
+# ...and the fallback named per seat is the one this seat actually has: the
+# roster's `plain` names no GitHub credential at all, so the honest answer is
+# nothing, not "the shared credential".
+check "...named per seat, not assumed to be a shared token"         "said 'names no GitHub credential either'"
 HJ2="$(EPITO_APP_ID_PLAIN= EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E doctor "$R" --json 2>&1)"
 check "a line somebody half-filled in is the same answer"           "printf '%s' \"\$HJ2\" | grep -q '\"half\"'"
 out="$(EPITO_APP_ID_PLAIN= EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E doctor "$R" 2>&1)"

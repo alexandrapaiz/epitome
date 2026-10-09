@@ -572,7 +572,13 @@ test("half an identity is loud, because the runtime reads it as none", () => {
   assert.equal(idOnly.state, HALF);
   assert.match(idOnly.says, /half an identity/);
   assert.match(idOnly.says, /\$EPITO_APP_KEY_FILE_PM/);
-  assert.match(idOnly.fix, /shared credential/);
+  // The fallback is whatever else the box gives this seat, and for a manifest
+  // that names no GitHub credential that is nothing at all — the same
+  // precision docs/deploy/README.md needed this pass.
+  assert.match(idOnly.fix, /falls back to whatever else this box gives it — nothing/);
+  const sharer = seat("pm", { runtime: { env: ["GH_TOKEN"] } });
+  assert.match(actsAs("pm", sharer, { env: { EPITO_APP_ID_PM: "1", GH_TOKEN: "t" }, dir }).fix,
+    /\$GH_TOKEN, a person's credential/, "and a person's credential where the manifest names one");
 
   // A key and no id.
   const keyOnly = actsAs("pm", seat("pm"), { env: { EPITO_APP_KEY_PM: rsaPem() }, dir });
@@ -625,6 +631,18 @@ test("no App: a shared credential has an owner, and no credential at all is a di
   assert.equal(none.state, NONE);
   assert.match(none.says, /names neither GH_TOKEN nor GITHUB_TOKEN/);
   assert.match(IDENTITY_FIX, /EPITO_APP_ID_<SEAT>/, "the two names, with the rule for the suffix");
+});
+
+test("an installation id left empty is an id to discover, not an id of nothing", () => {
+  // `EPITO_INSTALLATION_ID_PM=` in an EnvironmentFile holds the empty string.
+  // Read as present, the mint POSTs to /app/installations//access_tokens and
+  // GitHub answers 404 — which the run reports as an App installed nowhere,
+  // naming the wrong fix for a line somebody half-filled in.
+  const env = { EPITO_APP_ID_PM: "7", EPITO_APP_KEY_PM: rsaPem(), EPITO_INSTALLATION_ID_PM: "" };
+  assert.equal(loadPrincipal("pm", { env, dir: tmpDir() }).installationId, null);
+  const row = actsAs("pm", seat("pm"), { env, dir: tmpDir() });
+  assert.equal(row.state, OWN, "and it is not half an identity: the pair is the id and the key");
+  assert.match(row.says, /installation discovered from \[runtime\]\.repo/);
 });
 
 test("rosterActs: only a broken or half identity may reach the exit code", () => {
