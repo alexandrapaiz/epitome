@@ -170,6 +170,11 @@ run_epito doctor .
 check "epito doctor runs in a prefix with no engine client" "! said 'ERR_MODULE_NOT_FOUND\|at ModuleLoader'"
 check "...and never claims a real connect it could not make" "! said 'a real connect'"
 check "...saying instead what this box can actually ask"     "said 'engine'"
+# The identity section's offline half: it signs a JWT with node's own crypto
+# and reads no optional package, so a plain `npm i -g epito` must answer it in
+# full rather than skip it the way the engine's real connect is skipped.
+check "...and the identity section answers in a bare prefix"  "said 'identity'"
+check "...naming who a seat with no App acts as"              "said 'nobody' && said 'EPITO_APP_ID_<SEAT>'"
 
 # ----------------------- 4. the engine commands refuse in the product's voice
 step "4: the five commands that NEED the engine say so — the bar \`epito validate\` sets"

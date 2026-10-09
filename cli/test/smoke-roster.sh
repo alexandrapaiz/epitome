@@ -466,6 +466,25 @@ check "--json carries one verdict per seat and a refusals list" \
 check "a bare box is short of every name, and that refuses nothing" \
   "printf '%s' \"\$djson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); const names=r.seats.flatMap(s=>s.names.missing); process.exit(names.length>0 && !r.refusals.some(x=>/set to nothing|not set/.test(x.says)) ? 0 : 1)'"
 check "and doctor wrote no .epito/ into this repository" "[ ! -e '$ROOT/.epito' ]"
+# And the question this product is FOR, asked of its own seats: who does each
+# one act as on a box? The answer today is nobody — no seat in this roster has
+# a GitHub App anywhere, and not one of them names GH_TOKEN in [runtime].env,
+# so a run's child gets no GitHub credential at all. That is a true report
+# about this roster and not a defect in the command, which is why it is
+# asserted rather than fixed here: giving a seat an App is two names on a box
+# and a card nobody has run yet.
+check "doctor says who each seat acts as, for all $nseats" \
+  "printf '%s' \"\$djson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); process.exit(r.seats.length===$nseats && r.seats.every(s=>s.identity && s.identity.state) ? 0 : 1)'"
+check "...and on a bare box that answer is nobody, for every one of them" \
+  "printf '%s' \"\$djson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); process.exit(r.seats.every(s=>s.identity.state===\"none\") ? 0 : 1)'"
+check "...which is a report, not a reason a run would refuse" \
+  "printf '%s' \"\$djson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); process.exit(r.refusals.some(x=>/identity|mint/.test(x.says)) ? 1 : 0)'"
+check "...and no seat's identity row carries a key, only which App" \
+  "! printf '%s' \"\$djson\" | grep -q 'PRIVATE KEY'"
+# The same reader, from `epito env`: the names no manifest declares.
+check "epito env carries the identity block for this roster too" \
+  "printf '%s' \"\$eout\" | grep -q 'the names no manifest declares'"
+
 
 step "rule 1: nothing personal in the roster"
 # The manifests are published with the repository. A credential in one would

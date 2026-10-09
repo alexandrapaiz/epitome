@@ -152,7 +152,11 @@ check "and EPITO_EXECUTOR's current value"                   "said 'EPITO_EXECUT
 # Once per binary: the two claude seats share one missing `claude`, and the
 # LangGraph seat is not among them because its executor is an interpreter and
 # EPITO_EXECUTOR is not the interpreter's name (src/lib/adapters.js says why).
-check "said once per binary, with the seats it covers"       "said 'covers plain, roaded' && ! said 'covers graph'"
+# Anchored on the executor's own sentence rather than on "covers" alone: the
+# identity section added a second block that names the seats an answer covers
+# the same way, and a bare grep for "covers graph" stopped being a statement
+# about the executor the moment it existed.
+check "said once per binary, with the seats it covers"       "said 'covers plain, roaded' && ! printf '%s' \"\$out\" | grep 'not on the PATH a run gets' | grep -q graph"
 check "and the graph seat is judged on its own executor"     "! said 'graph.*not on the PATH'"
 
 # A binary that is THERE and will not start. This is epitod v0's first real
@@ -286,6 +290,140 @@ else
   echo "  SKIPPED -- running as root, which can read a 000 directory, so the permission refusal cannot be provoked here."
   echo "  run this suite as an ordinary user to assert it."
 fi
+
+step "10. who each seat acts as on this box"
+# The section `epito doctor` did not have: not "would a run start" but "and
+# whose name would the pull request open under". Every assertion below is on
+# the --json verdict as well as the prose, because this box has no engine in
+# CI — the exit code is 1 either way there, so what is under test is whether
+# an identity reaches the REFUSALS list, not the process's exit code.
+#
+# Nothing personal: the only key in this step is a 2048-bit RSA key generated
+# into $TMP two lines from here, used to sign one JWT that never leaves the
+# box, and deleted with $TMP.
+jq_refusals() { printf '%s' "$1" | node -e 'const r=JSON.parse(require("fs").readFileSync(0,"utf8"));console.log(r.refusals.map(x=>x.says).join("\n"))'; }
+# Who each seat acts as, asserted by comparison inside node rather than by
+# shell quoting: `check` evals its argument, and a nested command substitution
+# in there is how a test ends up asserting the empty string against itself.
+istate() { printf '%s' "$1" | node -e 'const r=JSON.parse(require("fs").readFileSync(0,"utf8"));const got=r.seats.map(s=>`${s.agent}=${s.identity.state}`).join(" ");if(got!==process.argv[1]){console.error(`identity states: got "${got}", wanted "${process.argv[1]}"`);process.exit(1)}' "$2"; }
+
+# 10a. the state this company's own roster is in, and the state of any roster
+# before `epito deploy` is ever run: no App anywhere.
+IJ="$($E doctor "$R" --json 2>&1)"
+check "every seat acts as nobody when no App is on the box" \
+  "istate \"\$IJ\" 'graph=none plain=none roaded=none'"
+check "...which refuses nothing: it is how every seat ran before this leg" \
+  "! jq_refusals \"\$IJ\" | grep -q 'identity\|App\|acts as'"
+run "$R"
+check "...and the prose says it once for all three, not once each"  "[ \$(printf '%s' \"\$out\" | grep -c '^  . nobody:') -eq 1 ]"
+check "...naming the two variables that change it, once"            "said 'EPITO_APP_ID_<SEAT>' && [ \$(printf '%s' \"\$out\" | grep -c 'EPITO_APP_ID_<SEAT>') -le 2 ]"
+
+# 10b. a seat whose manifest names the shared credential, on a box that holds
+# it: it acts as a person, and that is a report. The value is never printed.
+RS="$TMP/shared"; mkdir -p "$RS/sharer"
+sed 's/name = "plain"/name = "sharer"/; s/env = \["DOCTOR_SMOKE_HELD"\]/env = ["GH_TOKEN"]/' "$R/plain/agent.toml" > "$RS/sharer/agent.toml"
+SJ="$(GH_TOKEN=a-token-nobody-will-call $E doctor "$RS" --json 2>&1)"
+check "a seat with GH_TOKEN named and held acts as its owner" \
+  "istate \"\$SJ\" 'sharer=shared'"
+out="$(GH_TOKEN=a-token-nobody-will-call $E doctor "$RS" 2>&1)"
+check "...said as what it is: a person's credential"                "said \"the owner of .GH_TOKEN, a person\""
+check "...and the token's value is never printed back"              "! said 'a-token-nobody-will-call'"
+SJ2="$(env -u GH_TOKEN -u GITHUB_TOKEN $E doctor "$RS" --json 2>&1)"
+check "the same seat on a box without it acts as nobody"            "istate \"\$SJ2\" 'sharer=none'"
+
+# 10c. the seat that acts as itself. Two names on the box, a key this box can
+# read, and a JWT it can actually sign — which is the mint's own first step and
+# the only part of it that is free and offline.
+node -e 'const{generateKeyPairSync}=require("crypto");const{privateKey}=generateKeyPairSync("rsa",{modulusLength:2048});require("fs").writeFileSync(process.argv[1],privateKey.export({type:"pkcs1",format:"pem"}),{mode:0o600})' "$TMP/plain.pem"
+OJ="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E doctor "$R" --json 2>&1)"
+check "a seat with an App and a signing key acts as itself" \
+  "istate \"\$OJ\" 'graph=none plain=own roaded=none'"
+check "...and that is not a refusal"                                "! jq_refusals \"\$OJ\" | grep -q 'mint\|half an identity'"
+out="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E doctor "$R" 2>&1)"
+check "...the App id is named, and the names it came from"          "said 'its own GitHub App: id 123456' && said 'EPITO_APP_ID_PLAIN'"
+check "...and never a byte of the key"                              "! said 'PRIVATE KEY'"
+check "...with the other two seats still on one line of their own"  "[ \$(printf '%s' \"\$out\" | grep -c '^  . nobody:') -eq 1 ]"
+
+# 10d. half an identity. loadPrincipal reads it as "no App", the seat falls
+# back to the shared credential, and before this nothing said so — which is
+# the silent fallback the identity leg exists to delete.
+HJ="$(EPITO_APP_ID_PLAIN=123456 $E doctor "$R" --json 2>&1)"
+check "an App id with no key is half an identity"                   "istate \"\$HJ\" 'graph=none plain=half roaded=none'"
+check "...and THAT refuses, like a road this box has and has wrong" "jq_refusals \"\$HJ\" | grep -q 'half of an identity'"
+out="$(EPITO_APP_ID_PLAIN=123456 $E doctor "$R" 2>&1)"
+check "...naming the key variable it is missing"                    "said 'EPITO_APP_KEY_FILE_PLAIN'"
+check "...and what the runtime would do with it"                    "said 'shared credential'"
+HJ2="$(EPITO_APP_ID_PLAIN= EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E doctor "$R" --json 2>&1)"
+check "a line somebody half-filled in is the same answer"           "printf '%s' \"\$HJ2\" | grep -q '\"half\"'"
+out="$(EPITO_APP_ID_PLAIN= EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E doctor "$R" 2>&1)"
+check "...told apart from absent, in the env file's own words"       "said 'set here and set to nothing'"
+
+# 10e. an App whose mint cannot start. A PEM mangled on its way into a systemd
+# EnvironmentFile is the ordinary case — the file has no multi-line values —
+# and the mint is the run's first step, so the run never starts.
+MJ="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_PLAIN='-----BEGIN RSA PRIVATE KEY-----
+truncated' $E doctor "$R" --json 2>&1)"
+check "a key that is not a readable PEM refuses before 06:00"       "printf '%s' \"\$MJ\" | grep -q '\"refused\"'"
+out="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_PLAIN='-----BEGIN RSA PRIVATE KEY-----
+truncated' $E doctor "$R" 2>&1)"
+check "...in the mint's own sentence"                               "said 'not a readable PEM'"
+check "...and the refusal says the mint never reached GitHub"        "said 'the mint would refuse before it reached GitHub'"
+# A key file named and gone: loadPrincipal's own refusal, which is a
+# misconfiguration and not a reason to act as somebody else.
+out="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_FILE_PLAIN="$TMP/not-here.pem" $E doctor "$R" 2>&1)"
+check "a key file named and absent is read back with its path"      "said 'not-here.pem' && said 'cannot read'"
+
+# 10f. the correction this section forced on the one above it. doctor calls an
+# unmintable scope a report, because "a RUN does not care" — true only for a
+# seat with no App. For a seat that HAS one, the mint is the run's first step.
+RU="$TMP/unmintable"; mkdir -p "$RU/scoped"
+sed 's/name = "plain"/name = "scoped"/; s/scopes = \["github:contents"\]/scopes = ["github:packages"]/' "$R/plain/agent.toml" > "$RU/scoped/agent.toml"
+UJ="$($E doctor "$RU" --json 2>&1)"
+check "an unmintable scope with no App on the box is a report" \
+  "istate \"\$UJ\" 'scoped=none' && ! jq_refusals \"\$UJ\" | grep -q 'mint'"
+out="$($E doctor "$RU" 2>&1)"
+check "...said as a report, in the two commands that do refuse"     "said 'epito deploy' && said 'a RUN does not care'"
+UJ2="$(EPITO_APP_ID_SCOPED=123456 EPITO_APP_KEY_FILE_SCOPED="$TMP/plain.pem" $E doctor "$RU" --json 2>&1)"
+check "the same scope WITH an App on the box is a refusal"          "printf '%s' \"\$UJ2\" | grep -q '\"refused\"' && jq_refusals \"\$UJ2\" | grep -q 'mint would refuse'"
+out="$(EPITO_APP_ID_SCOPED=123456 EPITO_APP_KEY_FILE_SCOPED="$TMP/plain.pem" $E doctor "$RU" 2>&1)"
+check "...naming the scope, and no longer calling it harmless"      "said 'github:packages' && ! said 'a RUN does not care'"
+
+# 10g. the file store, which is what `epito deploy` writes on a laptop: both
+# halves together, or the runtime reads neither.
+FS="$TMP/filestore"; mkdir -p "$FS/.epito/keys"
+printf '[{"agent":"plain","externalId":"654321"}]' > "$FS/.epito/principals.json"
+FJ="$(cd "$FS" && EPITO_EXECUTOR="$STUB" node "$CLI/src/index.js" doctor "$R" --json 2>&1)"
+check "a record with no key beside it is half an identity"          "printf '%s' \"\$FJ\" | grep -q '\"half\"'"
+cp "$TMP/plain.pem" "$FS/.epito/keys/plain.pem"
+FJ2="$(cd "$FS" && EPITO_EXECUTOR="$STUB" node "$CLI/src/index.js" doctor "$R" --json 2>&1)"
+check "both halves together is the laptop's own identity, id and all" \
+  "printf '%s' \"\$FJ2\" | grep -q '\"654321\"' && printf '%s' \"\$FJ2\" | grep -q 'principals.json'"
+check "...and the preflight read the store a run in that directory would" \
+  "printf '%s' \"\$FJ2\" | grep -q '$FS/.epito/principals.json'"
+
+step "11. the identity block in epito env, from the same reader"
+# The ideas ledger's row: `epito env` reports the names a manifest DECLARES,
+# and a seat's own identity names are derived from [agent].name instead — so
+# the one command an operator runs to see what a box owes a roster said
+# nothing about the thing that decides whose name its PRs open under.
+eout="$(env -u GH_TOKEN -u GITHUB_TOKEN $E env "$R" 2>&1)"
+check "epito env carries the block, and says no manifest declares it" \
+  "printf '%s' \"\$eout\" | grep -q 'the names no manifest declares'"
+check "...with the same sentence doctor prints, from the same module" \
+  "printf '%s' \"\$eout\" | grep -q 'nobody: no App on this box'"
+check "...and it does not claim --template covers them" \
+  "printf '%s' \"\$eout\" | grep -q 'not in .--template.'"
+ejson="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E env "$R" --json 2>&1)"
+check "--json carries one identity row per seat" \
+  "printf '%s' \"\$ejson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));process.exit(r.identity.length===3&&r.identity.find(x=>x.agent===\"plain\").state===\"own\"?0:1)'"
+check "...and never the key, only which App" \
+  "! printf '%s' \"\$ejson\" | grep -q 'PRIVATE KEY'"
+# The exit code stays this command's own: whether a run would REFUSE is
+# doctor's contract, and a half identity is not a name a manifest asked for.
+env -u GH_TOKEN EPITO_APP_ID_PLAIN=123456 $E env "$R" >/dev/null 2>&1; erc=$?
+check "a half identity does not change what epito env exits"        "[ $erc -eq 0 ]"
+eout="$(env -u GH_TOKEN EPITO_APP_ID_PLAIN=123456 $E env "$R" 2>&1)"
+check "...and it hands that refusal to doctor by name"              "printf '%s' \"\$eout\" | grep -q 'epito doctor'"
 
 printf '\nsmoke: %d ok, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

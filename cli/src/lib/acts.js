@@ -119,7 +119,13 @@ export function actsAs(name, manifest, { env = process.env, dir = "." } = {}) {
   }
 
   if (principal) {
-    const row = { ...base, appId: principal.appId, installation: principal.installationId, source: principal.source };
+    // The file store's source is resolved against `dir`, so an operator sees
+    // WHICH `.epito/` answered — the one in this process's working directory,
+    // which on a provisioned host is the unit's WorkingDirectory and not the
+    // home directory they are standing in. The environment's source is already
+    // absolute in the only sense it has ("$EPITO_APP_ID_PM/...").
+    const source = principal.source.startsWith("$") ? principal.source : resolve(principal.source);
+    const row = { ...base, appId: principal.appId, installation: principal.installationId, source };
     // The mint's first two steps, done here because both are free and offline:
     // sign the App JWT, and map the manifest's scopes. Either one failing is a
     // mint that never starts, which is a run that never starts.
@@ -136,7 +142,7 @@ export function actsAs(name, manifest, { env = process.env, dir = "." } = {}) {
       // half), which is the one shape that reads right whether a sentence
       // speaks for one seat or five: a verb agreeing with a list is how the
       // first draft ended up with five near-identical paragraphs.
-      says: `its own GitHub App: id ${principal.appId}, from ${principal.source}${principal.installationId ? `, installation ${principal.installationId}` : ", installation discovered from [runtime].repo at mint time"}`,
+      says: `its own GitHub App: id ${principal.appId}, from ${source}${principal.installationId ? `, installation ${principal.installationId}` : ", installation discovered from [runtime].repo at mint time"}`,
       fix: null,
     };
   }

@@ -196,9 +196,21 @@ systemctl restart epitod-worker        # the WORKER mints; the ingress never see
 schedule depends on it:
 
 ```sh
+epito doctor /srv/asc/agents               # who every seat on this box acts as
 epito token pm /srv/asc/agents --dry-run   # the mapping only: no network, no key
 epito token pm /srv/asc/agents             # the real mint; the token is stdout, alone
 ```
+
+`epito doctor`'s identity section is the one that catches the mistake this
+file's two lines invite: an `EnvironmentFile` has no multi-line values, so a
+key pasted in by hand arrives truncated or with its newlines escaped away, and
+an `EPITO_APP_ID_` line added without its key — or a `systemctl restart` that
+never happened — leaves the box holding **half** an identity. The runtime reads
+half as none and the seat quietly goes back to the shared credential; the
+preflight calls that out by name and exits 1, having signed a throwaway JWT
+with the key to prove the mint's own first step works offline. Run it as the
+user the units run as (`sudo -u seats`), because what it reads is what that
+user can read.
 
 Three rules the runtime keeps, each asserted in `cli/test/smoke-temporal.sh`:
 
@@ -221,10 +233,23 @@ Three rules the runtime keeps, each asserted in `cli/test/smoke-temporal.sh`:
   A run that resumes a held window borrows that window's clone and mints once.
 - **The minted token wins.** If `[runtime].env` also names `GH_TOKEN`, the
   agent's own credential is used instead, and the run log says so by name.
-- **No silent fallback.** An agent with no App runs on the shared `GH_TOKEN`
-  exactly as it did before — clone included. An agent that *has* one and
-  cannot mint stops, and the run is recorded `exit=mint` with the reason. A PR
-  opened by the wrong identity is worse than a PR not opened.
+- **No silent fallback.** An agent that *has* an App and cannot mint stops, and
+  the run is recorded `exit=mint` with the reason. A PR opened by the wrong
+  identity is worse than a PR not opened.
+
+  An agent with **no** App runs as it did before, and that sentence is worth
+  one more line of precision than it used to have, because the two halves of a
+  run do not get their credential from the same place. The **clone** is the
+  worker's own `git`, so it reaches the box's `GH_TOKEN` through the system
+  credential helper below. The **run** is a child spawned with an allowlist —
+  `PATH`, `HOME`, `USER`, plus the names its `[runtime].env` asks for — so the
+  box's `GH_TOKEN` reaches the agent's own `gh` only if its manifest names it.
+  A seat with no App and no `GH_TOKEN` in `[runtime].env` therefore clones
+  fine and has nothing to open a pull request with, which is the state every
+  seat in this repository's own `agents/` is in today. `epito doctor <roster>`
+  names it per seat ("acts as nobody"), and it is a report rather than a
+  refusal: whether a seat needs to reach GitHub at all is in its charter, not
+  in its manifest.
 
 ### What the box's own `GH_TOKEN` is still for
 
