@@ -116,6 +116,10 @@ export function actsAs(name, manifest, { env = process.env, dir = "." } = {}) {
     store: { principals: resolve(store.principalsPath), key: resolve(store.keyPath) },
     shared: sharedName ? { name: sharedName, state: holding(sharedName, env) } : null,
     appId: null, installation: null, source: null, repo,
+    // Carried on the row because the online half below compares them against
+    // what the installation was actually granted, and a row that had to be
+    // paired back up with its manifest is a row two readers can mismatch.
+    scopes: manifest?.identity?.scopes ?? [],
   };
 
   let principal = null;
@@ -270,6 +274,13 @@ export function rosterActs(roster, { env = process.env, dir = "." } = {}) {
 //                discovering one, so GitHub answers it 404 — identity.js
 //                calls that permanent too. A refusal, and the one answer here
 //                that is per seat rather than per App.
+//   ungranted    installed, and the installation was granted LESS than
+//                [identity].scopes maps to — contents:read where the manifest
+//                needs contents:write. An installation can only hand out
+//                permissions the App was granted, so GitHub answers the mint
+//                422. Free to check: the installation GitHub just described
+//                carries its own permissions, so this is a comparison and not
+//                a second request.
 //   refused      GitHub refused permanently: not installed there (404), or an
 //                App id and a private key that are not from the same App
 //                (401). Two sentences, two fixes, both identity.js's own
@@ -280,6 +291,7 @@ export function rosterActs(roster, { env = process.env, dir = "." } = {}) {
 //                refusal, for the same reason the run path retries it.
 export const INSTALLED = "installed";
 export const MISMATCH = "mismatch";
+export const UNGRANTED = "ungranted";
 export const GH_REFUSED = "refused";
 export const UNREACHABLE = "unreachable";
 
@@ -320,6 +332,31 @@ async function askGitHub(row, { env, dir, lookup, deadline }) {
   }
 }
 
+// GitHub's three levels, ranked, so "the App has contents:read where the
+// manifest needs contents:write" is a comparison rather than a string match.
+// An unknown level ranks 0 and therefore reads as short of anything, which is
+// the safe direction for a preflight: it reports a mint it is not sure of
+// rather than ticking one.
+const LEVELS = { read: 1, write: 2, admin: 3 };
+const short = (granted, need) => (LEVELS[granted] ?? 0) < (LEVELS[need] ?? 0);
+
+// What the manifest's scopes need against what the installation was granted.
+// Returns the shortfalls, or [] — including when GitHub described the
+// installation without a permissions object at all, which is the one case
+// where the honest answer is to say nothing rather than to guess.
+export function grantGap(scopes, granted) {
+  if (!granted) return [];
+  let need;
+  // Unmappable scopes are `actsAs`'s own refusal (offline, before this ever
+  // runs), so a throw here would be unreachable — but the ceiling is the one
+  // rule that must not fail open, so this says nothing rather than claiming
+  // a grant is sufficient for a mint that will not be attempted.
+  try { need = permissionsFor(scopes); } catch { return []; }
+  return Object.entries(need)
+    .filter(([name, level]) => short(granted[name], level))
+    .map(([name, level]) => ({ permission: name, need: level, granted: granted[name] ?? null }));
+}
+
 // Where the id this box names actually comes from, so a fix names the thing
 // the operator would edit. Two stores, one each (identity.js, loadPrincipal).
 function idSource(row) {
@@ -339,14 +376,28 @@ function verdictFor(row, call) {
       return {
         ...base,
         state: MISMATCH,
-        says: `an App installed on ${row.repo} as installation ${call.installation}, and this box tells its runs to mint from ${named} instead — the mint uses the id the box names rather than discovering one, so GitHub answers it 404 and the run stops at its first step`,
+        says: `an App installed on ${row.repo} as installation ${call.installation}, while this box tells its runs to mint from ${named} instead; the mint uses the id the box names rather than discovering one, so GitHub refuses it (404 if no such installation exists, 422 if one does and cannot see ${row.repo}) and the run stops at its first step`,
         fix: `unset ${idSource(row)} and let the mint discover the installation from [runtime].repo, which is what it does when nothing names one — or correct it to ${call.installation}, the installation GitHub says this App has on ${row.repo}`,
+      };
+    }
+    const gaps = grantGap(row.scopes ?? [], call.permissions);
+    if (gaps.length) {
+      const asked = gaps.map((g) => `${g.permission}:${g.need}`).join(", ");
+      return {
+        ...base,
+        state: UNGRANTED,
+        gaps,
+        says: `an App installed on ${row.repo} as installation ${call.installation} and granted less there than its [identity].scopes need: ${gaps.map((g) => `${g.permission} is ${g.granted ?? "not granted at all"} and the manifest needs ${g.need}`).join("; ")}. An installation can only hand out permissions the App was granted, so GitHub answers the mint 422`,
+        fix: `grant the App ${asked} and accept the request on ${row.repo} (its owner does this once, from the App's permissions page), or drop the scope from this agent's agent.toml — scopes are the ceiling, so the mint refuses rather than quietly minting a token narrower than the manifest promises`,
       };
     }
     return {
       ...base,
       state: INSTALLED,
-      says: `its own GitHub App, installed on ${row.repo} as installation ${call.installation}${named ? ", the id this box names" : " — the id its runs will discover from [runtime].repo, since nothing on this box names one"}`,
+      // No em dash in any of these sentences: doctor appends "— covers a, b"
+      // to every line in this block, and a second dash inside the sentence is
+      // where a reader loses which half the list belongs to.
+      says: `its own GitHub App, installed on ${row.repo} as installation ${call.installation}, which is ${named ? "the id this box names for it" : "the id its runs discover from [runtime].repo, since nothing on this box names one"}${call.permissions ? `, and granted there everything its [identity].scopes ask to mint` : ""}`,
       fix: null,
     };
   }
@@ -380,10 +431,10 @@ export async function rosterInstalled(rows, { env = process.env, dir = ".", look
 
 // Read off one list, for the same reason doctor's own verdict is: two answers
 // to "would the mint start" is one too many.
-export const INSTALL_REFUSES = new Set([MISMATCH, GH_REFUSED]);
+export const INSTALL_REFUSES = new Set([MISMATCH, UNGRANTED, GH_REFUSED]);
 
 // What `--deep` would prove and a plain run cannot, said in the one place
 // doctor prints its "not proven" line. Named for the seats it is true of: a
 // roster with no App of its own has nothing here to prove.
 export const INSTALL_UNPROVEN =
-  "whether each App is installed on the repository it would mint for — the key signing is offline and free, and the installation is a question only GitHub can answer";
+  "whether each App is installed on the repository it would mint for, and was granted there what its [identity].scopes ask to mint — the key signing is offline and free, and both of those are questions only GitHub can answer";

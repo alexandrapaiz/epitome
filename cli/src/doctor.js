@@ -28,6 +28,17 @@
 //   engine     something answering at TEMPORAL_ADDRESS — and, when the engine
 //              client is installed here, the real connect and namespace check
 //
+// And two halves that only `--deep` reaches, because they leave this box:
+//
+//   installed  for every seat with an App of its own, whether GitHub says that
+//              App is installed on the repository it would mint for, and
+//              whether the installation id this box names is that one
+//              (src/lib/acts.js, rosterInstalled). Costs nothing: one GET per
+//              (App, repo) pair, no token minted, no ledger line.
+//   one turn   one real turn per road, which is the only thing that proves the
+//              executor's credentials — and the only part of `--deep` that
+//              costs a model call
+//
 // Each section is this command's own reading of a shared module, never a
 // re-implementation: the manifests go through loadRoster, the names through
 // boxenv, the roads through the router, the engine through src/temporal's one
@@ -62,14 +73,17 @@ import { blockers, unchecked } from "./lib/readiness.js";
 import { rosterEnv, askers, HELD, EMPTY, ABSENT } from "./lib/boxenv.js";
 import { routesFor, liveRoutes, endpointLabel, DEFAULT_ROUTE } from "./lib/router.js";
 import { lookAtExecutor, deepProbe, deepKey, probeFor, DEEP_PROMPT } from "./lib/probe.js";
-import { actsAs, IDENTITY_FIX, OWN, REFUSED, HALF, SHARED, NONE } from "./lib/acts.js";
+import {
+  actsAs, rosterInstalled, IDENTITY_FIX, INSTALL_UNPROVEN, INSTALL_REFUSES,
+  OWN, REFUSED, HALF, SHARED, NONE, INSTALLED, MISMATCH, UNGRANTED, GH_REFUSED, UNREACHABLE,
+} from "./lib/acts.js";
 import { engineAddress, engineAnswering, engineFix, engineMissing, missingEnginePackage } from "./lib/engine.js";
 import { temporalEnv } from "./temporal/env.js";
 import { SPEC_VERSION } from "./lib/fields.js";
 
 export const DOCTOR_FLAGS = [
   { name: "json", does: "the report as JSON" },
-  { name: "deep", does: "also run ONE real turn per road, to prove the executor's credentials — this costs a model call and leaves the box" },
+  { name: "deep", does: "also ask the two questions that leave this box: whether each agent's App is installed where it would mint (free), and ONE real turn per road, to prove the executor's credentials (this one costs a model call)" },
 ];
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -187,6 +201,13 @@ export async function doctorCmd(args = []) {
     }
   }
 
+  // The installation look, for every seat that has an App of its own. Keyed
+  // off the rows actsAs already produced, so the offline half and the online
+  // half cannot disagree about which seats have one; a roster where no seat
+  // does — this company's own, today — makes no request at all.
+  const installed = deep ? await rosterInstalled(perSeat.map((p) => p.acts)) : [];
+  for (const i of installed) perSeat.find((p) => p.agent === i.agent).installed = i;
+
   const engine = await engineLook();
 
   // --- the verdict ---------------------------------------------------------
@@ -215,6 +236,20 @@ export async function doctorCmd(args = []) {
     else actGroups.push({ key, state: a.state, says: a.says, fix: a.fix, agents: [a.agent] });
   }
   const badIdentity = actGroups.filter((g) => g.state === REFUSED || g.state === HALF);
+
+  // The installation answers, grouped the same way and for the same reason:
+  // two seats sharing an App and a repository share an installation, so they
+  // share a sentence and the seats it covers. A mismatch is the one answer
+  // that is per seat — it is about an id THIS box names for THIS seat — and it
+  // keeps its own line because its `says` carries that id.
+  const installGroups = [];
+  for (const i of installed) {
+    const key = `${i.state}|${i.says}|${i.fix}`;
+    const found = installGroups.find((g) => g.key === key);
+    if (found) found.agents.push(i.agent);
+    else installGroups.push({ key, state: i.state, says: i.says, fix: i.fix, agents: [i.agent] });
+  }
+  const badInstall = installGroups.filter((g) => INSTALL_REFUSES.has(g.state));
 
   const stranded = perSeat.filter((p) => !p.roads.takes);
   const brokenRoads = perSeat.flatMap((p) => p.roads.misconfigured.map((m) => ({ agent: p.agent, ...m })));
@@ -245,6 +280,19 @@ export async function doctorCmd(args = []) {
         ? "this box holds half of an identity for it, so its runs silently fall back to whatever else the box gives them"
         : "it has a GitHub App on this box and the mint would refuse before it reached GitHub",
     })),
+    // What `--deep` found at GitHub. Not "has no App" and not "GitHub could not
+    // be reached": the first is how this product worked before the identity leg,
+    // and the second is the kind of failure the run path RETRIES (identity.js
+    // marks the difference with `permanent`, and acts.js reads that flag rather
+    // than re-deciding here). These two are mints that would fail every time.
+    ...badInstall.map((g) => ({
+      agents: g.agents,
+      says: g.state === MISMATCH
+        ? "this box names an installation id for it that GitHub does not have, so the mint its run starts with is refused"
+        : g.state === UNGRANTED
+          ? "its App is installed where it would mint and was granted less there than its [identity].scopes need, so GitHub refuses the mint 422"
+          : "it has a GitHub App on this box that GitHub will not mint for",
+    })),
     ...refusedDeep.map((d) => ({ agents: d.agents, says: `the executor refused one turn on the road ${roadLabel(d.route)}` })),
     // The engine's own sentence, and a fix appended only when it does not
     // already carry one. A real connect that failed has said the exact thing
@@ -264,7 +312,17 @@ export async function doctorCmd(args = []) {
       executor: { adapter: p.executor.adapter, binary: p.executor.binary, path: p.executor.path, state: p.executor.state, version: p.executor.version },
       // The App id and the source are facts about which principal, never the
       // key itself: the same line the audit log keeps (spec rule 1).
-      identity: { state: p.acts.state, source: p.acts.source, appId: p.acts.appId, installation: p.acts.installation, says: p.acts.says },
+      identity: {
+        state: p.acts.state, source: p.acts.source, appId: p.acts.appId, installation: p.acts.installation, says: p.acts.says,
+        // Only `--deep` asks, so `null` here means unasked and never "fine":
+        // `declared` is the id this box names, `installation` the one GitHub
+        // named, and `status` GitHub's own code where it refused — 404 (not
+        // installed there) and 401 (an id and a key from different Apps) are
+        // two different fixes, and this is where a machine reads which.
+        installed: p.installed
+          ? { state: p.installed.state, declared: p.installed.declared, installation: p.installed.installation, status: p.installed.status, says: p.installed.says }
+          : null,
+      },
       names: { asked: p.env.asked.length, held: p.env.held.length, missing: p.env.missing, empty: p.env.empty },
       blocks: p.blocks.map((b) => b.problem),
       notes: p.notes,
@@ -272,6 +330,7 @@ export async function doctorCmd(args = []) {
     })),
     engine: { address: engine.address, namespace: engine.namespace, ok: engine.ok, depth: engine.depth, reason: engine.reason ?? null },
     deep: deep ? [...deepByKey.values()].map((d) => ({ route: d.route, model: d.model, state: d.state, turns: d.turns ?? null, says: d.says ?? null })) : null,
+    installed: deep ? installed.map((i) => ({ agents: [i.agent], appId: i.appId, repo: i.repo, state: i.state, declared: i.declared, installation: i.installation, status: i.status })) : null,
     refusals: refusals.map((r) => ({ agents: r.agents, says: r.says })),
   };
   if (json) {
@@ -320,6 +379,23 @@ export async function doctorCmd(args = []) {
     badIdentity.length
       ? `${plural(badIdentity.reduce((t, g) => t + g.agents.length, 0), "seat")} ${badIdentity.reduce((t, g) => t + g.agents.length, 0) === 1 ? "has an identity" : "have identities"} on this box a run cannot use (${badIdentity.flatMap((g) => g.agents).join(", ")})`
       : identityParts.join(", "));
+
+  // installed — the identity row's online half, and printed beside it rather
+  // than with the other --deep row at the bottom for the reason the sections
+  // are in this order at all: a run with an App mints before it spawns
+  // anything, so this is where an operator reading top to bottom needs it.
+  if (deep && installed.length) {
+    const okInstall = installed.filter((i) => i.state === INSTALLED);
+    const unasked = installed.filter((i) => i.state === UNREACHABLE);
+    const apps = new Set(installed.map((i) => i.key)).size;
+    const badSeats = badInstall.flatMap((g) => g.agents);
+    row("installed", badSeats.length ? "bad" : unasked.length ? "note" : "ok",
+      badSeats.length
+        ? `${plural(badSeats.length, "seat")} ${badSeats.length === 1 ? "has an App" : "have Apps"} GitHub will not mint for (${badSeats.join(", ")})`
+        : unasked.length
+          ? `${plural(apps, "App")} asked at GitHub for ${plural(installed.length, "seat")}, ${unasked.length} GitHub could not be asked about from this box${okInstall.length ? `, ${okInstall.length} installed where ${okInstall.length === 1 ? "it" : "they"} would mint` : ""}`
+          : `${plural(apps, "App")} asked at GitHub for ${plural(installed.length, "seat")}, every one installed on the ${apps === 1 ? "repository" : "repositories"} it would mint for`);
+  }
 
   // executor
   const execOk = perSeat.filter((p) => p.executor.state === "ok");
@@ -372,6 +448,22 @@ export async function doctorCmd(args = []) {
     // Once, under the block, for every seat in it that has no App: the two
     // names are the same rule for all of them.
     if (actGroups.some((g) => g.state === SHARED || g.state === NONE)) out(`  Fix: ${IDENTITY_FIX}.`);
+    out("");
+  }
+
+  // --- and whether GitHub has that App, once per App -----------------------
+  // Printed whole whenever `--deep` asked, ✓ rows included: the flag is an
+  // operator saying "go and check", and the answer to that is the table, not
+  // only its exceptions. One line per (App, repo) with the seats it covers,
+  // because that is what one request covers — except a mismatch, which is
+  // about an id this box names for one seat and so is always its own line.
+  if (installGroups.length) {
+    out("installed, per App");
+    for (const g of installGroups) {
+      const mark = g.state === INSTALLED ? "✓" : g.state === UNREACHABLE ? "!" : "✗";
+      out(`  ${mark} ${g.says} — covers ${g.agents.join(", ")}`);
+      if (g.fix) out(`      Fix: ${g.fix}.`);
+    }
     out("");
   }
 
@@ -453,6 +545,10 @@ export async function doctorCmd(args = []) {
     const noMint = withBlocks.filter((p) => p.acts.state !== OWN && p.acts.state !== REFUSED);
     if (noMint.length) asides.push(`${plural(noMint.length, "seat")} above ${noMint.length === 1 ? "names a scope" : "name scopes"} this spec cannot mint: with no App on this box a RUN does not care, \`epito deploy\` and \`epito token\` refuse.`);
   }
+  const unasked = installed.filter((i) => i.state === UNREACHABLE);
+  if (unasked.length) {
+    asides.push(`${plural(unasked.length, "seat")} with an App of its own could not be checked at GitHub from this box (${unasked.map((i) => i.agent).join(", ")}): that is a report, not a refusal, for the same reason the runtime retries it — a blocked route and a rate limit are the kind of mint failure that passes, and an App installed nowhere is the kind that never does. The block above carries GitHub's own words. Nothing else about ${unasked.length === 1 ? "that seat" : "those seats"} is in doubt: ${unasked.length === 1 ? "its" : "their"} key signs here.`);
+  }
   if (sharedSeats.length || noneSeats.length) {
     asides.push(`${plural(sharedSeats.length + noneSeats.length, "seat")} here ${sharedSeats.length + noneSeats.length === 1 ? "does" : "do"} not act as ${sharedSeats.length + noneSeats.length === 1 ? "itself" : "themselves"} (${[...sharedSeats, ...noneSeats].map((p) => p.agent).join(", ")}): ${sharedSeats.length ? "a shared credential belongs to a person, and every PR it opens is theirs" : "nothing authenticates the run's own \`gh\`"}. That is a report, not a refusal — it is how every seat ran before the identity leg. The block above names the two environment variables that change it per seat.`);
   }
@@ -472,7 +568,11 @@ export async function doctorCmd(args = []) {
   const unproven = [...new Set(perSeat.map((p) => probeFor(p.executor.adapter).unproven))];
   out(`✓ nothing here would make a run on this box refuse: ${plural(n, "manifest")} good, every seat on an open road, the executor starts under a run's own environment, and ${engine.address} is ${engine.depth === "connect" ? "Temporal with namespace " + engine.namespace : "answering"}.`);
   if (!deep) {
-    out(`  Not proven: ${unproven.join("; and ")}. \`epito doctor ${dirArg} --deep\` runs ONE turn per road ("${DEEP_PROMPT}") — which costs a model call and is the only thing that proves credentials from here.`);
+    // Two gaps, and only one of them costs anything to close — so they are
+    // named apart rather than behind one price. A roster with no App of its
+    // own has nothing to prove in the second half, and is not told about it.
+    const gaps = ownSeats.length ? [...unproven, INSTALL_UNPROVEN] : unproven;
+    out(`  Not proven: ${gaps.join("; and ")}. \`epito doctor ${dirArg} --deep\` asks both: ONE turn per road ("${DEEP_PROMPT}"), which costs a model call and is the only thing that proves the executor's credentials from here${ownSeats.length ? `, and one free GET at GitHub per App, which is the only thing that proves an installation` : ""}.`);
   }
   for (const a of asides) out(`  ${a}`);
   process.exit(0);

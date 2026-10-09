@@ -16,6 +16,7 @@
 //
 // modes: ok (default) | not-installed (404 on installation lookup)
 //        | bad-app (401 on installation lookup) | refuse-perms (422 on mint)
+//        | thin-perms (installed, but granted less than the manifest's scopes)
 //        | no-bot (404 on GET /app, so the commit-identity lookup fails and
 //                 the run must degrade loudly instead of stopping)
 import { createServer } from "node:http";
@@ -114,7 +115,16 @@ createServer((req, res) => {
     if (req.method === "GET" && inst) {
       if (mode === "not-installed") return send(404, { message: "Not Found" });
       if (mode === "bad-app") return send(401, { message: "A JSON web token could not be decoded" });
-      return send(200, { id: 4242, account: { login: inst[1] } });
+      // `permissions` is what the App was actually granted on this account,
+      // and GitHub does send it here. It is the half `epito doctor --deep`
+      // compares against [identity].scopes, because an installation can only
+      // hand out what it was granted and the mint learns that as a 422.
+      // thin-perms is that case: installed, and granted read where the
+      // manifest's scopes need write.
+      const permissions = mode === "thin-perms"
+        ? { metadata: "read", contents: "read" }
+        : { metadata: "read", contents: "write", pull_requests: "write", issues: "write" };
+      return send(200, { id: 4242, account: { login: inst[1] }, repository_selection: "selected", permissions });
     }
 
     const mint = /^\/app\/installations\/(\d+)\/access_tokens$/.exec(req.url);
