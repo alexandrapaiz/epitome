@@ -165,15 +165,19 @@ than two, but nothing in the design requires the ingress to hold a token.
 Without this, every seat on the box clones and pushes with the same
 `GH_TOKEN`, and every PR is opened by whoever owns it. With it, a seat is a
 principal: it clones as itself, its commits are authored by its own bot user,
-its PR opens as `<name>[bot]`, and its reach is exactly `[identity].scopes` on
-exactly `[runtime].repo`, for one hour at a time.
+its PR opens as its App's own login (`<name>[bot]` if that name was free when
+the App was created — see step 1), and its reach is exactly
+`[identity].scopes` on exactly `[runtime].repo`, for one hour at a time.
 
 Once per agent, by hand — the one-click creation flow is `epito deploy`, which
 is not built yet:
 
 1. GitHub → Settings → Developer settings → GitHub Apps → **New GitHub App**.
    Name it for the agent; App names are globally unique on GitHub, so expect
-   to add a suffix.
+   to add a suffix — and the suffix is real: the seat is `pm`, the App is
+   `asc-pm`, and its pull requests open as `asc-pm[bot]`. `epito doctor
+   <roster> --deep` is what tells you which it ended up being; nothing on the
+   box can know.
 2. Give it the repository permissions the agent's scopes map to. `epito token
    <name> --dry-run` prints exactly that list and asks GitHub nothing. Nothing
    more than that list: the App's own permissions are the outer ceiling, and

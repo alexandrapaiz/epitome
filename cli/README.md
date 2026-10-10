@@ -199,9 +199,9 @@ And the one thing that check cannot reach, because an App installed nowhere
 mints nothing however valid its key: whether GitHub *has* that App on the
 repository the seat would mint for. That answer is a network call — the mint's
 own next step — so it rides `--deep`, the flag that already means "leave this
-box", and unlike the one-turn probe beside it, it costs nothing: one `GET
-/repos/{owner}/{name}/installation` per (App, repo) pair, no token minted, no
-ledger line.
+box", and unlike the one-turn probe beside it, it costs nothing: two `GET`s
+per App — the installation on `[runtime].repo`, and `/app`, which is who that
+App is — no token minted, no ledger line, however many seats share it.
 
 ```
 ✓ installed  1 App asked at GitHub for 2 seats, every one installed on the repository it would mint for
@@ -211,14 +211,49 @@ installed, per App
     the id its runs discover from [runtime].repo, since nothing on this box
     names one, and granted there everything its [identity].scopes ask to mint
     — covers pm, okr
+      Its pull requests there open as asc-pm[bot], which is this App's own
+      login: usually the seat's name, and whatever GitHub actually gave the
+      App when it was created.
 ```
+
+That last line is the second thing `/app` buys, and it is the only place this
+product can tell the truth about it. An App name is unique across the whole of
+GitHub, so a seat called `pm` whose plain name was taken is the App `asc-pm`
+and opens its pull requests as `asc-pm[bot]` — every other sentence here says
+`<name>[bot]`, which is the usual case and not a promise anything can keep.
+`--json` carries it as `seats[].identity.installed.login`, null where GitHub
+was not asked or did not answer, never a guess.
+
+The first thing it buys is a page. A refusal in this product names a fix, and
+the two fixes here that are not a file to edit or a name to set are *install
+this App* and *grant it this permission* — both of them a page on GitHub that
+the operator otherwise goes and finds:
+
+```
+  ✗ an App this box cannot mint with: this agent's GitHub App is not installed
+    on acme/box — an App with no installation there can mint nothing, however
+    valid its key. Fix: install the App on acme/box (its owner does this
+    once), then mint again. — covers pm, okr
+      The page that does it: https://github.com/apps/asc-pm/installations/new
+```
+
+The page is where it is, not where github.com would be: a box pointed at a
+GitHub Enterprise host by `$EPITO_GITHUB_API` gets its own host's pages, since
+its App does not exist on github.com at all. And a permission is granted under
+whoever *owns* the App, which is why `/app` is read for its owner and not only
+its slug — an org-owned App is not reachable under `/settings/apps` at all.
+Neither link is offered when there is nothing to build one from: GitHub
+answering 401 means the App id and the key are not from the same App, and those
+same credentials cannot read `/app` either, so that refusal stays the sentence
+it was.
 
 Four of its five answers exit 1 — an App installed nowhere, an installation id
 *this box* names that GitHub does not have (the mint uses the id the box names
 rather than discovering one, so GitHub refuses it), a grant short of what
 `[identity].scopes` map to (an installation can only hand out permissions the
 App was granted, which the mint learns as a 422), and credentials GitHub
-rejects outright. The fifth is a report: a GitHub this box could not reach is
+rejects outright — three of the four now carry the page that fixes them. The
+fifth is a report: a GitHub this box could not reach is
 the kind of mint failure that *passes*, and the run path retries it. That line
 is not redrawn here — `src/lib/identity.js` marks a mint failure `permanent`
 or not, because the clone activity retries, and the preflight reads that flag
@@ -235,8 +270,9 @@ why no command saw them before.
 - **Identity** — its own GitHub App, created from `[identity].scopes` and
   never wider than the file. Short-lived tokens minted per run, an
   append-only audit line for each, the private key at `0600` on your
-  machine and never in the repo. Its pull requests open as `<name>[bot]`,
-  not as you. `epito audit` reads that record back.
+  machine and never in the repo. Its pull requests open as the App's own
+  login — usually `<name>[bot]`, and `epito doctor <roster> --deep` reads the
+  real one — not as you. `epito audit` reads that record back.
 - **Trigger** — `[trigger].cron` becomes a real schedule; `webhook = true`
   lets the ingress wake it. A trigger is explicit and never defaulted: a
   seat that did not ask to be woken by the ingress is not woken by it.
