@@ -14,7 +14,7 @@
 // was knowable before 06:00 and nothing looked.
 //
 // So this is the preflight, and its contract is one sentence: exit 1 if a run
-// on this box would refuse, and name the piece. Six sections, in the order a
+// on this box would refuse, and name the piece. Seven sections, in the order a
 // run needs them —
 //
 //   manifests  the roster loads and passes the spec (the validator's own code)
@@ -27,6 +27,12 @@
 //              started under the environment a RUN gives it (src/lib/probe.js)
 //   engine     something answering at TEMPORAL_ADDRESS — and, when the engine
 //              client is installed here, the real connect and namespace check
+//   worker     and whether anything is POLLING the queue the engine would put
+//              that run on (src/temporal/pollers.js). Every other row above
+//              asks whether a run would be ACCEPTED; this is the only one that
+//              asks whether it would be performed, and the two come apart on
+//              any box where `epitod-worker` died — the engine goes on taking
+//              schedules and starting runs that nothing picks up
 //
 // And two halves that only `--deep` reaches, because they leave this box:
 //
@@ -50,7 +56,10 @@
 //   exit 1   a refused manifest, a seat with no open road, a road this box has
 //            and has wrong, a name set to nothing, HALF of an identity, an App
 //            whose mint could not start, an executor that is missing or will
-//            not start, an engine that is not answering
+//            not start, an engine that is not answering, an engine that is
+//            answering with nothing polling the queue it would use (a run
+//            there is accepted and never performed, which is the one failure
+//            on this list that no surface used to report at all)
 //   exit 0   a name this box does not hold (`[runtime].env` is the list the
 //            runtime injects FROM, and nothing in a manifest says which names
 //            a seat cannot work without — `epito env --complete` is where an
@@ -78,6 +87,9 @@ import {
   OWN, REFUSED, HALF, SHARED, NONE, INSTALLED, MISMATCH, UNGRANTED, GH_REFUSED, UNREACHABLE,
 } from "./lib/acts.js";
 import { engineAddress, engineAnswering, engineFix, engineMissing, missingEnginePackage } from "./lib/engine.js";
+// POLLED/UNASKED only: this file already has a HALF and a NONE, and they
+// are acts.js's — half of an identity and no identity at all.
+import { describeQueue, summarize, WORKER_REFUSES, POLLED, UNASKED } from "./temporal/pollers.js";
 import { temporalEnv } from "./temporal/env.js";
 import { SPEC_VERSION } from "./lib/fields.js";
 
@@ -112,7 +124,7 @@ export async function engineLook({ env = process.env, probe = engineAnswering, i
   const cfg = temporalEnv(env);
   const address = engineAddress(env);
   const look = await probe(address);
-  if (!look.ok) return { ...look, address, namespace: cfg.namespace, depth: "tcp", client: false };
+  if (!look.ok) return { ...look, address, namespace: cfg.namespace, depth: "tcp", client: false, taskQueue: cfg.taskQueue, pollers: null };
   let connect;
   try { ({ connect } = await importClient()); }
   catch (e) {
@@ -120,19 +132,26 @@ export async function engineLook({ env = process.env, probe = engineAnswering, i
     // and of every `npm i -g epito`. Anything else — our own broken module —
     // is not ours to swallow.
     if (!missingEnginePackage(e)) throw e;
-    return { ...look, address, namespace: cfg.namespace, depth: "tcp", client: false };
+    return { ...look, address, namespace: cfg.namespace, depth: "tcp", client: false, taskQueue: cfg.taskQueue, pollers: null };
   }
   try {
     const { connection } = await connect({ env, quiet: true });
+    // Who is polling, asked on the connection that is already open and inside
+    // the same try: a `DescribeTaskQueue` that throws is a thing to report, not
+    // a reason to call the engine down — the connect and the namespace check
+    // have both just succeeded, and that is what the engine row states.
+    let pollers = null, pollersError = null;
+    try { pollers = await describeQueue(connection, { namespace: cfg.namespace, taskQueue: cfg.taskQueue }); }
+    catch (e) { pollersError = e.message; }
     await connection.close().catch(() => {});
-    return { ok: true, reason: null, address, namespace: cfg.namespace, depth: "connect", client: true };
+    return { ok: true, reason: null, address, namespace: cfg.namespace, depth: "connect", client: true, taskQueue: cfg.taskQueue, pollers, pollersError };
   } catch (e) {
     // connect() already speaks in the product's voice — the unreachable
     // sentence, or the missing-namespace one with the command that creates it.
     // An engine that answers a TCP connect and refuses a namespace check is
     // the case the TCP look reads as healthy, and it is the reason this half
     // exists at all.
-    return { ok: false, reason: e.message, address, namespace: cfg.namespace, depth: "connect", client: true, answering: true };
+    return { ok: false, reason: e.message, address, namespace: cfg.namespace, depth: "connect", client: true, answering: true, taskQueue: cfg.taskQueue, pollers: null };
   }
 }
 
@@ -209,6 +228,23 @@ export async function doctorCmd(args = []) {
   for (const i of installed) perSeat.find((p) => p.agent === i.agent).installed = i;
 
   const engine = await engineLook();
+  // Who is performing the work, from what that one connection already asked.
+  // `asked` is false on every box where the question could not be put — no
+  // engine answering, or no engine client installed — and the row says so
+  // rather than reading an empty poller list as "nothing is polling": an
+  // unasked question has never been evidence here.
+  const worker = summarize(engine.pollers ?? {}, {
+    taskQueue: engine.taskQueue,
+    asked: Boolean(engine.pollers),
+    error: engine.pollersError ?? null,
+    // Which unasked this is. A box with the engine client and nothing
+    // answering has already been told about the engine; a box WITHOUT the
+    // client is the ordinary `npm i -g epito` laptop, and its ✓ is the one
+    // that would otherwise read as covering this question.
+    because: engine.client
+      ? `nothing answered at ${engine.address}`
+      : `the engine client is not installed on this box (${engine.address} answered a TCP connect, and asking who polls a queue takes a real gRPC connection)`,
+  });
 
   // --- the verdict ---------------------------------------------------------
   // The executor's problems, grouped by the problem itself, because that is
@@ -302,6 +338,14 @@ export async function doctorCmd(args = []) {
     // onto "namespace nope does not exist" names the wrong fix for the
     // problem the line above just described.
     ...(engine.ok ? [] : [{ agents: [], says: `no engine: ${engine.depth === "connect" ? engine.reason : `${engineMissing(engine)}. Fix: ${engineFix(engine.address)}`}` }]),
+    // And nothing performing the work. A fact about the box, so no seats —
+    // the same shape the engine's own entry uses. Only ever added when the
+    // question was actually put: UNASKED carries no refusal, because a box
+    // with no engine has already refused one row up and a box without the
+    // engine client cannot be asked at all.
+    ...(WORKER_REFUSES.has(worker.state)
+      ? [{ agents: [], says: `no worker: ${worker.says} Fix: ${worker.fix}` }]
+      : []),
   ];
 
   const report = {
@@ -334,6 +378,23 @@ export async function doctorCmd(args = []) {
       deep: p.deep ? { state: p.deep.state, route: p.deep.route, turns: p.deep.turns ?? null, says: p.deep.says ?? null } : null,
     })),
     engine: { address: engine.address, namespace: engine.namespace, ok: engine.ok, depth: engine.depth, reason: engine.reason ?? null },
+    // The worker, as its own object rather than a field of `engine`: they are
+    // two processes on a provisioned host and the whole point of this row is
+    // that one of them can be fine while the other is gone. `state` is the
+    // machine-readable answer (polled / half / none / unasked), and `unasked`
+    // never means fine — it means this box could not put the question.
+    worker: {
+      taskQueue: worker.taskQueue, state: worker.state,
+      pollers: { workflow: worker.live.workflow, activity: worker.live.activity },
+      remembered: { workflow: worker.stale.workflow, activity: worker.stale.activity },
+      // What is waiting, by half, because the two halves mean opposite things:
+      // a workflow backlog is a queue nothing is working, an activity backlog
+      // is runs waiting for a slot on a worker that is working (see
+      // temporal/pollers.js, notes 3 and 4).
+      backlog: worker.backlog,
+      workers: worker.workers.map((w) => ({ identity: w.identity, lastPolledMsAgo: w.agoMs })),
+      says: worker.says,
+    },
     deep: deep ? [...deepByKey.values()].map((d) => ({ route: d.route, model: d.model, state: d.state, turns: d.turns ?? null, says: d.says ?? null })) : null,
     // One entry per seat with an App — not per request, which is what `deep`
     // above is — and `key` is what says which of them shared one: two seats on
@@ -422,6 +483,12 @@ export async function doctorCmd(args = []) {
         ? `${engine.address} is Temporal, namespace "${engine.namespace}" exists (a real connect: the engine client is installed here)`
         : `${engine.address} is answering — a TCP connect, which proves something accepted a connection and not that it is Temporal (the engine client is not installed here, so that is as far as this box can ask)`
       : engine.depth === "connect" ? engine.reason : engineMissing(engine));
+
+  // worker — the engine row's other half, and the only row here about whether
+  // a run is PERFORMED. A box that could not be asked gets a note and no
+  // refusal: the engine row above has already said why, and an unasked
+  // question must not read as an answer in either direction.
+  row("worker", WORKER_REFUSES.has(worker.state) ? "bad" : worker.state === UNASKED ? "note" : "ok", worker.says);
   if (deep) {
     const calls = [...deepByKey.values()];
     const okCalls = calls.filter((d) => d.state === "ok");
@@ -580,7 +647,13 @@ export async function doctorCmd(args = []) {
   // claude seat and a LangGraph seat are unproven in different ways, and the
   // first seat's sentence is not the other's.
   const unproven = [...new Set(perSeat.map((p) => probeFor(p.executor.adapter).unproven))];
-  out(`✓ nothing here would make a run on this box refuse: ${plural(n, "manifest")} good, every seat on an open road, the executor starts under a run's own environment, and ${engine.address} is ${engine.depth === "connect" ? "Temporal with namespace " + engine.namespace : "answering"}.`);
+  // The engine clause and the worker clause are two clauses for the reason the
+  // rows are two rows: "Temporal is there" was the end of this sentence on
+  // every box where nothing was doing the work.
+  out(`✓ nothing here would make a run on this box refuse: ${plural(n, "manifest")} good, every seat on an open road, the executor starts under a run's own environment, and ${engine.address} is ${engine.depth === "connect" ? "Temporal with namespace " + engine.namespace : "answering"}${worker.state === POLLED ? `, with ${worker.workers.length === 1 ? "a worker" : `${worker.workers.length} workers`} polling ${worker.taskQueue}` : ""}.`);
+  if (worker.state === UNASKED) {
+    out(`  — whether anything is POLLING ${worker.taskQueue} was not asked: ${worker.says.replace(/^not asked — /, "")}. A run accepted by an engine no worker is polling waits forever rather than failing, so this is the one thing above that a ✓ here does not cover.`);
+  }
   if (!deep) {
     // Two gaps, and only one of them costs anything to close — so they are
     // named apart rather than behind one price. A roster with no App of its

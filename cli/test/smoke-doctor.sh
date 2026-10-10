@@ -133,6 +133,35 @@ engine_up() {
 HAVE_ENGINE=0
 if engine_up; then HAVE_ENGINE=1; fi
 
+# And is anything DOING the work? That is doctor's seventh section, and an
+# engine with no worker polling its queue is a box where every run is accepted
+# and none is performed — so a green roster now needs a worker as well as an
+# engine, and this suite starts one rather than hoping the box has one.
+#
+# On its own task queue, named for this process: the worker polls `seats` by
+# default, and a test process picking real work off a real queue is not
+# something a smoke test gets to do. Nothing is ever enqueued here; the queue
+# exists so that "a worker is polling it" is true and isolated.
+export EPITO_TASK_QUEUE="doctor-smoke-$$"
+# And from its own directory, because `epito worker` appends a start line to
+# `.epito/audit.jsonl` relative to its cwd, and section 8 asserts this suite
+# leaves no ledger anywhere under the roster.
+WORKER_DIR="$TMP/worker"; mkdir -p "$WORKER_DIR"
+WORKER_PID=""
+HAVE_RUNTIME=0
+if [ "$HAVE_ENGINE" = 1 ] && node -e 'import("@temporalio/worker").then(()=>process.exit(0),()=>process.exit(1))' 2>/dev/null; then
+  ( cd "$WORKER_DIR" && exec node "$CLI/src/index.js" worker ) > "$TMP/worker.log" 2>&1 &
+  WORKER_PID=$!
+  # Wait for the engine to have seen it poll, asked through the product's own
+  # answer rather than through a sleep: polling starts when it starts.
+  for _ in $(seq 1 40); do
+    if $E doctor "$R" --json 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.exit(JSON.parse(s).worker.state==="polled"?0:1)}catch{process.exit(1)}})'; then HAVE_RUNTIME=1; break; fi
+    sleep 0.5
+  done
+fi
+worker_cleanup() { [ -n "$WORKER_PID" ] && kill "$WORKER_PID" 2>/dev/null; wait "$WORKER_PID" 2>/dev/null; }
+cleanup() { worker_cleanup; if [ -n "${EPITO_SMOKE_KEEP:-}" ]; then printf '\nkept: %s\n' "$TMP"; else rm -rf "$TMP"; fi; }
+
 run() { out="$($E doctor "$@" 2>&1)"; rc=$?; }
 said() { printf '%s' "$out" | grep -q -e "$1"; }
 # For the two kinds of string this suite asserts that are NOT patterns: a bot
@@ -142,18 +171,22 @@ said() { printf '%s' "$out" | grep -q -e "$1"; }
 saidf() { printf '%s' "$out" | grep -qF -e "$1"; }
 
 step "1. a roster with every piece in place"
-if [ "$HAVE_ENGINE" = 1 ]; then
+if [ "$HAVE_RUNTIME" = 1 ]; then
   run "$R"
   check "exits 0 when nothing would make a run refuse"      "[ $rc -eq 0 ]"
-  check "five rows, in the order a run needs them"           "said '✓ manifests' && said 'names' && said '✓ roads' && said '✓ executor' && said '✓ engine'"
+  check "six rows, in the order a run needs them"            "said '✓ manifests' && said 'names' && said '✓ roads' && said '✓ executor' && said '✓ engine' && said '✓ worker'"
+  check "the worker row names the process the engine saw"    "said 'polling $EPITO_TASK_QUEUE for both workflow and activity tasks'"
+  check "and the ✓ carries the age of its evidence"          "said 'last polled [0-9]*s ago'"
+  check "the closing line says the work is being taken too"  "said 'with a worker polling $EPITO_TASK_QUEUE'"
   check "the executor row names the binary's resolved path"  "said 'stub-executor.mjs started under the environment a run gives it'"
   check "and says it for all three seats at once"            "said 'for 3 seats'"
   check "the closing line speaks for a run, not for a file"  "said 'nothing here would make a run on this box refuse'"
   check "and refuses to claim the executor is logged in"     "said 'Not proven'"
   check "naming --deep as the thing that would prove it"     "said '[-][-]deep'"
 else
-  echo "  SKIPPED -- no engine is answering at $ENGINE_ADDR, and doctor's last section is whether one is: on this box a run genuinely would refuse, so the green-roster assertions have nothing to assert."
+  echo "  SKIPPED -- no engine answering at $ENGINE_ADDR, or no worker could be started against it (@temporalio/worker is an optional peer). Doctor's last two sections are whether an engine is up and whether anything is polling its queue, so on this box a run genuinely would refuse and the green-roster assertions have nothing to assert."
   echo "  install it (curl -sSf https://temporal.download/cli.sh | sh) and run \`temporal server start-dev\`, or run the whole suite with: npm run test:cold"
+  [ -s "$TMP/worker.log" ] && sed 's/^/  worker: /' "$TMP/worker.log" | tail -3
 fi
 
 step "2. the executor — the piece nothing checked before"
@@ -248,8 +281,45 @@ else
   echo "  install it: cd $CLI && npm ci"
 fi
 
-step "6. --deep runs one turn per ROAD, not one per seat"
+step "5b. the worker: an engine that accepts work nothing performs"
+# The failure this section exists for, produced without killing anything: the
+# engine is the same healthy one, the namespace is the same existing one, and
+# the queue is a name nothing has ever polled. That is exactly the shape of a
+# box whose epitod-worker is down, and every row above it still says ✓.
 if [ "$HAVE_ENGINE" = 1 ]; then
+  QUIET="a-queue-nobody-polls-$$"
+  EPITO_TASK_QUEUE="$QUIET" run "$R"
+  check "an engine with nothing polling its queue exits 1"   "[ $rc -eq 1 ]"
+  check "the engine row still says the engine is fine"       "said '✓ engine'"
+  check "and the worker row is the one that refuses"         "said '✗ worker'"
+  check "naming the queue a run on this box would use"       "said 'nothing is polling $QUIET'"
+  check "saying what happens instead of failing"             "said 'queued forever rather than refused'"
+  check "with the fix for a laptop"                          "said 'epito worker'"
+  check "and the fix for a provisioned host"                 "said 'systemctl start epitod-worker'"
+  check "and where that unit says why it stopped"            "said 'journalctl -u epitod-worker'"
+  check "the refusal is in the closing verdict too"          "said 'no worker: nothing is polling'"
+  out="$(EPITO_TASK_QUEUE="$QUIET" $E doctor "$R" --json 2>&1)"; rc=$?
+  check "--json carries the state a machine reads"           "printf '%s' \"\$out\" | node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>{const w=JSON.parse(s).worker;process.exit(w.state===\"none\"&&w.taskQueue===\"$QUIET\"&&w.pollers.workflow===0?0:1)})'"
+  check "...and the same verdict as the text"                "[ $rc -eq 1 ]"
+  # `epito ps` is the other reader, and the lie this closes was its own: a
+  # RUNNING count is a count of workflows that were STARTED, which on a box
+  # with no worker is not a count of anything running.
+  if [ "$HAVE_RUNTIME" = 1 ]; then
+    psout="$(EPITO_TASK_QUEUE="$QUIET" $E ps "$R" 2>&1)"
+    check "ps says in its header that nothing is polling"    "printf '%s' \"\$psout\" | grep -q 'queue=$QUIET (no worker)'"
+    check "...and under the table, with the fix"             "printf '%s' \"\$psout\" | grep -q '✗ nothing is polling $QUIET'"
+    # (That nothing will fire at its NEXT time either is asserted in
+    # smoke-temporal.sh, which is the suite that registers real schedules.)
+    psout="$($E ps "$R" 2>&1)"
+    check "and says who IS polling when something is"        "printf '%s' \"\$psout\" | grep -q 'queue=$EPITO_TASK_QUEUE (1 worker polling)'"
+  fi
+else
+  echo "  SKIPPED -- no engine answering at $ENGINE_ADDR. \"The engine is up and nothing is polling it\" needs the first half to be true."
+  echo "  install it (curl -sSf https://temporal.download/cli.sh | sh) and run \`temporal server start-dev\`, or: npm run test:cold"
+fi
+
+step "6. --deep runs one turn per ROAD, not one per seat"
+if [ "$HAVE_RUNTIME" = 1 ]; then
   run "$R" --deep
   check "--deep exits 0 when every road answers"            "[ $rc -eq 0 ]"
   check "two roads for three seats, because one is a graph" "said 'one turn' && said 'covers'"
@@ -260,7 +330,7 @@ if [ "$HAVE_ENGINE" = 1 ]; then
   EPITO_STUB_REFUSE_BASE_URL="" run "$R" --deep
   check "a refusing executor is still a verdict, not a crash" "[ $rc -eq 0 ] || [ $rc -eq 1 ]"
 else
-  echo "  SKIPPED -- no engine at $ENGINE_ADDR, so the exit code --deep would set cannot be told apart from the engine's."
+  echo "  SKIPPED -- no engine at $ENGINE_ADDR, or nothing polling its queue, so the exit code --deep would set cannot be told apart from the runtime's."
   echo "  install it (curl -sSf https://temporal.download/cli.sh | sh) and run \`temporal server start-dev\`, or: npm run test:cold"
 fi
 
@@ -639,13 +709,13 @@ check "...and a GitHub with no route is not asked who the App is" "[ \"\$(apped)
 out="$(ident $E doctor "$R" 2>&1)"; rc=$?
 check "no --deep, no request: the preflight stays offline"      "[ \"\$(asked acme/box)\" = 0 ]"
 check "...of either kind: who the App is is not asked either"   "[ \"\$(apped)\" = 0 ]"
-if [ "$HAVE_ENGINE" = 1 ]; then
+if [ "$HAVE_RUNTIME" = 1 ]; then
   # The "not proven" line is in the ✓ half of the verdict, so a box with no
   # engine never reaches it — the same reason step 6 skips.
   check "...and the gap is named rather than ticked"            "said 'whether each App is installed on the repository it would mint for'"
   check "...with the price of each half said apart"             "said 'one free GET at GitHub per App'"
 else
-  echo "  SKIPPED -- no engine at $ENGINE_ADDR, so the verdict never reaches its ✓ half, where the \"not proven\" line lives."
+  echo "  SKIPPED -- no engine at $ENGINE_ADDR, or nothing polling its queue, so the verdict never reaches its ✓ half, where the \"not proven\" line lives."
   echo "  install it (curl -sSf https://temporal.download/cli.sh | sh) and run \`temporal server start-dev\`, or: npm run test:cold"
 fi
 # A roster with no App of its own is not told about a gap it does not have.
