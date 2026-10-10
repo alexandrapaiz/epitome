@@ -63,15 +63,22 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   runtime lives on only as HQ's own async heartbeat (its seats still
   run as Actions jobs, per .github/workflows/agent-*.yml).
 - [ ] **Dogfood migration, step 1** — one alexandria seat runs on
-  epito.me. Seat: engineer + owner. *Code-side risk closed this pass
+  epito.me. Seat: engineer + owner. *Code-side risk closed 2026-10-08
   (PR #84, merged under Tier B): a box provisioned from
   `deploy/provision-host.sh` was silently losing roster secrets
   because the hand-copied env list had drifted from the manifests;
   `epito env` now generates that list from the roster itself and
   refuses a name that is set to nothing instead of running silently
   short. Carries #82's two road-naming commits forward (#82 closed,
-  superseded, nothing lost). What's left is not code: one real
-  alexandria seat actually running on the owner's box.*
+  superseded, nothing lost). Extended 2026-10-09 (PR #89, merged under
+  Tier B): `epito doctor` now answers whether a seat on this box has a
+  GitHub identity of its own or falls back to a shared credential —
+  run against this company's own five seats, the answer is that none
+  of them do, which is the exact gap step 1 is about. Whose credential
+  a seat acts as is named in `docs/ideas.md` as three options and left
+  there for the owner, not decided inside a run. What's left is still
+  not code: one real alexandria seat actually running on the owner's
+  box, now also waiting on that credential decision.*
 - [ ] **Dogfood migration, step 2** — delete that seat's ADR-27
   hand-wiring from alexandria. Seat: engineer.
 - [ ] **Dogfood migration, step 3** — write the before/after; this is
@@ -91,13 +98,19 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **Market seat brief #1: pricing** — per-active-agent pricing vs.
   roster tier; who pays today for Clerk/Fly/Trigger.dev glue and what do
   they pay. Before any public pricing. Seat: market. *Rev 1 shipped
-  2026-09-18 (docs/market.md §3, "Positioning and pricing"). Rev 2 still
-  open: ADR-13 (2026-09-20) requires pricing buyer 2 (the agent-maker/
-  platform tier) separately from the roster tiers — not yet done.*
+  2026-09-18 (docs/market.md §3, "Positioning and pricing"). ADR-13's
+  buyer-2 (agent-maker/platform tier) pricing and the "as customer"
+  maker-map column shipped in rev 4, 2026-10-02 (docs/market.md,
+  "ADR-13: the agent-maker-as-customer column, and pricing buyer 2
+  separately") — usage-based per-mint/per-verify pricing recommended,
+  owner has not yet ruled one word on it.*
 - [x] **Second integration verdict: Linear REJECTED** (owner,
   2026-09-18 — ADR-6: integrations are surfaces, never dependencies).
   Market re-justifies the ranking under ADR-6 in the 10-02 map
   refresh; owner rules again on the new recommendation. Seat: market.
+  *Done in rev 4, 2026-10-02 (docs/market.md, "Standing recommendation,
+  re-justified under ADR-6 (rev 4)"): Slack reaffirmed under all four
+  laws, no change to the pick.*
 - [ ] **`epito` MCP server + Claude Code/Cursor skill** — the market
   map's near-zero-cost distribution side-bet: reach every editor
   session. *Shaped and bet in cycle 1 (docs/pitches/epito-mcp-server.md,
@@ -139,10 +152,11 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **Bet cycle 2** — PR #67 carries the betting memo; per this
   charter the owner bets by merging it, so it waits on her hand even
   though it is clean and reviewed. *Open since 2026-10-05. Cooldown
-  closed 2026-10-06; this pass (2026-10-09) is the third full day with
-  cycle 2 still not bet. The engineer's only work in that gap is one
-  still-open draft (#87, a preflight check), for lack of a cycle to
-  point it at.*
+  closed 2026-10-06; 2026-10-09 is the third full day with cycle 2
+  still not bet, and the engineer has been spending its runs on
+  ordinary backlog work (#84, then #87 merged forward into #89, merged
+  under Tier B) for lack of a cycle to point it at. Unchanged across
+  this day's three passes so far.*
 - [ ] **Rebase the deck-archiving PR** — PR #52 went conflicting
   against main and also touches `.github/workflows/`, a surface
   product seats hand to the centralizer rather than editing; it needs
@@ -162,12 +176,14 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   Same nine grades either way since nothing on main changed the
   evidence, but the repo should not carry two drafts racing to create
   one file a second time. Handed off to the okr seat 2026-10-07 to
-  close one as superseded; still both open as of 2026-10-09, two
-  passes with no action. Renewed this pass as a board handoff, with
-  the one fact that decides it: #39's own body shows it checked
-  `gh pr list` before building and found the older #35; #53's body
-  says the file "never existed," which was never true once #35 (and
-  then #39) existed. #53 is the one to close. Seat: okr.
+  close one as superseded; still both open as of 2026-10-09, three
+  passes with no action, renewed each time with the one fact that
+  decides it: #39's own body shows it checked `gh pr list` before
+  building and found the older #35; #53's body says the file "never
+  existed," which was never true once #35 (and then #39) existed. #53
+  is the one to close. Unchanged since the last renewal, and the okr
+  seat's next scheduled run is 2026-11-01, so this is now a standing
+  handoff rather than one to renew every pass. Seat: okr.
 - [ ] **Three register entries and three charter-patch diffs from the
   2026-10-05 drift review** (PR #50, merged this pass) — the lessons
   and the drift note are now on main; the three patches
@@ -182,12 +198,23 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   and wrote it successfully again. Not mine to self-apply — charters
   are owner- or exo-edited only. Seat: pm (flagged), decision: owner
   or exo.
-- [x] ~~This seat's own knowledge-surface pull requests cannot land
-  themselves~~ — resolved a third time now: #73, #74 and #77 each
-  carried real backlog edits, each got asked for by name, and each got
-  merged by HQ's PM or a chair, inside a pass or two of the ask
-  landing every time. The ask route is proven three times over; the
-  only live risk is this seat forgetting to use it.
+- [ ] **This seat's own knowledge-surface pull requests cannot land
+  themselves** — the ask route to HQ's PM worked six times running
+  (#73, #74, #77, #79, #85, #88), then broke on #90 and #90's
+  successor #91. HQ's PM answered the renewed ask on the board
+  2026-10-09 17:27 UTC with the actual cause: its own token gets a
+  404 reading this repo, no access at all, not a merge refusal but a
+  missing read. It handed #91 back to the owner per standards/pm.md
+  §10 (the owner is the other named merger for a product PM's own
+  Tier B pull request when HQ's PM cannot act) and filed the access
+  gap itself as a pending item on its own side. This pass answered
+  that message on the board in first person and asked the owner
+  directly to merge #91's successor, since HQ's route is confirmed
+  unusable for this repo until that token gets read access. #91 is
+  closed as superseded by this pull request rather than left open
+  carrying an ask addressed to a merger who cannot reach it. Seat: pm,
+  decision needed: owner (merge) and HQ (the token's read access to
+  this repo).
 - [x] **PR #51 closed, superseded.** The engineer's own composing run
   (PR #75) found that #51's branch is 1,096 lines behind main — merging
   it would have deleted most of `docs/standards/pm.md`,
