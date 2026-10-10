@@ -268,7 +268,27 @@ if node -e 'import("@temporalio/client").then(()=>process.exit(0),()=>process.ex
   TEMPORAL_ADDRESS=127.0.0.1:17997 run "$R"
   check "a port that answers and is not Temporal exits 1"   "[ $rc -eq 1 ]"
   check "in the daemon's own sentence"                      "said 'no Temporal server answering at 127.0.0.1:17997'"
+  # The same run, one row lower: what the WORKER row says when the question
+  # could not be put at all. Something IS listening here, so "nothing
+  # answered" is the opposite error — the connect is what failed, and the
+  # engine row above has already said why.
+  check "a port that answers and refuses the real connect, said so"  "saidf 'answered and then refused the connection this question needs'"
+  check "...and not as nothing having answered"                      "! saidf 'nothing answered at 127.0.0.1:17997'"
   kill $FAKE 2>/dev/null; wait $FAKE 2>/dev/null
+  # And the other not-asked, on the commonest box there is: a laptop with no
+  # engine running at all. The field this row used to be read off —
+  # `engine.client` — is false in two unrelated states: the client is missing,
+  # and the TCP look failed so the client was never reached for. Reading one
+  # off the other put two false clauses in one row here: it claimed the client
+  # was not installed (on this box, where the connect above just used it) and
+  # that the address "answered a TCP connect" one line under
+  # `✗ engine … (ECONNREFUSED)`. Both are asserted against.
+  TEMPORAL_ADDRESS=127.0.0.1:17996 run "$R"
+  check "nothing answering: the worker row is a note, not a verdict" "said '! worker' && saidf 'not asked'"
+  check "...and names what happened — that nothing answered"         "saidf 'not asked — nothing answered at 127.0.0.1:17996'"
+  check "...never claiming a TCP connect that was refused"           "! saidf 'answered a TCP connect'"
+  check "...nor a missing engine client, on a box that has one"      "! saidf 'engine client is not installed'"
+  check "...and the refusal is the engine's, not the worker's"       "saidf 'no engine:' && ! saidf 'no worker:'"
   if [ "$HAVE_ENGINE" = 1 ]; then
     TEMPORAL_NAMESPACE="a-namespace-nobody-created" run "$R"
     check "the right server with the wrong namespace exits 1" "[ $rc -eq 1 ]"

@@ -237,12 +237,20 @@ export async function doctorCmd(args = []) {
     taskQueue: engine.taskQueue,
     asked: Boolean(engine.pollers),
     error: engine.pollersError ?? null,
-    // Which unasked this is. A box with the engine client and nothing
-    // answering has already been told about the engine; a box WITHOUT the
-    // client is the ordinary `npm i -g epito` laptop, and its ✓ is the one
-    // that would otherwise read as covering this question.
-    because: engine.client
-      ? `nothing answered at ${engine.address}`
+    // Which unasked this is — read off what actually happened, in order, and
+    // never off `engine.client` alone. That field is false in TWO states: the
+    // client is missing, and the TCP look failed so the client was never
+    // reached for. Conflating them put two false clauses in one row on the
+    // commonest box there is (no engine running): it claimed the client was
+    // not installed when it was, and that the address "answered a TCP
+    // connect" one line under `✗ engine … (ECONNREFUSED)`.
+    because: !engine.ok
+      ? engine.depth === "connect"
+        // Something IS there and refused the connection this question needs —
+        // a missing namespace, usually. The engine row above says which, so
+        // this points at it rather than repeating it.
+        ? `the engine at ${engine.address} answered and then refused the connection this question needs (see the engine row above)`
+        : `nothing answered at ${engine.address}`
       : `the engine client is not installed on this box (${engine.address} answered a TCP connect, and asking who polls a queue takes a real gRPC connection)`,
   });
 

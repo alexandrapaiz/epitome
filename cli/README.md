@@ -207,7 +207,7 @@ with no worker is not a count of anything running.
 
 ```
 $ epito ps agents
-epitod on 127.0.0.1:7233 namespace=asc queue=seats (nothing polling)
+epitod on 127.0.0.1:7233 namespace=asc queue=seats (no worker)
 SEAT  CRON       NEXT              SCHEDULE  RUNNING         WINDOW  …
 pm    0 12 * * 1 2026-10-13T12:00Z ok        1 (no worker)   -       …
 
