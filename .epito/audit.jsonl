@@ -1,3 +1,0 @@
-{"ts":"2026-10-10T16:31:58.312Z","agent":null,"action":"worker.start","address":"127.0.0.1:47911","namespace":"default","queue":"seats","executor":"claude","traces":null}
-{"ts":"2026-10-10T16:32:13.559Z","agent":null,"action":"worker.stop","signal":"SIGTERM"}
-{"ts":"2026-10-10T16:35:47.451Z","agent":null,"action":"worker.start","address":"127.0.0.1:47921","namespace":"default","queue":"seats","executor":"claude","traces":null}
