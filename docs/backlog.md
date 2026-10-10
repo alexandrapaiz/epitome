@@ -145,23 +145,23 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **Bet cycle 1's close** — PR #54 carries the retro and the trial
   scorecard the ADR-5 cycle-2 review reads; merging it is the owner's
   call, not the PM's, because grading the trial is hers. Still clean
-  and mergeable as of this pass (2026-10-09), unchanged for four days
+  and mergeable as of this pass (2026-10-10), unchanged for five days
   running (one rebase in between, 2026-10-08, after this file's own
   edit collided with it — resolved that pass, clean since). No
   technical blocker; this is purely her reading and her grade.
 - [ ] **Bet cycle 2** — PR #67 carries the betting memo; per this
   charter the owner bets by merging it, so it waits on her hand even
   though it is clean and reviewed. *Open since 2026-10-05. Cooldown
-  closed 2026-10-06; 2026-10-09 is the third full day with cycle 2
-  still not bet, and the engineer has been spending its runs on
-  ordinary backlog work (#84, then #87 merged forward into #89, merged
-  under Tier B) for lack of a cycle to point it at. Unchanged across
-  this day's three passes so far.*
+  closed 2026-10-06; 2026-10-10 is the fourth full day with cycle 2
+  still not bet. The engineer keeps spending its runs on ordinary
+  backlog work for lack of a cycle to point it at (#84 then #87/#89
+  under Tier B, and now #93, open and still a draft, the same shape
+  again). Unchanged since the last renewal.*
 - [ ] **Rebase the deck-archiving PR** — PR #52 went conflicting
   against main and also touches `.github/workflows/`, a surface
   product seats hand to the centralizer rather than editing; it needs
   a rebase from whichever seat opened it, not a merge from here. *Open
-  since 2026-10-05, still conflicting as of 2026-10-09 (four days).*
+  since 2026-10-05, still conflicting as of 2026-10-10 (five days).*
 - [x] ~~Two ExO drafts, a week old and still conflicting~~ — the exo
   seat answered last pass's handoff: #26 is closed, folded into #80;
   #32 is still open and conflicting but is now the thing #80 is
@@ -198,23 +198,19 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   and wrote it successfully again. Not mine to self-apply — charters
   are owner- or exo-edited only. Seat: pm (flagged), decision: owner
   or exo.
-- [ ] **This seat's own knowledge-surface pull requests cannot land
-  themselves** — the ask route to HQ's PM worked six times running
-  (#73, #74, #77, #79, #85, #88), then broke on #90 and #90's
-  successor #91. HQ's PM answered the renewed ask on the board
-  2026-10-09 17:27 UTC with the actual cause: its own token gets a
-  404 reading this repo, no access at all, not a merge refusal but a
-  missing read. It handed #91 back to the owner per standards/pm.md
-  §10 (the owner is the other named merger for a product PM's own
-  Tier B pull request when HQ's PM cannot act) and filed the access
-  gap itself as a pending item on its own side. This pass answered
-  that message on the board in first person and asked the owner
-  directly to merge #91's successor, since HQ's route is confirmed
-  unusable for this repo until that token gets read access. #91 is
-  closed as superseded by this pull request rather than left open
-  carrying an ask addressed to a merger who cannot reach it. Seat: pm,
-  decision needed: owner (merge) and HQ (the token's read access to
-  this repo).
+- [x] **This seat's own knowledge-surface pull requests cannot land
+  themselves** — resolved, at least once: after breaking on #90/#91
+  (HQ's PM's token got a 404 reading this repo, no read access at
+  all), HQ's PM merged #92 itself the same evening, 18:30 UTC, and
+  posted it to the board as "the ask to her can stand down." Whatever
+  closed the access gap, the route worked again without this seat
+  doing anything beyond opening a clean, in-scope PR. #95, the next
+  report in the same series, then sat a full pass with no merger
+  touching it, not because the gap reopened but because nothing had
+  moved since its own content to act on. Closed as superseded by this
+  pull request rather than left open. Still worth watching whether HQ's
+  route holds for this pull request too, or whether it was one fix, not
+  a durable one. Seat: pm, nothing currently blocked on it.
 - [x] **PR #51 closed, superseded.** The engineer's own composing run
   (PR #75) found that #51's branch is 1,096 lines behind main — merging
   it would have deleted most of `docs/standards/pm.md`,
