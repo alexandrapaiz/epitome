@@ -19,8 +19,12 @@ import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
 import { rosterEnv, namesFor, envTemplate, holding, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
 import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, GIT_TOKEN_ENV } from "../src/lib/runner.js";
-import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP, noRepoMessage } from "../src/lib/identity.js";
-import { actsAs, rosterActs, IDENTITY_FIX, OWN, REFUSED, HALF, SHARED, NONE } from "../src/lib/acts.js";
+import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP, noRepoMessage, webRoot, installUrl, appSettingsUrl } from "../src/lib/identity.js";
+import {
+  actsAs, rosterActs, rosterInstalled, grantGap, IDENTITY_FIX,
+  OWN, REFUSED, HALF, SHARED, NONE,
+  INSTALLED, MISMATCH, UNGRANTED, GH_REFUSED, UNREACHABLE, INSTALL_REFUSES,
+} from "../src/lib/acts.js";
 import { spawn, execFileSync } from "node:child_process";
 import { parse } from "smol-toml";
 import { mkdirSync } from "node:fs";
@@ -656,6 +660,280 @@ test("rosterActs: only a broken or half identity may reach the exit code", () =>
   assert.equal(clean.none.length, 2);
   const broken = rosterActs(roster, { env: { EPITO_APP_ID_PM: "1" }, dir });
   assert.deepEqual(broken.refusals.map((r) => r.agent), ["pm"]);
+});
+
+// --- and the half that has to leave the box (rosterInstalled) ------------
+// `own` proves the key here signs the JWT a mint starts with. It cannot prove
+// the App is installed on the repository it would mint for, which is the most
+// ordinary setup mistake there is — so these cases are the online half, with
+// GitHub stood in for by `lookup`. Nothing below reaches the network.
+
+// A box that holds an App for one seat, and the rows actsAs makes of it.
+const ownRow = (name = "pm", over = {}, manifest = seat(name)) => {
+  const dir = tmpDir();
+  const keyPath = join(dir, `${name}.pem`);
+  writeFileSync(keyPath, rsaPem(), { mode: 0o600 });
+  const env = { [`EPITO_APP_ID_${name.toUpperCase()}`]: "123456", [`EPITO_APP_KEY_FILE_${name.toUpperCase()}`]: keyPath, ...(over.env ?? {}) };
+  return { row: actsAs(name, manifest, { env, dir }), env, dir };
+};
+// What GitHub answers GET /repos/{repo}/installation with, as far as this
+// matters: the id, and what the App was granted there.
+const ghSays = (over = {}) => ({ id: 4242, permissions: { metadata: "read", contents: "write", pull_requests: "write", issues: "write" }, ...over });
+// And what GET /app answers, reduced to what identity.js's `appAs` returns:
+// the App's own name, and who owns it.
+const appSays = (over = {}) => ({ slug: "asc-pm", login: "asc-pm[bot]", owner: "acme", ownerType: "User", ...over });
+
+// Every case below goes through this and not through `rosterInstalled`
+// directly, which is not a convenience. The real `describe` is identity.js's
+// `appAs`, and that one calls api.github.com — so a case that forgot to inject
+// it would still pass and quietly make a live request out of CI, which is the
+// one thing no test here may do. The last case in this section is the guard
+// that nothing in this file forgets.
+const installed = (rows, opts = {}) => rosterInstalled(rows, { describe: async () => appSays(), ...opts });
+
+test("installed: GitHub names the installation, and one request covers every seat on that App", async () => {
+  const dir = tmpDir();
+  const keyPath = join(dir, "key.pem");
+  writeFileSync(keyPath, rsaPem(), { mode: 0o600 });
+  const env = {
+    EPITO_APP_ID_PM: "123456", EPITO_APP_KEY_FILE_PM: keyPath,
+    EPITO_APP_ID_OKR: "123456", EPITO_APP_KEY_FILE_OKR: keyPath,
+  };
+  const rows = [actsAs("pm", seat("pm"), { env, dir }), actsAs("okr", seat("okr"), { env, dir })];
+  assert.deepEqual(rows.map((r) => r.state), [OWN, OWN]);
+  const asked = [];
+  const lookup = async (jwt, repo) => { asked.push({ jwt, repo }); return ghSays(); };
+  const out = await installed(rows, { env, dir, lookup });
+  assert.equal(asked.length, 1, "two seats on one App and one repo are ONE request, not two");
+  assert.match(asked[0].jwt, /^[\w-]+\.[\w-]+\.[\w-]+$/, "asked as the App, with a signed JWT");
+  assert.equal(asked[0].repo, "acme/roster", "about the repo the manifest names");
+  assert.deepEqual(out.map((o) => [o.agent, o.state]), [["pm", INSTALLED], ["okr", INSTALLED]]);
+  assert.equal(out[0].installation, "4242");
+  assert.match(out[0].says, /installed on acme\/roster as installation 4242/);
+  assert.ok(!out[0].says.includes("—"), "no em dash: doctor appends '— covers a, b' to this line");
+  assert.equal(out[0].fix, null);
+});
+
+test("installed: a seat with no App of its own is not asked about at all", async () => {
+  const dir = tmpDir();
+  const rows = [actsAs("pm", seat("pm"), { env: {}, dir }), actsAs("okr", seat("okr"), { env: { GH_TOKEN: "t" }, dir })];
+  let calls = 0;
+  const out = await installed(rows, { env: {}, dir, lookup: async () => { calls++; return ghSays(); } });
+  assert.deepEqual(out, [], "no App is nothing to ask GitHub about");
+  assert.equal(calls, 0, "and a roster of them spends no requests — this company's own, today");
+});
+
+test("mismatch: the id this box names is not the one GitHub has, so the mint 404s", async () => {
+  const { row, env, dir } = ownRow("pm", { env: { EPITO_INSTALLATION_ID_PM: "9999" } });
+  assert.equal(row.installation, "9999", "the mint uses the id the box names rather than discovering one");
+  const [out] = await installed([row], { env, dir, lookup: async () => ghSays() });
+  assert.equal(out.state, MISMATCH);
+  assert.equal(out.declared, "9999");
+  assert.equal(out.installation, "4242");
+  assert.match(out.says, /installation 4242, while this box tells its runs to mint from 9999/);
+  assert.match(out.fix, /\$EPITO_INSTALLATION_ID_PM/, "the fix names the thing an operator would edit");
+  assert.match(out.fix, /correct it to 4242/);
+
+  // The same id, right: not a refusal, and the sentence says whose id it is.
+  const ok = ownRow("pm", { env: { EPITO_INSTALLATION_ID_PM: "4242" } });
+  const [good] = await installed([ok.row], { env: ok.env, dir: ok.dir, lookup: async () => ghSays() });
+  assert.equal(good.state, INSTALLED);
+  assert.match(good.says, /the id this box names for it/);
+});
+
+test("ungranted: installed, and granted less there than [identity].scopes need", async () => {
+  // The 422 the mint learns at 06:00, knowable now from the answer GitHub has
+  // already given — no second request.
+  const manifest = { ...seat("pm"), identity: { scopes: ["github:contents", "github:pull_requests"] } };
+  const { row, env, dir } = ownRow("pm", {}, manifest);
+  const lookup = async () => ghSays({ permissions: { metadata: "read", contents: "read" } });
+  const [out] = await installed([row], { env, dir, lookup });
+  assert.equal(out.state, UNGRANTED);
+  assert.match(out.says, /contents is read and the manifest needs write/);
+  assert.match(out.says, /pull_requests is not granted at all and the manifest needs write/);
+  assert.match(out.fix, /grant the App contents:write, pull_requests:write/);
+  assert.match(out.fix, /scopes are the ceiling/);
+});
+
+test("grantGap says nothing rather than guessing when GitHub described no permissions", () => {
+  assert.deepEqual(grantGap(["github:contents"], null), [], "an older answer is not evidence of a shortfall");
+  assert.deepEqual(grantGap(["github:contents"], { contents: "write" }), []);
+  assert.deepEqual(grantGap(["github:contents"], { contents: "admin" }), [], "admin outranks write");
+  assert.deepEqual(grantGap(["github:contents"], { contents: "read" }),
+    [{ permission: "contents", need: "write", granted: "read" }]);
+  assert.deepEqual(grantGap(["github:contents"], { contents: "something-new" }),
+    [{ permission: "contents", need: "write", granted: "something-new" }],
+    "a level this CLI does not know ranks below everything: report a mint you are unsure of, never tick it");
+  assert.deepEqual(grantGap(["github:packages"], { contents: "write" }), [],
+    "an unmintable scope is the OFFLINE half's refusal, and this one does not speak for it");
+});
+
+test("GitHub's two permanent refusals arrive as its own sentences, with the status for a machine", async () => {
+  const { row, env, dir } = ownRow();
+  const notThere = Object.assign(new Error("this agent's GitHub App is not installed on acme/roster — an App with no installation there can mint nothing, however valid its key. Fix: install the App on acme/roster (its owner does this once), then mint again."), { permanent: true, status: 404 });
+  const [a] = await installed([row], { env, dir, lookup: async () => { throw notThere; } });
+  assert.equal(a.state, GH_REFUSED);
+  assert.equal(a.status, 404, "404 and 401 are two different fixes, and --json reads which off this");
+  assert.match(a.says, /is not installed on acme\/roster/, "the run path's own words, not a paraphrase");
+  assert.match(a.says, /Fix: install the App/);
+
+  const badPair = Object.assign(new Error("GitHub rejected this agent's App credentials (401)."), { permanent: true, status: 401 });
+  const [b] = await installed([row], { env, dir, lookup: async () => { throw badPair; } });
+  assert.equal(b.state, GH_REFUSED);
+  assert.equal(b.status, 401);
+});
+
+test("a GitHub this box cannot reach is a report, because the run path retries that one", async () => {
+  // The line this file does not draw itself: identity.js marks a mint failure
+  // `permanent` because the clone activity retries, and this reads that flag
+  // rather than re-deciding by status code.
+  const { row, env, dir } = ownRow();
+  const blip = new Error("could not reach GitHub at https://api.github.com/repos/acme/roster/installation (fetch failed). Fix: check this machine's network.");
+  const [out] = await installed([row], { env, dir, lookup: async () => { throw blip; } });
+  assert.equal(out.state, UNREACHABLE);
+  assert.match(out.says, /could not reach GitHub/);
+  assert.ok(!INSTALL_REFUSES.has(out.state), "and it never reaches the exit code");
+});
+
+test("a preflight does not wait on a half-open socket for the length of the kernel's patience", async () => {
+  const { row, env, dir } = ownRow();
+  const started = Date.now();
+  const [out] = await installed([row], { env, dir, deadline: 40, lookup: () => new Promise(() => {}) });
+  assert.equal(out.state, UNREACHABLE, "a deadline spent is not evidence against the App");
+  assert.match(out.says, /did not answer within 0.04s/);
+  assert.ok(Date.now() - started < 2000, "and it came back rather than hanging the operator's terminal");
+});
+
+// --- the App's own name, and the pages it makes reachable -----------------
+// `GET /app` is the second free request per App, and what it buys is two
+// sentences nothing offline can write: the page that performs the fix a
+// refusal names, and the login a pull request actually opens as.
+
+test("a page is built from the API root the box was pointed at, because a link is not an API call", () => {
+  assert.equal(webRoot("https://api.github.com"), "https://github.com");
+  assert.equal(installUrl("asc-pm", "https://api.github.com"), "https://github.com/apps/asc-pm/installations/new");
+  // GitHub Enterprise: the API root is the host's web root plus /api/v3, so
+  // the pages are up one level and NOT on github.com, where this App does
+  // not exist at all.
+  assert.equal(webRoot("https://ghe.acme.test/api/v3"), "https://ghe.acme.test");
+  assert.equal(installUrl("asc-pm", "https://ghe.acme.test/api/v3/"), "https://ghe.acme.test/apps/asc-pm/installations/new");
+  // Anything else is taken at its word rather than rewritten into github.com:
+  // a box pointed somewhere gets pages there, which is the only answer that is
+  // not a lie about where its own App lives.
+  assert.equal(webRoot("http://127.0.0.1:47474"), "http://127.0.0.1:47474");
+  assert.equal(webRoot("not a url"), "https://github.com", "an unreadable root falls back rather than throwing inside a report");
+});
+
+test("an App's settings page is under whoever owns it, and the path differs by owner type", () => {
+  const app = { slug: "asc-pm", owner: "acme", ownerType: "User" };
+  assert.equal(appSettingsUrl(app, "permissions", "https://api.github.com"),
+    "https://github.com/settings/apps/asc-pm/permissions");
+  assert.equal(appSettingsUrl({ ...app, ownerType: "Organization" }, "permissions", "https://api.github.com"),
+    "https://github.com/organizations/acme/settings/apps/asc-pm/permissions",
+    "an org-owned App is not reachable under /settings/apps at all, which is why the owner is read and not only the slug");
+  assert.equal(appSettingsUrl({ slug: "asc-pm", owner: null, ownerType: "Organization" }, "permissions", "https://api.github.com"),
+    "https://github.com/settings/apps/asc-pm/permissions",
+    "an owner type with no login to put in the path falls back to the form that at least exists");
+});
+
+test("the ✓ row says the login a pull request opens as, and it is the App's and not the seat's", async () => {
+  const { row, env, dir } = ownRow("pm");
+  const [out] = await installed([row], { env, dir, lookup: async () => ghSays() });
+  assert.equal(out.state, INSTALLED);
+  assert.equal(out.login, "asc-pm[bot]");
+  assert.equal(out.slug, "asc-pm");
+  assert.ok(out.under.some((u) => u.includes("asc-pm[bot]")), "printed, not merely carried in --json");
+  assert.ok(!/\bas pm\[bot\]/.test(out.under.join(" ")), "and never dressed up as the seat's name");
+  // The whole point of reading it: this seat is called `pm` and opens its
+  // pull requests as `asc-pm[bot]`, because an App name is unique across
+  // GitHub and the plain one was taken.
+  assert.notEqual(out.login, "pm[bot]");
+});
+
+test("the 404 refusal hands over the page that fixes it, and the 401 has none to hand over", async () => {
+  const { row, env, dir } = ownRow();
+  const notThere = Object.assign(new Error("this agent's GitHub App is not installed on acme/roster. Fix: install the App on acme/roster (its owner does this once), then mint again."), { permanent: true, status: 404 });
+  const [a] = await installed([row], { env, dir, lookup: async () => { throw notThere; } });
+  assert.equal(a.state, GH_REFUSED);
+  assert.deepEqual(a.under, ["The page that does it: https://github.com/apps/asc-pm/installations/new"]);
+  assert.ok(!a.fix, "the fix is identity.js's own sentence inside `says`; this is the page, not a second fix");
+
+  // A 401 is an App id and a key that are not from the same App, and the same
+  // credentials cannot read GET /app either — so there is no slug to build a
+  // page out of, and asking would spend a request to be refused twice.
+  const badPair = Object.assign(new Error("GitHub rejected this agent's App credentials (401)."), { permanent: true, status: 401 });
+  let described = 0;
+  const [b] = await installed([row], { env, dir, describe: async () => { described++; return appSays(); }, lookup: async () => { throw badPair; } });
+  assert.equal(b.state, GH_REFUSED);
+  assert.deepEqual(b.under, []);
+  assert.equal(b.login, null, "and never a guessed login");
+  assert.equal(described, 0, "nor a second request to hear the same no");
+});
+
+test("a GitHub with no route from here is not asked who the App is either", async () => {
+  const { row, env, dir } = ownRow();
+  let described = 0;
+  const [out] = await installed([row], {
+    env, dir,
+    describe: async () => { described++; return appSays(); },
+    lookup: async () => { throw new Error("could not reach GitHub at https://api.github.com/repos/acme/roster/installation (fetch failed)."); },
+  });
+  assert.equal(out.state, UNREACHABLE);
+  assert.equal(described, 0, "one unreachable GitHub is unreachable for both calls");
+  assert.equal(out.login, null);
+});
+
+test("an App GitHub will not describe loses a link and nothing else", async () => {
+  // The trade mintToken already makes about the commit identity: an avatar is
+  // not worth a refusal. A sentence that was complete before this existed is
+  // complete after it fails.
+  const { row, env, dir } = ownRow();
+  const [out] = await installed([row], { env, dir, describe: async () => { throw new Error("GitHub refused GET /app with 403"); }, lookup: async () => ghSays() });
+  assert.equal(out.state, INSTALLED, "the verdict is the installation lookup's, never this one's");
+  assert.equal(out.login, null);
+  assert.deepEqual(out.under, []);
+  assert.match(out.says, /installed on acme\/roster as installation 4242/);
+});
+
+test("the grant shortfall names the permissions page, under the owner that actually has it", async () => {
+  const manifest = { ...seat("pm"), identity: { scopes: ["github:contents"] } };
+  const { row, env, dir } = ownRow("pm", {}, manifest);
+  const thin = async () => ghSays({ permissions: { metadata: "read", contents: "read" } });
+  const [user] = await installed([row], { env, dir, lookup: thin });
+  assert.equal(user.state, UNGRANTED);
+  assert.deepEqual(user.under, ["The page that does it: https://github.com/settings/apps/asc-pm/permissions"]);
+
+  const [org] = await installed([row], { env, dir, lookup: thin, describe: async () => appSays({ ownerType: "Organization" }) });
+  assert.deepEqual(org.under, ["The page that does it: https://github.com/organizations/acme/settings/apps/asc-pm/permissions"]);
+});
+
+test("two seats on one App ask who it is once, and a mismatch is still told nothing to click", async () => {
+  const dir = tmpDir();
+  const keyPath = join(dir, "key.pem");
+  writeFileSync(keyPath, rsaPem(), { mode: 0o600 });
+  const env = {
+    EPITO_APP_ID_PM: "123456", EPITO_APP_KEY_FILE_PM: keyPath,
+    EPITO_APP_ID_OKR: "123456", EPITO_APP_KEY_FILE_OKR: keyPath,
+    EPITO_INSTALLATION_ID_OKR: "9999",
+  };
+  const rows = [actsAs("pm", seat("pm"), { env, dir }), actsAs("okr", seat("okr"), { env, dir })];
+  let described = 0;
+  const out = await installed(rows, { env, dir, describe: async () => { described++; return appSays(); }, lookup: async () => ghSays() });
+  assert.equal(described, 1, "one App and one repo is one question about who that App is");
+  assert.deepEqual(out.map((o) => o.state), [INSTALLED, MISMATCH]);
+  assert.deepEqual(out[1].under, [], "a mismatch is fixed by editing this box, so there is no page to open");
+  assert.match(out[1].fix, /\$EPITO_INSTALLATION_ID_OKR/);
+});
+
+test("no case in this file calls rosterInstalled by hand, because the real describe() is a live request", () => {
+  // The structural half of the wrapper's comment above. `appAs` reaches
+  // api.github.com; a case that passed `lookup` and forgot `describe` would
+  // go green while making a real call out of CI, and nothing in its output
+  // would say so. Built at runtime so this assertion is not its own match.
+  const needle = "rosterInstalled" + "(";
+  const body = readFileSync(new URL("./unit.mjs", import.meta.url), "utf8");
+  const uses = body.split(needle).length - 1;
+  assert.equal(uses, 1, `only the wrapper may call ${needle}...) — found ${uses} call sites`);
 });
 
 test("the preflight and the run read one precedence: only acts.js asks who a seat is", () => {

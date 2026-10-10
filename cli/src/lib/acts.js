@@ -21,7 +21,9 @@
 // Five answers, and the two in the middle are why this is worth a section:
 //
 //   own      the seat has an App here, and the key on this box actually signs
-//            the JWT the mint starts with. PRs open as `<name>[bot]`.
+//            the JWT the mint starts with. PRs open as the App's own login,
+//            which is `<slug>[bot]` and is not always `<name>[bot]` — see
+//            `rosterInstalled` below, which is the only half that knows.
 //   refused  it has an App here and the mint would fail PERMANENTLY — an
 //            unreadable key file, a PEM that is not a PEM, a key that is not
 //            RSA, a scope v0.2 cannot mint, an App with no [runtime].repo to
@@ -46,14 +48,21 @@
 //            manifest says this seat must open a PR, and a seat that only
 //            posts to Slack is a seat, so this command does not guess.
 //
-// What it never does: read a key's bytes out loud, print an App id it was not
-// given, or reach the network. The `own` check signs a throwaway JWT in
+// What `actsAs` never does: read a key's bytes out loud, print an App id it was
+// not given, or reach the network. The `own` check signs a throwaway JWT in
 // memory, which is free, offline, and is exactly the step the mint does first.
+//
+// And the one thing it therefore cannot say, which is the second half of this
+// file: an App installed nowhere mints nothing, however valid its key. That
+// answer is a network call — `GET /repos/{owner}/{name}/installation` as the
+// App, the mint's own next step — so it lives behind `epito doctor --deep`,
+// the flag that already means "leave this box". See `rosterInstalled` below.
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
-  loadPrincipal, envNames, appJwt, permissionsFor,
-  PRINCIPALS_PATH, KEYS_DIR, noRepoMessage,
+  loadPrincipal, envNames, appJwt, permissionsFor, installationAt, appAs,
+  installUrl, appSettingsUrl,
+  PRINCIPALS_PATH, KEYS_DIR, GITHUB_API, noRepoMessage,
 } from "./identity.js";
 import { holding, HELD, ABSENT, EMPTY } from "./boxenv.js";
 
@@ -110,6 +119,10 @@ export function actsAs(name, manifest, { env = process.env, dir = "." } = {}) {
     store: { principals: resolve(store.principalsPath), key: resolve(store.keyPath) },
     shared: sharedName ? { name: sharedName, state: holding(sharedName, env) } : null,
     appId: null, installation: null, source: null, repo,
+    // Carried on the row because the online half below compares them against
+    // what the installation was actually granted, and a row that had to be
+    // paired back up with its manifest is a row two readers can mismatch.
+    scopes: manifest?.identity?.scopes ?? [],
   };
 
   let principal = null;
@@ -207,7 +220,8 @@ export function actsAs(name, manifest, { env = process.env, dir = "." } = {}) {
 export const IDENTITY_FIX =
   `a seat acts as itself when this box holds two names for it — $EPITO_APP_ID_<SEAT> and $EPITO_APP_KEY_FILE_<SEAT> ` +
   `(the seat's name uppercased, - as _; the key a .pem at 0600, which is the form a systemd EnvironmentFile can hold). ` +
-  `Then its runs mint their own short-lived token, clone and push as themselves, and open PRs as <name>[bot]. ` +
+  `Then its runs mint their own short-lived token, clone and push as themselves, and open PRs as the App's own login — ` +
+  `which is <slug>[bot], usually the seat's name and not guaranteed to be, because an App name is unique across the whole of GitHub. ` +
   `docs/deploy/README.md ("Giving an agent its own identity") is the long version, and \`epito deploy\` is the laptop route. ` +
   `The pre-identity answer, which is what every seat did before this leg existed, is to name ${SHARED_NAMES[0]} in the seat's [runtime].env and hold it here — then its PRs open as that token's owner`;
 
@@ -229,3 +243,299 @@ export function rosterActs(roster, { env = process.env, dir = "." } = {}) {
     none: seats.filter((s) => s.state === NONE),
   };
 }
+
+// --- the half that has to leave the box -----------------------------------
+// `own` above means: this box holds an App for this seat, and the key here
+// actually signs the JWT a mint starts with. That is everything about the mint
+// that is knowable offline, and it stops one step short of the thing an
+// operator is actually asking — because the mint's next step is
+//
+//     GET /repos/{owner}/{name}/installation     (as the App)
+//
+// and an App installed nowhere mints nothing, however valid its key. Until
+// that question is asked, "a run on this box would start" is a prediction with
+// a hole in it the exact size of the most common setup mistake there is:
+// creating the App and not installing it on the repository.
+//
+// So this is the online half, and it costs nothing — no model call, no token
+// minted, no ledger line, one GET per (App, repo) pair in the roster. It sits
+// behind `--deep` because that flag already means "leave this box", not
+// because it is expensive.
+//
+// Which answers refuse, and why that line is not this file's to draw: a mint
+// failure is either the kind that passes (GitHub throttling, a network blip)
+// or the kind that never will, and identity.js already marks the difference —
+// `permanent` on the error, because the `clone` activity retries and must not
+// retry an App that is installed nowhere. This reads that flag rather than
+// re-deciding by status code, so a preflight cannot call permanent what the
+// run path treats as transient:
+//
+//   installed    GitHub named an installation on [runtime].repo, and either
+//                this box names no installation id (the mint discovers this
+//                one) or the id it names is that one. ✓
+//   mismatch     installed, and this box tells its runs to mint from a
+//                DIFFERENT id. The mint uses the id the box names rather than
+//                discovering one, so GitHub answers it 404 — identity.js
+//                calls that permanent too. A refusal, and the one answer here
+//                that is per seat rather than per App.
+//   ungranted    installed, and the installation was granted LESS than
+//                [identity].scopes maps to — contents:read where the manifest
+//                needs contents:write. An installation can only hand out
+//                permissions the App was granted, so GitHub answers the mint
+//                422. Free to check: the installation GitHub just described
+//                carries its own permissions, so this is a comparison and not
+//                a second request.
+//   refused      GitHub refused permanently: not installed there (404), or an
+//                App id and a private key that are not from the same App
+//                (401). Two sentences, two fixes, both identity.js's own
+//                words verbatim — a preflight that paraphrases the run's
+//                refusal is a preflight an operator has to translate.
+//   unreachable  anything else: no route to GitHub, a 5xx, a rate limit, or
+//                no answer inside the deadline below. A report, not a
+//                refusal, for the same reason the run path retries it.
+export const INSTALLED = "installed";
+export const MISMATCH = "mismatch";
+export const UNGRANTED = "ungranted";
+export const GH_REFUSED = "refused";
+export const UNREACHABLE = "unreachable";
+
+// A preflight is a thing an operator runs while standing in front of a box,
+// and a half-open socket to api.github.com would otherwise hang it for the
+// length of the kernel's own patience. Five seconds, said in the report when
+// it is spent: the mint itself has no deadline (it is a run, and the engine
+// retries it), which is the right trade there and the wrong one here.
+export const INSTALL_DEADLINE_MS = 5000;
+
+const withDeadline = (p, ms) => {
+  if (!(ms > 0)) return p;
+  let timer;
+  const bell = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`GitHub did not answer within ${ms / 1000}s, which is as long as a preflight waits on purpose (the same look is instant on a box with a route to api.github.com, and the mint at 06:00 is the thing that genuinely has to wait). Fix: check this box's route to ${GITHUB_API}, then run this again.`)), ms);
+  });
+  // Deliberately NOT unref'd, and the first draft was: an unref'd timer does
+  // not hold the event loop open, so a lookup that never settles — which is
+  // precisely the case this exists for — leaves the loop with nothing to do
+  // and the await never resolves. (node --test says it in those words:
+  // "Promise resolution is still pending but the event loop has already
+  // resolved". It is the test for this function that found it.) The timer
+  // cannot outlive the race either way, because `finally` clears it the
+  // moment either side settles.
+  return Promise.race([p, bell]).finally(() => clearTimeout(timer));
+};
+
+// One call, per (App, repo). The answer depends on nothing else: two seats
+// sharing an App and a repository share an installation, and asking twice
+// would print the same proof twice and spend two requests to do it.
+// The App's own name, which is the one fact in this section that no manifest
+// holds and nothing offline can reach: `GET /app`, as the App, with the same
+// JWT the installation lookup just used. It buys two sentences nothing else
+// can write — the page that performs the fix a refusal names, and the login a
+// pull request will actually open AS, which is the App's slug and not
+// necessarily the seat's name.
+//
+// It never changes a verdict. A failure here means a link missing from a
+// sentence that was already complete and already correct, so it degrades to
+// null and the report reads exactly as it did before this existed — the same
+// trade `mintToken` makes about the commit identity, for the same reason: an
+// avatar is not worth a refusal.
+//
+// Not asked at all in two cases, both of them "GitHub has already answered
+// this": a 401 is GitHub rejecting these very credentials, so /app would spend
+// a request to be told so a second time, and a GitHub with no route from here
+// has no route for either call. The deadline is the operator's patience and
+// not a per-request budget, so this shares the one above rather than adding
+// five seconds of its own.
+async function describeApp(row, jwt, answer, { describe, deadline }) {
+  if (answer.state === UNREACHABLE || answer.status === 401) return null;
+  try { return await withDeadline(describe(row.appId, jwt), deadline); }
+  catch { return null; }
+}
+
+async function askGitHub(row, { env, dir, lookup, describe, deadline }) {
+  // `row.state === OWN` is the caller's contract and it is what makes the next
+  // two lines safe: loadPrincipal answered for this seat, its key signed a JWT
+  // already, and [runtime].repo is set. Read through loadPrincipal rather than
+  // off the row because the row deliberately carries no key.
+  const principal = loadPrincipal(row.agent, { env, dir });
+  const jwt = appJwt(principal.appId, principal.privateKey);
+  const answer = await askInstallation(row, jwt, { lookup, deadline });
+  return { ...answer, app: await describeApp(row, jwt, answer, { describe, deadline }) };
+}
+
+async function askInstallation(row, jwt, { lookup, deadline }) {
+  try {
+    const inst = await withDeadline(lookup(jwt, row.repo), deadline);
+    // A 200 with no id in it. Not reachable through api.github.com, and this
+    // is the one call in the preflight whose endpoint an operator can move
+    // ($EPITO_GITHUB_API, for GitHub Enterprise) — and the id is the whole
+    // answer, so the honest report is that it was not given rather than a
+    // sentence with a hole where the number goes.
+    if (!inst?.id) return { state: UNREACHABLE, says: `GitHub answered about ${row.repo} without an installation id, and the id is the whole answer. Fix: if $EPITO_GITHUB_API points at a GitHub Enterprise host, check it is the API root (/api/v3) and not the web root.` };
+    return { state: INSTALLED, installation: String(inst.id), permissions: inst.permissions ?? null };
+  } catch (e) {
+    // The flag, not the status: see the note above.
+    if (e.permanent) return { state: GH_REFUSED, status: e.status ?? null, says: e.message };
+    return { state: UNREACHABLE, status: e.status ?? null, says: e.message };
+  }
+}
+
+// GitHub's three levels, ranked, so "the App has contents:read where the
+// manifest needs contents:write" is a comparison rather than a string match.
+// An unknown level ranks 0 and therefore reads as short of anything, which is
+// the safe direction for a preflight: it reports a mint it is not sure of
+// rather than ticking one.
+const LEVELS = { read: 1, write: 2, admin: 3 };
+const short = (granted, need) => (LEVELS[granted] ?? 0) < (LEVELS[need] ?? 0);
+
+// What the manifest's scopes need against what the installation was granted.
+// Returns the shortfalls, or [] — including when GitHub described the
+// installation without a permissions object at all, which is the one case
+// where the honest answer is to say nothing rather than to guess.
+export function grantGap(scopes, granted) {
+  if (!granted) return [];
+  let need;
+  // Unmappable scopes are `actsAs`'s own refusal (offline, before this ever
+  // runs), so a throw here would be unreachable — but the ceiling is the one
+  // rule that must not fail open, so this says nothing rather than claiming
+  // a grant is sufficient for a mint that will not be attempted.
+  try { need = permissionsFor(scopes); } catch { return []; }
+  return Object.entries(need)
+    .filter(([name, level]) => short(granted[name], level))
+    .map(([name, level]) => ({ permission: name, need: level, granted: granted[name] ?? null }));
+}
+
+// Where the id this box names actually comes from, so a fix names the thing
+// the operator would edit. Two stores, one each (identity.js, loadPrincipal).
+function idSource(row) {
+  return row.source?.startsWith("$")
+    ? `$${row.names.installation}`
+    : `the "installations" entry for "${row.agent}" in ${row.store.principals}`;
+}
+
+// One seat's verdict: the call's answer, plus the one fact that is this seat's
+// own rather than its App's — which installation id this box tells its runs
+// to mint from.
+// A line printed UNDER a row, which is not a second fix: the page that
+// performs the fix the sentence already named, or the one fact about a healthy
+// App that is worth a line of its own. Kept separate from `fix` so a refusal
+// never reads as having two of them, and so identity.js's own refusal wording
+// stays verbatim rather than being rewritten to hold a URL.
+const under = (...lines) => lines.filter(Boolean);
+
+function verdictFor(row, call) {
+  const app = call.app ?? null;
+  const base = {
+    agent: row.agent, appId: row.appId, repo: row.repo,
+    declared: row.installation ?? null, installation: call.installation ?? null,
+    status: call.status ?? null,
+    // The login a pull request from this seat actually opens as, where GitHub
+    // was asked and answered. Null is "not asked or not answered", never a
+    // guess: `<name>[bot]` is the usual case and guessing it here is exactly
+    // the promise this pass exists to stop making.
+    login: app?.login ?? null,
+    slug: app?.slug ?? null,
+    // Always an array, including on the answers that have nothing to put in
+    // it: a reader that has to tell [] from undefined is a reader that will
+    // get it wrong once. A mismatch is the clearest case — it is fixed by
+    // editing this box, so there is nothing to open.
+    under: [],
+  };
+  if (call.state === INSTALLED) {
+    // Mismatch before grant, deliberately: with the wrong id the mint never
+    // reaches the permission check, so naming the grant first would be naming
+    // the second thing an operator would have to fix.
+    const named = row.installation ? String(row.installation) : null;
+    if (named && named !== call.installation) {
+      return {
+        ...base,
+        state: MISMATCH,
+        says: `an App installed on ${row.repo} as installation ${call.installation}, while this box tells its runs to mint from ${named} instead; the mint uses the id the box names rather than discovering one, so GitHub refuses it (404 if no such installation exists, 422 if one does and cannot see ${row.repo}) and the run stops at its first step`,
+        fix: `unset ${idSource(row)} and let the mint discover the installation from [runtime].repo, which is what it does when nothing names one — or correct it to ${call.installation}, the installation GitHub says this App has on ${row.repo}`,
+      };
+    }
+    const gaps = grantGap(row.scopes ?? [], call.permissions);
+    if (gaps.length) {
+      const asked = gaps.map((g) => `${g.permission}:${g.need}`).join(", ");
+      return {
+        ...base,
+        state: UNGRANTED,
+        gaps,
+        says: `an App installed on ${row.repo} as installation ${call.installation} and granted less there than its [identity].scopes need: ${gaps.map((g) => `${g.permission} is ${g.granted ?? "not granted at all"} and the manifest needs ${g.need}`).join("; ")}. An installation can only hand out permissions the App was granted, so GitHub answers the mint 422`,
+        fix: `grant the App ${asked} and accept the request on ${row.repo} (its owner does this once, from the App's permissions page), or drop the scope from this agent's agent.toml — scopes are the ceiling, so the mint refuses rather than quietly minting a token narrower than the manifest promises`,
+        // "the App's permissions page" is a real page and an operator should
+        // not have to find it. Which path it is depends on who owns the App,
+        // which is why `GET /app` is read for its owner and not only its slug:
+        // an org-owned App is not reachable under /settings/apps at all.
+        under: under(app && `The page that does it: ${appSettingsUrl(app)}`),
+      };
+    }
+    return {
+      ...base,
+      state: INSTALLED,
+      // No em dash in any of these sentences: doctor appends "— covers a, b"
+      // to every line in this block, and a second dash inside the sentence is
+      // where a reader loses which half the list belongs to.
+      says: `its own GitHub App, installed on ${row.repo} as installation ${call.installation}, which is ${named ? "the id this box names for it" : "the id its runs discover from [runtime].repo, since nothing on this box names one"}${call.permissions ? `, and granted there everything its [identity].scopes ask to mint` : ""}`,
+      fix: null,
+      // The one thing worth a line under a ✓ row. It is printed because it is
+      // the question the whole identity leg exists to answer and the only
+      // place in this product that can answer it truthfully: an App name is
+      // unique across GitHub, so a seat called `pm` whose App had to be
+      // created as `asc-pm` opens its pull requests as `asc-pm[bot]`, and
+      // every other sentence here would have told the operator `pm[bot]`.
+      under: under(app && `Its pull requests there open as ${app.login}, which is this App's own login: usually the seat's name, and whatever GitHub actually gave the App when it was created.`),
+    };
+  }
+  if (call.state === GH_REFUSED) {
+    return {
+      ...base,
+      state: GH_REFUSED,
+      says: `an App this box cannot mint with: ${call.says}`,
+      fix: null,
+      // identity.js's 404 says "install the App on owner/name (its owner does
+      // this once)" — the instruction, and the thing an owner then has to go
+      // and find. This is where it is: the App's install page, which is a form
+      // (choose the account, choose the repositories, press Install), so the
+      // link performs nothing by being followed.
+      //
+      // Only on the 404. A 401 is an App id and a key that are not from the
+      // same App, and the same credentials cannot read `GET /app` either, so
+      // there is no slug to build a page out of — its fix stays the sentence
+      // identity.js already writes, which is to re-copy both.
+      under: under(app && call.status === 404 && `The page that does it: ${installUrl(app.slug)}`),
+    };
+  }
+  return {
+    ...base,
+    state: UNREACHABLE,
+    says: `an App whose installation this box could not ask about: ${call.says}`,
+    fix: null,
+  };
+}
+
+// The roster's `own` seats, asked. Takes the rows `actsAs` already produced —
+// so the two halves cannot disagree about which seats have an App — and
+// returns one verdict per such seat, in roster order. A roster with no `own`
+// seat makes no request and returns nothing, which is this company's own
+// roster today.
+export async function rosterInstalled(rows, { env = process.env, dir = ".", lookup = installationAt, describe = appAs, deadline = INSTALL_DEADLINE_MS } = {}) {
+  const calls = new Map();
+  const out = [];
+  for (const row of rows) {
+    if (row.state !== OWN) continue;
+    const key = `${row.appId}|${row.repo}`;
+    if (!calls.has(key)) calls.set(key, await askGitHub(row, { env, dir, lookup, describe, deadline }));
+    out.push({ ...verdictFor(row, calls.get(key)), key });
+  }
+  return out;
+}
+
+// Read off one list, for the same reason doctor's own verdict is: two answers
+// to "would the mint start" is one too many.
+export const INSTALL_REFUSES = new Set([MISMATCH, UNGRANTED, GH_REFUSED]);
+
+// What `--deep` would prove and a plain run cannot, said in the one place
+// doctor prints its "not proven" line. Named for the seats it is true of: a
+// roster with no App of its own has nothing here to prove.
+export const INSTALL_UNPROVEN =
+  "whether each App is installed on the repository it would mint for, was granted there what its [identity].scopes ask to mint, and which login its pull requests actually open as — the key signing is offline and free, and all three are questions only GitHub can answer";
