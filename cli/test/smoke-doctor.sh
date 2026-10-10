@@ -135,6 +135,11 @@ if engine_up; then HAVE_ENGINE=1; fi
 
 run() { out="$($E doctor "$@" 2>&1)"; rc=$?; }
 said() { printf '%s' "$out" | grep -q -e "$1"; }
+# For the two kinds of string this suite asserts that are NOT patterns: a bot
+# login (`<slug>[bot]` is a bracket expression to grep, so said() matched
+# nothing at all) and a URL (every dot matches any character, so a wrong host
+# would pass). Both are things to compare literally or not at all.
+saidf() { printf '%s' "$out" | grep -qF -e "$1"; }
 
 step "1. a roster with every piece in place"
 if [ "$HAVE_ENGINE" = 1 ]; then
@@ -489,7 +494,15 @@ ijson() { ident $E doctor "$@" --json 2>&1; }
 # One field of the --deep answer, per seat, compared inside node for the reason
 # istate above is: `check` evals its argument.
 iseat() { printf '%s' "$1" | node -e 'const r=JSON.parse(require("fs").readFileSync(0,"utf8"));const got=r.seats.map(s=>`${s.agent}=${s.identity.installed?s.identity.installed.state:"unasked"}`).join(" ");if(got!==process.argv[1]){console.error(`installed states: got "${got}", wanted "${process.argv[1]}"`);process.exit(1)}' "$2"; }
+# Who --json says each seat's pull requests open as, in roster order.
+ilogin() { printf '%s' "$1" | node -e 'const r=JSON.parse(require("fs").readFileSync(0,"utf8"));const got=r.seats.map(s=>`${s.agent}=${s.identity.installed?s.identity.installed.login:"unasked"}`).join(" ");if(got!==process.argv[1]){console.error(`logins: got "${got}", wanted "${process.argv[1]}"`);process.exit(1)}' "$2"; }
 asked() { grep -c "repos/$1/installation" "$GH_LOG" 2>/dev/null || true; }
+# The OTHER free request per App: GET /app, which is where the slug comes from.
+# Matched exactly, because the mint's own endpoint starts /app/installations.
+apped() { grep -c '"url":"/app"' "$GH_LOG" 2>/dev/null || true; }
+# What the stub calls the App whose JWT claims 123456 — so the login below is
+# deliberately NOT either seat's name, which is the whole point of reading it.
+APP_SLUG="epito-seat-123456"
 
 # 12a. installed, and one request standing in for two seats.
 if gh_start ok; then
@@ -499,12 +512,24 @@ if gh_start ok; then
   check "GitHub accepted the JWT epito signed for that ask"   "grep -q '\"jwtOk\":true' '$GH_LOG'"
   check "no token was minted to answer a preflight"           "! grep -q 'access_tokens' '$GH_LOG'"
   check "--json carries the answer per seat, graph unasked"   "iseat \"\$IJA\" 'graph=unasked plain=installed roaded=installed'"
+  # The second free request per App, and the only one that answers who a pull
+  # request opens AS. Counted here rather than after the next invocation,
+  # because every `epito doctor` process asks its own questions.
+  check "who it asked once more: the App's own name, one request" "[ \"\$(apped)\" = 1 ]"
+  check "...and --json carries that login, unasked where unasked" \
+    "ilogin \"\$IJA\" 'graph=unasked plain=$APP_SLUG[bot] roaded=$APP_SLUG[bot]'"
   irun "$R" --deep
   check "the row says how many Apps were asked, for how many seats" "said 'App asked at GitHub for 2 seats'"
   check "and the block names the installation, once, for both" "said 'installed on acme/box as installation 4242' && [ \$(printf '%s' \"\$out\" | grep -c 'installation 4242') -eq 1 ]"
   check "...with the grant it found there"                     "said 'granted there everything its .identity..scopes ask to mint'"
   check "...and the seats that one request covers"             "said 'covers plain, roaded'"
   check "no identity refusal reached the verdict"              "! jq_refusals \"\$IJA\" | grep -q 'installation\|mint'"
+  # Who the pull request opens as: the App's slug, which is neither seat's
+  # name, because an App name is unique across GitHub and the plain one is
+  # usually taken. (The count of that request is asserted above, before this
+  # second invocation — every `epito doctor` process asks its own questions.)
+  check "...printed as the login a pull request opens as"      "saidf \"Its pull requests there open as \$APP_SLUG[bot]\""
+  check "...which is the App's login and not the seat's name"  "! saidf 'open as plain[bot]' && ! saidf 'open as roaded[bot]'"
 else
   bad "the stand-in GitHub API never came up (12a)"
 fi
@@ -519,6 +544,13 @@ if gh_start not-installed; then
   check "...in the run path's own sentence, not a paraphrase"  "said 'is not installed on acme/box' && said 'can mint nothing, however valid its key'"
   check "...carrying the fix and whose job it is"              "said 'install the App on acme/box (its owner does this once)'"
   check "...and the identity row above it still says ✓"        "said '2 seats act as their own GitHub App'"
+  # The fix named a thing to go and do; this is where it is done. The host is
+  # the stub's, derived from $EPITO_GITHUB_API — which is the same derivation
+  # a GitHub Enterprise box depends on, proved here through the real command
+  # rather than only in a unit.
+  check "...and the page that does it, on the API root this box was given" \
+    "saidf \"The page that does it: \$GH_API/apps/\$APP_SLUG/installations/new\""
+  check "...said once, under the refusal it belongs to"        "[ \$(printf '%s' \"\$out\" | grep -c 'The page that does it') -eq 1 ]"
 fi
 
 # 12c. an App id and a private key that are not from the same App. GitHub
@@ -531,6 +563,11 @@ if gh_start bad-app; then
     "printf '%s' \"\$IJC\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));process.exit(r.installed.every(i=>i.status===401)?0:1)'"
   irun "$R" --deep
   check "...saying which two things could be wrong"            "said 'not from the same App, or the key has been revoked'"
+  # A 401 is GitHub rejecting these very credentials, and GET /app takes the
+  # same ones — so there is no slug to build a page out of, and asking would
+  # spend a request to hear the same no.
+  check "...and no page is offered, because there is no slug" "! said 'The page that does it'"
+  check "...nor a second request to be refused twice"          "[ \"\$(apped)\" = 0 ]"
 fi
 
 # 12d. the per-seat answer: an installation id this box names that GitHub does
@@ -541,10 +578,16 @@ if gh_start ok; then
   IJD="$(EPITO_INSTALLATION_ID_PLAIN=9999 ijson "$R" --deep)"
   check "an id this box names that GitHub does not have refuses" "iseat \"\$IJD\" 'graph=unasked plain=mismatch roaded=installed'"
   check "...and the ask is still one request, for both seats"   "[ \"\$(asked acme/box)\" = 1 ]"
+  check "...and who the App is was asked once too, for both"    "[ \"\$(apped)\" = 1 ]"
   check "...for that seat only, on an App the other seat shares" "jq_refusals \"\$IJD\" | grep -q 'names an installation id'"
   out="$(EPITO_INSTALLATION_ID_PLAIN=9999 ident $E doctor "$R" --deep 2>&1)"
   check "...saying both ids, and which of them the mint uses"   "said 'installation 4242, while this box tells its runs to mint from 9999'"
   check "...and the fix names the variable an operator edits"   "said 'EPITO_INSTALLATION_ID_PLAIN' && said 'correct it to 4242'"
+  # This one is fixed by editing this box, so there is nothing to open. The
+  # seat sharing the App still gets its login line, which is why the count
+  # above is 1 and this is not 0.
+  check "...with no page under it: this fix is a name on this box" \
+    "[ \$(printf '%s' \"\$out\" | grep -c 'The page that does it') -eq 0 ]"
 fi
 
 # 12e. installed, and granted less there than [identity].scopes need. An
@@ -558,6 +601,20 @@ if gh_start thin-perms; then
   irun "$R" --deep
   check "...with the level it has and the level it needs"       "said 'contents is read and the manifest needs write'"
   check "...and the fix names the grant, or the scope to drop"  "said 'grant the App contents:write' && said 'scopes are the ceiling'"
+  check "...and 'the App's permissions page' is a page, not a hint" \
+    "saidf \"The page that does it: \$GH_API/settings/apps/\$APP_SLUG/permissions\""
+fi
+
+# 12e'. the same shortfall on an App owned by an ORGANISATION. Not a second
+# mode: an org-owned App's settings are not reachable under /settings/apps at
+# all, so the owner GitHub names in GET /app is the half that decides the path,
+# and a wrong URL here is a fix an operator cannot follow.
+if STUB_APP_OWNER="acme:Organization" gh_start thin-perms; then
+  irun "$R" --deep
+  check "an org-owned App's permissions page is under the org" \
+    "saidf \"The page that does it: \$GH_API/organizations/acme/settings/apps/\$APP_SLUG/permissions\""
+  check "...and not under the user path, which does not exist for it" \
+    "! saidf \"\$GH_API/settings/apps/\$APP_SLUG/permissions\""
 fi
 
 # 12f. the one answer that is a report: a GitHub this box cannot reach. The
@@ -566,17 +623,22 @@ fi
 # refusal — it would be the one lie in the section.
 GH_API="http://127.0.0.1:1"
 gh_stop
+# Nothing can write to the log now, so it still holds the last mode's requests
+# — and the counts below are about THIS invocation.
+: > "$GH_LOG"
 IJF="$(ijson "$R" --deep)"
 check "a GitHub this box cannot reach is NOT a refusal"        "iseat \"\$IJF\" 'graph=unasked plain=unreachable roaded=unreachable'"
 check "...and nothing about it reaches the refusals list"      "! jq_refusals \"\$IJF\" | grep -q 'installation\|will not mint'"
 irun "$R" --deep
 check "...said as a report, with why that line is drawn there" "said 'could not be checked at GitHub from this box' && said 'the kind of mint failure that passes'"
 check "...and it does not cast doubt on what IS proven"        "said 'their key signs here'"
+check "...and a GitHub with no route is not asked who the App is" "[ \"\$(apped)\" = 0 ]"
 
 # 12g. and none of it happens without the flag.
 : > "$GH_LOG"   # the count below is about THIS invocation, not the section's
 out="$(ident $E doctor "$R" 2>&1)"; rc=$?
 check "no --deep, no request: the preflight stays offline"      "[ \"\$(asked acme/box)\" = 0 ]"
+check "...of either kind: who the App is is not asked either"   "[ \"\$(apped)\" = 0 ]"
 if [ "$HAVE_ENGINE" = 1 ]; then
   # The "not proven" line is in the ✓ half of the verdict, so a box with no
   # engine never reaches it — the same reason step 6 skips.
