@@ -145,23 +145,29 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **Bet cycle 1's close** — PR #54 carries the retro and the trial
   scorecard the ADR-5 cycle-2 review reads; merging it is the owner's
   call, not the PM's, because grading the trial is hers. Still clean
-  and mergeable as of this pass (2026-10-09), unchanged for four days
+  and mergeable as of this pass (2026-10-10), unchanged for five days
   running (one rebase in between, 2026-10-08, after this file's own
-  edit collided with it — resolved that pass, clean since). No
-  technical blocker; this is purely her reading and her grade.
+  edit collided with it — resolved that pass, clean since). A separate
+  pass today (PR #99) found the retro's claim that both bets shipped
+  inside appetite doesn't hold for bet 2 (its App-provisioning half
+  landed in cooldown's first day, not before cycle close) — a
+  correction for her to weigh before she grades it, not decided here.
+  No technical blocker; this is purely her reading and her grade.
 - [ ] **Bet cycle 2** — PR #67 carries the betting memo; per this
   charter the owner bets by merging it, so it waits on her hand even
   though it is clean and reviewed. *Open since 2026-10-05. Cooldown
-  closed 2026-10-06; 2026-10-09 is the third full day with cycle 2
+  closed 2026-10-06; 2026-10-10 is the fifth full day with cycle 2
   still not bet, and the engineer has been spending its runs on
-  ordinary backlog work (#84, then #87 merged forward into #89, merged
-  under Tier B) for lack of a cycle to point it at. Unchanged across
-  this day's three passes so far.*
+  ordinary backlog work (#84, then #87 merged forward into #89, and
+  now an open draft, #100, reading queue-polling health) for lack of a
+  cycle to point it at. Unchanged across this day's four passes so far.*
 - [ ] **Rebase the deck-archiving PR** — PR #52 went conflicting
   against main and also touches `.github/workflows/`, a surface
   product seats hand to the centralizer rather than editing; it needs
   a rebase from whichever seat opened it, not a merge from here. *Open
-  since 2026-10-05, still conflicting as of 2026-10-09 (four days).*
+  since 2026-10-05, still conflicting as of 2026-10-10 (five days).
+  Renewed the handoff to the chair seat on the board this pass, since
+  nothing has moved it in that time.*
 - [x] ~~Two ExO drafts, a week old and still conflicting~~ — the exo
   seat answered last pass's handoff: #26 is closed, folded into #80;
   #32 is still open and conflicting but is now the thing #80 is
@@ -201,20 +207,17 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **This seat's own knowledge-surface pull requests cannot land
   themselves** — the ask route to HQ's PM worked six times running
   (#73, #74, #77, #79, #85, #88), then broke on #90 and #90's
-  successor #91. HQ's PM answered the renewed ask on the board
-  2026-10-09 17:27 UTC with the actual cause: its own token gets a
-  404 reading this repo, no access at all, not a merge refusal but a
-  missing read. It handed #91 back to the owner per standards/pm.md
-  §10 (the owner is the other named merger for a product PM's own
-  Tier B pull request when HQ's PM cannot act) and filed the access
-  gap itself as a pending item on its own side. This pass answered
-  that message on the board in first person and asked the owner
-  directly to merge #91's successor, since HQ's route is confirmed
-  unusable for this repo until that token gets read access. #91 is
-  closed as superseded by this pull request rather than left open
-  carrying an ask addressed to a merger who cannot reach it. Seat: pm,
-  decision needed: owner (merge) and HQ (the token's read access to
-  this repo).
+  successor #91, then recovered once: HQ's PM reported 2026-10-09
+  18:30 that a host-based pass of its own read full push access and
+  merged #92 itself. The access is not stable: HQ's scheduled standup
+  hit the same 404 again at 2026-10-10 16:20 trying to reach #98, and
+  renewed the same finding rather than guessing at a fix, since the
+  credential gap between its two doors (host window vs. scheduled
+  Actions run) is not this seat's to repair. #98, #99 and #101 are now
+  three of this seat's own report pull requests sitting on the same
+  gap. Seat: pm, decision needed: owner (merge, when HQ's route is
+  down) and HQ (give the scheduled-run credential the same read reach
+  the host-based one already has).
 - [x] **PR #51 closed, superseded.** The engineer's own composing run
   (PR #75) found that #51's branch is 1,096 lines behind main — merging
   it would have deleted most of `docs/standards/pm.md`,
@@ -235,3 +238,15 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   test harness, `docs/ideas.md` and `docs/prfaq/`, no Tier C path, not
   this seat's own PR. The engineer seat now has zero open PRs. Seat:
   engineer.
+- [x] **Engineer run hit the turn ceiling finishing real work, not
+  stuck.** 2026-10-10 16:22 UTC: the scheduled engineer run errored on
+  `error_max_turns` after 812 lines across 13 files and a draft PR
+  (#100, still open) already carrying the real finding — a dead
+  `epitod-worker` reports green on every check because nothing asks
+  Temporal who is polling. Triaged transient, not a defect: the run was
+  70 seconds from finishing its own PR body, not looping. Reran once
+  (`gh run rerun --failed`); the retry completed green. The turn
+  ceiling itself lives in `.github/workflows/agent-engineer.yml`, HQ's
+  surface per standards/pm.md §15, so the observation went to
+  `docs/ideas.md` rather than a workflow edit. No second failure, so
+  this does not escalate to an incident. Seat: pm.
