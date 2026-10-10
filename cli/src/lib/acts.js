@@ -21,7 +21,9 @@
 // Five answers, and the two in the middle are why this is worth a section:
 //
 //   own      the seat has an App here, and the key on this box actually signs
-//            the JWT the mint starts with. PRs open as `<name>[bot]`.
+//            the JWT the mint starts with. PRs open as the App's own login,
+//            which is `<slug>[bot]` and is not always `<name>[bot]` — see
+//            `rosterInstalled` below, which is the only half that knows.
 //   refused  it has an App here and the mint would fail PERMANENTLY — an
 //            unreadable key file, a PEM that is not a PEM, a key that is not
 //            RSA, a scope v0.2 cannot mint, an App with no [runtime].repo to
@@ -58,7 +60,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
-  loadPrincipal, envNames, appJwt, permissionsFor, installationAt,
+  loadPrincipal, envNames, appJwt, permissionsFor, installationAt, appAs,
+  installUrl, appSettingsUrl,
   PRINCIPALS_PATH, KEYS_DIR, GITHUB_API, noRepoMessage,
 } from "./identity.js";
 import { holding, HELD, ABSENT, EMPTY } from "./boxenv.js";
@@ -217,7 +220,8 @@ export function actsAs(name, manifest, { env = process.env, dir = "." } = {}) {
 export const IDENTITY_FIX =
   `a seat acts as itself when this box holds two names for it — $EPITO_APP_ID_<SEAT> and $EPITO_APP_KEY_FILE_<SEAT> ` +
   `(the seat's name uppercased, - as _; the key a .pem at 0600, which is the form a systemd EnvironmentFile can hold). ` +
-  `Then its runs mint their own short-lived token, clone and push as themselves, and open PRs as <name>[bot]. ` +
+  `Then its runs mint their own short-lived token, clone and push as themselves, and open PRs as the App's own login — ` +
+  `which is <slug>[bot], usually the seat's name and not guaranteed to be, because an App name is unique across the whole of GitHub. ` +
   `docs/deploy/README.md ("Giving an agent its own identity") is the long version, and \`epito deploy\` is the laptop route. ` +
   `The pre-identity answer, which is what every seat did before this leg existed, is to name ${SHARED_NAMES[0]} in the seat's [runtime].env and hold it here — then its PRs open as that token's owner`;
 
@@ -322,13 +326,43 @@ const withDeadline = (p, ms) => {
 // One call, per (App, repo). The answer depends on nothing else: two seats
 // sharing an App and a repository share an installation, and asking twice
 // would print the same proof twice and spend two requests to do it.
-async function askGitHub(row, { env, dir, lookup, deadline }) {
+// The App's own name, which is the one fact in this section that no manifest
+// holds and nothing offline can reach: `GET /app`, as the App, with the same
+// JWT the installation lookup just used. It buys two sentences nothing else
+// can write — the page that performs the fix a refusal names, and the login a
+// pull request will actually open AS, which is the App's slug and not
+// necessarily the seat's name.
+//
+// It never changes a verdict. A failure here means a link missing from a
+// sentence that was already complete and already correct, so it degrades to
+// null and the report reads exactly as it did before this existed — the same
+// trade `mintToken` makes about the commit identity, for the same reason: an
+// avatar is not worth a refusal.
+//
+// Not asked at all in two cases, both of them "GitHub has already answered
+// this": a 401 is GitHub rejecting these very credentials, so /app would spend
+// a request to be told so a second time, and a GitHub with no route from here
+// has no route for either call. The deadline is the operator's patience and
+// not a per-request budget, so this shares the one above rather than adding
+// five seconds of its own.
+async function describeApp(row, jwt, answer, { describe, deadline }) {
+  if (answer.state === UNREACHABLE || answer.status === 401) return null;
+  try { return await withDeadline(describe(row.appId, jwt), deadline); }
+  catch { return null; }
+}
+
+async function askGitHub(row, { env, dir, lookup, describe, deadline }) {
   // `row.state === OWN` is the caller's contract and it is what makes the next
   // two lines safe: loadPrincipal answered for this seat, its key signed a JWT
   // already, and [runtime].repo is set. Read through loadPrincipal rather than
   // off the row because the row deliberately carries no key.
   const principal = loadPrincipal(row.agent, { env, dir });
   const jwt = appJwt(principal.appId, principal.privateKey);
+  const answer = await askInstallation(row, jwt, { lookup, deadline });
+  return { ...answer, app: await describeApp(row, jwt, answer, { describe, deadline }) };
+}
+
+async function askInstallation(row, jwt, { lookup, deadline }) {
   try {
     const inst = await withDeadline(lookup(jwt, row.repo), deadline);
     // A 200 with no id in it. Not reachable through api.github.com, and this
@@ -381,8 +415,31 @@ function idSource(row) {
 // One seat's verdict: the call's answer, plus the one fact that is this seat's
 // own rather than its App's — which installation id this box tells its runs
 // to mint from.
+// A line printed UNDER a row, which is not a second fix: the page that
+// performs the fix the sentence already named, or the one fact about a healthy
+// App that is worth a line of its own. Kept separate from `fix` so a refusal
+// never reads as having two of them, and so identity.js's own refusal wording
+// stays verbatim rather than being rewritten to hold a URL.
+const under = (...lines) => lines.filter(Boolean);
+
 function verdictFor(row, call) {
-  const base = { agent: row.agent, appId: row.appId, repo: row.repo, declared: row.installation ?? null, installation: call.installation ?? null, status: call.status ?? null };
+  const app = call.app ?? null;
+  const base = {
+    agent: row.agent, appId: row.appId, repo: row.repo,
+    declared: row.installation ?? null, installation: call.installation ?? null,
+    status: call.status ?? null,
+    // The login a pull request from this seat actually opens as, where GitHub
+    // was asked and answered. Null is "not asked or not answered", never a
+    // guess: `<name>[bot]` is the usual case and guessing it here is exactly
+    // the promise this pass exists to stop making.
+    login: app?.login ?? null,
+    slug: app?.slug ?? null,
+    // Always an array, including on the answers that have nothing to put in
+    // it: a reader that has to tell [] from undefined is a reader that will
+    // get it wrong once. A mismatch is the clearest case — it is fixed by
+    // editing this box, so there is nothing to open.
+    under: [],
+  };
   if (call.state === INSTALLED) {
     // Mismatch before grant, deliberately: with the wrong id the mint never
     // reaches the permission check, so naming the grant first would be naming
@@ -405,6 +462,11 @@ function verdictFor(row, call) {
         gaps,
         says: `an App installed on ${row.repo} as installation ${call.installation} and granted less there than its [identity].scopes need: ${gaps.map((g) => `${g.permission} is ${g.granted ?? "not granted at all"} and the manifest needs ${g.need}`).join("; ")}. An installation can only hand out permissions the App was granted, so GitHub answers the mint 422`,
         fix: `grant the App ${asked} and accept the request on ${row.repo} (its owner does this once, from the App's permissions page), or drop the scope from this agent's agent.toml — scopes are the ceiling, so the mint refuses rather than quietly minting a token narrower than the manifest promises`,
+        // "the App's permissions page" is a real page and an operator should
+        // not have to find it. Which path it is depends on who owns the App,
+        // which is why `GET /app` is read for its owner and not only its slug:
+        // an org-owned App is not reachable under /settings/apps at all.
+        under: under(app && `The page that does it: ${appSettingsUrl(app)}`),
       };
     }
     return {
@@ -415,10 +477,33 @@ function verdictFor(row, call) {
       // where a reader loses which half the list belongs to.
       says: `its own GitHub App, installed on ${row.repo} as installation ${call.installation}, which is ${named ? "the id this box names for it" : "the id its runs discover from [runtime].repo, since nothing on this box names one"}${call.permissions ? `, and granted there everything its [identity].scopes ask to mint` : ""}`,
       fix: null,
+      // The one thing worth a line under a ✓ row. It is printed because it is
+      // the question the whole identity leg exists to answer and the only
+      // place in this product that can answer it truthfully: an App name is
+      // unique across GitHub, so a seat called `pm` whose App had to be
+      // created as `asc-pm` opens its pull requests as `asc-pm[bot]`, and
+      // every other sentence here would have told the operator `pm[bot]`.
+      under: under(app && `Its pull requests there open as ${app.login}, which is this App's own login: usually the seat's name, and whatever GitHub actually gave the App when it was created.`),
     };
   }
   if (call.state === GH_REFUSED) {
-    return { ...base, state: GH_REFUSED, says: `an App this box cannot mint with: ${call.says}`, fix: null };
+    return {
+      ...base,
+      state: GH_REFUSED,
+      says: `an App this box cannot mint with: ${call.says}`,
+      fix: null,
+      // identity.js's 404 says "install the App on owner/name (its owner does
+      // this once)" — the instruction, and the thing an owner then has to go
+      // and find. This is where it is: the App's install page, which is a form
+      // (choose the account, choose the repositories, press Install), so the
+      // link performs nothing by being followed.
+      //
+      // Only on the 404. A 401 is an App id and a key that are not from the
+      // same App, and the same credentials cannot read `GET /app` either, so
+      // there is no slug to build a page out of — its fix stays the sentence
+      // identity.js already writes, which is to re-copy both.
+      under: under(app && call.status === 404 && `The page that does it: ${installUrl(app.slug)}`),
+    };
   }
   return {
     ...base,
@@ -433,13 +518,13 @@ function verdictFor(row, call) {
 // returns one verdict per such seat, in roster order. A roster with no `own`
 // seat makes no request and returns nothing, which is this company's own
 // roster today.
-export async function rosterInstalled(rows, { env = process.env, dir = ".", lookup = installationAt, deadline = INSTALL_DEADLINE_MS } = {}) {
+export async function rosterInstalled(rows, { env = process.env, dir = ".", lookup = installationAt, describe = appAs, deadline = INSTALL_DEADLINE_MS } = {}) {
   const calls = new Map();
   const out = [];
   for (const row of rows) {
     if (row.state !== OWN) continue;
     const key = `${row.appId}|${row.repo}`;
-    if (!calls.has(key)) calls.set(key, await askGitHub(row, { env, dir, lookup, deadline }));
+    if (!calls.has(key)) calls.set(key, await askGitHub(row, { env, dir, lookup, describe, deadline }));
     out.push({ ...verdictFor(row, calls.get(key)), key });
   }
   return out;
@@ -453,4 +538,4 @@ export const INSTALL_REFUSES = new Set([MISMATCH, UNGRANTED, GH_REFUSED]);
 // doctor prints its "not proven" line. Named for the seats it is true of: a
 // roster with no App of its own has nothing here to prove.
 export const INSTALL_UNPROVEN =
-  "whether each App is installed on the repository it would mint for, and was granted there what its [identity].scopes ask to mint — the key signing is offline and free, and both of those are questions only GitHub can answer";
+  "whether each App is installed on the repository it would mint for, was granted there what its [identity].scopes ask to mint, and which login its pull requests actually open as — the key signing is offline and free, and all three are questions only GitHub can answer";

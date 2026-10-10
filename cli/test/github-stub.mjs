@@ -19,6 +19,12 @@
 //        | thin-perms (installed, but granted less than the manifest's scopes)
 //        | no-bot (404 on GET /app, so the commit-identity lookup fails and
 //                 the run must degrade loudly instead of stopping)
+//
+// $STUB_APP_OWNER ("<login>:<User|Organization>", default "acme:User") sets
+// who GitHub says owns the App. It is an environment variable rather than a
+// mode because it composes with every mode above: an org-owned App whose
+// installation is ALSO short of a permission is one case, not two, and an
+// App's settings pages live at a different path for each owner type.
 import { createServer } from "node:http";
 import { createVerify } from "node:crypto";
 import { readFileSync, appendFileSync } from "node:fs";
@@ -29,6 +35,8 @@ const pub = readFileSync(pubPath, "utf8");
 // follows the deploy is verifiably minting for the App the deploy made.
 const CONVERTED = { id: 707070, slug: "epito-seat-707070" };
 const record = (o) => appendFileSync(logPath, JSON.stringify(o) + "\n");
+
+const [ownerLogin, ownerType] = (process.env.STUB_APP_OWNER ?? "acme:User").split(":");
 
 const unb64 = (s) => Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64");
 
@@ -108,7 +116,15 @@ createServer((req, res) => {
     // with two Apps must not look like one.
     if (req.method === "GET" && req.url === "/app") {
       if (mode === "no-bot") return send(404, { message: "Not Found" });
-      return send(200, { id: Number(jwt.claims.iss), slug: `epito-seat-${jwt.claims.iss}`, name: `epito seat ${jwt.claims.iss}` });
+      // `owner` is sent by the real endpoint and is the half that decides
+      // where this App's settings pages are, so a stub that omitted it would
+      // let a wrong URL pass a test.
+      return send(200, {
+        id: Number(jwt.claims.iss),
+        slug: `epito-seat-${jwt.claims.iss}`,
+        name: `epito seat ${jwt.claims.iss}`,
+        owner: { login: ownerLogin, type: ownerType },
+      });
     }
 
     const inst = /^\/repos\/([^/]+)\/([^/]+)\/installation$/.exec(req.url);

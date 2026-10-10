@@ -83,7 +83,7 @@ import { SPEC_VERSION } from "./lib/fields.js";
 
 export const DOCTOR_FLAGS = [
   { name: "json", does: "the report as JSON" },
-  { name: "deep", does: "ask the two questions that leave this box: is each agent's App installed where it would mint (free), and ONE real turn per road to prove the executor's credentials (a model call)" },
+  { name: "deep", does: "ask the two questions that leave this box: is each agent's App installed where it would mint and what login its pull requests open as (free), and ONE real turn per road to prove the executor's credentials (a model call)" },
 ];
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -244,10 +244,11 @@ export async function doctorCmd(args = []) {
   // keeps its own line because its `says` carries that id.
   const installGroups = [];
   for (const i of installed) {
-    const key = `${i.state}|${i.says}|${i.fix}`;
+    const under = i.under ?? [];
+    const key = `${i.state}|${i.says}|${i.fix}|${under.join("|")}`;
     const found = installGroups.find((g) => g.key === key);
     if (found) found.agents.push(i.agent);
-    else installGroups.push({ key, state: i.state, says: i.says, fix: i.fix, agents: [i.agent] });
+    else installGroups.push({ key, state: i.state, says: i.says, fix: i.fix, under, agents: [i.agent] });
   }
   const badInstall = installGroups.filter((g) => INSTALL_REFUSES.has(g.state));
 
@@ -320,7 +321,11 @@ export async function doctorCmd(args = []) {
         // installed there) and 401 (an id and a key from different Apps) are
         // two different fixes, and this is where a machine reads which.
         installed: p.installed
-          ? { state: p.installed.state, declared: p.installed.declared, installation: p.installed.installation, status: p.installed.status, says: p.installed.says }
+          // `login` is the one field here that is not about whether the mint
+          // would work: it is who the pull request opens as, which is the
+          // question the identity leg exists for and the only place it is
+          // knowable. Null means not asked or not answered, never a guess.
+          ? { state: p.installed.state, declared: p.installed.declared, installation: p.installed.installation, status: p.installed.status, login: p.installed.login ?? null, says: p.installed.says }
           : null,
       },
       names: { asked: p.env.asked.length, held: p.env.held.length, missing: p.env.missing, empty: p.env.empty },
@@ -333,7 +338,7 @@ export async function doctorCmd(args = []) {
     // One entry per seat with an App — not per request, which is what `deep`
     // above is — and `key` is what says which of them shared one: two seats on
     // the same App and repo carry the same key and cost one request.
-    installed: deep ? installed.map((i) => ({ agent: i.agent, key: i.key, appId: i.appId, repo: i.repo, state: i.state, declared: i.declared, installation: i.installation, status: i.status })) : null,
+    installed: deep ? installed.map((i) => ({ agent: i.agent, key: i.key, appId: i.appId, repo: i.repo, state: i.state, declared: i.declared, installation: i.installation, status: i.status, slug: i.slug ?? null, login: i.login ?? null })) : null,
     refusals: refusals.map((r) => ({ agents: r.agents, says: r.says })),
   };
   if (json) {
@@ -468,6 +473,10 @@ export async function doctorCmd(args = []) {
       const mark = g.state === INSTALLED ? "✓" : g.state === UNREACHABLE ? "!" : "✗";
       out(`  ${mark} ${g.says} — covers ${g.agents.join(", ")}`);
       if (g.fix) out(`      Fix: ${g.fix}.`);
+      // After the fix, never instead of it: these are the page that performs
+      // the fix the sentence just named, and the login a ✓ row opens its pull
+      // requests as. A row with no fix can still have one (see acts.js).
+      for (const u of g.under ?? []) out(`      ${u}`);
     }
     out("");
   }
