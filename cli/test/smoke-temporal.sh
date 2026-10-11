@@ -368,6 +368,7 @@ export TEMPORAL_ADDRESS="127.0.0.1:$GRPC_PORT" TEMPORAL_NAMESPACE="$NS" \
        EPITO_APP_ID_GRAPHS=4321 EPITO_APP_KEY_GRAPHS="$(cat "$ROOT/pm-app.pem")" \
        EPITO_PYTHON="$LG_PYTHON" \
        OPEN_ROUTE_KEY="$OPEN_KEY" EPITO_STUB_REFUSE_BASE_URL="$OPEN_REFUSES" EPITO_STUB_ECHO_ROUTE=1 \
+       SMOKE_HALF_FILLED="" \
        OTEL_EXPORTER_OTLP_ENDPOINT="http://127.0.0.1:$OTLP_PORT" \
        SLACK_WEBHOOK_URL="http://127.0.0.1:$SLACK_HQ_PORT/hook" \
        SLACK_WEBHOOK_URL_EPITOME="http://127.0.0.1:$SLACK_PRODUCT_PORT/hook"
@@ -823,6 +824,68 @@ const ex=spans.find(s=>s.name===\"execute\"&&(s.attrs||{})[\"epito.agent\"]===\"
 console.log(\"   \", (ex.attrs||{})[\"epito.route\"], (ex.attrs||{})[\"epito.model\"]);
 process.exit((ex.attrs||{})[\"epito.route\"]===\"subscription\"&&(ex.attrs||{})[\"epito.model\"]===\"claude-sonnet-5\"?0:1)'"
 check "no span carries a route's key either" "! grep -qF '$OPEN_KEY' '$SPANS'"
+
+step "10: THE NAMES THIS BOX DID NOT HOLD — the rehearsal, the run log, and the agent's own prompt"
+# A box is short of a name in two ways, and this one is short in both: it has
+# never heard of SMOKE_NOT_HERE, and its env block sets SMOKE_HALF_FILLED to
+# nothing (the `KEY=` line somebody half filled in, exported above where the
+# worker's environment is built — a running worker's environment cannot be
+# changed later, which is exactly the point: this is the box pm runs on).
+#
+# The runtime DROPS both and runs the seat anyway. Three parties could not see
+# that before: the operator rehearsing with --dry-run, whoever reads the run
+# back, and the agent itself.
+sed -i 's/^env = \["EPITO_STUB_DIR", "EPITO_STUB_ECHO_TOKEN", "GH_TOKEN", "SLACK_WEBHOOK_URL"\]$/env = ["EPITO_STUB_DIR", "EPITO_STUB_ECHO_TOKEN", "GH_TOKEN", "SLACK_WEBHOOK_URL", "SMOKE_NOT_HERE", "SMOKE_HALF_FILLED"]/' "$ROSTER/pm/agent.toml"
+check "the manifest that asks for them is still a valid manifest" "node '$CLI/src/index.js' validate '$ROSTER' >/dev/null 2>&1"
+grep -q 'SMOKE_NOT_HERE' "$ROSTER/pm/agent.toml" || { echo "the fixture edit did not apply"; exit 1; }
+
+node "$CLI/src/index.js" run "$ROSTER" --dry-run > "$ROOT/dry-short.log" 2>&1; rc=$?
+sed 's/^/  /' "$ROOT/dry-short.log"
+check "the rehearsal names both kinds of shortfall, for the seat that has them" \
+  "grep -qF '! pm: SMOKE_NOT_HERE is not available to its runs; SMOKE_HALF_FILLED arrives empty' '$ROOT/dry-short.log'"
+check "and points at the command that is the whole report" "grep -qF '\`epito env' '$ROOT/dry-short.log'"
+check "it REPORTS and does not refuse — the real \`epito run\` injects that empty value and runs the seat" "[ $rc = 0 ]"
+check "a seat whose names are all here gets no line" "! grep -q '! clock:' '$ROOT/dry-short.log'"
+# The operator's view DOES count a road's halves, and the agent's does not:
+# filling in this box's env file is exactly what opens that road, which is why
+# the name belongs in the rehearsal — and the router, not the agent, is what
+# acts on it at run time.
+check "a road's own half is in the operator's view, where the fix is an env-file line" \
+  "grep -q '! cheap: ABSENT_ROUTE_KEY is not available to its runs' '$ROOT/dry-short.log'"
+check "and no value of anything appears in it" "! grep -qF '$OPEN_KEY' '$ROOT/dry-short.log'"
+
+kill -HUP "$INGRESS_PID"
+eventually "the ingress re-read the roster, so the next run of pm carries the new names" \
+  "grep -c 'SIGHUP' '$ROOT/ingress.log' | grep -qv '^0$'" 15 "tail -3 '$ROOT/ingress.log'"
+sleep 1
+code=$(post /hooks/pm '{"why":"a run on a box that is short of two names"}'); echo "  $code $(body)"
+node "$CLI/test/wait-for.mjs" runs pm 1 120000 >/dev/null 2>&1 || true
+eventually "the run happened" "ls .epito/logs/pm/*.log >/dev/null 2>&1 && grep -lq 'env missing' .epito/logs/pm/*.log" 120 "tail -5 '$ROOT/worker.log'"
+SHORTLOG="$(grep -l 'env missing' .epito/logs/pm/*.log | tail -1)"
+sed 's/^/  /' "$SHORTLOG" | head -6
+check "the run's own log says both, in one sentence" \
+  "grep -qF '# env missing: SMOKE_NOT_HERE is not available to this run; SMOKE_HALF_FILLED arrives empty' '$SHORTLOG'"
+check "a name the run MINTED for itself is not a name the box is short of" "! grep 'env missing' '$SHORTLOG' | grep -q 'GH_TOKEN'"
+check "the operator watching journalctl hears it too" \
+  "grep -qF 'pm: 2 names from [runtime].env are not what this box holds (SMOKE_NOT_HERE, SMOKE_HALF_FILLED)' '$ROOT/worker.log'"
+check "the agent itself was told, in the prompt the child really received" "node -e '
+const fs=require(\"fs\");
+const turns=fs.readdirSync(\"$STUB\").filter(f=>f.endsWith(\".jsonl\"))
+  .flatMap(f=>fs.readFileSync(\"$STUB/\"+f,\"utf8\").trim().split(\"\n\").filter(Boolean).map(JSON.parse))
+  .filter(t=>/epito-pm-/.test(t.cwd||\"\"));
+const told=turns.filter(t=>/SMOKE_NOT_HERE is not set on this box, so it is not in your environment at all/.test(t.prompt||\"\"));
+console.log(\"   \", told.length+\" of \"+turns.length+\" prompts handed to pm carry the line\");
+const one=told[0]||{};
+const empty=/SMOKE_HALF_FILLED is set to nothing, so it reaches you empty/.test(one.prompt||\"\");
+const mint=/GH_TOKEN/.test(one.prompt||\"\");
+const road=/OPEN_ROUTE_KEY|ABSENT_ROUTE_KEY/.test(one.prompt||\"\");
+console.log(\"    empty named=\"+empty+\" minted credential named=\"+mint+\" road half named=\"+road);
+process.exit(told.length && told.length < turns.length && empty && !mint && !road ? 0 : 1)'"
+check "and the prompt carries no value, only names" "! grep -rqF '$SHARED_TOKEN' '$STUB'"
+
+# Put the fixture back, so nothing after this reads a roster this step invented.
+write_manifest pm "" "SLACK_WEBHOOK_URL"
+kill -HUP "$INGRESS_PID"
 
 step "board (the file behind it)"
 sed 's/^/  /' .epito/board.jsonl

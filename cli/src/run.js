@@ -333,6 +333,11 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
     log("SIGHUP: re-reading the roster and reconciling");
     try {
       roster = loadRoster(dir);
+      // A seat added without a restart is the whole point of SIGHUP, and a
+      // seat added without a restart is also the likeliest one to name a
+      // variable this box has never held: the startup block ran before that
+      // manifest existed. Said again, against the roster that is now in force.
+      sayShortfall(roster, dirArg, log);
       const p = await reconcile({ client, roster, log: (m) => log(m) });
       for (const k of ["create", "update", "delete"]) {
         for (const s of p[k]) appendAudit({ agent: s.name, action: `schedule.${k}`, schedule: s.id, cron: s.shape?.cron ?? null });
