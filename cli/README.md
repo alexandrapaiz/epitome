@@ -193,6 +193,10 @@ credentials: one real turn per *road* (five seats sharing one key cost one
 call), with the executor's own refusal read back verbatim. It costs a model
 call, which is why it is a flag.
 
+A name this box does not hold at all is a report and exits 0; a name it holds
+and holds empty exits 1. That is the same split `epito env` makes, for the same
+reason — nothing in a manifest says which names a seat cannot work without.
+
 The **worker** section is the only one that asks whether a run is *performed*
 rather than accepted. Everything above it can be ✓ on a box where nothing ever
 runs: accepting work and doing it are two processes (`epitod` registers the
@@ -242,10 +246,6 @@ pm    0 12 * * 1 2026-10-13T12:00Z ok        1 (no worker)   -       …
   The one seat with a NEXT time above will not run at it either: the engine will start
   the run and nothing will pick it up.
 ```
-
-A name this box does not hold at all is a report and exits 0; a name it holds
-and holds empty exits 1. That is the same split `epito env` makes, for the same
-reason — nothing in a manifest says which names a seat cannot work without.
 
 The **identity** section answers the other question a box decides: not whether
 a run would start but whose name its pull request would open under. It reads
