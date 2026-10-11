@@ -169,10 +169,12 @@ export function envTemplate(report, { dir = "the roster" } = {}) {
 // they are not the same thing to the agent: a name this box does not hold
 // never reaches the run at all, and a name set to nothing reaches it as an
 // empty string, which is the one the agent will act on and fail far away from.
-export function shortfallSays(seat) {
+// `of` is whose runs: a seat's, read off a roster, or the one run being
+// written into a log.
+export function shortfallSays(seat, { of = "its runs" } = {}) {
   return [
     seat.missing.length
-      ? `${seat.missing.join(", ")} ${seat.missing.length > 1 ? "are" : "is"} not available to its runs`
+      ? `${seat.missing.join(", ")} ${seat.missing.length > 1 ? "are" : "is"} not available to ${of}`
       : null,
     seat.empty.length
       ? `${seat.empty.join(", ")} ${seat.empty.length > 1 ? "arrive" : "arrives"} empty`
@@ -190,11 +192,17 @@ export function shortfallSays(seat) {
 // so, by name, in the run's own log, and then takes the next road. Repeating
 // it in the charter preamble would tell an agent to worry about a key it was
 // never going to read, and bury the name it actually was.
-export function runShortfall(manifest, env = process.env) {
+// `injected` is the names the RUN supplies itself — the GH_TOKEN/GITHUB_TOKEN
+// a mint produced for this one run, which outranks anything `[runtime].env`
+// inherited. A name the run brings with it is not a name the box is short of,
+// and saying otherwise would have the prompt tell every seat with an App of
+// its own that it has no GitHub credential.
+export function runShortfall(manifest, env = process.env, { injected = [] } = {}) {
   const halves = new Set();
   for (const r of routesFor(manifest)) for (const n of [r.baseUrlEnv, r.tokenEnv]) if (n) halves.add(n);
+  const given = new Set(injected);
   const declared = Array.isArray(manifest?.runtime?.env)
-    ? manifest.runtime.env.filter((n) => typeof n === "string" && n && !halves.has(n))
+    ? manifest.runtime.env.filter((n) => typeof n === "string" && n && !halves.has(n) && !given.has(n))
     : [];
   const missing = declared.filter((n) => holding(n, env) === ABSENT);
   const empty = declared.filter((n) => holding(n, env) === EMPTY);
