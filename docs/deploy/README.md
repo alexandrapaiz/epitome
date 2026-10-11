@@ -487,10 +487,31 @@ Three outcomes per name, and only one of them is an error:
   box has that one and has it wrong, the same split `epito routes` makes for a
   road whose endpoint is set to something that is not a URL.
 
-Every run says it too, in its own log — `# env missing: BOARD_RUNTIME_TOKEN —
-listed in [runtime].env, not set on this box` — and in `journalctl`, so a run
-that did less than it should have says why where somebody is reading. It prints
-no value, ever; names only.
+Three places say it besides this command, from the same reader
+(`runShortfall`, `src/lib/boxenv.js`), so the three cannot disagree about one
+box. None of them prints a value, ever; names only.
+
+- **`epito run <dir> --dry-run`**, the rehearsal you run between pasting the
+  env file and starting the units, names every seat that is short of something
+  and points at this command. It does it *before* it connects to the engine,
+  so a box that cannot reach its engine yet still gets this half of the
+  answer — and it reports rather than refuses, including for a name set to
+  nothing, because the real `epito run` injects that empty value and runs the
+  seat, and a rehearsal that refused what the run accepts would be lying about
+  the box in the more expensive direction. The live `epito run` says the same
+  block at startup, which puts it in this box's journal.
+- **The run's own log**, `# env missing: BOARD_RUNTIME_TOKEN is not available
+  to this run; LINEAR_API_KEY arrives empty`, and the same line in
+  `journalctl` — so a run that did less than it should have says why where
+  somebody is reading.
+- **The agent**, in the charter preamble the runtime builds for it: one line
+  naming what this box did not have, in the second person. It is the only
+  party that knows what the name was *for*, and until it was told, a seat
+  whose `BOARD_RUNTIME_TOKEN` was missing discovered it as an HTTP failure
+  deep in its own run. A name the run mints for itself (`GH_TOKEN` from an
+  App) is not in that line, and neither is a road's `token_env` — a box short
+  of that has a closed road, which the route lines in the same log already
+  name, and then the run takes the next road.
 
 ## Seeing inside a run
 

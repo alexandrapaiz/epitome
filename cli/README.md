@@ -127,6 +127,32 @@ has it wrong.
 
 It reads the environment for presence and prints no value, ever.
 
+Three other surfaces say the same thing from the same reader, so a box cannot
+be described two ways:
+
+```
+$ epito run agents --dry-run
+… 1 of 5 seats runs here short of a name its manifest asks this box to hold:
+…   ! pm: BOARD_API_URL is not available to its runs; LINEAR_API_KEY arrives empty
+…   a name this box does not hold is dropped from the run's environment and the
+    seat runs without it: `epito env agents` is the whole report
+```
+
+said before it connects to the engine (the box most likely to be
+half-provisioned is the one whose engine is not up yet), and said again by the
+live `epito run` at startup so it lands in the journal. It reports and never
+refuses, including for a name set to nothing: the real `epito run` injects that
+empty value and runs the seat, and a rehearsal that refused what the thing it
+rehearses accepts would be the wrong lie about a box.
+
+The run's own log keeps its line (`# env missing: BOARD_RUNTIME_TOKEN is not
+available to this run; LINEAR_API_KEY arrives empty`), and — the party that was
+never told — the **agent** gets one line in the charter preamble naming what
+this box did not have. Two names stay out of that line on purpose: a credential
+the run minted for itself is not a name the box is short of, and a road's
+`token_env` is a closed road, which the route lines in the same log already name
+before the run takes the next road.
+
 ## Would a run on this box start?
 
 Four of this CLI's commands each answer a quarter of that: `epito validate

@@ -17,8 +17,8 @@ import { loadRoster, rosterRules, ROSTER_RULES } from "../src/lib/roster.js";
 import { SEVERITY, checkManifest, shape } from "../src/validate.js";
 import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
-import { rosterEnv, namesFor, envTemplate, holding, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
-import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, GIT_TOKEN_ENV } from "../src/lib/runner.js";
+import { rosterEnv, namesFor, envTemplate, holding, runShortfall, shortfallSays, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
+import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, buildPrompt, shortfallLine, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP, noRepoMessage, webRoot, installUrl, appSettingsUrl } from "../src/lib/identity.js";
 import {
   actsAs, rosterActs, rosterInstalled, grantGap, IDENTITY_FIX,
@@ -32,7 +32,7 @@ import { once } from "node:events";
 import { generateKeyPairSync, createVerify } from "node:crypto";
 import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, chmodSync, realpathSync } from "node:fs";
 import { seatOfWorkflowId, scheduleId, runId, windowId } from "../src/temporal/env.js";
-import { justCompleted, sendOrRestart } from "../src/run.js";
+import { justCompleted, sendOrRestart, sayShortfall } from "../src/run.js";
 import { ADAPTERS, ADAPTER_NAMES, adapterFor, unknownAdapter, LANGGRAPH_SHIM } from "../src/lib/adapters.js";
 import {
   DEFAULT_ADDRESS, connectReason, engineAnswering, engineFix, engineMissing,
@@ -2977,6 +2977,94 @@ test("the env template covers every name the manifests ask for, and blanks none 
   assert.match(out, /systemd EnvironmentFile/, "and what kind of file this is");
 });
 
+test("runShortfall: what ONE run is short of, and the three things that are not a shortfall", () => {
+  const m = seat("pm", { runtime: {
+    model: "m", entry: "e", repo: "acme/roster",
+    env: ["HELD", "ABSENT_ONE", "EMPTY_ONE", "GH_TOKEN", "GW_URL", "GW_KEY"],
+    route: [
+      { name: "open", model: "kimi", base_url_env: "GW_URL", token_env: "GW_KEY" },
+      { name: "subscription", model: "m" },
+    ],
+  } });
+  const env = { HELD: "yes", EMPTY_ONE: "" };
+  const r = runShortfall(m, env, { injected: ["GH_TOKEN"] });
+  assert.deepEqual(r.missing, ["ABSENT_ONE"]);
+  assert.deepEqual(r.empty, ["EMPTY_ONE"], "set to nothing is a shortfall, and the expensive one: the agent acts on it");
+  assert.deepEqual(r.short, ["ABSENT_ONE", "EMPTY_ONE"]);
+  // 1. A name the run brings with it. 2. A road's two halves — that box fault
+  // is a closed road, and the router says so in its own vocabulary. 3. A name
+  // the box holds.
+  assert.ok(!r.short.includes("GH_TOKEN"));
+  assert.ok(!r.short.includes("GW_KEY") && !r.short.includes("GW_URL"));
+  assert.ok(!r.short.includes("HELD"));
+  // Without the mint, the same box IS short of the credential — which is the
+  // difference between a seat with an App of its own and one without.
+  assert.ok(runShortfall(m, env).short.includes("GH_TOKEN"));
+  assert.deepEqual(runShortfall(seat("pm"), {}).short, [], "a manifest that names nothing is short of nothing");
+});
+
+test("the shortfall is one sentence, and the agent's copy of it is the only one in the second person", () => {
+  const both = { missing: ["BOARD_RUNTIME_TOKEN"], empty: ["LINEAR_API_KEY"] };
+  // The operator's register, in two subjects: a seat read off a roster, and
+  // one run read out of its own log.
+  assert.equal(shortfallSays(both), "BOARD_RUNTIME_TOKEN is not available to its runs; LINEAR_API_KEY arrives empty");
+  assert.equal(shortfallSays(both, { of: "this run" }), "BOARD_RUNTIME_TOKEN is not available to this run; LINEAR_API_KEY arrives empty");
+  assert.equal(shortfallSays({ missing: ["A", "B"], empty: [] }), "A, B are not available to its runs");
+  assert.equal(shortfallSays({ missing: [], empty: ["A", "B"] }), "A, B arrive empty");
+  assert.equal(shortfallSays({ missing: [], empty: [] }), "", "a seat that is short of nothing says nothing");
+
+  // The agent's copy. It says what was dropped and WHY it is dropped, in the
+  // second person, and stops: `[runtime].env` is the list the runtime injects
+  // FROM, not a list of what a seat cannot work without, so the only party
+  // that knows whether this matters is the charter the agent is about to read.
+  const line = shortfallLine(both);
+  assert.match(line, /BOARD_RUNTIME_TOKEN is not set on this box, so it is not in your environment at all/);
+  assert.match(line, /LINEAR_API_KEY is set to nothing, so it reaches you empty/);
+  assert.match(line, /say in your run that this box is short of it rather than working around it silently/);
+  assert.equal(shortfallLine({ missing: [], empty: [] }), "", "and a box that holds every name says nothing to the agent either");
+  assert.equal(shortfallLine(undefined), "", "an older caller that passes no shortfall gets no line, not a crash");
+  assert.match(shortfallLine({ missing: ["A", "B"], empty: [] }), /A, B are not set on this box, so they are not in your environment at all/);
+  // The preamble has to survive a run with nothing wrong: the line is dropped
+  // entirely rather than left as an empty paragraph.
+  const clean = buildPrompt({ name: "pm", entry: "prompts/pm.md", trigger: "cron", date: "2026-10-11", shortfall: { missing: [], empty: [] } });
+  assert.ok(!clean.includes("does not hold every name"));
+  assert.ok(!/\n\n/.test(clean), "no blank line where the shortfall would have been");
+  const told = buildPrompt({ name: "pm", entry: "prompts/pm.md", trigger: "cron", date: "2026-10-11", shortfall: both });
+  assert.match(told, /This run was triggered by: cron\.\nThis box does not hold every name/,
+    "it arrives after the trigger and before any window instruction, which is the order a reader of the prompt expects");
+});
+
+test("`epito run` says the roster's shortfall before it touches the engine", () => {
+  const pm = seat("pm", { runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["SLACK_WEBHOOK_URL", "BOARD_API_URL"] } });
+  const okr = seat("okr", { runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["SLACK_WEBHOOK_URL"] } });
+  const roster = rosterOf(pm, okr);
+  const held = { SLACK_WEBHOOK_URL: "https://hooks.example/x" };
+
+  const said = [];
+  const before = process.env.BOARD_API_URL; delete process.env.BOARD_API_URL;
+  const beforeHook = process.env.SLACK_WEBHOOK_URL; process.env.SLACK_WEBHOOK_URL = held.SLACK_WEBHOOK_URL;
+  try {
+    sayShortfall(roster, "agents", (m) => said.push(m));
+    const out = said.join("\n");
+    assert.match(out, /^1 of 2 seats runs here short of a name its manifest asks this box to hold:/m);
+    assert.match(out, /! pm: BOARD_API_URL is not available to its runs/);
+    assert.ok(!/! okr/.test(out), "a seat whose names are all here gets no line");
+    assert.match(out, /`epito env agents` is the whole report/);
+    // The rehearsal must not disagree with the thing it rehearses, and the
+    // real `epito run` registers these schedules: this block is a report,
+    // which is why it borrows none of reconcile's words.
+    assert.ok(!/would (create|update|delete)/.test(out));
+
+    said.length = 0;
+    process.env.BOARD_API_URL = "https://board.example";
+    sayShortfall(roster, "agents", (m) => said.push(m));
+    assert.deepEqual(said, [], "a box that holds every name gets a silent rehearsal: `epito env` is where \"and it holds all 7\" belongs");
+  } finally {
+    if (before === undefined) delete process.env.BOARD_API_URL; else process.env.BOARD_API_URL = before;
+    if (beforeHook === undefined) delete process.env.SLACK_WEBHOOK_URL; else process.env.SLACK_WEBHOOK_URL = beforeHook;
+  }
+});
+
 test("a run says which of its declared names the box did not have", async () => {
   const dir = tmpDir();
   const cwd = process.cwd();
@@ -2986,27 +3074,53 @@ test("a run says which of its declared names the box did not have", async () => 
   try {
     const agent = seat("pm", { runtime: {
       model: "m", entry: "e", repo: "acme/roster",
-      env: ["EPITO_STUB_DIR", "BOARD_RUNTIME_TOKEN", "GH_TOKEN"],
+      env: ["EPITO_STUB_DIR", "BOARD_RUNTIME_TOKEN", "LINEAR_API_KEY", "GH_TOKEN", "GW_KEY"],
+      route: [
+        { name: "open", model: "kimi", base_url_env: "GW_URL", token_env: "GW_KEY" },
+        { name: "subscription", model: "m" },
+      ],
     } });
     process.env.EPITO_STUB_DIR = join(dir, "stub");
     delete process.env.BOARD_RUNTIME_TOKEN;
+    // The third state, and the one this log was blind to: an env-file line
+    // somebody half filled in. It reaches the run as "", so `baseEnv[k] ===
+    // undefined` called it held and said nothing.
+    process.env.LINEAR_API_KEY = "";
     const r = await executeAgent({
       agent, trigger: "cron", runId: "r-env-1", workDir: work, timeoutMs: 30_000, log: (m) => said.push(m),
       executor: new URL("./stub-executor.mjs", import.meta.url).pathname,
       // The mint supplies GH_TOKEN, so the box not holding it is not the box
-      // being short of it — which is why the line is computed after the mint.
+      // being short of it — which is why `inject` is read when the line is
+      // computed, not just when the child's environment is built.
       inject: { GH_TOKEN: "ghs_ENVTESTTOKEN0000000000000000000" }, redact: ["ghs_ENVTESTTOKEN0000000000000000000"],
     });
     assert.equal(r.exit, 0, "the run goes ahead without it: a roster is portable, and this is a note");
     const logged = readFileSync(r.log, "utf8");
-    assert.match(logged, /# env missing: BOARD_RUNTIME_TOKEN — listed in \[runtime\]\.env, not set on this box/);
+    assert.match(logged, /# env missing: BOARD_RUNTIME_TOKEN is not available to this run; LINEAR_API_KEY arrives empty/);
+    assert.match(logged, /listed in \[runtime\]\.env and not held as asked on this box/);
     assert.ok(!/env missing:.*GH_TOKEN/.test(logged), "a name this run mints for itself is not a name the box is short of");
-    assert.ok(said.some((m) => /pm: 1 name from \[runtime\]\.env is not set on this box \(BOARD_RUNTIME_TOKEN\)/.test(m)),
+    assert.ok(!/env missing:.*GW_KEY/.test(logged),
+      "a road's own half is a CLOSED ROAD, said by the route lines a few lines up, not a second sentence here");
+    assert.match(logged, /route "open" \(kimi\) skipped: GW_KEY is not set on this machine/,
+      "and the route lines really are the ones that say it");
+    assert.ok(said.some((m) => /pm: 2 names from \[runtime\]\.env are not what this box holds \(BOARD_RUNTIME_TOKEN, LINEAR_API_KEY\)/.test(m)),
       "and the operator watching journalctl hears it, not only the log file");
+
+    // The party that was never told: the agent. The stub records the prompt it
+    // was handed, so this is the prompt the child really received rather than
+    // what buildPrompt can be made to say in isolation.
+    const transcript = readdirSync(join(dir, "stub")).filter((f) => f.endsWith(".jsonl"));
+    assert.equal(transcript.length, 1);
+    const handed = JSON.parse(readFileSync(join(dir, "stub", transcript[0]), "utf8").trim().split("\n")[0]).prompt;
+    assert.match(handed, /BOARD_RUNTIME_TOKEN is not set on this box, so it is not in your environment at all/);
+    assert.match(handed, /LINEAR_API_KEY is set to nothing, so it reaches you empty/);
+    assert.ok(!handed.includes("GH_TOKEN"), "the credential the run minted for itself is not a name the agent is short of");
+    assert.ok(!handed.includes("GW_KEY"), "and a closed road is the router's sentence, not the agent's problem to route around");
   } finally {
     process.chdir(cwd);
     rmSync(work, { recursive: true, force: true });
     delete process.env.EPITO_STUB_DIR;
+    delete process.env.LINEAR_API_KEY;
   }
 });
 

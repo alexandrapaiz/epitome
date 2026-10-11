@@ -25,6 +25,7 @@
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { loadRoster } from "./lib/roster.js";
+import { rosterEnv, shortfallSays } from "./lib/boxenv.js";
 import { SPEC_VERSION } from "./lib/fields.js";
 import { startHookServer } from "./lib/hooks.js";
 import { windowInstruction } from "./lib/runner.js";
@@ -63,12 +64,57 @@ export async function sendOrRestart(send, onRace = () => {}) {
   }
 }
 
+// The shortfall block, one line per seat that is short of something and one
+// line saying which command is the whole report. Silent on a box that holds
+// every name: a rehearsal whose happy path prints nothing is a rehearsal whose
+// output is all signal, and `epito env` is where "and it holds all 7" belongs.
+export function sayShortfall(roster, dirArg, say) {
+  const report = rosterEnv(roster, process.env);
+  const short = report.seats.filter((s) => s.short.length);
+  if (!short.length) return report;
+  say(`${short.length} of ${roster.size} seat${roster.size === 1 ? "" : "s"} run${short.length === 1 ? "s" : ""} here short of a name its manifest asks this box to hold:`);
+  for (const s of short) say(`  ! ${s.agent}: ${shortfallSays(s)}`);
+  // The closing line says what each kind actually DOES, and only the kinds
+  // this box has. Found by running it on a box whose one shortfall was a name
+  // set to nothing: the single sentence said "a name this box does not hold is
+  // dropped from the run's environment", which is the wrong half of the story
+  // for a name the box holds and holds empty — that one is injected, and the
+  // agent acts on it.
+  const kinds = [
+    short.some((s) => s.missing.length) ? "a name this box does not hold is dropped from the run's environment and the seat runs without it" : null,
+    short.some((s) => s.empty.length) ? "a name set to nothing is injected as an empty value and the seat acts on it" : null,
+  ].filter(Boolean);
+  say(`  ${kinds.join("; ")}: \`epito env ${dirArg}\` is the whole report (--template prints the env file it belongs in; --complete makes a name this box lacks an error, and a name set to nothing already is one)`);
+  return report;
+}
+
 export async function runDaemon(dirArg, { dryRun = false } = {}) {
   const dir = resolve(dirArg);
   let roster = loadRoster(dir);
   const cfg = temporalEnv();
   const port = Number(process.env.EPITO_PORT) || DEFAULT_PORT;
   const secret = process.env.EPITO_HOOK_SECRET || "";
+
+  // What this box is short of, said BEFORE the engine is touched.
+  //
+  // `epito run <dir> --dry-run` is the rehearsal an operator runs on the box
+  // between pasting the env file and starting the units, and it reported the
+  // schedules it would register and nothing at all about the names the seats
+  // will be short of — while the runtime drops a name this box does not hold
+  // (src/lib/runenv.js) and runs the seat anyway, so the first evidence was a
+  // seat that exited 0 having quietly done less. `epito env <dir>` answers
+  // this in full, and is a second command an operator has to know exists.
+  //
+  // Above the connect, so the one box that cannot reach its engine — the box
+  // most likely to be half-provisioned — still gets the half of the rehearsal
+  // that needs no engine at all.
+  //
+  // It REPORTS and never refuses, including for a name set to nothing, which
+  // `epito env` does exit 1 over. The reason is that this command is the
+  // runtime: the real `epito run` injects that empty value and runs the seat,
+  // so a rehearsal that refused what the thing it rehearses accepts would be
+  // lying about the box in the more expensive direction.
+  sayShortfall(roster, dirArg, log);
 
   const { client, connection } = await connect();
   // A dry run writes nothing to the ledger, and the guard is HERE rather than
@@ -297,6 +343,11 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
     log("SIGHUP: re-reading the roster and reconciling");
     try {
       roster = loadRoster(dir);
+      // A seat added without a restart is the whole point of SIGHUP, and a
+      // seat added without a restart is also the likeliest one to name a
+      // variable this box has never held: the startup block ran before that
+      // manifest existed. Said again, against the roster that is now in force.
+      sayShortfall(roster, dirArg, log);
       const p = await reconcile({ client, roster, log: (m) => log(m) });
       for (const k of ["create", "update", "delete"]) {
         for (const s of p[k]) appendAudit({ agent: s.name, action: `schedule.${k}`, schedule: s.id, cron: s.shape?.cron ?? null });
