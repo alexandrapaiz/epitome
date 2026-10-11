@@ -151,6 +151,7 @@ roster agents on this box — 5 seats, checked in the order a run needs them
 ! identity   1 seat acts as its own GitHub App, 4 seats have no GitHub identity in their runs
 ✓ executor   /usr/local/bin/claude started under the environment a run gives it, for 5 seats
 ✗ engine     nothing is answering at 127.0.0.1:7233 (ECONNREFUSED)
+! worker     not asked — nothing answered at 127.0.0.1:7233, so "is a worker polling seats" has no answer from here
 
 epito: a run on this box would refuse — 2 reasons:
   ✗ no open road on this box — market
@@ -165,6 +166,56 @@ behind it, which it says rather than implies. `--deep` is the half that proves
 credentials: one real turn per *road* (five seats sharing one key cost one
 call), with the executor's own refusal read back verbatim. It costs a model
 call, which is why it is a flag.
+
+The **worker** section is the only one that asks whether a run is *performed*
+rather than accepted. Everything above it can be ✓ on a box where nothing ever
+runs: accepting work and doing it are two processes (`epitod` registers the
+schedules and serves the ingress, `epitod-worker` executes the seats), so a
+dead worker leaves an engine that goes on taking schedules and starting runs
+nothing picks up. The engine is asked directly — it knows who is polling —
+which costs nothing and leaves this box no further than the engine:
+
+```
+✓ engine     127.0.0.1:7233 is Temporal, namespace "asc" exists (a real connect: the engine client is installed here)
+✗ worker     nothing is polling seats — the engine accepts a schedule and starts a run, and no
+             process picks the work up, so a run on this box is queued forever rather than
+             refused. The engine still remembers a worker on this queue (1983@box, last polled
+             4m ago), which it forgets about five minutes after one stops — so this one stopped
+             rather than never started. Waiting on the queue right now: 2 tasks to decide what
+             happens next, the oldest waiting for 6m.
+```
+
+Three things it will not get wrong. A poller is a **memory, not a socket** —
+the engine keeps the last pollers it saw for about five minutes, so the ✓
+prints how long ago the poll was and a record older than two minutes reads as
+a worker that *stopped*, which is a different fix from one that was never
+started. A **workflow** task waiting more than a minute with a poller still
+listed is the one state a poller count alone reports as ✓, and it exits 1: a
+workflow task is a decision, dispatched in milliseconds wherever anything is
+really polling, so a queue of them means a worker that is listed and wedged.
+An **activity** backlog is the opposite — a seat run is a whole process and
+the worker runs a few at a time (`EPITO_MAX_CONCURRENT_RUNS`), so runs waiting
+for a slot are the runtime working as designed; that is reported, because "why
+has my seat not started" deserves the answer, and it is never a refusal.
+`--json` carries `worker.state` (`polled` / `stalled` / `half` / `none` /
+`unasked`), the poller counts per half, and what is waiting. `unasked` is a
+box that could not be asked, which is never the same as fine.
+
+`epito ps` reads the same answer, because the lie it closes was ps's own: a
+`RUNNING` count is a count of workflows that were *started*, which on a box
+with no worker is not a count of anything running.
+
+```
+$ epito ps agents
+epitod on 127.0.0.1:7233 namespace=asc queue=seats (no worker)
+SEAT  CRON       NEXT              SCHEDULE  RUNNING         WINDOW  …
+pm    0 12 * * 1 2026-10-13T12:00Z ok        1 (no worker)   -       …
+
+✗ nothing is polling seats — … Fix: start one: `epito worker` on this box, or
+  `systemctl start epitod-worker` on a host provisioned by deploy/provision-host.sh …
+  The one seat with a NEXT time above will not run at it either: the engine will start
+  the run and nothing will pick it up.
+```
 
 A name this box does not hold at all is a report and exits 0; a name it holds
 and holds empty exits 1. That is the same split `epito env` makes, for the same

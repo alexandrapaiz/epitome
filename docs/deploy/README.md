@@ -640,10 +640,11 @@ roster /srv/asc/roster on this box — 5 seats, checked in the order a run needs
 ✓ roads      every seat has an open road — 2 on [runtime].model, no route declared, 3 on "subscription"
 ✓ executor   /usr/local/bin/claude started under the environment a run gives it, for 5 seats
 ✓ engine     127.0.0.1:7233 is Temporal, namespace "default" exists (a real connect: the engine client is installed here)
+✓ worker     one worker is polling seats for both workflow and activity tasks (1983@asc-1, last polled 12s ago)
 
 ✓ nothing here would make a run on this box refuse: 5 manifests good, every
   seat on an open road, the executor starts under a run's own environment, and
-  127.0.0.1:7233 is Temporal with namespace default.
+  127.0.0.1:7233 is Temporal with namespace default, with a worker polling seats.
   Not proven: that it is logged in — the look never reaches a provider, so a
   box with an expired session passes it. `epito doctor … --deep` runs ONE turn
   per road, which costs a model call and is the only thing that proves
@@ -653,13 +654,31 @@ roster /srv/asc/roster on this box — 5 seats, checked in the order a run needs
 One contract: **exit 1 if a run on this box would refuse, and name the piece.**
 That is a refused manifest, a seat with no open road, a road this box has and
 has wrong, a name set to nothing, an executor that is missing or will not
-start, or an engine that is not answering. A name this box does not hold at all
+start, an engine that is not answering, or an engine that is answering with
+nothing polling the queue a run would use. A name this box does not hold at all
 stays a report and exits 0 — `[runtime].env` is the list the runtime injects
 *from*, nothing in a manifest says which names a seat cannot work without, and
 `epito env <dir> --complete` is where you assert it should hold them all.
 
-Three things worth knowing about what it does and does not prove:
+Four things worth knowing about what it does and does not prove:
 
+- **`epitod-worker` is the half that does the work, and the engine knows
+  whether it is there.** Two units run on this box and only one of them
+  executes seats; kill `epitod-worker` and the engine keeps accepting
+  schedules and starting runs that nothing picks up, which until this check
+  existed looked exactly like a healthy box from every surface — `epito ps`
+  included, because a `RUNNING` count is a count of workflows that were
+  *started*. The worker row asks the engine who is polling. It costs nothing,
+  it leaves this box no further than the engine, and it exits 1: a run here
+  would be accepted and never performed. One thing it cannot tell you, and
+  says rather than hides: the engine remembers the last pollers it saw for
+  about five minutes, so the ✓ prints how long ago that poll was, and a worker
+  that died in the last two minutes is still inside that memory. A poller
+  still listed while workflow tasks pile up *is* caught, and exits 1 — a
+  workflow task is a decision, not a run, and is dispatched in milliseconds
+  wherever anything is really polling. Runs waiting for a free slot on a
+  working worker are reported and never refused: that is
+  `EPITO_MAX_CONCURRENT_RUNS` doing its job.
 - **The executor is resolved on the PATH a RUN gets**, then started under the
   environment a run gives it. A `claude` that is on your interactive PATH and
   not on `epitod-worker.service`'s is exactly the failure this catches, and the

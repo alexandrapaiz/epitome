@@ -371,9 +371,26 @@ export TEMPORAL_ADDRESS="127.0.0.1:$GRPC_PORT" TEMPORAL_NAMESPACE="$NS" \
        OTEL_EXPORTER_OTLP_ENDPOINT="http://127.0.0.1:$OTLP_PORT" \
        SLACK_WEBHOOK_URL="http://127.0.0.1:$SLACK_HQ_PORT/hook" \
        SLACK_WEBHOOK_URL_EPITOME="http://127.0.0.1:$SLACK_PRODUCT_PORT/hook"
+# Before the worker: the engine is up, the namespace exists, and nothing is
+# doing the work. That is the state a box whose epitod-worker died is in, and
+# until this run nothing in the product reported it — every row of the
+# preflight said ✓ and every run would have been accepted and never performed.
+doc() { docout="$(node "$CLI/src/index.js" doctor "$ROSTER" 2>&1)"; docrc=$?; }
+doc
+check "doctor refuses before the worker exists" "[ $docrc -eq 1 ]"
+check "...on the worker row, with the engine's row still ✓" "printf '%s' \"\$docout\" | grep -q '✓ engine' && printf '%s' \"\$docout\" | grep -q '✗ worker'"
+check "...naming the queue a run here would use" "printf '%s' \"\$docout\" | grep -q 'nothing is polling seats'"
+check "...and the two commands that start one" "printf '%s' \"\$docout\" | grep -q 'epito worker' && printf '%s' \"\$docout\" | grep -q 'systemctl start epitod-worker'"
+
 node "$CLI/src/index.js" worker > "$ROOT/worker.log" 2>&1 & WORKER_PID=$!
 for _ in $(seq 1 100); do grep -q 'state: .RUNNING' "$ROOT/worker.log" && break; sleep 0.3; done
 check "the worker is polling the seats queue" "grep -q 'epito worker: 127.0.0.1:$GRPC_PORT namespace=$NS queue=seats' '$ROOT/worker.log'"
+# And the engine says so too, which is the half the log cannot prove: a worker
+# process that printed RUNNING and a queue the engine has seen a poll on are
+# two different facts, and the second is the one a run needs.
+for _ in $(seq 1 40); do doc; printf '%s' "$docout" | grep -q '✓ worker' && break; sleep 0.5; done
+check "and the engine confirms the poll, not just the worker's own log" "printf '%s' \"\$docout\" | grep -q '✓ worker .*polling seats for both workflow and activity tasks'"
+check "...with the identity the engine saw and how fresh it is" "printf '%s' \"\$docout\" | grep -qE 'last polled [0-9]+s ago'"
 
 node "$CLI/src/index.js" run "$ROSTER" > "$ROOT/ingress.log" 2>&1 & INGRESS_PID=$!
 for _ in $(seq 1 100); do curl -fs "http://127.0.0.1:$PORT/healthz" >/dev/null 2>&1 && break; sleep 0.3; done
@@ -391,6 +408,15 @@ check "/healthz reports the engine it depends on" "curl -fs http://127.0.0.1:$PO
 # schedule is asserted separately, after the fire.
 node "$CLI/src/index.js" ps "$ROSTER" | sed 's/^/  /'
 check "epito ps shows clock's cron, its next fire, and a healthy schedule" "node '$CLI/src/index.js' ps '$ROSTER' | grep clock | grep -qE '\* \* \* \* \* +[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}Z +ok'"
+check "...and that a worker is polling the queue it would fire onto" "node '$CLI/src/index.js' ps '$ROSTER' | grep -q 'queue=seats (1 worker polling)'"
+# The same roster, the same registered schedule, read while pointed at a queue
+# nothing polls: the schedule is still there and still has a NEXT time, and
+# the honest thing to say about that time is that nothing will happen at it.
+# (A seat's queue is the box's, not the manifest's, so this is one env name —
+# no process is killed and no schedule is touched.)
+quiet_ps="$(EPITO_TASK_QUEUE=a-queue-nobody-polls node "$CLI/src/index.js" ps "$ROSTER" 2>&1)"
+check "a NEXT time with no worker is said to be a time nothing fires at" "printf '%s' \"\$quiet_ps\" | grep -q 'will not run at'"
+check "...with the schedule still listed, because it IS registered" "printf '%s' \"\$quiet_ps\" | grep -q 'seat' || printf '%s' \"\$quiet_ps\" | grep -q clock"
 
 post() { curl -s -o "$ROOT/body.json" -w '%{http_code}' -X POST -H "x-epito-secret: $SECRET" -H 'content-type: application/json' --data "$2" "http://127.0.0.1:$PORT$1"; }
 get()  { curl -s -o "$ROOT/body.json" -w '%{http_code}' -H "x-epito-secret: $SECRET" "http://127.0.0.1:$PORT$1"; }

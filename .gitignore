@@ -2,3 +2,10 @@ node_modules/
 .DS_Store
 __pycache__/
 *.pyc
+
+# epito: the agent's credentials and run state, never committed — the same line
+# `epito init` writes into every roster it touches (cli/src/lib/gitignore.js).
+# This repo is also a roster, and a run that smoke-tests `epito worker` here
+# writes .epito/audit.jsonl in the working tree; without this line one did, and
+# committed it, and smoke-roster's "no .epito/ in the repository" checks failed.
+.epito/

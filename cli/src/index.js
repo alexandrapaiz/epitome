@@ -24,8 +24,9 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       \`epito run <dir>\` would refuse)
   epito doctor [dir]  would a run on THIS box start? the manifests, the names,
                       the roads, the EXECUTOR epito spawns (resolved on the PATH
-                      a run gets, started under the environment a run gives it)
-                      and the engine — exit 1 naming the piece that is missing
+                      a run gets, started under the environment a run gives it),
+                      the engine, and whether a WORKER is polling its queue —
+                      exit 1 naming the piece that is missing
                       (--deep also runs one real turn per road, which costs a
                       model call and is the only thing that proves credentials)
   epito run <dir>     put every agent.toml under <dir> on the runtime: one
