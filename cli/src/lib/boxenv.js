@@ -162,3 +162,41 @@ export function envTemplate(report, { dir = "the roster" } = {}) {
   }
   return lines.join("\n");
 }
+
+// One seat's shortfall, in the one sentence every surface says it in. Three
+// callers now — `epito env`, `epito run` at startup, and the charter preamble
+// the runtime builds — and the two kinds are said APART in all three, because
+// they are not the same thing to the agent: a name this box does not hold
+// never reaches the run at all, and a name set to nothing reaches it as an
+// empty string, which is the one the agent will act on and fail far away from.
+export function shortfallSays(seat) {
+  return [
+    seat.missing.length
+      ? `${seat.missing.join(", ")} ${seat.missing.length > 1 ? "are" : "is"} not available to its runs`
+      : null,
+    seat.empty.length
+      ? `${seat.empty.join(", ")} ${seat.empty.length > 1 ? "arrive" : "arrives"} empty`
+      : null,
+  ].filter(Boolean).join("; ");
+}
+
+// What ONE RUN of one seat is short of — the same question `rosterEnv` answers
+// for a box, asked where the run happens and narrowed to the names a run can
+// do anything about.
+//
+// Narrowed how, and why: a road's `base_url_env` and `token_env` are in
+// `[runtime].env` too (the validator requires it), and a box that is short of
+// one of them has a CLOSED ROAD, not a missing name — the router already says
+// so, by name, in the run's own log, and then takes the next road. Repeating
+// it in the charter preamble would tell an agent to worry about a key it was
+// never going to read, and bury the name it actually was.
+export function runShortfall(manifest, env = process.env) {
+  const halves = new Set();
+  for (const r of routesFor(manifest)) for (const n of [r.baseUrlEnv, r.tokenEnv]) if (n) halves.add(n);
+  const declared = Array.isArray(manifest?.runtime?.env)
+    ? manifest.runtime.env.filter((n) => typeof n === "string" && n && !halves.has(n))
+    : [];
+  const missing = declared.filter((n) => holding(n, env) === ABSENT);
+  const empty = declared.filter((n) => holding(n, env) === EMPTY);
+  return { missing, empty, short: [...missing, ...empty] };
+}

@@ -38,7 +38,7 @@
 // a seat is — and the exit code stays this command's own: whether a run would
 // REFUSE is doctor's contract, not this one's.
 import { loadRoster } from "./lib/roster.js";
-import { rosterEnv, envTemplate, askers, HELD, EMPTY, ABSENT } from "./lib/boxenv.js";
+import { rosterEnv, envTemplate, askers, shortfallSays, HELD, EMPTY, ABSENT } from "./lib/boxenv.js";
 import { rosterActs, IDENTITY_FIX, OWN, REFUSED, HALF, SHARED, NONE } from "./lib/acts.js";
 
 export const ENV_FLAGS = [
@@ -132,16 +132,12 @@ export async function envCmd(args = []) {
   // is here needs no line, and five lines saying "nothing missing" would bury
   // the one line that is not.
   //
-  // The two kinds of shortfall are said apart, because they are not the same
-  // thing to the agent: a name the box lacks never reaches the run at all,
-  // and a name set to nothing reaches it as an empty string — which is the
-  // one the agent will act on and fail somewhere else.
+  // The sentence itself is `shortfallSays` in src/lib/boxenv.js, because
+  // `epito run` says it at startup and the charter preamble says it to the
+  // agent — and a shortfall described three ways in one product is a reader
+  // comparing three paraphrases to work out whether they mean the same thing.
   for (const s of report.seats.filter((x) => x.short.length)) {
-    const says = [
-      s.missing.length ? `${s.missing.join(", ")} ${s.missing.length > 1 ? "are" : "is"} not available to its runs` : null,
-      s.empty.length ? `${s.empty.join(", ")} ${s.empty.length > 1 ? "arrive" : "arrives"} empty` : null,
-    ].filter(Boolean).join("; ");
-    console.log(`! ${s.agent} runs here with ${s.held.length} of ${plural(s.asked.length, "name")}: ${says}`);
+    console.log(`! ${s.agent} runs here with ${s.held.length} of ${plural(s.asked.length, "name")}: ${shortfallSays(s)}`);
   }
   if (report.seats.some((s) => s.short.length)) console.log("");
 

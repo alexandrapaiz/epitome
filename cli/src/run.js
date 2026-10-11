@@ -25,6 +25,7 @@
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { loadRoster } from "./lib/roster.js";
+import { rosterEnv, shortfallSays } from "./lib/boxenv.js";
 import { SPEC_VERSION } from "./lib/fields.js";
 import { startHookServer } from "./lib/hooks.js";
 import { windowInstruction } from "./lib/runner.js";
@@ -63,12 +64,47 @@ export async function sendOrRestart(send, onRace = () => {}) {
   }
 }
 
+// The shortfall block, one line per seat that is short of something and one
+// line saying which command is the whole report. Silent on a box that holds
+// every name: a rehearsal whose happy path prints nothing is a rehearsal whose
+// output is all signal, and `epito env` is where "and it holds all 7" belongs.
+export function sayShortfall(roster, dirArg, say) {
+  const report = rosterEnv(roster, process.env);
+  const short = report.seats.filter((s) => s.short.length);
+  if (!short.length) return report;
+  say(`${short.length} of ${roster.size} seat${roster.size === 1 ? "" : "s"} run${short.length === 1 ? "s" : ""} here short of a name its manifest asks this box to hold:`);
+  for (const s of short) say(`  ! ${s.agent}: ${shortfallSays(s)}`);
+  say(`  a name this box does not hold is dropped from the run's environment and the seat runs without it: \`epito env ${dirArg}\` is the whole report (--template prints the env file, --complete makes a missing name an error)`);
+  return report;
+}
+
 export async function runDaemon(dirArg, { dryRun = false } = {}) {
   const dir = resolve(dirArg);
   let roster = loadRoster(dir);
   const cfg = temporalEnv();
   const port = Number(process.env.EPITO_PORT) || DEFAULT_PORT;
   const secret = process.env.EPITO_HOOK_SECRET || "";
+
+  // What this box is short of, said BEFORE the engine is touched.
+  //
+  // `epito run <dir> --dry-run` is the rehearsal an operator runs on the box
+  // between pasting the env file and starting the units, and it reported the
+  // schedules it would register and nothing at all about the names the seats
+  // will be short of — while the runtime drops a name this box does not hold
+  // (src/lib/runenv.js) and runs the seat anyway, so the first evidence was a
+  // seat that exited 0 having quietly done less. `epito env <dir>` answers
+  // this in full, and is a second command an operator has to know exists.
+  //
+  // Above the connect, so the one box that cannot reach its engine — the box
+  // most likely to be half-provisioned — still gets the half of the rehearsal
+  // that needs no engine at all.
+  //
+  // It REPORTS and never refuses, including for a name set to nothing, which
+  // `epito env` does exit 1 over. The reason is that this command is the
+  // runtime: the real `epito run` injects that empty value and runs the seat,
+  // so a rehearsal that refused what the thing it rehearses accepts would be
+  // lying about the box in the more expensive direction.
+  sayShortfall(roster, dirArg, log);
 
   const { client, connection } = await connect();
   // A dry run writes nothing to the ledger, and the guard is HERE rather than
