@@ -74,7 +74,17 @@ export function sayShortfall(roster, dirArg, say) {
   if (!short.length) return report;
   say(`${short.length} of ${roster.size} seat${roster.size === 1 ? "" : "s"} run${short.length === 1 ? "s" : ""} here short of a name its manifest asks this box to hold:`);
   for (const s of short) say(`  ! ${s.agent}: ${shortfallSays(s)}`);
-  say(`  a name this box does not hold is dropped from the run's environment and the seat runs without it: \`epito env ${dirArg}\` is the whole report (--template prints the env file, --complete makes a missing name an error)`);
+  // The closing line says what each kind actually DOES, and only the kinds
+  // this box has. Found by running it on a box whose one shortfall was a name
+  // set to nothing: the single sentence said "a name this box does not hold is
+  // dropped from the run's environment", which is the wrong half of the story
+  // for a name the box holds and holds empty — that one is injected, and the
+  // agent acts on it.
+  const kinds = [
+    short.some((s) => s.missing.length) ? "a name this box does not hold is dropped from the run's environment and the seat runs without it" : null,
+    short.some((s) => s.empty.length) ? "a name set to nothing is injected as an empty value and the seat acts on it" : null,
+  ].filter(Boolean);
+  say(`  ${kinds.join("; ")}: \`epito env ${dirArg}\` is the whole report (--template prints the env file it belongs in; --complete makes a name this box lacks an error, and a name set to nothing already is one)`);
   return report;
 }
 

@@ -169,6 +169,7 @@ export function envTemplate(report, { dir = "the roster" } = {}) {
 // they are not the same thing to the agent: a name this box does not hold
 // never reaches the run at all, and a name set to nothing reaches it as an
 // empty string, which is the one the agent will act on and fail far away from.
+//
 // `of` is whose runs: a seat's, read off a roster, or the one run being
 // written into a log.
 export function shortfallSays(seat, { of = "its runs" } = {}) {
@@ -192,6 +193,7 @@ export function shortfallSays(seat, { of = "its runs" } = {}) {
 // so, by name, in the run's own log, and then takes the next road. Repeating
 // it in the charter preamble would tell an agent to worry about a key it was
 // never going to read, and bury the name it actually was.
+//
 // `injected` is the names the RUN supplies itself — the GH_TOKEN/GITHUB_TOKEN
 // a mint produced for this one run, which outranks anything `[runtime].env`
 // inherited. A name the run brings with it is not a name the box is short of,
