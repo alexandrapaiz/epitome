@@ -57,6 +57,36 @@ cleanup() { if [ -n "${EPITO_SMOKE_KEEP:-}" ]; then printf '\nkept: %s\n' "$TMP"
 trap cleanup EXIT
 mkdir -p "$TMP"
 
+# The repository's own .epito/, as it stood before this suite ran a command.
+#
+# Three assertions below say that a read-only command wrote nothing into the
+# checkout, and they used to say it as `[ ! -e "$ROOT/.epito" ]` — which is a
+# fact about the box, not about the command. Anybody who has ever run `epito
+# worker`, `epito ps` or `epito report` from the repository root has that
+# directory, and it is gitignored, so `git status` does not show it to them.
+# On that box this suite printed three failures naming `epito validate`, `epito
+# env` and `epito doctor` for a directory none of them touched. It cost an
+# engineer run on 2026-10-12 the time to work out that the red was the box
+# talking — the same false-failure class as the locale note in test/all.sh, and
+# the same answer: measure what the assertion means. It means this command did
+# not write here.
+epito_fingerprint() {
+  [ -e "$ROOT/.epito" ] || { echo absent; return 0; }
+  find "$ROOT/.epito" -print 2>/dev/null | sort | while IFS= read -r f; do
+    if [ -f "$f" ]; then printf '%s %s\n' "$f" "$(wc -c <"$f" | tr -d ' ')"; else printf '%s dir\n' "$f"; fi
+  done
+}
+EPITO_BEFORE="$(epito_fingerprint)"
+untouched() { [ "$(epito_fingerprint)" = "$EPITO_BEFORE" ]; }
+if [ "$EPITO_BEFORE" = absent ]; then
+  WROTE_NOTHING="wrote no .epito/ into the repository"
+else
+  WROTE_NOTHING="left the .epito/ this checkout already had exactly as it was"
+  printf 'note: this checkout already has a .epito/ (something was run from %s by hand).\n' "$ROOT"
+  printf '      The three "wrote nothing into the repository" assertions below therefore\n'
+  printf '      assert it is UNCHANGED rather than absent, which is what they mean.\n'
+fi
+
 if [ ! -d "$AGENTS" ]; then
   echo "smoke: SKIPPED — there is no agents/ directory in this checkout, so there is no roster to run"
   exit 0
@@ -362,7 +392,7 @@ for s in $SEATS; do
   fromroster="$(printf '%s\n' "$vout" | sed -n "s/^✓ $s  *//p")"
   check "$s reads the same one-at-a-time as in the roster" "[ -n \"\$single\" ] && [ \"\$single\" = \"\$fromroster\" ]"
 done
-check "validate created no .epito/ in the repository" "[ ! -e '$ROOT/.epito' ]"
+check "validate $WROTE_NOTHING" "untouched"
 # agents/README.md is in that directory and is not a seat. findManifests looks
 # for the filename, so it cannot be fooled — but the count above is what would
 # have caught it, and this suite has already been bitten once by `ls`.
@@ -438,7 +468,7 @@ check "...named, with both ways to fix it" \
 ejson="$($BARE node "$CLI/src/index.js" env "$AGENTS" --json 2>&1)"
 check "--json is JSON, with a row per name and a row per seat" \
   "printf '%s' \"\$ejson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); process.exit(r.names.length>0 && r.seats.length===$nseats && r.missing.length===r.names.length ? 0 : 1)'"
-check "epito env wrote no .epito/ either" "[ ! -e '$ROOT/.epito' ]"
+check "epito env $WROTE_NOTHING" "untouched"
 
 step '8. would a run of THIS roster start on this box? (epito doctor)' 
 # The dogfood question, asked by the product about the product's own seats.
@@ -465,7 +495,7 @@ check "--json carries one verdict per seat and a refusals list" \
 # absent, and not one of them may appear as a reason a run would refuse.
 check "a bare box is short of every name, and that refuses nothing" \
   "printf '%s' \"\$djson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); const names=r.seats.flatMap(s=>s.names.missing); process.exit(names.length>0 && !r.refusals.some(x=>/set to nothing|not set/.test(x.says)) ? 0 : 1)'"
-check "and doctor wrote no .epito/ into this repository" "[ ! -e '$ROOT/.epito' ]"
+check "and doctor $WROTE_NOTHING" "untouched"
 # And the question this product is FOR, asked of its own seats: who does each
 # one act as on a box? The answer today is nobody — no seat in this roster has
 # a GitHub App anywhere, and not one of them names GH_TOKEN in [runtime].env,
