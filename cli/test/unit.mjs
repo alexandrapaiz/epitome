@@ -3332,6 +3332,37 @@ test("the engine remembers a poller for five minutes, so a stale one means the w
   assert.equal(summarize({ workflow: half([poller("w@b", null)]), activity: half([poller("w@b", null)]) }).state, WORKER_NONE);
 });
 
+test("the age under a \u2713 is printed in the unit that says which side of the line it is on", () => {
+  // 1m 37s is inside the window and rounds to "2m", and two minutes is the
+  // documented line between a worker and a memory of one — so the old sentence
+  // was "\u2713 one worker is polling seats ... last polled 2m ago", a tick and
+  // its own disproof. Seen on a real engine 2026-10-12, 73s after the worker
+  // was killed. Seconds inside the window, minutes outside it: the unit alone
+  // now answers "is this one still a worker".
+  const nearly = summarize({ workflow: half([poller("w@b", 97_000)]), activity: half([poller("w@b", 97_000)]) });
+  assert.equal(nearly.state, POLLED);
+  assert.match(nearly.says, /last polled 97s ago/, "an age inside the window is never rounded up past the window");
+  assert.doesNotMatch(nearly.says, /\bm ago\b/, "a \u2713 may not carry an age in minutes: two minutes is the line it is claiming to be inside of");
+
+  const over = summarize({ workflow: half([poller("w@b", RECENT_MS + 1_000)]), activity: half([poller("w@b", RECENT_MS + 1_000)]) });
+  assert.equal(over.state, WORKER_NONE);
+  assert.match(over.says, /last polled 2m ago/, "and outside it the age is in minutes, which is the half of the pair that reads as a memory");
+});
+
+test("two remembered pollers are two workers that stopped, said in the plural", () => {
+  // A restart leaves the old identity in the engine's memory beside the new
+  // one, so this list having two entries is the commonest shape it has, not an
+  // exotic one. The sentence used to read "2 workers ... so this one stopped".
+  const s = summarize({
+    workflow: half([poller("old@box", 4 * 60_000), poller("new@box", 3 * 60_000)]),
+    activity: half([poller("old@box", 4 * 60_000), poller("new@box", 3 * 60_000)]),
+  });
+  assert.equal(s.state, WORKER_NONE);
+  assert.match(s.says, /still remembers 2 workers/);
+  assert.match(s.says, /so these stopped rather than never started/, "two of them did not stop as one");
+  assert.match(s.says, /old@box, last polled 4m ago; new@box, last polled 3m ago/, "both, named, with the age that makes each a memory");
+});
+
 test("polling one half of the queue and not the other is its own refusal, and says which half", () => {
   const noActivity = summarize({ workflow: half([poller("w@b", 1_000)]), activity: half() });
   assert.equal(noActivity.state, WORKER_HALF);

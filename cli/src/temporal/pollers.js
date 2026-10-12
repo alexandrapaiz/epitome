@@ -133,10 +133,19 @@ export function durationMs(d) {
 const live = (pollers, recentMs) => pollers.filter((p) => p.agoMs !== null && p.agoMs <= recentMs);
 const stale = (pollers, recentMs) => pollers.filter((p) => p.agoMs === null || p.agoMs > recentMs);
 
+// A poll age, in the unit that keeps it on the right side of the line. The
+// threshold below is RECENT_MS and not the usual 90s hand-over point, because
+// this number is the evidence under a ✓ and the rule it is evidence for is
+// stated in minutes: a record older than two minutes is a worker that stopped.
+// Rounding 1m 37s to "2m" put a ✓ and its own disproof in the same sentence —
+// seen on this box 2026-10-12, 73 seconds after a worker was killed:
+// "✓ worker  one worker is polling seats ... last polled 2m ago". So anything
+// still inside the window is printed in seconds and anything outside it in
+// minutes, which makes the unit itself say which side of the line it is on.
 export const ago = (ms) => {
   if (ms === null || ms === undefined) return "at a time the engine did not report";
   const s = Math.round(ms / 1000);
-  if (s < 90) return `${s}s ago`;
+  if (s * 1000 < RECENT_MS) return `${s}s ago`;
   const m = Math.round(s / 60);
   return m < 90 ? `${m}m ago` : `${Math.round(m / 60)}h ago`;
 };
@@ -207,7 +216,7 @@ export function summarize(queue = {}, { taskQueue = "seats", recentMs = RECENT_M
   // here" and "the worker died" — different fixes, and the second one is the
   // incident. Said in the sentence, not left for a reader to work out.
   const lately = remembered.length
-    ? ` The engine still remembers ${remembered.length === 1 ? "a worker" : `${remembered.length} workers`} on this queue (${remembered.map((p) => `${p.identity}, last polled ${ago(p.agoMs)}`).join("; ")}), which it forgets about five minutes after one stops — so this one stopped rather than never started.`
+    ? ` The engine still remembers ${remembered.length === 1 ? "a worker" : `${remembered.length} workers`} on this queue (${remembered.map((p) => `${p.identity}, last polled ${ago(p.agoMs)}`).join("; ")}), which it forgets about five minutes after one stops — so ${remembered.length === 1 ? "this one" : "these"} stopped rather than never started.`
     : "";
   // What is waiting, when something is. Named in every sentence that has a
   // backlog to name, because "nothing is polling" and "nothing is polling and
