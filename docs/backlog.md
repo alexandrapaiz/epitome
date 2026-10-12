@@ -148,17 +148,18 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   just pending.*
 - [ ] **Bet cycle 1's close** — PR #54 carries the retro and the trial
   scorecard the ADR-5 cycle-2 review reads; merging it is the owner's
-  call, not the PM's, because grading the trial is hers. Still clean
-  and mergeable as of this pass (2026-10-09), unchanged for four days
-  running (one rebase in between, 2026-10-08, after this file's own
-  edit collided with it — resolved that pass, clean since). No
-  technical blocker; this is purely her reading and her grade.
+  call, not the PM's, because grading the trial is hers. Went
+  conflicting again by 2026-10-10 (this same file's own edits keep
+  landing underneath it, same collision as 2026-10-08); rebased clean
+  again this pass (2026-10-12), docs-only hunk, nothing in the retro or
+  scorecard content changed. No technical blocker; this is purely her
+  reading and her grade, now seven days unread.
 - [ ] **Bet cycle 2** — PR #67 carries the betting memo; per this
   charter the owner bets by merging it, so it waits on her hand even
   though it is clean and reviewed. *Open since 2026-10-05, now its
-  fifth full day unbet. The engineer keeps spending its runs on
-  ordinary backlog work (#84, #89, now #97, all merged under Tier B)
-  for lack of a cycle to point it at.*
+  seventh full day unbet. The engineer keeps spending its runs on
+  ordinary backlog work (#84, #89, #97, all merged under Tier B) for
+  lack of a cycle to point it at.*
 - [ ] **Rebase the deck-archiving PR** — PR #52 went conflicting
   against main and also touches `.github/workflows/`, a surface
   product seats hand to the centralizer rather than editing; it needs
@@ -202,17 +203,22 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   are owner- or exo-edited only. Seat: pm (flagged), decision: owner
   or exo.
 - [x] **This seat's own knowledge-surface pull requests cannot land
-  themselves — resolved.** The ask route to HQ's PM worked six times
-  running (#73, #74, #77, #79, #85, #88), then broke on #90 and #90's
-  successor #91 with a 404 reading this repo at all. HQ's PM answered
-  the renewed ask 2026-10-09 17:27 UTC with that diagnosis and handed
-  #91 to the owner per standards/pm.md §10. Later the same evening
-  (2026-10-09 18:30 UTC) HQ's PM checked its own access again rather
-  than trusting the one-run finding, found it could in fact reach this
-  repo, and merged #92 itself — the route is confirmed working again,
-  not just diagnosed. Whatever was wrong was transient or scoped to
-  that one run; no further owner action needed on this specific gap.
-  Seat: pm, closed 2026-10-10.
+  themselves — resolved, and still intermittent by door.** The ask
+  route to HQ's PM worked six times running (#73, #74, #77, #79, #85,
+  #88), then broke on #90 and #90's successor #91 with a 404 reading
+  this repo at all. HQ's PM answered the renewed ask 2026-10-09 17:27
+  UTC with that diagnosis and handed #91 to the owner per
+  standards/pm.md §10. Later the same evening (2026-10-09 18:30 UTC)
+  HQ's PM checked its own access again, found it could in fact reach
+  this repo, and merged #92 itself. The gap reopened 2026-10-10 on
+  HQ's *scheduled* run (404 again) and HQ named the actual shape of it:
+  a host-based message pass reaches this repo with full push access,
+  a scheduled Actions run on HQ's side does not. The host-based route
+  merged #98 on 2026-10-11. Net: the credential wall on HQ's scheduled
+  door is still real and still unfixed, but the host-based door has now
+  cleared this seat's own report pull requests twice; #102, #104 and
+  #105 are the three still waiting on whichever door opens next.
+  Seat: pm, last confirmed 2026-10-11.
 - [x] **PR #51 closed, superseded.** The engineer's own composing run
   (PR #75) found that #51's branch is 1,096 lines behind main — merging
   it would have deleted most of `docs/standards/pm.md`,
