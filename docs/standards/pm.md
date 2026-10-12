@@ -1,7 +1,7 @@
-<!-- vendored-from: standards/pm.md @ bee22af1a5815ffd1154b002071152c7be872b8d -->
+<!-- vendored-from: standards/pm.md @ 2c0cb30266aa67a5b36af7d40308a66c6325f93e -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/pm.md` at commit `bee22af`,
-> vendored 2026-10-05. Changes to a company standard are HQ
+> `alexandrapaiz/alexandra-systems` `standards/pm.md` at commit `2c0cb30`,
+> vendored 2026-10-12. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
 <!-- end vendored header -->
@@ -17,12 +17,21 @@ decisions file. Changes to this standard are HQ ADRs.
 
 ## 1. The seat model
 
-A seat is a versioned prompt charter in `prompts/`, a scheduled GitHub
-Actions workflow, and one pull request per run. Seats never message each
-other; they read and write the repository. The owner is Product Owner,
-approval gate, and secret-holder; her merge is the only authority. Seats
-run in fresh sessions with no memory: all state lives in the repo, the PR
-queue, the sprint file, and the ideas ledger.
+A seat is a versioned prompt charter in `prompts/`, a schedule that wakes
+it, and one pull request per run. Seats talk to each other through the
+board and nowhere else: the inbox is an authority surface, and §15 is the
+protocol. The owner is Product Owner, approval gate, and secret-holder;
+her merge is the only authority. Seats run in fresh sessions with no
+memory: all state lives in the repo, the PR queue, the board, the sprint
+file, and the ideas ledger.
+
+Until 2026-09-30 this paragraph read "Seats never message each other;
+they read and write the repository," and §14 and §15 then made the board
+a channel without amending it. On 2026-10-05 the event bus woke two PM
+seats and both declined their messages, one of them citing this sentence
+from its vendored copy. A standard that contradicts itself is read at the
+paragraph a seat reaches first, so the contradiction is removed here
+rather than answered in a later section.
 
 ## 2. The PM seat
 
@@ -185,6 +194,22 @@ value; the same run with nothing pushed has delivered none. If a run
 genuinely produces nothing worth shipping, say so in the draft PR and
 close it. Ending silently is the one outcome never acceptable.
 
+**And survey before you build.** Ship-first is about the run's end; this
+is about its first minute. Before writing code, run `gh pr list --state
+open` and a closed-PR search for the thing you are about to build in
+words, then read the hits whose scope overlaps yours. Every run starts
+from `main` with no memory, and `main` is the one place where work that
+is built but unmerged is invisible, so an open backlog card tells you
+the work has not landed and tells you nothing about whether it was
+done. Where an overlapping PR exists, take one of three moves in the
+open: extend that branch, propose closing it with a reason, or land the
+stack. Writing another implementation is never one of the three. Put
+the survey in the PR description as named numbers, including "nothing
+found" with the two searches that found nothing. (Lessons register
+L-E10: `epito token` was built six times in five attempts in epitome
+cycle 1 bet 2 and merged zero times, because six runs each read the
+same open card and none could see the other five.)
+
 ## 9. Boundaries (all seats, template)
 
 - Never push to main; never enable GitHub auto-merge. Self-merging your
@@ -274,13 +299,20 @@ the standup) and tells the seat which mode it is in.
 
 ### 11.2 What the standup reads
 
-In this order, spending few turns: (1) `gh run list --limit 30`, every
-non-success since yesterday accounted for; (2) `gh pr list --state
-open` with age, seat, draft state, CI and review status; (3)
+In this order, spending few turns: (1) `tools/gh-actions.sh run list
+--limit 30`, every non-success since yesterday accounted for (the
+wrapper, not bare `gh`, for the reason in §11.5); (2) `gh pr list --state
+open` with age, seat, draft state, CI and review status, and
+`tools/check-merge-queue.sh` for the merge state, which GitHub's cached
+`mergeable` field may not have recomputed: a PR that conflicts waits on
+the seat that wrote it, not on the owner, and filing it as "awaiting her
+merge" sends the queue to the one person who cannot clear it; (3)
 `docs/sprints/pending.md` and the current sprint file; (4) rulings
 since the last run — `docs/decisions.md`, `docs/allhands/`, the ledger;
-(5) the board when `PROJECTS_TOKEN` is present; (6) milestones due
-within three days.
+(5) the board, per §14, whenever `BOARD_API_URL` and
+`BOARD_RUNTIME_TOKEN` are in the environment (this used to read
+"`PROJECTS_TOKEN`", from the period before §14, when the board was
+GitHub Projects); (6) milestones due within three days.
 
 ### 11.3 The criteria — what fires a dispatch
 
@@ -294,18 +326,41 @@ starts from a fact.
 |---|---|---|
 | A seat run failed in the last 24h and the cause is diagnosable from its log | that seat; the engineer if the cause is code or workflow | the run URL, the diagnosed cause, "fix and re-run" |
 | A seat's open draft PR has failing CI, or a review comment unanswered >24h | that seat | the PR number and "build on the open branch" |
-| A sprint item is due this week and its owning seat has not run this sprint | that seat | the item verbatim from the sprint file |
+| A sprint item is due this week and its owning seat has not run this sprint | that seat | the item verbatim from the sprint file **and the PR survey for it** (§11.3a) |
+| A seat has two or more open PRs on one scope, none merged | that seat | the PR numbers and "land or close this stack; build nothing new" |
 | A ruling or ADR merged since the last run names a seat and no run followed | that seat | the ADR or minutes by name |
 | A milestone is due within three days with open items | the owning seats | the milestone and its open items |
 | An owner-merge PR is older than seven days | nobody — a pending line and the Slack report | — |
 | Nothing observed | nobody — say so, cheaply | — |
+
+### 11.3a A card is not evidence — the PR survey (2026-09-30)
+
+Every row above whose evidence is a card, a sprint item or a hill is
+checked against the pull requests before it fires. Run `gh pr list
+--state open` and a closed-PR search for the item in words, and put what
+you find in the instruction: the numbers, whether they merged, and which
+of extend, close or land you are asking for. A dispatch that cites only
+a card commissions work the repository may already contain, because the
+card records landing and not doing.
+
+This is not hypothetical arithmetic. In epitome cycle 1 bet 2 the same
+card fired five attempts that produced six pull requests for `epito
+token` — #9, #10, #14, #15, #20, #23 — and not one of them merged. The
+standup's own reading order already puts `gh pr list --state open`
+second (§11.2); what was missing was the rule that the dispatch must
+*carry* it. A hill drawn from cards rather than from open PRs reports
+progress on work that was built and lost, which is worse than reporting
+no progress, because it hides the loss.
 
 ### 11.4 The hard stops
 
 - **Ceilings, UTC days:** at most three PM dispatches a day, one per
   seat, ten in any rolling seven days. Count from the log, not memory.
 - **Never dispatch a seat whose last PR is still open**, unless the
-  instruction tells it to build on that branch in those words.
+  instruction tells it to build on that branch in those words. Read
+  *every* open PR by that seat, not only its most recent: the epitome
+  duplicate-build ran six times behind a six-deep stack, and each run
+  individually satisfied a rule written about one PR.
 - **When the owner is present, you direct — you do not go quiet.**
   (Owner, 2026-09-26: "when im on we all work synchronous... pms are
   pretty useless, they should be directing but here i am prompting.")
@@ -333,14 +388,42 @@ starts from a fact.
 
 ### 11.5 The mechanism and the switch
 
-Dispatch is `gh workflow run agent-<seat>.yml -f owner_instructions='…'`
-with the run's own `GITHUB_TOKEN`, which needs `permissions: actions:
-write` on the PM workflow. Alexandria's charter §5 recorded that the
-runner's token cannot start another run; that was the general rule
-misread — `workflow_dispatch` and `repository_dispatch` are GitHub's two
+Dispatch is `gh workflow run agent-<seat>.yml -f owner_instructions='…'`,
+and it needs two halves that only work together. The first is the grant:
+`permissions: actions: write` on the PM workflow. The second is the
+credential, and this is the half that was wrong in prose for four days.
+A seat does not run on the token its workflow declares. The Claude Code
+action exchanges the run's OIDC token for a Claude GitHub App
+installation token and overwrites both `GH_TOKEN` and `GITHUB_TOKEN`
+with it, and that token's scopes come from the action's own defaults
+(contents, pull requests, issues) rather than from the `permissions:`
+block. So every Actions call a seat makes with the ambient `gh`
+answers `403: Resource not accessible by integration` no matter what the
+workflow grants. The job's own `${{ github.token }}` is still present,
+under the name `DEFAULT_WORKFLOW_TOKEN`, and that is the one the
+`permissions:` block governs. Therefore:
+
+```bash
+tools/gh-actions.sh workflow run agent-<seat>.yml -f owner_instructions='…'
+tools/gh-actions.sh run list --limit 30            # §11.2 step 1
+```
+
+`tools/gh-actions.sh` is `gh` with the arguments passed straight through
+and the credential chosen for you, so no run has to remember the name of
+an environment variable a third-party action sets.
+`tools/check-actions-reach.sh` reports, per token, which of the two
+halves is missing here, and it is the first thing to run when an Actions
+call fails. Never conclude from a 403 that the owner must widen a grant
+in the GitHub UI: no UI grant changes what the ambient `gh` can do.
+
+Alexandria's charter §5 recorded that the runner's token cannot start
+another run; that was the general rule misread —
+`workflow_dispatch` and `repository_dispatch` are GitHub's two
 exceptions, and HQ's `dispatch-probe` workflow is the evidence (a parent
-run started a child run with `GITHUB_TOKEN`, 2026-09-24). No App key is
-needed.
+run started a child run with `${{ github.token }}` in a bare shell step,
+2026-09-24). That probe is also the only side-effect-free way to prove
+`actions: write`, because the sole thing write grants is starting a run.
+No App key is needed.
 
 The switch is the repository variable `PM_DISPATCH_ENABLED`, exactly
 `true`. Unset, the standup writes the queue and fires nothing. Only the
@@ -404,12 +487,14 @@ The company board (board.libraryofalexandria.dev) is the state of the work: item
 
 ```bash
 # read the company's board (columns, current sprint, items, recent runs)
-curl -s "$BOARD_API_URL/api/board/alexandria" -u "asc:$ASC_UI_PASSWORD"   # via Caddy; or from the host: http://127.0.0.1:8090/api/board/alexandria
+# a seat reads with its bearer token, the same one it writes with; the basic-auth form is the owner's browser, not a seat's
+curl -s "$BOARD_API_URL/api/board/alexandria" -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN"   # or from the host: http://127.0.0.1:8090/api/board/alexandria
 # create an item in the current sprint (column defaults to the first; horizon now|next|later)
 curl -s -X POST "$BOARD_API_URL/api/items" -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" -H "Content-Type: application/json" \
   -d '{"company":"alexandria","seat":"engineer","title":"…","body":"…","horizon":"now"}'
 # move an item; comment on one; read one
-curl -s -X POST "$BOARD_API_URL/api/items/<id>/move" -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" -H "Content-Type: application/json" -d '{"company":"alexandria","column_id":"<column id from the board read>"}'
+# every write names both the company and the seat, move included: the API refuses a body with either missing
+curl -s -X POST "$BOARD_API_URL/api/items/<id>/move" -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" -H "Content-Type: application/json" -d '{"company":"alexandria","seat":"engineer","column_id":"<column id from the board read>"}'
 curl -s -X POST "$BOARD_API_URL/api/items/<id>/comments" -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" -H "Content-Type: application/json" -d '{"company":"alexandria","seat":"engineer","body":"…"}'
 curl -s "$BOARD_API_URL/api/items/<id>?company=alexandria" -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN"
 ```
