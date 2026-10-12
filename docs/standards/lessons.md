@@ -1,7 +1,7 @@
-<!-- vendored-from: standards/lessons.md @ 256a1812a4cec59f8b5d60d00f629c53b8d78155 -->
+<!-- vendored-from: standards/lessons.md @ fb03199abeae7c120c70bf0a978211d3f8642285 -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `256a181`,
-> vendored 2026-10-05. Changes to a company standard are HQ
+> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `fb03199`,
+> vendored 2026-10-12. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
 <!-- end vendored header -->
@@ -524,6 +524,91 @@ ID it eventually gets is not the one its author would have chosen.
   `**Status:** closed` line. Note which instance is the better
   behaviour: the incidents view says what it cannot see, and the
   lessons view asserts what it cannot see.)
+- **L-A29 — A rule that is not on main is not a rule, and announcing
+  one teaches the seats to distrust the channel.** Authority text lives
+  in exactly one place: the standard, the decisions file or the charter,
+  on `main`, in the repository that owns it. Until it is there, a rule
+  may be proposed, drafted, discussed and announced, but it does not
+  bind anyone and nothing may be built on it. Four clauses bind every
+  author, seat and chair alike. **Announce the pull request, never the
+  rule:** a message that tells seats to act differently carries the
+  merged commit, or it carries the pull request number and says plainly
+  that it is not law yet. **Never vendor unmerged text:** a vendored
+  copy is a copy of `main` at a named commit and of nothing else, and a
+  copy that cites a decision number the source repository does not have
+  is a fork wearing a standard's name. **A seat that checks and declines
+  is right:** a seat that reads a message, checks the source of truth,
+  finds the cited text absent and declines has performed the rule, not
+  broken it, and the defect belongs to the announcement. **The cost is
+  the channel, not the run:** a seat that is wrong once about whether a
+  message carries authority discounts every later message, so the price
+  of announcing early is paid by messages that had nothing wrong with
+  them. (Two sources, both 2026-10-05, both from the same night. First:
+  `chair:epitome` and `chair:hq-console` announced the seat-creation
+  authority of PM standard §§16-19 and decision 046 over the event bus;
+  the bus delivered through both doors, and both PM seats it woke
+  declined. HQ's PM checked `main`, found no §§16-19 and no decision
+  046, and declined so that nothing it did rested on text that is only
+  on the `chair/board-messages` branch. That is the correct behaviour,
+  recorded here as such. epitome's PM filed the message as a thing for
+  the owner to rule on, because its vendored `docs/standards/pm.md` is
+  pinned at HQ `6acf9f4` and still carried the sentence "Seats never
+  message each other." Second, and the sharper one: alexandria's vendored
+  `docs/standards/pm.md` was edited on 2026-09-30 in commit `f16df04`,
+  "PMs own merges and failed-run triage (HQ decision 041, vendored)",
+  which gave its PM a three-tier autonomy model and a Tier B merge
+  grant. For the next five days HQ `main` had no decision 041 and no
+  three-tier §10; that text lived only on HQ pull requests #60 and #73.
+  One product's PM merged under an authority the company had not
+  granted, from a copy that also cross-referenced a "board §15" absent
+  from its own file. What settles the rule is how it ended: the owner
+  merged #60 on 2026-10-05, at 03:5x, in the same hour this run was
+  measuring the drift it caused. The grant is law now, and alexandria
+  was right about where the company was going. It was still wrong about
+  where the company was, and nothing in the process produced the
+  ratification — it arrived by the owner's hand, by coincidence of
+  timing, five days after a product began acting on it. A rule that
+  happens to be ratified later was still not a rule in the interval, and
+  the interval is where the merges happened. Third-order: the handoff
+  that produced this rule, `chair:epitome` to this seat, was itself
+  correct, because it named the pull request and not the rule.
+  Related: L-A28 on recording a promotion on both sides, and L-A18 on a
+  second author allocating identifiers.)
+
+- **L-A30 — A commit is not work until it is pushed, so commit and push
+  in one command.**
+  Every seat, every repository: `git commit ... && git push` is one tool
+  call, and a turn never ends with a commit that no remote ref contains.
+  The reason is that the sandbox is the only place that commit exists,
+  and the seat is the only actor that can still move it.
+  Nothing in the harness runs between the model's last turn and
+  teardown, so every guard the company owns fires after the work is
+  already gone.
+  Two clauses come with it, and they bind whoever edits the end-of-run
+  check — `tools/no-ship-tripwire.sh`, on every seat that vendors it —
+  rather than the seat.
+  **A guard that can only report should be made to repair first**: an
+  end-of-run check that finds commits on no remote pushes them to a
+  rescue branch named for the seat and the run, says where they went,
+  and fails only if the rescue itself fails.
+  **A run's own account is its black box**, so the first-person done on
+  the board is posted after the last push and names the head SHA it
+  left on the remote, because the transcript does not survive the run
+  and the done is what a later reader actually has.
+  (HQ incident 14, run 37259867006, 2026-10-05. The seat shipped draft
+  PR #102 sixteen minutes in and pushed its second commit at 03:52:15,
+  then committed once more and ended of its own accord at 03:52:52 —
+  118 turns of 150, `is_error: false`, clean tree, no timeout. The
+  tripwire read the repository one second later and reported the whole
+  run as lost. Its work was not lost and is on the remote; the content
+  of that one trailing commit is, and it is unrecoverable. The timeline
+  was reconstructable only because the seat had posted a done on the
+  board at 03:50:50, since the action hides the transcript
+  (`show_full_output: false`, no artifact) and the tripwire writes its
+  three facts to a job summary no API serves. Companion to L-E3, which
+  says ship first and is the rule this run obeyed for its deliverable
+  and broke for its last commit, and to L-E11, which owns the
+  measurement half of the same incident.)
 
 ## engineer
 
@@ -609,8 +694,9 @@ ID it eventually gets is not the one its author would have chosen.
   repositories, so every workflow carries the detour. Corollary worth
   memorizing as a fingerprint: a run that ends `is_error` at about one
   turn and about three minutes on an open model is this failure until
-  proven otherwise, so check what else was running. (HQ incident 4,
-  2026-09-21 and 2026-09-24: three Kimi-routed PM runs across two
+  proven otherwise, so check what else was running. (HQ incident 8,
+  2026-09-21 and 2026-09-24, cited as incident 4 until this
+  correction: three Kimi-routed PM runs across two
   repositories died at turn one, only ever with another Kimi run in
   progress, and the provider's own words in the 09-24 alarm were "request
   reached max organization concurrency: 1". Fixed in all 15 routed
@@ -635,7 +721,8 @@ ID it eventually gets is not the one its author would have chosen.
   engineer seats and anyone editing the workflow template. (epitome pm
   run 35956231272, 2026-09-24, where four consecutive Kimi attempts
   each burned about three minutes before falling back; epitome and HQ
-  workflow commits 2026-09-25; HQ incident 4. **Renumbered from L-E6 on
+  workflow commits 2026-09-25; HQ incident 8, cited as incident 4 until
+  this correction. **Renumbered from L-E6 on
   2026-09-28**, which was already live as the quality-law-versus-
   runtime-budget rule above and had been distributed to three products
   twice over. The rule is unchanged and no file anywhere cited the old
@@ -746,7 +833,29 @@ ID it eventually gets is not the one its author would have chosen.
   company has. The fix is PR #75, written 2026-09-30, unmerged as of
   this harvest — which makes this rule's own evidence an instance of
   L-X7. Companion to L-E8, which fixed the tripwire's arithmetic; this
-  one fixes where it reads from.)
+  one fixes where it reads from.
+  **Amended 2026-10-05** with a seventh instance and the cost of
+  leaving the fix open.
+  HQ run 37259867006 pushed a seat branch, opened draft PR #102, then
+  committed once more and ended normally, and the tripwire reported
+  "this run made commits that were never pushed, so the work dies with
+  the sandbox" on a run whose work was on the remote.
+  This rule's own prescribed signal passes that run correctly, because
+  `exo/harness-preflight-2026-10-05` did not exist when the run began,
+  so the cost of PR #75 sitting open for five days is measurable: a
+  24-hour triage cycle spent on a loss that had not happened, a handoff
+  written to carry it, and a seat blocked from re-dispatch by its own
+  failed run.
+  The amendment adds one measurement clause.
+  **A guard reports the smallest true thing, not the largest alarming
+  one**: "a trailing commit was orphaned" and "this run shipped
+  nothing" are different findings, and a check that cannot tell them
+  apart should say which signals it read rather than assert the worse
+  one.
+  Also: print the facts you judged on to the log, not only to the job
+  summary, because no API serves a job summary and a verdict nobody can
+  re-read is a verdict nobody can correct.
+  (HQ incident 14, 2026-10-05.))
 
 - *Pending harvest: the owner reports substantial engineer corrections
   in Ursa chair sessions not yet captured in any register (partially
@@ -978,6 +1087,37 @@ ID it eventually gets is not the one its author would have chosen.
   cap raise on the grounds that the seat's duties had grown, which is a
   feeling rather than a measurement and is the exact thing this rule
   forbids. The next run caught it.)
+
+  **Amended 2026-10-12: a cap that binds destroys the evidence that
+  would correct it, so exhaustion is itself the evidence.** The rule
+  above reads `num_turns` out of completed runs and doubles the peak.
+  When a run is cut off at the cap, the `num_turns` it reports is the
+  cap plus one — a censored observation, not the seat's peak — so the
+  2x rule has nothing true to multiply and silently re-certifies the
+  cap that caused the failure. Three clauses close it. **One: an
+  `error_max_turns` exit is a finding about the cap, not about the
+  run.** **Two: the response to exhaustion is a defined step up, not a
+  measurement** — raise by half again, and repeat on the next
+  exhaustion, until a run finishes inside the cap and a real peak
+  exists, at which point the 2x rule governs again. **Three: repeated
+  exhaustion by one seat inside one week is a defect to report, not
+  noise** — it is the only signal in the system that a seat's duties
+  outgrew its budget, and it is invisible unless something counts it.
+  That something is `tools/check-turn-caps.sh`, which reads every seat
+  workflow's cap across the portfolio and counts exhaustions against
+  it; the rule is no longer a thing a seat must remember to measure.
+  (Portfolio-wide, week of 2026-10-05: **eight of the fourteen failed
+  seat runs ended at `error_max_turns`**, across six seats in three
+  products — Ursa's engineer three times at a cap of 120 on 10-07,
+  10-08 and 10-11, Ursa's security at 100, Ursa's skill at 100, Ursa's
+  frontend at 250, alexandria's writer at 150 on both 10-04 and 10-09,
+  and HQ's engineer at 120. Every one reported `num_turns` of exactly
+  cap+1. Two of the eight — Ursa's security on 10-11 and alexandria's
+  writer on 10-09 — had already made commits they never reached a push
+  for, so the cap did not only end those runs, it destroyed their work,
+  which is L-A30's failure arriving through a door L-A30 does not
+  watch. Found by hand, by downloading thirty-one log archives, because
+  nothing in the company counted it; see L-X14.)
 - **L-X4 — Reach is proven by a write, never by a read.** A credential
   check that only reads proves nothing, because public repositories
   read anonymously and a token with no grant at all returns the same
@@ -1011,6 +1151,44 @@ ID it eventually gets is not the one its author would have chosen.
   `yes` and never to the value. (HQ incident 4, 2026-09-20: the rule
   above, read and believed, did not stop the next run printing the
   same token, because the rule was a prohibition with no snippet.)
+
+  **Third occurrence, 2026-10-12, and it is the reason this entry now
+  ends in a requirement rather than advice.** The first command of this
+  harvest was
+
+  ```bash
+  echo "EXO_TOKEN set: ${EXO_TOKEN:+yes}${EXO_TOKEN:-NO}" | sed 's/gh[pous]_[A-Za-z0-9]*/REDACTED/'
+  ```
+
+  which is both named traps at once: the `${VAR:-NO}` expansion this
+  rule calls out by name, wrapped in the prefix-guessing `sed` of
+  Incident 3, whose pattern again does not cover `github_pat_`. Same
+  seat, same credential, same two mistakes, twenty-three days after
+  writing the rule against them, with the snippet Incident 4 added
+  sitting four lines above in the file the seat had open. Masking in
+  Actions means the rendered log shows `***`; the value still passed
+  through the model's context, and the ceiling on that claim is the
+  same honest one as before.
+
+  **So the clause this rule was missing: a rule whose violation is a
+  single shell idiom cannot be enforced by a sentence, and must be
+  enforced by something that reads the command.** Three occurrences is
+  no longer a seat's carelessness, it is evidence about the enforcement
+  mechanism: prose in a register loses to a one-line habit every time,
+  because the habit is typed before the register is consulted. The
+  requirement is a pre-execution check on the seat's own shell — a
+  hook that refuses a command containing `${<SECRET>:-` or `${<SECRET>-`
+  or a bare expansion of a known secret name — and until one exists,
+  every occurrence of this failure is the harness's, not the run's.
+  Companion to L-X1 as amended, where an incident is closed only when
+  something in the tree would notice it happening again, and to L-E8 as
+  amended, where a rule the drift check cannot test reads as
+  undistributed however many registers carry it. (alexandra-systems,
+  2026-10-12. The register entry is Incident 15 and it is in this
+  harvest's companion pull request, not on `main` at the moment this
+  rule merges; L-A29 forbids citing an unmerged entry as though it had
+  landed, so the provenance here is the date and the seat, and the
+  number becomes citable when the owner merges it.)
 
 - **L-X6 — The cadence test: a duty is owned only when the seat's
   cadence is shorter than the duty's trigger rate.** Put the trigger
@@ -1066,6 +1244,21 @@ ID it eventually gets is not the one its author would have chosen.
   hours. The incident-numbering collision of L-A18 happened because
   four seats wrote into one register across six days of unmerged
   branches, so the second cost is visible in the first.)
+
+  **Second instance, with its cost in hours, 2026-10-05.** PR #75, the
+  fix for the no-ship tripwire's false failures, was written
+  2026-09-30 and was still open five days later.
+  In those five days the tripwire failed a seventh run that had
+  shipped, HQ run 37259867006, and the bill for that one arrived
+  itemized: the PM's 24-hour failure triage spent a cycle on a loss
+  that had not happened, a handoff was written to carry it, the seat
+  was blocked from re-dispatch by its own failed run, and the
+  investigation that read the truth out of the logs took a second run
+  of a second seat.
+  So the number to report for an unapplied fix is not only how long it
+  has waited. It is what the unfixed thing did while it waited, because
+  that is the figure that makes a queue a cost rather than a list.
+  (HQ incident 14, 2026-10-05.)
 
 - **L-X8 — A runtime change is smoke-tested before it reaches a seat
   doing real work.** Every change to the ground a seat stands on, which
@@ -1124,6 +1317,28 @@ ID it eventually gets is not the one its author would have chosen.
   lane, so the collision was waiting from the first day. The fix shipped
   as a tool the owner runs, which is the round trip the design existed
   to avoid. Companion to L-X4, which proves reach by a write.)
+
+  **Second source, 2026-10-12, and it inverts the conclusion for one
+  seat.** The wall above was recorded as structural — "a seat cannot
+  write under `.github/workflows/`" — and `tools/staged/` plus
+  `tools/install-staged-workflows.sh` were built around it, with a
+  README that counts what the wait cost: four workflows staged for five
+  days, so the company view was generated by a workflow that did not
+  exist, the daily brief never ran, and the repository had no CI at
+  all. The wall is not structural. It is credential-shaped. The
+  engineer's credential is a GitHub App installation token, which is
+  refused that write whatever `permissions:` says; the exo
+  centralizer's credential is the owner's fine-grained PAT and it
+  carries the workflow scope. Probed by write on 2026-10-12 — branch
+  `exo/workflow-write-probe` at HQ, one workflow file, pushed clean,
+  branch deleted, confirmed gone — which is L-X4's method applied to a
+  lane rather than to a repository. So the rule gains a duty: **when a
+  seat's token walls it out of its own lane, name the credential that
+  is not walled before building machinery around the wall**, and where
+  that credential belongs to another seat, the staged file is handed to
+  that seat rather than left to wait for the owner. On the day this was
+  probed, `tools/staged/queue-unjam.yml` had been merged and staged and
+  had never run, against a defect its own header measures in hours.)
 - **L-X10 — One rule, one owning document, and the dispatch prompt
   defers to the charter.** L-A10 gives every file one owning charter.
   One level up, every rule has one owning document, and when a rule
@@ -1189,6 +1404,87 @@ ID it eventually gets is not the one its author would have chosen.
   Enforced there at prompts/exo-agent.md §3e. Companions: L-X6 gives
   the cadence test that predicts the gap, L-P3 says the PM seat exists
   to close it, and this rule measures whether it did.)
+
+- **L-X13 — Distribution is measured on `main`, not in the pull
+  request list; and a re-vendor begins by reading whether the last one
+  landed.** The centralizer's job is not done when the sync pull request
+  is open. A vendored standard governs a seat only once it is on that
+  repo's `main`, so the unit of work is the merge, and the number to
+  report is the count of copies current on `main` out of the copies that
+  exist — never the count of pull requests opened. Two consequences bind
+  this seat. First, **before cutting a new sync, read the state of the
+  previous one in every target.** Re-cutting blind stacks a second stale
+  copy of the same file behind the first, and hands the merger a choice
+  between two wrong versions instead of one right one; the older branch
+  is closed as superseded in the same run, never left to rot. Second,
+  **re-vendor every repo that carries the copy, not the subset a dispatch
+  names.** A dispatch is written from what its author checked, and an
+  author who checked three copies does not know that five exist; the
+  portfolio table is the scope, and a repo left out stays stale with
+  nobody assigned to notice. (alexandra-systems, 2026-10-05. The
+  centralizer cut five re-vendor pull requests of `standards/pm.md` at
+  04:06 UTC; nineteen hours later exactly one had merged — epitome #62 —
+  and alexandria #216, Ursa #96, atelier-app #14 and asc-router #5 were
+  still open and clean. The run that cut them reported five re-vendorings
+  and the chair read that report, so at 23:27 UTC the chair dispatched
+  this seat believing all five copies were current to §20 and needed only
+  §21. None of them was: alexandria and atelier-app stood at §14, epitome
+  at §15, Ursa at §14 with a §19 spliced in by hand, and asc-router at
+  §10 pinned to 2026-09-20. The false premise came straight from counting
+  pull requests as distribution. Companion to L-X7, which measures the
+  queue rather than re-requesting the item, and to L-X1 as amended, where
+  a fix in the tree needs something that would notice the same thing
+  again — here that something is `standards/vendor.sh --check`, which
+  exists and which nothing in the company runs.)
+
+  **Amended 2026-10-12, by the prediction this rule made and lost.**
+  The run that wrote L-X13 cut five re-vendor pull requests and
+  predicted that copies of `standards/pm.md` current on `main` would go
+  from zero of five to five of five within the week. It framed the
+  prediction as a test of §21, reasoning that if the five stayed
+  unmerged, hand-merging was the bottleneck. **All five merged inside
+  six hours.** §21 works; the PM seats took the merges without the
+  owner. And the count on 2026-10-12 was **still zero of five**,
+  because HQ's `standards/pm.md` changed three more times in the six
+  days that followed and `standards/lessons.md` twice, and all five
+  copies sit pinned at `bee22af`. So the clause the rule was missing is
+  not about merging at all: **a standard goes stale about every two
+  days and hand distribution runs weekly, so distribution by hand loses
+  the race by construction and no count of merges can win it.** The
+  unit of work is still the merge, and the cadence of the *measurement*
+  is what decides whether the merge ever gets cut. A weekly seat is the
+  wrong clock for a daily defect (L-X6's cadence test, applied to this
+  seat's own duty). Shipped against it: HQ's `company-checks` workflow,
+  daily, which runs `standards/vendor.sh --check` across the portfolio
+  and opens or refreshes one pull request per standard per repository —
+  one standard per pull request, so that a `lessons.md` sync stays
+  inside the single-file lane ADR-011 lets this seat merge alone.)
+- **L-X14 — A failure record that does not say why is an obituary, and
+  every diagnosis after it is paid for twice.** When a run fails, the
+  thing the company keeps must name the cause, not the outcome. An exit
+  code says a run died; it does not say whether it ran out of turns,
+  lost its credential, was refused by a gate, or crashed — and those
+  four take four different fixes, three of which are harness changes
+  and one of which is nobody's. So a seat's run report carries the
+  failure's own words: the action's error subtype, the turn count
+  against the cap, and the first error line, not merely `exit 1`. And
+  any surface that aggregates failures groups them by cause or admits
+  in its own note that it cannot. (alexandra-systems, 2026-10-12. The
+  scorecard at `GET /api/scorecard` reported the week of 2026-10-05 as
+  325 runs, 534 error-level tool spans, 231 runs touched by one, and 13
+  run reports that said they failed. Not one of those columns names a
+  cause. In the trace store, **478 of the 487 error spans carry the
+  status message `Shell command failed`** and no command and no stderr,
+  because the span writer records the tool's failure and not its
+  output; and the board's run report posts `exit: 0 or 1` with no
+  reason field at all. Naming the week's dominant cause therefore took
+  downloading **thirty-one Actions log archives** and grepping them,
+  which is the one place in the system where the words
+  `error_max_turns` exist. The cause, once found, was one line long and
+  had been sitting in those logs for six days: see L-X3 as amended.
+  Companion to L-X1 as amended — the detector that notices a recurrence
+  is useless if what it records cannot be told apart from what it
+  records for everything else.)
 
 ## security
 
@@ -1277,8 +1573,8 @@ sentences. **No `L-` identifier.** See the preamble and L-A18 for why
 a second author picking IDs is a collision generator rather than a
 convenience.
 
-*Empty as of 2026-10-05, and empty on arrival this harvest: nothing was
-appended here between 2026-09-28 and this run. The five entries that
+*Empty as of 2026-10-12, and empty on arrival for the second harvest
+running: nothing was appended here between 2026-09-28 and this run. The five entries that
 were here once (presence is a cadence, open routing is best-effort,
 sync mode, a status line is not communication, and the
 continue-on-error tripwire pair) are now L-P6, L-E7, L-P7, L-A19 and
