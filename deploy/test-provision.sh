@@ -122,6 +122,10 @@ check "an empty roster is said to be empty, not asked" \
   "grep -q 'no agent.toml under /srv/asc/roster yet' /run1.log"
 check "health script and timer written" "[ -x /usr/local/bin/epitod-health ] && [ -f /etc/systemd/system/epitod-health.timer ]"
 check "health posts epito ps" "grep -q 'epito ps' /usr/local/bin/epitod-health"
+# Both units, because only one of them performs a run: a daily post that said
+# "epitod is active" over a dead epitod-worker was a green line about a box
+# that was running nothing.
+check "health names both units, not just the ingress" "grep -q 'is-active epitod-worker' /usr/local/bin/epitod-health"
 # The engine is not installed with the CLI any more (cli/package.json makes
 # @temporalio/* optional peers so `npm i -g epito` stays half a megabyte), so
 # this box has to ask for it by name. It got all the way through this suite

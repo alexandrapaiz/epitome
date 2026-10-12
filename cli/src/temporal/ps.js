@@ -11,9 +11,19 @@
 // A seat with no schedule, no window and no recent run does not appear, which
 // is correct: ps reports the engine, not the roster. Pass a roster directory
 // to see the presence-only seats alongside it.
+//
+// And one thing it asks that is not in any of those three lists: whether a
+// worker is polling the queue at all. `client.workflow.list()` reports a
+// workflow that was STARTED, which is not the same as a workflow anything is
+// working on — during the step-5 rehearsal a schedule fired with no worker up
+// and this command printed RUNNING 1 for a seat where nothing was running.
+// The WINDOW column had the honest form of this already ("open (no worker)",
+// from a query nothing answered), so the RUNNING column now says it too, from
+// the engine's own poller list rather than from a failed query.
 import { connect } from "./client.js";
 import { listSeatSchedules } from "./schedules.js";
 import { seatOfScheduleId, seatOfWorkflowId, windowId, addressHost, isLoopback, portAnswers, UI_PORTS } from "./env.js";
+import { describeQueue, summarize, psMark, WORKER_REFUSES, POLLED, UNASKED } from "./pollers.js";
 import { loadRoster } from "../lib/roster.js";
 
 const RECENT = 200;
@@ -107,7 +117,30 @@ export async function psCmd(dirArg) {
       }
     }
 
-    console.log(`epitod on ${cfg.address} namespace=${cfg.namespace} queue=${cfg.taskQueue}`);
+    // Who is doing the work. Asked once, before the table, because the answer
+    // changes what two of its columns mean: a RUNNING count with nothing
+    // polling the queue is a count of runs that have not started doing
+    // anything, and that is the opposite of what the column reads as.
+    let worker;
+    try {
+      worker = summarize(await describeQueue(connection, { namespace: cfg.namespace, taskQueue: cfg.taskQueue }), { taskQueue: cfg.taskQueue });
+    } catch (e) {
+      worker = summarize({}, { taskQueue: cfg.taskQueue, error: e.message });
+    }
+    const mark = psMark(worker);
+
+    // The header says who is polling, because "queue=seats" was already there
+    // and the one thing nobody could read off it was whether anything is on
+    // the other end of it.
+    // Said as the state, not as a count: a worker listed on one half of the
+    // queue is one poller and zero working runtimes, and "(1 worker polling)"
+    // over a ✗ line that says nothing is polling is the kind of header that
+    // gets believed instead of the line under it.
+    const listed = worker.workers.length ? `${worker.workers.length} listed, ` : "";
+    const polling = worker.state === POLLED
+      ? `${worker.workers.length} ${worker.workers.length === 1 ? "worker" : "workers"} polling`
+      : worker.state === UNASKED ? "pollers unknown" : `${listed}${mark}`;
+    console.log(`epitod on ${cfg.address} namespace=${cfg.namespace} queue=${cfg.taskQueue} (${polling})`);
     if (seats.size === 0) {
       console.log(`no seats: nothing is scheduled, running, or holding a window in this namespace — \`epito run <roster>\` registers the schedules, \`epito worker\` does the work`);
       return;
@@ -120,7 +153,10 @@ export async function psCmd(dirArg) {
         s.cron ?? "-",
         iso16(s.next),
         s.schedule,
-        s.running.length ? String(s.running.length) : "-",
+        // A count, and what the count is worth. `2 (no worker)` is two
+        // workflows the engine started and nothing has picked up — the state
+        // this column used to print as plain `2`.
+        s.running.length ? `${s.running.length}${mark ? ` (${mark})` : ""}` : "-",
         s.window ? (s.window.error ? "open (no worker)" : leftUntil(s.window.expiresAt)) : "-",
         shortSession(s.window?.session),
         s.last ? iso16(s.last.startTime) : "-",
@@ -129,6 +165,16 @@ export async function psCmd(dirArg) {
     }
     const w = rows[0].map((_, i) => Math.max(...rows.map((r) => r[i].length)));
     for (const r of rows) console.log(r.map((c, i) => c.padEnd(w[i])).join("  ").trimEnd());
+    // Said after the table and not instead of it: the schedules, the windows
+    // and the last outcomes are all still true, and this is the sentence that
+    // says none of them is moving.
+    if (WORKER_REFUSES.has(worker.state)) {
+      console.log(`\n✗ ${worker.says} Fix: ${worker.fix}`);
+      const next = [...seats.values()].filter((s) => s.next).length;
+      if (next) console.log(`  ${next === 1 ? "The one seat with a NEXT time above will not run at it" : `The ${next} seats with a NEXT time above will not run at theirs`} either: the engine will start the ${next === 1 ? "run" : "runs"} and nothing will pick ${next === 1 ? "it" : "them"} up.`);
+    } else if (worker.state !== POLLED) {
+      console.log(`\n! ${worker.says}`);
+    }
     console.log(`\nthe record: \`epito audit\` (what was granted, to whom, until when)   the runs: \`epito board\``);
     console.log(`per-run engine detail — retries, timers, the event history: ${await uiHint(cfg)}`);
   } finally {

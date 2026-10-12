@@ -487,10 +487,31 @@ Three outcomes per name, and only one of them is an error:
   box has that one and has it wrong, the same split `epito routes` makes for a
   road whose endpoint is set to something that is not a URL.
 
-Every run says it too, in its own log — `# env missing: BOARD_RUNTIME_TOKEN —
-listed in [runtime].env, not set on this box` — and in `journalctl`, so a run
-that did less than it should have says why where somebody is reading. It prints
-no value, ever; names only.
+Three places say it besides this command, from the same reader
+(`runShortfall`, `src/lib/boxenv.js`), so the three cannot disagree about one
+box. None of them prints a value, ever; names only.
+
+- **`epito run <dir> --dry-run`**, the rehearsal you run between pasting the
+  env file and starting the units, names every seat that is short of something
+  and points at this command. It does it *before* it connects to the engine,
+  so a box that cannot reach its engine yet still gets this half of the
+  answer — and it reports rather than refuses, including for a name set to
+  nothing, because the real `epito run` injects that empty value and runs the
+  seat, and a rehearsal that refused what the run accepts would be lying about
+  the box in the more expensive direction. The live `epito run` says the same
+  block at startup, which puts it in this box's journal.
+- **The run's own log**, `# env missing: BOARD_RUNTIME_TOKEN is not available
+  to this run; LINEAR_API_KEY arrives empty`, and the same line in
+  `journalctl` — so a run that did less than it should have says why where
+  somebody is reading.
+- **The agent**, in the charter preamble the runtime builds for it: one line
+  naming what this box did not have, in the second person. It is the only
+  party that knows what the name was *for*, and until it was told, a seat
+  whose `BOARD_RUNTIME_TOKEN` was missing discovered it as an HTTP failure
+  deep in its own run. A name the run mints for itself (`GH_TOKEN` from an
+  App) is not in that line, and neither is a road's `token_env` — a box short
+  of that has a closed road, which the route lines in the same log already
+  name, and then the run takes the next road.
 
 ## Seeing inside a run
 
@@ -640,10 +661,11 @@ roster /srv/asc/roster on this box — 5 seats, checked in the order a run needs
 ✓ roads      every seat has an open road — 2 on [runtime].model, no route declared, 3 on "subscription"
 ✓ executor   /usr/local/bin/claude started under the environment a run gives it, for 5 seats
 ✓ engine     127.0.0.1:7233 is Temporal, namespace "default" exists (a real connect: the engine client is installed here)
+✓ worker     one worker is polling seats for both workflow and activity tasks (1983@asc-1, last polled 12s ago)
 
 ✓ nothing here would make a run on this box refuse: 5 manifests good, every
   seat on an open road, the executor starts under a run's own environment, and
-  127.0.0.1:7233 is Temporal with namespace default.
+  127.0.0.1:7233 is Temporal with namespace default, with a worker polling seats.
   Not proven: that it is logged in — the look never reaches a provider, so a
   box with an expired session passes it. `epito doctor … --deep` runs ONE turn
   per road, which costs a model call and is the only thing that proves
@@ -653,13 +675,31 @@ roster /srv/asc/roster on this box — 5 seats, checked in the order a run needs
 One contract: **exit 1 if a run on this box would refuse, and name the piece.**
 That is a refused manifest, a seat with no open road, a road this box has and
 has wrong, a name set to nothing, an executor that is missing or will not
-start, or an engine that is not answering. A name this box does not hold at all
+start, an engine that is not answering, or an engine that is answering with
+nothing polling the queue a run would use. A name this box does not hold at all
 stays a report and exits 0 — `[runtime].env` is the list the runtime injects
 *from*, nothing in a manifest says which names a seat cannot work without, and
 `epito env <dir> --complete` is where you assert it should hold them all.
 
-Three things worth knowing about what it does and does not prove:
+Four things worth knowing about what it does and does not prove:
 
+- **`epitod-worker` is the half that does the work, and the engine knows
+  whether it is there.** Two units run on this box and only one of them
+  executes seats; kill `epitod-worker` and the engine keeps accepting
+  schedules and starting runs that nothing picks up, which until this check
+  existed looked exactly like a healthy box from every surface — `epito ps`
+  included, because a `RUNNING` count is a count of workflows that were
+  *started*. The worker row asks the engine who is polling. It costs nothing,
+  it leaves this box no further than the engine, and it exits 1: a run here
+  would be accepted and never performed. One thing it cannot tell you, and
+  says rather than hides: the engine remembers the last pollers it saw for
+  about five minutes, so the ✓ prints how long ago that poll was, and a worker
+  that died in the last two minutes is still inside that memory. A poller
+  still listed while workflow tasks pile up *is* caught, and exits 1 — a
+  workflow task is a decision, not a run, and is dispatched in milliseconds
+  wherever anything is really polling. Runs waiting for a free slot on a
+  working worker are reported and never refused: that is
+  `EPITO_MAX_CONCURRENT_RUNS` doing its job.
 - **The executor is resolved on the PATH a RUN gets**, then started under the
   environment a run gives it. A `claude` that is on your interactive PATH and
   not on `epitod-worker.service`'s is exactly the failure this catches, and the

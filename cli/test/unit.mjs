@@ -17,8 +17,8 @@ import { loadRoster, rosterRules, ROSTER_RULES } from "../src/lib/roster.js";
 import { SEVERITY, checkManifest, shape } from "../src/validate.js";
 import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
-import { rosterEnv, namesFor, envTemplate, holding, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
-import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, GIT_TOKEN_ENV } from "../src/lib/runner.js";
+import { rosterEnv, namesFor, envTemplate, holding, runShortfall, shortfallSays, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
+import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, buildPrompt, shortfallLine, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP, noRepoMessage, webRoot, installUrl, appSettingsUrl } from "../src/lib/identity.js";
 import {
   actsAs, rosterActs, rosterInstalled, grantGap, IDENTITY_FIX,
@@ -32,7 +32,7 @@ import { once } from "node:events";
 import { generateKeyPairSync, createVerify } from "node:crypto";
 import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, chmodSync, realpathSync } from "node:fs";
 import { seatOfWorkflowId, scheduleId, runId, windowId } from "../src/temporal/env.js";
-import { justCompleted, sendOrRestart } from "../src/run.js";
+import { justCompleted, sendOrRestart, sayShortfall } from "../src/run.js";
 import { ADAPTERS, ADAPTER_NAMES, adapterFor, unknownAdapter, LANGGRAPH_SHIM } from "../src/lib/adapters.js";
 import {
   DEFAULT_ADDRESS, connectReason, engineAnswering, engineFix, engineMissing,
@@ -48,6 +48,11 @@ import { SPEC_VERSION } from "../src/lib/fields.js";
 import { baseRunEnv, RUNTIME_GIVEN } from "../src/lib/runenv.js";
 import { whichIn, lookAtExecutor, deepKey, probeFor, PROBES } from "../src/lib/probe.js";
 import { engineLook } from "../src/doctor.js";
+import {
+  describeQueue, summarize, psMark, ageMs, durationMs, WORKER_FIX, WORKER_REFUSES,
+  POLLED, STALLED, HALF as WORKER_HALF, NONE as WORKER_NONE, UNASKED as WORKER_UNASKED,
+  RECENT_MS, STALLED_MS, TASK_QUEUE_TYPE,
+} from "../src/temporal/pollers.js";
 import {
   traceConfig, traceIdFor, spanIdFor, traceparentFor, childTraceEnv, attributes,
   span, payload, emit, parseHeaders, traceNote, resetQuiet,
@@ -2972,6 +2977,94 @@ test("the env template covers every name the manifests ask for, and blanks none 
   assert.match(out, /systemd EnvironmentFile/, "and what kind of file this is");
 });
 
+test("runShortfall: what ONE run is short of, and the three things that are not a shortfall", () => {
+  const m = seat("pm", { runtime: {
+    model: "m", entry: "e", repo: "acme/roster",
+    env: ["HELD", "ABSENT_ONE", "EMPTY_ONE", "GH_TOKEN", "GW_URL", "GW_KEY"],
+    route: [
+      { name: "open", model: "kimi", base_url_env: "GW_URL", token_env: "GW_KEY" },
+      { name: "subscription", model: "m" },
+    ],
+  } });
+  const env = { HELD: "yes", EMPTY_ONE: "" };
+  const r = runShortfall(m, env, { injected: ["GH_TOKEN"] });
+  assert.deepEqual(r.missing, ["ABSENT_ONE"]);
+  assert.deepEqual(r.empty, ["EMPTY_ONE"], "set to nothing is a shortfall, and the expensive one: the agent acts on it");
+  assert.deepEqual(r.short, ["ABSENT_ONE", "EMPTY_ONE"]);
+  // 1. A name the run brings with it. 2. A road's two halves — that box fault
+  // is a closed road, and the router says so in its own vocabulary. 3. A name
+  // the box holds.
+  assert.ok(!r.short.includes("GH_TOKEN"));
+  assert.ok(!r.short.includes("GW_KEY") && !r.short.includes("GW_URL"));
+  assert.ok(!r.short.includes("HELD"));
+  // Without the mint, the same box IS short of the credential — which is the
+  // difference between a seat with an App of its own and one without.
+  assert.ok(runShortfall(m, env).short.includes("GH_TOKEN"));
+  assert.deepEqual(runShortfall(seat("pm"), {}).short, [], "a manifest that names nothing is short of nothing");
+});
+
+test("the shortfall is one sentence, and the agent's copy of it is the only one in the second person", () => {
+  const both = { missing: ["BOARD_RUNTIME_TOKEN"], empty: ["LINEAR_API_KEY"] };
+  // The operator's register, in two subjects: a seat read off a roster, and
+  // one run read out of its own log.
+  assert.equal(shortfallSays(both), "BOARD_RUNTIME_TOKEN is not available to its runs; LINEAR_API_KEY arrives empty");
+  assert.equal(shortfallSays(both, { of: "this run" }), "BOARD_RUNTIME_TOKEN is not available to this run; LINEAR_API_KEY arrives empty");
+  assert.equal(shortfallSays({ missing: ["A", "B"], empty: [] }), "A, B are not available to its runs");
+  assert.equal(shortfallSays({ missing: [], empty: ["A", "B"] }), "A, B arrive empty");
+  assert.equal(shortfallSays({ missing: [], empty: [] }), "", "a seat that is short of nothing says nothing");
+
+  // The agent's copy. It says what was dropped and WHY it is dropped, in the
+  // second person, and stops: `[runtime].env` is the list the runtime injects
+  // FROM, not a list of what a seat cannot work without, so the only party
+  // that knows whether this matters is the charter the agent is about to read.
+  const line = shortfallLine(both);
+  assert.match(line, /BOARD_RUNTIME_TOKEN is not set on this box, so it is not in your environment at all/);
+  assert.match(line, /LINEAR_API_KEY is set to nothing, so it reaches you empty/);
+  assert.match(line, /say in your run that this box is short of it rather than working around it silently/);
+  assert.equal(shortfallLine({ missing: [], empty: [] }), "", "and a box that holds every name says nothing to the agent either");
+  assert.equal(shortfallLine(undefined), "", "an older caller that passes no shortfall gets no line, not a crash");
+  assert.match(shortfallLine({ missing: ["A", "B"], empty: [] }), /A, B are not set on this box, so they are not in your environment at all/);
+  // The preamble has to survive a run with nothing wrong: the line is dropped
+  // entirely rather than left as an empty paragraph.
+  const clean = buildPrompt({ name: "pm", entry: "prompts/pm.md", trigger: "cron", date: "2026-10-11", shortfall: { missing: [], empty: [] } });
+  assert.ok(!clean.includes("does not hold every name"));
+  assert.ok(!/\n\n/.test(clean), "no blank line where the shortfall would have been");
+  const told = buildPrompt({ name: "pm", entry: "prompts/pm.md", trigger: "cron", date: "2026-10-11", shortfall: both });
+  assert.match(told, /This run was triggered by: cron\.\nThis box does not hold every name/,
+    "it arrives after the trigger and before any window instruction, which is the order a reader of the prompt expects");
+});
+
+test("`epito run` says the roster's shortfall before it touches the engine", () => {
+  const pm = seat("pm", { runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["SLACK_WEBHOOK_URL", "BOARD_API_URL"] } });
+  const okr = seat("okr", { runtime: { model: "m", entry: "e", repo: "acme/roster", env: ["SLACK_WEBHOOK_URL"] } });
+  const roster = rosterOf(pm, okr);
+  const held = { SLACK_WEBHOOK_URL: "https://hooks.example/x" };
+
+  const said = [];
+  const before = process.env.BOARD_API_URL; delete process.env.BOARD_API_URL;
+  const beforeHook = process.env.SLACK_WEBHOOK_URL; process.env.SLACK_WEBHOOK_URL = held.SLACK_WEBHOOK_URL;
+  try {
+    sayShortfall(roster, "agents", (m) => said.push(m));
+    const out = said.join("\n");
+    assert.match(out, /^1 of 2 seats runs here short of a name its manifest asks this box to hold:/m);
+    assert.match(out, /! pm: BOARD_API_URL is not available to its runs/);
+    assert.ok(!/! okr/.test(out), "a seat whose names are all here gets no line");
+    assert.match(out, /`epito env agents` is the whole report/);
+    // The rehearsal must not disagree with the thing it rehearses, and the
+    // real `epito run` registers these schedules: this block is a report,
+    // which is why it borrows none of reconcile's words.
+    assert.ok(!/would (create|update|delete)/.test(out));
+
+    said.length = 0;
+    process.env.BOARD_API_URL = "https://board.example";
+    sayShortfall(roster, "agents", (m) => said.push(m));
+    assert.deepEqual(said, [], "a box that holds every name gets a silent rehearsal: `epito env` is where \"and it holds all 7\" belongs");
+  } finally {
+    if (before === undefined) delete process.env.BOARD_API_URL; else process.env.BOARD_API_URL = before;
+    if (beforeHook === undefined) delete process.env.SLACK_WEBHOOK_URL; else process.env.SLACK_WEBHOOK_URL = beforeHook;
+  }
+});
+
 test("a run says which of its declared names the box did not have", async () => {
   const dir = tmpDir();
   const cwd = process.cwd();
@@ -2981,27 +3074,53 @@ test("a run says which of its declared names the box did not have", async () => 
   try {
     const agent = seat("pm", { runtime: {
       model: "m", entry: "e", repo: "acme/roster",
-      env: ["EPITO_STUB_DIR", "BOARD_RUNTIME_TOKEN", "GH_TOKEN"],
+      env: ["EPITO_STUB_DIR", "BOARD_RUNTIME_TOKEN", "LINEAR_API_KEY", "GH_TOKEN", "GW_KEY"],
+      route: [
+        { name: "open", model: "kimi", base_url_env: "GW_URL", token_env: "GW_KEY" },
+        { name: "subscription", model: "m" },
+      ],
     } });
     process.env.EPITO_STUB_DIR = join(dir, "stub");
     delete process.env.BOARD_RUNTIME_TOKEN;
+    // The third state, and the one this log was blind to: an env-file line
+    // somebody half filled in. It reaches the run as "", so `baseEnv[k] ===
+    // undefined` called it held and said nothing.
+    process.env.LINEAR_API_KEY = "";
     const r = await executeAgent({
       agent, trigger: "cron", runId: "r-env-1", workDir: work, timeoutMs: 30_000, log: (m) => said.push(m),
       executor: new URL("./stub-executor.mjs", import.meta.url).pathname,
       // The mint supplies GH_TOKEN, so the box not holding it is not the box
-      // being short of it — which is why the line is computed after the mint.
+      // being short of it — which is why `inject` is read when the line is
+      // computed, not just when the child's environment is built.
       inject: { GH_TOKEN: "ghs_ENVTESTTOKEN0000000000000000000" }, redact: ["ghs_ENVTESTTOKEN0000000000000000000"],
     });
     assert.equal(r.exit, 0, "the run goes ahead without it: a roster is portable, and this is a note");
     const logged = readFileSync(r.log, "utf8");
-    assert.match(logged, /# env missing: BOARD_RUNTIME_TOKEN — listed in \[runtime\]\.env, not set on this box/);
+    assert.match(logged, /# env missing: BOARD_RUNTIME_TOKEN is not available to this run; LINEAR_API_KEY arrives empty/);
+    assert.match(logged, /listed in \[runtime\]\.env and not held as asked on this box/);
     assert.ok(!/env missing:.*GH_TOKEN/.test(logged), "a name this run mints for itself is not a name the box is short of");
-    assert.ok(said.some((m) => /pm: 1 name from \[runtime\]\.env is not set on this box \(BOARD_RUNTIME_TOKEN\)/.test(m)),
+    assert.ok(!/env missing:.*GW_KEY/.test(logged),
+      "a road's own half is a CLOSED ROAD, said by the route lines a few lines up, not a second sentence here");
+    assert.match(logged, /route "open" \(kimi\) skipped: GW_KEY is not set on this machine/,
+      "and the route lines really are the ones that say it");
+    assert.ok(said.some((m) => /pm: 2 names from \[runtime\]\.env are not what this box holds \(BOARD_RUNTIME_TOKEN, LINEAR_API_KEY\)/.test(m)),
       "and the operator watching journalctl hears it, not only the log file");
+
+    // The party that was never told: the agent. The stub records the prompt it
+    // was handed, so this is the prompt the child really received rather than
+    // what buildPrompt can be made to say in isolation.
+    const transcript = readdirSync(join(dir, "stub")).filter((f) => f.endsWith(".jsonl"));
+    assert.equal(transcript.length, 1);
+    const handed = JSON.parse(readFileSync(join(dir, "stub", transcript[0]), "utf8").trim().split("\n")[0]).prompt;
+    assert.match(handed, /BOARD_RUNTIME_TOKEN is not set on this box, so it is not in your environment at all/);
+    assert.match(handed, /LINEAR_API_KEY is set to nothing, so it reaches you empty/);
+    assert.ok(!handed.includes("GH_TOKEN"), "the credential the run minted for itself is not a name the agent is short of");
+    assert.ok(!handed.includes("GW_KEY"), "and a closed road is the router's sentence, not the agent's problem to route around");
   } finally {
     process.chdir(cwd);
     rmSync(work, { recursive: true, force: true });
     delete process.env.EPITO_STUB_DIR;
+    delete process.env.LINEAR_API_KEY;
   }
 });
 
@@ -3159,4 +3278,254 @@ test("the engine look falls back to the TCP answer when the engine client is not
   });
   assert.equal(up.depth, "connect");
   assert.equal(up.ok, true);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Is anything DOING the work? (src/temporal/pollers.js)
+//
+// The failure these cover is the one no surface used to report: the engine
+// answers, the namespace exists, the manifests are good, and nothing is
+// polling the queue — so every run is accepted and none is performed. The
+// cases below are the whole of that module's behavior, because its two
+// readers (`epito doctor`'s worker row and `epito ps`'s RUNNING column) both
+// read their verdict off `state` and their sentence off `says`.
+
+// One poller, as the engine reports it: an identity and when it last polled.
+const poller = (identity, agoMs) => ({ identity, agoMs });
+const half = (pollers = [], count = 0, ageMs = 0) => ({ pollers, backlog: { count, ageMs } });
+
+test("a worker polling both halves of the queue is the only answer that is fine", () => {
+  const s = summarize({ workflow: half([poller("w1@box", 3_000)]), activity: half([poller("w1@box", 4_000)]) });
+  assert.equal(s.state, POLLED);
+  assert.equal(s.fix, null, "a state with nothing wrong must not offer a fix");
+  assert.equal(s.workers.length, 1, "one process polls both queues and is one worker, not two");
+  assert.match(s.says, /one worker is polling seats for both workflow and activity tasks/);
+  assert.match(s.says, /last polled 3s ago/, "the ✓ carries its own evidence, and it is the FRESHEST of that process's two polls: a poller record is a memory, so the age is the fact");
+  assert.ok(!WORKER_REFUSES.has(s.state));
+});
+
+test("nothing polling is a refusal that says what happens instead of a failure", () => {
+  const s = summarize({ workflow: half(), activity: half() });
+  assert.equal(s.state, WORKER_NONE);
+  assert.ok(WORKER_REFUSES.has(s.state));
+  // The bar every message in this product is held to: name the rule broken,
+  // in the product's vocabulary, with the fix in the message.
+  assert.match(s.says, /nothing is polling seats/);
+  assert.match(s.says, /queued forever rather than refused/, "the consequence is the point: a run that waits forever never shows up as a failure anywhere");
+  assert.equal(s.fix, WORKER_FIX);
+  assert.match(s.fix, /epito worker/, "the laptop's fix");
+  assert.match(s.fix, /systemctl start epitod-worker/, "and the provisioned host's, which is the box this question is asked on");
+  assert.match(s.fix, /journalctl/, "a worker that stopped has a reason, and the reason is in the journal");
+});
+
+test("the engine remembers a poller for five minutes, so a stale one means the worker STOPPED", () => {
+  const s = summarize({ workflow: half([poller("w1@box", 4 * 60_000)]), activity: half([poller("w1@box", 4 * 60_000)]) });
+  assert.equal(s.state, WORKER_NONE, "a poller that last polled four minutes ago is not a worker: a live one long-polls with a ~60s timeout");
+  assert.equal(s.stale.workflow, 1);
+  assert.match(s.says, /still remembers a worker/);
+  assert.match(s.says, /stopped rather than never started/, "the two fixes differ: start one, versus find out why this one died");
+  assert.match(s.says, /last polled 4m ago/);
+  // And the boundary is the documented one, not an accident of rounding.
+  assert.equal(summarize({ workflow: half([poller("w@b", RECENT_MS - 1)]), activity: half([poller("w@b", RECENT_MS - 1)]) }).state, POLLED);
+  assert.equal(summarize({ workflow: half([poller("w@b", RECENT_MS + 1)]), activity: half([poller("w@b", RECENT_MS + 1)]) }).state, WORKER_NONE);
+  // An age the engine did not report is not a fresh one.
+  assert.equal(summarize({ workflow: half([poller("w@b", null)]), activity: half([poller("w@b", null)]) }).state, WORKER_NONE);
+});
+
+test("the age under a \u2713 is printed in the unit that says which side of the line it is on", () => {
+  // 1m 37s is inside the window and rounds to "2m", and two minutes is the
+  // documented line between a worker and a memory of one — so the old sentence
+  // was "\u2713 one worker is polling seats ... last polled 2m ago", a tick and
+  // its own disproof. Seen on a real engine 2026-10-12, 73s after the worker
+  // was killed. Seconds inside the window, minutes outside it: the unit alone
+  // now answers "is this one still a worker".
+  const nearly = summarize({ workflow: half([poller("w@b", 97_000)]), activity: half([poller("w@b", 97_000)]) });
+  assert.equal(nearly.state, POLLED);
+  assert.match(nearly.says, /last polled 97s ago/, "an age inside the window is never rounded up past the window");
+  assert.doesNotMatch(nearly.says, /\bm ago\b/, "a \u2713 may not carry an age in minutes: two minutes is the line it is claiming to be inside of");
+
+  const over = summarize({ workflow: half([poller("w@b", RECENT_MS + 1_000)]), activity: half([poller("w@b", RECENT_MS + 1_000)]) });
+  assert.equal(over.state, WORKER_NONE);
+  assert.match(over.says, /last polled 2m ago/, "and outside it the age is in minutes, which is the half of the pair that reads as a memory");
+});
+
+test("two remembered pollers are two workers that stopped, said in the plural", () => {
+  // A restart leaves the old identity in the engine's memory beside the new
+  // one, so this list having two entries is the commonest shape it has, not an
+  // exotic one. The sentence used to read "2 workers ... so this one stopped".
+  const s = summarize({
+    workflow: half([poller("old@box", 4 * 60_000), poller("new@box", 3 * 60_000)]),
+    activity: half([poller("old@box", 4 * 60_000), poller("new@box", 3 * 60_000)]),
+  });
+  assert.equal(s.state, WORKER_NONE);
+  assert.match(s.says, /still remembers 2 workers/);
+  assert.match(s.says, /so these stopped rather than never started/, "two of them did not stop as one");
+  assert.match(s.says, /old@box, last polled 4m ago; new@box, last polled 3m ago/, "both, named, with the age that makes each a memory");
+});
+
+test("polling one half of the queue and not the other is its own refusal, and says which half", () => {
+  const noActivity = summarize({ workflow: half([poller("w@b", 1_000)]), activity: half() });
+  assert.equal(noActivity.state, WORKER_HALF);
+  assert.match(noActivity.says, /nothing is polling it for activity tasks/);
+  assert.match(noActivity.says, /starts and never clones, mints or spawns anything/);
+  assert.equal(psMark(noActivity), "no activity worker");
+
+  const noWorkflow = summarize({ workflow: half(), activity: half([poller("w@b", 1_000)]) });
+  assert.equal(noWorkflow.state, WORKER_HALF);
+  assert.match(noWorkflow.says, /nothing is polling it for workflow tasks/);
+  assert.equal(psMark(noWorkflow), "no workflow worker");
+  for (const s of [noActivity, noWorkflow]) assert.equal(s.fix, WORKER_FIX);
+});
+
+test("a worker listed and not taking the decisions is the state a poller count reports as ✓", () => {
+  // The five-minute memory is exactly the window a poller list cannot close,
+  // and a workflow task closes it: a decision is dispatched in milliseconds on
+  // any queue anything is really polling.
+  const fresh = { workflow: half([poller("w@b", 10_000)], 1, 5_000), activity: half([poller("w@b", 10_000)]) };
+  assert.equal(summarize(fresh).state, POLLED, "a task waiting five seconds is a task being picked up, not a stall");
+
+  const stalled = { workflow: half([poller("w@b", 10_000)], 2, 4 * 60_000), activity: half([poller("w@b", 10_000)]) };
+  const s = summarize(stalled);
+  assert.equal(s.state, STALLED);
+  assert.ok(WORKER_REFUSES.has(s.state));
+  assert.match(s.says, /2 tasks waiting to be decided, the oldest for 4m/);
+  assert.match(s.says, /has stopped .* or is wedged/, "the two causes of a listed poller that takes nothing");
+  assert.equal(s.fix, WORKER_FIX);
+  assert.equal(psMark(s), "worker not taking work");
+  assert.equal(summarize({ workflow: half([poller("w@b", 10_000)], 1, STALLED_MS - 1), activity: half([poller("w@b", 10_000)]) }).state, POLLED);
+  assert.equal(summarize({ workflow: half([poller("w@b", 10_000)], 1, STALLED_MS + 1), activity: half([poller("w@b", 10_000)]) }).state, STALLED);
+});
+
+test("work waiting for a free slot is the runtime working as designed, and never a refusal", () => {
+  // A seat run is a whole `claude` process with a clone of a repository and the
+  // worker runs a few at a time, so the fifth seat's run waiting an hour is
+  // correct behavior. Reporting it is the point — "why has my seat not
+  // started" has an answer — and refusing on it would be wrong.
+  const s = summarize({ workflow: half([poller("w@b", 2_000)]), activity: half([poller("w@b", 2_000)], 3, 40 * 60_000) });
+  assert.equal(s.state, POLLED);
+  assert.ok(!WORKER_REFUSES.has(s.state));
+  assert.equal(psMark(s), null);
+  assert.match(s.says, /3 tasks of work are waiting for a free slot, the oldest for 40m/);
+  assert.match(s.says, /EPITO_MAX_CONCURRENT_RUNS/, "the knob that changes it, in the message");
+  assert.equal(s.backlog.activity.count, 3);
+});
+
+test("a refusing answer names what is waiting, because that is the morning's size", () => {
+  const s = summarize({ workflow: half([], 9, 7 * 3600_000), activity: half([], 4, 7 * 3600_000) });
+  assert.equal(s.state, WORKER_NONE);
+  assert.match(s.says, /9 tasks to decide what happens next, the oldest waiting for 7h/);
+  assert.match(s.says, /4 tasks of actual work \(clone, mint, the agent's own process\), the oldest waiting for 7h/);
+});
+
+test("an unasked question is never an answer in either direction", () => {
+  const unasked = summarize({}, { asked: false, because: "nothing answered at 127.0.0.1:7233" });
+  assert.equal(unasked.state, WORKER_UNASKED);
+  assert.ok(!WORKER_REFUSES.has(unasked.state), "a box that could not be asked has not failed this check");
+  assert.equal(psMark(unasked), null);
+  assert.match(unasked.says, /not asked — nothing answered at 127\.0\.0\.1:7233/);
+  assert.equal(unasked.fix, null);
+
+  // And the other not-answer: the engine connected, the namespace checked out,
+  // and it would not say who is polling. That is not an absent engine.
+  const refused = summarize({}, { error: "PERMISSION_DENIED" });
+  assert.equal(refused.state, WORKER_UNASKED);
+  assert.match(refused.says, /the engine connected and would not say who is polling seats \(PERMISSION_DENIED\)/);
+  assert.equal(refused.error, "PERMISSION_DENIED");
+});
+
+test("the queue is asked about both task types, with stats, and the names are not guessed", async () => {
+  const asked = [];
+  const connection = {
+    workflowService: {
+      describeTaskQueue: async (req) => {
+        asked.push(req);
+        return req.taskQueueType === TASK_QUEUE_TYPE.workflow
+          ? { pollers: [{ identity: "", lastAccessTime: { seconds: 1_000, nanos: 0 } }], stats: { approximateBacklogCount: "2", approximateBacklogAge: { seconds: 90, nanos: 0 } } }
+          : { pollers: [{ identity: "w@box", lastAccessTime: { seconds: 1_005, nanos: 0 } }], stats: {} };
+      },
+    },
+  };
+  const q = await describeQueue(connection, { namespace: "asc", taskQueue: "seats", nowMs: 1_010_000 });
+  assert.deepEqual(asked.map((r) => r.taskQueueType), [TASK_QUEUE_TYPE.workflow, TASK_QUEUE_TYPE.activity]);
+  for (const r of asked) {
+    assert.equal(r.namespace, "asc");
+    assert.deepEqual(r.taskQueue, { name: "seats" });
+    assert.equal(r.reportStats, true, "without this the backlog is absent and a wedged worker reads as a healthy one");
+  }
+  assert.equal(q.workflow.pollers[0].agoMs, 10_000);
+  assert.equal(q.workflow.pollers[0].identity, "(unnamed worker)", "a worker with no identity is still a worker, and `` in a sentence reads as a bug");
+  assert.equal(q.workflow.backlog.count, 2);
+  assert.equal(q.workflow.backlog.ageMs, 90_000);
+  // A server too old for reportStats omits stats entirely, which must read as
+  // an empty backlog and claim nothing.
+  assert.deepEqual(q.activity.backlog, { count: 0, ageMs: null });
+  assert.equal(q.activity.pollers[0].agoMs, 5_000);
+  assert.equal(summarize(q, { taskQueue: "seats" }).state, STALLED);
+});
+
+test("a protobuf timestamp is read as an age, and an unreadable one as nothing", () => {
+  assert.equal(ageMs({ seconds: 100, nanos: 500_000_000 }, 101_000), 500);
+  assert.equal(ageMs({ seconds: "100", nanos: 0 }, 103_000), 3_000, "seconds arrives as a Long, which stringifies");
+  assert.equal(ageMs("2026-10-10T00:00:00Z", Date.parse("2026-10-10T00:00:05Z")), 5_000);
+  assert.equal(ageMs(null), null);
+  assert.equal(ageMs({ seconds: "not-a-number" }), null);
+  assert.equal(ageMs({ seconds: 500 }, 100_000), 0, "a stamp in the future is zero age, never a negative one");
+  assert.equal(durationMs(undefined), null);
+  assert.equal(durationMs({}), 0, "an absent proto field is the proto default, and for a Duration that is zero");
+  assert.equal(durationMs({ seconds: 2, nanos: 250_000_000 }), 2_250);
+});
+
+test("the two readers of the worker's state read it, and do not re-decide it", () => {
+  // Same rule as readiness.js's REPO_REQUIRED_BY and acts.js's
+  // INSTALL_REFUSES: the list the sentence prints is the list the surfaces
+  // check against, so an exit code and a row cannot disagree. A surface that
+  // spelled its own "none" or "stalled" would be the second answer to one
+  // question.
+  for (const f of ["src/doctor.js", "src/temporal/ps.js"]) {
+    const src = readFileSync(fileURLToPath(new URL(`../${f}`, import.meta.url)), "utf8");
+    assert.ok(/WORKER_REFUSES/.test(src), `${f} does not read WORKER_REFUSES`);
+    assert.ok(!/=== *"(none|half|stalled|polled|unasked)"/.test(src),
+      `${f} compares a worker state against a string literal; import the constant instead`);
+  }
+  // And the module stays importable on a box with no engine installed, which
+  // is what lets `epito doctor` hold these sentences there (same invariant as
+  // lib/engine.js: the connection is handed in, never imported).
+  const pollers = readFileSync(fileURLToPath(new URL("../src/temporal/pollers.js", import.meta.url)), "utf8");
+  assert.ok(!/^import /m.test(pollers),
+    "src/temporal/pollers.js has grown an import — an @temporalio one there would make `epito doctor`'s sentences need the ~300 MB of engine");
+});
+
+test("the engine look asks who is polling on the connection it already opened", async () => {
+  const answering = () => Promise.resolve({ ok: true, address: "127.0.0.1:7233", malformed: false, reason: null });
+  let closed = false;
+  const connection = {
+    close: async () => { closed = true; },
+    workflowService: {
+      describeTaskQueue: async () => ({ pollers: [{ identity: "w@box", lastAccessTime: { seconds: 999, nanos: 0 } }], stats: {} }),
+    },
+  };
+  const up = await engineLook({ env: { TEMPORAL_ADDRESS: "127.0.0.1:7233" }, probe: answering, importClient: () => ({ connect: () => ({ connection }) }) });
+  assert.equal(up.ok, true);
+  assert.equal(up.taskQueue, "seats");
+  assert.equal(up.pollers.workflow.pollers.length, 1);
+  assert.equal(up.pollersError, null);
+  assert.equal(closed, true, "one connection, asked both questions, then closed");
+
+  // A DescribeTaskQueue that fails is a thing to report, not a reason to call
+  // an engine down: the connect and the namespace check have just succeeded.
+  const refusing = {
+    close: async () => {},
+    workflowService: { describeTaskQueue: async () => { throw new Error("PERMISSION_DENIED"); } },
+  };
+  const partial = await engineLook({ env: {}, probe: answering, importClient: () => ({ connect: () => ({ connection: refusing }) }) });
+  assert.equal(partial.ok, true, "the engine is up; it is the poller question that failed");
+  assert.equal(partial.pollers, null);
+  assert.match(partial.pollersError, /PERMISSION_DENIED/);
+  assert.equal(summarize(partial.pollers ?? {}, { taskQueue: partial.taskQueue, asked: false, error: partial.pollersError }).state, WORKER_UNASKED);
+
+  // And on a box without the engine client the question cannot be put at all.
+  const notInstalled = () => { const e = new Error("Cannot find package '@temporalio/client' imported from /x/y.js"); e.code = "ERR_MODULE_NOT_FOUND"; throw e; };
+  const tcp = await engineLook({ env: {}, probe: answering, importClient: notInstalled });
+  assert.equal(tcp.pollers, null);
+  assert.equal(tcp.taskQueue, "seats", "the queue a run would use is knowable without an engine, and the row names it");
 });
