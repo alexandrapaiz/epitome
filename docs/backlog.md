@@ -80,9 +80,15 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   2026-10-10 (PR #97, merged under Tier B): `epito doctor --deep` now
   reads the App's own slug and owner from GitHub, so a refusal that used
   to name a fix with no page to find it now prints the actual
-  installation or permissions page to visit. What's left is still not
-  code: one real alexandria seat actually running on the owner's box,
-  now also waiting on that credential decision.*
+  installation or permissions page to visit. Extended again 2026-10-12
+  (PR #110, merged under Tier B, composing drafts #100 and #103 which
+  closed on merge): `epito doctor` grows a `worker` row answering
+  whether anything is actually performing runs rather than whether a
+  run would be accepted, and the box-naming checks now tell the three
+  places a box's name can live apart instead of reporting them as one
+  fact. What's left is still not code: one real alexandria seat
+  actually running on the owner's box, now also waiting on that
+  credential decision.*
 - [ ] **Dogfood migration, step 2** — delete that seat's ADR-27
   hand-wiring from alexandria. Seat: engineer.
 - [ ] **Dogfood migration, step 3** — write the before/after; this is
@@ -149,21 +155,21 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **Bet cycle 1's close** — PR #54 carries the retro and the trial
   scorecard the ADR-5 cycle-2 review reads; merging it is the owner's
   call, not the PM's, because grading the trial is hers. Still clean
-  and mergeable as of this pass (2026-10-09), unchanged for four days
+  and mergeable as of this pass (2026-10-12), unchanged for a week
   running (one rebase in between, 2026-10-08, after this file's own
   edit collided with it — resolved that pass, clean since). No
   technical blocker; this is purely her reading and her grade.
 - [ ] **Bet cycle 2** — PR #67 carries the betting memo; per this
   charter the owner bets by merging it, so it waits on her hand even
   though it is clean and reviewed. *Open since 2026-10-05, now its
-  fifth full day unbet. The engineer keeps spending its runs on
-  ordinary backlog work (#84, #89, now #97, all merged under Tier B)
-  for lack of a cycle to point it at.*
+  seventh full day unbet. The engineer keeps spending its runs on
+  ordinary backlog work (#84, #89, #97, now #110, all merged under
+  Tier B) for lack of a cycle to point it at.*
 - [ ] **Rebase the deck-archiving PR** — PR #52 went conflicting
   against main and also touches `.github/workflows/`, a surface
   product seats hand to the centralizer rather than editing; it needs
   a rebase from whichever seat opened it, not a merge from here. *Open
-  since 2026-10-05, still conflicting as of 2026-10-10 (five days).*
+  since 2026-10-05, still conflicting as of 2026-10-12 (a week).*
 - [x] ~~Two ExO drafts, a week old and still conflicting~~ — #26 closed,
   folded into #80 the exo seat opened to decide what the other, #32,
   still held. #80 itself sat three days as an unfinished "work in
