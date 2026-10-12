@@ -80,9 +80,19 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   2026-10-10 (PR #97, merged under Tier B): `epito doctor --deep` now
   reads the App's own slug and owner from GitHub, so a refusal that used
   to name a fix with no page to find it now prints the actual
-  installation or permissions page to visit. What's left is still not
-  code: one real alexandria seat actually running on the owner's box,
-  now also waiting on that credential decision.*
+  installation or permissions page to visit. Extended again 2026-10-12
+  (PR #110, merged under Tier B, composing #100 and #103 forward):
+  `epito doctor` grows a `worker` row that asks whether anything is
+  *performing* runs rather than whether one would be *accepted*, fixed
+  the unit hand-over that let a dead worker still print ✓ for up to 97
+  seconds, and named the credential a run is missing to the agent's own
+  channel instead of letting it surface as a bare HTTP failure deep
+  inside the run. #100 and #103 closed themselves (GitHub marked both
+  merged once their commits landed as #110's ancestors) and #106, the
+  placeholder composing draft, was superseded and closed in the same
+  run. What's left is still not code: one real alexandria seat actually
+  running on the owner's box, now also waiting on that credential
+  decision.*
 - [ ] **Dogfood migration, step 2** — delete that seat's ADR-27
   hand-wiring from alexandria. Seat: engineer.
 - [ ] **Dogfood migration, step 3** — write the before/after; this is
