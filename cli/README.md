@@ -219,7 +219,10 @@ Three things it will not get wrong. A poller is a **memory, not a socket** —
 the engine keeps the last pollers it saw for about five minutes, so the ✓
 prints how long ago the poll was and a record older than two minutes reads as
 a worker that *stopped*, which is a different fix from one that was never
-started. A **workflow** task waiting more than a minute with a poller still
+started. That age is printed in **seconds while it is inside the window and
+minutes once it is outside**, so the unit alone says which side of the line a
+record is on — a ✓ that reported `last polled 2m ago` would be a tick and its
+own disproof in one sentence. A **workflow** task waiting more than a minute with a poller still
 listed is the one state a poller count alone reports as ✓, and it exits 1: a
 workflow task is a decision, dispatched in milliseconds wherever anything is
 really polling, so a queue of them means a worker that is listed and wedged.
