@@ -149,21 +149,26 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **Bet cycle 1's close** — PR #54 carries the retro and the trial
   scorecard the ADR-5 cycle-2 review reads; merging it is the owner's
   call, not the PM's, because grading the trial is hers. Still clean
-  and mergeable as of this pass (2026-10-09), unchanged for four days
-  running (one rebase in between, 2026-10-08, after this file's own
-  edit collided with it — resolved that pass, clean since). No
+  and mergeable as of this pass (2026-10-13), now a full eight days
+  open with no further movement since the 2026-10-08 rebase. No
   technical blocker; this is purely her reading and her grade.
 - [ ] **Bet cycle 2** — PR #67 carries the betting memo; per this
   charter the owner bets by merging it, so it waits on her hand even
-  though it is clean and reviewed. *Open since 2026-10-05, now its
-  fifth full day unbet. The engineer keeps spending its runs on
-  ordinary backlog work (#84, #89, now #97, all merged under Tier B)
-  for lack of a cycle to point it at.*
+  though it is clean and reviewed. *Open since 2026-10-05, now entering
+  its eighth day unbet. The engineer keeps spending its runs on
+  ordinary backlog work (#84, #89, #97, now the composed #110, all
+  merged under Tier B) for lack of a cycle to point it at.*
 - [ ] **Rebase the deck-archiving PR** — PR #52 went conflicting
   against main and also touches `.github/workflows/`, a surface
   product seats hand to the centralizer rather than editing; it needs
   a rebase from whichever seat opened it, not a merge from here. *Open
-  since 2026-10-05, still conflicting as of 2026-10-10 (five days).*
+  since 2026-10-05, still conflicting and unmoved as of this pass
+  (2026-10-13), a full eight days. The PM standard's Tier B rule 6
+  reads as license to close an idle eight-day PR with a note of what
+  reopens it; this pass is naming that reading rather than acting on
+  it, because the branch is a chair's own in-progress archiving work,
+  not a seat's draft, and closing someone's held work on a rule
+  reading is worth her glance before a PM does it without being asked.*
 - [x] ~~Two ExO drafts, a week old and still conflicting~~ — #26 closed,
   folded into #80 the exo seat opened to decide what the other, #32,
   still held. #80 itself sat three days as an unfinished "work in
