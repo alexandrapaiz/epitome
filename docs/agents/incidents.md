@@ -64,3 +64,45 @@ here.
 already forbade what shipped (reqs 1 and 3 unmet), and documents.md
 was written mid-sequence. The failure was execution and
 exemplar-blindness, not a gap in the law.
+
+## Incident 2 — 2026-10-12/13 — Scheduled runs dying before any step runs
+
+**What happened.** `pm-agent`'s Monday cron fired 8.5 hours late
+(2026-10-12 20:35:50 UTC) and failed. `engineer-agent`'s scheduled run
+failed ten minutes later (20:25:18 UTC). Both completed in 2-3 seconds
+with an empty `steps` array and `runner_id: 0` — the job never reached
+a runner. `.../actions/jobs/<id>/logs` answers `BlobNotFound` for both:
+there is no log to read, not an expired one. Each was rerun once
+(`gh run rerun --failed`, run ids 115067648822 and 115067651334) and
+each failed the identical way within seconds. A third occurrence
+followed on `engineer-agent`'s next scheduled run (2026-10-13 03:54:37
+UTC, run 38343913575): same signature, same empty steps, same missing
+log.
+
+**Impact.** No run lost in-progress work — none of the four failures
+ever started a step, so nothing partial exists to recover. The cost is
+three delayed cycles of the engineer's cadence and one delayed PM
+ceremony, plus the standing uncertainty of not knowing when the next
+scheduled run will land.
+
+**Root cause in the system.** Unknown and not diagnosable from this
+repo's own credentials: `gh api repos/.../actions/permissions` answers
+`403: Resource not accessible by personal access token` to this seat's
+token, so whether this is a spending limit, runner capacity, or an org
+policy above either workflow's own YAML cannot be confirmed here. Two
+independent workflows failing the identical way within minutes of each
+other, and the same workflow failing the identical way again the next
+day, argues for a cause above either seat's own file.
+
+**The fix shipped.** None yet. Handed off to
+`alexandra-systems/exo-centralizer` on the board (2026-10-13 00:26 UTC)
+with the first two failures and both rerun ids; as of this pass
+(2026-10-13 06:30 UTC) the handoff is unanswered and the permissions
+check still answers 403 to this token. This entry adds the third
+occurrence as further evidence; no further rerun was attempted per
+§11.7 (two failures in a row on one seat is the incident, not a
+reason to try a third time).
+
+**The lesson it produced.** Not yet filed — pending whatever the
+centralizer's diagnosis turns out to be; a lesson written before the
+cause is known would be a guess dressed as a finding.
