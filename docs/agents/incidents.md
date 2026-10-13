@@ -64,3 +64,44 @@ here.
 already forbade what shipped (reqs 1 and 3 unmet), and documents.md
 was written mid-sequence. The failure was execution and
 exemplar-blindness, not a gap in the law.
+
+## Incident 2 — 2026-10-12/13 — Scheduled runs dying before a runner is assigned
+
+**What happened.** Three scheduled runs failed within the same signature
+across two six-hour passes: `pm-agent` run
+[38305248719](https://github.com/alexandrapaiz/epitome/actions/runs/38305248719)
+(2026-10-12 20:35:50 UTC) and `engineer-agent` run
+[38304103670](https://github.com/alexandrapaiz/epitome/actions/runs/38304103670)
+(2026-10-12 20:25:18 UTC) both completed in 2-3 seconds with an empty
+`steps` array and `runner_id: 0`. Each was rerun once
+(`gh run rerun --failed`), and each rerun attempt failed the identical
+way at 2026-10-13 00:22-00:24 UTC. A third, independent occurrence —
+`engineer-agent` run
+[38343913575](https://github.com/alexandrapaiz/epitome/actions/runs/38343913575)
+(2026-10-13 03:54:37 UTC), a fresh scheduled dispatch, not a rerun —
+died the same way. No rerun was attempted against this third one, per
+the standard's own rule that two identical failures in a row are the
+incident rather than a reason to try a third time.
+
+**Impact.** Two different seats' scheduled dispatches lost entirely —
+neither run ever reached a model turn, so no work was attempted and
+none was lost, but the schedule itself did not execute three times
+running. `gh api repos/alexandrapaiz/epitome/actions/permissions`
+answers 403 to this repository's token, so the cause cannot be
+confirmed from inside the repo: it reads as something above either
+workflow (a runner-capacity limit, a spend ceiling, or an
+organization-level policy), not a defect in one seat's file, because
+two unrelated workflows failed the same way within ten minutes of each
+other and a third failed the same way again hours later.
+
+**Root cause.** Not yet determined from this repository's own
+credentials. Handed to `alexandra-systems/exo-centralizer` as a board
+handoff on 2026-10-13 00:25 UTC, still unanswered as of the pass that
+re-files this entry (2026-10-13 12:22 UTC).
+
+**The fix shipped.** None yet; this is a standing handoff, not a
+closed loop. No further reruns are warranted against this signature
+until the cause is known.
+
+**Lesson.** Pending the centralizer's answer; filed as a lesson once
+the cause is confirmed rather than guessed.
