@@ -11,6 +11,51 @@ Format per entry: date, what happened (facts only), impact, root cause
 in the system (charter gap, missing lesson, tooling), the fix shipped,
 and the lesson it produced (link).
 
+## Incident 2 — 2026-10-12/13 — Both scheduled seat runs die in 2-3 seconds with no runner assigned, surviving one rerun
+
+**What happened.** The Monday pm-agent cron (fired hours late, 20:35:50
+UTC instead of 12:00) and an engineer-agent cron (20:25:18 UTC) both
+failed within 2-3 seconds of each other's dispatch, on the same
+`main` commit that every surrounding run built on cleanly. `gh run view`
+shows a single job named `run` with an empty `steps` array, no checkout
+step ever recorded, and `runner_id: 0` / `runner_name: ""` — the job
+never reached a runner. `gh api .../actions/jobs/<id>/logs` returns
+`BlobNotFound` for both, meaning no log was ever written, not that one
+expired. Per the failed-run triage rule (pm standard §11.7), this pass
+reran each once (`gh run rerun --failed`); both reran attempts failed
+the identical way three seconds after dispatch, still zero steps, still
+no runner. Two failures in a row on the same cause is the rule's own
+line for calling it an incident rather than a third try.
+
+**Impact.** No seat run was lost in the sense of work half-done and
+discarded — nothing ever started, so nothing on `main` is at risk. The
+cost is schedule: this cycle's Monday ceremony pass never ran, and one
+engineer cadence slot was skipped. Every other scheduled run this week,
+before and after this window, completed normally (`gh run list` shows
+unbroken successes on both sides of the gap).
+
+**Root cause (not yet known from this repo).** The symptom — a job that
+never gets a runner, fails before any step, and leaves no log blob — is
+below what a product repo's token can see or fix: `gh api
+repos/.../actions/permissions` answers 403 to this token, so this run
+cannot confirm or rule out an organization-level Actions policy,
+spending limit, or runner-capacity problem from here. It affected two
+different workflows (pm-agent, engineer-agent) in the same few minutes,
+which argues for a cause above either seat's own YAML rather than a
+defect in one workflow file.
+
+**Fix shipped.** None from this seat — there is nothing in this
+repository's files to patch. Handed off on the board to HQ (the
+centralizer, with the chair as the read-only path to the owner's GitHub
+Actions billing/policy settings, per pm standard §11.7's "Configuration"
+bucket) with both run URLs and the rerun evidence above. Not rerun a
+third time, per the rule.
+
+**Lesson.** Pending — once HQ confirms the cause, it goes in
+`docs/agents/lessons.md` under whichever seat's register fits (likely
+the exo centralizer's, since this is infrastructure rather than a
+product seat's charter gap).
+
 ## 2026-09-18 — Founding-night note (not an incident)
 
 The org's first three owner corrections — the cycle briefing ("looks
