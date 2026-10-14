@@ -13,6 +13,7 @@ on:
         default: ""
 
 permissions:
+  actions: read # gh run list: a seat reads its own runs (ADR-037)
   contents: write
   pull-requests: write
   id-token: write
@@ -72,6 +73,11 @@ jobs:
           ANTHROPIC_BASE_URL: ${{ secrets.OPENROUTE_BASE_URL }}
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.OPENROUTE_API_KEY }}
         with:
+          # A PM dispatch (pm.md 11.5) starts this run as github-actions[bot],
+          # and claude-code-action agent mode refuses a non-User actor unless it
+          # is named here. Without it a dispatched seat dies before it reads its
+          # charter. See ADR-049 and standards/workflow-template.yml.
+          allowed_bots: "github-actions[bot]"
           anthropic_api_key: ${{ secrets.OPENROUTE_API_KEY }}
           prompt: |
             You are epito.me's okr seat, running in GitHub Actions with
@@ -92,6 +98,11 @@ jobs:
         if: vars.OPEN_ROUTING != 'on' || env.OPENROUTE == '' || steps.openrouted.outcome != 'success'
         uses: anthropics/claude-code-action@v1
         with:
+          # A PM dispatch (pm.md 11.5) starts this run as github-actions[bot],
+          # and claude-code-action agent mode refuses a non-User actor unless it
+          # is named here. Without it a dispatched seat dies before it reads its
+          # charter. See ADR-049 and standards/workflow-template.yml.
+          allowed_bots: "github-actions[bot]"
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             You are epito.me's okr seat, running in GitHub Actions with
