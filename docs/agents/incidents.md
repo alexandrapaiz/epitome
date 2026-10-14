@@ -64,3 +64,34 @@ here.
 already forbade what shipped (reqs 1 and 3 unmet), and documents.md
 was written mid-sequence. The failure was execution and
 exemplar-blindness, not a gap in the law.
+
+## Incident 2 — 2026-10-12 to 2026-10-14 — Every scheduled run in this repo died in ~3 seconds with an empty log
+
+**What happened.** Starting the morning of 2026-10-12, every Actions
+run in this repository (`pm-agent` and `engineer-agent` both) completed
+in about three seconds with zero steps recorded and an empty log
+archive. Three passes filed this as Incident 2 before this entry, each
+in a pull request that only ever closed, never merged, so the register
+never actually carried it until now.
+
+**Impact.** No seat in this repo produced a GitHub Actions run for
+roughly two days. Work continued only through host-window passes.
+
+**Root cause.** Diagnosed 2026-10-14 by headquarters' exo centralizer,
+not from inside this repo (this token answers 403 on the one API call
+that would confirm it directly). The same signature hit headquarters'
+own repository on 2026-10-13; the portfolio's three public repos ran
+normally through the same window. Two private repos failing while
+three public ones don't is the shape of a billing or spend-limit
+block, not anything a repo's own files can fix.
+
+**The fix.** Not this repo's to ship. Headquarters asked the owner for
+it directly as urgent and filed it in the company-wide register; this
+entry closes the local loop that was left open across three passes.
+
+**Lesson.** A root cause outside a repo's own credentials should be
+named as such immediately (configuration, §11.7) rather than re-filed
+as a mystery each pass; this one took three occurrences to reach
+headquarters because each local pass's finding died with its own
+unmerged PR instead of reaching the one seat that could actually see
+across repos.
