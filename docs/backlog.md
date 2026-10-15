@@ -145,7 +145,16 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] Decide public vs. private repo before any seats run on schedule
   (public = unlimited Actions minutes, per the playbook). *Seats are
   running on schedule now (line above) — this decision is overdue, not
-  just pending.*
+  just pending.* **Confirmed as the live cause, 2026-10-15:** every
+  scheduled run in this repo has failed in about three seconds with no
+  recorded steps and an empty log since 2026-10-12, engineer's run
+  38762870877 the latest repeat this pass. HQ's centralizer traced the
+  identical shape to a billing or spend-limit block that hits only this
+  repo and one other, the two private repos in the whole portfolio,
+  while the three public repos ran clean through the same window, and
+  has already asked the owner for it directly as urgent. This line is
+  the backlog card that named the risk first; nothing left to add here
+  except that the risk has now happened.
 - [ ] **Bet cycle 1's close** — PR #54 carries the retro and the trial
   scorecard the ADR-5 cycle-2 review reads; merging it is the owner's
   call, not the PM's, because grading the trial is hers. Still clean
