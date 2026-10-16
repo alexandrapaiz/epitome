@@ -149,19 +149,25 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **Bet cycle 1's close** — PR #54 carries the retro and the trial
   scorecard the ADR-5 cycle-2 review reads; merging it is the owner's
   call, not the PM's, because grading the trial is hers. Still clean
-  and mergeable as of this pass (2026-10-15), unchanged for nine days
+  and mergeable as of this pass (2026-10-16), unchanged for ten days
   running since cooldown closed (2026-10-06). No technical blocker;
   this is purely her reading and her grade.
 - [ ] **Bet cycle 2** — PR #67 carries the betting memo; per this
   charter the owner bets by merging it, so it waits on her hand even
-  though it is clean and reviewed. *Open since 2026-10-05, now its
-  ninth day unbet. The engineer keeps spending its runs on ordinary
-  backlog work for lack of a cycle to point it at.*
+  though it is clean and reviewed. *Open since 2026-10-05, now eleven
+  days unbet. The engineer keeps spending its runs on ordinary
+  backlog work for lack of a cycle to point it at, when it can run at
+  all: it has not completed a run since 2026-10-12 (nine straight
+  failures through this pass, same dead-runner shape each time). That
+  register entry is `docs/agents/incidents.md`'s to write, not this
+  file's or this seat's own merge to make — handed off to this
+  repo's exo seat this pass, since the file's own header names it the
+  owner and no entry exists there yet for a defect four days old.*
 - [ ] **Rebase the deck-archiving PR** — PR #52 went conflicting
   against main and also touches `.github/workflows/`, a surface
   product seats hand to the centralizer rather than editing; it needs
   a rebase from whichever seat opened it, not a merge from here. *Open
-  since 2026-10-05, still conflicting as of 2026-10-15 (nine days).*
+  since 2026-10-05, still conflicting as of 2026-10-16 (eleven days).*
 - [x] ~~Two ExO drafts, a week old and still conflicting~~ — #26 closed,
   folded into #80 the exo seat opened to decide what the other, #32,
   still held. #80 itself sat three days as an unfinished "work in
@@ -204,15 +210,24 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   not just diagnosed. Whatever was wrong was transient or scoped to
   that one run; no further owner action needed on this specific gap.
   Seat: pm, closed 2026-10-10.
-- [ ] **The same ask route, renewed for this seat's six-hour-pass
-  reports.** #119 (one pass's report) closed itself, superseded, before
-  ever being merged by anyone, and its successor #120 is still open six
-  hours later: a docs-only PR (`docs/backlog.md` alone) this seat wrote
-  about itself, so Tier A's self-merge list doesn't cover it and Tier
-  B's own-PR rule sends it to another merger, the same route as the
-  entries just above. Renewed ask sent to `alexandra-systems/pm` this
-  pass (2026-10-15, six-hour pass 2). Seat: pm (flagged), decision: HQ's
-  pm or the owner.
+- [x] **The same ask route, renewed for this seat's six-hour-pass
+  reports — resolved again.** #120 and its successor #121 (both docs-
+  only, `docs/backlog.md` alone) merged together 2026-10-15 12:23 UTC,
+  the owner's own merge this time rather than HQ's pm. Seat: pm, closed
+  2026-10-15.
+- [ ] **The same gap, twice over in one six-hour window.** The
+  2026-10-16 00:20 pass opened #122 and the 06:20 pass opened #123,
+  each editing this same entry independently because neither pass's
+  branch could see the other's still-open PR — both cut from the same
+  point on main. This pass closed #122 as superseded by #123 (its edit
+  carried forward everything #122's did, plus more), so the queue
+  carries one redundant report instead of two. #123 is still open with
+  nobody able to merge it but HQ's pm or the owner; renewed the ask to
+  `alexandra-systems/pm` again this pass, alongside this pass's own
+  report. Seat: pm (flagged), decision: HQ's pm or the owner. Worth a
+  fix if a third pass lands in the same window again: the ask route
+  works, but two passes racing the same file in under six hours is the
+  shape L-E10 already named.
 - [x] **PR #51 closed, superseded.** The engineer's own composing run
   (PR #75) found that #51's branch is 1,096 lines behind main — merging
   it would have deleted most of `docs/standards/pm.md`,
