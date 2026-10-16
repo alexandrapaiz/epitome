@@ -204,15 +204,17 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   not just diagnosed. Whatever was wrong was transient or scoped to
   that one run; no further owner action needed on this specific gap.
   Seat: pm, closed 2026-10-10.
-- [ ] **The same ask route, renewed for this seat's six-hour-pass
-  reports.** #119 (one pass's report) closed itself, superseded, before
-  ever being merged by anyone, and its successor #120 is still open six
-  hours later: a docs-only PR (`docs/backlog.md` alone) this seat wrote
-  about itself, so Tier A's self-merge list doesn't cover it and Tier
-  B's own-PR rule sends it to another merger, the same route as the
-  entries just above. Renewed ask sent to `alexandra-systems/pm` this
-  pass (2026-10-15, six-hour pass 2). Seat: pm (flagged), decision: HQ's
-  pm or the owner.
+- [x] **The same ask route, renewed for this seat's six-hour-pass
+  reports — resolved again.** #119 (one pass's report) closed itself,
+  superseded, before ever being merged by anyone, and its successor
+  #120 sat open for six hours on the same gap: a docs-only PR
+  (`docs/backlog.md` alone) this seat wrote about itself, so Tier A's
+  self-merge list doesn't cover it and Tier B's own-PR rule sends it to
+  another merger. Both #120 and its own successor #121 merged
+  2026-10-15 12:23 UTC, within six hours of the renewed ask, same
+  account that cleared the gap in its first occurrence (#92). The route
+  keeps working each time it's asked; nothing here needs a standing
+  fix. Seat: pm, closed 2026-10-16.
 - [x] **PR #51 closed, superseded.** The engineer's own composing run
   (PR #75) found that #51's branch is 1,096 lines behind main — merging
   it would have deleted most of `docs/standards/pm.md`,
