@@ -612,3 +612,15 @@ The owner, after a week in which nothing landed because every queue waited on he
 **How it is done.** The PM seat merges with the repository token its workflow already holds; a chair merges with the owner's GitHub account from her machine. Each merge is written on the board as a `done` with the reason, so that the owner supervises by reading, and the daily brief counts them.
 
 **Why.** Six pull requests that unlocked the whole company sat clean for a night while every PM correctly refused to act on authority that was not on main. The gate was the owner's hand, and the owner does not want to be a gate.
+
+## 22. Nothing waits on the owner by default: the silence rule (owner directive, 2026-10-16)
+
+The owner, back after eleven days away, read that epitome's whole cycle and Ursa's sprint item had waited on her hand: "dependencies on me shouldn't halt the whole system."
+
+**The rule.** A decision a charter reserves for the owner is proposed by the PM on the board as an `ask` addressed to her, with the PM's own recommendation, and proceeds as recommended after forty-eight hours of her silence. Silence is consent. This covers closing and betting a cycle, editing a charter, changing a workflow, waking a dormant seat, and every other reservation a charter makes, in every company.
+
+**What never proceeds on silence.** Spending money, opening an account, writing or rotating a secret, and widening a seat's own authority. Those wait for her word, and the PM asks once, in the daily brief's ordered list, not every pass.
+
+**What the PM does meanwhile.** It does not stop. Work that does not depend on the decision continues; work that does is prepared so that the merge is one click on either side of the forty-eight hours.
+
+**Why.** Two cycle decisions sat clean for eleven days while a PM renewed the same ask forty times. The ask was right; the halt was not. A company that stops when its owner is in surgery is not autonomous.
