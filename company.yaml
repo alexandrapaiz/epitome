@@ -1,0 +1,26 @@
+# company.yaml — epitome's declaration to HQ (standards/company-interface.md §1)
+#
+# Written by the HQ chair on 2026-10-16 from the files that exist in this repo:
+# every seat is a workflow under .github/workflows/, active when it carries a cron,
+# dormant when it runs on dispatch or the bus only. The owner asked that every
+# subcompany be visible to Alexandra Systems Company.
+company: alexandra-systems
+product: epitome
+posture: venture
+priority: 2
+owner: alexandrapaiz
+surfaces:
+  incidents: docs/agents/incidents.md
+  pending: docs/backlog.md
+  decisions: docs/decisions.md
+  ideas: docs/ideas.md
+  prfaq: docs/prfaq/
+  lessons: docs/agents/lessons.md
+standards:
+  pm: f2f0561
+seats:
+  - { name: engineer, workflow: .github/workflows/agent-engineer.yml, cadence: scheduled, status: active }
+  - { name: exo, workflow: .github/workflows/agent-exo.yml, cadence: on-dispatch, status: dormant }
+  - { name: market, workflow: .github/workflows/agent-market.yml, cadence: scheduled, status: active }
+  - { name: okr, workflow: .github/workflows/agent-okr.yml, cadence: scheduled, status: active }
+  - { name: pm, workflow: .github/workflows/agent-pm.yml, cadence: scheduled, status: active }
