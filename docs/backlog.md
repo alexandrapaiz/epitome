@@ -149,19 +149,22 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **Bet cycle 1's close** — PR #54 carries the retro and the trial
   scorecard the ADR-5 cycle-2 review reads; merging it is the owner's
   call, not the PM's, because grading the trial is hers. Still clean
-  and mergeable as of this pass (2026-10-15), unchanged for nine days
+  and mergeable as of this pass (2026-10-16), unchanged for ten days
   running since cooldown closed (2026-10-06). No technical blocker;
-  this is purely her reading and her grade.
+  this is purely her reading and her grade. The owner returned to work
+  today (2026-10-16, board note from HQ's chair) after an eleven-day
+  absence; this and the item below are the two she'd need to pick back
+  up herself.
 - [ ] **Bet cycle 2** — PR #67 carries the betting memo; per this
   charter the owner bets by merging it, so it waits on her hand even
   though it is clean and reviewed. *Open since 2026-10-05, now its
-  ninth day unbet. The engineer keeps spending its runs on ordinary
+  twelfth day unbet. The engineer keeps spending its runs on ordinary
   backlog work for lack of a cycle to point it at.*
 - [ ] **Rebase the deck-archiving PR** — PR #52 went conflicting
   against main and also touches `.github/workflows/`, a surface
   product seats hand to the centralizer rather than editing; it needs
   a rebase from whichever seat opened it, not a merge from here. *Open
-  since 2026-10-05, still conflicting as of 2026-10-15 (nine days).*
+  since 2026-10-05, still conflicting as of 2026-10-16 (ten days).*
 - [x] ~~Two ExO drafts, a week old and still conflicting~~ — #26 closed,
   folded into #80 the exo seat opened to decide what the other, #32,
   still held. #80 itself sat three days as an unfinished "work in
@@ -215,6 +218,13 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   account that cleared the gap in its first occurrence (#92). The route
   keeps working each time it's asked; nothing here needs a standing
   fix. Seat: pm, closed 2026-10-16.
+- [x] **Two more own-report PRs, closed rather than renewed.** #123
+  (the 2026-10-16 06:20 pass's report) and #124 (the 12:20 pass's,
+  left as an unfinished draft stub) both went `CONFLICTING` once #122
+  merged ahead of them, since all three touch the same `docs/backlog.md`
+  lines. Rather than rebase two superseded reports, this pass closed
+  both and folded anything still true (the #54/#67/#52 day counts
+  above) into its own report instead. Seat: pm, closed 2026-10-16.
 - [x] **PR #51 closed, superseded.** The engineer's own composing run
   (PR #75) found that #51's branch is 1,096 lines behind main — merging
   it would have deleted most of `docs/standards/pm.md`,
