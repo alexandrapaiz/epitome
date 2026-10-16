@@ -256,7 +256,7 @@ run_suite() {
   names+=("$name"); results+=("$result"); counts+=("${tally:-nothing asserted}"); notes+=("$note")
 }
 
-run_suite "unit"            node --test "$CLI/test/unit.mjs" "$CLI/test/unit-deploy.mjs" "$CLI/test/unit-audit.mjs"
+run_suite "unit"            node --test "$CLI/test/unit.mjs" "$CLI/test/unit-deploy.mjs" "$CLI/test/unit-audit.mjs" "$CLI/test/unit-bus.mjs"
 run_suite "smoke-deploy"    bash "$CLI/test/smoke-deploy.sh"
 run_suite "smoke-validate"  bash "$CLI/test/smoke-validate.sh"
 run_suite "smoke-doctor"    bash "$CLI/test/smoke-doctor.sh"

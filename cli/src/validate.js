@@ -229,8 +229,24 @@ async function roster(dirArg, strict, self) {
   // [trigger].cron is the seat they meant to leave presence-only — `epito run`
   // says this line too, after it has reached the engine.
   const cronned = seats.filter((s) => s.manifest.trigger?.cron);
-  const presence = seats.filter((s) => !s.manifest.trigger?.cron).map((s) => s.label);
-  out(`✓ ${n} of ${plural(n, "manifest")} ${n === 1 ? "is an agent" : "are agents"}: ${cronned.length} on a cron, ${presence.length} presence-only${presence.length ? ` (${presence.join(", ")})` : ""}`);
+  // A seat the bus wakes is not presence-only, and saying it was is the kind
+  // of wrong sentence this command exists to not print: `[trigger].
+  // subscriptions` is a trigger, so a seat with one and no cron has a way to
+  // be woken that this line used to count as none. The clause only appears on
+  // a roster that has one, because a note that fires on every roster is noise.
+  const subscribed = seats.filter((s) => s.manifest.trigger?.subscriptions?.length);
+  const presence = seats.filter((s) => !s.manifest.trigger?.cron && !s.manifest.trigger?.subscriptions?.length).map((s) => s.label);
+  const counts = [
+    `${cronned.length} on a cron`,
+    subscribed.length ? `${subscribed.length} woken by the bus (${subscribed.map((s) => s.label).join(", ")})` : null,
+    `${presence.length} presence-only${presence.length ? ` (${presence.join(", ")})` : ""}`,
+  ].filter(Boolean);
+  out(`✓ ${n} of ${plural(n, "manifest")} ${n === 1 ? "is an agent" : "are agents"}: ${counts.join(", ")}`);
+  // What the bus half of that sentence does NOT say, said once rather than
+  // per seat: whether any of those subjects can actually reach this box. That
+  // is `epito bus`'s question — a stream is a fact about the box, like the
+  // engine, and this command answers the manifests' half in full without one.
+  if (subscribed.length) out(`  ${subscribed.length === 1 ? "that seat is" : "those seats are"} woken by an event the bus holds, which is a fact about the box and not about these files — \`epito bus ${dirArg}\` says whether this one carries those subjects and what is waiting`);
   if (notReady.length) {
     out(`  ${plural(notReady.length, "seat")} ${notReady.length === 1 ? "is" : "are"} valid and not ready to run — run \`${self} --for-runtime\` to make those an error instead of a note`);
     if (!engine.ok) out(`  and the engine is not up either: ${noEngine}. Fix: ${engineFix(address)}`);
