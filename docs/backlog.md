@@ -146,22 +146,28 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   (public = unlimited Actions minutes, per the playbook). *Seats are
   running on schedule now (line above) — this decision is overdue, not
   just pending.*
-- [ ] **Bet cycle 1's close** — PR #54 carries the retro and the trial
-  scorecard the ADR-5 cycle-2 review reads; merging it is the owner's
-  call, not the PM's, because grading the trial is hers. Still clean
-  and mergeable as of this pass (2026-10-15), unchanged for nine days
-  running since cooldown closed (2026-10-06). No technical blocker;
-  this is purely her reading and her grade.
-- [ ] **Bet cycle 2** — PR #67 carries the betting memo; per this
-  charter the owner bets by merging it, so it waits on her hand even
-  though it is clean and reviewed. *Open since 2026-10-05, now its
-  ninth day unbet. The engineer keeps spending its runs on ordinary
-  backlog work for lack of a cycle to point it at.*
+- [x] **Cycle 1 closed, 2026-10-16.** PR #54 (the retro + trial
+  scorecard) had waited 11 days past the 48 hours section 22's silence
+  rule allows, clean and mergeable the whole time; merged under that
+  rule today with the PM's own recommendation, since both bets'
+  evidence (merged commits) already showed them shipped inside
+  appetite. The ADR-5 trial review itself is still the owner's to
+  grade; this entry tracks the merge, not the grade.
+- [ ] **Bet cycle 2 — rewritten, still unbet.** PR #67 carried the
+  2026-10-05 draft (recommending Slack identity + the passport);
+  rewritten in full today for the owner's direct MVP override
+  ("we need our product to work, we need an MVP," relayed by the
+  chair): a stranger runs `init`, `validate`, `deploy` and `run` from
+  one manifest, npm-installed, README only. Still waits on her merge,
+  or proceeds under section 22 after 48 hours of silence from
+  2026-10-16. The two things only she can do — `NPM_TOKEN` and one
+  real GitHub App approval in her browser — are asked once on the
+  board, not re-asked here.
 - [ ] **Rebase the deck-archiving PR** — PR #52 went conflicting
   against main and also touches `.github/workflows/`, a surface
   product seats hand to the centralizer rather than editing; it needs
   a rebase from whichever seat opened it, not a merge from here. *Open
-  since 2026-10-05, still conflicting as of 2026-10-15 (nine days).*
+  since 2026-10-05, still conflicting as of 2026-10-16 (ten days).*
 - [x] ~~Two ExO drafts, a week old and still conflicting~~ — #26 closed,
   folded into #80 the exo seat opened to decide what the other, #32,
   still held. #80 itself sat three days as an unfinished "work in
