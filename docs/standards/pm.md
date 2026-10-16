@@ -1,11 +1,3 @@
-<!-- vendored-from: standards/pm.md @ 2c0cb30266aa67a5b36af7d40308a66c6325f93e -->
-> **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/pm.md` at commit `2c0cb30`,
-> vendored 2026-10-12. Changes to a company standard are HQ
-> ADRs (standards/README.md). Deviations for this product belong in this
-> repo's own decisions file, not in this copy.
-<!-- end vendored header -->
-
 # Standard: Project Management
 
 The PM practice proven in alexandria, modularized so every Alexandra
