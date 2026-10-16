@@ -87,7 +87,7 @@ function printIdentity(roster, dir) {
   if (acts.refusals.length) {
     console.log(`  ${plural(acts.refusals.length, "seat")} above ${acts.refusals.length === 1 ? "has an identity" : "have identities"} on this box a run cannot use: \`epito doctor ${dir}\` is the command that refuses over ${acts.refusals.length === 1 ? "it" : "them"}, because a run that cannot mint is a run that does not start.`);
   }
-  console.log(`  These names are not in \`--template\`: no manifest declares them, and that file is generated from the manifests. ${inRepo('docs/deploy/README.md')} ("Giving an agent its own identity") is where they go on a box.\n`);
+  console.log(`  These names are not in \`--template\`: no manifest declares them, and that file is generated from the manifests. ${inRepo('docs/deploy/README.md', '"Giving an agent its own identity"')} is where they go on a box.\n`);
   return acts;
 }
 

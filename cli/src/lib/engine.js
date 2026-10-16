@@ -137,7 +137,7 @@ export function engineFix(address = DEFAULT_ADDRESS) {
   const where = address === DEFAULT_ADDRESS
     ? `set TEMPORAL_ADDRESS if your engine is somewhere other than the default ${DEFAULT_ADDRESS}`
     : `point TEMPORAL_ADDRESS at the engine you have — it is currently ${address}, and unsetting it falls back to ${DEFAULT_ADDRESS}`;
-  return `run \`temporal server start-dev\` for a local engine, or ${where}. On a runtime host the engine is brought up before epitod: ${inRepo('docs/deploy/README.md')} ("Temporal server + UI").`;
+  return `run \`temporal server start-dev\` for a local engine, or ${where}. On a runtime host the engine is brought up before epitod: ${inRepo('docs/deploy/README.md', '"Temporal server + UI"')}.`;
 }
 
 // Why a connection failed, as a sentence rather than a struct.

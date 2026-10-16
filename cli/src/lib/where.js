@@ -15,5 +15,8 @@
 // user-facing line naming a repo path and no locator fails that suite.
 export const REPO = "github.com/alexandrapaiz/epitome";
 
-// "docs/deploy/README.md in github.com/alexandrapaiz/epitome"
-export const inRepo = (path) => `${path} in ${REPO}`;
+// "deploy/provision-host.sh in github.com/alexandrapaiz/epitome", and with a
+// section, "docs/deploy/README.md (\"Temporal server + UI\") in
+// github.com/alexandrapaiz/epitome" — the section stays with the file it is in
+// rather than trailing the locator, because the reader opens the file first.
+export const inRepo = (path, section) => `${path}${section ? ` (${section})` : ""} in ${REPO}`;
