@@ -365,6 +365,13 @@ better than "unknown field".
 
 ## Open questions (settle before v0.3)
 
+- **The eight agent-spec properties (ADR-25, owner 2026-10-16).** Purpose,
+  permission envelope and reusability are already here; autonomy tier,
+  memory boundary, escalation rules, eval suite and telemetry are not.
+  v0.3's job is to carry all eight in this file, telemetry in
+  OpenTelemetry's words. Human owner is struck by the owner and stays out.
+
+
 Five open, one answered by v0.2 and one answered by the dogfood. The two
 struck-through entries stay struck rather than deleted: the record of what a
 question asked for is how the next one gets judged.

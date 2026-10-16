@@ -1109,3 +1109,52 @@ validate`'s output never contained the string "temporal". That reads as "no
 engine required" and is not: it is what let the ✓ be wrong in the first place.
 A test that forbids the product from mentioning the thing it is wrong about is
 a test that protects the bug.
+
+## ADR-25: epito owns the agent-spec layer; the manifest grows to carry it (owner, 2026-10-16)
+
+**The ruling.** The owner, 2026-10-16, with a table of nine agent-spec
+properties in hand (Purpose, Autonomy tier, Permission envelope, Memory
+boundary, Escalation rules, Eval suite, Telemetry, Reusability, Human
+owner): "epitome should handle these layers: agent specs. remove human
+owner though. telemetry we can use from opentelemetry or telemetry
+specialty stuff."
+
+**What it decides.**
+
+1. The agent manifest is the agent spec. Every property on that list is
+   either already a table in `agent.toml` or becomes one. The spec stops
+   at eight: *human owner* is struck, because the manifest's owner is the
+   person whose GitHub account the App was created on, and a field that
+   repeats what the identity leg already proves is a field that can lie.
+2. Telemetry is not epito's format. The manifest names what an agent
+   emits and where it goes using OpenTelemetry's conventions (the same
+   `OTEL_*` variables every seat in this company already runs under, with
+   Langfuse as one sink), or a specialist telemetry product behind the
+   same convention. epito never invents a trace schema.
+3. The mapping, as the spec stands today (v0.2):
+
+   | Property | Where it lives now | What v0.3 must add |
+   |---|---|---|
+   | Purpose | `[agent].description` | nothing |
+   | Permission envelope | `[identity].scopes` (the ceiling, rule 2) | read-only access levels (open question, already filed) |
+   | Autonomy tier | nowhere | which actions the agent takes alone, which it escalates; the company's tiers are the first instance |
+   | Memory boundary | nowhere | what the runtime keeps between runs, for how long, and where (the seat notebook and scoped recall that HQ decided for its seats) |
+   | Escalation rules | nowhere | to whom, and on what; "a person" is one target, another agent is another, the board is the surface |
+   | Eval suite | nowhere | the manifest names the suite that grades the agent, the way `[runtime].entry` names its charter |
+   | Telemetry | `[runtime].env` names the `OTEL_*` variables by hand | a `[telemetry]` table that says exporter, endpoint name and retention, in OpenTelemetry's words |
+   | Reusability | rule 1 (publishable manifest) | the catalog entry: where else the same file runs, which is the marketplace's precondition |
+
+**What it does not decide.** Field names, defaults and whether each is a
+table or a key. That is the engineer's, proposed in the same pull request
+as the code that reads it (spec rule: the spec changes with the code).
+Nothing here changes v0.2; it names what v0.3 is for.
+
+**Sequence.** After the MVP bet (cycle 2's memo: a stranger runs init,
+validate, deploy and run from npm). The PM shapes this as the first pitch
+of cycle 3, with the Slack identity and the passport, because a spec that
+covers the eight properties is what makes the passport worth signing.
+
+**Why.** Every platform that mints agents defines these properties inside
+its own wall, in its own words. If the manifest carries all eight in one
+publishable file, an agent's spec travels with it, which is the mission
+(§0) applied to the spec rather than the identity.
