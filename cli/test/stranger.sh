@@ -84,14 +84,31 @@ if ! (cd "$ROOT" && npm install -g --prefix "$PREFIX" "$TGZ") >"$ROOT/install.lo
   sed 's/^/       /' "$ROOT/install.log" | tail -15
   exit 0
 fi
+# The package's own name, read from the tarball rather than from this script:
+# the install line on the front page has to be the line that installs THIS.
+NAME="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).name)' "$PKGJSON")"
+
 check "the README npm would show is in the tarball"  "[ -s '$README' ]"
 check "the \`epito\` a stranger would run is installed" "[ -x '$E' ]"
 printf '  README: %s lines, read from the tarball; binary: %s\n' \
   "$(wc -l < "$README" | tr -d ' ')" "$E"
 
-# The package's own name, read from the tarball rather than from this script:
-# the install line on the front page has to be the line that installs THIS.
-NAME="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).name)' "$PKGJSON")"
+# What this suite cannot prove, said out loud rather than implied. Everything
+# below checks the package THIS tree would publish; whether anybody can
+# actually install it is one `npm publish` away and that step is the owner's
+# (an npm account for the name, and NPM_TOKEN). A green run here while the
+# registry has no `epito` means the page is followable, not that it is
+# reachable — exactly the distinction the cycle-2 pitch rests on, so it is
+# printed every time and asserted never: a suite must not fail because of a
+# registry it has no business reaching.
+PUBLISHED="$(npm view "$NAME" version 2>/dev/null | tail -1)"
+if [ -n "$PUBLISHED" ]; then
+  printf '  the registry has %s@%s — a stranger can install this today\n' "$NAME" "$PUBLISHED"
+else
+  printf '  NOTE: the registry has no `%s` (or could not be reached from here), so this\n' "$NAME"
+  printf '        suite proves the page against the package this tree WOULD publish, not\n'
+  printf '        against one anybody can install. Publishing is owner-only.\n'
+fi
 
 # The commands and aliases the installed CLI admits to having. Both sides of
 # every assertion below come out of the shipped package: the README is checked
