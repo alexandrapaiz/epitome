@@ -247,9 +247,24 @@ step "4: nothing user-facing names a decision by its code or a path only this re
 # A path this repository holds may be named when it comes with WHERE this
 # repository is — that is a reference a reader can follow; a bare path is not.
 codes() { grep -nE 'ADR-[0-9]+|\bL-[0-9]+|\bincident [0-9]+' "$1"; }
+# The locator is looked for in the line's NEIGHBOURHOOD, not on the line: prose
+# wraps, and "`deploy/provision-host.sh` in / [this repository](https://...)"
+# across two lines is a perfectly good reference that a line-at-a-time rule
+# would have called a violation — which it did, on this script's own second
+# run. `prompts/` is excluded where it is the READER's charter path (the
+# scaffold writes prompts/<name>.md into their repository, not ours).
 bare_paths() {
-  grep -nE '(docs|spec|deploy|cli|prompts)/[A-Za-z0-9._/-]+\.(md|sh|yml|json)' "$1" \
-    | grep -v 'github\.com' | grep -v 'prompts/historian\.md' | grep -v 'prompts/<'
+  awk '
+    { line[NR] = $0 }
+    END {
+      for (i = 1; i <= NR; i++) {
+        if (line[i] !~ /(docs|spec|deploy|cli)\/[A-Za-z0-9._\/-]+\.(md|sh|yml|json)/) continue
+        near = line[i-1] " " line[i] " " line[i+1]
+        if (near ~ /github\.com/) continue
+        printf "%d:%s\n", i, line[i]
+      }
+    }
+  ' "$1"
 }
 for surface in "$README:the npm page" "$ROOT/help.txt:epito --help"; do
   f="${surface%%:*}"; label="${surface##*:}"

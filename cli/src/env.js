@@ -38,6 +38,7 @@
 // a seat is — and the exit code stays this command's own: whether a run would
 // REFUSE is doctor's contract, not this one's.
 import { loadRoster } from "./lib/roster.js";
+import { inRepo } from "./lib/where.js";
 import { rosterEnv, envTemplate, askers, shortfallSays, HELD, EMPTY, ABSENT } from "./lib/boxenv.js";
 import { rosterActs, IDENTITY_FIX, OWN, REFUSED, HALF, SHARED, NONE } from "./lib/acts.js";
 
@@ -86,7 +87,7 @@ function printIdentity(roster, dir) {
   if (acts.refusals.length) {
     console.log(`  ${plural(acts.refusals.length, "seat")} above ${acts.refusals.length === 1 ? "has an identity" : "have identities"} on this box a run cannot use: \`epito doctor ${dir}\` is the command that refuses over ${acts.refusals.length === 1 ? "it" : "them"}, because a run that cannot mint is a run that does not start.`);
   }
-  console.log(`  These names are not in \`--template\`: no manifest declares them, and that file is generated from the manifests. docs/deploy/README.md ("Giving an agent its own identity") is where they go on a box.\n`);
+  console.log(`  These names are not in \`--template\`: no manifest declares them, and that file is generated from the manifests. ${inRepo('docs/deploy/README.md')} ("Giving an agent its own identity") is where they go on a box.\n`);
   return acts;
 }
 
@@ -150,7 +151,7 @@ export async function envCmd(args = []) {
   }
 
   if (!report.missing.length) {
-    console.log(`✓ this box holds every name ${dir} asks for. The runtime's own environment is not counted here and is not in any manifest: ${RUNTIME_OWN.join(", ")} (deploy/provision-host.sh writes them).`);
+    console.log(`✓ this box holds every name ${dir} asks for. The runtime's own environment is not counted here and is not in any manifest: ${RUNTIME_OWN.join(", ")} (${inRepo("deploy/provision-host.sh")} writes them).`);
     process.exit(0);
   }
 

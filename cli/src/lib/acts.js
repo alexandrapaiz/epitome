@@ -58,6 +58,7 @@
 // App, the mint's own next step — so it lives behind `epito doctor --deep`,
 // the flag that already means "leave this box". See `rosterInstalled` below.
 import { existsSync, readFileSync } from "node:fs";
+import { inRepo } from "./where.js";
 import { join, resolve } from "node:path";
 import {
   loadPrincipal, envNames, appJwt, permissionsFor, installationAt, appAs,
@@ -222,7 +223,7 @@ export const IDENTITY_FIX =
   `(the seat's name uppercased, - as _; the key a .pem at 0600, which is the form a systemd EnvironmentFile can hold). ` +
   `Then its runs mint their own short-lived token, clone and push as themselves, and open PRs as the App's own login — ` +
   `which is <slug>[bot], usually the seat's name and not guaranteed to be, because an App name is unique across the whole of GitHub. ` +
-  `docs/deploy/README.md ("Giving an agent its own identity") is the long version, and \`epito deploy\` is the laptop route. ` +
+  `${inRepo('docs/deploy/README.md')} ("Giving an agent its own identity") is the long version, and \`epito deploy\` is the laptop route. ` +
   `The pre-identity answer, which is what every seat did before this leg existed, is to name ${SHARED_NAMES[0]} in the seat's [runtime].env and hold it here — then its PRs open as that token's owner`;
 
 // The whole roster, in roster order, plus the three roll-ups a report needs.

@@ -265,6 +265,7 @@ run_suite "smoke-temporal"  bash "$CLI/test/smoke-temporal.sh"
 run_suite "smoke-langgraph" bash "$CLI/test/smoke-langgraph.sh"
 run_suite "provision-host"  bash "$ROOT/deploy/test-provision.sh"
 run_suite "pack"            bash "$CLI/test/pack.sh"
+run_suite "stranger"        bash "$CLI/test/stranger.sh"
 
 printf '\n%s\n' "-----------------------------------------------"
 failed=0; incomplete=0
