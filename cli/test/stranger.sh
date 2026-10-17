@@ -125,13 +125,28 @@ printf '  README: %s lines, read from the tarball; binary: %s\n' \
 # reachable — exactly the distinction the cycle-2 pitch rests on, so it is
 # printed every time and asserted never: a suite must not fail because of a
 # registry it has no business reaching.
+#
+# Two different facts used to be printed as one. "the registry has no `epito`
+# (or could not be reached from here)" covers both "the name is free and the
+# publish has not happened" and "this box has no route to a registry", and the
+# owner's one blocking step is the first of those. They are told apart by
+# asking the registry for a package that certainly exists — this package's own
+# runtime dependency, read out of the tarball so no name is kept in this
+# script. Still printed and never asserted either way: a suite must not fail
+# because of a registry it has no business reaching.
 PUBLISHED="$(npm view "$NAME" version 2>/dev/null | tail -1)"
+DEP="$(node -e 'const d=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).dependencies||{};console.log(Object.keys(d)[0]||"")' "$PKGJSON")"
 if [ -n "$PUBLISHED" ]; then
   printf '  the registry has %s@%s — a stranger can install this today\n' "$NAME" "$PUBLISHED"
+elif [ -n "$DEP" ] && npm view "$DEP" version >/dev/null 2>&1; then
+  printf '  NOTE: the registry answered, and has no `%s` — the name is free and the\n' "$NAME"
+  printf '        publish has not happened. So this suite proves the page against the\n'
+  printf '        package this tree WOULD publish, not against one anybody can install.\n'
+  printf '        Publishing is owner-only: an npm account for the name, and NPM_TOKEN.\n'
 else
-  printf '  NOTE: the registry has no `%s` (or could not be reached from here), so this\n' "$NAME"
-  printf '        suite proves the page against the package this tree WOULD publish, not\n'
-  printf '        against one anybody can install. Publishing is owner-only.\n'
+  printf '  NOTE: no registry answered from this box, so whether `%s` is published is\n' "$NAME"
+  printf '        a thing this run does not know either way. Everything below is about the\n'
+  printf '        package this tree would publish, which is all it was ever about.\n'
 fi
 
 # The commands and aliases the installed CLI admits to having. Both sides of
