@@ -231,9 +231,11 @@ if [ "$LIC" = "UNLICENSED" ]; then
   printf '        licence this carries is the owner'"'"'s call, named in docs/ideas.md and not\n'
   printf '        decided inside a run; this suite only holds the field and the file to\n'
   printf '        each other.\n'
-  check "UNLICENSED, and no LICENSE file contradicts it" 'hasnt "^LICENSE"'
+  check "UNLICENSED, and no LICENSE file in the tarball contradicts it" \
+    '! grep -qiE "^licen[sc]e" "$ROOT/files.txt"'
 else
-  check "a named licence ($LIC) ships the LICENSE file that states it" 'grep -qiE "^LICEN[SC]E" "$ROOT/files.txt"'
+  check "a named licence ($LIC) ships the LICENSE file that states it" \
+    'grep -qiE "^licen[sc]e" "$ROOT/files.txt"'
 fi
 
 # ------------------------------------------------- 2. install, with NO engine
