@@ -73,7 +73,7 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       touches neither the network nor a browser)
 
   epito --version     this copy's version, the manifest spec it enforces and
-                      the node it runs on (-v too; alias: epito version)
+                      the node it runs on (alias: epito version)
 
 The runtime is two processes and one engine: \`epito run\` reconciles and
 serves the ingress, \`epito worker\` executes, and Temporal (self-hosted,
@@ -142,8 +142,18 @@ if (!cmd || cmd === "help" || cmd === "--help") {
 
 // The first thing anybody types after `npm i -g epito`, to find out whether the
 // install took — and until now the answer was `unknown command "--version"`,
-// which reads as a broken install rather than a missing flag. Three spellings
-// because all three get typed and none of them is wrong.
+// which reads as a broken install rather than a missing flag.
+//
+// Two spellings and deliberately not three. `-v` is not here, and the reason
+// is in docs/ideas.md, where this was already a `proposed` card: "a version
+// that reads package.json" is two lines in the dispatch, while `-h`, `-v` and
+// the rest are "one decision that is not two lines — whether `epito` grows a
+// convention for short flags at all, since right now it has exactly none and
+// adding `-h` implies the rest". A run does not settle that by typing one
+// letter into the first command that wanted it; `-v` also means verbose in
+// half the tools anybody has installed, which is its own argument for asking
+// rather than guessing. So this takes the half of that card that is lines and
+// leaves the half that is a decision.
 //
 // Three facts, one line. The CLI's own version is what npm would serve. The
 // manifest spec version is the one `epito validate` enforces, read from the
@@ -152,7 +162,7 @@ if (!cmd || cmd === "help" || cmd === "--help") {
 // froze (v0.1, then v0.2's two optional fields) outlives several CLI versions.
 // The node version is here because `engines` says >=18 and a box below it
 // fails inside an import with a syntax error that names neither.
-if (cmd === "--version" || cmd === "-v" || cmd === "version") {
+if (cmd === "--version" || cmd === "version") {
   gate(cmdRaw, args, []);
   const { version, name } = pkg();
   console.log(`${name} ${version} (manifest spec ${SPEC_VERSION}) — node ${process.version} on ${process.platform}-${process.arch}`);
