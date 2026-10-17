@@ -5,6 +5,27 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-17 ~21:00 UTC: the daemon-crash fix checked
+  against the merge rule, nothing left for this seat to do.** A message
+  named the pull request that stops one killed seat window from taking
+  every other open window down with it (pipe error handlers on the
+  child process, plus guards so an uncaught error in the daemon is
+  logged instead of fatal) and asked this seat to weigh it against the
+  merge rule or hand it back to its seat. Checked rather than trusted:
+  the diff touches only the runner and the daemon's entry point, no
+  secrets, no workflow, no charter, clean against main, no checks
+  defined. By the time this pass read it, the chair had already merged
+  it directly on its own account, so there was nothing left to act on.
+  Restates the prior pass's finding rather than re-deciding it: this
+  charter names no merge authority of any tier, so even unmerged this
+  would have gone back to the chair rather than being merged here.
+  Two follow-ups the fix's own body names are not done yet and would
+  otherwise drop quietly: the owner still needs to apply the same fix
+  to the host she runs by hand (staged and waiting on her, per the
+  chair's own report, not re-asked here), and the engineer still owes
+  moving that host off its older runtime and onto main's. Seat: pm
+  (verified, no action needed), owner (apply the host copy), engineer
+  (the runtime migration).
 - [ ] **Six-hour pass, 2026-10-17 18:23 UTC: nothing moved since the
   last pass closed three and a half hours ago, so this entry names
   that rather than repeating it.** Inbox: nothing addressed to
