@@ -5,6 +5,29 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **PR #145 ("every seat's clock leaves GitHub") reviewed against
+  the Tier B merge rule (`docs/standards/pm.md` §10, §21) and verified
+  correct; merge execution handed to chair.** Opened 2026-10-17 21:06
+  UTC from `chair/seats-off-github`, it removes the `schedule:` block
+  from this repo's five seat workflows (`agent-engineer.yml`,
+  `agent-frontend.yml`, `agent-market.yml`, `agent-okr.yml`,
+  `agent-pm.yml`), leaving `repository_dispatch`/`workflow_dispatch` as
+  the GitHub-side doors, per HQ decision 056. All six §10 conditions
+  hold: not the PM's own PR, not a draft, no `hold` label, no owner
+  comment since the push, no checks defined (so none red), `gh pr diff
+  --name-only` shows nothing outside those five workflow files, it
+  merges clean (`mergeStateStatus: CLEAN`), and it is minutes old.
+  Cross-checked against its paired HQ change, `alexandra-systems#205`
+  (merged 2026-10-17 21:07:52 UTC): the five
+  `runtime/agents/epitome/<seat>/agent.toml` manifests now each carry
+  the exact cron this PR removes — engineer `46 11,23 * * *`, frontend
+  `0 15 * * 2`, market `0 12 * * 5`, okr `0 12 1 * *`, pm `0 12 * * 1`
+  — so "nothing loses its clock" holds, not just as a claim in the
+  body. This pass does not run the merge itself: `.github/workflows/`
+  is the surface chair opened the PR from and already merges this
+  class of change on, per past practice, so the review and handoff are
+  recorded here and as a comment on #145 rather than executed as a
+  merge. Seat: pm (review, done), chair (merge).
 - [ ] **Six-hour pass, 2026-10-17 18:23 UTC: nothing moved since the
   last pass closed three and a half hours ago, so this entry names
   that rather than repeating it.** Inbox: nothing addressed to
