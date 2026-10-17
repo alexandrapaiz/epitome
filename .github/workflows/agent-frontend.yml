@@ -14,8 +14,7 @@
 name: frontend-agent
 
 on:
-  schedule:
-    - cron: "0 15 * * 2"
+  # schedule: retired 2026-10-17 (HQ decision 056): every seat's clock is its manifest on the host; GitHub is an event source, not a runtime
   workflow_dispatch:
     inputs:
       owner_instructions:

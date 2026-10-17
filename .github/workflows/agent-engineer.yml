@@ -1,9 +1,7 @@
 name: engineer-agent
 
 on:
-  schedule:
-    - cron: "46 11 * * *"  # owner directive 2026-09-24: engineers run twice a day (products are not yet in the users' hands)
-    - cron: "46 23 * * *"
+  # schedule: retired 2026-10-17 (HQ decision 056): every seat's clock is its manifest on the host; GitHub is an event source, not a runtime
   repository_dispatch:
     types: [asc.engineer]   # the event bus wakes this seat (standards/pm.md §17)
   workflow_dispatch:
