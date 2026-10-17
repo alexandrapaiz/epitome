@@ -1,4 +1,4 @@
-# The agent manifest (agent.toml), spec v0.2 — v0.1 frozen 2026-09-30, v0.2 opened 2026-10-07
+# The agent manifest (agent.toml), spec v0.2 — v0.1 frozen 2026-09-30, v0.2 opened 2026-10-07, second field 2026-10-16
 
 One file is the whole agent. The manifest is the unit of everything that
 comes later: a deploy is a manifest provisioned, a team is manifests with
@@ -36,6 +36,31 @@ whether the field exists. Nothing else in v0.1's vocabulary moved. A
 manifest that validated under v0.1 validates under v0.2, because the one
 field is optional and no rule changed around it.
 
+**What v0.2's second field is, and why it is not `[trigger].on` coming back:
+`[trigger].subscriptions`.** The freeze's process ran as written a second
+time. The question was recorded under "open questions" on 2026-09-30 — "event
+subscription, and the shape of `[trigger].on`'s replacement" — and it refused
+to guess, saying to settle it with the command that would do the subscribing
+and to decide *then* whether filtering belongs in the manifest at all. On
+2026-10-16 the company put a bus on the host: every event its board records is
+published to a NATS JetStream stream, on a subject per company and event type.
+That is the thing the question was waiting for, and it answers both halves.
+Filtering belongs in the manifest, because the subject *is* the address and
+nothing else in the system knows which events a seat was hired to answer; and
+it is not `epito deploy` that does the subscribing but the runtime, because a
+durable consumer is a long-lived thing that has to survive a restart.
+
+The bar `[trigger].on`'s retirement set is the bar this field has to clear: a
+field that cannot change what happens is a field that misleads its author.
+`on` could not — nothing subscribed and nothing filtered, so a manifest whose
+only trigger was `on` validated with a ✓ and was a seat that could never fire.
+`subscriptions` does: `epito run` registers one durable consumer per seat from
+it, filtered to exactly those subjects, and a seat whose only trigger is a
+subscription is woken by the bus and by nothing else. The spec change and the
+code that reads it are in one pull request, for the same reason `base_url_env`
+was: the catalogue and the validator may not disagree about whether a field
+exists.
+
 The catalogue and the validator are one list in one place
 (`FIELDS` in `cli/src/lib/manifest.js`, and `ROUTE_FIELDS` beside the
 route reader in `cli/src/lib/router.js`). They cannot drift; the drift is
@@ -60,7 +85,7 @@ scopes = ["github:contents", "github:pull_requests"]
                                         # permissions by the table under "Scopes" below;
                                         # anything unmapped fails the mint loudly.
 
-[trigger]                               # required: at least one of the two
+[trigger]                               # required: at least one of the three
 cron = "0 6 * * *"                      # 5-field cron, UTC. The runtime registers a schedule.
                                         # Parsed by `epito validate`, not counted: five
                                         # impossible fields ("0 99 * * *") is refused here and
@@ -68,6 +93,17 @@ cron = "0 6 * * *"                      # 5-field cron, UTC. The runtime registe
 webhook = true                          # the ingress may wake this seat: POST /hooks/<name>.
                                         # Without it the ingress refuses — a trigger is
                                         # explicit and never defaulted (rule 3).
+subscriptions = ["asc.events.*.message.posted"]
+                                        # optional (v0.2): the bus subjects this seat is woken
+                                        # by. The runtime keeps one durable consumer per seat,
+                                        # filtered to exactly these, and acknowledges an event
+                                        # only once the seat's run has started — so an event
+                                        # outlives a restart and is redelivered until a seat
+                                        # takes it. A subject is dot-separated tokens, with `*`
+                                        # for one token and `>` for the rest; two filters that
+                                        # overlap are refused here rather than by the server at
+                                        # startup. WHICH stream carries them is a fact about the
+                                        # box (EPITO_BUS_STREAM), never a field in this file.
 
 [runtime]
 model = "claude-sonnet-5"               # required: explicit, never defaulted (an unset model
@@ -179,7 +215,7 @@ that did not earn its place, and the test names it
 | --- | --- | --- |
 | **Daily builder** — wakes on a schedule, writes code, leaves a PR | `cli/test/fixtures/shapes/daily-builder/agent.toml` | `cron`, `max_turns`, `slack_webhook_env`, the full route chain |
 | **Weekly writer** — wakes weekly, writes prose | `cli/test/fixtures/shapes/weekly-writer/agent.toml` | `ref`, and how few fields a real seat needs |
-| **Event-driven responder** — no schedule; answers what happened | `cli/test/fixtures/shapes/event-responder/agent.toml` | `webhook`, `adapter`, `graph`, a non-GitHub-write scope set |
+| **Event-driven responder** — no schedule; answers what happened | `cli/test/fixtures/shapes/event-responder/agent.toml` | `webhook`, `subscriptions`, `adapter`, `graph`, a non-GitHub-write scope set |
 
 The second shape is the one that does the work. Shape 1 asks whether the
 manifest can express a complicated seat; shape 2 asks how little a real
@@ -331,6 +367,53 @@ its opening run took, and every follow-up message lands on that road with no
 fallback: `--resume <id>` at a different endpoint is a stranger being handed a
 conversation it never had.
 
+## Subscriptions: which events wake this seat
+
+`[trigger].webhook` says the ingress *may* wake a seat; `[trigger].subscriptions`
+says *what* wakes it. The two are different doors and the difference is memory.
+A hook is somebody pushing a doorbell: if nobody is home the ring is gone. A
+subscription is a queue the runtime holds a durable consumer on, so an event
+that arrives while the runtime is down is still there when it comes back.
+
+- **One durable consumer per seat, filtered to exactly the subjects the
+  manifest lists.** `epito run` creates it at startup and updates it when the
+  manifest's list changes, which is the same reconcile a schedule gets: a
+  restart reconciles rather than duplicates. A seat removed from the roster
+  leaves its consumer behind on purpose — deleting it would throw away the
+  events it had not taken yet, and a seat is removed from a roster far more
+  often than it is retired.
+
+- **An event is acknowledged only once the seat's run has started.** That is
+  the whole promise of the field: if the runtime dies between taking the event
+  and starting the run, the event is redelivered, because nothing acknowledged
+  it. It is redelivered until a seat takes it, and `epito bus <dir>` is where
+  "how many are waiting, and how many have been tried more than once" is
+  answerable per box.
+
+- **A subject is an address, not an envelope.** `asc.events.*.message.posted`
+  wakes the seat for every message posted by any company, including messages
+  addressed to somebody else: the subject carries who published and what
+  happened, and the destination is inside the event. So the bus is what wakes
+  a seat and the seat's own first act is still to read what is addressed to it.
+  A manifest that wants a narrower wake writes a narrower subject.
+
+- **Two filters that overlap are refused by `epito validate`.** A consumer
+  cannot hold both `asc.events.>` and `asc.events.asc.message.posted` — the
+  server refuses the pair — and the refusal belongs where the author can still
+  fix it, not at 06:00 on a box (the rule `[trigger].cron` already follows:
+  parsed here, not left for `epito run` to discover).
+
+- **Which stream, and which bus, are facts about the box.** `EPITO_BUS_URL`
+  (default `nats://127.0.0.1:4222`) and `EPITO_BUS_STREAM` say where the events
+  are; `EPITO_BUS_GROUP` (default `epito`) names the consumer group, so two
+  rosters reading one stream do not fight over one durable. None of the three
+  belongs in a manifest, for the reason the interpreter and the container image
+  do not: a manifest that named a server would stop being portable at exactly
+  the moment a second person ran it. A box that names no stream runs the roster
+  with the bus off, and `epito run` says so by name for every seat that
+  subscribes — a seat whose only trigger is a subscription would otherwise be a
+  seat that silently never fires.
+
 ## What is deliberately NOT in the manifest
 
 Nothing about the interpreter, the virtualenv, the container image, or where
@@ -355,8 +438,13 @@ better than "unknown field".
   carried. Worse, a manifest whose only trigger was `on` passed `epito
   validate` with a ✓ and was a seat that could never fire — the triad rule
   accepted it as a trigger and no schedule was ever registered for it. It
-  returns with `epito deploy`, which is the command that would do the
-  subscribing; see the open questions.
+  **Replaced 2026-10-16 by `[trigger].subscriptions`**, which clears the bar
+  this entry set: the runtime registers a durable consumer from it, so a seat
+  whose only trigger is a subscription does fire. What `on` got wrong was not
+  the idea but the absence of anything that read it — and the guess about the
+  grammar, which named platform events ("issue.opened") for a platform that
+  was never the thing publishing. The replacement names bus subjects, because
+  that is what the company's events actually travel on.
 
 - **`[runtime].image`** (container image). Zero consumers anywhere in the
   tree, and the section above already says an image is a property of the
@@ -385,12 +473,25 @@ question asked for is how the next one gets judged.
   before a real read-only agent exists is a guess. Decide with the
   non-GitHub grammar question above, so the two answers are designed
   together rather than in sequence.
-- **Event subscription, and the shape of `[trigger].on`'s replacement.**
-  `webhook = true` says the ingress may wake a seat; nothing says *what*
-  may wake it, so the filtering lives in whatever points at the hook.
-  Settle it with `epito deploy` (which is what would register a
-  subscription), and decide then whether filtering belongs in the manifest
-  at all or is the platform's job.
+- ~~Event subscription, and the shape of `[trigger].on`'s replacement.~~
+  **Answered, and shipped as v0.2's second field, 2026-10-16:
+  `[trigger].subscriptions`.** The question asked to settle it with the command
+  that would do the subscribing and to decide then whether filtering belongs in
+  the manifest at all. Both halves moved when the company put a bus on the host
+  (NATS JetStream, one stream of every board event, a subject per company and
+  type): filtering does belong in the manifest, because the subject is the
+  address and nothing else in the system knows which events a seat was hired to
+  answer. The command, though, is not `epito deploy` — it is `epito run`, and
+  that is the thing the question had wrong. A durable consumer is not a
+  registration you make once and walk away from; it is a position in a stream
+  that has to be reconciled at every start and acknowledged at every event, so
+  it belongs to the resident runtime, beside the schedules.
+
+  What building it added, which the question had not seen: a subject wakes a
+  seat and does not address it (see "Subscriptions"), so the bus does not
+  replace the board's own addressing, it replaces the *delivery* — and two
+  subjects that overlap are a manifest error, not a server error, which is one
+  more refusal that now arrives before a box.
 - ~~A route endpoint that is a NAME, not a URL.~~ **Answered, and shipped as
   v0.2's one field, 2026-10-07: `base_url_env`.** The question asked for it on
   2026-09-30 and guessed the shape right — a name beside `token_env`, under the

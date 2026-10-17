@@ -11,6 +11,7 @@ import { ADAPTERS, DEFAULT_ADAPTER, unknownAdapter } from "./adapters.js";
 import { routeErrors } from "./router.js";
 import { parseCron } from "./cron.js";
 import { unknownKeys, SPEC_VERSION } from "./fields.js";
+import { subjectErrors, subjectsOverlap } from "./subjects.js";
 import { SCOPE_MAP } from "./identity.js";
 
 export const NAME_RE = /^[a-z0-9-]{1,40}$/;
@@ -48,7 +49,7 @@ const MINTABLE = Object.keys(SCOPE_MAP).map((s) => `"${s}"`).join(", ");
 export const FIELDS = {
   agent: ["name", "description"],
   identity: ["scopes"],
-  trigger: ["cron", "webhook"],
+  trigger: ["cron", "webhook", "subscriptions"],
   // `route` is the [[runtime.route]] array; its own keys are router.js's,
   // kept beside the code that reads them.
   runtime: ["model", "entry", "repo", "ref", "adapter", "graph", "max_turns", "env", "slack_webhook_env", "route"],
@@ -62,7 +63,7 @@ export const TABLES = Object.keys(FIELDS);
 // product that just started refusing things.
 const RETIRED = {
   trigger: {
-    on: `[trigger].on names platform events to subscribe to, and ${SPEC_VERSION} subscribes to nothing and filters on nothing: a seat is woken by [trigger].cron (a schedule the runtime registers) or [trigger].webhook (the ingress), and a hook runs the seat whatever event it carried. A field that cannot change what happens is a field that misleads its author. Fix: drop it, and set webhook = true to be woken by events. Event subscription returns with \`epito deploy\` — spec ${SPEC_VERSION}, open questions.`,
+    on: `[trigger].on named platform events, and it was retired because nothing read it: a manifest whose only trigger was \`on\` validated with a ✓ and was a seat that could never fire. Event subscription came back in ${SPEC_VERSION} as [trigger].subscriptions, which names BUS subjects and which the runtime does read — it holds one durable consumer per seat filtered to exactly those subjects. Fix: subscriptions = ["asc.events.*.message.posted"], with the subjects your bus publishes on; or webhook = true if what wakes this seat is the ingress.`,
   },
   runtime: {
     image: `[runtime].image names a container image, and an image is a property of the box, not of the agent — the same rule that keeps the interpreter, the virtualenv and every path out of a manifest, because a manifest has to stay publishable and runnable by a second person (spec ${SPEC_VERSION}, "what is deliberately NOT in the manifest"). Nothing has ever read this field. Fix: drop the line; a run happens in the image the runtime box already has.`,
@@ -151,7 +152,8 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
 
   if (m.trigger) {
     const t = m.trigger;
-    if (!t.cron && !t.webhook) errors.push('[trigger] needs at least one of: cron (a schedule) or webhook (the ingress wakes it) — an agent is triggered, not prompted. Fix: cron = "0 6 * * *" for a clock, webhook = true to be woken by an event, or both.');
+    const subs = t.subscriptions;
+    if (!t.cron && !t.webhook && !(Array.isArray(subs) && subs.length)) errors.push('[trigger] needs at least one of: cron (a schedule), webhook (the ingress wakes it) or subscriptions (the bus wakes it) — an agent is triggered, not prompted. Fix: cron = "0 6 * * *" for a clock, webhook = true to be woken by a push, subscriptions = ["asc.events.*.message.posted"] to be woken by an event the bus is holding, or any combination.');
     // Parsed, not counted. Counting five fields passed "0 99 * * *", which
     // `epito run` then refused when it built the matcher — so a tick here
     // promised a schedule the runtime would reject. One check, one message,
@@ -164,6 +166,32 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
     }
     if (t.webhook !== undefined && typeof t.webhook !== "boolean") {
       errors.push(`[trigger].webhook is true or false — it says whether the ingress may wake this seat, not where: the URL is the runtime's to hand out, never the manifest's to name. Got "${t.webhook}". Fix: webhook = true, with no quotes, or drop the line.`);
+    }
+    // The bus subjects this seat is woken by. Checked HERE rather than left to
+    // the server, for the reason `[trigger].cron` is parsed here: the runtime
+    // creates the consumer at startup, on a box, and a subject the server
+    // refuses is a seat that stops being woken at whatever hour that restart
+    // happened — while the person who can fix it is reading this message now.
+    if (subs !== undefined) {
+      if (!Array.isArray(subs)) {
+        errors.push(`[trigger].subscriptions is a list of bus subjects, got ${typeof subs === "object" ? "a table" : `"${subs}"`} — one durable consumer is created per seat, filtered to exactly these. Fix: subscriptions = ["asc.events.*.message.posted"], even for a single subject.`);
+      } else if (!subs.length) {
+        errors.push(`[trigger].subscriptions is an empty list, which says this seat is woken by the bus and names nothing for it to be woken by — a trigger is explicit and never defaulted (spec ${SPEC_VERSION} rule 3). Fix: name the subjects, e.g. subscriptions = ["asc.events.*.message.posted"], or drop the line and let [trigger].cron or webhook be this seat's trigger.`);
+      } else {
+        subs.forEach((subject, i) => errors.push(...subjectErrors(subject, `[trigger].subscriptions[${i}]`)));
+        // Two filters that overlap are refused by the server when the consumer
+        // is created, which would be a startup failure for a manifest that
+        // reads fine. Said here, as the pair it is.
+        const ok = subs.filter((x) => typeof x === "string" && !subjectErrors(x, "").length);
+        for (let i = 0; i < ok.length; i++) {
+          for (let j = i + 1; j < ok.length; j++) {
+            if (!subjectsOverlap(ok[i], ok[j])) continue;
+            const wider = ok[i].split(".").length <= ok[j].split(".").length && /[*>]/.test(ok[i]) ? ok[i] : ok[j];
+            const narrower = wider === ok[i] ? ok[j] : ok[i];
+            errors.push(`[trigger].subscriptions lists "${ok[i]}" and "${ok[j]}", and they overlap — one consumer cannot hold two filters that can both match the same event, so the bus would refuse this seat's consumer at startup. ${wider === narrower ? "Fix: drop one of the two." : `Fix: keep "${wider}", which already covers "${narrower}", and drop the other.`}`);
+          }
+        }
+      }
     }
   }
 
