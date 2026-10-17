@@ -59,30 +59,54 @@ trap cleanup EXIT
 
 mkdir -p "$PREFIX" "$WORK" "$TGZ_DIR" "$PKG"
 
+# This suite is the other half of `prepublishOnly`, and the same thing was
+# wrong with it: npm exports `npm_config_dry_run=true` into every lifecycle
+# script, so under `npm publish --dry-run` the pack below wrote nothing and the
+# whole stranger gate said SKIPPED and exited 0 — a page checked against
+# nothing, on the command anybody careful runs first. test/pack.sh carries the
+# long version of the note, the measurement, and the assertion that pins it;
+# the rule is the same here. The flag leaves this suite's environment entirely
+# (the pack AND the install of that tarball both inherited it), and a pack or
+# an install that fails anyway refuses while this suite is a gate, and skips
+# when a person ran it on a box whose npm is broken.
+GATE=0
+[ "${npm_command:-}" = "publish" ] && GATE=1
+case "${npm_lifecycle_event:-}" in prepublishOnly|prepublish|prepare) GATE=1 ;; esac
+unset npm_config_dry_run
+
+nothing_to_check() {
+  if [ "$GATE" = 1 ]; then
+    printf 'stranger: FAILED — %s\n' "$1"
+    printf '      This run IS the publish gate (npm_command=%s, npm_lifecycle_event=%s), so\n' \
+      "${npm_command:-?}" "${npm_lifecycle_event:-?}"
+    printf '      a page checked against nothing must stop the publish rather than pass it.\n'
+    printf '      Fix: run `bash test/stranger.sh` on its own and fix what it says, then publish.\n'
+    exit 1
+  fi
+  echo "stranger: SKIPPED — $1; nothing could be asserted"
+  exit 0
+}
+
 # ------------------------------------------- 0. the package, as npm serves it
 step "0: pack and install — the stranger's two artifacts, the README and the binary"
 if ! (cd "$CLI" && npm pack --pack-destination "$TGZ_DIR") >"$ROOT/pack.log" 2>&1; then
-  echo "stranger: SKIPPED — \`npm pack\` failed in $CLI; nothing could be asserted"
   sed 's/^/       /' "$ROOT/pack.log" | tail -15
-  exit 0
+  nothing_to_check "\`npm pack\` failed in $CLI"
 fi
 TGZ="$(ls "$TGZ_DIR"/*.tgz 2>/dev/null | head -1)"
 if [ -z "$TGZ" ]; then
-  echo "stranger: SKIPPED — npm pack wrote no tarball"
-  exit 0
+  nothing_to_check "npm pack wrote no tarball"
 fi
 tar xzf "$TGZ" -C "$PKG"
 README="$PKG/package/README.md"
 PKGJSON="$PKG/package/package.json"
 if [ ! -f "$README" ]; then
-  echo "stranger: SKIPPED — the tarball carries no README, so there is no guide to check"
   echo "       (pack.sh asserts this too: \"a README ships — the npm page is not blank\".)"
-  exit 0
+  nothing_to_check "the tarball carries no README, so there is no guide to check"
 fi
 if ! (cd "$ROOT" && npm install -g --prefix "$PREFIX" "$TGZ") >"$ROOT/install.log" 2>&1; then
-  echo "stranger: SKIPPED — installing the tarball failed; nothing further could be asserted"
   sed 's/^/       /' "$ROOT/install.log" | tail -15
-  exit 0
+  nothing_to_check "installing the tarball failed"
 fi
 # The package's own name, read from the tarball rather than from this script:
 # the install line on the front page has to be the line that installs THIS.
