@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { writeFileSync, existsSync, mkdirSync, statSync, accessSync, constants } from "node:fs";
+import { writeFileSync, readFileSync, existsSync, mkdirSync, statSync, accessSync, constants } from "node:fs";
 import { NAME_RE, kebab } from "./lib/manifest.js";
+import { SPEC_VERSION } from "./lib/fields.js";
 import { ignore } from "./lib/gitignore.js";
 import { engineImport } from "./lib/engine.js";
 import { originRepo } from "./lib/origin.js";
@@ -71,6 +72,9 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       [runtime].repo (--dry-run says what it would create and
                       touches neither the network nor a browser)
 
+  epito --version     this copy's version, the manifest spec it enforces and
+                      the node it runs on (-v too; alias: epito version)
+
 The runtime is two processes and one engine: \`epito run\` reconciles and
 serves the ingress, \`epito worker\` executes, and Temporal (self-hosted,
 TEMPORAL_ADDRESS, default 127.0.0.1:7233) is what makes a run survive a
@@ -109,6 +113,21 @@ a dependency: nothing about a run changes when none is set.
 
 const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
 
+// The package's own manifest, beside the directory this file is in — the one
+// npm wrote when it installed this copy. Read rather than compiled in: a
+// version baked into the source is a version that is right in the tree and
+// wrong in the tarball the day a release bumps one and not the other, and
+// `npm version` only ever edits package.json.
+const pkg = () => {
+  const at = new URL("../package.json", import.meta.url);
+  try { return JSON.parse(readFileSync(at, "utf8")); }
+  catch (e) {
+    die(`this copy of epito has no package.json beside its source (looked in ${at.pathname}): ${e.message}. ` +
+      `A published package always carries one, so this is a checkout running from a moved or partly copied src/ directory. ` +
+      `Fix: reinstall it — \`npm i -g epito\` — or run it from the root of a full checkout.`);
+  }
+};
+
 // An option epito does not know is refused before the command runs. It used to
 // be dropped, which made `--dry-runn` a real mint and `--for-runtimes` a ✓ that
 // asserted nothing (src/lib/flags.js says why at more length). `window` and
@@ -118,6 +137,25 @@ const gate = (name, argv, known) => { const e = unknownOption(name, argv, known)
 
 if (!cmd || cmd === "help" || cmd === "--help") {
   console.log(HELP);
+  process.exit(0);
+}
+
+// The first thing anybody types after `npm i -g epito`, to find out whether the
+// install took — and until now the answer was `unknown command "--version"`,
+// which reads as a broken install rather than a missing flag. Three spellings
+// because all three get typed and none of them is wrong.
+//
+// Three facts, one line. The CLI's own version is what npm would serve. The
+// manifest spec version is the one `epito validate` enforces, read from the
+// same constant the validator reads, because the two are allowed to move
+// apart: a patch release of the CLI does not change the spec, and a spec that
+// froze (v0.1, then v0.2's two optional fields) outlives several CLI versions.
+// The node version is here because `engines` says >=18 and a box below it
+// fails inside an import with a syntax error that names neither.
+if (cmd === "--version" || cmd === "-v" || cmd === "version") {
+  gate(cmdRaw, args, []);
+  const { version, name } = pkg();
+  console.log(`${name} ${version} (manifest spec ${SPEC_VERSION}) — node ${process.version} on ${process.platform}-${process.arch}`);
   process.exit(0);
 }
 
