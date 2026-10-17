@@ -39,9 +39,9 @@ for a in "$@"; do
 test/all.sh: unknown option "$a". There are two:
 
   --strict         a suite that could not run is a failure (exit 1, not 0)
-  --with-prereqs   install the Temporal CLI and a langgraph venv first, and
-                   start one dev server for the length of the run, so that no
-                   suite is incomplete merely because this box is cold
+  --with-prereqs   install the Temporal CLI, nats-server and a langgraph venv
+                   first, and start one dev server for the length of the run, so
+                   that no suite is incomplete merely because this box is cold
 
 EOF
        exit 2 ;;
@@ -108,9 +108,10 @@ EOF
 pin_locale
 
 # ---- the prerequisites, on request ------------------------------------------
-# Three suites were permanently incomplete on any box nobody had prepared by
-# hand: smoke-temporal unrun, smoke-roster partial, smoke-langgraph partial. The
-# install is two downloads and fifteen seconds (measured, 2026-10-07, cold
+# Four suites are permanently incomplete on any box nobody has prepared by
+# hand: smoke-temporal unrun, smoke-bus unrun, smoke-roster partial,
+# smoke-langgraph partial. The install is three downloads and under a minute
+# (measured, 2026-10-07 and 2026-10-17, cold
 # GitHub runner), and smoke-roster additionally wants an engine ALREADY
 # answering — the one thing test/prereqs.sh deliberately does not leave running.
 #
@@ -266,6 +267,7 @@ run_suite "smoke-validate"  bash "$CLI/test/smoke-validate.sh"
 run_suite "smoke-doctor"    bash "$CLI/test/smoke-doctor.sh"
 run_suite "smoke-roster"    bash "$CLI/test/smoke-roster.sh"
 run_suite "smoke-temporal"  bash "$CLI/test/smoke-temporal.sh"
+run_suite "smoke-bus"       bash "$CLI/test/smoke-bus.sh"
 run_suite "smoke-langgraph" bash "$CLI/test/smoke-langgraph.sh"
 run_suite "provision-host"  bash "$ROOT/deploy/test-provision.sh"
 run_suite "pack"            bash "$CLI/test/pack.sh"
