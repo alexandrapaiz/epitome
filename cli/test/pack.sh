@@ -208,8 +208,6 @@ node -e '
 shows -8
 check "every field the npm page renders is set in the package npm would send" \
   "! said '^MISSING'"
-check "the tarball's version is the version this tree says" \
-  "[ \"\$(node -e 'console.log(JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\")).version)' '$PJ')\" = \"\$(node -e 'console.log(JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\")).version)' '$CLI/package.json')\" ]"
 check "the source it points a stranger at is this repository, over https" \
   "node -e 'const u=(JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\")).repository||{}).url||\"\"; process.exit(/^git\\+https:\\/\\/.+\\.git$/.test(u)?0:1)' '$PJ'"
 check "the bin it installs is a file the tarball carries, with a shebang node can start" \
@@ -278,11 +276,22 @@ check "--for-runtime makes the same note an error"    "[ $RC = 1 ] && said 'the 
 printf 'repo = "acme/roster"\n' >> "$WORK/agent.toml"
 run_epito validate
 check "with repo set, the ✓ has nothing left to warn about" "[ $RC = 0 ] && ! said 'not ready to run'"
-for c in "deploy --dry-run" "token digest --dry-run" "routes" "env" "board" "audit" "doctor" "--help"; do
+for c in "deploy --dry-run" "token digest --dry-run" "routes" "env" "board" "audit" "doctor" "--help" "--version"; do
   # shellcheck disable=SC2086 -- $c is this script's own literal, split on purpose
   run_epito $c
   check "epito $c runs with no engine, and prints no stack" "! said ERR_MODULE_NOT_FOUND"
 done
+
+# The number `epito --version` prints has to be the number npm would serve, and
+# the installed binary is the only place that can be asked: section 1c reads the
+# manifest npm sends, this reads what the package then says about itself. A
+# version compiled into the source instead of read from the package.json beside
+# it would be right in the tree and wrong here the day a release bumps one and
+# not the other, which is the one way this particular line can lie.
+run_epito --version; shows -1
+check "...and \`epito --version\` says the version npm would serve, not one of its own" \
+  "said \"\$(node -e 'console.log(JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\")).version)' '$PJ')\""
+check "...with the manifest spec that version enforces beside it" "said 'manifest spec v'"
 
 # The seat this step minted names no secret at all, which is the first thing a
 # vibecoder's manifest looks like — so the box-names command has to answer that
