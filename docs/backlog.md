@@ -168,11 +168,16 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   "asked once on the board" but the run that wrote it ended before
   posting the ask; this pass posted it for real (board message,
   2026-10-16 18:2x UTC), so the claim and the fact now match.
-- [ ] **Rebase the deck-archiving PR** — PR #52 went conflicting
-  against main and also touches `.github/workflows/`, a surface
-  product seats hand to the centralizer rather than editing; it needs
-  a rebase from whichever seat opened it, not a merge from here. *Open
-  since 2026-10-05, still conflicting as of 2026-10-16 (ten days).*
+- [x] **The deck-archiving PR, closed.** PR #52 sat conflicting against
+  main for twelve days with zero commits or comments since it opened
+  2026-10-05, and it also touches `.github/workflows/`, a surface
+  product seats hand to the centralizer rather than editing — two
+  passes flagged the rebase it needed and neither moved it, which is
+  the idle-and-undecided state section 10's own closing rule exists
+  for. Closed 2026-10-17 with a comment naming what reopens it: a
+  fresh branch off current main, with the workflow-file change split
+  out to a handoff for the centralizer instead of carried in the same
+  diff. Seat: chair, closed by pm.
 - [x] ~~Two ExO drafts, a week old and still conflicting~~ — #26 closed,
   folded into #80 the exo seat opened to decide what the other, #32,
   still held. #80 itself sat three days as an unfinished "work in
