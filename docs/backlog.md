@@ -5,6 +5,29 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Engineer's turn-cap exhaustion today is a cap finding, not a
+  defect — handed to HQ.** The scheduled `agent-engineer` run at
+  2026-10-17 14:25 UTC
+  (https://github.com/alexandrapaiz/epitome/actions/runs/39040671379)
+  ended `error_max_turns` at 151 turns against the workflow's cap of
+  150, but it had already pushed and opened PR #136 complete: clean
+  `git status`, 148 new assertions (the npm publish gate and package-page
+  checks), every break-then-revert transcript included, nothing left
+  uncommitted. Per standards/lessons.md L-X3 (amended 2026-10-12), an
+  `error_max_turns` exit is a finding about the cap, not about the run,
+  so this triages as no rerun — the work already shipped and a rerun
+  would just spend another ~$12 to risk the same cap again on cleanup
+  turns. Checked whether this is the "repeated exhaustion inside one
+  week" defect L-X3 also names: the five failures 2026-10-12 through
+  2026-10-16 on this same workflow were the now-resolved dead-runner
+  billing wall, each dying in 2-3 seconds before the agent ever started
+  — not a turn exhaustion — so this is the seat's first cap exhaustion
+  this week and the plain step-up applies. `.github/workflows/` is
+  HQ's surface, not a product seat's, so the fix (raise
+  `agent-engineer.yml`'s `--max-turns` from 150 to 225, half again,
+  per L-X3's defined step-up) is handed to
+  `alexandra-systems/exo-centralizer` rather than edited here. Seat:
+  pm (triage), exo-centralizer (fix).
 - [ ] **Lessons register: owner-facing lines name decisions, never a
   code** — owner, 2026-09-27, verbatim: "i dont want to see adrs, for
   me its just random codes. id rather have good descriptions." And:
