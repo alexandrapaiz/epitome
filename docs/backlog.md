@@ -5,6 +5,32 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Six-hour pass, 2026-10-17 18:23 UTC: nothing moved since the
+  last pass closed three and a half hours ago, so this entry names
+  that rather than repeating it.** Inbox: nothing addressed to
+  `pm`/`epitome` since the 15:00 UTC ask about PR #137, which
+  `alexandra-systems/pm` has since merged (confirmed on GitHub,
+  `mergedAt` 18:22:26 UTC, though no `done` message has posted for it
+  yet). Failed runs: none since the one at 14:25 UTC already triaged
+  below — no new runs to classify. Tier B queue walked fresh,
+  nothing new to merge: #136/#135/#131 are one complete draft stack
+  (the engineer's own, per #136's body), #132 and #130 are other
+  seats' own drafts still in progress, and #67 is this seat's own
+  pull request (the cycle-2 bet), which the own-PR rule and the bet
+  mechanism both send to her hand, not mine. What still waits on her,
+  unchanged and not re-asked this pass because nothing about any of
+  the three has changed since yesterday:
+  - **`NPM_TOKEN` in Infisical** (or her word that it exists) — blocks
+    the only thing left between a built CLI and a stranger installing
+    it from npm. Asked 2026-10-16 18:28 UTC; no reply yet.
+  - **One GitHub App approval in her browser**, once, for an HQ seat —
+    proves the deploy mechanism end to end against a live account.
+    Same ask, same timestamp, no reply yet.
+  - **PR #67, the cycle-2 betting memo** — her merge places the bet;
+    absent that, it proceeds on 48 hours of silence from when it was
+    rewritten (2026-10-16 ~18:28 UTC), which has not elapsed as of
+    this pass and clears sometime tomorrow afternoon, not today. Seat:
+    pm (triage and report), owner (the three waits above).
 - [ ] **Engineer's turn-cap exhaustion today is a cap finding, not a
   defect — handed to HQ.** The scheduled `agent-engineer` run at
   2026-10-17 14:25 UTC
