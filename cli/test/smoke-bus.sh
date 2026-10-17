@@ -89,15 +89,15 @@ if [ "$UP" != 1 ]; then
 fi
 printf 'nats-server %s on %s, JetStream store in %s\n' "$("$NATS" --version 2>&1 | head -1 | awk '{print $NF}')" "$URL" "$TMP/store"
 
-# ---- 1-2. the protocol, the reconcile, the ack ------------------------------
+# ---- 1. the protocol, the reconcile, the ack --------------------------------
 step "1. the client against a server it did not write (test/bus-live.mjs)"
 node "$CLI/test/bus-live.mjs" "$URL" "$STREAM" > "$TMP/live.txt" 2>&1
 sed -n '2,$p' "$TMP/live.txt" | grep -v '^bus-live:' | sed '/^$/d'
 pass=$((pass + $(grep -c '^  ok   ' "$TMP/live.txt")))
 fail=$((fail + $(grep -c '^  FAIL ' "$TMP/live.txt")))
 
-# ---- 3. the command an operator runs ----------------------------------------
-step "3. \`epito bus\` reads a real stream and a real consumer back"
+# ---- 2. the command an operator runs ----------------------------------------
+step "2. \`epito bus\` reads a real stream and a real consumer back"
 R="$TMP/roster"
 mkdir -p "$R/listener" "$R/quiet"
 cat > "$R/listener/agent.toml" <<EOF
@@ -186,7 +186,7 @@ check "a subscription the stream can never deliver is a refusal, named"  "[ $rc 
 check "...with both fixes: the manifest, or the stream"                  "said 'correct the subject in the manifest, or widen the stream'"
 rm -rf "$R/elsewhere"
 
-step "4. the three refusals an operator meets"
+step "3. the three refusals an operator meets"
 out="$(EPITO_BUS_STREAM= $E bus "$R" 2>&1)"; rc=$?
 check "no stream named on this box: exit 1, naming the seats"       "[ $rc -eq 1 ] && said 'EPITO_BUS_STREAM is not set' && said 'listener'"
 check "...and saying a run keeps serving anyway"                    "said 'keeps serving'"
@@ -195,7 +195,7 @@ check "no stream by that name on the bus: exit 1, with the subjects" "[ $rc -eq 
 out="$(EPITO_BUS_URL=nats://127.0.0.1:1 $E bus "$R" 2>&1)"; rc=$?
 check "no bus answering: exit 1, naming what it costs and the fix"   "[ $rc -eq 1 ] && said 'nothing is answering the bus' && said 'Fix:'"
 
-step "5. doctor's bus row, against a box that really has one"
+step "4. doctor's bus row, against a box that really has one"
 out="$($E doctor "$R" 2>&1)"
 check "the row says the stream this box names, for the seats that need it" "said '. bus' && said '$STREAM' && said 'listener'"
 check "and it opened no connection to say it"                             "said 'opened nothing'"
