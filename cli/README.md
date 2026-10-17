@@ -21,7 +21,9 @@ description = "Writes the daily digest of what changed and why."
 scopes = ["github:contents", "github:pull_requests"]
 
 [trigger]
-cron = "0 6 * * *"        # and/or: webhook = true, to be woken by an event
+cron = "0 6 * * *"        # and/or: webhook = true, woken by a push to the ingress;
+                          # subscriptions = ["acme.events.*.issue.opened"], woken by
+                          # an event the bus held until this agent took it
 
 [runtime]
 repo = "acme/roster"
@@ -357,8 +359,14 @@ why no command saw them before.
   login — usually `<name>[bot]`, and `epito doctor <roster> --deep` reads the
   real one — not as you. `epito audit` reads that record back.
 - **Trigger** — `[trigger].cron` becomes a real schedule; `webhook = true`
-  lets the ingress wake it. A trigger is explicit and never defaulted: a
-  seat that did not ask to be woken by the ingress is not woken by it.
+  lets the ingress wake it; `[trigger].subscriptions` lists the bus subjects
+  it is woken by, and those survive a restart — the runtime holds one durable
+  consumer per agent and acknowledges an event only once that agent's run has
+  started, so an event that arrives while the box is down is still waiting
+  when it comes back. A hook is a doorbell and a subscription is a queue.
+  `epito bus <dir>` says what is waiting for each agent on this box. A trigger
+  is explicit and never defaulted: an agent that did not ask to be woken by
+  the ingress, or did not name a subject, is not woken by either.
 - **Runtime** — a process that outlives the machine it started on, on
   self-hosted Temporal. A reboot mid-run no longer loses the run.
 
@@ -401,7 +409,9 @@ ledger is "what exactly happened".
 ## The engine is optional
 
 The manifest commands — `init`, `validate`, `deploy`, `token`, `board`,
-`audit`, `report`, `note`, `routes`, `env` — need nothing but this package. They are the
+`audit`, `report`, `note`, `routes`, `env`, `bus` — need nothing but this
+package. (`epito bus` asks a bus rather than an engine, and says so by name
+when there is none to ask.) They are the
 whole CLI for most people, so `npm i -g epito` does not drag in Temporal's
 ~300 MB of prebuilt core.
 
@@ -429,7 +439,8 @@ tells you before you get there.
 
 The manifest is law. v0.1 froze it — four tables, a fixed field catalogue,
 and a validator that is tested against the spec document itself so the two
-cannot drift — and v0.2 opened with exactly one optional field, so every
+cannot drift — and v0.2 has added two optional fields since,
+`[[runtime.route]].base_url_env` and `[trigger].subscriptions`, so every
 manifest that validated before validates now.
 
 - Spec: [`spec/manifest.md`](https://github.com/alexandrapaiz/epitome/blob/main/spec/manifest.md)

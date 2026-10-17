@@ -232,6 +232,54 @@ printf '  %s option mentions, %s of them beside a named command\n' \
 check "every option the README names is one its command takes" \
   "[ -z '$bad_flags' ] || { printf '       not an option of the command it is written beside:%s\n' '$bad_flags'; false; }"
 
+# The other direction, for the one table the page speaks for in full. Checking
+# that everything on the page exists in the package catches a rename; it does
+# not catch the page going quiet about something the package GREW, and that is
+# the way this README actually went stale: spec v0.2 added a third way to wake
+# an agent (`[trigger].subscriptions`, the bus) and the page kept saying there
+# were two, in the headline manifest and again in "What it gives an agent".
+#
+# It is asserted for `[trigger]` and not for all four tables because the page
+# makes a different promise about each. `[runtime]` it covers by example and
+# sends you to the spec for the rest; `[trigger]` it enumerates — "cron ...
+# and/or webhook" — which is a claim to be complete, and the headline sentence
+# ("identity + trigger + runtime") is why a reader believes it. A field this
+# table gains and the page does not mention is a reader who cannot know their
+# agent could have been woken.
+#
+# The catalogue comes out of the binary, like everything else here: the
+# validator prints the whole table when it refuses a misspelling, so a
+# misspelled field is how the package is asked what fields it has.
+step "2b: every way the package can wake an agent is on the page"
+CAT="$ROOT/catalogue"; mkdir -p "$CAT"
+cat > "$CAT/agent.toml" <<'TOML'
+[agent]
+name = "catalogue"
+description = "One misspelled trigger field, so the binary prints the table it knows."
+[identity]
+scopes = ["github:contents"]
+[trigger]
+cron = "0 6 * * *"
+zzqq = true
+[runtime]
+entry = "prompts/catalogue.md"
+model = "claude-sonnet-5"
+TOML
+CWD="$CAT" run_epito validate
+sed -n 's/.*\[trigger\] is: \([^.]*\)\..*/\1/p' "$OUT" | tr -d ' ' | tr ',' '\n' | grep -v '^$' | sort -u > "$ROOT/trigger-fields.txt"
+printf '  the package wakes an agent by: %s\n' "$(tr '\n' ' ' < "$ROOT/trigger-fields.txt")"
+# If the refusal ever stops printing the catalogue, this suite must say it
+# asserted nothing about the page rather than tick a check it did not make.
+check "the binary names the fields its [trigger] has, so the page can be checked against them" \
+  "[ $(wc -l < "$ROOT/trigger-fields.txt") -ge 2 ]"
+missing_fields=""
+while read -r f; do
+  [ -n "$f" ] || continue
+  grep -q "$f" "$README" || missing_fields="$missing_fields $f"
+done < "$ROOT/trigger-fields.txt"
+check "every [trigger] field the package has is named on the page" \
+  "[ -z '$missing_fields' ] || { printf '       the package reads [trigger]%s and the README never says so\n' '$missing_fields'; false; }"
+
 # ------------------------------------------- 3. the install lines are true
 step "3: the install lines on the page install this package"
 check "the front page's install line names the package itself" \
