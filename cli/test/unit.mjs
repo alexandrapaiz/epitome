@@ -268,6 +268,9 @@ const REFUSALS = [
   ["trigger empty",         { trigger: { cron: undefined } }],
   ["cron unparseable",      { trigger: { cron: "@daily" } }],
   ["webhook not a bool",    { trigger: { webhook: "yes" } }],
+  ["subscriptions scalar",  { trigger: { subscriptions: "asc.events.>" } }],
+  ["subscriptions empty",   { trigger: { subscriptions: [] } }],
+  ["two subjects overlap",  { trigger: { subscriptions: ["asc.events.>", "asc.events.pm.message.posted"] } }],
   ["model missing",         { runtime: { model: undefined } }],
   ["entry missing",         { runtime: { entry: undefined } }],
   ["entry absent on disk",  { runtime: { entry: "prompts/nope.md", repo: undefined } }],
@@ -305,13 +308,15 @@ for (const [label, manifest] of ROUTE_REFUSALS) held(label, manifest);
 
 test("the bar covers EVERY refusal these two modules print in their own voice", () => {
   const read = (f) => readFileSync(new URL(`../src/lib/${f}`, import.meta.url), "utf8");
-  // Two of the pushes delegate to a module with its own bar (`...unknownKeys`
+  // Three of the pushes delegate to a module with its own bar (`...unknownKeys`
   // from fields.js, `...routeErrors` from router.js, counted on its own line
-  // below); every other push is the file's own voice, including the spread of
-  // its own `repoErrors`. router.js also refuses the whole field with a bare
-  // `return [message]`, which is why its count gets a +1.
+  // below, and `...subjectErrors` from subjects.js, whose every branch is held
+  // to this same bar in test/unit-bus.mjs); every other push is the file's own
+  // voice, including the spread of its own `repoErrors`. router.js also refuses
+  // the whole field with a bare `return [message]`, which is why its count gets
+  // a +1.
   const mine = (src) => (src.match(/errors\.push\(/g) ?? []).length
-    - (src.match(/errors\.push\(\.\.\.(unknownKeys|routeErrors)/g) ?? []).length;
+    - (src.match(/errors\.push\(\.\.\.(unknownKeys|routeErrors|subjectErrors)/g) ?? []).length;
   const manifestJs = read("manifest.js");
   const routerJs = read("router.js");
   // `adapter unknown` is a push of a message adapters.js composed; it is still
@@ -2226,8 +2231,11 @@ test("[trigger].on is retired, and the message says what replaces it", () => {
   const hit = errs.find((e) => e.includes("[trigger].on"));
   assert.ok(hit, errs.join("\n"));
   assert.match(hit, /webhook = true/);
-  // The seat could never have fired, and the triad rule now says so too.
-  assert.ok(errs.some((e) => /needs at least one of: cron .* or webhook/.test(e)), errs.join("\n"));
+  // The seat could never have fired, and the triad rule now says so too — in
+  // v0.2 it offers three ways to be woken, and the bus is the one that
+  // replaces what `on` pretended to be.
+  assert.ok(errs.some((e) => /needs at least one of: cron .*webhook .*or subscriptions /.test(e)), errs.join("\n"));
+  assert.match(hit, /subscriptions = \[/);
 });
 
 test("[runtime].image is retired: an image is a property of the box", () => {
