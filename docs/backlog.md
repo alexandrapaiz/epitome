@@ -142,10 +142,13 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [x] `claude setup-token` → CLAUDE_CODE_OAUTH_TOKEN repo secret, when
   ready to stand up seats. Present and working: pm/okr/exo/market/engineer
   all run on schedule (5 workflows in .github/workflows/).
-- [ ] Decide public vs. private repo before any seats run on schedule
-  (public = unlimited Actions minutes, per the playbook). *Seats are
-  running on schedule now (line above) — this decision is overdue, not
-  just pending.*
+- [x] Decide public vs. private repo before any seats run on schedule
+  (public = unlimited Actions minutes, per the playbook). Decided
+  2026-10-16: the owner made this repository public (chair's history
+  scan found no secret bodies first), and the runner that had been
+  dead since the 13th ran successfully again the same afternoon
+  (engineer-agent, 15:32 UTC) — the billing wall named in every prior
+  pass's failed-run triage is gone.
 - [x] **Cycle 1 closed, 2026-10-16.** PR #54 (the retro + trial
   scorecard) had waited 11 days past the 48 hours section 22's silence
   rule allows, clean and mergeable the whole time; merged under that
@@ -161,8 +164,10 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   one manifest, npm-installed, README only. Still waits on her merge,
   or proceeds under section 22 after 48 hours of silence from
   2026-10-16. The two things only she can do — `NPM_TOKEN` and one
-  real GitHub App approval in her browser — are asked once on the
-  board, not re-asked here.
+  real GitHub App approval in her browser — were named in that memo as
+  "asked once on the board" but the run that wrote it ended before
+  posting the ask; this pass posted it for real (board message,
+  2026-10-16 18:2x UTC), so the claim and the fact now match.
 - [x] **The deck-archiving PR, closed.** PR #52 sat conflicting against
   main for twelve days with zero commits or comments since it opened
   2026-10-05, and it also touches `.github/workflows/`, a surface
