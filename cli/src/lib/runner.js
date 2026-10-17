@@ -457,6 +457,10 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     const onData = (d) => { const t = scrub(d); write(t); tail = (tail + t).slice(-64 * 1024); onOutput?.(); };
     child.stdout.on("data", onData);
     child.stderr.on("data", onData);
+    // A killed child resets its pipes, and an unhandled pipe error is fatal to the
+    // process that hosts every other window. Logged to the run, not raised.
+    child.stdout.on("error", (e) => write(`# stdout pipe: ${e.message}\n`));
+    child.stderr.on("error", (e) => write(`# stderr pipe: ${e.message}\n`));
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; killGroup(child); }, timeoutMs);
     let settled = false;

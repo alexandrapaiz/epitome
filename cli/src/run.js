@@ -89,6 +89,11 @@ export function sayShortfall(roster, dirArg, say) {
 }
 
 export async function runDaemon(dirArg, { dryRun = false } = {}) {
+  // The resident daemon hosts every seat's ingress and windows, so one stray error
+  // must not take them all down. Log it, keep running, and let the next run report
+  // what broke. The host lost eight daemons and four open windows this way on 2026-10-17.
+  process.on("uncaughtException", (e) => console.error(`${new Date().toISOString()} daemon: uncaught ${e?.stack || e}`));
+  process.on("unhandledRejection", (e) => console.error(`${new Date().toISOString()} daemon: unhandled rejection ${e?.stack || e}`));
   const dir = resolve(dirArg);
   let roster = loadRoster(dir);
   const cfg = temporalEnv();
