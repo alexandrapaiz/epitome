@@ -1,0 +1,239 @@
+# Alexandra Systems seat workflow template — copy into .github/workflows/agent-frontend.yml
+# when standing up a seat (company standard; see standards/README.md).
+# Kept OUT of .github/workflows until CLAUDE_CODE_OAUTH_TOKEN exists.
+# The four gotchas from alexandria's incident register are already baked
+# in below: id-token write, bypassPermissions, explicit --model,
+# draft-PR-first in the prompt.
+#
+# The prompt states no rule a charter owns. Where both specify the same
+# thing the prompt wins silently, because the seat reads it first, so a
+# duplicated rule binds or fails to bind by accident (lessons L-X10,
+# Atelier incident I3). The branch convention lives in the charter and
+# this prompt points at it.
+
+name: frontend-agent
+
+on:
+  schedule:
+    - cron: "0 15 * * 2"
+  workflow_dispatch:
+    inputs:
+      owner_instructions:
+        description: "Owner instructions for this run (binding for this run)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+  # Without this a seat cannot read its own repository's runs: `gh run list` and
+  # `GET /actions/runs` both return 403 "Resource not accessible by integration".
+  # That is the PM standup's first observation step (pm.md §11.2) and the run
+  # data in docs/company/runs.jsonl. Read, never write: only the PM seat adds
+  # `actions: write`, because only the PM dispatches (ADR-037).
+  actions: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      # The seat and its company, by name, in one place. The board reads both
+      # (a run report belongs to a company, and asc-board takes the calling
+      # seat from ASC_SEAT rather than from an argument), and so does epitod
+      # when it runs this seat synchronously. Fill these in when you copy the
+      # template; they are the same two strings as the file name and the
+      # product's company.yaml `company:`.
+      ASC_SEAT: frontend
+      ASC_COMPANY: epitome
+      # The model in one place, so the run report cannot disagree with what ran.
+      ASC_MODEL: claude-opus-5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # The clock starts before the agent, not after: a run report whose
+      # started_at is the moment the report was written measures nothing.
+      - name: Mark the start
+        run: echo "ASC_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+      # OPEN ROUTING, THE SAFE FORM. This template runs one Claude step and
+      # that is the right default. When a product does route a seat to a
+      # cheaper provider, copy this shape exactly, because the unsafe shapes
+      # have each cost a run (lessons L-E7 and L-E8, HQ incident 4, epitome
+      # run 35956231272). Three things make it safe and all three are load
+      # bearing. `continue-on-error` plus an `id`, or the job dies at the
+      # failed step and the fallback below is never reached. A repo VARIABLE
+      # rather than the presence of a secret, so switching the route off
+      # costs a flag instead of deleting a key. And a fallback guarded on the
+      # step's own outcome, never on `env.SOMETHING == ''`, which is
+      # unreachable by construction while the key exists.
+      #
+      #   - id: open_route
+      #     if: vars.OPEN_ROUTING == 'true'
+      #     continue-on-error: true
+      #     uses: anthropics/claude-code-action@v1
+      #     with:
+      #       ... same prompt, provider env for the open model ...
+      #   - if: steps.open_route.outcome != 'success'
+      #     uses: anthropics/claude-code-action@v1
+      #     with:
+      #       ... the block below, unchanged ...
+      #
+      # A busy open provider then costs a few minutes, not the run. The
+      # fingerprint to recognise: `is_error` at about one turn and about
+      # three minutes on an open model is a concurrency ceiling until proven
+      # otherwise, so check what else was running.
+      - uses: anthropics/claude-code-action@v1
+        with:
+          # The fifth gotcha, and the one that made dispatch look impossible
+          # (ADR-049). A seat workflow passes an explicit `prompt:`, which puts
+          # claude-code-action in agent mode, and agent mode calls
+          # checkHumanActor on every run with no exception for
+          # workflow_dispatch. A run the PM starts with `gh workflow run`
+          # (pm.md §11.5) carries actor github-actions[bot], whose account type
+          # is Bot rather than User, so the action throws
+          # "Workflow initiated by non-human actor" in a few seconds and the
+          # charter is never read. Scheduled runs are unaffected: their actor is
+          # the owner, a User.
+          #
+          # The actor is named rather than '*' on purpose. '*' admits any App
+          # that can reach this workflow, and the only bot that ever needs to
+          # start a seat is this repository's own Actions token. The action
+          # lowercases both sides and strips a trailing [bot], so either
+          # spelling of the name matches.
+          allowed_bots: "github-actions[bot]"
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are <product>'s frontend seat, running in GitHub Actions with
+            this repository checked out. Read prompts/frontend-agent.md; it is
+            your full charter. Within your first turns, create a branch
+            named by your charter's branch convention and open a DRAFT pull
+            request with `gh pr create --draft`, committing into it as you
+            work — a died run must still ship its partial work. Open exactly one PR. Never
+            merge your own PR EXCEPT under the Tier A scope check of the
+            vendored pm standard §10, never push to main, never touch secrets,
+            never edit charters. If the charter file is missing, stop and
+            fail loudly instead of improvising.
+            Owner instructions for this dispatch, binding for this run
+            (empty on scheduled runs):
+            ${{ inputs.owner_instructions }}
+          claude_args: "--max-turns 120 --permission-mode bypassPermissions --model ${{ env.ASC_MODEL }}"
+      # The no-ship tripwire. Runs have worked for dozens of turns, reported
+      # success, and lost everything at teardown because nothing was pushed
+      # (alexandria's register; incident numbering differs per repo). A green
+      # conclusion is not evidence of shipping.
+      #
+      # The logic lives in tools/no-ship-tripwire.sh, not here. A GitHub App
+      # token may not write under .github/workflows/ whatever the permissions
+      # block says, so the seat that finds a bug in an inline guard is the one
+      # seat that cannot fix it, and two rounds of fixes have already had to
+      # travel by the owner's own hand. In a script the next fix reaches every
+      # seat on merge. Keep this step at four lines so it never needs to change.
+      - name: No-ship tripwire
+        if: always()
+        run: |
+          if [ -f tools/no-ship-tripwire.sh ]; then
+            bash tools/no-ship-tripwire.sh
+          else
+            echo "::warning::tools/no-ship-tripwire.sh is not in this repo, so this run was not checked for shipping. Vendor it from the HQ standards next to this template."
+          fi
+      # Visibility window (standards/operating-modes.md §3) and the company
+      # board (ADR-037, docs/prfaq/asc-board.md). One report, two surfaces: the
+      # board is the state, Slack is a rendering of it, and both are written
+      # here by the RUNTIME rather than by the seat. A seat cannot write its own
+      # run report — asc-board has no tool for it — which is what makes the
+      # board's report feed evidence.
+      - name: Post run report
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          BOARD_API_URL: ${{ vars.BOARD_API_URL || secrets.BOARD_API_URL }}
+          BOARD_RUNTIME_TOKEN: ${{ secrets.BOARD_RUNTIME_TOKEN }}
+        run: |
+          # The guards live in the script, not in the step's `if`: a step
+          # cannot read its own `env:` block from its `if` condition, and the
+          # `secrets` context is not available there either, so gating in YAML
+          # would either always skip or leak the webhook into the job env that
+          # the seat itself can read.
+          branch=$(git rev-parse --abbrev-ref HEAD)
+          pr=$(gh pr list --head "$branch" --state all --json number,title,url,body --jq '.[0]' 2>/dev/null)
+          title=$(echo "$pr" | jq -r '.title // "no PR opened"'); url=$(echo "$pr" | jq -r '.url // ""')
+          status="${{ job.status }}"
+          [ "$status" = success ] && exit_code=0 || exit_code=1
+          # Bullets, not paragraphs (owner, 2026-09-26: "make the slack prose
+          # be in bullets"): the first five bullet lines of the PR description,
+          # each cut to one line; a description with no bullets yields its first
+          # two lines. One report, two surfaces, so the board stores the same
+          # text Slack renders.
+          summary=$(echo "$pr" | jq -r '.body // ""' | grep -E '^\s*[-*•] ' | head -5 | sed -E 's/^\s*[-*•] +/• /; s/\*\*//g' | cut -c1-180)
+          [ -n "$summary" ] || summary=$(echo "$pr" | jq -r '.body // ""' | sed -e '/^#/d' -e '/^🤖/d' -e '/^\s*$/d' | head -2 | cut -c1-180 | sed 's/^/• /')
+          # `if`, not `&&`: a step runs under `bash -e`, where a bare
+          # `[ ... ] && x=y` whose test fails is a failing statement.
+          report="${{ github.workflow }} · $status · $title"
+          if [ -n "$summary" ]; then report=$(printf '%s\n%s' "$report" "$summary"); fi
+
+          # --- the board -----------------------------------------------------
+          # Both names must be present: BOARD_API_URL (a URL, so a repository
+          # variable is the natural home, but read from a secret too because
+          # that is where HQ's actually lives) and BOARD_RUNTIME_TOKEN as a
+          # secret. Absent either, the board simply is not written to, and the
+          # step still posts to Slack. The API answers on 127.0.0.1 on the host,
+          # so BOARD_API_URL is only set on a repository once the board is
+          # reachable from Actions.
+          # Why the `||`: a step-level env entry SHADOWS the job-level one of
+          # the same name. HQ's seat workflows carry BOARD_API_URL from
+          # `secrets` at job level, so a step declaring only `vars` here
+          # overwrote a good URL with an empty string and the step then
+          # reported the board as unconfigured. That is this file's own failure
+          # mode — a repair that reports success and changes nothing.
+          if [ -n "${BOARD_API_URL:-}" ] && [ -n "${BOARD_RUNTIME_TOKEN:-}" ]; then
+            # The items this run touched: any board item id the seat named in
+            # its PR description. The board links the report to them.
+            # A reply file left over from an earlier attempt would be quoted
+            # as though it were this attempt's error.
+            rm -f /tmp/board-reply.json
+            items=$(echo "$pr" | jq -r '.body // ""' |
+              grep -oiE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' |
+              sort -u | jq -R . | jq -sc . )
+            code=$(jq -nc \
+              --arg company "$ASC_COMPANY" --arg seat "$ASC_SEAT" \
+              --arg repo "${{ github.repository }}" --arg trigger "${{ github.event_name }}" \
+              --arg started "${ASC_STARTED_AT:-}" --arg ended "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              --arg model "${ASC_MODEL:-}" --arg pr_url "$url" \
+              --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              --arg report "$report" --argjson exit "$exit_code" --argjson items "${items:-[]}" \
+              '{company: $company, seat: $seat, repo: $repo, trigger: $trigger,
+                started_at: (if $started == "" then null else $started end),
+                ended_at: $ended, model: $model, exit: $exit,
+                pr_url: (if $pr_url == "" then null else $pr_url end),
+                run_url: $run_url, report: $report, item_ids: $items}' |
+              curl -s -o /tmp/board-reply.json -w '%{http_code}' --max-time 20 \
+                -X POST "${BOARD_API_URL%/}/api/runs" \
+                -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" \
+                -H 'Content-Type: application/json' --data-binary @- || true)
+            # `|| true` and not `|| echo 000`: curl's own -w already prints 000
+            # when it never got a response, so echoing a second 000 would make
+            # the code read "000000" and fall through to the wrong branch. The
+            # `|| true` is still needed because Actions runs this step under
+            # `bash -e` and curl exits non-zero on a refused connection.
+            # A board that is down must never fail a seat's run: the PR is still
+            # the report of record, and POST /api/runs is idempotent on run_url,
+            # so a re-run writes the same row rather than a second one.
+            case "$code" in
+              20*)    echo "Run report posted to the board ($code)." ;;
+              000|"") echo "::warning::The board did not answer at ${BOARD_API_URL%/}; the run report was not recorded." ;;
+              *)      echo "::warning::The board refused the run report (HTTP $code): $(head -c 200 /tmp/board-reply.json 2>/dev/null)" ;;
+            esac
+          else
+            echo "BOARD_API_URL or BOARD_RUNTIME_TOKEN is not set; the board was not written to."
+          fi
+
+          # --- Slack ---------------------------------------------------------
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "No SLACK_WEBHOOK_URL configured; the visibility window is not open yet."
+            exit 0
+          fi
+          curl -s -X POST -H 'Content-type: application/json' "$SLACK_WEBHOOK_URL" \
+            --data "$(jq -nc --arg t "*${{ github.workflow }}* · $status · $title" --arg s "$summary" --arg u "$url" '{text: ($t + (if $s != "" then "\n" + $s else "" end) + (if $u != "" then "\n" + $u else "" end))}')" >/dev/null || true
