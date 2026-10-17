@@ -14,8 +14,9 @@
 // was knowable before 06:00 and nothing looked.
 //
 // So this is the preflight, and its contract is one sentence: exit 1 if a run
-// on this box would refuse, and name the piece. Seven sections, in the order a
-// run needs them —
+// on this box would refuse, and name the piece. Eight sections, in the order a
+// run needs them — seven of them always, and the bus only for a roster that
+// subscribes to one —
 //
 //   manifests  the roster loads and passes the spec (the validator's own code)
 //   names      what [runtime].env asks this box for, and what it holds
