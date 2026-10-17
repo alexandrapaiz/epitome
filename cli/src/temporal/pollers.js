@@ -164,7 +164,9 @@ const tasks = (n) => `${n} ${n === 1 ? "task" : "tasks"}`;
 // has the unit (deploy/provision-host.sh writes epitod-worker.service); a
 // laptop has the command. Naming only one of them sends half the readers
 // looking for a thing their box does not have.
-export const WORKER_FIX = "start one: `epito worker` on this box, or `systemctl start epitod-worker` on a host provisioned by deploy/provision-host.sh (`journalctl -u epitod-worker -n 50` says why it stopped).";
+import { inRepo } from "../lib/where.js";
+
+export const WORKER_FIX = "start one: `epito worker` on this box, or `systemctl start epitod-worker` on a host provisioned by " + inRepo("deploy/provision-host.sh") + " (`journalctl -u epitod-worker -n 50` says why it stopped).";
 
 // One answer, from the two halves. `says` is the whole sentence a reader gets,
 // because these are five different facts and a shared template would blur the

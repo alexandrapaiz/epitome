@@ -72,7 +72,7 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
 The runtime is two processes and one engine: \`epito run\` reconciles and
 serves the ingress, \`epito worker\` executes, and Temporal (self-hosted,
 TEMPORAL_ADDRESS, default 127.0.0.1:7233) is what makes a run survive a
-reboot. See docs/prfaq/epitod-v1-temporal.md.
+reboot.
 
 A seat can also be woken by an event the bus is holding, not only by a clock
 or a push: \`[trigger].subscriptions\` names the subjects, \`epito run\` keeps one
@@ -83,7 +83,8 @@ EPITO_BUS_STREAM say where those events are; \`epito bus\` says what is waiting.
 
 The board is where the runs show up: every seat epitod runs files its own
 report, and a seat that runs somewhere else files one with \`epito report\`.
-See ADR-16 (docs/decisions.md).
+Its store is an append-only event log: not a database, and not a file in the
+repository the seats work in.
 
 The board and the ledger answer two different questions. The board is "what
 have the seats been doing" — run reports, folded for an owner. The ledger
@@ -93,14 +94,15 @@ token actually held, on which repository, until when.
 
 A seat can declare several roads to a model: \`[[runtime.route]]\` names them in
 order, and a run takes the first one that starts it — falling back only while
-the agent has provably done nothing (ADR-19). \`epito routes\` says which are
-open on this box.
+the agent has provably done nothing. \`epito routes\` says which are open on
+this box.
 
 A seat does not have to be a Claude session: \`[runtime].adapter = "langgraph"\`
 runs a LangGraph app through the \`langgraph.json\` its author already wrote,
-unmodified (ADR-17). Set OTEL_EXPORTER_OTLP_ENDPOINT — Phoenix, Jaeger, Tempo,
-anything that takes OTLP — and every run files a trace: the run, its clone, its
-mint, and whatever the agent itself emits inside it (ADR-18).
+unmodified. Set OTEL_EXPORTER_OTLP_ENDPOINT — Phoenix, Jaeger, Tempo, anything
+that takes OTLP — and every run files a trace: the run, its clone, its mint, and
+whatever the agent itself emits inside it. The collector is a surface and never
+a dependency: nothing about a run changes when none is set.
 `;
 
 const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
