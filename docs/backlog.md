@@ -217,6 +217,23 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   "asked once on the board" but the run that wrote it ended before
   posting the ask; this pass posted it for real (board message,
   2026-10-16 18:2x UTC), so the claim and the fact now match.
+  **Update 2026-10-17:** still unbet — the memo stays hers to merge or
+  to let clear under section 22 (that clock runs out 2026-10-18
+  afternoon, not yet). What changed is the evidence waiting behind it:
+  the engineer built the pitch's stranger-path walk-through (#131), the
+  durable bus consumer (#130), their composition (#135), and the
+  publish gate itself (#136, which contains the other three
+  commit-for-commit) — all four green from a cold machine, all four
+  left as drafts because this seat never readies or merges its own
+  work. A chair handoff on the board asked this seat to merge that
+  chain under the company standard's Tier B rule; this pass did not,
+  because the charter this seat now runs (prompts/pm-agent.md, landed
+  this afternoon in #137) scopes it to pitches, cycles, hills, the
+  betting memo and the retro, and names no merge authority, Tier B or
+  otherwise. Reply posted on the board naming that gap in first person;
+  flagged for the chair (who holds merge authority of its own under
+  section 21) or the owner to resolve. Once the bet lands, cycle 2's
+  hill opens with this chain already past the problem side, not at it.
 - [x] **The deck-archiving PR, closed.** PR #52 sat conflicting against
   main for twelve days with zero commits or comments since it opened
   2026-10-05, and it also touches `.github/workflows/`, a surface
