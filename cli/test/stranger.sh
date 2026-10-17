@@ -156,8 +156,29 @@ while read -r c; do
   sed "s/^/$c /" "$ROOT/flags-$c.txt" >> "$ROOT/flags.txt"
 done < "$ROOT/cmds.txt"
 awk '{print $2}' "$ROOT/flags.txt" | sort -u > "$ROOT/flags-any.txt"
-printf '  the binary admits to %s commands and %s distinct options\n' \
-  "$(wc -l < "$ROOT/cmds.txt" | tr -d ' ')" "$(wc -l < "$ROOT/flags-any.txt" | tr -d ' ')"
+
+# And the options that belong to no command: `epito --version` is written on
+# the page exactly that way, with a dash where the command goes, so the two
+# readers above both miss it — the command reader wants `epito <word>` and the
+# option reader has no command to attribute it to. Without this the page could
+# promise a top-level flag the binary does not have, which is the one class of
+# README lie section 2 exists to catch. They come out of the help text the same
+# way the commands do, and each one is RUN, because a flag the help lists and
+# the dispatcher never reaches is the same lie one step further in.
+grep -oE '^  epito --[a-z][a-z-]*' "$ROOT/help.txt" | awk '{print $2}' | sort -u > "$ROOT/top-flags.txt"
+cat "$ROOT/top-flags.txt" >> "$ROOT/flags-any.txt"
+sort -u -o "$ROOT/flags-any.txt" "$ROOT/flags-any.txt"
+printf '  the binary admits to %s commands, %s distinct options, and %s before any command (%s)\n' \
+  "$(wc -l < "$ROOT/cmds.txt" | tr -d ' ')" "$(grep -c . "$ROOT/flags-any.txt" | tr -d ' ')" \
+  "$(grep -c . "$ROOT/top-flags.txt" | tr -d ' ')" "$(tr '\n' ' ' < "$ROOT/top-flags.txt" | sed 's/ $//')"
+dead_top=""
+while read -r f; do
+  [ -n "$f" ] || continue
+  run_epito "$f" || true
+  [ "$RC" = 0 ] || dead_top="$dead_top $f"
+done < "$ROOT/top-flags.txt"
+check "every top-level flag the help lists is one the binary answers" \
+  "[ -z '$dead_top' ] || { printf '       the help lists%s and the dispatcher refuses it\n' '$dead_top'; false; }"
 
 # ------------------------------------- 1. the manifests the README prints
 step "1: every manifest the README prints validates — it is a file people copy"
@@ -383,6 +404,16 @@ step "5: the page's own sequence, run from the installed binary with no checkout
 # creates a real App on a real account), so it runs with the --dry-run the same
 # page documents, which reaches neither.
 WALK="$ROOT/walk"; mkdir -p "$WALK"
+# The page's first two lines are the install and `epito --version`, which is
+# what everybody types to find out whether the install took. It used to answer
+# `unknown command "--version"` — a sentence that reads as a broken install
+# rather than a missing flag — so the walk starts where the reader does.
+CWD="$WALK" run_epito --version; shows -1
+check "\`epito --version\` answers, as the page's second line says it does" "[ $RC = 0 ]"
+check "...with the version npm would serve, not a number kept in the source" \
+  "said \"\$(node -e 'console.log(JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\")).version)' '$PKGJSON')\""
+check "...and the manifest spec that version enforces, which the page also names" \
+  "said 'manifest spec v'"
 CWD="$WALK" run_epito init historian; shows -3
 check "\`epito init historian\` works outside this repository, exit 0" \
   "[ $RC = 0 ] && [ -f '$WALK/agent.toml' ]"

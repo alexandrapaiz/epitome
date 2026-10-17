@@ -4,10 +4,15 @@
 
 ```bash
 npm i -g epito
+epito --version
 ```
 
 Half a megabyte installed. The engine is not in it — see *The engine is
-optional* below.
+optional* below. The second line is the install check, and it answers in
+three facts: the version this box has, the manifest spec that version
+enforces, and the node it found. (`epito` needs node 18 or newer, and
+`epito doctor` is the longer version of the same question — would a run
+on this box start, and which piece is missing.)
 
 ## The whole agent
 
