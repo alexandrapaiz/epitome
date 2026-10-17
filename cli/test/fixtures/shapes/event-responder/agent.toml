@@ -7,6 +7,13 @@
 #
 # It is also the shape that is not a Claude session, which is the point of
 # [runtime].adapter: epito runs the agent its author already wrote (ADR-17).
+#
+# Both of the event triggers are here because they are different in kind, and
+# this is the shape that has to prove the difference (spec v0.2). `webhook` is
+# a door somebody pushes: if the runtime is down the push is gone.
+# `subscriptions` is the bus remembering — the runtime holds a durable consumer
+# on those subjects and acknowledges an event only once this seat's run has
+# started, so an event published during a restart is still waiting afterwards.
 
 [agent]
 name = "event-responder"
@@ -17,6 +24,7 @@ scopes = ["github:contents", "github:issues"]
 
 [trigger]
 webhook = true
+subscriptions = ["acme.events.*.issue.opened", "acme.events.support.run.failed"]
 
 [runtime]
 model = "claude-sonnet-5"

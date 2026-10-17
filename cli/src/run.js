@@ -11,6 +11,10 @@
 //     validate` applies; a broken manifest stops the command, loudly
 //   - make Temporal's schedules match that roster (create / update / delete),
 //     which is idempotent, so a restart reconciles rather than duplicates
+//   - hold one durable bus consumer per seat that declares
+//     `[trigger].subscriptions`, and acknowledge an event only once that
+//     seat's run has started, so an event outlives a restart and is
+//     redelivered until a seat takes it
 //   - serve POST /hooks/<name>, /message/<name>, /window/open, /window/close
 //     and GET /healthz, turning each into a workflow start or a signal
 //   - serve the board: POST /board files a run report from a seat anywhere
@@ -31,6 +35,8 @@ import { startHookServer } from "./lib/hooks.js";
 import { windowInstruction } from "./lib/runner.js";
 import { appendAudit, AUDIT_PATH } from "./lib/audit.js";
 import { appendBoard, readBoard, foldBoard, renderBoard, BOARD_PATH } from "./lib/board.js";
+import { busEnv, subscribingSeats, reconcileConsumers, startConsuming, busOffSays, durableFor } from "./lib/bus.js";
+import { connectBus } from "./lib/nats.js";
 import { connect } from "./temporal/client.js";
 import { reconcile } from "./temporal/schedules.js";
 import { temporalEnv, runId, windowId, DEFAULT_PORT } from "./temporal/env.js";
@@ -132,8 +138,23 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
     for (const s of plan[k]) record({ agent: s.name, action: `schedule.${k}`, schedule: s.id, cron: s.shape?.cron ?? null });
   }
   if (dryRun) {
+    // The rehearsal covers the bus as well as the clock, because a seat whose
+    // only trigger is a subscription is invisible in a schedule plan: the
+    // engine has nothing to register for it, and "0 schedules" on a roster of
+    // event-driven seats reads as a roster that does nothing.
+    const rehearse = { cfg: busEnv(), seats: subscribingSeats(roster) };
+    if (rehearse.seats.length && !rehearse.cfg.stream) log(`! ${busOffSays(rehearse.seats)}`);
+    else if (rehearse.seats.length) {
+      try {
+        const conn = await connectBus({ url: rehearse.cfg.url, name: "epito-run-dry" });
+        const plan = await reconcileConsumers({ bus: conn, cfg: rehearse.cfg, seats: rehearse.seats, log: (m) => log(m), dryRun: true });
+        for (const c of plan.unchanged) log(`consumer ${c.durable} on ${rehearse.cfg.stream} is already what ${c.name}'s manifest asks for`);
+        for (const d of plan.dead) log(`! ${d.name} subscribes to ${d.subject}, which stream ${rehearse.cfg.stream} does not carry (it carries ${plan.streamSubjects.join(", ")}) — nothing will ever arrive on it`);
+        conn.close();
+      } catch (e) { log(`! the bus would not be consumed (${e.message})`); }
+    }
     await connection.close().catch(() => {});
-    log(`dry run: nothing was registered on the engine and nothing was written to ${AUDIT_PATH}`);
+    log(`dry run: nothing was registered on the engine or the bus, and nothing was written to ${AUDIT_PATH}`);
     return;
   }
 
@@ -331,6 +352,60 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
     },
   });
 
+  // --- the bus ------------------------------------------------------------
+  //
+  // One durable consumer per subscribing seat, and `wake` is the contract the
+  // whole feature rests on: it resolves when the seat's run has STARTED, and
+  // only then does the loop acknowledge the event. Everything that can refuse
+  // a start — a dead engine, a worker that is not polling — leaves the event
+  // unacknowledged and in the stream.
+  //
+  // It is wired AFTER the ingress is listening and it never stops the command:
+  // a box whose bus is down still serves hooks, still runs its schedules, and
+  // says per seat what it cannot be woken by. The bus is a trigger, and a
+  // missing trigger is not a reason to take the other two away.
+  const bus = { cfg: busEnv(), seats: subscribingSeats(roster), conn: null, loop: null, firstEvent: true };
+  async function wireBus() {
+    bus.seats = subscribingSeats(roster);
+    if (!bus.seats.length) return;
+    if (!bus.cfg.stream) { log(`! ${busOffSays(bus.seats)}`); return; }
+    try {
+      bus.conn = await connectBus({ url: bus.cfg.url, name: `epito-run-${process.pid}` });
+      const plan = await reconcileConsumers({ bus: bus.conn, cfg: bus.cfg, seats: bus.seats, log });
+      for (const k of ["create", "update"]) {
+        for (const c of plan[k]) appendAudit({ agent: c.name, action: `bus.consumer.${k}`, stream: bus.cfg.stream, consumer: c.durable, subjects: c.subjects });
+      }
+      for (const d of plan.dead) {
+        log(`! ${d.name} subscribes to ${d.subject}, which stream ${bus.cfg.stream} does not carry (it carries ${plan.streamSubjects.join(", ")}) — nothing will ever arrive on it. Fix: correct the subject, or widen the stream.`);
+      }
+      bus.loop = startConsuming({
+        bus: bus.conn, cfg: bus.cfg, seats: bus.seats, log,
+        wake: async (name, ev) => startOrFollowUp(name, "bus", { hookBody: ev.data }),
+        onEvent: (name, ev, started) => {
+          appendAudit({ agent: name, action: "bus.event", stream: bus.cfg.stream, consumer: durableFor(bus.cfg.group, name), subject: ev.subject, event: ev.id, streamSeq: ev.streamSeq, delivery: ev.delivery, outcome: started.outcome });
+          log(`${name}: run ${started.outcome} (${started.workflow}) — event acknowledged`);
+          // The first event this runtime ever takes off the stream is the
+          // moment the bus stops being a person forwarding messages by hand,
+          // and the board is where the owner reads it. Once, not per event:
+          // the ledger holds every one of them (`epito audit --action bus`).
+          if (bus.firstEvent) {
+            bus.firstEvent = false;
+            try { appendBoard({ kind: "note", agent: name, text: `woken by the bus: ${ev.subject} from stream ${bus.cfg.stream}, the first event this runtime consumed`, source: "bus" }); }
+            catch (e) { log(`${name}: the board refused the note about the first bus event (${e.message})`); }
+          }
+        },
+        onError: (name, e) => appendAudit({ agent: name, action: "bus.refused", stream: bus.cfg.stream, consumer: durableFor(bus.cfg.group, name), detail: e.message }),
+      });
+      log(`the bus is live: ${bus.seats.length} consumer${bus.seats.length === 1 ? "" : "s"} on ${bus.cfg.stream} at ${bus.cfg.url}, acknowledged when a run starts (\`epito bus ${dirArg}\` is the report)`);
+    } catch (e) {
+      // Named, not fatal, and said per seat: these seats are the ones that
+      // will not be woken until this is fixed.
+      log(`! the bus is not consuming (${e.message})`);
+      log(`! until it is, ${bus.seats.map((s) => s.name).join(", ")} ${bus.seats.length === 1 ? "is" : "are"} woken only by what else ${bus.seats.length === 1 ? "its manifest declares" : "their manifests declare"}; events stay in the stream and are redelivered when it comes back`);
+    }
+  }
+  await wireBus();
+
   log(`epito run: ${roster.size} seat${roster.size === 1 ? "" : "s"} from ${dir}; audit=${AUDIT_PATH}; board=${BOARD_PATH}`);
   for (const [name, a] of roster) log(`  ${name}: repo=${a.manifest.runtime.repo} model=${a.manifest.runtime.model} cron=${a.manifest.trigger.cron ?? "-"}`);
   log(`windows default to ${Math.round(cfg.windowMs / 60000)} minutes (EPITO_WINDOW_MS)`);
@@ -352,12 +427,26 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
       for (const k of ["create", "update", "delete"]) {
         for (const s of p[k]) appendAudit({ agent: s.name, action: `schedule.${k}`, schedule: s.id, cron: s.shape?.cron ?? null });
       }
+      // A seat added without a restart may be a seat the bus wakes, so the
+      // consumers are reconciled on the same signal as the schedules. The
+      // loops in flight are stopped first: two loops on one durable would
+      // both pull, and the second one's events would wait on the first's
+      // acknowledgement for no reason.
+      if (bus.loop) await bus.loop.stop();
+      if (bus.conn) bus.conn.close();
+      bus.conn = null; bus.loop = null;
+      await wireBus();
     } catch (e) { log(`SIGHUP: reconcile failed (${e.message}); the previous roster stays in force`); }
   });
 
   const shutdown = async (sig) => {
     log(`${sig}: shutting down the ingress (schedules and runs in flight are the engine's, and stay)`);
     server.close();
+    // The bus is let go without acknowledging anything in flight, on purpose:
+    // an event whose run had not started is redelivered to the next runtime,
+    // which is the promise this whole door exists to keep.
+    if (bus.loop) await bus.loop.stop();
+    if (bus.conn) bus.conn.close();
     appendAudit({ agent: null, action: "ingress.stop", signal: sig });
     await connection.close().catch(() => {});
     setTimeout(() => process.exit(0), 200);

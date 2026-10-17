@@ -25,8 +25,10 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
   epito doctor [dir]  would a run on THIS box start? the manifests, the names,
                       the roads, the EXECUTOR epito spawns (resolved on the PATH
                       a run gets, started under the environment a run gives it),
-                      the engine, and whether a WORKER is polling its queue —
-                      exit 1 naming the piece that is missing
+                      the engine, whether a WORKER is polling its queue, and
+                      — for seats the bus wakes — whether this box names a
+                      stream for them at all; exit 1 naming the piece that is
+                      missing
                       (--deep also runs one real turn per road, which costs a
                       model call and is the only thing that proves credentials)
   epito run <dir>     put every agent.toml under <dir> on the runtime: one
@@ -42,6 +44,9 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       makes a seat that runs and quietly does less
                       (--template prints the env file, --complete makes a
                       missing name an error, --json)
+  epito bus [dir]     what the bus is holding for this roster on THIS box: the
+                      subjects each seat subscribes to, its durable consumer,
+                      and how many events are waiting for it (--json)
   epito board         what the seats have been doing: run reports, newest
                       last (--agent, --kind, --limit, --json)
   epito audit [name]  the ledger: every App created, every token minted and
@@ -69,11 +74,19 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
 The runtime is two processes and one engine: \`epito run\` reconciles and
 serves the ingress, \`epito worker\` executes, and Temporal (self-hosted,
 TEMPORAL_ADDRESS, default 127.0.0.1:7233) is what makes a run survive a
-reboot. See docs/prfaq/epitod-v1-temporal.md.
+reboot.
+
+A seat can also be woken by an event the bus is holding, not only by a clock
+or a push: \`[trigger].subscriptions\` names the subjects, \`epito run\` keeps one
+durable consumer per seat on them, and an event is acknowledged only once that
+seat's run has started — so it outlives a restart and is redelivered until a
+seat takes it. EPITO_BUS_URL (default nats://127.0.0.1:4222) and
+EPITO_BUS_STREAM say where those events are; \`epito bus\` says what is waiting.
 
 The board is where the runs show up: every seat epitod runs files its own
 report, and a seat that runs somewhere else files one with \`epito report\`.
-See ADR-16 (docs/decisions.md).
+Its store is an append-only event log: not a database, and not a file in the
+repository the seats work in.
 
 The board and the ledger answer two different questions. The board is "what
 have the seats been doing" — run reports, folded for an owner. The ledger
@@ -83,14 +96,15 @@ token actually held, on which repository, until when.
 
 A seat can declare several roads to a model: \`[[runtime.route]]\` names them in
 order, and a run takes the first one that starts it — falling back only while
-the agent has provably done nothing (ADR-19). \`epito routes\` says which are
-open on this box.
+the agent has provably done nothing. \`epito routes\` says which are open on
+this box.
 
 A seat does not have to be a Claude session: \`[runtime].adapter = "langgraph"\`
 runs a LangGraph app through the \`langgraph.json\` its author already wrote,
-unmodified (ADR-17). Set OTEL_EXPORTER_OTLP_ENDPOINT — Phoenix, Jaeger, Tempo,
-anything that takes OTLP — and every run files a trace: the run, its clone, its
-mint, and whatever the agent itself emits inside it (ADR-18).
+unmodified. Set OTEL_EXPORTER_OTLP_ENDPOINT — Phoenix, Jaeger, Tempo, anything
+that takes OTLP — and every run files a trace: the run, its clone, its mint, and
+whatever the agent itself emits inside it. The collector is a surface and never
+a dependency: nothing about a run changes when none is set.
 `;
 
 const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
@@ -264,6 +278,11 @@ if (cmd === "run") {
   const { envCmd, ENV_FLAGS } = await import("./env.js");
   gate("env", args, ENV_FLAGS);
   await envCmd(args);
+  process.exit(0);
+} else if (cmd === "bus") {
+  const { busCmd, BUS_FLAGS } = await import("./bus.js");
+  gate("bus", args, BUS_FLAGS);
+  await busCmd(args);
   process.exit(0);
 } else if (cmd === "board") {
   const { boardCmd } = await import("./board.js");
