@@ -42,6 +42,9 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       makes a seat that runs and quietly does less
                       (--template prints the env file, --complete makes a
                       missing name an error, --json)
+  epito bus [dir]     what the bus is holding for this roster on THIS box: the
+                      subjects each seat subscribes to, its durable consumer,
+                      and how many events are waiting for it (--json)
   epito board         what the seats have been doing: run reports, newest
                       last (--agent, --kind, --limit, --json)
   epito audit [name]  the ledger: every App created, every token minted and
@@ -70,6 +73,13 @@ The runtime is two processes and one engine: \`epito run\` reconciles and
 serves the ingress, \`epito worker\` executes, and Temporal (self-hosted,
 TEMPORAL_ADDRESS, default 127.0.0.1:7233) is what makes a run survive a
 reboot. See docs/prfaq/epitod-v1-temporal.md.
+
+A seat can also be woken by an event the bus is holding, not only by a clock
+or a push: \`[trigger].subscriptions\` names the subjects, \`epito run\` keeps one
+durable consumer per seat on them, and an event is acknowledged only once that
+seat's run has started — so it outlives a restart and is redelivered until a
+seat takes it. EPITO_BUS_URL (default nats://127.0.0.1:4222) and
+EPITO_BUS_STREAM say where those events are; \`epito bus\` says what is waiting.
 
 The board is where the runs show up: every seat epitod runs files its own
 report, and a seat that runs somewhere else files one with \`epito report\`.
@@ -264,6 +274,11 @@ if (cmd === "run") {
   const { envCmd, ENV_FLAGS } = await import("./env.js");
   gate("env", args, ENV_FLAGS);
   await envCmd(args);
+  process.exit(0);
+} else if (cmd === "bus") {
+  const { busCmd, BUS_FLAGS } = await import("./bus.js");
+  gate("bus", args, BUS_FLAGS);
+  await busCmd(args);
   process.exit(0);
 } else if (cmd === "board") {
   const { boardCmd } = await import("./board.js");
