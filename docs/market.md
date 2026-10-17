@@ -1,5 +1,224 @@
 # Market brief — docs/market.md
 
+Maintained by the market seat. This revision: **rev 7, 2026-10-16**,
+weekly window run. `gh pr list` was checked first (L-E10): rev 6
+merged as PR #94 on 2026-10-09, no market PR is open now, so this
+revision is written fresh on top of main rather than stacked on an
+unmerged draft — the first clean week since rev 3.
+
+This is a seven-day delta (2026-10-09 through 2026-10-16). The ADR-12
+tripwire was checked directly against LangChain's changelog and blog,
+as every run must; it did not newly fire, but it moved closer than any
+prior check on the GitHub side specifically, and the finding below
+says exactly how close. Two other things moved: the owner closed the
+longest-open item in rev 6's queue table herself, today, inside a
+cycle-level ruling rather than by answering the market seat's question
+directly — reported as a resolution, not a re-ask; and a GitHub issue
+from a real engineering org, opened one day before rev 6 shipped and
+missed until this run, is the sharpest demand quote this brief has
+carried.
+
+## Orientation: the queue lost its oldest item, and GitHub moved one step closer
+
+**The queue, resolved not re-asked.** Rev 6 reported three asks sitting
+behind one gate (the owner's merge), the oldest seven days old. Today,
+2026-10-16, the owner ruled on cycle 2 directly — relayed by the chair,
+verbatim: "we need our product to work, we need an MVP" — closing
+cycle 1 under the PM standard's new silence rule (`docs/standards/pm.md`
+§22, vendored today) and replacing the cycle-2 bet with
+`mvp-stranger-npm-v0` (publish to npm, one real deploy proof, a README
+walk-through), declining `slack-identity-v0` and `passport-v0-github`
+"on timing not worth, first in line for cycle 3" (PR #67, rewritten
+2026-10-16). Read against this brief's own queue table: row 3 (the
+cycle-2 bet) is resolved, and row 1 (ADR-12's "pull the passport
+prototype forward, yes/no," open 14 days) is answered in substance —
+not now, cycle 3 — though not in the form the tripwire asked, which was
+a direct yes/no on the passport alone. **Row 2 is not touched by
+today's ruling and stays open at 14 days**: ADR-13's usage-based
+buyer-2 pricing question is a pricing-model ruling, not a
+build-sequencing one, and nothing in today's MVP override answers it
+either way. Reported per L-A27: the owner exercised the authority
+herself rather than the queue draining through a lesson; the one row
+that remains is named so it does not quietly inherit the resolved
+appearance of the other two.
+
+**ADR-12, checked directly (L-R1):** LangChain's blog (fetched
+2026-10-16, `langchain.com/blog`) lists twelve posts since rev 6's
+2026-10-09 check, and the LangSmith Cloud changelog's "October 5-12,
+2026" entry ([docs.langchain.com/langsmith/changelog](https://docs.langchain.com/langsmith/changelog),
+accessed 2026-10-16) carries the one item worth escalating attention to
+without calling it a new fire: **"Agent Auth now mints GitHub App
+installation tokens, so agents can call `connections.get` on a
+`github_app` connection"** and receive "a working token... renewed
+automatically before it expires." This is the first time Agent Auth's
+token-minting has named GitHub specifically rather than generic OAuth.
+It does not fire the tripwire on inspection of the surrounding docs:
+the GitHub channel guide ([Add a GitHub channel to Managed Deep
+Agents](https://docs.langchain.com/langsmith/managed-deep-agents-channels/github),
+accessed 2026-10-16) lists as a prerequisite "a GitHub App you control,
+... installed on the target org or repos" — the App itself is
+customer-provisioned and shared across whatever calls it, the same
+shape as LangSmith Engine's own GitHub integration ("connects through a
+LangChain-managed GitHub App," one installation per organization,
+per search this run) and the same shape rev4/rev5 already assessed as
+not firing. What changed is that Agent Auth now handles that shared
+App's token *lifecycle* automatically; it still does not mint a new,
+distinct principal per agent. **The asymmetry worth naming:** Slack is
+still the only outside platform where LangChain's own product
+auto-provisions a new per-deployment principal with no customer App
+required (rev6 §Orientation, reconfirmed, no new check needed this
+run); GitHub requires the customer to bring an App first, every time,
+which is a materially higher bar than Slack's zero-setup path. If
+LangChain ever auto-provisions the GitHub App the way it auto-provisions
+the Slack app, that is the tripwire; this run confirms it has not,
+while also confirming GitHub is the platform to re-check first next
+time, not Slack. Flagged: the exact scoping of an Agent Auth-minted
+installation token (whether two agents calling the same `github_app`
+connection can ever receive tokens for two different installations
+rather than one) was not found in any primary doc this run; the
+CLI reference and the per-caller-identity post both predate this
+changelog entry and don't cover `github_app` connections at all.
+
+**GitHub's agent-app waitlist, re-checked directly** against its own
+changelog page: still reads "Over the coming months, we'll open up
+access to allow anyone to build agent apps," unchanged, no date named
+([GitHub changelog, 2026-06-02](https://github.blog/changelog/2026-06-02-extend-github-with-agent-apps/),
+accessed 2026-10-16) — no re-ranking trigger.
+
+## 1. Landscape delta — OpenClaw starts shipping credentials work; Entra tightens its own wall
+
+**OpenClaw moves past "fix the foundation."** Rev 4 and rev 5 both
+found OpenClaw holding at a stability-only release cadence; this run
+is the first to find it shipping credential-shaped work again. The
+latest line, `2026.10.10-beta.1` (dated 2026-10-15, per
+[releasebot.io/updates/openclaw](https://releasebot.io/updates/openclaw),
+accessed 2026-10-16), notes work to "protect provider and MCP
+credentials from concurrent CLI writes," a "principal-bound relay
+plugin" for connecting MCP apps, and a "principal-bound remote Control
+UI for trusted plugins." None of this names GitHub, Slack, or any
+outside-platform identity — it reads as OpenClaw hardening its own
+internal credential and principal model, not opening a cross-platform
+one — but it is the first forward motion on this axis since rev 4's
+search found the 2.0 stability phase, and the next run should check
+whether "principal-bound" extends outward.
+
+**Entra Agent ID tightens, inward, not outward.** Microsoft is ending
+the automatic grant of `AgentIdentity.CreateAsManager` to agent
+blueprint principals — admins can grant it manually starting
+2026-10-16 (today) and the automatic grant ends worldwide in November
+([Microsoft Entra Message Center MC1506728, mirrored at
+mc.merill.net](https://mc.merill.net/message/MC1506728), accessed
+2026-10-16). Read against vision §1: this is Microsoft adding more
+governance around who may create an agent identity *inside its own
+tenant*, the walled-resident pattern the gap names, not a step toward
+an identity that leaves the wall. Secondary coverage claims Conditional
+Access now treats Agent ID as a first-class principal type; not
+confirmed against a Microsoft primary source this run, flagged.
+
+**Re-checked, no change:** the GitHub-App-per-agent tool count rev 6
+found (ChatBotKit, Vellum, the Hermes community plugin, the Skillselion
+Claude Code skill) was not re-searched this run — the search budget
+went to the ADR-12 and demand items above and below — so that count
+stands at rev 6's number, not re-verified higher or lower.
+
+## 2. Demand — the sharpest quote this brief has carried, from a real engineering org
+
+A GitHub issue opened 2026-10-08 (one day before rev 6 shipped, missed
+until this run) on NAV's (Norway's national digital-services agency)
+internal Copilot tooling repo states the proxy problem this brief has
+argued from vision all along, now in a real backlog with a
+`needs-decision` label:
+
+> "Every agent we run acts on GitHub as the human who started it.
+> Claude Code subagents, Copilot CLI and OpenCode launched through
+> nav-pilot, the scheduled canary and local scripts all use the
+> owner's personal `gh` login. Their PR comments, review replies,
+> thread resolutions, merge-queue enqueues and new issues all appear
+> under the human's account. A reviewer can't tell agent actions from
+> human ones, and the token the agent holds can do everything the
+> human can."
+
+— and names the business reasons in the issue's own words: "Nav must
+be able to say who did what," "a misbehaving agent can't be cut off
+without revoking the human's login," "an agent that can comment,
+resolve threads and enqueue with the same identity as the approving
+human weakens the review requirement," and "agent traffic draws on the
+human's 5,000/h REST budget... agent and human usage can't be
+separated in metrics" ([navikt/copilot#1508](https://github.com/navikt/copilot/issues/1508),
+accessed 2026-10-16). This is vision §1's "proxy" branch — "goes
+everywhere as its human, is nobody" — written independently by an
+engineering org with no knowledge of this product, with audit,
+revocation, review-integrity, and billing-separation all named as
+reasons in one issue rather than inferred across several, which is
+sharper than any single prior quote this brief has carried. The issue
+links a sibling (`navikt/cplt#731`) already building the DIY partial
+fix — a scoped fine-grained PAT per repo, opt-in author names, a local
+identity log — which is the same commoditization dynamic rev 6's
+landscape section already named: the narrow mechanism is cheap to
+build piecemeal, which is exactly why what we sell has to be the
+roster and the audit trail, not the App-per-agent trick alone.
+
+**Reinforcing, weaker signal:** a one-star repo's issue opened
+2026-10-15 hits the mechanical half of the same problem from the
+builder side — `GITHUB_TOKEN` can't trigger downstream workflow runs,
+"breaks autonomous bot chaining," and the fix adopted is a GitHub App
+token specifically because, in the issue's own words, PATs are
+"tied to individual users and are less secure than GitHub App tokens,
+which are scoped and short-lived" ([arii/boomtick#859](https://github.com/arii/boomtick/issues/859),
+accessed 2026-10-16). The App token this issue reaches for is still
+one shared App for the whole repo, not a per-agent identity — it
+reinforces rev 5's finding (GitHub's own PAT fix is shared, not
+per-agent) from the builder's side rather than the vendor's.
+
+## 3. Positioning and pricing — one ask resolved in substance, one still fully open
+
+The cycle-sequencing question is answered (orientation, above): the
+passport prototype is not being pulled forward now, it is first in
+line for cycle 3. That is a scheduling answer, not a pricing one.
+ADR-13's usage-based, per-mint/per-verify pricing recommendation for
+buyer 2 — and rev 1's flat roster tier for buyer 1 — both still await
+the owner's word, now 14 and 28 days respectively, untouched by
+anything found this run.
+
+## 4. Integration map — no re-ranking trigger fired; a build-schedule note, not a rank change
+
+GitHub's agent-app waitlist and LangChain's changelog/blog were the two
+live trigger conditions checked this run (above); neither fired.
+Standing recommendation unchanged: **Slack remains integration #2**.
+One clarification worth stating plainly so it isn't read into the
+ranking: today's cycle-2 ruling means no Slack-identity or
+passport work lands before cycle 3 regardless of this ranking — the
+mechanism audit (rev 4, rev 5) already found `cli/src/lib/slack.js`
+unbuilt as an identity mint (still a webhook poster, re-confirmed
+against main this run, no new engineer PRs touch `apps.manifest.create`
+— unchanged since rev 5's audit), and that gap now has an explicit
+cycle, not just an open rank, standing between it and being built.
+
+---
+
+*Charter compliance note (rev 7): research only; nothing posted, no
+one contacted, no accounts created. Checked against
+docs/standards/lessons.md before shipping: L-R1 (the live-world checks
+above — LangChain's changelog, GitHub's changelog, OpenClaw's release
+feed, Entra's Message Center, and the two GitHub issues, all fetched
+directly), L-E10 (`gh pr list` checked first; rev 6 was merged, so this
+revision starts clean on main rather than stacking), L-X7 (the queue
+reported as resolved-in-substance for one row and still-open for
+another, not re-asked as a flat three), L-A27 (the owner's own exercise
+of authority today reported as that, not folded silently into "no
+change"). Flagged: the exact scoping of Agent Auth's GitHub App
+installation-token minting (landscape §Orientation) — whether it can
+ever be per-agent rather than per-App — was not confirmed in any
+primary doc and needs a direct re-check once LangChain documents the
+`github_app` connection type on its own terms; the Conditional
+Access/Agent-ID claim (§1) is secondary-sourced only; the GitHub-App-
+per-agent tool count (§1) was carried from rev 6 without re-verification
+this run, flagged as such rather than silently restated as current.*
+
+---
+
+# Market brief — docs/market.md (rev 6, superseded by rev 7 above)
+
 Maintained by the market seat. This revision: **rev 6, 2026-10-09**,
 weekly window run. Built on the unmerged rev 5 (PR #55, 2026-10-05,
 itself stacked on rev 4's PR #42 and rev 3's PR #31) rather than
