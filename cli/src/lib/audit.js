@@ -127,6 +127,7 @@ export const ACTIONS = [
   "hook", "message", "window.open", "window.close", "session.hold",
   "slack.post", "schedule.create", "schedule.update", "schedule.delete",
   "reconcile.start", "ingress.stop", "worker.start", "worker.stop",
+  "bus.consumer.create", "bus.consumer.update", "bus.event", "bus.refused",
 ];
 
 const permList = (p) =>
@@ -180,6 +181,13 @@ const SAY = {
   "reconcile.start": (l) => phrase(l.dir, l.address, l.namespace && `namespace ${l.namespace}`, l.queue && `queue ${l.queue}`),
   "worker.start": (l) => phrase(l.address, l.namespace && `namespace ${l.namespace}`, l.queue && `queue ${l.queue}`, l.executor, l.traces && `traces ${l.traces}`),
 };
+// An event the bus delivered, and what the runtime did with it. `delivery`
+// is printed only when it is not the first: a line that says "delivery 3" is
+// the evidence that an event survived two runs that could not start it.
+SAY["bus.event"] = (l) => phrase(l.subject, l.streamSeq != null && `stream seq ${l.streamSeq}`, l.delivery > 1 && `delivery ${l.delivery}`, l.outcome);
+SAY["bus.consumer.create"] = (l) => phrase(l.consumer, l.stream && `on ${l.stream}`, l.subjects?.length && l.subjects.join(" "));
+SAY["bus.consumer.update"] = SAY["bus.consumer.create"];
+SAY["bus.refused"] = (l) => phrase(l.consumer, l.detail);
 SAY["schedule.update"] = SAY["schedule.create"];
 SAY["schedule.delete"] = SAY["schedule.create"];
 SAY["worker.stop"] = (l) => phrase(l.signal);

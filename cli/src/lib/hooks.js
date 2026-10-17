@@ -15,6 +15,7 @@
 // interpreted — they are JSON with a text field — and a malformed one is
 // refused by name, in the product's voice, not swallowed.
 import { createServer } from "node:http";
+import { inRepo } from "./where.js";
 import { createHash, timingSafeEqual } from "node:crypto";
 
 const MAX_BODY = 64 * 1024;
@@ -123,7 +124,7 @@ That is usually epitod itself: \`systemctl status epitod\` (the reconcile above
 already landed, so a running epitod needs \`systemctl reload epitod\`, not a
 second one). Fix: stop it, or give this one its own port with EPITO_PORT.`);
     } else if (e.code === "EACCES") {
-      console.error(`epito: the ingress may not listen on ${host}:${port} (${e.code}) — a port below 1024 needs root. Fix: set EPITO_PORT to a port above 1024 and put Caddy in front of it, which is what deploy/provision-host.sh does.`);
+      console.error(`epito: the ingress may not listen on ${host}:${port} (${e.code}) — a port below 1024 needs root. Fix: set EPITO_PORT to a port above 1024 and put Caddy in front of it, which is what ${inRepo("deploy/provision-host.sh")} does.`);
     } else {
       console.error(`epito: the ingress could not listen on ${host}:${port} (${e.code ?? e.message})`);
     }

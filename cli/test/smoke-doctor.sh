@@ -37,6 +37,9 @@
 #   8. it writes nothing: no .epito/, no ledger line, nothing on the engine
 #   9. who each seat acts as on this box: its own App, a person's shared
 #      credential, nobody, or half an identity — and which of those exit 1
+#  9b. the bus row: which seats `[trigger].subscriptions` wakes, whether this
+#      box names a stream for them at all, and that a seat with no other
+#      trigger on a box with no stream is reported and never refused
 #  10. and whether GitHub HAS that App, which is the one question no offline
 #      check can answer: installed where it would mint, an id this box names
 #      that GitHub does not have, a grant short of [identity].scopes, and a
@@ -336,6 +339,64 @@ if [ "$HAVE_ENGINE" = 1 ]; then
 else
   echo "  SKIPPED -- no engine answering at $ENGINE_ADDR. \"The engine is up and nothing is polling it\" needs the first half to be true."
   echo "  install it (curl -sSf https://temporal.download/cli.sh | sh) and run \`temporal server start-dev\`, or: npm run test:cold"
+fi
+
+step "5c. the bus: a seat nothing will ever wake, on a box that names no stream"
+# The row's whole reason: a seat whose only trigger is `[trigger].subscriptions`
+# needs a stream on THIS box, and a box with EPITO_BUS_STREAM unset consumes
+# nothing — so that seat never fires, and before this row the way to find out
+# was to publish an event and watch nothing happen. It is a report and never a
+# refusal, because `epito run` says the same on startup and keeps serving.
+#
+# Also asserted: the row is ABSENT for a roster nobody subscribes for. Every
+# other row is a piece every run needs; this one answers a question a cron-only
+# roster never asks, and a permanent "0 seats" line is a line operators learn
+# to skip.
+B="$TMP/bus-roster"
+mkdir -p "$B/listener" "$B/both"
+cat > "$B/listener/agent.toml" <<'EOF'
+[agent]
+name = "listener"
+description = "A seat with no schedule and no hook: the bus is the whole of its trigger."
+[identity]
+scopes = ["github:contents"]
+[trigger]
+subscriptions = ["acme.events.*.issue.opened"]
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/listener.md"
+repo = "acme/box"
+EOF
+cat > "$B/both/agent.toml" <<'EOF'
+[agent]
+name = "both"
+description = "A seat the bus wakes and a cron wakes too, so a missing stream makes it late and not dead."
+[identity]
+scopes = ["github:contents"]
+[trigger]
+cron = "0 6 * * *"
+subscriptions = ["acme.events.support.run.failed"]
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/both.md"
+repo = "acme/box"
+EOF
+run "$R"
+check "no bus row at all for a roster nobody subscribes for" "! said 'bus  '"
+EPITO_BUS_STREAM="" run "$B"
+check "a box with no stream reports the subscribing seats"   "said '! bus' && said 'both, listener' "
+check "and names the seat that therefore never fires"        "said 'listener never fires'"
+check "the fix is in the closing report, with the variable"  "said 'Fix: set EPITO_BUS_STREAM'"
+check "and it is a report: the ✗ lines never mention a bus"  "! printf '%s' \"\$out\" | grep '^  ✗' | grep -q bus"
+EPITO_BUS_STREAM="smoke-stream" run "$B"
+check "a box that names a stream says so, with the seats"    "said '✓ bus' && said 'smoke-stream'"
+check "and does not pretend it asked the server"             "said 'opened nothing' && said 'epito bus'"
+out="$(EPITO_BUS_STREAM="smoke-stream" $E doctor "$B" --json 2>&1)"
+check "--json carries the stream, and that nothing was asked" \
+  "printf '%s' \"\$out\" | node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>{const b=JSON.parse(s).bus;const l=b.seats.find(x=>x.agent===\"listener\");process.exit(b.stream===\"smoke-stream\"&&b.asked===false&&l.onlyTrigger===true&&l.subjects.length===1?0:1)})'"
+if [ "$HAVE_RUNTIME" = 1 ]; then
+  EPITO_BUS_STREAM="" run "$B"
+  check "a missing stream does not make the box refuse"      "[ $rc -eq 0 ]"
 fi
 
 step "6. --deep runs one turn per ROAD, not one per seat"

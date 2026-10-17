@@ -65,8 +65,8 @@ export function engineMissingMessage(cmd, missing) {
     `Fix: npm i -g ${install}`,
     `then: epito ${cmd}${cmd === "run" ? " <dir>" : ""}`,
     ``,
-    `On a runtime box you do not do this by hand — deploy/provision-host.sh installs the`,
-    `engine with the CLI. And the engine itself (the server \`epito run\` connects to at`,
+    `On a runtime box you do not do this by hand — ${inRepo("deploy/provision-host.sh")}`,
+    `installs the engine with the CLI. And the engine itself (the server \`epito run\` connects to at`,
     `TEMPORAL_ADDRESS) is a separate thing again: \`temporal server start-dev\` on a laptop.`,
   ].join("\n");
 }
@@ -108,6 +108,7 @@ export async function engineImport(loader, cmd) {
 // — temporal/env.js, for the address — imports nothing itself, which unit.mjs
 // also asserts.
 import { createConnection } from "node:net";
+import { inRepo } from "./where.js";
 import { temporalEnv } from "../temporal/env.js";
 
 export const DEFAULT_ADDRESS = "127.0.0.1:7233";
@@ -136,7 +137,7 @@ export function engineFix(address = DEFAULT_ADDRESS) {
   const where = address === DEFAULT_ADDRESS
     ? `set TEMPORAL_ADDRESS if your engine is somewhere other than the default ${DEFAULT_ADDRESS}`
     : `point TEMPORAL_ADDRESS at the engine you have — it is currently ${address}, and unsetting it falls back to ${DEFAULT_ADDRESS}`;
-  return `run \`temporal server start-dev\` for a local engine, or ${where}. On a runtime host the engine is brought up before epitod: docs/deploy/README.md ("Temporal server + UI") in github.com/alexandrapaiz/epitome.`;
+  return `run \`temporal server start-dev\` for a local engine, or ${where}. On a runtime host the engine is brought up before epitod: ${inRepo('docs/deploy/README.md', '"Temporal server + UI"')}.`;
 }
 
 // Why a connection failed, as a sentence rather than a struct.
