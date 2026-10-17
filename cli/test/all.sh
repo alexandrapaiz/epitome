@@ -211,7 +211,11 @@ run_suite() {
   printf '\n\033[1m== %s\033[0m\n' "$name"
   "$@" > "$log" 2>&1
   local rc=$? tally="" note="" result
-  tally="$(grep -Eo '^(smoke|provision|pack): [0-9]+ ok, [0-9]+ failed' "$log" | tail -1)"
+  # The prefixes the shell suites print their tally under. A suite missing from
+  # this list reports as `unrun` with 0 assertions counted, which is the exact
+  # false negative the diagnostic below was written for — test/stranger.sh hit
+  # it on its first run through here.
+  tally="$(grep -Eo '^(smoke|provision|pack|stranger): [0-9]+ ok, [0-9]+ failed' "$log" | tail -1)"
   if [ -z "$tally" ]; then
     local p f
     p="$(grep -Eo '^# pass [0-9]+' "$log" | tail -1 | grep -Eo '[0-9]+')"
@@ -265,6 +269,7 @@ run_suite "smoke-temporal"  bash "$CLI/test/smoke-temporal.sh"
 run_suite "smoke-langgraph" bash "$CLI/test/smoke-langgraph.sh"
 run_suite "provision-host"  bash "$ROOT/deploy/test-provision.sh"
 run_suite "pack"            bash "$CLI/test/pack.sh"
+run_suite "stranger"        bash "$CLI/test/stranger.sh"
 
 printf '\n%s\n' "-----------------------------------------------"
 failed=0; incomplete=0

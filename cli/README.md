@@ -25,6 +25,7 @@ cron = "0 6 * * *"        # and/or: webhook = true, to be woken by an event
 
 [runtime]
 repo = "acme/roster"
+entry = "prompts/historian.md"   # its charter, read inside the clone
 model = "claude-sonnet-5"
 max_turns = 40
 ```
@@ -65,8 +66,7 @@ That is a note, not an error: the file is a valid v0.2 manifest and the
 exit code stays 0. `epito validate --for-runtime` turns the notes into an
 error, for CI that would rather fail here than at 06:00. And in the normal
 case you will not see it at all — run `epito init` inside the repository
-the agent will work in and it reads `[runtime].repo` off the git origin
-(ADR-21).
+the agent will work in and it reads `[runtime].repo` off the git origin.
 
 Given a directory it checks the whole roster, and the last line is the
 only one that speaks for `epito run` — so it is the one line that looks:
@@ -90,7 +90,9 @@ Still exit 0 in both: your manifests are the question a roster validator
 can answer with no box, and they are good. `--for-runtime` is what makes
 the second one exit 1, because that is the flag that asks whether the
 runtime would accept this roster, and in the second case there is no
-runtime (ADR-24).
+runtime. A validator does not speak for a command it did not ask, which is
+why the plain `epito validate` stays at exit 0 and says the sentence
+instead.
 
 ## What this box owes the roster
 
@@ -245,7 +247,8 @@ SEAT  CRON       NEXT              SCHEDULE  RUNNING         WINDOW  …
 pm    0 12 * * 1 2026-10-13T12:00Z ok        1 (no worker)   -       …
 
 ✗ nothing is polling seats — … Fix: start one: `epito worker` on this box, or
-  `systemctl start epitod-worker` on a host provisioned by deploy/provision-host.sh …
+  `systemctl start epitod-worker` on a host provisioned by
+  deploy/provision-host.sh in github.com/alexandrapaiz/epitome …
   The one seat with a NEXT time above will not run at it either: the engine will start
   the run and nothing will pick it up.
 ```
@@ -387,7 +390,7 @@ showing the last 2 of 133 matching — `--limit 0` for all of them
 
 `--agent`, `--action`, `--since 24h`, `--limit 0` and `--json` narrow it.
 There is no way to write through this command: a ledger a hand can append to
-from outside is not a ledger (ADR-22). The token itself is never in it — not
+from outside is not a ledger. The token itself is never in it — not
 the audit line, not the log, not a file.
 
 The **board** is the other question. `epito board` is "what have the seats
@@ -410,13 +413,15 @@ npm i -g @temporalio/client @temporalio/worker @temporalio/activity @temporalio/
 
 Run one of them without it and `epito` says so in a sentence, naming the
 package and the install line — never a stack trace. On a runtime box you do
-not do this by hand; `deploy/provision-host.sh` installs the engine with the
-CLI.
+not do this by hand; `deploy/provision-host.sh` in
+[this repository](https://github.com/alexandrapaiz/epitome) installs the
+engine with the CLI.
 
 Those four packages are the engine **client**. The engine itself is a
 **server**, and it is a third thing: `temporal server start-dev` on a
 laptop, or a self-hosted Temporal brought up before epitod on a runtime
-host (docs/deploy/README.md). `epito run`, `epito worker` and `epito ps`
+host ([`docs/deploy/README.md`](https://github.com/alexandrapaiz/epitome/blob/main/docs/deploy/README.md)).
+`epito run`, `epito worker` and `epito ps`
 all refuse by name when it is not answering, and `epito validate <dir>`
 tells you before you get there.
 

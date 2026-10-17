@@ -3490,9 +3490,22 @@ test("the two readers of the worker's state read it, and do not re-decide it", (
   // And the module stays importable on a box with no engine installed, which
   // is what lets `epito doctor` hold these sentences there (same invariant as
   // lib/engine.js: the connection is handed in, never imported).
-  const pollers = readFileSync(fileURLToPath(new URL("../src/temporal/pollers.js", import.meta.url)), "utf8");
-  assert.ok(!/^import /m.test(pollers),
-    "src/temporal/pollers.js has grown an import — an @temporalio one there would make `epito doctor`'s sentences need the ~300 MB of engine");
+  //
+  // This was written as "pollers.js has no imports at all", which is a proxy
+  // for the real rule and refused the first honest import it met: the one
+  // locator every message naming a file in this repository shares
+  // (src/lib/where.js, two string constants). So it now states the property
+  // itself — nothing this module pulls in may pull anything in either, so
+  // there is no path from here to an @temporalio package however deep.
+  const read = (f) => readFileSync(fileURLToPath(new URL(`../${f}`, import.meta.url)), "utf8");
+  const pollers = read("src/temporal/pollers.js");
+  for (const [, spec] of pollers.matchAll(/^import .* from "([^"]+)";/gm)) {
+    assert.ok(spec.startsWith("."),
+      `src/temporal/pollers.js imports the package ${spec} — a package here would make \`epito doctor\`'s sentences need the ~300 MB of engine`);
+    const leaf = read(`src/temporal/${spec}`.replace(/[^/]+\/\.\.\//g, ""));
+    assert.ok(!/^import /m.test(leaf),
+      `src/temporal/pollers.js imports ${spec}, which has imports of its own — the one thing this module may import is a leaf of constants`);
+  }
 });
 
 test("the engine look asks who is polling on the connection it already opened", async () => {

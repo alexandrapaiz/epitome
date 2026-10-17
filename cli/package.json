@@ -42,7 +42,8 @@
     "test:cold": "bash test/all.sh --with-prereqs --strict",
     "prereqs": "bash test/prereqs.sh",
     "pack-check": "bash test/pack.sh",
-    "prepublishOnly": "bash test/pack.sh"
+    "stranger-check": "bash test/stranger.sh",
+    "prepublishOnly": "bash test/pack.sh && bash test/stranger.sh"
   },
   "dependencies": {
     "smol-toml": "^1.3.0"
