@@ -182,6 +182,7 @@ roster agents on this box — 5 seats, checked in the order a run needs them
 ✓ executor   /usr/local/bin/claude started under the environment a run gives it, for 5 seats
 ✗ engine     nothing is answering at 127.0.0.1:7233 (ECONNREFUSED)
 ! worker     not asked — nothing answered at 127.0.0.1:7233, so "is a worker polling seats" has no answer from here
+! bus        1 seat is woken by the bus (responder) and this box names no stream, so responder never fires
 
 epito: a run on this box would refuse — 2 reasons:
   ✗ no open road on this box — market
@@ -196,6 +197,14 @@ behind it, which it says rather than implies. `--deep` is the half that proves
 credentials: one real turn per *road* (five seats sharing one key cost one
 call), with the executor's own refusal read back verbatim. It costs a model
 call, which is why it is a flag.
+
+The bus row appears only for a roster that asks for it — a seat with
+`[trigger].subscriptions` — and it reads this box's settings without opening a
+connection: whether `EPITO_BUS_STREAM` names a stream at all. A seat with no
+other trigger, on a box with none, is a seat that never fires, and that is a
+report rather than a refusal because `epito run` says the same on startup and
+keeps serving. `epito bus <dir>` is the command that asks the server what is
+actually waiting.
 
 A name this box does not hold at all is a report and exits 0; a name it holds
 and holds empty exits 1. That is the same split `epito env` makes, for the same
