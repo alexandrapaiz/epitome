@@ -32,17 +32,31 @@ capacity is one pool and this product shares it with three others. "Dark" is the
 longest stretch of the day with no run of any seat. The row is read at the tick
 and says so; a day's counts keep moving after it.
 
+A refusal is read as a class and never as a word. The first version of this
+command grepped the logs for "session limit", which counts three different
+things as one: a run the provider refused before it took a turn, a run that
+was refused after an hour of real work, and a run that succeeded and happened
+to write a sentence about the outage — on 2026-10-18 the word matched 67 logs
+and only 37 of them were the first kind. Only the first kind is safe to hand
+back to the sender, so the line carries the two numbers separately, and the
+test for "it did nothing" is the footer, not the prose.
+
 ```bash
 cd /srv/asc/state/.epito/logs && D=$(date -u +%F)
+# ended non-zero, opened no pull request, never took a second turn
+nothing() { grep -lE '^# exit=[^0].* pr=- .* turns=(-|0|1)$' */$D*.log; }
+said()    { xargs -r grep -lE '"api_error_status":(429|529)|hit your [a-z]+ limit|limit (reached|exceeded)'; }
+refused() { nothing | said; }
 echo "runs $(ls */$D*.log | wc -l)" \
      "turns $(grep -ho 'turns=[0-9]*' */$D*.log | cut -d= -f2 | paste -sd+ | bc)" \
-     "refused $(grep -l 'session limit' */$D*.log | wc -l)" \
-     "seats $(grep -l 'session limit' */$D*.log | cut -d/ -f1 | sort -u | wc -l)"
+     "refused-before-a-turn $(refused | wc -l)" \
+     "seats $(refused | cut -d/ -f1 | sort -u | wc -l)" \
+     "refused-mid-run $(($(ls */$D*.log | said | wc -l) - $(refused | wc -l)))"
 ```
 
 | Date | Runs | Turns | Refused | Dark | Weakest attribute | What it moved |
 |---|---|---|---|---|---|---|
-| 2026-10-18 (read 12:06Z) | 253 | 16,079 | 65 (25.7%) | 342 min, 121 of them after capacity returned | Dashboards | incident 8, L18, the capacity experiment, three ideas to the owner |
+| 2026-10-18 (read 12:06Z) | 253 | 16,079 | 65 (25.7%) — reread 13:30Z by the class test: 37 before a turn (13 seats), 28 mid-run, of 291 runs | 342 min, 121 of them after capacity returned | Dashboards | incident 8, L18, the capacity experiment, three ideas to the owner |
 
 ## Tick of 2026-10-18 — the first
 
