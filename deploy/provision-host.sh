@@ -361,6 +361,11 @@ ExecStart=/usr/bin/env epito worker
 Restart=always
 RestartSec=5
 # Runs write clones under \$TMPDIR; give the unit its own so cleanup is local.
+# This isolates the unit from the rest of the box and not the seats from each
+# other — every window here is one user in one private /tmp — so each window
+# also owns a scratch directory beside its clone, and a run's own \$TMPDIR
+# points there (src/lib/runner.js). Without that second layer a file one run
+# named itself was readable and writable by every other run in this unit.
 PrivateTmp=yes
 NoNewPrivileges=yes
 ProtectSystem=full

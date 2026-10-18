@@ -654,8 +654,8 @@ executable the `execute` activity spawns.
 That last one is not hypothetical. epitod v0's first run on a real host exited
 1 at turn zero with `Not logged in`: the environment a run hands its child is
 an **allowlist** (`PATH`, `HOME`, `USER`, plus the names `[runtime].env` asks
-for and this box holds), and the executor's credential lookup needed a name the
-allowlist did not carry. Every piece of that was knowable before 06:00.
+for and this box holds, plus the window's own `TMPDIR` and `EPITO_SCRATCH`),
+and the executor's credential lookup needed a name the allowlist did not carry. Every piece of that was knowable before 06:00.
 
 ```
 $ epito doctor /srv/asc/roster
@@ -780,6 +780,23 @@ somebody's memory:
 - `close`, the TTL timer, or a terminated workflow all end the same way: the
   clone is deleted and a `window.close` line is appended. The `cleanup`
   activity runs non-cancellable, so this happens even on the way out.
+
+A window also owns a **scratch directory**, `<clone>.scratch`, and every run
+inside the window is given it as `$TMPDIR` and `$EPITO_SCRATCH`. It is the
+clone's sibling rather than a directory inside it, because anything inside the
+clone is in the agent's own `git status`; and it dies with the clone, in the
+same `cleanup`.
+
+This is isolation at the boundary that was missing. The unit already has a
+private `/tmp` (`PrivateTmp=yes`) and each run's clone is already unique — but
+one unit hosts every seat on the box as one user, so a file a *run* names for
+itself (`pr-body.md`) was reachable by every other run in the unit. A seat
+running on this runtime wrote its pull request body to such a path, another
+seat's run wrote the same path before the read, and the first seat published
+the other's report. 0700 is no protection there: both runs are the same user.
+
+`$HOME` stays shared on purpose — it is where the executor keeps the sessions a
+window resumes — so the separation is the scratch path and nothing else.
 
 Nothing else survives. The PRs are the record (ADR-2). `epito ps` shows the
 window's remaining time and the held session's first eight characters by
