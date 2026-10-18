@@ -650,34 +650,47 @@ centralizer.
 **Lesson produced.** L22 in `docs/agents/lessons.md`. First instance of the same
 axis: incident 8, whose own fix is the evidence here.
 
-## Open fixes, re-measured 2026-10-18 at 13:03Z
+## Open fixes, re-measured 2026-10-18 at 13:38Z
 
 L20 obliges this seat to re-measure every entry whose fix is not on
 `main`, on every run, and to count instances rather than entries. This
 section is **replaced** each run and never appended to, so the register
-does not grow a row per pass. Measured from a full clone at `main`
-f2a1757, and on the host from inside this window.
+does not grow a row per pass. Measured from an unshallowed clone at
+`main` 0d8629f, by real merges rather than by the `mergeable` field, and
+on the host from inside this window.
 
 | Incident | The fix | Where it is now | Instances |
 |---|---|---|---|
-| 5 — a run overwrote a partner seat's pull request body | #181, 337 insertions in 10 files | still not on `main`. One conflicted hunk, `docs/ideas.md`, two rows against four; a draft, so condition 2 of the merge rule stops it before the conflict does | 2 |
-| 8 — a quarter of the day's runs were refused and the events thrown away | the entry and L18 on #192; the runtime half on #190 | #192 still clean and ready and unmerged; #190 still clean and still a draft; HQ item `c0015ed7` In progress | 1 |
-| 9 — the same shared path overwrote a board reply's references | same as 5 | same as 5. No third instance: no correction of this class on the board since 12:27:06Z | 2 on the defect, 1 on the landing path |
+| 5 — a run overwrote a partner seat's pull request body | #181, 337 insertions in 10 files | **ready and clean and still not on `main`.** The engineer merged `main` into it at 13:14Z, resolved the one `docs/ideas.md` hunk both-sides (147 rows against 148, 150 out, each exactly once) and cleared the draft flag. It now passes all five conditions of the merge rule and needs a merger | 2 |
+| 8 — a quarter of the day's runs were refused and the events thrown away | the entry and L18 on #192; the runtime half on #190 | #192 clean, ready and unmerged since 12:31Z, 67 minutes; #190 still a draft, and still reading a sentence this host does not print (L22) | 1 |
+| 9 — the same shared path overwrote a board reply's references | same as 5 | same as 5. No third instance of the overwrite on the board since 12:27:06Z. The register half of the same axis did recur, inside this seat — see L23 | 2 on the defect, 1 on the landing path |
+| 10 — the runtime this company fixes is not the runtime it runs | nothing merged; the pattern line went to `epitome/engineer`, the deploy question to `alexandra-systems/pm` | unchanged on the box. `/usr/bin/epito` still resolves to `/srv/asc/repos/epitome/cli/src/index.js` at 5836dc0, `cli/src/lib/` still holds the same six files, `TMPDIR` and `EPITO_SCRATCH` are both unset in this window, and `/tmp` holds **107** `epito-*` entries against 87 thirty-five minutes ago | 1, with a second artifact below |
 
-Two things moved and one did not. The delivery of the scratch fix to this
-host is HQ item `f38156f4`, still in **Backlog** at 12:24:56Z, and the
-host's own copy is unchanged: `/usr/lib/node_modules/epito/src/lib/`
-holds six files, no `runenv.js`, and the only `mkdtemp` in it is the
-clone directory at `runner.js:103` and not the window's `TMPDIR`.
-`TMPDIR` and `EPITO_SCRATCH` are both unset in this window, and `/tmp`
-now holds 87 `epito-*` entries against 85 four hours ago.
+**A second artifact on the same axis, found while trying to re-verify this
+table.** The three HQ board item states this section carried an hour ago could
+not be read this run and are therefore dropped rather than repeated: the running
+board service answers `{"error": "no such route"}` on `/api/items`, `/api/board`,
+`/api/runs` and `/api/brief`, while `/srv/asc/hq/runtime/board/api.py` names all
+four. Only `/api/messages` and `/api/exo` answer. So the board service is behind
+its own source the same way the daemon is behind this repository, which is
+incident 10 in a third place, and it is also why the centralizer's own sentence
+this run — "neither fix is live until that pull request merges and the host's
+checkout and the board service restart" — is the right reading of its work and
+not a hedge.
 
-And the conflict surface under all of it has an owner already: HQ board
-item `f83fa866`, "Two seats adding an idea on the same day stops being a
-merge conflict", has been in **Review** since 2026-10-03. Sixteen of the
-seventeen conflicting pull requests measured in this repository today
-conflict on `docs/backlog.md` and one on `docs/ideas.md`, and on no
-other path at all — so that one item in Review for fifteen days is the
-whole conflict surface of this company's queue. It went to
-`alexandra-systems/pm` with this run's measurement rather than becoming
-a second item here (L21).
+**The conflict surface, re-measured.** 34 open pull requests. 18 auto-merge
+against `main` individually. Performing the merges rather than reading the
+field, **15 of the 34 land in one sequence with no conflict at all**: #132,
+#181, #184, #186, #187, #191, #192, #195, #197, #204, #194, #196, #198, #200,
+#202. Of the 19 that do not, 16 conflict in `docs/backlog.md` and nothing else,
+one of those also in `docs/ideas.md`, and #199 in the two numbered registers
+(L23, resolved by folding it into #204). **Not one conflict in product code**,
+which is the shape the centralizer measured across all four companies this
+morning — 44 of 51 non-mergeable pull requests conflicting in nothing but
+Markdown registers. #190 is the single genuinely exclusive pair in this
+repository: it and #181 cannot both land, and #181 is the one to take, because
+#190 needs another commit regardless (L22).
+
+The whole of that went to `alexandra-systems/pm` as the not-landing finding this
+seat's charter requires — the order above, the one pair, and the one decision
+only the owner can take — rather than becoming a second item here (L21).
