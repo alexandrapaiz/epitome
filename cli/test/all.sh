@@ -39,9 +39,9 @@ for a in "$@"; do
 test/all.sh: unknown option "$a". There are two:
 
   --strict         a suite that could not run is a failure (exit 1, not 0)
-  --with-prereqs   install the Temporal CLI and a langgraph venv first, and
-                   start one dev server for the length of the run, so that no
-                   suite is incomplete merely because this box is cold
+  --with-prereqs   install the Temporal CLI, nats-server and a langgraph venv
+                   first, and start one dev server for the length of the run, so
+                   that no suite is incomplete merely because this box is cold
 
 EOF
        exit 2 ;;
@@ -108,9 +108,10 @@ EOF
 pin_locale
 
 # ---- the prerequisites, on request ------------------------------------------
-# Three suites were permanently incomplete on any box nobody had prepared by
-# hand: smoke-temporal unrun, smoke-roster partial, smoke-langgraph partial. The
-# install is two downloads and fifteen seconds (measured, 2026-10-07, cold
+# Four suites are permanently incomplete on any box nobody has prepared by
+# hand: smoke-temporal unrun, smoke-bus unrun, smoke-roster partial,
+# smoke-langgraph partial. The install is three downloads and under a minute
+# (measured, 2026-10-07 and 2026-10-17, cold
 # GitHub runner), and smoke-roster additionally wants an engine ALREADY
 # answering — the one thing test/prereqs.sh deliberately does not leave running.
 #
@@ -211,7 +212,11 @@ run_suite() {
   printf '\n\033[1m== %s\033[0m\n' "$name"
   "$@" > "$log" 2>&1
   local rc=$? tally="" note="" result
-  tally="$(grep -Eo '^(smoke|provision|pack): [0-9]+ ok, [0-9]+ failed' "$log" | tail -1)"
+  # The prefixes the shell suites print their tally under. A suite missing from
+  # this list reports as `unrun` with 0 assertions counted, which is the exact
+  # false negative the diagnostic below was written for — test/stranger.sh hit
+  # it on its first run through here.
+  tally="$(grep -Eo '^(smoke|provision|pack|stranger): [0-9]+ ok, [0-9]+ failed' "$log" | tail -1)"
   if [ -z "$tally" ]; then
     local p f
     p="$(grep -Eo '^# pass [0-9]+' "$log" | tail -1 | grep -Eo '[0-9]+')"
@@ -256,15 +261,17 @@ run_suite() {
   names+=("$name"); results+=("$result"); counts+=("${tally:-nothing asserted}"); notes+=("$note")
 }
 
-run_suite "unit"            node --test "$CLI/test/unit.mjs" "$CLI/test/unit-deploy.mjs" "$CLI/test/unit-audit.mjs"
+run_suite "unit"            node --test "$CLI/test/unit.mjs" "$CLI/test/unit-deploy.mjs" "$CLI/test/unit-audit.mjs" "$CLI/test/unit-bus.mjs"
 run_suite "smoke-deploy"    bash "$CLI/test/smoke-deploy.sh"
 run_suite "smoke-validate"  bash "$CLI/test/smoke-validate.sh"
 run_suite "smoke-doctor"    bash "$CLI/test/smoke-doctor.sh"
 run_suite "smoke-roster"    bash "$CLI/test/smoke-roster.sh"
 run_suite "smoke-temporal"  bash "$CLI/test/smoke-temporal.sh"
+run_suite "smoke-bus"       bash "$CLI/test/smoke-bus.sh"
 run_suite "smoke-langgraph" bash "$CLI/test/smoke-langgraph.sh"
 run_suite "provision-host"  bash "$ROOT/deploy/test-provision.sh"
 run_suite "pack"            bash "$CLI/test/pack.sh"
+run_suite "stranger"        bash "$CLI/test/stranger.sh"
 
 printf '\n%s\n' "-----------------------------------------------"
 failed=0; incomplete=0

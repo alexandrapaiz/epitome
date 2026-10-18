@@ -49,7 +49,7 @@ import { childTraceEnv, traceNote } from "./trace.js";
 const PR_URL_RE = /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/\d+/g;
 
 // Branch slug per trigger: the run's branch name says how it was woken.
-const SLUG = { cron: "scheduled", hook: "hook", message: "message", window: "window" };
+const SLUG = { cron: "scheduled", hook: "hook", message: "message", window: "window", bus: "event" };
 
 // The instruction a window carries: the agent does its charter's one run now,
 // and knows a human may speak to it again inside the same session.
