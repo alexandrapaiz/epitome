@@ -181,6 +181,7 @@ box would refuse, and name the piece.**
 $ epito doctor agents
 roster agents on this box — 5 seats, checked in the order a run needs them
 
+✓ build      epito 0.1.0 · 3806b83 (main) · clean
 ✓ manifests  5 of 5 manifests load and pass spec v0.2
 ! names      6 names asked for, 2 held, 4 not set here
 ✗ roads      1 seat has no open road here (market)
@@ -195,7 +196,28 @@ epito: a run on this box would refuse — 2 reasons:
   ✗ no engine: nothing is answering at 127.0.0.1:7233 (ECONNREFUSED). Fix: …
 ```
 
-The executor section is the one that is new, and it is the only one that spawns
+The **build** section is first because it qualifies every row under it, and it
+is the only one that is about epito rather than about the box. A resident
+runtime is started once from a checkout and then believed for weeks: on
+2026-10-18 the host's was four weeks behind `main` with two tracked files
+carrying uncommitted hand-patches, so merged fixes were not running and no
+surface said which code was. It reads the version from `package.json` and the
+revision from the tree epito's own source sits in — never the agent's clone —
+and it names the modified files rather than counting them, because a `git pull`
+on a hand-patched host either conflicts with those edits or discards them, and
+the operator deciding which needs to know whose.
+
+It reports and never refuses. A hand-patched runtime starts runs perfectly
+well, which is exactly why the host's went unnoticed, so the row is a note and
+the exit code is untouched. An epito installed from npm has a version and no
+checkout; that is the ordinary case and reads `installed, not a checkout`.
+
+The same line opens `epito run`, sits in every run log's header, and prints
+above `epito ps`'s table. It is read once per process on purpose: a daemon
+loads its JavaScript at startup and keeps it, so a `git pull` underneath it
+changes the files and nothing about the code that is running.
+
+The executor section is the only one that spawns
 anything: it resolves the binary on the PATH a **run** gets and starts it under
 the environment a **run** gives it. It is free, offline and instant — and for
 exactly that reason it proves the file starts and nothing about the account

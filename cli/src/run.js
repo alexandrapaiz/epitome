@@ -29,6 +29,7 @@
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { loadRoster } from "./lib/roster.js";
+import { thisRuntime, buildLine, buildNote } from "./lib/build.js";
 import { rosterEnv, shortfallSays } from "./lib/boxenv.js";
 import { SPEC_VERSION } from "./lib/fields.js";
 import { startHookServer } from "./lib/hooks.js";
@@ -100,6 +101,15 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
   // what broke. The host lost eight daemons and four open windows this way on 2026-10-17.
   process.on("uncaughtException", (e) => console.error(`${new Date().toISOString()} daemon: uncaught ${e?.stack || e}`));
   process.on("unhandledRejection", (e) => console.error(`${new Date().toISOString()} daemon: unhandled rejection ${e?.stack || e}`));
+  // The first line, before the roster and before the engine, because it is the
+  // one line that qualifies every line after it. A resident daemon is started
+  // once from a checkout and then believed for weeks: on 2026-10-18 the host's
+  // was four weeks behind main with two files hand-patched, so merged fixes
+  // were not running and nothing on any surface said which code was.
+  const build = thisRuntime();
+  const note = buildNote(build);
+  log(note.level === "ok" ? note.text : `! ${note.text}`);
+
   const dir = resolve(dirArg);
   let roster = loadRoster(dir);
   const cfg = temporalEnv();
@@ -137,7 +147,10 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
   // exist are not noise — they are a record that cannot be corrected, written
   // by the one flag whose whole promise is that it touches nothing.
   const record = dryRun ? () => {} : appendAudit;
-  record({ agent: null, action: "reconcile.start", dir, address: cfg.address, namespace: cfg.namespace, queue: cfg.taskQueue });
+  // `build` on the ledger line too: the audit is the answer to "what exactly
+  // happened" (ADR-22), and for four weeks it could not answer "under which
+  // revision of the runtime".
+  record({ agent: null, action: "reconcile.start", dir, address: cfg.address, namespace: cfg.namespace, queue: cfg.taskQueue, build: buildLine(build) });
   const plan = await reconcile({ client, roster, dryRun, log: (m) => log(m) });
   for (const k of ["create", "update", "delete"]) {
     for (const s of plan[k]) record({ agent: s.name, action: `schedule.${k}`, schedule: s.id, cron: s.shape?.cron ?? null });
