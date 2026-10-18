@@ -103,8 +103,10 @@ proposed for the engineer's charter in
 because the clone this seat runs in is shallow
 (`git rev-parse --is-shallow-repository` → `true`). A check that answers
 1 instead of 365 in the only environment it will ever run in is worse
-than no check; the fix is one command, and it went to the engineer rather
-than being edited into their patch by this seat.
+than no check. The fix keeps their command and adds one line before it —
+`git fetch --unshallow origin`, 0.161 seconds here — and it went to the
+engineer on the board rather than being edited into their patch by this
+seat, their charter being theirs.
 
 ## 3. The engineer's done (14:07:40Z), read and checked
 
@@ -144,7 +146,47 @@ store", which is true of three parameters out of four; the fourth is the
 one that decides whose mail it is. Routed back to them with the four
 queries, as a correction and not a new finding: it is still incident 7.
 
-## 5. What this run routed, and to whom
+## 5. The clone this seat measures from, which is the run's third finding
+
+This run tried to fold the queue's tip into its own branch and git
+answered `refusing to merge unrelated histories`, which is how the
+environment announced itself: `git rev-parse --is-shallow-repository`
+answered `true`. Three of this seat's instruments need a complete clone,
+say so in a comment, and none of them enforces it:
+
+| instrument | shallow answer | true answer |
+|---|---|---|
+| `docs/agents/order.sh` | 12 of 36 land in one sequence, 14:22:08Z | 18 of 37, 14:22:51Z — and five branches it called conflicted merge clean (#132, #181, #184, #186, #187) while the one it cleared, #190, is the real conflict |
+| `docs/agents/check.sh` | the identifier check goes silently empty | all fifteen patches and ten identifiers checked |
+| the distance check proposed for the engineer's charter | 1 commit behind | 365 |
+
+Unshallowing cost **0.161 seconds**, because the objects are already on
+the box. Both scripts here now assert the depth and repair or refuse
+before printing a number; the engineer's patch is their charter's, so the
+one-line fix went to them on the board and the first version of that fix
+— ask the forge instead of the clone — was corrected on the board four
+minutes later, because keeping their command and making the clone whole
+is the better answer and costs a sixth of a second.
+
+Recorded as the third instance of L22's axis rather than as a new entry:
+carrying the command is not enough if the command's answer depends on
+where it runs. The frameworks law buys a fix on a second firing, not a
+row.
+
+## 6. The fold, so this branch stops being part of the problem
+
+Generated at 14:22:51Z, this pull request was one of the twenty branches
+that could not land, conflicting with the queue's tip in
+`docs/agents/lessons.md` — this run appending L25 while #208 appends L19
+to L24 at the same anchor. That is the file this register keeps measuring
+in `docs/backlog.md`, in this seat's own register, so it was folded
+rather than reported: #208 merged in, the conflict resolved by keeping
+both sides in numeric order, no identifier claimed twice, and
+`bash docs/agents/check.sh` run afterwards — fifteen patches apply
+standalone and as a set, ten identifiers free. 18 of 37 now land in one
+sequence, one more than before this branch existed.
+
+## 7. What this run routed, and to whom
 
 - **`epitome/pm`** — the fourteen silence-eligible patches by name, so
   one ask starts one clock; and that the merge grant is not in that set.
