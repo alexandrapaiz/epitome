@@ -34,6 +34,7 @@ import { writeFileSync, readFileSync, existsSync, mkdirSync, chmodSync } from "n
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { loadManifest } from "./lib/manifest.js";
+import { deployCloudflare } from "./deploy-cloudflare.js";
 import { findManifests } from "./lib/roster.js";
 import {
   permissionsFor, loadPrincipal, appJwt, installationFor,
@@ -212,11 +213,20 @@ export function resolveAgent(nameArg, dirArg = ".") {
 
 // --- the command -----------------------------------------------------------
 
+// Where an agent can be deployed TO. GitHub first because it is the identity
+// and every target needs one; Cloudflare second because it is the runtime the
+// owner asked for (2026-10-18) and the first evidence that one manifest
+// reaches two of them with no new field in the file.
+export const TARGETS = ["github", "cloudflare"];
+
 // Every option deploy takes, in one list, because it is also what refuses the
 // ones it does not. `--dry-runn` used to be dropped, and a dropped --dry-run on
 // THIS command opens a browser and creates a real GitHub App.
 const DEPLOY_OPTIONS = [
   { name: "dry-run", does: "say what it would create, and touch neither the network nor a browser" },
+  { name: "target", does: `where the agent goes: ${TARGETS.join(" or ")} (default ${TARGETS[0]})`, value: true },
+  { name: "out", does: "where to write the Cloudflare bundle (default .epito/cloudflare/<agent>)", value: true },
+  { name: "compatibility-date", does: "the Workers runtime version the bundle pins", value: true },
   { name: "org", does: "create the App under an organisation instead of your account", value: true },
   { name: "app-name", does: "override the derived App name when it collides", value: true },
   { name: "port", does: "the loopback port for the callback (0 picks a free one)", value: true },
@@ -233,7 +243,7 @@ export async function deployCmd(argv = []) {
   const positional = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === "--port" || a === "--timeout" || a === "--app-name" || a === "--org") { i++; continue; }
+    if (a === "--port" || a === "--timeout" || a === "--app-name" || a === "--org" || a === "--target" || a === "--out" || a === "--compatibility-date") { i++; continue; }
     if (a.startsWith("-")) continue;
     positional.push(a);
   }
@@ -251,6 +261,18 @@ export async function deployCmd(argv = []) {
     process.exit(1);
   }
   const name = manifest.agent.name;
+
+  // The target decides everything after this point, so it is read before the
+  // GitHub-shaped checks below: a Cloudflare deploy refused for a rule that
+  // belongs to App creation would be naming the wrong rule.
+  const target = value("--target", TARGETS[0]);
+  if (!TARGETS.includes(target)) {
+    die(`--target takes ${TARGETS.map((t) => `"${t}"`).join(" or ")}, got "${target}". "github" gives the agent its own App, which is its identity and what every other target needs first; "cloudflare" packs it as a Worker carrying that identity, its schedule, its own run store and a page. Fix: ${TARGETS.map((t) => `\`epito deploy ${name} --target ${t}\``).join(" or ")}.`);
+  }
+  if (target === "cloudflare") {
+    const cdate = value("--compatibility-date", undefined);
+    return deployCloudflare({ name, path, manifest, outArg: value("--out", undefined), dryRun, compatibilityDate: cdate });
+  }
   const repo = manifest.runtime.repo;
   if (!repo) die(`[runtime].repo is required to deploy "${name}": an App is installed on a repository, and the manifest is what says which. Fix: add repo = "owner/name" to [runtime] in ${path}.`);
 

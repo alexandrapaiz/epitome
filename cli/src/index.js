@@ -65,6 +65,15 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       .epito/ (0600), record the installation on
                       [runtime].repo (--dry-run says what it would create and
                       touches neither the network nor a browser)
+  epito deploy [name] [dir] --target cloudflare
+                      pack the SAME manifest as a Cloudflare Worker that is
+                      the agent: its own App identity minted inside the
+                      Worker, [trigger].cron as the Worker's schedule, one
+                      Durable Object holding its runs, and a page showing the
+                      agent, its last run and a button that triggers it. Writes
+                      the bundle and stops — \`wrangler deploy\` spends your
+                      Cloudflare account, so it stays your command (--out,
+                      --dry-run)
 
 The runtime is two processes and one engine: \`epito run\` reconciles and
 serves the ingress, \`epito worker\` executes, and Temporal (self-hosted,
