@@ -27,10 +27,13 @@ const die = (why) => { console.error(why); process.exit(1); };
 
 if (lines.length === 0) die(`${logPath} is empty: nothing asked GitHub for anything, so there is nothing to assert`);
 
-// GET /users/<login> authenticates as the installation, not as the App —
-// GitHub rejects an App JWT there — so it is not evidence for or against the
-// JWT claim. Every OTHER request epito makes is made as the App.
-const asApp = lines.filter((r) => !/^\/users\//.test(r.url));
+// Two endpoints authenticate as the installation and not as the App — GitHub
+// rejects an App JWT at both — so neither is evidence for or against the JWT
+// claim: GET /users/<login>, which the mint reads the bot user from, and GET
+// /repos/<repo>/pulls, which a run asks at the end to learn whether it opened
+// a pull request. Every OTHER request epito makes is made as the App.
+const AS_INSTALLATION = /^\/users\/|^\/repos\/[^/]+\/[^/]+\/pulls(\?|$)/;
+const asApp = lines.filter((r) => !AS_INSTALLATION.test(r.url));
 
 if (what === "jwt") {
   if (asApp.length === 0) die(`${logPath} holds no request made as the App, so there is nothing to assert`);

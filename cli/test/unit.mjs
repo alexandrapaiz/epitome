@@ -18,7 +18,7 @@ import { SEVERITY, checkManifest, shape } from "../src/validate.js";
 import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
 import { rosterEnv, namesFor, envTemplate, holding, runShortfall, shortfallSays, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
-import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, buildPrompt, shortfallLine, GIT_TOKEN_ENV } from "../src/lib/runner.js";
+import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, buildPrompt, shortfallLine, runBranchPrefix, pullRequestForRun, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP, noRepoMessage, webRoot, installUrl, appSettingsUrl } from "../src/lib/identity.js";
 import {
   actsAs, rosterActs, rosterInstalled, grantGap, IDENTITY_FIX,
@@ -68,6 +68,14 @@ import { join } from "node:path";
 // a hundred-odd directories in $TMPDIR — and the smoke test asserts "no clone
 // was left behind" by globbing that same directory, so the mess is not only
 // untidy, it is in the way.
+// Nothing in this suite talks to GitHub. Every run now ends by asking the
+// code host whether it opened a pull request, so the default here is a port
+// nothing listens on: a test that does not stand up its own stand-in gets a
+// lookup refused in a millisecond and the fallback it always had, and no
+// assertion in this file depends on somebody's network or spends a rate
+// limit. The cases that DO assert the lookup point this at their own server.
+process.env.EPITO_GITHUB_API = "http://127.0.0.1:1";
+
 const TMPDIRS = [];
 const tmpDir = (prefix = "epito-unit-") => {
   const d = mkdtempSync(join(tmpdir(), prefix));
@@ -3528,4 +3536,197 @@ test("the engine look asks who is polling on the connection it already opened", 
   const tcp = await engineLook({ env: {}, probe: answering, importClient: notInstalled });
   assert.equal(tcp.pollers, null);
   assert.equal(tcp.taskQueue, "seats", "the queue a run would use is knowable without an engine, and the row names it");
+});
+
+// --- a run's pull request is asked of the code host ------------------------
+// The defect: the close handler matched an address out of the last 64 KB of
+// the child's output and asked GitHub nothing, so a run that opened its draft
+// first and then kept printing was recorded as having shipped nothing. These
+// cases are the two halves of the fix — the question put to the host, and the
+// transcript half made truncation-proof underneath it.
+
+// A stand-in for GET /repos/<repo>/pulls. It records what was asked, so a
+// test can assert that the run asked as ITSELF, and it stamps `created_at`
+// when the request arrives unless a case pins its own, because "during this
+// run" is the whole filter.
+const pullsStub = async (t, pulls, { status = 200, body = null } = {}) => {
+  const asked = [];
+  const server = createServer((req, res) => {
+    asked.push({ url: req.url, auth: req.headers.authorization ?? null, agent: req.headers["user-agent"] });
+    res.writeHead(status, { "content-type": "application/json" });
+    res.end(body ?? JSON.stringify(pulls.map((p) => ({
+      html_url: p.html_url ?? `https://github.com/acme/roster/pull/${p.number ?? 1}`,
+      created_at: p.created_at ?? new Date().toISOString(),
+      head: { ref: p.ref, repo: { full_name: p.repo ?? "acme/roster" } },
+    }))));
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(() => server.close());
+  return { asked, api: `http://127.0.0.1:${server.address().port}` };
+};
+
+test("the branch the prompt asks for and the branch the lookup searches for are one string", () => {
+  const made = { name: "epitome-engineer", date: "2026-10-18", trigger: "message" };
+  const prefix = runBranchPrefix(made);
+  assert.equal(prefix, "epitome-engineer/2026-10-18-message");
+  const prompt = buildPrompt({ ...made, entry: "prompts/engineer-agent.md", shortfall: { missing: [], empty: [] } });
+  assert.match(prompt, new RegExp(`Work on a branch named ${prefix} \\(append a short suffix`),
+    "one function, two readers: the moment these hold separate copies the runtime searches for a branch it never asked for");
+  // The registered name is what both use. A seat whose charter calls it
+  // something else does not move either of them.
+  assert.equal(runBranchPrefix({ name: "pm", date: "2026-10-18", trigger: "cron" }), "pm/2026-10-18-scheduled");
+  assert.equal(runBranchPrefix({ name: "pm", date: "2026-10-18", trigger: "nonsense" }), "pm/2026-10-18-hook");
+});
+
+test("the lookup finds this run's pull request by branch prefix, and asks as the run itself", async (t) => {
+  const { asked, api } = await pullsStub(t, [{ number: 169, ref: "epitome-engineer/2026-10-18-message-4" }]);
+  const found = await pullRequestForRun({
+    repo: "acme/roster", prefix: "epitome-engineer/2026-10-18-message",
+    token: "ghs_LOOKUPTOKEN0000000000000000000000", since: Date.now() - 60_000, api,
+  });
+  assert.equal(found.pr, "https://github.com/acme/roster/pull/169");
+  assert.equal(found.branch, "epitome-engineer/2026-10-18-message-4", "the suffix the agent appended is matched, not demanded");
+  assert.equal(found.why, null);
+  assert.equal(asked.length, 1);
+  assert.match(asked[0].url, /^\/repos\/acme\/roster\/pulls\?state=all/, "state=all: a draft that was merged in the same run is still this run's");
+  assert.equal(asked[0].auth, "Bearer ghs_LOOKUPTOKEN0000000000000000000000", "a run with an identity asks as itself");
+  assert.equal(asked[0].agent, "epito", "GitHub refuses a request with no user agent, which is a 403 nobody would read as this");
+});
+
+test("the lookup never claims a pull request from an earlier run of the same seat", async (t) => {
+  const started = Date.now();
+  // Three runs of one seat in one day: every branch matches every other's
+  // prefix, which is why the clock and not the name is what tells them apart.
+  const { api } = await pullsStub(t, [
+    { number: 156, ref: "epitome-engineer/2026-10-18-message-3", created_at: new Date(started - 3 * 3600_000).toISOString() },
+    { number: 153, ref: "epitome-engineer/2026-10-18-message-2", created_at: new Date(started - 5 * 3600_000).toISOString() },
+  ]);
+  const found = await pullRequestForRun({ repo: "acme/roster", prefix: "epitome-engineer/2026-10-18-message", since: started, api });
+  assert.equal(found.pr, null, "a run that opened nothing records nothing, which is the point of asking");
+  assert.match(found.why, /no pull request on acme\/roster has a branch starting with "epitome-engineer\/2026-10-18-message" that was opened during this run/);
+
+  // The same board, with this run's own draft on it: newest wins.
+  const mine = await pullsStub(t, [
+    { number: 169, ref: "epitome-engineer/2026-10-18-message-4", created_at: new Date(started + 30_000).toISOString() },
+    { number: 156, ref: "epitome-engineer/2026-10-18-message-3", created_at: new Date(started - 3 * 3600_000).toISOString() },
+  ]);
+  const got = await pullRequestForRun({ repo: "acme/roster", prefix: "epitome-engineer/2026-10-18-message", since: started, api: mine.api });
+  assert.equal(got.pr, "https://github.com/acme/roster/pull/169");
+
+  // A draft opened in the same second the child was spawned is this run's:
+  // GitHub stamps to the second, and rounding it out of its own run would
+  // bring back exactly the silence being fixed.
+  const edge = await pullsStub(t, [{ number: 170, ref: "pm/2026-10-18-scheduled", created_at: new Date(started - 400).toISOString() }]);
+  const close = await pullRequestForRun({ repo: "acme/roster", prefix: "pm/2026-10-18-scheduled", since: started, api: edge.api });
+  assert.equal(close.pr, "https://github.com/acme/roster/pull/170");
+});
+
+test("a head branch in somebody's fork is not this run's branch", async (t) => {
+  const { api } = await pullsStub(t, [{ number: 1, ref: "pm/2026-10-18-scheduled", repo: "stranger/roster" }]);
+  const found = await pullRequestForRun({ repo: "acme/roster", prefix: "pm/2026-10-18-scheduled", since: Date.now() - 1000, api });
+  assert.equal(found.pr, null);
+});
+
+test("every way the lookup can fail names itself and refuses nothing", async (t) => {
+  const refused = await pullsStub(t, [], { status: 404, body: '{"message":"Not Found"}' });
+  const four = await pullRequestForRun({ repo: "acme/roster", prefix: "pm/2026-10-18-scheduled", api: refused.api });
+  assert.equal(four.pr, null);
+  assert.match(four.why, /GitHub answered 404 for the pull requests of acme\/roster — either it does not exist or this run's credential cannot read it/);
+
+  const notAList = await pullsStub(t, [], { body: '{"message":"rate limit"}' });
+  const obj = await pullRequestForRun({ repo: "acme/roster", prefix: "pm/2026-10-18-scheduled", api: notAList.api });
+  assert.equal(obj.pr, null);
+  assert.match(obj.why, /answered about the pull requests of acme\/roster with object, not a list/);
+
+  const garbage = await pullsStub(t, [], { body: "<html>a proxy sign-in page</html>" });
+  const bad = await pullRequestForRun({ repo: "acme/roster", prefix: "pm/2026-10-18-scheduled", api: garbage.api });
+  assert.equal(bad.pr, null);
+  assert.match(bad.why, /was not JSON/);
+
+  const dead = await pullRequestForRun({ repo: "acme/roster", prefix: "pm/2026-10-18-scheduled", api: "http://127.0.0.1:1" });
+  assert.equal(dead.pr, null);
+  assert.match(dead.why, /^http:\/\/127\.0\.0\.1:1 could not be reached about the pull requests of acme\/roster/,
+    "a box with no route to the host and a host that is merely slow are not the same sentence");
+
+  // And the slow one, which is the shape that must never hold a run open: one
+  // request that answers nothing, against a lookup given 50ms to wait.
+  const slow = createServer(() => {});
+  slow.listen(0, "127.0.0.1");
+  await once(slow, "listening");
+  t.after(() => { slow.closeAllConnections?.(); slow.close(); });
+  const late = await pullRequestForRun({
+    repo: "acme/roster", prefix: "pm/2026-10-18-scheduled",
+    api: `http://127.0.0.1:${slow.address().port}`, timeoutMs: 50,
+  });
+  assert.equal(late.pr, null);
+  assert.match(late.why, /did not answer within 50ms about the pull requests of acme\/roster/);
+
+  const nothing = await pullRequestForRun({ repo: null, prefix: null });
+  assert.match(nothing.why, /names no repository and no branch prefix/);
+});
+
+// The defect end to end, in the shape the handoff measured: the draft's
+// address is printed in the first line, 80 KB of output follows it, and the
+// result object is padded past the window as well.
+const noisyRun = async (t, { api, over = {} } = {}) => {
+  const dir = tmpDir();
+  const cwd = process.cwd();
+  process.chdir(dir);                                   // .epito/logs/<agent>/ is relative
+  const work = mkdtempSync(cloneDirPrefix("engineer"));
+  const saved = process.env.EPITO_GITHUB_API;
+  if (api) process.env.EPITO_GITHUB_API = api;
+  t.after(() => {
+    process.chdir(cwd);
+    rmSync(work, { recursive: true, force: true });
+    process.env.EPITO_GITHUB_API = saved;
+    delete process.env.EPITO_STUB_DIR; delete process.env.EPITO_STUB_PR_EARLY;
+    delete process.env.EPITO_STUB_NOISE_KB; delete process.env.EPITO_STUB_RESULT_KB; delete process.env.EPITO_STUB_PR;
+  });
+  process.env.EPITO_STUB_DIR = join(dir, "stub");
+  process.env.EPITO_STUB_PR_EARLY = "1";
+  process.env.EPITO_STUB_NOISE_KB = "80";
+  process.env.EPITO_STUB_RESULT_KB = "80";
+  process.env.EPITO_STUB_PR = "https://github.com/acme/roster/pull/169";
+  const agent = seat("engineer", { runtime: { model: "m", entry: "e", repo: "acme/roster",
+    env: ["EPITO_STUB_DIR", "EPITO_STUB_PR_EARLY", "EPITO_STUB_NOISE_KB", "EPITO_STUB_RESULT_KB", "EPITO_STUB_PR"] } });
+  const r = await executeAgent({
+    agent, trigger: "message", runId: "r-tail-1", workDir: work, timeoutMs: 60_000, log: () => {},
+    executor: new URL("./stub-executor.mjs", import.meta.url).pathname, ...over,
+  });
+  return { r, logged: readFileSync(r.log, "utf8") };
+};
+
+test("a run that printed its draft and kept printing is recorded as having shipped it", async (t) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const { asked, api } = await pullsStub(t, [{ number: 169, ref: `engineer/${today}-message` }]);
+  const { r, logged } = await noisyRun(t, { api });
+
+  assert.equal(r.exit, 0);
+  assert.equal(r.pr, "https://github.com/acme/roster/pull/169", "the host was asked, and the host knew");
+  assert.match(logged, /# pull request: https:\/\/github\.com\/acme\/roster\/pull\/169, which GitHub says acme\/roster opened during this run/);
+  assert.equal(asked.length, 1, "one question per attempt, at the end of it");
+
+  // The 64 KB window really did lose the address: this is the defect, proved
+  // against the same run that just survived it rather than asserted about.
+  // Measured over the child's own output, which ends where the runtime's
+  // epilogue — the line just asserted above — begins.
+  const child = logged.slice(0, logged.indexOf("# pull request:"));
+  const window = child.slice(-64 * 1024);
+  assert.ok(child.includes("/pull/169"), "the child did print the address, once, at the start");
+  assert.ok(!/\/pull\/169/.test(window), "and the last 64 KB of what it printed holds no pull request address at all");
+
+  // The turn count sits before `result` inside the result object, so a padded
+  // result is how a run lost it. The whole line is kept now.
+  assert.equal(r.turns, 1, "and the turn count survived with it");
+  assert.ok(r.sessionId, "as did the session id, which is what a window resumes on");
+});
+
+test("with the host unreachable, the transcript half no longer loses the address either", async (t) => {
+  const { r, logged } = await noisyRun(t, { api: "http://127.0.0.1:1" });
+  assert.equal(r.exit, 0);
+  assert.equal(r.pr, "https://github.com/acme/roster/pull/169",
+    "the address is taken as it goes past, not read out of a window it has long since left");
+  assert.match(logged, /# pull request: http:\/\/127\.0\.0\.1:1 could not be reached .*; recorded from the address the run printed instead/);
+  assert.equal(r.turns, 1);
 });
