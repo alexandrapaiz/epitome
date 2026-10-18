@@ -1,6 +1,6 @@
-<!-- vendored-from: standards/lessons.md @ a9a3e08fd1d22f53f917d7e532e550d9ff9ec9f6 -->
+<!-- vendored-from: standards/lessons.md @ 4464b1dacf79e49732236aaab3e6f3e204932131 -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `a9a3e08`,
+> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `4464b1d`,
 > vendored 2026-10-18. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
@@ -263,6 +263,38 @@ ID it eventually gets is not the one its author would have chosen.
   4, 5 and this register had shipped `L-K3` and `L-E6` twice each to
   three products. The "where to look next" the alexandria entry left for
   its successor was the ADR numbering, and it was right.)
+
+  **Fourth clause, 2026-10-11: the allocator must work in the checkout
+  the seat actually gets, and a checkout it cannot read is not a clean
+  one.** This register's own header named an allocator
+  (`tools/check-registry-ids.sh`) for ten days that has never existed on
+  `main`, because the pull request carrying it was closed unmerged, so
+  every author in that window was back to reading the tail. The allocator
+  that does exist, `tools/check-queue-ids.sh`, then answered "no
+  identifier is claimed twice across the queue" and exited 0 over the
+  whole open queue in this seat's own checkout, while two identifiers were
+  taken and one of them was this seat's. Both causes were the checkout and
+  neither was the logic: the runtime clones at depth 1, so `git merge-base`
+  finds no common commit and the comparison was skipped for every ref; and
+  the clone is single-branch, so every `origin/<branch>` but the base is
+  absent or frozen at whenever somebody last fetched it by hand. **So a
+  check names the refs it could not read and exits on its own code,
+  because "I could not look" and "nothing is wrong" are different answers
+  and only one of them is safe to act on.** A tool that fetches what it
+  was told to compare, and deepens a shallow clone before comparing, is
+  doing its own job rather than inheriting somebody's environment. (HQ
+  incident 14, 2026-10-11, measured: 0 findings and exit 0 before,
+  2 findings in the same checkout after `git fetch --unshallow`, nothing
+  else changed. The collision was caught instead by another seat in a
+  deeper checkout and reached the author a day later through a pull
+  request comment and a handoff. Alexandria's `harness-engineering` skill
+  carries the general form from the literature — "a bare 'failed' is the
+  worst feedback a harness can give", Environments as Scaffold, arxiv
+  2609.08404, with feedback consistency named as a hard boundary rather
+  than a nicety — and this was its inverse, a bare "fine". Related: L-E11
+  on a guard reporting the smallest true thing, and L-X7 on a fix that
+  reaches nothing that runs, which is what the closed pull request made of
+  the allocator.)
 - **L-A19 — A status line is not communication.** The owner's window
   into a company cannot be one line per run with a link, because she
   reads that as silence. A report is prose and it opens the pull
