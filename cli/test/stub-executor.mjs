@@ -16,6 +16,20 @@
 //   EPITO_STUB_ECHO_ROUTE
 //                    print the route's endpoint and model in the result, so a
 //                    test can read which road the run actually took.
+//   EPITO_STUB_PR_EARLY
+//                    print the pull request's address on its own line FIRST,
+//                    the way an agent that opens its draft before anything
+//                    slow does, and keep it out of the result object — so the
+//                    only copy of it is at the start of the output.
+//   EPITO_STUB_NOISE_KB
+//                    then print this many KB of filler, which is how an
+//                    address printed in the first minute leaves the run's
+//                    64 KB window.
+//   EPITO_STUB_RESULT_KB
+//                    pad the result string to this many KB. The result object
+//                    is one line and `num_turns` sits before `result` inside
+//                    it, so a padded result is how a run loses its turn count
+//                    to the same window.
 //   EPITO_STUB_ECHO_TOKEN
 //                    print the GH_TOKEN this child was handed, in its result.
 //                    The identity slice's whole claim is about which
@@ -61,15 +75,31 @@ writeFileSync(transcript, [...prior, JSON.stringify({ ts: new Date().toISOString
 // First turn of a session opens a PR; a resumed turn refers back to it, which
 // is exactly the continuity the window is for.
 const pr = process.env.EPITO_STUB_PR || "https://github.com/alexandrapaiz/epitome/pull/999";
-const base = prior.length === 0
-  ? `Opened a draft PR: ${pr}`
-  : `Continuing session ${sessionId} (turn ${prior.length + 1}); my PR is still ${pr}`;
+// The house rule, reproduced: the draft's address is printed before anything
+// slow happens, and then the run keeps talking.
+if (process.env.EPITO_STUB_PR_EARLY) {
+  process.stdout.write(`Opened a draft pull request: ${pr}\n`);
+  const kb = Number.parseInt(process.env.EPITO_STUB_NOISE_KB ?? "0", 10);
+  const line = `${"x".repeat(255)}\n`;
+  for (let i = 0; i < (Number.isFinite(kb) ? kb : 0) * 4; i++) process.stdout.write(line);
+}
+const base = process.env.EPITO_STUB_PR_EARLY
+  ? `My draft is open; I printed its address in my first line of output and have been printing since`
+  : prior.length === 0
+    ? `Opened a draft PR: ${pr}`
+    : `Continuing session ${sessionId} (turn ${prior.length + 1}); my PR is still ${pr}`;
 let result = process.env.EPITO_STUB_ECHO_TOKEN
   ? `${base} [GH_TOKEN=${process.env.GH_TOKEN ?? "(none)"} GITHUB_TOKEN=${process.env.GITHUB_TOKEN ?? "(none)"}]`
   : base;
 if (process.env.EPITO_STUB_ECHO_ROUTE) {
   result += ` [model=${flag("--model") ?? "(none)"} endpoint=${process.env.ANTHROPIC_BASE_URL ?? "(none)"} key=${process.env.ANTHROPIC_AUTH_TOKEN ?? "(none)"}]`;
 }
+
+// `num_turns` before `result` and `session_id` after it, in the real
+// executor's own key order: it is what makes a padded result lose the turn
+// count and keep the session id.
+const padKb = Number.parseInt(process.env.EPITO_STUB_RESULT_KB ?? "0", 10);
+if (Number.isFinite(padKb) && padKb > 0) result += ` ${"y".repeat(padKb * 1024)}`;
 
 process.stdout.write(JSON.stringify({
   type: "result", subtype: "success", is_error: false,

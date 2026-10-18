@@ -41,6 +41,13 @@
 // the v0 smoke test found this the honest way, with a "Not logged in" exit
 // until USER was added.
 //
+// The pull request: a run's own pull request is asked of the code host when
+// the child closes — the newest one on [runtime].repo whose head branch starts
+// with the prefix this file told the agent to branch at, opened after this run
+// started — and only then read out of what the child printed. It used to be
+// read out of the last 64 KB of output alone, which recorded a run that opened
+// its draft first and then kept printing as having shipped nothing.
+//
 // Presence: `--output-format json` makes the executor print one result object,
 // and `session_id` in it is the handle to that conversation. While an agent's
 // window is open the SeatWindow workflow holds that id and passes it back as
@@ -54,6 +61,7 @@ import { mkdtempSync, mkdirSync, rmSync, existsSync, openSync, closeSync, writeS
 import { tmpdir } from "node:os";
 import { join, resolve, sep } from "node:path";
 import { EPITO_DIR } from "./audit.js";
+import { GITHUB_API } from "./identity.js";
 import { redactor } from "./redact.js";
 import { adapterFor } from "./adapters.js";
 import { routesFor, liveRoutes, noRouteMessage, classifyAttempt, withLane, resolveEndpoint, endpointLabel } from "./router.js";
@@ -63,8 +71,31 @@ import { childTraceEnv, traceNote } from "./trace.js";
 
 const PR_URL_RE = /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/\d+/g;
 
+// An address printed across a chunk boundary is still an address: this much of
+// the previous chunk is kept in front of the next one, which is longer than
+// anything PR_URL_RE can match on this host.
+const PR_URL_CARRY = 512;
+
+// The executor's result object is one line and it is printed last, so it is
+// also the first thing a 64 KB window loses when a run keeps printing after
+// it. Kept whole, up to this much — past it the run log says so rather than
+// holding a megabyte of somebody's stdout per open window.
+const RESULT_LINE_MAX = 1024 * 1024;
+
 // Branch slug per trigger: the run's branch name says how it was woken.
 const SLUG = { cron: "scheduled", hook: "hook", message: "message", window: "window" };
+
+// The branch this run was told to work on, up to the suffix the agent is
+// allowed to add. ONE function, two readers — the instruction in buildPrompt
+// below and the pull-request lookup in executeAgent — because the moment those
+// two hold their own copies, the runtime searches for a branch it never asked
+// for. The name is the dispatch's own registered name, which is what the
+// manifest holds and what the prompt says; a charter's idea of the prefix is
+// not consulted, and for a large share of the seats on this company's board
+// today the two disagree.
+export function runBranchPrefix({ name, date, trigger }) {
+  return `${name}/${date}-${SLUG[trigger] ?? "hook"}`;
+}
 
 // The instruction a window carries: the agent does its charter's one run now,
 // and knows a human may speak to it again inside the same session.
@@ -110,11 +141,11 @@ export function shortfallLine(shortfall) {
 // unmodified (BYO agent, ADR-10). The charter is read by the agent, not
 // pasted here: the file is the source of truth and the prompt only names it.
 export function buildPrompt({ name, entry, trigger, date, hookBody, instruction, shortfall }) {
-  const slug = SLUG[trigger] ?? "hook";
+  const branch = runBranchPrefix({ name, date, trigger });
   return [
     `You are the agent named "${name}", running under epito's resident runtime with your repository already checked out in the current directory, on a fresh clone with no memory of previous runs.`,
     `Read ${entry} — it is your full charter — and do exactly what it says one run accomplishes. If the charter file is missing, stop and fail loudly instead of improvising.`,
-    `Work on a branch named ${name}/${date}-${slug} (append a short suffix if it exists). Commit as you go, push the branch, and open exactly ONE pull request, draft-first (gh pr create --draft), before anything else that takes time.`,
+    `Work on a branch named ${branch} (append a short suffix if it exists). Commit as you go, push the branch, and open exactly ONE pull request, draft-first (gh pr create --draft), before anything else that takes time.`,
     `Never merge your own PR, never push to main, never touch secrets or workflows. If the charter says to open no PR, open none.`,
     `This run was triggered by: ${trigger}.`,
     shortfallLine(shortfall),
@@ -182,6 +213,81 @@ export function gitEnvFor(token, base = process.env) {
   env.GIT_CONFIG_COUNT = String(at + 2);
   env[GIT_TOKEN_ENV] = token;                               // rule 1: the only place the value appears
   return env;
+}
+
+// A run's pull request, asked of the code host rather than read out of the
+// child's output.
+//
+// WHY ASK AT ALL. The close handler used to match an address out of the last
+// 64 KB of the child's combined output and never asked GitHub anything. So a
+// run that followed the house rule — open the draft first, before anything
+// slow — pasted its address in its first minute and then kept printing, and
+// was recorded as having shipped nothing while the pull request sat open on
+// GitHub and merged clean later. alexandra-systems/exo-centralizer measured
+// the edge against a staged copy of this file: the address survives 63 KiB of
+// trailing output and is gone at 64.
+//
+// WHAT IT ASKS. The pull requests of [runtime].repo, newest first, and the
+// newest whose head branch starts with THIS run's branch prefix — the prefix
+// buildPrompt told the agent to use, from `runBranchPrefix` so that the
+// instruction and the search cannot drift apart, and built from the
+// dispatch's registered name rather than from any charter.
+//
+// WHY `since`. The prefix alone cannot tell two runs apart: a seat woken by
+// three messages in one day branches `<name>/<date>-message`, `-message-2`,
+// `-message-3`, and every one of them matches every other's prefix. A pull
+// request this run opened is one created after this run started, and nothing
+// older is claimed — so a run that opened none still records none, which is
+// the whole point of asking. (One second of slack, because GitHub timestamps
+// to the second and a draft opened in the same second as the spawn would
+// otherwise round out of its own run.)
+//
+// IT NEVER THROWS. A host that is down, a repository nobody may read, a box
+// holding no credential at all: each one returns its reason, the caller
+// writes that reason into the run log, and the transcript is what the run is
+// recorded from. The transcript stays the fallback; it is no longer the
+// source.
+export async function pullRequestForRun({ repo, prefix, token = null, since = null, api = null, timeoutMs = 10_000 } = {}) {
+  if (!repo || !prefix) return { pr: null, branch: null, why: "the run names no repository and no branch prefix, so there is nothing to ask about" };
+  // Read at the moment of the call, not at import: a worker outlives its
+  // imports, and $EPITO_GITHUB_API is how a GitHub Enterprise box — and this
+  // repository's own tests — point epito at a different host.
+  const root = api || process.env.EPITO_GITHUB_API || GITHUB_API;
+  const url = `${root}/repos/${repo}/pulls?state=all&sort=created&direction=desc&per_page=100`;
+  let res;
+  try {
+    res = await fetch(url, {
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: {
+        accept: "application/vnd.github+json",
+        "x-github-api-version": "2022-11-28",
+        "user-agent": "epito",
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+    });
+  } catch (e) {
+    return { pr: null, branch: null, why: `${root} did not answer about the pull requests of ${repo} within ${Math.round(timeoutMs / 1000)}s (${e.message})` };
+  }
+  if (!res.ok) {
+    return { pr: null, branch: null, why: `GitHub answered ${res.status} for the pull requests of ${repo}${res.status === 404 ? " — either it does not exist or this run's credential cannot read it" : ""}` };
+  }
+  let list = null;
+  try { list = await res.json(); } catch (e) { return { pr: null, branch: null, why: `GitHub's answer about the pull requests of ${repo} was not JSON (${e.message})` }; }
+  if (!Array.isArray(list)) return { pr: null, branch: null, why: `GitHub answered about the pull requests of ${repo} with ${list === null ? "null" : typeof list}, not a list` };
+  const floor = since === null ? null : since - 1000;
+  const mine = list.filter((pr) => {
+    const ref = pr?.head?.ref;
+    if (typeof ref !== "string" || !ref.startsWith(prefix)) return false;
+    // A head branch in a fork is somebody else's branch with our name on it.
+    if (pr.head?.repo?.full_name && pr.head.repo.full_name !== repo) return false;
+    if (floor === null) return true;
+    const made = Date.parse(pr.created_at ?? "");
+    return Number.isFinite(made) && made >= floor;
+  }).sort((a, b) => Date.parse(b.created_at ?? 0) - Date.parse(a.created_at ?? 0));
+  if (!mine.length) {
+    return { pr: null, branch: null, why: `no pull request on ${repo} has a branch starting with "${prefix}" that was opened during this run` };
+  }
+  return { pr: mine[0].html_url ?? null, branch: mine[0].head.ref, why: null };
 }
 
 // `--output-format json` is one object on stdout, but stderr and any stray
@@ -410,6 +516,20 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     if (rt.env?.includes(k) && process.env[k] !== undefined) write(`# identity: ${k} from [runtime].env is overridden by this run's own minted credential\n`);
     baseEnv[k] = v;
   }
+  // Who asks GitHub whether this run opened a pull request: this run's own
+  // minted token when it has one, the box's shared GitHub credential when it
+  // does not, and nothing at all when the box holds neither — a public
+  // repository answers anyway, and a private one makes the lookup say so and
+  // fall back to what the child printed.
+  const hostToken = inject?.GH_TOKEN ?? inject?.GITHUB_TOKEN
+    ?? baseEnv.GH_TOKEN ?? baseEnv.GITHUB_TOKEN
+    ?? process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN ?? null;
+  // The branch the prompt above told this agent to work on, which is what the
+  // close handler asks GitHub about. A resumed run is handed no instruction,
+  // so this is a guess for it rather than a quotation — and a guess that
+  // matches nothing costs only a fallback to the transcript.
+  const branchPrefix = runBranchPrefix({ name, date, trigger });
+
   // What the box did NOT have. The loop above injects only the names this
   // worker holds, which is the rule that keeps a roster portable — and it is
   // silent: a seat whose BOARD_RUNTIME_TOKEN is missing here runs, exits 0 and
@@ -465,11 +585,40 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     catch (e) { write(`spawn failed: ${e.message}\n`); return res({ exit: "spawn", pr: null, sessionId: null, turns: null, detail: null }); }
     onSpawn?.(child);
     let tail = "";
-    // Scrubbed before it reaches either the log or the tail: `tail` is what
-    // the PR URL and the session id are read out of, and a 64KB window of the
-    // child's output is exactly the kind of thing that ends up in an error
-    // message somewhere else.
-    const onData = (d) => { const t = scrub(d); write(t); tail = (tail + t).slice(-64 * 1024); onOutput?.(); };
+    // Three things are read out of the child's output, and only one of them
+    // can wait until it closes. `tail` is still the 64 KB window it always
+    // was — it is what a human reads a short run back from — but the pull
+    // request and the result object are now taken as they go past, because
+    // both are printed early and the window keeps only the end.
+    let printedPr = null;   // the last address the child printed, from the whole run
+    let carry = "";         // the tail of the previous chunk, so a split address still matches
+    let resultLine = null;  // the last whole line that looks like the executor's result
+    let lineBuf = "";
+    // Scrubbed before it reaches the log, the window, or any of the three:
+    // 64 KB of somebody's stdout is exactly the kind of thing that ends up in
+    // an error message somewhere else.
+    const onData = (d) => {
+      const t = scrub(d);
+      write(t);
+      tail = (tail + t).slice(-64 * 1024);
+      const seen = (carry + t).match(PR_URL_RE);
+      if (seen) printedPr = seen[seen.length - 1];
+      carry = (carry + t).slice(-PR_URL_CARRY);
+      lineBuf += t;
+      if (lineBuf.length > RESULT_LINE_MAX) {
+        // One line longer than a megabyte is not a result object, and holding
+        // it would cost a megabyte per open window. Said out loud, because the
+        // silent version of this is the defect being fixed here.
+        write(`\n# a single line of output passed ${RESULT_LINE_MAX / 1024} KB and is not kept whole; the session id and turn count fall back to the 64 KB window\n`);
+        lineBuf = "";
+      }
+      if (lineBuf.includes("\n")) {
+        const lines = lineBuf.split("\n");
+        lineBuf = lines.pop();
+        for (const l of lines) if (l.includes('"session_id"')) resultLine = l;
+      }
+      onOutput?.();
+    };
     child.stdout.on("data", onData);
     child.stderr.on("data", onData);
     // A killed child resets its pipes, and an unhandled pipe error is fatal to the
@@ -481,11 +630,36 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     let settled = false;
     const done = (v) => { if (settled) return; settled = true; clearTimeout(timer); res(v); };
     child.on("error", (e) => { write(`spawn failed: ${e.message}\n`); done({ exit: "spawn", pr: null, sessionId: null, turns: null, detail: null }); });
-    child.on("close", (code, signal) => {
-      const prs = tail.match(PR_URL_RE);
-      const pr = prs ? prs[prs.length - 1] : null;
-      const { sessionId, turns, detail } = parseExecutorResult(tail);
+    child.on("close", async (code, signal) => {
+      // The child is gone, so the timeout is answered now: what follows is one
+      // question to the code host, and a run must not be recorded as timed out
+      // because GitHub was slow to answer about it.
+      clearTimeout(timer);
       const exit = timedOut ? "timeout" : (code ?? signal);
+      // The window first, because a result object pretty-printed across lines
+      // is whole only there; the line kept above is what answers when the
+      // window's copy was truncated away.
+      let { sessionId, turns, detail } = parseExecutorResult(tail);
+      if (resultLine && (sessionId === null || turns === null)) {
+        const whole = parseExecutorResult(resultLine);
+        if (whole.sessionId) ({ sessionId, turns, detail } = whole);
+      }
+      // The host, then the transcript. Asking first is the fix: a run that
+      // printed its address and then kept printing is still a run that opened
+      // a pull request, and the host is the only party that knows.
+      // Guarded as well as written not to throw: an exception raised in this
+      // handler resolves nothing, and a run that never resolves is a window
+      // that never closes.
+      let asked;
+      try {
+        asked = await pullRequestForRun({ repo: rt.repo, prefix: branchPrefix, token: hostToken, since: started });
+      } catch (e) {
+        asked = { pr: null, branch: null, why: `asking GitHub about the pull requests of ${rt.repo} itself failed (${e.message})` };
+      }
+      const pr = asked.pr ?? printedPr;
+      write(`# pull request: ${asked.pr
+        ? `${asked.pr}, which GitHub says ${rt.repo} opened during this run on "${asked.branch}"`
+        : `${asked.why}${printedPr ? `; recorded from the address the run printed instead, ${printedPr}` : ", and the run printed none either"}`}\n`);
       write(`\n---\n# exit=${exit} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}${detail ? ` detail="${detail}"` : ""}\n`);
       done({ exit, pr, sessionId, turns, detail });
     });

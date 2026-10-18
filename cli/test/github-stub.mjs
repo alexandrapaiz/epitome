@@ -143,6 +143,14 @@ createServer((req, res) => {
       return send(200, { id: 4242, account: { login: inst[1] }, repository_selection: "selected", permissions });
     }
 
+    // The pull requests of a repository: a run asks this when its child
+    // closes, to learn whether it opened one. This stand-in holds none, so a
+    // run against it is recorded from the address its child printed — which
+    // is the fallback, exercised by every smoke run that passes through here.
+    // It answers rather than 404s so the run log says "none opened during
+    // this run" instead of something an operator reads as a broken token.
+    if (req.method === "GET" && /^\/repos\/[^/]+\/[^/]+\/pulls(\?|$)/.test(req.url)) return send(200, []);
+
     const mint = /^\/app\/installations\/(\d+)\/access_tokens$/.exec(req.url);
     if (req.method === "POST" && mint) {
       if (mode === "refuse-perms") return send(422, { message: "There is at least one repository that does not exist or is not accessible to the parent installation" });
