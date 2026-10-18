@@ -3591,6 +3591,7 @@ test("the lookup finds this run's pull request by branch prefix, and asks as the
   assert.equal(asked.length, 1);
   assert.match(asked[0].url, /^\/repos\/acme\/roster\/pulls\?state=all/, "state=all: a draft that was merged in the same run is still this run's");
   assert.equal(asked[0].auth, "Bearer ghs_LOOKUPTOKEN0000000000000000000000", "a run with an identity asks as itself");
+  assert.equal(asked[0].agent, "epito", "GitHub refuses a request with no user agent, which is a 403 nobody would read as this");
 });
 
 test("the lookup never claims a pull request from an earlier run of the same seat", async (t) => {
