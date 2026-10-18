@@ -5,7 +5,7 @@ file the host does not have. Full record: incident 10, lesson L22.
 diff --git a/prompts/engineer-agent.md b/prompts/engineer-agent.md
 --- a/prompts/engineer-agent.md
 +++ b/prompts/engineer-agent.md
-@@ -48,6 +48,21 @@ Standards, non-negotiable:
+@@ -48,4 +48,20 @@ Standards, non-negotiable:
  - Smoke-test what you ship, in the PR, with the commands and output
    pasted. Untested work is unfinished work.
 +- A fixture is copied, never quoted. When your code reads what another
