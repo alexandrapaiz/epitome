@@ -29,6 +29,7 @@
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { loadRoster } from "./lib/roster.js";
+import { companyFor } from "./lib/company.js";
 import { thisRuntime, buildLine, buildNote } from "./lib/build.js";
 import { rosterEnv, shortfallSays } from "./lib/boxenv.js";
 import { SPEC_VERSION } from "./lib/fields.js";
@@ -112,6 +113,13 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
 
   const dir = resolve(dirArg);
   let roster = loadRoster(dir);
+  // Which company these runs are filed under on the company board, read from
+  // the roster's own company.yaml — here, because this is the one process that
+  // reads the roster directory (law 3), and said out loud at startup for the
+  // same reason the build line above it is: a runtime that files runs under a
+  // name nobody chose is the thing this reading exists to stop.
+  let company = companyFor(dir);
+  log(company.name ? company.note : `! ${company.note}`);
   const cfg = temporalEnv();
   const port = Number(process.env.EPITO_PORT) || DEFAULT_PORT;
   const secret = process.env.EPITO_HOOK_SECRET || "";
@@ -151,7 +159,7 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
   // happened" (ADR-22), and for four weeks it could not answer "under which
   // revision of the runtime".
   record({ agent: null, action: "reconcile.start", dir, address: cfg.address, namespace: cfg.namespace, queue: cfg.taskQueue, build: buildLine(build) });
-  const plan = await reconcile({ client, roster, dryRun, log: (m) => log(m) });
+  const plan = await reconcile({ client, roster, company: company.name, dryRun, log: (m) => log(m) });
   for (const k of ["create", "update", "delete"]) {
     for (const s of plan[k]) record({ agent: s.name, action: `schedule.${k}`, schedule: s.id, cron: s.shape?.cron ?? null });
   }
@@ -181,7 +189,8 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
   // The arguments every workflow of this seat carries. The manifest snapshot
   // travels with the run (law 3); the worker never reads <dir>.
   const seatArgs = (name, extra) => ({
-    name, manifest: roster.get(name).manifest, runTimeoutMs: cfg.runTimeoutMs, ...extra,
+    name, manifest: roster.get(name).manifest, company: company.name,
+    runTimeoutMs: cfg.runTimeoutMs, ...extra,
   });
 
   // A seat's ingress-triggered runs all share one workflow id, so this either
@@ -441,7 +450,13 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
       // variable this box has never held: the startup block ran before that
       // manifest existed. Said again, against the roster that is now in force.
       sayShortfall(roster, dirArg, log);
-      const p = await reconcile({ client, roster, log: (m) => log(m) });
+      // Re-read on the same signal: company.yaml is a file in the same
+      // repository the roster is, so a `git pull` that adds a seat is also the
+      // moment the product gets renamed. Re-registering schedules against a
+      // stale company name is the drift this line costs one stat to avoid.
+      company = companyFor(dir);
+      log(company.name ? company.note : `! ${company.note}`);
+      const p = await reconcile({ client, roster, company: company.name, log: (m) => log(m) });
       for (const k of ["create", "update", "delete"]) {
         for (const s of p[k]) appendAudit({ agent: s.name, action: `schedule.${k}`, schedule: s.id, cron: s.shape?.cron ?? null });
       }

@@ -52,8 +52,14 @@ function executor(runTimeoutMs) {
 
 // --- SeatRun --------------------------------------------------------------
 
-// input: { name, manifest, trigger, payload?, resume?, route?, workDir?,
-//          keepWork?, runTimeoutMs?, executor? }
+// input: { name, manifest, company?, trigger, payload?, resume?, route?,
+//          workDir?, keepWork?, runTimeoutMs?, executor? }
+//
+// `company` is the name this run's report is filed under on the company board
+// (lib/company.js). It travels in the input beside the manifest snapshot and
+// for the same reason: it is read from the roster directory, which the worker
+// never looks at (law 3). Absent — a stranger's roster, an older schedule —
+// no report is filed and nothing is said about it.
 // result: { exit, durationMs, pr, sessionId, turns, log, workDir, route, model }
 //
 // `route` travels beside `resume` and for the same reason: a held session
@@ -133,14 +139,20 @@ export async function SeatRun(input) {
         // Temporal's ActivityFailure says only "Activity task failed", and an
         // audit line that says that has told the operator nothing.
         const detail = String(err?.cause?.message ?? err?.message ?? err);
-        await short.record({ name, trigger: req.trigger, runId: id, model: manifest.runtime.model, exit, detail, startedAt });
+        await short.record({
+          name, trigger: req.trigger, runId: id, model: manifest.runtime.model, exit, detail, startedAt,
+          company: input.company ?? null, repo: manifest.runtime.repo ?? null,
+        });
         if (!borrowed && workDir) await short.cleanup({ name, workDir });
       });
       throw err;
     }
 
     last = { trigger: req.trigger, ...result };
-    await short.record({ name, trigger: req.trigger, runId: id, resume: req.resume ?? null, model: manifest.runtime.model, startedAt, ...result });
+    await short.record({
+      name, trigger: req.trigger, runId: id, resume: req.resume ?? null, model: manifest.runtime.model, startedAt,
+      company: input.company ?? null, repo: manifest.runtime.repo ?? null, ...result,
+    });
     await short.notify({ name, manifest, trigger: req.trigger, turns: result.turns, pr: result.pr, durationMs: result.durationMs, exit: result.exit });
 
     // Who owns the clone: a window that lent it, a window that asked this run
@@ -158,7 +170,7 @@ export async function SeatRun(input) {
 
 // --- SeatWindow -----------------------------------------------------------
 
-// input: { name, manifest, ttlMs, agenda?, instruction?, runTimeoutMs?, executor? }
+// input: { name, manifest, company?, ttlMs, agenda?, instruction?, runTimeoutMs?, executor? }
 export async function SeatWindow(input) {
   const { name, manifest } = input;
   if (!name || !manifest?.runtime) {
@@ -188,7 +200,7 @@ export async function SeatWindow(input) {
 
   const child = (args, suffix) => executeChild(SeatRun, {
     workflowId: `run:${name}:${suffix}`,
-    args: [{ name, manifest, runTimeoutMs: input.runTimeoutMs, executor: input.executor, ...args }],
+    args: [{ name, manifest, company: input.company ?? null, runTimeoutMs: input.runTimeoutMs, executor: input.executor, ...args }],
   });
 
   await short.record({ name, action: "window.open", until: expiresAt, agenda: input.agenda ? input.agenda.length : undefined });
