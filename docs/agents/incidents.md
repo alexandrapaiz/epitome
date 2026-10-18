@@ -165,3 +165,72 @@ not-landing clause of this seat's charter, with the measurement and the
 one decision the owner would be asked.
 
 **Lesson produced.** L15 in `docs/agents/lessons.md`.
+
+## Incident 6 — 2026-10-12 to 2026-10-16 — The building seat did not start for three and a half days, and nobody read why
+
+**What happened.** Between 2026-10-12T20:25Z and 2026-10-16T01:41Z, nine
+scheduled runs of this company failed: eight of the engineer seat and
+one of the project manager. Every one of them failed in three to five
+seconds with zero steps executed. The runs are 38304103670,
+38305248719, 38343913575, 38447241753, 38499668570, 38593912693,
+38667959433, 38762870877 and 38836464924, and the cause is the same
+sentence on each, read this run from the job's check-run annotation,
+verbatim:
+
+> The job was not started because recent account payments have failed or
+> your spending limit needs to be increased. Please check the 'Billing &
+> plans' section in your settings
+
+Two engineer runs on 2026-10-16T15:32Z and 2026-10-17T01:34Z completed
+normally, so the block cleared on its own before anyone recorded that it
+had been there. The failure on 2026-10-17T14:25Z is unrelated: that run
+worked for twenty-seven minutes and exhausted its hundred-and-fifty-turn
+cap, and the project manager triaged it correctly two passes later.
+
+**Impact.** The company's only building seat was stopped for three and a
+half days, across eight of its scheduled runs, during the window in
+which a cycle was waiting to open. Nothing on the board, in the queue or
+in any pull request said so. The project manager's pass note of
+2026-10-18 reports "none in the last six hours" and names the turn-cap
+run as "the one real failure in the last 24h", which was true of the
+twenty-four hours it looked at.
+
+**Root cause in the system, two parts, neither of them a seat.**
+
+*The read step is blind to this class.* The company standard's triage
+procedure says to read each failure with `gh run view <id> --log-failed`
+and the model trace. A job that never started wrote no log: that command
+returns `log not found` for all nine, while successful runs of the same
+two days return eighty kilobytes each, so this is not log retention. The
+only place the explanation exists is
+`GET /repos/{owner}/{repo}/check-runs/{job}/annotations`, which no
+charter and no standard names. A procedure that reads conclusions and
+logs can see that a run failed and can never see that the account was
+blocked.
+
+*The watch is slower than what it watches.* The same procedure runs
+"every standup" with a twenty-four-hour look-back, against a seat that
+runs twice a day. Its escalation rule — "two failures in a row on one
+seat is an incident, not a third try" — was satisfied four times over,
+and the count was never computed, because the triage that computes it
+ran three times in thirteen days and one of those runs was itself
+blocked by the same billing failure. A look-back shorter than the
+watcher's own interval cannot see its own escalation condition. That is
+lesson L16's third instance.
+
+**Fix shipped, and what is not this seat's.** This run ships the entry,
+lesson L16 and the triage patch beside it
+(`docs/agents/patches/2026-10-18-pm-a-pass-is-not-a-pull-request.diff`
+carries the output unit; the look-back and the annotation read belong to
+the company standard's section 11.7, which is HQ's file and not this
+repository's, and went up as a note to the centralizer rather than as a
+patch here).
+
+The billing state itself is the owner's and nothing else's: company
+standard section 22 says spending never proceeds on her silence. It is
+in the handoff to `alexandra-systems/pm` as the single decision to put
+in front of her, with the measurement, because the same block will stop
+every seat the bus wakes through GitHub and will again leave no log when
+it does.
+
+**Lesson produced.** L16 in `docs/agents/lessons.md`.
