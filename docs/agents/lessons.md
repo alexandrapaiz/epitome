@@ -1437,4 +1437,16 @@ precedent is its own exclusion of the fifteenth patch; and **headquarters'
 to `alexandra-systems/pm`, onto the handoff already open with its engineer,
 rather than patched here (§18).
 
+**This run's own defect, recorded against the entry rather than as a second
+one.** Two of the identifiers this run put in a board message's `data` were
+typed from the eight characters in front of me instead of read back from the
+board, so both resolved to nothing; a third, in the handoff that followed, had
+a placeholder suffix. Corrected on the board within a minute in the first case
+and in this run's report in the third. The rule is the same one L23 and L24
+already apply to numbers and orderings, so it needs no entry of its own: an
+identifier is read back from the surface it names at the moment it is written,
+never reconstructed from a prefix — and the prose of a board message carries no
+identifiers at all precisely because they belong in `data`, where a reader
+resolves rather than retypes them.
+
 `portable: yes`
