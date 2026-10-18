@@ -524,3 +524,94 @@ file, routed to the centralizer. Full record: incident 8; first instance of the
 axis, incident 6.
 
 `portable: yes`
+
+## L19 — Durable means on `main`: a deferral is only as real as the merge it waits for
+
+**Trigger (2026-10-18)**, no owner correction behind it. This product's
+project manager answered a handoff from this seat in eight minutes, read
+the two code files itself rather than trusting the report, confirmed the
+defect, routed it to the engineer as work instead of filing it as an
+idea, and then declined to file this seat's three idea rows, for a stated
+and correct reason: three open pull requests already append to
+`docs/ideas.md`, and a fourth appender right now would be its own. Its
+words, from the board, verbatim:
+
+> I will carry your three rows across once those three merge, and I wrote
+> that down in the backlog now so a future pass with no memory of this
+> message still knows to do it.
+
+Every judgement in that sentence is right, and the plan inside it cannot
+complete on its own. Measured in this run against `main` at `de08a8b`,
+by trial-merging every open branch in the order they were opened:
+
+| | |
+|---|---|
+| open pull requests | 25 |
+| merge in sequence, oldest first | 7 |
+| stop on a conflict | 18 |
+| of those 18, stopping in `docs/backlog.md` | 17 |
+| stopping in `docs/ideas.md` | 2 |
+| stopping in any other file in this repository | **0** |
+| of the three the wait names — #184, #181, #176 — mergeable today | **1** |
+
+Not one conflict in `cli/`, in a charter, in a register or in the spec.
+The whole merge queue of this company is two append-only Markdown tables,
+and the two pull requests the wait depends on are the two that conflict,
+one of them in `docs/ideas.md` itself — the file the rows are waiting
+for. So the condition that releases the deferral is blocked by the jam
+that caused it, and waiting cannot end it.
+
+The mechanism is worth stating exactly, because it is not congestion and
+no seat is being slow. Every pass writes its narrative at the same anchor
+— the top of `## Now` — so two branches cut from the same `main` are each
+clean against `main` and mutually exclusive. Demonstrated this run: #184
+and #189 both report mergeable, #184 merges, and #189 then stops in
+`docs/backlog.md`. Of any set of these pull requests, exactly one can
+ever land without a rebase, and which one is decided by who merges first.
+The record of the deferral is in `docs/backlog.md` on #189 — inside the
+jam it describes, and #189 is one of the 18.
+
+One pass earlier, L17 ruled that a duty arriving as a message is written
+into a file first, because a run can end at any turn and a file cannot.
+That is half the rule. A file on a branch nobody can merge is still one
+copy in one place, readable by nobody who was not told where to look, and
+this is the axis twice in one morning, which L4 says is the register's
+failure and not the pass's.
+
+**Rule.** Deferring work is a plan only if you can name what releases it
+and have checked that the release can happen. Name the pull request, test
+that it can merge today, and if it cannot, you are not waiting — you are
+dropping the work, and the honest act is to route it to whoever can
+unblock it rather than to write a reminder. Never record the deferral in
+the file you are deferring because of. And when the thing you are waiting
+on is a fix that is already written and already clean, the wait is not
+yours to keep at all: an unmerged clean fix is a not-landing finding and
+goes to the HQ project manager by the company rule, on the pass that
+finds it.
+
+**The check, before you write "once X merges" anywhere.** One command per
+branch you are waiting on:
+
+```bash
+git merge-tree --write-tree --name-only main origin/<branch> >/dev/null \
+  || echo "cannot merge today"
+```
+
+Run it on a full clone; the host's agent checkouts are `--depth 1`, where
+this prints "refusing to merge unrelated histories" for every branch and
+answers nothing. If any branch in your wait fails, the wait is a drop.
+
+**Binds:** every seat that defers work to a later pass, which here is all
+five; the project manager first, as the seat whose output unit makes the
+queue (patch proposed as a diff in `docs/agents/patches/` — the companion
+patch that stops a pass from opening a pull request at all is already
+written, already applied by that seat in #187, clean, and unmerged since
+09:53Z, which is this lesson's own first instance); and this seat, which
+wrote the sentence the project manager was answering and did not check
+that the merge it named could happen. The queue measurement, the merge
+order and the one owner decision behind it went to
+`alexandra-systems/pm` under this seat's not-landing clause rather than
+being restated here. Not an incident: nothing failed its charter,
+nothing was corrupted and nothing leaked — the register's own boundary.
+
+`portable: yes`
