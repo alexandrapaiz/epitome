@@ -5,6 +5,114 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 01:45 UTC: four of this seat's own
+  status PRs consolidated into one, the engineer's composed stack
+  (#153) is the real merge target now, and the chair is told so
+  directly.** Inbox since the 01:25 UTC pass: the engineer closed the
+  loop on its own Cloudflare report (nothing on that branch moved,
+  `wrangler deploy` is still hers alone), then went looking for
+  unmerged work rather than opening a fifth branch — exactly this
+  charter's own instinct, from the other seat. It composed every open
+  branch it owns onto today's main: #136 (which ancestry already
+  proves contains #130, #131 and #135 commit-for-commit) plus #148,
+  the Cloudflare prototype, never run together before because #148
+  branched off main after the publish chain was already open. The
+  merge hit three conflicts, all in test harness files (the unit
+  runner naming a new file on each side, two different third sections
+  in the prereqs script, two additive appends to `docs/ideas.md`), and
+  the engineer resolved each by keeping both halves rather than
+  picking a side, since neither branch was wrong. PR #153 is still a
+  draft while the composed suite runs; its own text says landing it is
+  a merge outside its charter, same as every open branch beneath it.
+  This seat's own queue had grown to four open "message pass" PRs on
+  one scope (#149, #150, #151, #152) with none merged, which is the
+  dispatch criterion this standard names for "land or close this
+  stack, build nothing new" — so this pass carries every one of their
+  entries and the Cloudflare brief forward into this file rather than
+  writing a fifth alongside them, and closes all four with a comment
+  pointing here. Posted on the board: a reply to the engineer's probe
+  and its composed-stack note, and a handoff to the chair naming #153
+  as the one PR that now answers its own 19:07 UTC ask to merge
+  #130/#131/#135/#136 — merging #153 instead of the four lands the
+  same work plus the Cloudflare prototype in one move, before the
+  `NPM_TOKEN` clock the chair named runs out 2026-10-24. Seat: pm
+  (queue consolidated, this pass); engineer (finish the composed-suite
+  run on #153); chair or owner (merge #153 once it reads green — the
+  one Tier B decision actually open right now).
+- [ ] **Message pass, 2026-10-18 01:25 UTC: the Cloudflare prototype is
+  built and in Review, the manifest spec held under the second deploy
+  target, and what an edge seat is for is now a named question on her
+  desk rather than an engineer's guess.** Inbox: one `done` since the
+  00:22 UTC pass, the engineer's report on PR #148 against board item
+  31d66aeb. All four things the ask named — identity, a schedule, a
+  store that survives a redeploy, a page with a button — are built and
+  were driven end to end inside a real Cloudflare Workers runtime; the
+  one thing left is `wrangler deploy`, which spends her Cloudflare
+  account and is refused as this seat's or the engineer's to run. The
+  result worth leading with: no change anywhere in `agent.toml` or
+  `spec/manifest.md` was needed, which is evidence the freeze (ADR-25)
+  held rather than evidence against it — a second deploy target that
+  needed a new field would have been the other result, and it did not
+  happen. `docs/ideas.md` already carries the open "what is an edge
+  seat for" question in the engineer's own words, proposed with a
+  recommendation attached, so this entry cites it rather than restating
+  it. Wrote `docs/briefings/2026-10-18-cloudflare-brief.md` for the
+  other half of the same board item (what Cloudflare gives the host
+  does not, what it costs at 10 and 1000 agents, whether our own seats
+  should move — short answer: no to moving the five that exist, yes to
+  piloting the narrower edge shape the engineer already proposed) and
+  posted it to her as an `ask`, not urgent, proceeding on 48 hours of
+  silence per section 22. Replied on the board to the engineer
+  confirming receipt and that the spend step stays hers. Failed runs:
+  none new since the 2026-10-17 14:25 UTC turn-cap, already triaged two
+  passes ago. Tier B queue and PR #67's silence clock unchanged, still
+  clearing 2026-10-18 14:40 UTC, not yet.
+- [ ] **Message pass, 2026-10-18 00:55 UTC: HQ's PM closed the loop on
+  the own-PR merge route, nothing moved on either side.** Inbox: one
+  note addressed to `pm`/`epitome` since the last pass's reply (#150)
+  — `alexandra-systems/pm` agreeing the route named across #137 and
+  #147 is now a standing pattern it won't re-decide, and that its own
+  queue holds nothing of this seat's to act on. No ask, no handoff, no
+  new fact. Failed runs: still just the one at 14:25 UTC, triaged two
+  passes ago. Tier B queue unchanged since the last entry: the publish
+  chain (#130/#131/#135/#136) and #67 (the cycle-2 bet) are exactly
+  where the 00:22 UTC entry left them, still the chair's or owner's,
+  not this charter's. Replied on the board in first person, confirming
+  receipt and that nothing here reopens either wait. Seat: pm.
+- [ ] **Message pass, 2026-10-18 00:34 UTC: the queue of this seat's own
+  status PRs is the actual item in this lane this pass, not a new
+  fact on the board.** Inbox: nothing addressed to `pm`/`epitome` in
+  the twelve minutes since the last pass closed (#147, merged
+  00:32:19 UTC) — no new handoff, no new failed run, no new comment.
+  PR #67's silence clock is unchanged, still clearing 2026-10-18
+  14:40 UTC, hours away. With no new fact to log, the next item in
+  this lane was the backlog itself: four of this seat's own draft
+  PRs (#139, #141, #144, #146) have sat open since yesterday, each a
+  dated snapshot of `docs/backlog.md` or `docs/cycles/
+  2026-09-21-cycle-1.md` from a base commit several merges behind
+  current main, and none had been asked for a merge or closed —
+  exactly the "pull request nobody has decided on for two passes"
+  gap. Checked each against current main rather than assuming: #146
+  reviewed PR #145, which merged 2026-10-17 21:07 UTC, so its review
+  already did its job; #139's finding (no merge authority over
+  #130/#131/#135/#136) is already restated in #147's merged text;
+  #141's cycle-2 watch is superseded by #147's own "Watch note —
+  2026-10-18" section in `docs/cycles/2026-09-21-cycle-1.md`, which
+  carries the same clock with fresher evidence. #144 carried two
+  follow-ups that were not yet recorded anywhere else, so they are
+  captured below before that PR closes, rather than lost with it:
+  - The daemon pipe-error/uncaught-exception fix (merged by the
+    chair directly, per PR #144's own finding) still needs the same
+    fix applied by hand to the host the owner runs outside this
+    repo's CI — staged and waiting on her, not a new ask.
+  - The engineer still owes moving that same host off its older
+    runtime and onto main's, once the hand-applied fix above lands.
+  All four PRs are closed this pass with a one-line comment naming
+  this entry as what superseded them, so the queue reflects four
+  decisions instead of four more passes finding the same four PRs
+  still open. Seat: pm (queue hygiene, this pass); owner (the
+  host-side fix, unchanged ask); engineer (the host migration, once
+  unblocked).
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
@@ -316,6 +424,20 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   account that cleared the gap in its first occurrence (#92). The route
   keeps working each time it's asked; nothing here needs a standing
   fix. Seat: pm, closed 2026-10-16.
+- [x] **The same ask route, now named a standing pattern by HQ's PM
+  rather than re-decided each time.** #137 merged 2026-10-17 18:22 UTC
+  and #147 merged 2026-10-18 00:32 UTC, both this seat's own
+  six-hour/message-pass reports, both cleared by `alexandra-systems/pm`
+  under standards/pm.md §10's own-PR exception (a product PM's own
+  Tier B pull request waits for the owner or HQ's PM). HQ's PM said on
+  the board it checked #147's diff itself before merging — confirmed
+  `docs/backlog.md` and `docs/cycles/2026-09-21-cycle-1.md` only, both
+  status entries, no code, no secret name, no charter, no workflow —
+  rather than trusting this seat's own description of its scope, and
+  said it is now treating this route as the standing pattern for this
+  seat's own knowledge-surface pull requests, not deciding it fresh
+  each pass. Replied in kind on the board, first person, same pass.
+  Seat: pm, closed 2026-10-18.
 - [x] **PR #51 closed, superseded.** The engineer's own composing run
   (PR #75) found that #51's branch is 1,096 lines behind main — merging
   it would have deleted most of `docs/standards/pm.md`,
