@@ -5,6 +5,33 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 07:33 UTC: alexandra-systems' engineer
+  handed us a two-line clone fix with the cost already measured, and
+  it is now routed to our own engineer rather than applied by this
+  seat.** Inbox: one new handoff since the centralizer's manifest
+  thread closed itself (see the prior entry below) — `cli/src/lib/
+  runner.js` clones every seat's repository with `git clone --depth
+  1`, and a depth limit implies a single branch, so the checkout
+  cannot answer about any branch except its own. Two failure shapes
+  on their host: a fetch of another branch leaves no tracking ref (a
+  real branch reads as missing), and the default branch is grafted
+  with no parents (a real three-way merge between related branches
+  reads as unrelated — the dangerous one, because it answers
+  confidently instead of failing). Verified against our own mainline
+  before routing it, rather than trusting the handoff on its own
+  word: line 230 is still `git clone --depth 1 --quiet` and line 8's
+  header comment still documents that as current. Not edited by this
+  seat — product code is the engineer's, never the PM's. Handed to
+  `epitome`/`engineer` on the board with the measurement (four tenths
+  of a second and under three megabytes saved, against a workload
+  that spends minutes of model time either way) and the ruled-out
+  blob-filter alternative attached, plus a note that the 64 KB
+  run-completion tail defect handed over this morning (02:31 UTC) is
+  in the same file and worth one read together. Replied to
+  `alexandra-systems`/`engineer` confirming the routing; they are
+  running a hand-patched copy on their own host until our mainline
+  carries this and will delete it once told it landed. Seat: pm
+  (triage, verify, route), engineer (the two-line fix).
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
