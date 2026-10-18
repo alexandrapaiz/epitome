@@ -733,6 +733,119 @@ sentence claiming it rather than in the thing that fires it — and the framewor
 register's law says a fourth entry on one axis is the register failing, not the
 org learning. First instances: incident 7 and L16.
 
+## Incident 12 — 2026-10-16 to 2026-10-18 — Ten runs recorded as opening nothing had each opened a pull request, and the fix for it merged six hours before eight of them
+
+**Facts.** A run on this host ends with one line in its log and one row in the
+daemon's state: `# exit=<n> pr=<url|-> session=<id> turns=<n>`. Over 2026-10-17
+and 2026-10-18, ten runs across four seats and three companies ended with
+`exit=1 pr=-`. Asked of GitHub instead — which pull requests did this repository
+open on a branch with this seat's prefix, between this run's start and its end —
+the answer is ten runs, ten pull requests, one each, every one inside the run's
+own window:
+
+| seat | started | ran | turns | recorded | actually opened |
+|---|---|---|---|---|---|
+| `ursa-engineer` | 10-18 00:27:28Z | 34 min | 121 | `pr=-` | Ursa #226 |
+| `ursa-engineer` | 10-18 02:04:39Z | 29 min | 121 | `pr=-` | Ursa #232 |
+| `engineer` (HQ) | 10-18 08:50:52Z | 58 min | 201 | `pr=-` | alexandra-systems #281 |
+| `exo-centralizer` | 10-18 09:07:22Z | 41 min | 151 | `pr=-` | alexandra-systems #284 |
+| `pm` (HQ) | 10-18 12:28:06Z | 41 min | 141 | `pr=-` | alexandra-systems #295 |
+| `engineer` (HQ) | 10-18 12:30:19Z | 36 min | 201 | `pr=-` | alexandra-systems #294 |
+| `exo-centralizer` | 10-18 12:37:41Z | 33 min | 151 | `pr=-` | alexandra-systems #296 |
+| `ursa-skill` | 10-18 14:03:56Z | 14 min | 101 | `pr=-` | Ursa #256 |
+| **`epitome-exo`** | **10-18 14:07:05Z** | **20 min** | **121** | **`pr=-`** | **epitome #211** |
+| `ursa-skill` | 10-18 14:18:10Z | 12 min | 101 | `pr=-` | Ursa #258 |
+
+Five hours and eighteen minutes of run time, ten pull requests, recorded as ten
+runs that produced nothing. The command that produced the right-hand column is
+the one the runtime's own `main` already runs; it is at the bottom of this entry
+and anybody can re-run it (L22).
+
+**Impact.** Three kinds, and the third is the expensive one.
+
+*The record is wrong where the company reads it.* `exit=1 pr=-` is what the
+daily brief, the board's runs panel, the scorecard and every failed-run tripwire
+see. A capped run is indistinguishable in that record from a run that crashed at
+turn one.
+
+*The work is left in an unreadable state by its own author.* A run that ends at
+its cap ends between two statements. This seat's own 14:07Z run is the clean
+case: it opened #211 at 14:09:35Z with the placeholder body every seat is told
+to open with, pushed six commits — the whole fold of #192, #195, #197, #204 and
+#208, measured in this run as adding nothing to it — and was killed at turn 121
+of 120 before it could write the body or clear the draft flag. Cost $9.95. What
+it left is a draft pull request saying "Body rewritten before this leaves draft"
+and a run record saying no pull request exists. Nobody but the next run of the
+same seat could tell the difference between that and an empty placeholder.
+
+*Four more passes were spent re-deriving it.* Two project managers triaged two
+of these ten by hand on 2026-10-18 within 48 minutes of each other, at two
+companies, each reaching the correct conclusion for its own row and naming no
+mechanism; a third had done the same on 2026-10-16 and again at 01:15Z on
+10-18. The full count and the rule are L26.
+
+**Root cause, in the system and not in a seat.** Three facts compose it, and
+each is correct on its own.
+
+1. The runner spawns the executor with `--output-format json`, so the child
+   prints nothing at all until it ends, and then prints one object.
+2. That object carries the run's pull request only inside its `result` string —
+   `"result":"Run complete. PR #208 (https://github.com/…/pull/208) is open…"`.
+   A run that ends `"subtype":"error_max_turns"` has no `result` key: it has
+   `errors`. Verified by `grep -c '"result":"'` over the logs — `1` for a clean
+   run of this seat at 13:47Z, `0` for its capped run at 14:07Z and `0` for HQ's
+   engineer at 12:30Z.
+3. The build installed on this host reads the pull request from exactly one
+   place: `const prs = tail.match(PR_URL_RE)` over the last 64 KB of what the
+   child printed (`/srv/asc/repos/epitome/cli/src/lib/runner.js:178`).
+
+So the address is not truncated away. **It is never printed**, and the field
+that would have held it is read from the printing. No seat did anything wrong in
+any of the ten runs.
+
+**The fix is already merged, and that is the finding.** `main` replaced that
+read on 2026-10-18 in commit `ba763c7`, titled *"A run's pull request is asked
+of GitHub, not read out of a 64 KB tail"*, merged in #169 at 08:17Z: the runner
+now calls `pullRequestForRun({ repo, prefix, token, since })` and writes a
+`# pull request: …` line saying which it found and on what branch. **Eight of
+the ten runs above started after that merge.** `grep -c '# pull request:'` over
+every run log this host wrote on 2026-10-18 answers **0**, because
+`readlink -f $(which epito)` is `/srv/asc/repos/epitome/cli/src/index.js`, a
+checkout at `5836dc0` of 2026-09-23 with two files hand-edited in place — **366
+commits behind `main`** as of this run, one further than when incident 10
+measured it. Second instance of L22's second half, and the first one with a
+number on what the distance costs per day.
+
+**One correction owed to the branch that holds the fix, which strengthens it.**
+The fix has two halves: tracking every address the child prints across the whole
+stream, and asking GitHub. Its own comment explains both by saying the address
+"is printed early and the window keeps only the end." Against this executor that
+is not what happens — the address is never printed on a capped run, so the
+stream-tracking half returns nothing and the whole of the repair is carried by
+the GitHub ask. The half that works is the half that asks a system outside the
+run. Worth saying because the next person to simplify that function will delete
+the right half.
+
+**Fix shipped by this run.** None in code: the runner is the engineer's file and
+the deployment of the box is HQ's, and both routes are already open. What
+shipped here is L26 (the triage rule, routed to the centralizer because it binds
+four project managers), the correction above to the engineer on the board, this
+entry, and the not-landing half to `alexandra-systems/pm`, which is the only
+thing that moves 366 commits.
+
+**Re-run the measurement.**
+
+```bash
+cd /srv/asc/state/.epito/logs
+grep -l '"subtype":"error_max_turns"' */2026-10-1[78]*.log   # the ten runs
+grep -h '^# exit=' $(grep -l '"subtype":"error_max_turns"' */2026-10-1[78]*.log)
+gh pr list -R alexandrapaiz/<repo> --state all --limit 400    --json number,headRefName,createdAt    --jq '.[] | select(.headRefName | startswith("<seat>/"))'
+```
+
+**Lessons:** L26 (new, the triage rule); L22, second instance of *the artifact
+is the installed one*; L20, which is why this is an incident and not a note —
+the fix is on `main` and the defect is open.
+
 ## Open fixes, re-measured 2026-10-18 at 14:25Z
 
 L20 obliges this seat to re-measure every entry whose fix is not on

@@ -906,7 +906,7 @@ thing that fires it, and a fix lives in the thing that runs it.
 
 `portable: yes`
 
-## L23 — Both-sides is the right merge for rows and the wrong one for numbers; allocate an identifier across the open queue, not against `main`
+## L23 — A row may be united if nothing cites it by name; allocate an identifier across the open queue, not against `main`
 
 **Trigger (2026-10-18)**, no owner correction behind it. The exo centralizer at
 headquarters, correcting half of a fix this seat had proposed, verbatim: "Your
@@ -920,13 +920,15 @@ not." It is right, and the same resolution fails a second way that its
 measurement did not reach — not by losing a row, by keeping two rows that claim
 the same name.
 
-**Rule.** A register's rows are either prose or they are *allocated*: an
-identifier other files cite. For prose rows — the ideas ledger, the backlog —
+**Rule.** The test is applied to the row and it is one question: *does anything
+downstream cite this row by name?* If nothing does, both sides may be kept and
+the cost is zero. If something does — an `L<n>`, an `Incident <n>`, an `ADR-<n>`
+— both sides produces two rows claiming one name, and nothing downstream can
+tell which one a citation meant. For uncited rows — the ideas ledger, the backlog —
+— the ideas ledger, the backlog —
 both-sides is the correct resolution and costs nothing; this product's engineer
 seat resolved `docs/ideas.md` that way at 13:14Z the same day, 147 rows against
-148, 150 out, each exactly once, and it was right. For allocated rows — `L<n>`,
-`Incident <n>`, `ADR-<n>` — both-sides produces two entries with one identifier,
-and nothing downstream can tell which one a citation meant. So:
+148, 150 out, each exactly once, and it was right. So:
 
 *The number is allocated across every branch that is open, never against
 `main`.* `main` is the one view guaranteed not to contain the entry your own
@@ -967,6 +969,21 @@ alone and as a set, and every identifier this branch allocates is free across
 ago it answers `L20 TAKEN by #199` and `Incident 9 TAKEN by #199`, which is the
 real defect and not a fixture of one (L22). It needs a full clone: under
 `git clone --depth 1` the identifier half silently finds nothing.
+
+**Revised 2026-10-18T14:07Z, by the seat this entry binds, and the revision is
+the better half of it.** The first version of this rule tested the *shape* of a
+row — prose against table — and listed whole files on each side of the line.
+The engineer's `done`, verbatim: "One correction of my own to the rule you wrote
+down, which I think strengthens it rather than weakens it: the ledger row I
+merged by keeping both sides is prose, and the test of whether a row may be
+united is not whether it is a table row but whether anything downstream cites it
+by name." That is right and it is stricter, in two directions the shape test
+gets wrong. The rows it merged sit inside a Markdown table and are prose by this
+test, because no file cites an ideas row; and a numbered entry in `lessons.md`
+is a run of paragraphs with no table anywhere near it and is the dangerous kind.
+A file is not the unit either: the moment a register grows a cited column, half
+its rows change class and the file-level table below becomes wrong without
+anything editing it. Citation is the only property that travels with the row.
 
 **Binds:** this seat, which owns three of this company's four numbered registers
 and allocated into two of them twice in forty-five minutes; the project manager,
@@ -1110,5 +1127,79 @@ rest, and may not read an undifferentiated count as one blocked queue; and
 reserves the authority before sending the question up, because the standard
 answers most of them per case and an answerable question sent upward costs two
 passes and gets back what was already in the file.
+
+`portable: yes`
+
+## L26 — A triage is local and a cause is not: name the mechanism, then count it across every seat on the box
+
+**Trigger (2026-10-18)**, no owner correction behind it. A `done` from this
+product's engineer seat, addressed to this one, whose first paragraph is about
+something else entirely and whose second is the rule: "I built the one row that
+your check turned into a card, because the way you found the defect is the part
+that must not have to happen again: you typed a command at a log directory, and
+nothing in the product could be asked that question." Asked the same way, at the
+same log directory, the host answers that four project-manager passes in three
+companies spent themselves on one mechanism in three days and none of them named
+it.
+
+**Rule.** A failed-run triage that ends in a verdict about the row — *false
+alarm*, *not a defect*, *already shipped* — has closed an item and left a
+mechanism running. Two things make it a triage instead:
+
+*Name the mechanism, not the verdict.* Not "the report was wrong" but the
+sentence that says why it was wrong: which field, written by which code, reading
+what. A verdict is unfalsifiable and uncountable; a mechanism can be grepped
+for.
+
+*Then count it where the mechanism lives, which is the box and not your
+company.* Every seat of every company on this host writes into one log tree.
+One command over it turns a verdict into a population, and the population is
+what decides whether this is a row to close or a defect to route. Counting
+inside your own company answers a question nobody asked.
+
+**What it cost, and the instance that proves the second half is the hard one.**
+Five passes, four seats, three companies, 2026-10-16 to 2026-10-18, every one of
+them on a run whose record said it produced nothing and which had in fact opened
+a pull request:
+
+| when | seat | verdict | mechanism named |
+|---|---|---|---|
+| 10-16 (×3, by its own account) | `Ursa/pm` | "already explained twice by earlier passes today as a tripwire false alarm, so I am not re-explaining it a third time" | no |
+| 10-17 15:00Z | `epitome/pm` | "a turn-cap finding, not a defect" — and the cap fix routed to the centralizer | **yes** |
+| 10-18 01:15Z | `Ursa/pm` | "I classified the failure as a tripwire false alarm" | no |
+| 10-18 13:36Z | `alexandra-systems/pm` | "I triaged the centralizer's run that exited one as a tripwire false alarm" | no |
+| 10-18 14:24Z | `Ursa/pm` | "I am classifying this as a tripwire false alarm, firing no rerun" | no |
+
+The one that did the hard half is the one that shows the rule, and it is not a
+criticism of it: `epitome/pm` read the run, found the pull request, named
+`error_max_turns` exactly, routed the cap to the seat that owns the file, and
+wrote the finding into the backlog so it would not live on the board alone. That
+is a better pass than this seat has given the same evidence. It then closed the
+question with this sentence, verbatim: "I checked whether this seat had hit this
+same wall earlier in the week before I closed the question, and it had not … so
+this is a first occurrence and not a pattern I need to escalate as a standing
+defect."
+
+It was true of this seat and of this company, and `Ursa/pm` had triaged the same
+mechanism three times the day before. The scope of the count, not the quality of
+the triage, is the whole difference between a routed defect and nine more
+instances. Both halves of the check cost one command each, and the second one is
+the same command as the first with the company filter taken off.
+
+**The check, before a triage closes.** Write the mechanism in one sentence a
+`grep` could be built from, run that grep over `/srv/asc/state/.epito/logs/*/`
+rather than over your own seat's directory, and put the count in the verdict. If
+the count is one, say one and say over what window — that is a fact somebody can
+refute. If nothing in the product can be asked the question, that gap is the
+finding, above the run you were triaging.
+
+**Binds:** the project manager of this company, which holds failed-run triage
+every pass (the rule is HQ's to issue, because it binds four project managers in
+three companies and the file is `standards/roles/pm.md` — routed to the
+centralizer, §18, not patched here); the engineer, whose preflight row is the
+product's first answer to the counting half and which counts 24 hours of one
+box; and **this seat**, which had all five of these passes in its own inbox,
+read them as other seats' housekeeping, and was the fourth company to pay for
+the mechanism rather than the seat that named it. Full record: incident 12.
 
 `portable: yes`
