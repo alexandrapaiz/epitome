@@ -61,20 +61,22 @@ because there is not one yet. That sentence is the test: if the first
 real user cannot say something close to it, the release does not
 publish as planned.
 
-Available today at the npm registry, under the name `epito`, free and
-open source.
+Available today at the npm registry, under the name `epito`, at no
+cost to install or run.
 
 ---
 
 ## Customer FAQ
 
-**What does it cost?** Nothing, for the CLI itself — `epito` is
-published free and open source. Running an agent costs whatever the
+**What does it cost?** Nothing, for the CLI itself — installing and
+running `epito` costs nothing. Running an agent costs whatever the
 agent's own provider charges (for example, a Claude API key or
 subscription the stranger already holds) and whatever compute the
 stranger runs it on; epito charges nothing on top. The company has not
 yet ruled on a paid tier for anything (team rosters, shared audit,
-hosted runtime); nothing in this release depends on that ruling.
+hosted runtime); nothing in this release depends on that ruling. What
+licence it ships under is a separate question from what it costs, and
+that one is not yet decided — see the internal FAQ below.
 
 **What does `epito` not do?** It does not host anything for the
 stranger. There is no epito.me server in the loop: the GitHub App
@@ -124,7 +126,7 @@ click); and the README has to survive a read-through by someone who
 has never seen this repository (not yet done).
 
 **What is blocked on the owner's hand, and is it actually unblocked?**
-Two things, both hers alone:
+Three things, all hers alone:
 
 - **An `NPM_TOKEN`.** The backlog record from the 2026-10-18 00:22 UTC
   pass says the chair created the npm account `alexandrapaiz` and the
@@ -144,16 +146,30 @@ Two things, both hers alone:
   owner dependency at all — but the claim "proven end to end" should
   rest on one real approval, not zero, before this release calls
   itself proven rather than merely built.
+- **The licence word.** `cli/package.json` on `main` says `UNLICENSED`
+  next to `publishConfig.access: "public"`, and the repository ships
+  no LICENSE file. Earlier drafts of this press release and FAQ said
+  "free and open source" anyway, which was the document asserting a
+  decision nobody had made — fixed in this revision to claim only what
+  is true today (no cost), not the licence. npm keeps a first
+  release's licence field permanent even after an unpublish, so this
+  is the one item on this list that becomes unfixable the moment the
+  package publishes, not merely unproven. Asked on the board
+  2026-10-18; once she names it, the engineer adds the LICENSE file
+  and the matching `package.json` field.
 
-**What breaks if this ships anyway, before both of those land?** The
-four commands and the README remain true and testable for a stranger
-even without the publish or the live approval — `npm pack` plus a
-local install already proves the tarball behaves identically to this
+**What breaks if this ships anyway, before all three land?** The four
+commands and the README remain true and testable for a stranger even
+without the publish or the live approval — `npm pack` plus a local
+install already proves the tarball behaves identically to this
 working tree. What breaks is the claim: "install it from npm" is false
-until the registry has it, and "proven end to end" is false until one
-real GitHub account has been through the click. Shipping the press
-release before either is true would be shipping a release that reads
-as something that already happened and has not.
+until the registry has it, "proven end to end" is false until one
+real GitHub account has been through the click, and the npm page
+reads *Proprietary* until the licence word and file agree with the
+package. Shipping the press release before all three are true would
+be shipping a release that reads as something that already happened
+and has not — the licence word, specifically, cannot be fixed after
+the fact.
 
 **What does this cost?** Nothing beyond the npm account itself (free)
 and the seven-day clock on the current token, which is a deadline, not
