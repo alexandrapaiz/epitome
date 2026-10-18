@@ -25,6 +25,7 @@ import { listSeatSchedules } from "./schedules.js";
 import { seatOfScheduleId, seatOfWorkflowId, windowId, addressHost, isLoopback, portAnswers, UI_PORTS } from "./env.js";
 import { describeQueue, summarize, psMark, WORKER_REFUSES, POLLED, UNASKED } from "./pollers.js";
 import { loadRoster } from "../lib/roster.js";
+import { thisRuntime, buildNote } from "../lib/build.js";
 
 const RECENT = 200;
 
@@ -140,6 +141,13 @@ export async function psCmd(dirArg) {
     const polling = worker.state === POLLED
       ? `${worker.workers.length} ${worker.workers.length === 1 ? "worker" : "workers"} polling`
       : worker.state === UNASKED ? "pollers unknown" : `${listed}${mark}`;
+    // Which epito is asking. This is the build of the process running `ps`,
+    // not of the daemon it is asking about — the same install on the same box
+    // in every ordinary case, and the honest thing to print either way, since
+    // a box whose operator is reading a hand-patched tree needs to know before
+    // they read anything below.
+    const note = buildNote(thisRuntime());
+    console.log(note.level === "ok" ? note.text : `! ${note.text}`);
     console.log(`epitod on ${cfg.address} namespace=${cfg.namespace} queue=${cfg.taskQueue} (${polling})`);
     if (seats.size === 0) {
       console.log(`no seats: nothing is scheduled, running, or holding a window in this namespace — \`epito run <roster>\` registers the schedules, \`epito worker\` does the work`);

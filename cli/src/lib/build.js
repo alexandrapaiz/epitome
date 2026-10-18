@@ -83,7 +83,7 @@ export function runtimeBuild({ dir = CLI_ROOT, runGit = git, readVersion = null 
   const inside = runGit(["rev-parse", "--is-inside-work-tree"], dir);
   if (inside !== "true") {
     return {
-      dir, version, commit: null, dirty: false, modified: [], branch: null, detached: false,
+      dir, root: dir, version, commit: null, dirty: false, modified: [], branch: null, detached: false,
       source: version ? "package" : "unknown",
       why: version
         ? `${dir} is not a git checkout, so there is no revision to name — an epito installed from npm is the ordinary case`
@@ -93,10 +93,14 @@ export function runtimeBuild({ dir = CLI_ROOT, runGit = git, readVersion = null 
 
   const commit = runGit(["rev-parse", "--short", "HEAD"], dir);
   const branch = runGit(["rev-parse", "--abbrev-ref", "HEAD"], dir);
+  // The checkout's own root, not the directory this file sits in: the fix for
+  // a hand-patched runtime is a pull request from the repository, and naming
+  // `.../epitome/cli` sends an operator to a place `git` will not take.
+  const root = runGit(["rev-parse", "--show-toplevel"], dir) ?? dir;
   const status = runGit(["status", "--porcelain", "--untracked-files=no"], dir);
   const modified = porcelainPaths(status);
   return {
-    dir, version, commit, branch: branch === "HEAD" ? null : branch, detached: branch === "HEAD",
+    dir, root, version, commit, branch: branch === "HEAD" ? null : branch, detached: branch === "HEAD",
     dirty: modified.length > 0, modified,
     source: "git",
     why: commit ? null : `git is here but would not name HEAD at ${dir}, so the revision is unknown`,
@@ -130,8 +134,28 @@ export function buildNote(b) {
   if (b.source === "package") return { level: "ok", text: buildLine(b) };
   if (!b.commit) return { level: "warn", text: b.why };
   if (!b.dirty) return { level: "ok", text: buildLine(b) };
+  // Two true readings and the command cannot tell them apart, so it states the
+  // fact and names the hazard conditionally rather than guessing. A checkout
+  // somebody is working in is modified for the obvious reason; a box that hosts
+  // seats is a box where the same words mean four weeks of merged fixes are not
+  // running. Hedging it into "possibly fine" would be worse than either.
   return {
     level: "warn",
-    text: `${buildLine(b)} — this runtime is not the revision it reports, so a fix merged on ${b.branch ?? "the default branch"} does not reach it and a \`git pull\` here will conflict with these edits or discard them. Fix: land them (open a pull request from ${b.dir}), then \`git checkout --\` those files and update the checkout`,
+    text: `${buildLine(b)}, so this runtime is not any revision in the repository. On a box that hosts seats that means a fix merged on the default branch does not reach it, and the next \`git pull\` here either conflicts with these edits or discards them; in a checkout you are working in it means what you expect. Fix, on a host: land them in a pull request from ${b.root}, then \`git checkout --\` those files and update the checkout`,
   };
+}
+
+// Read ONCE per process, and that is the point rather than a saving.
+//
+// A resident daemon loads its JavaScript at startup and keeps it; a `git pull`
+// in the checkout underneath it changes the files and changes nothing about
+// the code that is running. A build read per run would start reporting the new
+// revision the moment somebody pulled, which is the exact lie this module
+// exists to stop — the log would name a revision whose fix the running process
+// does not have. So the answer is taken when this module is first loaded, with
+// the code it describes, and never refreshed.
+let cached = null;
+export function thisRuntime() {
+  if (cached === null) cached = runtimeBuild();
+  return cached;
 }

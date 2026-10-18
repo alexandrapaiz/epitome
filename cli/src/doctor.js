@@ -78,6 +78,7 @@
 // model call, which is exactly why it is a flag.
 import { resolve } from "node:path";
 import { loadRoster } from "./lib/roster.js";
+import { thisRuntime, buildNote } from "./lib/build.js";
 import { blockers, unchecked } from "./lib/readiness.js";
 import { rosterEnv, askers, HELD, EMPTY, ABSENT } from "./lib/boxenv.js";
 import { routesFor, liveRoutes, endpointLabel, DEFAULT_ROUTE } from "./lib/router.js";
@@ -181,6 +182,16 @@ export async function doctorCmd(args = []) {
   const seats = [...roster.entries()].map(([name, entry]) => ({ name, path: entry.path, manifest: entry.manifest }));
 
   // --- the sections, each one a reading of the module that owns it ----------
+
+  // Which epito this is. First, because it qualifies every row under it: a
+  // preflight is believed, and a preflight run by a hand-patched runtime is a
+  // preflight describing code nobody can read in the repository. It never
+  // refuses — a hand-patched runtime starts runs perfectly well, which is
+  // exactly why the host's went four weeks unnoticed — so it is a note and the
+  // exit code is untouched.
+  const build = thisRuntime();
+  const buildSays = buildNote(build);
+
   const env = rosterEnv(roster, process.env);
   const perSeat = [];
   for (const s of seats) {
@@ -357,7 +368,16 @@ export async function doctorCmd(args = []) {
   ];
 
   const report = {
-    dir: dirArg, spec: SPEC_VERSION, seats: perSeat.map((p) => ({
+    dir: dirArg, spec: SPEC_VERSION,
+    // `modified` is the list and not a count for the same reason the sentence
+    // names the files: a machine reading this is deciding whether a `git pull`
+    // on this box is safe, and that is a question about which files.
+    build: {
+      version: build.version, source: build.source, commit: build.commit, branch: build.branch,
+      detached: build.detached, dirty: build.dirty, modified: build.modified, dir: build.dir,
+      says: buildSays.text,
+    },
+    seats: perSeat.map((p) => ({
       agent: p.agent,
       ready: !refusals.some((r) => r.agents.includes(p.agent)),
       road: p.roads.takes ? { name: p.roads.takes.name, model: p.roads.takes.model, endpoint: endpointLabel(p.roads.takes) } : null,
@@ -421,6 +441,9 @@ export async function doctorCmd(args = []) {
   out(`roster ${dirArg} on this box — ${plural(n, "seat")}, checked in the order a run needs them\n`);
 
   const row = (label, state, text) => out(`${MARK[state]} ${label.padEnd(9)}  ${text}`);
+
+  // build
+  row("build", buildSays.level === "ok" ? "ok" : "note", buildSays.text);
 
   // manifests
   const withBlocks = perSeat.filter((p) => p.blocks.length);
