@@ -170,8 +170,9 @@ takes here, `epito env` says which names this box holds, and `validate
 --for-runtime` adds a look at the engine. None of them touches the executable
 epito spawns — which is what ended the runtime's first real run on a real host
 at turn zero with `Not logged in`, because the environment a run hands its
-child is an allowlist (`PATH`, `HOME`, `USER`, plus `[runtime].env`) and the
-executor's credential lookup needed a name the allowlist did not carry.
+child is an allowlist (`PATH`, `HOME`, `USER`, plus `[runtime].env`, plus the
+window's own `TMPDIR`/`EPITO_SCRATCH`) and the executor's credential lookup
+needed a name the allowlist did not carry.
 
 `epito doctor` is the preflight, with one contract: **exit 1 if a run on this
 box would refuse, and name the piece.**
@@ -383,6 +384,15 @@ why no command saw them before.
   the ingress, or did not name a subject, is not woken by either.
 - **Runtime** — a process that outlives the machine it started on, on
   self-hosted Temporal. A reboot mid-run no longer loses the run.
+- **A scratch directory of its own** — `$EPITO_SCRATCH`, and `$TMPDIR`
+  pointed at the same place, so the files a run writes for itself are
+  nobody else's to overwrite. One box hosts many agents as one user, and a
+  path a run picks by name (`pr-body.md`) is a shared mailbox for every
+  other run on the box until something separates them: a seat on this
+  runtime published another seat's report that way, once. It belongs to the
+  window, so a follow-up message finds what the turn before it left there,
+  and it dies when the window closes. `$HOME` is still shared on purpose —
+  that is where the executor keeps the sessions a window resumes.
 
 It runs the agent you already have: `[runtime].adapter = "langgraph"` runs
 a LangGraph app through the `langgraph.json` its author already wrote,

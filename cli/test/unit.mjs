@@ -18,7 +18,7 @@ import { SEVERITY, checkManifest, shape } from "../src/validate.js";
 import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
 import { rosterEnv, namesFor, envTemplate, holding, runShortfall, shortfallSays, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
-import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, buildPrompt, shortfallLine, runBranchPrefix, pullRequestForRun, GIT_TOKEN_ENV } from "../src/lib/runner.js";
+import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, buildPrompt, shortfallLine, runBranchPrefix, pullRequestForRun, removeClone, scratchDirFor, scratchEnv, SCRATCH_ENV, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP, noRepoMessage, webRoot, installUrl, appSettingsUrl } from "../src/lib/identity.js";
 import {
   actsAs, rosterActs, rosterInstalled, grantGap, IDENTITY_FIX,
@@ -61,7 +61,7 @@ import { createServer } from "node:http";
 import { cpSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 
 // Every temp dir this suite makes, swept when the suite ends. Ten call sites
 // made one each and removed none, so a single `node --test test/unit.mjs` left
@@ -1032,6 +1032,165 @@ test("with no App, the run is exactly what it was before the identity slice", as
     // test that litters $TMPDIR fails it from the outside.
     rmSync(work, { recursive: true, force: true });
     delete process.env.GH_TOKEN; delete process.env.EPITO_STUB_ECHO_TOKEN; delete process.env.EPITO_STUB_DIR;
+  }
+});
+
+// --- the window's own scratch directory -----------------------------------
+// Incident 5: every window on a host shared one temporary directory, a run
+// wrote its pull request body to a path it picked by name, another seat's run
+// wrote the same path between the write and the read, and the first seat
+// published the other run's report. These assert the four things that fix is:
+// the directory exists before the child does, its name reaches the child, two
+// windows never get the same one, and it dies with the clone.
+
+const scratchRun = async (name, { work, resume = null, text = null, env = {}, timeoutMs = 30_000 }) => {
+  const prior = {};
+  for (const [k, v] of Object.entries(env)) { prior[k] = process.env[k]; process.env[k] = v; }
+  try {
+    return await executeAgent({
+      agent: seat(name, { runtime: { model: "m", entry: "e", repo: "acme/roster", env: Object.keys(env) } }),
+      trigger: "cron", runId: `scratch-${name}-${Math.random().toString(36).slice(2, 8)}`,
+      workDir: work, resume, text: text ?? (resume ? "and now this, please" : null), timeoutMs, log: () => {},
+      executor: new URL("./stub-executor.mjs", import.meta.url).pathname,
+    });
+  } finally {
+    for (const [k, v] of Object.entries(prior)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  }
+};
+
+test("the scratch directory is the clone's sibling, never a path inside it", () => {
+  const work = join(tmpdir(), "epito-pm-AbC123");
+  const scratch = scratchDirFor(work);
+  assert.equal(scratch, `${work}.scratch`);
+  assert.ok(!resolve(scratch).startsWith(`${resolve(work)}${sep}`),
+    "anything inside the clone shows up in the agent's own `git status` and is one `git add -A` from being committed into somebody's repository");
+  // Two clones are two scratch directories, by construction rather than by
+  // luck: that is the whole of the isolation.
+  assert.notEqual(scratchDirFor(join(tmpdir(), "epito-pm-ZzZ999")), scratch);
+  // And it is still one of this agent's own paths, so cleanup's guard covers it.
+  assert.equal(isCloneDir("pm", scratch), true);
+  assert.equal(scratchDirFor(null), null);
+  assert.deepEqual(scratchEnv("/tmp/x.scratch"), { TMPDIR: "/tmp/x.scratch", EPITO_SCRATCH: "/tmp/x.scratch" });
+  assert.deepEqual(SCRATCH_ENV, ["TMPDIR", "EPITO_SCRATCH"]);
+});
+
+test("two runs at once each write the file they read back, under their own names", async () => {
+  const dir = tmpDir();
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const pm = mkdtempSync(cloneDirPrefix("pm"));
+  const okr = mkdtempSync(cloneDirPrefix("okr"));
+  try {
+    // Both children write "pr-body.md" in the temp directory they were given,
+    // at the same time, which is exactly what the two seats on the host did.
+    const env = { EPITO_STUB_SCRATCH_FILE: "pr-body.md", EPITO_STUB_SCRATCH_WAIT_MS: "250" };
+    const [a, b] = await Promise.all([
+      scratchRun("pm", { work: pm, env }),
+      scratchRun("okr", { work: okr, env }),
+    ]);
+    assert.equal(a.exit, 0);
+    assert.equal(b.exit, 0);
+    for (const [r, work] of [[a, pm], [b, okr]]) {
+      const logged = readFileSync(r.log, "utf8");
+      assert.match(logged, /ours=yes/, "the run read back its OWN pull request body — the readback is the incident's own test");
+      assert.match(logged, new RegExp(`EPITO_SCRATCH=${work}\\.scratch`), "and the child was told where its scratch directory is, by name");
+      assert.match(logged, new RegExp(`TMPDIR=${work}\\.scratch`), "under $TMPDIR too, which is what fixes every tool that already honours it without knowing epito exists");
+      assert.ok(existsSync(`${work}.scratch`), "the directory existed before the child ran, not after it asked");
+    }
+    // The proof that this is isolation and not coincidence: the two runs wrote
+    // the same filename and the two files are different files.
+    const read = (f) => readFileSync(join(`${f}.scratch`, "pr-body.md"), "utf8");
+    assert.notEqual(read(pm), read(okr), "one filename, two windows, two files");
+    assert.match(read(pm), /epito-pm-/);
+  } finally {
+    process.chdir(cwd);
+    for (const w of [pm, okr]) rmSync(w, { recursive: true, force: true });
+    for (const w of [pm, okr]) rmSync(`${w}.scratch`, { recursive: true, force: true });
+    delete process.env.EPITO_STUB_SCRATCH_FILE; delete process.env.EPITO_STUB_SCRATCH_WAIT_MS;
+  }
+});
+
+test("a window keeps its scratch across the runs inside it, and a fresh window starts empty", async () => {
+  const dir = tmpDir();
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const work = mkdtempSync(cloneDirPrefix("pm"));
+  const other = mkdtempSync(cloneDirPrefix("pm"));
+  try {
+    const env = { EPITO_STUB_SCRATCH_FILE: "notes.md", EPITO_STUB_SCRATCH_WAIT_MS: "0" };
+    const first = await scratchRun("pm", { work, env });
+    assert.match(readFileSync(first.log, "utf8"), /prior=no/, "the first run in a window finds nothing of its own there");
+    // A follow-up message in the SAME window: same clone, so the same scratch,
+    // so the files its earlier turn left are still where it left them. That is
+    // what makes this the window's scratch and not the run's.
+    const again = await scratchRun("pm", { work, resume: first.sessionId, env });
+    assert.match(readFileSync(again.log, "utf8"), /prior=yes/, "a resumed run finds what its earlier turn wrote");
+    // A different window of the SAME seat does not.
+    const stranger = await scratchRun("pm", { work: other, env });
+    assert.match(readFileSync(stranger.log, "utf8"), /prior=no/, "a different window of the same seat is a different scratch directory");
+  } finally {
+    process.chdir(cwd);
+    for (const w of [work, other]) { rmSync(w, { recursive: true, force: true }); rmSync(`${w}.scratch`, { recursive: true, force: true }); }
+    delete process.env.EPITO_STUB_SCRATCH_FILE; delete process.env.EPITO_STUB_SCRATCH_WAIT_MS;
+  }
+});
+
+test("a window's scratch dies with its clone, and the guard still refuses a stranger's path", () => {
+  const work = mkdtempSync(cloneDirPrefix("pm"));
+  const scratch = scratchDirFor(work);
+  mkdirSync(scratch, { recursive: true });
+  writeFileSync(join(scratch, "pr-body.md"), "a body nobody should have to find later");
+  removeClone("pm", work);
+  assert.equal(existsSync(work), false);
+  assert.equal(existsSync(scratch), false, "the scratch directory is the clone's sibling and dies with it: one path in, both gone");
+  // Unchanged: the path arrives from a workflow input, which is not a trusted
+  // source, and a scratch directory does not widen what cleanup may delete.
+  assert.throws(() => removeClone("pm", join(tmpdir(), "not-a-clone")), /refusing to delete/);
+  assert.throws(() => removeClone("pm", tmpdir()), /refusing to delete/);
+});
+
+test("a manifest cannot point its own windows at one shared temp directory", async () => {
+  const dir = tmpDir();
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const work = mkdtempSync(cloneDirPrefix("pm"));
+  const shared = join(dir, "everybody");
+  mkdirSync(shared, { recursive: true });
+  try {
+    const r = await scratchRun("pm", { work, env: { TMPDIR: shared, EPITO_STUB_SCRATCH_FILE: "pr-body.md", EPITO_STUB_SCRATCH_WAIT_MS: "0" } });
+    assert.equal(r.exit, 0);
+    const logged = readFileSync(r.log, "utf8");
+    assert.match(logged, /TMPDIR from \[runtime\]\.env is overridden by this window's own scratch directory/,
+      "said by name, like the identity override above it: a seat that could hand its own windows one shared directory would hand back the defect");
+    assert.match(logged, new RegExp(`TMPDIR=${work}\\.scratch`));
+    assert.equal(existsSync(join(shared, "pr-body.md")), false, "and nothing was written to the shared directory the manifest asked for");
+  } finally {
+    process.chdir(cwd);
+    rmSync(work, { recursive: true, force: true }); rmSync(`${work}.scratch`, { recursive: true, force: true });
+    delete process.env.TMPDIR; delete process.env.EPITO_STUB_SCRATCH_FILE; delete process.env.EPITO_STUB_SCRATCH_WAIT_MS;
+  }
+});
+
+test("a box that will not make the directory gets a run and a sentence, not a refusal", async () => {
+  const dir = tmpDir();
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const work = mkdtempSync(cloneDirPrefix("pm"));
+  try {
+    // A file where the directory goes: the run cannot have its own scratch,
+    // and the one thing it must not do is pretend otherwise.
+    writeFileSync(scratchDirFor(work), "in the way");
+    const r = await scratchRun("pm", { work, env: { EPITO_STUB_SCRATCH_FILE: "pr-body.md", EPITO_STUB_SCRATCH_WAIT_MS: "0" } });
+    assert.equal(r.exit, 0, "a run still runs: the whole cost of the original was that it was silent, not that it stopped");
+    const logged = readFileSync(r.log, "utf8");
+    assert.match(logged, /could not be made/);
+    assert.match(logged, /two runs that pick the same filename there overwrite each other/,
+      "the log names the hazard the run is now exposed to, in the words of the thing that happened");
+    assert.match(logged, /EPITO_SCRATCH=\(none\)/, "and the child is told nothing it would be false to tell it");
+  } finally {
+    process.chdir(cwd);
+    rmSync(work, { recursive: true, force: true }); rmSync(scratchDirFor(work), { recursive: true, force: true });
+    delete process.env.EPITO_STUB_SCRATCH_FILE; delete process.env.EPITO_STUB_SCRATCH_WAIT_MS;
   }
 });
 
