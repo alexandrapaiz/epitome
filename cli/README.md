@@ -388,6 +388,50 @@ It runs the agent you already have: `[runtime].adapter = "langgraph"` runs
 a LangGraph app through the `langgraph.json` its author already wrote,
 unmodified — nothing added to its repository, nothing imported from epito.
 
+## The same manifest, on Cloudflare
+
+A box is one place an agent can live. `epito deploy <name> --target cloudflare`
+packs the same file — unchanged, no new field — as a Worker that **is** the
+agent:
+
+```
+$ epito deploy historian agents/historian --target cloudflare
+historian is packed for Cloudflare — 4 files in .epito/cloudflare/historian:
+
+  Worker:   epito-historian
+  schedule: 0 6 * * * (UTC), from [trigger].cron
+  state:    one Durable Object, addressed by "historian" — a redeploy keeps its runs
+  page:     GET / — the agent, its last run, and a button that triggers it
+  key:      .epito/keys/historian.pkcs8.pem — the PKCS#8 copy of this agent's
+            App key (0600); the Workers runtime reads no other form
+
+the part that is yours, not epito's — it spends your Cloudflare account:
+
+  cd .epito/cloudflare/historian
+  npx wrangler deploy
+  wrangler secret put EPITO_TRIGGER_SECRET   # the one door
+  ...
+```
+
+The Worker signs its own JWT as the agent's own App and mints its own
+installation token, scoped to exactly what `[identity].scopes` maps to on
+exactly the repository `[runtime].repo` names — the same ceiling, enforced in
+the same place, on a runtime with no filesystem. It reads its charter out of
+that repository on every run, so an edge seat is never running a stale copy
+of itself.
+
+Two things to know before you reach for it. An **edge run is one turn**: it
+mints, reads the charter, asks the model once and records the answer; it does
+not clone, commit or open a pull request, because a Worker has no git and no
+disk — and the page says so on every run rather than letting it read as the
+full seat. And on a box the last road in a route chain is your Claude
+subscription, which a Worker cannot hold, so the floor on the edge is
+`$ANTHROPIC_API_KEY`.
+
+`wrangler deploy` is the one command epito does not run for you. It spends
+your Cloudflare account, the same reason creating a GitHub App is your click
+and not a tool's.
+
 ## The record
 
 Every App created, every token minted and what it was allowed to do, every

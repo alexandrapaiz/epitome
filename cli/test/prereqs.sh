@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The three downloads that stand between a cold machine and a green run.
+# The four downloads that stand between a cold machine and a green run.
 #
 #   bash test/prereqs.sh              # into ${TMPDIR}/epito-prereqs
 #   bash test/prereqs.sh ~/.cache/epito-prereqs
@@ -18,13 +18,15 @@
 # A permanent `partial` teaches people to read past the column. So the
 # prerequisites are one command now, and what they cost is measured rather than
 # guessed: the Temporal CLI is a ~45 MB download, the langgraph wheel set is
-# ~40 MB of pip, nats-server is 7 MB, and everything else the suites need was
-# already on the box.
+# ~40 MB of pip, nats-server is 7 MB, and wrangler is ~90 MB because it carries
+# the workerd binary. Everything else the suites need was already on the box.
 #
 # nats-server joined them on 2026-10-17, when the bus got a suite that drives a
 # real one: the NATS client in src/lib/nats.js is written here rather than
 # depended on, so a mock of the server tests the client against its own author's
-# idea of the protocol and nothing else.
+# idea of the protocol and nothing else. wrangler joined on 2026-10-18 for the
+# same reason one step further out — the Cloudflare bundle this repository
+# generates is only proved by a real Workers runtime executing it.
 #
 # What it does NOT do: decide whether a suite can run. Each suite owns that
 # question and already answers it honestly — this only puts the binaries where
@@ -51,6 +53,8 @@ NATS_HOME="$DIR/nats"
 NATS_EXE=""
 NATS_VERSION="v2.15.1"
 VENV_PY="$VENV/bin/python"
+WRANGLER_HOME="$DIR/wrangler"
+WRANGLER_EXE="$WRANGLER_HOME/node_modules/.bin/wrangler"
 ENV_FILE="$DIR/env.sh"
 
 # ---- 1. the Temporal CLI -----------------------------------------------------
@@ -154,7 +158,39 @@ else
   fi
 fi
 
-# ---- 4. write down where everything went ------------------------------------
+# ---- 4. wrangler, for the Cloudflare target ---------------------------------
+# smoke-cloudflare.sh's second section puts the generated bundle into a real
+# local Workers runtime and drives it end to end. It deliberately does NOT
+# reach for `npx wrangler` itself: a suite that downloads 100 MB mid-run fails
+# differently on a plane than it does on a runner, and the whole point of this
+# file is that the downloads are named, measured and done on purpose. So the
+# suite looks for a binary and this is what puts one there.
+step "wrangler, for the Cloudflare target"
+if [ -x "$WRANGLER_EXE" ] && "$WRANGLER_EXE" --version >/dev/null 2>&1; then
+  say "  already here: $WRANGLER_EXE ($("$WRANGLER_EXE" --version 2>&1 | tail -1))"
+elif command -v wrangler >/dev/null 2>&1; then
+  say "  already on PATH: $(command -v wrangler)"
+  WRANGLER_EXE="$(command -v wrangler)"
+elif ! command -v npm >/dev/null 2>&1; then
+  say "  SKIPPED — no npm on this machine, so there is nothing to install it with."
+  WRANGLER_EXE=""
+else
+  mkdir -p "$WRANGLER_HOME"
+  say "  installing wrangler into $WRANGLER_HOME (~90 MB, it carries the workerd binary)"
+  if ! (cd "$WRANGLER_HOME" && npm install --silent --no-package-lock --no-save wrangler) >"$DIR/.wrangler.log" 2>&1; then
+    say "  FAILED — npm said:"
+    tail -5 "$DIR/.wrangler.log" | sed 's/^/    /'
+    say "  smoke-cloudflare will keep reporting partial here, correctly: its"
+    say "  generator section still runs, and test/unit-cloudflare.mjs drives the"
+    say "  same worker against a fake Durable Object."
+    WRANGLER_EXE=""
+  else
+    [ -x "$WRANGLER_EXE" ] || { say "  FAILED — npm exited 0 but $WRANGLER_EXE is not executable."; WRANGLER_EXE=""; }
+    [ -n "$WRANGLER_EXE" ] && say "  installed: $WRANGLER_EXE ($("$WRANGLER_EXE" --version 2>&1 | tail -1))"
+  fi
+fi
+
+# ---- 5. write down where everything went ------------------------------------
 # One file, so that neither all.sh nor a human has to re-derive any of this.
 {
   echo "# Written by cli/test/prereqs.sh on $(date -u '+%Y-%m-%dT%H:%M:%SZ'). Source it:"
@@ -163,6 +199,7 @@ fi
   echo "export PATH=\"$(dirname "$TEMPORAL_EXE"):\$PATH\""
   [ -n "$VENV_PY" ] && echo "export EPITO_PYTHON=\"$VENV_PY\""
   [ -n "$NATS_EXE" ] && echo "export NATS_BIN=\"$NATS_EXE\""
+  [ -n "$WRANGLER_EXE" ] && echo "export EPITO_WRANGLER=\"$WRANGLER_EXE\""
 } > "$ENV_FILE"
 
 step "what this put where"

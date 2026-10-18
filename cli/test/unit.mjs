@@ -2474,6 +2474,11 @@ test("the repo note names every command whose source refuses over [runtime].repo
     "deploy.js": ["deploy"],
     "token.js": ["token"],
     "lib/identity.js": ["deploy", "token"], // the mint path both of those reach
+    // The Cloudflare target refuses for its own reason — the Worker reads the
+    // charter out of [runtime].repo on every run, so a manifest with no
+    // repository describes a run with nothing to read — but it is still
+    // `epito deploy`, so the note's command list is unchanged by it.
+    "lib/cfpack.js": ["deploy"],
     // Deliberately absent: src/validate.js. `epito validate <dir> --for-runtime`
     // does refuse a roster over a missing [runtime].repo, but the note is the
     // thing `epito validate` PRINTS, and a note that listed the command you are
