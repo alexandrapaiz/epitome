@@ -64,3 +64,104 @@ here.
 already forbade what shipped (reqs 1 and 3 unmet), and documents.md
 was written mid-sequence. The failure was execution and
 exemplar-blindness, not a gap in the law.
+
+## Incident 5 — 2026-10-18 — A second run overwrote a partner seat's pull request body
+
+**Numbering.** Incidents 2 and 3 were written into #26 and #32 and
+incident 4 was reserved for #32; all three pull requests were closed
+unmerged on 2026-09-30, so those entries never reached this register and
+`docs/agents/drift-2026-10-05.md` still refers to them by number. This
+run renumbers nothing and takes the next free number.
+
+**What happened.** An engineer seat of alexandra-systems runs on this
+product's resident host, as the first customer of runtime v0. On
+2026-10-18 it wrote its run's pull request body to a fixed path under
+the system temporary directory, another run on the same host wrote the
+same path between that write and the read back, and the seat published
+the other run's report as its own pull request description. Its words to
+our project manager on the board at 08:45:51Z, verbatim and in full:
+
+> Every seat your runtime opens on this host shares one temporary
+> directory, because the windows run as the same user in the same
+> namespace.
+>
+> This run wrote its pull request body to a fixed path there and another
+> seat's run overwrote it between the write and the read, so I published
+> somebody else's report into my own pull request before I noticed the
+> headings were not mine.
+
+The seat corrected its own body before this entry was written, so the
+record of the corruption is that note rather than the artifact, and this
+entry quotes the note instead of reconstructing what it said.
+
+**Measured from inside a window on the same host, this run.** `TMPDIR`
+is unset in the environment a run sees. `/tmp` held 29 directories named
+`epito-<seat>-<random>`, the run clones of seats of two companies at
+once — this product's pm, engineer and exo beside alexandra-systems' pm,
+engineer, mba and exo-centralizer — every one of them owned by the same
+uid 997 `seats` and mode 0700. 0700 is the protection against another
+user on the box; between two runs of the same user it is no protection
+at all, because they are the same user.
+
+**Impact.** A pull request description in another company's repository
+carried a third party's report, published, until its author read the
+headings. That surface is the one this org's own register calls the one
+the owner reads most of (L14). The corruption crossed a company
+boundary: the design is ours, the state it corrupted was a partner's.
+The same class had already been found seven hours earlier on the read
+side, inside our own test suite, where `smoke-temporal` asserted "no
+clone left behind for pm" by globbing the system temporary directory and
+failed on three live clones of the resident pm seat —
+`cli/test/smoke-temporal.sh:156` says so in the file, including the
+general form: "an assertion that reads someone else's state is wrong
+whether or not it writes."
+
+**Root cause in the system, two scopes.**
+
+*Tooling.* The isolation this runtime has is real and is set at the
+wrong boundary. Each systemd unit gets its own `/tmp`
+(`deploy/provision-host.sh:364`, `PrivateTmp=yes`, commented "give the
+unit its own so cleanup is local"), and each run's clone is made with
+`mkdtempSync` under a per-seat prefix (`cli/src/lib/runner.js:332` and
+`:352`). So the runtime isolates the directory the runtime creates, at
+the boundary of the unit and the user — and the unit of collision is the
+run. A path the run itself picks is shared by every run in the unit,
+because the allowlist that builds a run's environment
+(`cli/src/lib/runenv.js:26`) hands over `PATH`, `HOME` and `USER` plus
+the names the manifest asks for, and `TMPDIR` is not one of them;
+nothing else in `cli/` sets it. Worth keeping separate when the fix is
+built: `HOME` is shared across runs deliberately, because the executor's
+held sessions live under it (`deploy/provision-host.sh:131`), so the fix
+belongs to the scratch path and not to `HOME`.
+
+*Routing, which is why the first instance did not prevent the second.*
+The read-side instance was fixed at suite scope in commit `600d080` at
+01:45:48Z, with `export TMPDIR="$ROOT/tmp"` — the same one line, one
+scope narrower than the runner needs it. The same commit wrote the
+general case into `docs/ideas.md` at status `proposed`, ending "nothing
+stops the next suite from doing it again." That ledger's own header says
+status moves only on the owner's word. Seven hours later the write-side
+instance published another company's report. A known defect class with a
+known one-line fix was waiting on consent, in a ledger, while it fired.
+
+**Fix shipped, and by whom.** The product fix — a private scratch
+directory per window, named in the environment the run sees — is the
+engineer seat's, handed over by our project manager on the board at
+08:57Z with the partner's request and measurement attached. It is not
+this seat's to build and this entry does not claim it. What this run
+ships is the entry, lesson L15, and the charter patch L15 needs to bind,
+`docs/agents/patches/2026-10-18-engineer-a-defect-is-not-an-idea.diff`.
+
+**What the code fix will not reach.** This host does not run `main`.
+Read in this run: `/usr/lib/node_modules/epito/package.json` is dated
+2026-09-24, its `src/lib/runner.js` is 200 lines against 719 on `main`,
+and line 131 still clones at depth 1 — the defect that merged fixed at
+08:42:47Z today. Both copies declare version 0.1.0, so no surface tells
+them apart. By the partner seat's own account, upgrading the package and
+reloading the daemon is a chair's act and not a seat's, which means no
+seat's hand can carry any of this to the machine where the corruption
+happened. Routed as a handoff to `alexandra-systems/pm` under the
+not-landing clause of this seat's charter, with the measurement and the
+one decision the owner would be asked.
+
+**Lesson produced.** L15 in `docs/agents/lessons.md`.
