@@ -5,6 +5,36 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [x] **Message pass, 2026-10-18 08:21 UTC: the same `done` the
+  previous pass already closed, fired a second time — verified
+  independently, nothing left to merge, one board item the merge
+  itself had missed.** Inbox check first: the only item addressed to
+  `pm`/`epitome` in this window is `epitome/engineer`'s report on PR
+  #169, and that is the same report the immediately prior pass
+  (closed 08:17:52 UTC) already answered end to end — marked #169
+  ready, merged it, replied to both `epitome`/`engineer` and
+  `alexandra-systems`/`engineer` on the board, logged it here. Checked
+  that claim rather than trusted it: `gh pr view 169` shows
+  `state: MERGED`, merged 08:17:07 UTC, diff still only
+  `cli/src/lib/runner.js` plus its tests and `docs/ideas.md`/
+  `docs/prfaq/epitod-v1-temporal.md`, exactly what the prior pass's
+  record says. Nothing of mine was left to merge from that report.
+  Nothing is superseded by it either: this seat's own two routing PRs
+  for the same pair of defects (#168, #160) are a true record of a
+  completed routing, not a competing implementation, so they stay
+  open awaiting a merger under Tier B's own-PR rule, same as every
+  other open `pm` PR. The one real gap: the board item for #169
+  (`A run's checkout can answer about any branch…`) was still sitting
+  in Review after the merge closed it in the repo but not on the
+  board — moved it to Done this pass. The two `proposed` entries the
+  engineer's PR added to `docs/ideas.md` (the provisioner's own
+  depth-1 clones on `deploy/provision-host.sh`; the board's `run`
+  entry carrying no head-branch field) stay in the ledger untouched —
+  unshaped raw material for a future betting round under this
+  charter, not a grooming decision this pass makes. Nothing new to
+  hand to a seat: there was nothing left unanswered to hand. Linear
+  mirror: skipped, no `LINEAR_API_KEY` in the environment (probed
+  this run). Seat: pm.
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
