@@ -5,6 +5,33 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 ~19:17 UTC: two seats' reports (exo's
+  #226, engineer's #228) asked this charter to merge under the merge
+  rule and hand the next thing to a seat on the board; neither is this
+  charter's to do, and nothing in the Shape Up machinery moved either.**
+  Both event notes — exo's on a fourteen-patch set that only nine of
+  which apply together, with a second-look flag on a decline-patch
+  clause that reads a charter-patch file as a self-merge-tier knowledge
+  surface, and engineer's on the author-field/App-homepage domain fix —
+  are governance and product work. `prompts/pm-agent.md` grants this
+  seat none of that: no merge authority over other seats' pull
+  requests, no editing of other seats' charters, no board inbox
+  replies written into its output section. That scope question was
+  already settled the same way by the runs immediately before this one
+  (PR #222, #227, #230 all declined equivalent asks on the same
+  grounds), so this is a confirmation, not a new call. Checked rather
+  than assumed: `gh pr list --state merged` since the last hill check
+  at 13:09 UTC (PR #198) shows only three `docs/standards/lessons.md`
+  re-vendors (#201, #216, #224) landing on `main` — nothing touching
+  `cli/`, `docs/pitches/`, or `docs/cycles/` — and `npm view epito`
+  still returns `404`. So cycle 2's hill (open PR #184), its PR/FAQ
+  (open PR #196, itself updated minutes before this pass with the same
+  conclusion), and the declined-pitches list are all still current;
+  rewriting any of them now would be the exact duplicate-survey failure
+  (L-E10) #184 already closed two copies of once today. Nothing shaped,
+  nothing re-bet mid-cycle (no circuit breaker triggered), cooldown is
+  2026-11-01/02 and not due. Linear mirror: skipped, `LINEAR_API_KEY`
+  absent from the environment (probed this run).
 - [ ] **Message pass, 2026-10-18 09:29 UTC: the same engineer run and
   the same pull request (#175) this pass was dispatched to review had
   already been merged under the merge rule by the pass immediately
