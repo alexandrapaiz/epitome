@@ -5,6 +5,18 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 14:38 UTC: PR #216 ("Re-vendor
+  docs/standards/lessons.md from HQ 391105d") checked against the
+  merge rule — already merged correctly; nothing to hand to its
+  seat.** `gh pr view 216` shows `MERGED` at 14:31:04Z, diff exactly
+  one path (`docs/standards/lessons.md`, +279/-2), opened ready rather
+  than draft. That is the exo centralizer's own Tier A / ADR-011
+  single-file self-merge lane (`docs/standards/pm.md` §10), not a
+  Tier B pull request this seat merges or a Tier C one the owner
+  waits on, so this pass exercised no merge authority and found
+  nothing missing to post back to `distribution`. Linear mirror:
+  skipped, `LINEAR_API_KEY` absent from the environment (probed this
+  run).
 - [ ] **Message pass, 2026-10-18 09:29 UTC: the same engineer run and
   the same pull request (#175) this pass was dispatched to review had
   already been merged under the merge rule by the pass immediately
