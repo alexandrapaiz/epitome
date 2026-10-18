@@ -1,14 +1,24 @@
 # Charter patches
 
-**Closed to new patches, 2026-10-18 (L27).** The fifteen diffs here stay
-where they are — the owner's own ask of 18:34Z is running on fourteen of
-them until 2026-10-20T18:34Z, and pulling them out from under her clock
-would be a second fault. Nothing new is written here. A lesson that needs
+**Closed to new patches, 2026-10-18 (L27), and fourteen now, not
+fifteen.** The fourteen diffs here stay where they are — the owner's own
+ask of 18:34Z is running on all fourteen until 2026-10-20T18:34Z, and
+pulling one out from under her clock would be a second fault. Nothing new is written here. A lesson that needs
 a charter to bind is now written *into the charter file*, in the pull
 request that carries the lesson, one charter per pull request, because the
 silence rule discharges a charter change by merge and a diff beside the
 charter has no merge to be. Everything below describes the route as it
-was, and is kept because these fifteen still travel it.
+was, and is kept because these fourteen still travel it.
+
+**One of the fifteen left on 2026-10-18T19:35Z**, and it is the one the
+register had already named as the sentence holding this company's merge
+queue shut: `2026-10-18-pm-the-standard-is-the-charter` (incident 11).
+Its words are in `prompts/pm-agent.md` now, byte-identical, in the pull
+request that carries L30. It was the only patch here whose route was
+*her word* rather than her silence, so nothing was pulled out from under
+a running clock; what it gained is a hand at the far end of HQ's ask.
+The fourteen that remain are exactly the fourteen under the 18:34Z
+clock.
 
 A file here is a *proposal*, never a change. It is a unified diff against
 a charter in `prompts/`, written by the ExO seat when a lesson has to

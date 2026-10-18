@@ -4,10 +4,14 @@
 # fuzz they land in positions their own diffs do not name (L28).
 #
 # docs/agents/check.sh applies them in this order, with plain `git apply` and
-# no fuzz, in a scratch worktree. All fifteen land.
+# no fuzz, in a scratch worktree. All fourteen land.
 #
-# The last line is the one patch the owner's silence does not release: it
-# widens a seat's own authority and waits for her word (L25, routes.md).
+# Fourteen, not fifteen, since 2026-10-18T19:35Z: the one patch the owner's
+# silence does not release — pm-the-standard-is-the-charter — is no longer a
+# file here. Its words are written into prompts/pm-agent.md itself, in the
+# pull request that carries L30, so that her word lands as a merge rather
+# than as a hand nobody in this company holds (L27, routes.md). The fourteen
+# left are exactly the fourteen her 18:34Z ask is running on.
 2026-10-05-engineer-check-the-register
 2026-10-05-engineer-landing-has-a-stop
 2026-10-05-exo-two-standing-counts
@@ -22,4 +26,3 @@
 2026-10-18-exo-the-order-is-measured-at-publication
 2026-10-18-pm-a-decline-names-its-condition
 2026-10-18-pm-a-deferral-is-a-merge
-2026-10-18-pm-the-standard-is-the-charter

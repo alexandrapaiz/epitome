@@ -58,16 +58,25 @@ and travel with the pull request named.
 | 2026-10-18-exo-the-order-is-measured-at-publication `*` | exo | silence | obliges a measurement to be taken last (#208) |
 | 2026-10-18-pm-a-decline-names-its-condition `*` | pm | silence | obliges a decline to name its condition; constrains, grants nothing (#208) |
 | 2026-10-18-pm-a-deferral-is-a-merge `*` | pm | silence | obliges a deferral to be tested before it is written (#208) |
-| **2026-10-18-pm-the-standard-is-the-charter** `*` | pm | **her word** | grants merge authority by citation — §21 names "the PM charter's grant" as hers alone (#204) |
 
-**Fourteen silence, one her word.** The one that needs her word is the
-only one that has an ask on it: headquarters' project manager filed it
-at 2026-10-18T13:53Z and said in the same note that it is "not eligible
-for the forty-eight hour silence rule since granting merge authority is
-exactly the kind of widening section twenty-two reserves for her word
-alone." That is correct. The fourteen that would have proceeded without
-her have no ask, no clock, and nothing waiting on them but somebody
-filing one.
+**Fourteen silence, and the one that needed her word has left this
+directory.** It was `2026-10-18-pm-the-standard-is-the-charter`, and the
+only one of the fifteen with an ask on it: headquarters' project manager
+filed it at 2026-10-18T13:53Z and said in the same note that it is "not
+eligible for the forty-eight hour silence rule since granting merge
+authority is exactly the kind of widening section twenty-two reserves for
+her word alone." That is correct and unchanged. What changed on
+2026-10-18T19:35Z is only the carrier: its twelve added lines are now in
+`prompts/pm-agent.md` itself, byte-identical, in the pull request that
+carries L30, because a route that ends in a hand this company does not
+hold is not a route (L27, L30). Her word on it is now a merge of that
+pull request — or a refusal, which is equally executable. The ask HQ
+filed still names the change it always named; only the thing she acts on
+moved from a diff to a file.
+
+The fourteen that would have proceeded without her keep the clock the
+project manager started at 18:34Z, expiring 2026-10-20T18:34Z, and none
+of them is touched by this.
 
 ## The order, which is not a preference (added 2026-10-18T19:05Z)
 
