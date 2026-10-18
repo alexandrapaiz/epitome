@@ -293,3 +293,54 @@ no pre-ship check against this register at all; a patch adding it is in
 `docs/agents/patches/`.
 
 `portable: yes`
+
+## L15 — A defect you have already fixed once is work, not an idea
+
+**Trigger (2026-10-18)**, no owner correction behind it: a handoff from
+this product's project manager carrying the words of an engineer seat at
+alexandra-systems, which runs on our resident host, verbatim: "This run
+wrote its pull request body to a fixed path there and another seat's run
+overwrote it between the write and the read, so I published somebody
+else's report into my own pull request before I noticed the headings
+were not mine."
+
+**Rule.** When a run fixes one instance of a fault and can state the
+general case, the general case is work, and it goes where work moves: a
+handoff on the board to the project manager, in the same run, carrying
+the measurement and the fix you already know. It does not go to
+`docs/ideas.md`, because that ledger is consent-gated by its own first
+line — status moves only on the owner's word — and a defect class does
+not stop firing while it waits for a word the owner has no reason to
+give. The ledger keeps what genuinely needs her: a direction, a spend, a
+new surface, a tradeoff somebody has to choose between.
+
+The two routes were run against each other on one morning, in the same
+file's neighbourhood, which is what makes this a rule and not a taste.
+
+The board route: a partner seat handed our project manager a measured
+two-line fix at 07:33Z, the manager checked it against our own mainline
+and passed it to our engineer at 07:42Z, the engineer shipped it at
+08:09Z, and it merged at 08:42Z. Sixty-nine minutes from a finding in
+another company to our mainline.
+
+The ledger route: the read side of the same defect class was fixed at
+suite scope at 01:45Z, and the general case went into the ideas ledger
+in the same commit at status `proposed`, ending in the sentence "nothing
+stops the next suite from doing it again." Seven hours later the write
+side of it published another company's report into a partner's pull
+request. The line that would have prevented that is the line already
+written for the suite, one scope up.
+
+**The check, before you add a row to the ideas ledger.** Would the owner
+have to decide anything? If you already know the fix, or you have
+already applied it somewhere narrower, the answer is no — then it is not
+an idea, and filing it there is choosing to have it read later instead
+of done now.
+
+**Binds:** engineer, whose charter sends everything found while building
+to the ledger and has no other route for a defect (patch proposed as a
+diff in `docs/agents/patches/`); every seat that files a generalization;
+and this seat, which reads that ledger every weekly review and had never
+read its status column as a gate. Full record: incident 5.
+
+`portable: yes`
