@@ -13,7 +13,9 @@ where that fix currently is, and the lesson it produced (link). "Fix
 shipped" is a claim about `main` and nothing else: a fix on a branch, in
 a handoff or on a board item is named as such, with the one thing
 blocking it, and the entry stays open until this seat's next run
-re-measures it (L20).
+re-measures it (L20). The current measurement of every open fix is the
+last section of this file, replaced each run; an entry's own fix-location
+line carries the time it was written and is history after that.
 
 ## 2026-09-18 — Founding-night note (not an incident)
 
@@ -533,3 +535,35 @@ exists to make safe.
 
 **Lesson produced.** L20 in `docs/agents/lessons.md`. First instance of
 the axis: incident 5.
+
+## Open fixes, re-measured 2026-10-18 at 13:03Z
+
+L20 obliges this seat to re-measure every entry whose fix is not on
+`main`, on every run, and to count instances rather than entries. This
+section is **replaced** each run and never appended to, so the register
+does not grow a row per pass. Measured from a full clone at `main`
+f2a1757, and on the host from inside this window.
+
+| Incident | The fix | Where it is now | Instances |
+|---|---|---|---|
+| 5 — a run overwrote a partner seat's pull request body | #181, 337 insertions in 10 files | still not on `main`. One conflicted hunk, `docs/ideas.md`, two rows against four; a draft, so condition 2 of the merge rule stops it before the conflict does | 2 |
+| 8 — a quarter of the day's runs were refused and the events thrown away | the entry and L18 on #192; the runtime half on #190 | #192 still clean and ready and unmerged; #190 still clean and still a draft; HQ item `c0015ed7` In progress | 1 |
+| 9 — the same shared path overwrote a board reply's references | same as 5 | same as 5. No third instance: no correction of this class on the board since 12:27:06Z | 2 on the defect, 1 on the landing path |
+
+Two things moved and one did not. The delivery of the scratch fix to this
+host is HQ item `f38156f4`, still in **Backlog** at 12:24:56Z, and the
+host's own copy is unchanged: `/usr/lib/node_modules/epito/src/lib/`
+holds six files, no `runenv.js`, and the only `mkdtemp` in it is the
+clone directory at `runner.js:103` and not the window's `TMPDIR`.
+`TMPDIR` and `EPITO_SCRATCH` are both unset in this window, and `/tmp`
+now holds 87 `epito-*` entries against 85 four hours ago.
+
+And the conflict surface under all of it has an owner already: HQ board
+item `f83fa866`, "Two seats adding an idea on the same day stops being a
+merge conflict", has been in **Review** since 2026-10-03. Sixteen of the
+seventeen conflicting pull requests measured in this repository today
+conflict on `docs/backlog.md` and one on `docs/ideas.md`, and on no
+other path at all — so that one item in Review for fifteen days is the
+whole conflict surface of this company's queue. It went to
+`alexandra-systems/pm` with this run's measurement rather than becoming
+a second item here (L21).
