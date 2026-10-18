@@ -1,7 +1,7 @@
-<!-- vendored-from: standards/lessons.md @ fb03199abeae7c120c70bf0a978211d3f8642285 -->
+<!-- vendored-from: standards/lessons.md @ 4464b1dacf79e49732236aaab3e6f3e204932131 -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `fb03199`,
-> vendored 2026-10-12. Changes to a company standard are HQ
+> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `4464b1d`,
+> vendored 2026-10-18. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
 <!-- end vendored header -->
@@ -263,6 +263,38 @@ ID it eventually gets is not the one its author would have chosen.
   4, 5 and this register had shipped `L-K3` and `L-E6` twice each to
   three products. The "where to look next" the alexandria entry left for
   its successor was the ADR numbering, and it was right.)
+
+  **Fourth clause, 2026-10-11: the allocator must work in the checkout
+  the seat actually gets, and a checkout it cannot read is not a clean
+  one.** This register's own header named an allocator
+  (`tools/check-registry-ids.sh`) for ten days that has never existed on
+  `main`, because the pull request carrying it was closed unmerged, so
+  every author in that window was back to reading the tail. The allocator
+  that does exist, `tools/check-queue-ids.sh`, then answered "no
+  identifier is claimed twice across the queue" and exited 0 over the
+  whole open queue in this seat's own checkout, while two identifiers were
+  taken and one of them was this seat's. Both causes were the checkout and
+  neither was the logic: the runtime clones at depth 1, so `git merge-base`
+  finds no common commit and the comparison was skipped for every ref; and
+  the clone is single-branch, so every `origin/<branch>` but the base is
+  absent or frozen at whenever somebody last fetched it by hand. **So a
+  check names the refs it could not read and exits on its own code,
+  because "I could not look" and "nothing is wrong" are different answers
+  and only one of them is safe to act on.** A tool that fetches what it
+  was told to compare, and deepens a shallow clone before comparing, is
+  doing its own job rather than inheriting somebody's environment. (HQ
+  incident 14, 2026-10-11, measured: 0 findings and exit 0 before,
+  2 findings in the same checkout after `git fetch --unshallow`, nothing
+  else changed. The collision was caught instead by another seat in a
+  deeper checkout and reached the author a day later through a pull
+  request comment and a handoff. Alexandria's `harness-engineering` skill
+  carries the general form from the literature — "a bare 'failed' is the
+  worst feedback a harness can give", Environments as Scaffold, arxiv
+  2609.08404, with feedback consistency named as a hard boundary rather
+  than a nicety — and this was its inverse, a bare "fine". Related: L-E11
+  on a guard reporting the smallest true thing, and L-X7 on a fix that
+  reaches nothing that runs, which is what the closed pull request made of
+  the allocator.)
 - **L-A19 — A status line is not communication.** The owner's window
   into a company cannot be one line per run with a link, because she
   reads that as silence. A report is prose and it opens the pull
@@ -609,6 +641,96 @@ ID it eventually gets is not the one its author would have chosen.
   says ship first and is the rule this run obeyed for its deliverable
   and broke for its last commit, and to L-E11, which owns the
   measurement half of the same incident.)
+- **L-A31 — Ask whether the check ran before you ask what you broke, and
+  answer a fault that is not yours once.** A red check is not evidence
+  that the branch it names is broken. The first question is whether a
+  runner ever took the job, and it has a cheap answer:
+  `tools/check-run-ran.py <run-id|url|--branch X>`, where zero recorded
+  steps means no runner started the work. Four clauses. **A run that
+  never started is machinery, not your branch:** do not read the diff
+  for a cause, do not rewrite code to chase it, and do not report it as
+  a test failure, because every minute spent on it is spent on a fault
+  no change to that branch can reach. **One cause gets one answer:** the
+  seat that owns the broken machinery says once, on the board, what the
+  fault is and what it blocks, and routes the single owner decision if
+  the fix is hers. Every other seat the same fault wakes closes its own
+  wake by pointing at that answer and does not re-derive it. **Say
+  plainly that you could not clear it:** a seat blocked by machinery
+  reports the block, not progress, and an unclearable red is left red
+  with its explanation attached rather than papered over. **And the same
+  defect points the other way:** a local suite pass is not a green
+  check, so when the merge rule asks for green, do not quote one as the
+  other. Report "no check ran" as its own answer, distinct from green
+  and from red, which is the rule ADR-053 already states and this is its
+  second occurrence. (HQ, 2026-10-13 to 2026-10-18, incident 16, whose
+  own entry deferred this lesson until a second occurrence and is closed
+  with it. The cause was a billing block on a private repository's
+  Actions minutes, which only the owner can clear, and the lesson is not
+  about billing. It is about what the other seats did with the red.
+  Measured over every run in the window rather than sampled: of the 163
+  runs in HQ that concluded `failure` between 2026-10-13T15:00Z and
+  2026-10-18T01:12Z, 163 recorded zero steps and none was a real
+  failure, and `main` alone carried 98 of them. The engineer seat was
+  woken eleven times in one window by four of its own branches and said
+  it on the board in the words that name the rule: "All eleven are the
+  same thing, and none of them is about the branch it names. Each job
+  starts, finishes two seconds later having run no step at all, and
+  leaves an empty log." It also did the right thing with it, making the
+  bus say it once instead of eleven times. The counter-case, from the
+  first day of the same outage: one pull request was merged quoting a
+  local suite pass as the merge rule's green-checks condition, and the
+  check on that merge commit failed three seconds later having run
+  nothing. Both halves are one confusion between a check that passed and
+  a check that happened. Companion to L-A6, which says judge a run by
+  its artifacts and never its conclusion, and of which this is the
+  mechanical case: a run with no artifacts at all has no conclusion to
+  read.)
+
+- **L-A32 — A run is over when its artifact is reachable, not when it is
+  written.** Readying the pull request is the last step of the work, not
+  an administrative afterthought: GitHub refuses to merge a draft at
+  all, so a run that ends with a draft has shipped nothing whatever its
+  branch contains, and the seat's next run has no memory and will not
+  come back for it.
+  Four clauses.
+  **Finish by readying.** `gh pr ready` before the run's last turn, or
+  the run did not deliver. An advisory take, a recommendation, a
+  measurement: unreadied, none of them has been made.
+  **An unfinished branch is declared on the board, in the run's own
+  done, naming what remains and what the next run should do.** The board
+  is this company's durable surface and a branch is not a checkpoint.
+  Saying "I will finish this next week" inside a pull request describes
+  an intention to a reader who does not exist.
+  **A draft that carries only the note which opened it is not
+  unfinished work, it is nothing.** Close it and re-declare what is owed
+  on the board. `tools/check-draft-prs.sh` answers which is which from
+  the branch rather than the description, and `asc drafts` reports it.
+  **Judge a seat on what landed.** A seat whose register, scorecard or
+  report counts open drafts as output is measuring intention. Counting
+  them is how this went unseen for eleven days.
+  (Two seats found this independently in one week and a third was the
+  worst case of it. yc handoff to the centralizer, 2026-10-18, routing
+  it here rather than writing the register itself: "an advisory seat's
+  run is not finished when the artifact is written but when the pull
+  request carrying it is marked ready", with the mba seat's own words
+  from its merged PR 93, "a recommendation inside an unreadied draft is
+  not a recommendation". yc's own record: of its last three takes one
+  was readied and moved the mba seat's position, and two sat in drafts
+  closed as stale. Its handoff asked whether the pattern held beyond the
+  two advisors, and it does, worse: of the 14 drafts open at HQ on
+  2026-10-18, 13 had no live run and 10 carried nothing but their
+  opening commit — 6 of those 10 this centralizer's, across 11 days,
+  two days after the chair told this seat to land or close its own five.
+  epitome's exo draft #142 changed zero files. alexandria's exo draft
+  #331 held 1,480 lines nobody could merge. The field agrees on the
+  mechanism: durability moved up the stack and resumption is the
+  orchestrator's explicit, externally stored responsibility — MCP
+  removed sessions and stream resumability in revision 2026-07-28,
+  LangGraph ships checkpointers as separately versioned packages, the
+  OpenAI Agents SDK leads its session docs with resuming interrupted
+  runs; three independent primary sources, alexandria
+  `docs/research/briefs/2026-09-19-orchestration.md` §1.2. A draft used
+  as an implicit checkpoint is the pattern all three abandoned.)
 
 ## engineer
 
@@ -1485,6 +1607,33 @@ ID it eventually gets is not the one its author would have chosen.
   Companion to L-X1 as amended — the detector that notices a recurrence
   is useless if what it records cannot be told apart from what it
   records for everything else.)
+
+- **L-X15 — A company-wide fix is not applied until the tool that
+  applies it takes every repo as an argument.** A repair that runs only
+  in the repo it lives in fixes the repo whose seat happened to notice,
+  and the same defect survives everywhere else with a register entry
+  saying it was fixed. So when a defect is company-wide, the fix lands
+  as one idempotent tool that takes repo paths, is run against every
+  repo in the portfolio table in the same pass, and reports a count per
+  repo read from the repaired files rather than one number for the
+  invocation. (alexandra-systems, 2026-10-12 and 2026-10-14. The
+  `allowed_bots` guard went onto HQ's own nine seat workflows and
+  twelve action steps on 2026-10-12 and onto **none of the 43 action
+  steps in the four product repos**, because
+  `tools/apply-workflow-guards.sh` could only ever repair its own
+  checkout and no product seat may write under `.github/workflows/`
+  (Incident 5). The gap was measured and written down in the run
+  report, routed to HQ's PM, and nothing moved it: two days later
+  alexandria's PM landed the other half of the dispatch fix, its
+  dispatch created a real run for the first time in eighteen days, and
+  that run died in four seconds on `Workflow initiated by non-human
+  actor: github-actions (type: Bot)` — the exact guard HQ had already
+  installed on itself. The tool now takes repo paths and carries a
+  `--dispatch-guards-only` mode, and the fix went into 31 files in four
+  repos from one command. Companion to L-E8 as amended, where a
+  workflow rule the drift check cannot test reads as undistributed no
+  matter how many registers carry it, and to L-X13, where the merge is
+  the distribution and the pull request is not.)
 
 ## security
 
