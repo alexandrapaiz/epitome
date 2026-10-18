@@ -311,3 +311,109 @@ here, are HQ's files. Both went up as a handoff to
 this loop, with the two-line fix and this measurement attached.
 
 **Lesson produced.** L17 in `docs/agents/lessons.md`.
+
+## Incident 8 — 2026-10-18 — A quarter of the day's runs were refused by a limit the runtime cannot see, and the events were thrown away
+
+**What happened.** Twice today every seat on the resident host — thirty-eight
+manifests across four companies — was refused by the model provider's session
+limit, and each refusal was recorded as a run that failed. The provider's own
+words, from the result line of a refused run
+(`/srv/asc/state/.epito/logs/pm/2026-10-18T09-55-31-705Z-message.log`),
+verbatim:
+
+> You've hit your session limit · resets 11:20am (UTC)
+
+Measured this run over all 253 run logs the host wrote today:
+
+| | |
+|---|---|
+| runs attempted | 253 |
+| refused by the session limit | **65 (25.7%)** |
+| of those, refused at turn 1 — no work done, no commit, no pull request | 37 |
+| refused mid-run, between 5 and 129 turns in | 28 |
+| of all 65, how many had opened a pull request | **0** |
+| seats affected | 19 of 38, in every one of the four companies |
+
+Two windows, not one. The first refusal came at 01:57:06Z and the last of that
+window at 02:42:07Z, 36 runs across 19 seats, against a limit that reset at
+05:00Z. The second began at 09:29:39Z and ended at 09:56:51Z, 29 runs across 11
+seats, against the limit that reset at 11:20Z. Nothing ran between 02:42:07Z and
+06:20:00Z, and nothing ran between 09:56:51Z and 12:01:08Z, which is this seat's
+own brief tick: 342 dark minutes in the day's first twelve hours.
+
+**Impact, in two parts that have different causes.**
+
+*The work was lost, not delayed.* `cli/src/lib/bus.js` acknowledges an event the
+moment the seat's run has started, and says so in the file at line 9: "acknowledge
+an event only once the seat's run has STARTED." A session-limit refusal arrives
+inside a run that started, so `bus.ack(msg)` fires on line 223 and the event is
+gone from the stream. The branch below it is the one that would have saved them —
+`bus.nak(msg, cfg.nakDelayMs)`, reached only when the start itself throws, with
+the log line "the event is NOT acknowledged and comes back." Sixty-five messages
+the bus delivered were therefore consumed by runs that did nothing, and no
+mechanism anywhere re-delivers them. Thirty-seven of the sixty-five did not get
+past turn one.
+
+*Then the company did not restart itself.* The first limit reset at 05:00Z and
+the first run after it was at 06:20:00Z; the second reset at 11:20Z and the first
+run after it was at 12:01:08Z. So 121 of the 342 dark minutes were not the
+limit's doing at all: capacity had returned and nothing fired, because since
+2026-10-17 the bus is this company's only clock and thirty-three of the
+thirty-eight manifests carry no `cron` (L16, drift review of 2026-10-18 §1). A
+capacity outage therefore ends when something external happens to knock, not when
+the capacity comes back.
+
+**Root cause in the system, three parts, none of them a seat.**
+
+*The runtime has no notion of its own capacity.* `grep -rn "session limit\|429"`
+over `cli/src` returns nothing. The one-attempt policy on the execute activity is
+deliberate and correct for what it was written against —
+`cli/src/temporal/workflows.js:49`, with the reason in the comment above it: "an
+execution that half-ran has already pushed commits and may have opened a PR, so
+replaying it is worse than failing." That reasoning holds for a run that did
+work. It does not describe a run the provider refused at turn one, and the
+runtime has no way to tell the two apart, so it applies the stricter rule to
+both. Today that cost 37 refusals that were safe to re-deliver by the policy's
+own test, and none of the 65 had opened a pull request.
+
+*No instrument reports capacity.* The board's run record carries `exit`, and an
+exit of 1 is the same value for a seat whose work failed and a seat that was
+never allowed to begin. The daily brief that went out at 12:01Z — the artifact
+the owner reads daily, and the thing that woke this run — counted eight shipped
+items, four products and four decisions, and contains no run count, no failure
+count and no mention of either outage. The one daily instrument whose subject is
+the shape of the host, `epitod-health.timer`, has been in `failed` since 07:00Z
+(drift review §6). The number that would have shown this — turns spent per seat
+per day — exists today only in the footer of each run's log file, and totalling
+it by hand is how this entry was written.
+
+*The escalation route presumes the actor can run.* Company standard §20 sends
+every not-landing finding to `alexandra-systems/pm`, and §18 gives that seat two
+passes before the handoff counts as its own failure. This seat handed that seat
+two findings this morning, at 09:07Z and in the drift review. Of HQ's project
+manager's nine runs after 09:07Z, one completed; the other eight were refused by
+this limit, seven of them at turn one. The standard's clock counts passes and
+nothing in it notices that the passes were not available.
+
+**Fix shipped here, and what is not this seat's.** This entry, lesson L18, the
+first tick of the learning loop in `docs/agents/loop.md` with the capacity line
+in it, and the charter patch that makes the line a standing duty of this seat
+(`docs/agents/patches/2026-10-18-exo-the-capacity-line.diff`). The runtime change
+— classify a provider refusal as a start failure, nak it, and take the nak delay
+from the reset time the refusal already carries — is the engineer seat's, and
+went to `epitome/pm` on the board with this measurement rather than being
+designed here. The brief's missing numbers and the §18 pass clock are HQ's files
+and went to `alexandra-systems/exo-centralizer`. The limit itself is a plan the
+owner holds, and the single decision only she can make is named in the handoff to
+`alexandra-systems/pm` under this seat's not-landing clause; company standard §22
+says spending never proceeds on her silence.
+
+**Relationship to incident 6, which is why this is a lesson and not a repair.**
+Incident 6 was written into this register at 09:17Z today: nine runs blocked by a
+GitHub billing state, three and a half days of a building seat lost, no log and
+no instrument, discovered by a review thirteen days late. Twelve minutes later
+the same shape fired through a different mechanism and took four companies down.
+Two instances of one axis is the condition L4 names, so what ships here is the
+generalization, not another repair of one mechanism.
+
+**Lesson produced.** L18 in `docs/agents/lessons.md`.
