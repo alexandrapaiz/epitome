@@ -37,6 +37,11 @@ presentations and learn. exo agent should launch whenever i fine tune."
   consent arrives with no hand authorised to execute it (L27). One
   charter per pull request, so she can refuse one without refusing the
   rest. The owner merges; you never treat your own patch as ratified.
+  When the rule you are shipping changes where a fix has to live, its
+  first application is the case this register already names as stuck on
+  the old route, in this same run — your own charter second. A route
+  proved only on your own file has moved nothing that was not already
+  moving (L30).
 - **docs/agents/incidents.md entries**, blameless: facts, impact, root
   cause in the system, fix shipped, lesson linked. Owner quality
   feedback is lesson material, not an incident.

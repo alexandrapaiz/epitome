@@ -733,6 +733,31 @@ sentence claiming it rather than in the thing that fires it — and the framewor
 register's law says a fourth entry on one axis is the register failing, not the
 org learning. First instances: incident 7 and L16.
 
+**Re-measured 2026-10-18T19:37Z, and the fix is now in the file.** The rate
+held exactly as this entry predicted it would. Twenty-one passes of that seat
+between 13:09:09Z and 19:33Z, one every eighteen minutes, each opening a pull
+request and merging nothing; nine of the twenty-one are still open and twelve
+were closed by later passes of the same seat. The queue went from 33 open pull
+requests at 13:56Z to **43 at 19:37Z**, of which **19 land in one sequence with
+no conflict and have no merger**. The two most recent declines name the reason
+in its widest form yet — #231: the charter "grants the PM seat no merge
+authority over other seats' pull requests" — which is the same faithful reading
+this entry recorded at 13:09Z, six hours on.
+
+What changed in this run is the carrier, not the words: the twelve lines of
+`2026-10-18-pm-the-standard-is-the-charter` are now in `prompts/pm-agent.md`
+itself, applied byte-identically with `git apply` from the diff, and the diff
+is gone from `docs/agents/patches/`. It was the only one of the fifteen whose
+route was her word rather than her silence (`routes.md`), so no running clock
+was disturbed — the fourteen under the owner's 18:34Z ask are untouched and
+`check.sh` confirms all fourteen still apply in `ORDER`'s sequence. HQ's ask of
+13:53Z now has a merge at its far end instead of a hand this company does not
+hold. **Still not shipped:** the merge itself, which no seat here may perform,
+and the five other charters with no pointer to their role standard. Both stay
+with `alexandra-systems/pm` on the open handoff. Lesson produced, and it is not
+about the charter gap: **L30**, on applying a new route to the case already
+stuck on it before applying it to your own file.
+
 ## Incident 12 — 2026-10-16 to 2026-10-18 — Ten runs recorded as opening nothing had each opened a pull request, and the fix for it merged six hours before eight of them
 
 **Facts.** A run on this host ends with one line in its log and one row in the
@@ -845,6 +870,55 @@ gh pr list -R alexandrapaiz/<repo> --state all --limit 400    --json number,head
 **Lessons:** L26 (new, the triage rule); L22, second instance of *the artifact
 is the installed one*; L20, which is why this is an incident and not a note —
 the fix is on `main` and the defect is open.
+
+## Incident 13 — 2026-10-18 — The host filled to zero bytes mid-run, and 403 run clones nobody removes are what filled it
+
+**Facts.** At 19:33:27Z this host's root filesystem, which is also `/tmp`, had
+**57 MB free of 45 GB**. Three minutes later it had none: three tool calls in
+this run failed with `ENOSPC`, one of them a `df` that could not write its own
+output. `/tmp` held **403 directories named `epito-<seat>-<suffix>`**, the
+per-run clone the runtime makes for a seat before its first turn, totalling
+951 MB with the largest single one at 716 MB; **93 of the 403 had not been
+written to in over six hours**. Removing the stale clones of this seat's own
+earlier runs today — and only this seat's, matched by name and older than
+ninety minutes — returned **2.0 GB** and the run continued.
+
+**Impact.** A full box fails every seat on it, not the seat that filled it:
+four companies' runs share this disk. In this run the cost was three lost tool
+calls and a measurement taken twice. Nothing here is attributable to a seat:
+every run on this host leaves a clone behind by design, and the runtime is the
+only actor that could remove one.
+
+**Root cause, in the system, and it is two mechanisms.** First, the runtime
+clones the repository per run into `/tmp` and never removes the clone when the
+run ends — a run's working directory outlives the run, and nothing on the box
+sweeps them. Second, and this one is this register's own: `docs/agents/check.sh`
+unshallows the clone it runs in, by design and correctly ("could not unshallow
+— refusing rather than answering wrongly"), so every run of *this* seat
+converts its shallow clone into a full one before it writes a line. The two
+multiply: a seat that must have the whole history to answer honestly is the
+seat whose leftovers are largest, and 2.0 GB of this box's pressure was this
+seat's own dead clones.
+
+**Fix shipped here, and what is not.** This entry, and the reclamation above,
+which is a measurement and not a fix — tomorrow's runs will rebuild it. Not
+shipped: the sweep. The clone is made before any seat's first turn, by the
+runtime (`cli/src/run.js`), which is the engineer's surface and not this
+seat's; a seat that deletes another seat's clone cannot tell a finished run
+from a running one, which is why this run deleted only its own. Routed with
+the not-landing handoff to `alexandra-systems/pm`, because it is one box under
+four companies and the fix belongs where the clone is made.
+
+**Not the same defect as incidents 5 and 9**, though it is the third entry on
+the shared-`/tmp` axis. Those are collisions — two runs writing one path. This
+is capacity, and #181, the unmerged fix for the collision class, would not have
+prevented it: every window having its own scratch directory does not make
+anything remove the directory afterwards.
+
+**Lesson produced.** None. The rule is already L20's ("a fix is shipped when it
+is on `main`") plus a sweep nobody has written; an entry here that said "clean
+up after yourself" would be process rather than a rule a fresh-context seat can
+apply.
 
 ## Open fixes, re-measured 2026-10-18 at 14:45Z
 

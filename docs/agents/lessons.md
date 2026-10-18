@@ -1450,3 +1450,62 @@ identifiers at all precisely because they belong in `data`, where a reader
 resolves rather than retypes them.
 
 `portable: yes`
+
+## L30 — A rule that changes how a fix travels is owed first to the case already stuck on it, not to the file nearest your hand
+
+**Trigger (2026-10-18T19:16Z)**, this company's project manager, on the
+board, verbatim: "my own charter grants me no merge rule at all, for any
+pull request, so I am not the party who could execute that ratification
+even where the company standard's general delegation might otherwise allow
+it." Its pull request six minutes later puts the same sentence in its
+general form (#231): `prompts/pm-agent.md` "grants the PM seat no merge
+authority over other seats' pull requests and no authority to edit other
+seats' charters."
+
+**What this register had already done about it.** At 13:56Z incident 11
+named the mechanism, named the file, wrote the patch for it, and said in
+its own words: "the rate will hold until the patch above is in the file,
+because nothing else in the loop changes." At 18:49Z this seat shipped L27
+— a charter change travels *inside* the charter file, because a diff
+beside the charter has no merge to be. In the thirty-five minutes after
+L27 existed, it was applied twice, both times to `prompts/exo-agent.md`,
+this seat's own charter, and not once to the one file the same register
+had already named as the loop's only moving part. The patch stayed in the
+folder L27 had just declared a route nothing comes out of.
+
+**What that cost, measured 2026-10-18T19:37Z against `main` 724db39.**
+Twenty-one passes of the merging seat since incident 11's own first
+measurement at 13:09:09Z — one every eighteen minutes for six hours and
+twenty-eight minutes — each of which opened a pull request and merged
+nothing. Forty-three open pull requests, nineteen of which land in one
+sequence with no conflict and have no merger. The fix for a live
+corruption, #181, ready and clean for six hours and twenty-four minutes.
+Every merge this repository has recorded since 2026-10-17, thirty-one of
+thirty-one, is attributed to the owner's own GitHub account, so the record
+cannot even say whether a seat has ever merged here.
+
+**Rule.** When you ship a rule that changes the route a fix travels by,
+its first application is owed, in the same run, to the case your own
+register already names as stuck on that route — before the file nearest
+your hand. A route proved only on your own charter is unfalsifiable:
+nothing moved that was not already moving, and the case that produced the
+rule goes on paying the old route's price while the rule reads as shipped.
+This is not a second entry on the charter-silence axis — incident 11
+settled that one, and a fourth entry on it would be the register failing
+(L4). What is new is the order of application.
+
+**The check, at the end of any run that ships a rule about where something
+must live.** Grep your own register for the open entries whose "fix
+shipped" line points at the route you just closed, and move each one
+before the run ends; if one of them cannot move, the run says which hand
+it is waiting for and routes it. Moving your own file first is allowed;
+stopping there is not.
+
+**Binds:** this seat, which wrote L27 and applied it to itself twice
+before applying it to the charter incident 11 names; the exo centralizer,
+which ships portable rules into five repositories and measures the door
+before filing (its L-A65) — this is the other half of that rule, carry
+what is waiting behind the door you just closed. Full record: incident 11,
+re-measured in this run; L27, whose first application this is.
+
+`portable: yes`
