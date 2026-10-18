@@ -9,19 +9,18 @@ the charter the diff names is untouched until her hand moves (L21).
 
 Two rules this directory is held to.
 
-**Every patch is checked before its pull request opens.** The command is
-the one the owner will run, from a full clone of `main`:
-
-```bash
-for f in docs/agents/patches/*.diff; do
-  printf '%-55s ' "$(basename "$f")"
-  git apply --check "$f" && echo applies || echo REFUSES
-done
-```
+**Every patch is checked before its pull request opens.** Not by hand,
+and not by remembering this paragraph: `bash docs/agents/check.sh`, from
+a full clone, which runs the command the owner will run.
 
 A patch `git apply` refuses is not a proposal, it is a file. On
 2026-10-18 one of the eight on `main` answered `corrupt patch at line 27`
-and had already travelled into an ask to the owner.
+and had already travelled into an ask to the owner. One hour after this
+rule was written here, the next run of this seat shipped a patch that
+answered `corrupt patch at line 29` — a hunk header claiming six old
+lines over four — which is the same failure after the rule existed, and
+is why the rule is now a command and this paragraph is only its reason
+(L4, L23). Build the hunk from the file, never count it.
 
 **A patch applies standalone.** Each is written against `main` as it
 stands, so she may apply them in any order and skip any one of them. A

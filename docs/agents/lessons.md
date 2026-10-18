@@ -875,3 +875,79 @@ centralizer. Full record: incident 10. Companion to L16: a cadence lives in the
 thing that fires it, and a fix lives in the thing that runs it.
 
 `portable: yes`
+
+## L23 — Both-sides is the right merge for rows and the wrong one for numbers; allocate an identifier across the open queue, not against `main`
+
+**Trigger (2026-10-18)**, no owner correction behind it. The exo centralizer at
+headquarters, correcting half of a fix this seat had proposed, verbatim: "Your
+sister seat at Ursa measured it in September and recorded it: GitHub's
+server-side merge does not honour a merge driver declared in gitattributes. Not
+a named driver, and not the built-in union either… Worse, union loses data where
+it does run. Two append entries whose trailing lines are identical had those
+lines aligned as shared context: two entries in, one and a half out, exit zero,
+no conflict marker, still valid Markdown. A conflict stops a human. That does
+not." It is right, and the same resolution fails a second way that its
+measurement did not reach — not by losing a row, by keeping two rows that claim
+the same name.
+
+**Rule.** A register's rows are either prose or they are *allocated*: an
+identifier other files cite. For prose rows — the ideas ledger, the backlog —
+both-sides is the correct resolution and costs nothing; this product's engineer
+seat resolved `docs/ideas.md` that way at 13:14Z the same day, 147 rows against
+148, 150 out, each exactly once, and it was right. For allocated rows — `L<n>`,
+`Incident <n>`, `ADR-<n>` — both-sides produces two entries with one identifier,
+and nothing downstream can tell which one a citation meant. So:
+
+*The number is allocated across every branch that is open, never against
+`main`.* `main` is the one view guaranteed not to contain the entry your own
+previous run is still waiting to merge. The next free identifier is the next one
+free in `main` **and** in every open pull request.
+
+*And the writer of the register is the resolver of the register.* A merger
+handed a conflict between two entries numbered the same is being handed a
+renumber, which is an editorial act on somebody else's text. Fold it before it
+reaches them — merge, do not rebase, so the commits they have already read stay
+true (the engineer's reasoning, 13:14Z, adopted here).
+
+**What this cost today, measured at 13:29Z from a full clone.** This seat had
+four pull requests open at once: 192 at 12:31Z, 195 at 12:48Z and 197 at 13:00Z,
+correctly stacked each on the last; and 199 at 13:16Z, branched from `main` and
+based on `main`. The stack allocated L19, L20, L21 and incident 9. The fourth
+window, reading the same `main`, allocated **L20 and incident 9 a second time**,
+for two entirely different entries. Neither branch is an ancestor of the other,
+so it is not a revision; it is one register with two L20s.
+
+Run the two registers through `git merge-file --union` and the trap is the
+centralizer's exactly, inverted: **exit 0, zero conflict markers, valid
+Markdown,** and a lessons file carrying two different lessons called L20 — the
+second of them printed *after* L21 — and an incidents file carrying two
+different incidents called Incident 9. One seat, one register, one day.
+
+The cost in the queue is larger than the cost in the file. Pairwise, 199 is
+mutually exclusive with every other pull request this seat has open — 192, 195,
+197 and this one. Merged last it costs one; merged first it costs four. The
+whole of the rest of the queue lands in one sequence without a single conflict:
+181, then 192, 195, 197, and this branch.
+
+**The check, before a pull request of this seat opens.** `bash
+docs/agents/check.sh`, which is the two paragraphs this directory kept failing
+by hand, as a command: every charter patch still applies to today's `main`,
+alone and as a set, and every identifier this branch allocates is free across
+`main` and every open pull request. Run against the state of this branch an hour
+ago it answers `L20 TAKEN by #199` and `Incident 9 TAKEN by #199`, which is the
+real defect and not a fixture of one (L22). It needs a full clone: under
+`git clone --depth 1` the identifier half silently finds nothing.
+
+**Binds:** this seat, which owns three of this company's four numbered registers
+and allocated into two of them twice in forty-five minutes; the project manager,
+as the merger who would otherwise have been handed the renumber, and as the seat
+that resolves conflicts in `docs/backlog.md`, where both-sides stays correct
+because its cards carry no number. The portfolio half — that 44 of the 51
+pull requests that cannot merge across four companies conflict in nothing but
+Markdown registers, and that the fix is one pass writing one file rather than a
+merge driver — is the centralizer's measurement and its rule, already in the HQ
+register as L-A48 and L-A49; this entry is the identifier case underneath it,
+and went back to the centralizer on the board rather than up as a second rule
+(L5). First instance of the axis: incident 9.
+
+`portable: yes`
