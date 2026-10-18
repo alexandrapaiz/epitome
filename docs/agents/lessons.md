@@ -489,7 +489,13 @@ company got wrong today:
    "this seat did the wrong thing" and "this seat was never allowed to begin"
    cannot be triaged, cannot be counted, and cannot be alarmed on. Whatever
    surface records a run records which of the two it was, in a field of its own,
-   or every instrument downstream is blind to the whole class.
+   or every instrument downstream is blind to the whole class. Which cure, added
+   by the exo centralizer at headquarters on 2026-10-18 after it built the field
+   this consequence asked for, verbatim: "When the boundary that knows the class
+   is a table you own, add the field; a separate instrument is the answer only
+   when the record belongs to someone else." The runs table was theirs, so the
+   column was right there; this company's half is the payload, and a field
+   nobody posts is a column that reads empty (L25's measurement).
 2. **Give the work back.** Idempotence is the right question and the answer
    depends on the refusal, not on the policy: a run refused before its first turn
    did nothing and is safe to re-deliver by the one-attempt policy's own
@@ -522,5 +528,73 @@ company standard's own two-pass clock on a handoff (§18, §20), which counts a
 destination seat's passes without noticing when its passes were refused — HQ's
 file, routed to the centralizer. Full record: incident 8; first instance of the
 axis, incident 6.
+
+`portable: yes`
+
+## L25 — A charter patch's route is readable from the standard, per patch: a duty proceeds on silence, an authority waits for her word
+
+**Trigger (2026-10-18T13:53:08Z)**, headquarters' project manager, verbatim
+and in full on the point: "What I am doing is sending the owner one ask: merge
+your eight-line patch to that charter, because it is the one thing that
+unblocks every pull request behind it, and it is not eligible for the forty-
+eight hour silence rule since granting merge authority is exactly the kind of
+widening section twenty-two reserves for her word alone."
+
+It is right, and it is the answer to a question this register had sent upward
+four hours earlier as if nobody could answer it: *whether applying a patch that
+only transcribes a duty the company standard already binds needs her hand at
+all.* The clause that answers it was vendored in this repository the whole
+time, in the paragraph immediately after the one the register had quoted.
+Section 22 grants the silence rule to "editing a charter" in as many words, and
+then names its own four exceptions — spending, an account, a secret, and
+widening a seat's own authority — the last of which section 21 spells out as
+"the PM charter's grant".
+
+**Rule.** A charter patch is not one kind of thing, and its age is not what
+releases it. Before a patch leaves this directory, read which of the two doors
+the standard puts it behind and record the answer on the patch:
+
+- **A duty, a stop condition, a reporting obligation, a narrowing** — the
+  project manager files one `ask` with its recommendation and it proceeds after
+  forty-eight hours of the owner's silence. Not asking is the only thing that
+  can stop it.
+- **A grant of authority to the seat the charter governs** — her word, asked
+  once, in the daily brief's ordered list. A clock on it would be a fiction.
+
+A patch with no route recorded is not ready to be asked for, because the ask
+has to say which of the two it is or the PM cannot file it correctly. And the
+two counts are not interchangeable in a report: "fifteen patches waiting" reads
+as one blocked queue, and the true shape is fourteen that nobody has started a
+clock on and one that is correctly waiting for a person.
+
+**The measurement, 2026-10-18T14:40Z.** Fifteen patches exist across `main` and
+the open queue; classified one by one against §21 and §22 in
+`docs/agents/patches/routes.md`, **fourteen proceed on silence and one needs her
+word**. The one that needs her word is the only one that has an ask on it. The
+fourteen have no ask, no clock, and nothing waiting on them but somebody filing
+one — which is why fourteen days of this mechanism have produced zero applied
+patches while every run correctly reported the door as shut. Attention had gone
+to the patch that unblocks the queue, and attention is not a clock.
+
+**The other half, in this seat's own directory.** Read from `main` this
+morning, `git apply` **refused** `2026-10-18-exo-the-capacity-line.diff`
+(`corrupt patch at line 27`: a hunk header claiming six old lines and nineteen
+new over a body of five and seventeen), and refused the eight as a set. A run of
+this seat had already found and repaired exactly that an hour earlier — on a
+branch. So the patch the owner would have run was broken on the only branch she
+reads, while its repair sat in a pull request, which is the written-versus-
+merged distinction firing inside the file that exists to carry patches. The
+repaired bytes are copied to `main`'s copy in this pull request, byte-identical
+to the queue's, so whichever lands first the other is a no-op: all eight now
+apply standalone and as a set.
+
+**Binds:** this seat, which records the route on every patch it writes from now
+and reports the queue by route rather than by age; **both project-manager
+seats**, which file one ask for the silence-eligible set and ask once for the
+rest, and may not read an undifferentiated count as one blocked queue; and
+**every seat that escalates an authority question** — read the clause that
+reserves the authority before sending the question up, because the standard
+answers most of them per case and an answerable question sent upward costs two
+passes and gets back what was already in the file.
 
 `portable: yes`
