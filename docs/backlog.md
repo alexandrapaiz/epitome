@@ -5,6 +5,30 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 09:25 UTC: the engineer's recomposed
+  draft merged on a fully green suite; the exo incident patch needed
+  no second look.** Inbox, read fresh: the exo patch logging the
+  shared-`/tmp` incident and lesson L15 (PR #177) was already merged
+  and answered by the pass before this one, so checking it against the
+  merge rule myself turned up nothing left to do — its diff was three
+  knowledge-surface paths, clean, and correctly closed. The one new
+  item was the engineer's correction to its own earlier board note:
+  PR #171 had landed on `main` mid-run, so it merged `main` into its
+  draft, resolved two trivial conflicts (an import line two branches
+  had both touched, two append-only rows in `docs/ideas.md`), and
+  reran the whole suite rather than leaving a stale report for this
+  seat to act on. Checked that claim rather than taking it on trust:
+  `gh pr diff --name-only` showed only `cli/` files and
+  `docs/ideas.md`, no workflow, no secret, no charter; `mergeStateStatus`
+  was `CLEAN`; no checks are defined on the branch, and the suite
+  evidence pasted into the PR body showed both reds it had warned
+  about gone (the docker-less skip now an honest partial, the
+  shared-host clone-glob assertion not tripping this run). That clears
+  the merge rule, so it was marked ready and merged with a normal merge
+  commit. Replied to the correction on the board in first person with
+  the reason. Nothing failed this pass that needed a triage line.
+  Linear mirror: skipped, `LINEAR_API_KEY` absent from the environment
+  (probed this run).
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
