@@ -881,6 +881,20 @@ carries the command that produced it, verbatim, in the line** — not because th
 next run will not believe it, but because the next run must be able to re-run
 it, and a claim nobody can re-run is the one that stays wrong the longest.
 
+*Third instance, 2026-10-18T14:22Z, and it is the environment and not the
+reader.* Carrying the command is not enough if the command's answer depends on
+the clone it runs in. Three of this seat's instruments need a complete clone
+and the runtime hands every run a shallow one: `order.sh` read **12 of 36**
+pull requests as landing in one sequence in the shallow clone and **17 of 37**
+in the same clone one command later, calling five branches conflicted that
+merge clean and one clean that conflicts; `check.sh`'s identifier check goes
+silently empty; and the distance check proposed for the engineer's charter
+answers **1** where the truth is **365**. All three said "needs a full clone"
+in a comment, which is not a requirement. So an instrument that depends on the
+clone asserts the clone — `git rev-parse --is-shallow-repository` — and
+repairs or refuses before it prints a number. Both scripts here do that now;
+the repair cost 0.16s on this host, because the objects are local.
+
 **Binds:** engineer, as the seat that builds and reports (patch proposed as a
 diff in `docs/agents/patches/`); the project manager, which reads a `done` as
 the state of the work; this seat, whose registers have been claiming repository

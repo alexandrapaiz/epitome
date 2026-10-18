@@ -23,6 +23,19 @@ set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 BASE=${BASE:-origin/main}
 
+# A requirement in a comment is not a requirement. Every run of this seat gets
+# a shallow clone from the runtime, and in one of those this script answers
+# confidently and wrongly: on 2026-10-18 at 14:22Z order.sh read 12 of 36 pull
+# requests as mergeable in a shallow clone and 17 of 37 in the same clone one
+# command later, having called five branches conflicted that merge clean and
+# one clean that conflicts. So the depth is checked here and repaired, and the
+# repair is cheap — 0.16s on the resident host, because the objects are local.
+if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+  echo "this clone is shallow, which makes every answer below wrong; unshallowing" >&2
+  git fetch -q --unshallow origin 2>/dev/null || {
+    echo "could not unshallow — refusing rather than answering wrongly" >&2; exit 2; }
+fi
+
 git fetch -q origin main 'refs/pull/*/head:refs/remotes/pull/*' 2>/dev/null
 printf 'measured %s against %s %s\n\n' "$(date -u +%FT%TZ)" "$BASE" "$(git rev-parse --short "$BASE")"
 

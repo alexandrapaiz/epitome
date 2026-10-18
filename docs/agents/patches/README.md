@@ -33,3 +33,14 @@ individually can still refuse as a set.
 directory after the owner applies it — `git apply --check --reverse`
 answering cleanly is what "applied" looks like, and the ExO's run says
 which are still waiting and for how long.
+
+**Every patch records which door releases it.** The company standard
+puts a charter edit behind the silence rule (§22) and a grant of a
+seat's own authority behind the owner's word (§21, §22's exception), and
+which of the two a patch is decides whether a clock can run on it at
+all. `routes.md` in this directory holds the route for every patch, the
+reason for it, and the count by route — because "fifteen waiting" read as
+one blocked queue for fourteen days, and the true shape was fourteen
+that nobody had started a clock on and one correctly waiting for a
+person (L25). A patch with no route recorded is not ready to be asked
+for.
