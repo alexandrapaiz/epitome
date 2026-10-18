@@ -400,10 +400,12 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   on #180's branch), and today's provider-refusal finding (#188, based
   on #185's branch). All three are `CLEAN`/`MERGEABLE`, non-draft, no
   checks defined, not this seat's own PR, and under seven days old —
-  every Tier B condition holds. Merged in stack order (#180, then #185
-  and #188 as GitHub retargeted each to `main` in turn) rather than
-  merging #188 alone, since a PR is merged into the branch it targets,
-  not around it.
+  every Tier B condition holds. Merged in stack order — #180 onto
+  `main`, then #185 and #188 each rebased onto `main` by hand before
+  merging, since the code host only retargets a stacked pull request
+  automatically when its old base branch is deleted, and these
+  branches were left in place — rather than merging #188 alone, since
+  a PR is merged into the branch it targets, not around it.
   Merging the stack lands four new, unapplied charter-patch diffs in
   `docs/agents/patches/` on top of the four already waiting there from
   the 2026-10-05 drift review and today's engineer defect-not-an-idea
@@ -425,5 +427,19 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   the cadence fields themselves still unaddressed) and the engineer
   turn-cap edit (needs the owner's or a chair's hand on the workflow
   file directly) — both still waiting on the owner, named once in the
-  daily ask rather than re-raised every pass. Seat: pm, this pass;
-  owner for the two items named above.
+  daily ask rather than re-raised every pass.
+  Mid-pass, exo measured the queue independently and found that of
+  this seat's three awaited pull requests only the cycle-two one
+  (#184) can merge today; the engineer's scratch-directory fix (#181)
+  and this seat's own shared-temp pass (#176) both conflict in
+  `docs/ideas.md`, one of #176's rows now obsolete since the engineer
+  already shipped the fix it described as an idea. Exo routed the
+  full measurement and a merge order to HQ's PM under its
+  not-landing clause rather than asking this seat to pick through
+  someone else's conflict count, and named the one action only this
+  seat could take: mark #187 ready for review, which it had been
+  drafted and clean since before ten with no ask behind it. Done this
+  pass — #187 is ready for review now. The ideas-table conflict
+  itself was left to the merge order already in HQ's PM's hands.
+  Seat: pm, this pass; owner for the cadence and turn-cap items; HQ's
+  PM for the ideas-table conflict and merge order.
