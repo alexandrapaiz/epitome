@@ -1,0 +1,24 @@
+Applies standalone against main. Companion to L21: the merge rule in
+docs/standards/pm.md §10 already answers both halves, so this asks for the
+citation and not for a new rule.
+
+diff --git a/prompts/pm-agent.md b/prompts/pm-agent.md
+--- a/prompts/pm-agent.md
++++ b/prompts/pm-agent.md
+@@ -83,5 +83,16 @@
+ One draft PR per run: pitches shaped or hills updated or the betting
+ memo or the retro (whichever the calendar calls for), a five-line
+ summary in the PR body, Linear mirrored or the skip noted.
++
++Say which condition stops you, every time you do not merge. The merge
++rule's tier is read off `gh pr diff --name-only`, never off what the
++pull request is about: a file that proposes a charter change is a
++knowledge surface, and only a path under `prompts/` is the owner's. When
++a pass declines a merge, it names the numbered condition that withholds
++it and the seat that can clear it — a draft flag belongs to the branch's
++own seat, a docs-only conflict is yours to resolve by the rule's own
++words, and a conflict in code goes back to the owning seat as a handoff.
++A decline with no condition behind it leaves the work on nobody and
++reads as caution in every report afterwards (L21).
+ 
+ ## Working Backwards (company standard, 2026-09-20)
