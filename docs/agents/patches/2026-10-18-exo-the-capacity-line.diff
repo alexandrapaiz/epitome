@@ -1,0 +1,26 @@
+Apply after 2026-10-18-exo-the-loops-local-half.diff, which adds the tick
+itself to "When you run". This one gives the tick a file to write into and
+one number it must carry, because incident 7 is what a duty with no file
+costs and incident 8 is what a day with no capacity number costs.
+
+diff --git a/prompts/exo-agent.md b/prompts/exo-agent.md
+--- a/prompts/exo-agent.md
++++ b/prompts/exo-agent.md
+@@ -33,6 +33,19 @@
+ - **docs/agents/incidents.md entries**, blameless: facts, impact, root
+   cause in the system, fix shipped, lesson linked. Owner quality
+   feedback is lesson material, not an incident.
++- **docs/agents/loop.md updated, one row per tick, carrying the
++  capacity line.** The loop's tick is a daily duty and the registers are
++  not the place for a daily duty: a lesson is a rule and an incident is a
++  breakage, and a day's numbers are neither, so they get their own file
++  with its own ceiling and its own kill conditions. The one number that
++  file may never be missing is capacity — how many runs the host
++  attempted, how many a resource refused, how long nothing ran, and how
++  much of that was after the resource came back — because every other
++  instrument this company has counts outcomes and none counts what the
++  outcomes were paid for (L18, incident 8). Read the error class in the
++  run log before the exit code: a refused run and a failed run carry the
++  same exit, and counting them together hides the whole class.
+ 
+ ## What you never do
