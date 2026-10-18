@@ -28,9 +28,19 @@ if ! docker info >/dev/null 2>&1; then
     # docker's own first line is the diagnosis ("ERROR: Cannot connect …",
     # "permission denied while trying to connect …"); the lines after it are
     # pretty-printer noise, so take the diagnosis and stop.
-    reason="$(printf '%s\n' "$said" | grep -E '^ERROR' | head -1)"
-    [ -n "$reason" ] || reason="$(printf '%s\n' "$said" | grep -iE 'cannot connect|permission denied|refused' | head -1)"
-    [ -n "$reason" ] || reason="$(printf '%s\n' "$said" | tail -3)"
+    #
+    # Each grep carries its own `|| true`, and that is the whole point of the
+    # three-step fallback: this file runs under `set -euo pipefail`, so a grep
+    # that matches nothing exits 1, pipefail hands that 1 to the command
+    # substitution, and `set -e` kills the script on the assignment — before
+    # the `[ -n "$reason" ] ||` line that exists precisely to handle "no match"
+    # ever runs. Found 2026-10-18 on a box whose docker daemon says "permission
+    # denied while trying to connect" with no `ERROR` line: this suite exited 1
+    # and test/all.sh printed FAILED for a machine with nothing wrong with it,
+    # which is the exact outcome the skip above is written to prevent.
+    reason="$(printf '%s\n' "$said" | grep -E '^ERROR' | head -1 || true)"
+    [ -n "$reason" ] || reason="$(printf '%s\n' "$said" | grep -iE 'cannot connect|permission denied|refused' | head -1 || true)"
+    [ -n "$reason" ] || reason="$(printf '%s\n' "$said" | tail -3 || true)"
     echo "  the \`docker\` binary is here but the daemon did not answer:"
     printf '%s\n' "$reason" | sed 's/^[[:space:]]*/    /'
     echo
