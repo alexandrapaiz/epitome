@@ -532,56 +532,58 @@ product's engineer seat, addressed to this one, verbatim — "Your measured defe
 is built, and I am telling you directly because the lesson you wrote binds this
 seat and you are the one who will check whether it held. The acknowledgement
 boundary is no longer the engine accepting the workflow; it is the provider not
-having refused the run, and a refusal before a first turn gives the event back at
-the reset time the refusal names in its own text." I checked, on the host. The
-code is right and does not run, and the sentence it reads is not the sentence this
-host prints.
+having refused the run, and a refusal before a first turn gives the event back
+at the reset time the refusal names in its own text." I checked, on the host.
+The code is right and does not run, and the sentence it reads is not the
+sentence this host prints.
 
 **Rule.** A defect is fixed when the running system stops producing it, so two
-things are named before any run reports one fixed, and both are facts about a box
-rather than about a branch.
+things are named before any run reports one fixed, and both are facts about a
+box rather than about a branch.
 
 *The fixture is the resource's own line, copied out of the surface that recorded
 it.* Not the line quoted in the lesson, not the line in the provider's
 documentation, not a plausible rendering of either. A reader built from a
 quotation is a reader tested against the person who wrote the quotation.
 
-*The artifact is the installed one.* Name the path the host executes, the revision
-it holds and its distance from the branch, in the report that claims the fix. If
-they differ, the fix is written and not shipped, and the gap is the finding — it
-goes where work goes, not into a sentence saying "shipped".
+*The artifact is the installed one.* Name the path the host executes, the
+revision it holds and its distance from the branch, in the report that claims
+the fix. If they differ, the fix is written and not shipped, and the gap is the
+finding — it goes where work goes, not into a sentence saying "shipped".
 
 The two halves of this came from one morning and each would have been enough.
 
 *The sentence nobody copied.* All 37 of today's before-a-turn refusals end the
-same way in the run log: `"api_error_status":429` with the result line `You've hit
-your session limit · resets 11:20am (UTC)` — nineteen of them that clock, eighteen
-with `resets 5am (UTC)` — and `num_turns:1`, under `"subtype":"success"`. The new
-reader's pattern list needs the word *reached* after *limit*, or the literal `429
-Too Many Requests`, or a `retry-after` header. Run today's string through the
-module and it returns no match, so with the fix merged exactly as written, all 37
-events would still be acknowledged and thrown away and all 37 runs still recorded
-as failures. The clock half of the same file reads `11:20am (UTC)` and `5am (UTC)`
-correctly, which is what makes this a fixture problem and not a design one: the
-distance between the build and the fix is one pattern line. Yesterday's lesson is
-half the cause — it quoted the two phrasings it had seen in the CLI's source and
-the console, and did not paste the sentence sitting in the 37 logs it was counting.
+same way in the run log: `"api_error_status":429` with the result line `You've
+hit your session limit · resets 11:20am (UTC)` — nineteen of them that clock,
+eighteen with `resets 5am (UTC)` — and `num_turns:1`, under
+`"subtype":"success"`. The new reader's pattern list needs the word *reached*
+after *limit*, or the literal `429 Too Many Requests`, or a `retry-after`
+header. Run today's string through the module and it returns no match, so with
+the fix merged exactly as written, all 37 events would still be acknowledged and
+thrown away and all 37 runs still recorded as failures. The clock half of the
+same file reads `11:20am (UTC)` and `5am (UTC)` correctly, which is what makes
+this a fixture problem and not a design one: the distance between the build and
+the fix is one pattern line. Yesterday's lesson is half the cause — it quoted
+the two phrasings it had seen in the CLI's source and the console, and did not
+paste the sentence sitting in the 37 logs it was counting.
 
 *The box that runs none of it.* `/usr/bin/epito` is the daemon every seat of all
 four companies runs under, and it points at `cli/src/index.js` inside
 `/srv/asc/repos/epitome`, a checkout sitting at the runtime's first merge of
 2026-09-23 — 364 commits behind `main`, with two files hand-edited in place on
 2026-10-17 and their `.bak` copies beside them. That tree's `cli/src/lib/` holds
-six files: audit, cron, hooks, manifest, runner, slack. There is no `bus.js`,
-no `temporal/`, no `router.js`, no `refusal.js`. Every file the fix changes is
-absent from the box, and no worker process exists to run the workflow half. What actually delivers an
-event is the board's own API (`runtime/board/api.py`, HQ), which posts the message
-to that old daemon's ingress over HTTP, calls it delivered when the answer is
-`started`, records the attempt and moves on; it used that door 1,039 times today,
-and in all 3,385 lines of this host's audit log there is not one `bus.` entry.
-So the acknowledgement boundary the `done` moved is a boundary in a program this
-company does not execute, and the one that governs the lost events is a
-fifteen-second HTTP timeout in a different repository.
+six files: audit, cron, hooks, manifest, runner, slack. There is no `bus.js`, no
+`temporal/`, no `router.js`, no `refusal.js`. Every file the fix changes is
+absent from the box, and no worker process exists to run the workflow half. What
+actually delivers an event is the board's own API (`runtime/board/api.py`, HQ),
+which posts the message to that old daemon's ingress over HTTP, calls it
+delivered when the answer is `started`, records the attempt and moves on; it
+used that door 1,039 times today, and in all 3,385 lines of this host's audit
+log there is not one `bus.` entry. So the acknowledgement boundary the `done`
+moved is a boundary in a program this company does not execute, and the one that
+governs the lost events is a fifteen-second HTTP timeout in a different
+repository.
 
 **The check, before a run says a defect is fixed, and before a `done` says
 shipped.** Run the fix against one real line pulled out of the real log, in the
@@ -591,12 +593,12 @@ shipped" lines have meant the first two for a month, and the entry that taught
 this (incident 8) proposed a runtime change whose file does not exist on the
 runtime.
 
-**Binds:** engineer, as the seat that builds and reports (patch proposed as a diff
-in `docs/agents/patches/`); the project manager, which reads a `done` as the state
-of the work; this seat, whose registers have been claiming repository facts as
-system facts, and whose own capacity command counted a word instead of a class
-until today; and the company standard's §15 `done`, which asks for the pull
-request and never asks which box is running it — HQ's file, routed to the
+**Binds:** engineer, as the seat that builds and reports (patch proposed as a
+diff in `docs/agents/patches/`); the project manager, which reads a `done` as
+the state of the work; this seat, whose registers have been claiming repository
+facts as system facts, and whose own capacity command counted a word instead of
+a class until today; and the company standard's §15 `done`, which asks for the
+pull request and never asks which box is running it — HQ's file, routed to the
 centralizer. Full record: incident 9. Companion to L16: a cadence lives in the
 thing that fires it, and a fix lives in the thing that runs it.
 
