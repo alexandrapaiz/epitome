@@ -181,6 +181,43 @@ try {
       return c.num_pending === 0 && c.num_ack_pending === 0 && c.num_redelivered >= 0;
     }), "the consumer still holds an unacknowledged event");
 
+  // The 2026-10-18 defect, against a server that did not read our mock: the
+  // run STARTS — nothing throws, the engine accepted it — and then the
+  // provider refuses it before a first turn. The event must still be in the
+  // stream afterwards, because nothing about that run happened.
+  step("a run the provider refused leaves its event in the stream, acknowledged by nobody");
+  const refusal = { kind: "limit", says: "Claude AI usage limit reached", resetAt: null, floorMs: 60_000 };
+  const refusedByProvider = [];
+  await consuming.stop();
+  consuming = startConsuming({
+    bus, cfg, seats: [SEATS[0]],
+    wake: async (seat, ev) => ({
+      outcome: "started", workflow: `${seat}-${ev.id}`,
+      // Only the one event: everything else behaves as it did above.
+      verdict: async () => ({ refusal: ev.id === "evt-limit" ? refusal : null }),
+    }),
+    onRefused: (seat, ev, r, delay) => refusedByProvider.push({ seat, id: ev.id, kind: r.kind, delay }),
+  });
+  bus.publish("smoke.events.acme.issue.opened", JSON.stringify({ type: "issue.opened" }), {
+    headers: { "Nats-Msg-Id": "evt-limit" },
+  });
+  check("the loop hears the refusal and says which seat and what refused",
+    await until(() => refusedByProvider.some((r) => r.id === "evt-limit")), JSON.stringify(refusedByProvider));
+  check("...and the delay it gave the server is the refusal's, not the bus's fixed 300ms",
+    (refusedByProvider.find((r) => r.id === "evt-limit")?.delay ?? 0) >= 60_000,
+    JSON.stringify(refusedByProvider));
+  // Un-acknowledged, which the server reports as one of two counts depending
+  // on how it books a NAK carrying a delay: still in flight for this consumer
+  // (ack_pending) or back in the queue (pending). Either is the thing being
+  // proven — the event is still THERE, and an acknowledgement would have made
+  // both zero.
+  check("...and the server still holds the event: nothing acknowledged work that never began",
+    await until(async () => {
+      const c = await bus.api(`CONSUMER.INFO.${stream}.${durable}`);
+      return c.num_ack_pending + c.num_pending === 1;
+    }),
+    JSON.stringify(await bus.api(`CONSUMER.INFO.${stream}.${durable}`).then((c) => ({ pending: c.num_pending, ack_pending: c.num_ack_pending }))));
+
   step("the refusals the library produces against a real server");
   await consuming.stop(); consuming = null;
   let says = "";
