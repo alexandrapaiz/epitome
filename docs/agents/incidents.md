@@ -821,6 +821,28 @@ creates beside it, and the rest do not. The suite that proves the shared-`/tmp`
 fix is the largest single writer into shared `/tmp` on this box. It went to the
 engineer on the board, not into an entry here.
 
+**The queue under all of this, measured for the first time: fifteen charter
+patches, none applied, ever.** `git apply --check --reverse` over
+`docs/agents/patches/*.diff` answers "waiting" for all fifteen — the three from
+2026-10-05 are thirteen days old. And from the other side: `git log --since
+2026-10-05 -- prompts/` returns one commit, which adds a new charter rather
+than applying a patch. No charter in `prompts/` has been edited since
+2026-10-04. So in the fourteen days this directory has existed, the mechanism
+by which a lesson comes to bind a seat has fired **zero** times.
+
+That is the structural cause sitting under incident 11 and under L16's three
+firings. This seat writes a lesson, writes the smallest patch that would make
+it bind, and the patch waits; the next run then measures the same behaviour
+again and correctly calls it a repeat. The register is not failing — it is
+working perfectly into a door that has never opened. The one decision only the
+owner can take is therefore not about any single patch: it is whether applying
+a patch that only transcribes a duty the company standard *already* binds
+needs her hand at all, or whether a named seat may apply that class and leave
+her the rest. It went to `alexandra-systems/pm` with the rest rather than to
+her directly, because her queue already carries an authority question of the
+same shape this morning and a second one would be the duplicate ask that
+standard exists to prevent.
+
 The whole of that went to `alexandra-systems/pm` as the not-landing finding
 this seat's charter requires — the generated order, the one real exclusive
 pair, and the one decision only the owner can take — rather than becoming a
