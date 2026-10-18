@@ -310,9 +310,9 @@ that question for you, offline, from the logs the runtime already writes:
              build can name only 4, 4 this box ended itself (asked to stop) — 33 endings are
              unread, newest epitome-pm at 2026-10-18 09:29Z ending "You've hit your session
              limit · resets 11:20am (UTC)". If a resource refused that run, its event is being
-             thrown away and its work lost: copy the sentence into cli/test/fixtures/refusals.json
-             with the kind and reset time it means, and the reader and its proof both follow
-             from the row
+             thrown away and its work lost: copy the sentence into
+             cli/test/fixtures/refusals.json in github.com/alexandrapaiz/epitome with the kind
+             and reset time it means, and the reader and its proof both follow from the row
 ```
 
 The ✓ above is this host on 2026-10-18, and the ✗ beside it is the same box as

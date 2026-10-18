@@ -4375,7 +4375,8 @@ test("an ending this build cannot read is a note with the sentence that fixes it
   assert.equal(says.level, "note", "a reader with a gap in it never refuses a run; it only means nobody can say why the last one stopped");
   assert.match(says.text, /can name only 1 — 2 endings are unread/);
   assert.match(says.text, /newest market at 2026-10-18 11:50Z ending "a sentence this reader has never seen"/);
-  assert.match(says.text, /copy the sentence into cli\/test\/fixtures\/refusals\.json/, "the fix is in the message, and it is a row of data rather than a regex");
+  assert.match(says.text, /copy the sentence into cli\/test\/fixtures\/refusals\.json in github\.com\/alexandrapaiz\/epitome/,
+    "the fix is in the message — a row of data rather than a regex — and it says which repository holds the file, for the reader who installed from npm");
 });
 
 test("a run this box killed is counted as this box's doing, not as a refusal nobody can read", () => {

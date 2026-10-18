@@ -36,6 +36,7 @@ import { closeSync, fstatSync, openSync, readSync, readdirSync, statSync } from 
 import { join } from "node:path";
 import { EPITO_DIR } from "./audit.js";
 import { readRefusal } from "./refusal.js";
+import { inRepo } from "./where.js";
 
 // The default window. A day, because that is the span an operator standing in
 // front of a box asks about ("what happened overnight"), and because the logs
@@ -239,6 +240,6 @@ export function endingsSays(survey) {
     // code at all. The count is the whole gap and not the sample — a row
     // that said "3 unread" when thirty were would be the same comfortable
     // lie this module exists to end.
-    text: `${window}, ${ended} of them producing nothing, and this build can name only ${named}${boxClause} — ${missed === 1 ? "1 ending is" : `${missed} endings are`} unread, newest ${first.seat} at ${new Date(first.at).toISOString().replace("T", " ").slice(0, 16)}Z ending ${first.says ? `"${first.says}"` : "with no output of its own"}. If a resource refused that run, its event is being thrown away and its work lost: copy the sentence into cli/test/fixtures/refusals.json with the kind and reset time it means, and the reader and its proof both follow from the row`,
+    text: `${window}, ${ended} of them producing nothing, and this build can name only ${named}${boxClause} — ${missed === 1 ? "1 ending is" : `${missed} endings are`} unread, newest ${first.seat} at ${new Date(first.at).toISOString().replace("T", " ").slice(0, 16)}Z ending ${first.says ? `"${first.says}"` : "with no output of its own"}. If a resource refused that run, its event is being thrown away and its work lost: copy the sentence into ${inRepo("cli/test/fixtures/refusals.json")} with the kind and reset time it means, and the reader and its proof both follow from the row`,
   };
 }
