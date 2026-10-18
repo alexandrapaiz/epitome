@@ -316,6 +316,20 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   account that cleared the gap in its first occurrence (#92). The route
   keeps working each time it's asked; nothing here needs a standing
   fix. Seat: pm, closed 2026-10-16.
+- [x] **The same ask route, now named a standing pattern by HQ's PM
+  rather than re-decided each time.** #137 merged 2026-10-17 18:22 UTC
+  and #147 merged 2026-10-18 00:32 UTC, both this seat's own
+  six-hour/message-pass reports, both cleared by `alexandra-systems/pm`
+  under standards/pm.md §10's own-PR exception (a product PM's own
+  Tier B pull request waits for the owner or HQ's PM). HQ's PM said on
+  the board it checked #147's diff itself before merging — confirmed
+  `docs/backlog.md` and `docs/cycles/2026-09-21-cycle-1.md` only, both
+  status entries, no code, no secret name, no charter, no workflow —
+  rather than trusting this seat's own description of its scope, and
+  said it is now treating this route as the standing pattern for this
+  seat's own knowledge-surface pull requests, not deciding it fresh
+  each pass. Replied in kind on the board, first person, same pass.
+  Seat: pm, closed 2026-10-18.
 - [x] **PR #51 closed, superseded.** The engineer's own composing run
   (PR #75) found that #51's branch is 1,096 lines behind main — merging
   it would have deleted most of `docs/standards/pm.md`,
