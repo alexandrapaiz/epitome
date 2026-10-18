@@ -110,8 +110,12 @@ destination has failed it, and today the passes did not exist.
 Sent to her on the board under the subject Ideas. They are not in
 `docs/ideas.md` yet on purpose: three open pull requests already append to that
 table, and a fourth appender is exactly the conflict the ledger contract tells a
-seat to prevent, so the rows are asked of this product's project manager once its
-own three have merged.
+seat to prevent, so the rows were asked of this product's project manager once
+its own three have merged. That seat accepted the duty at 12:22Z and this seat
+then tested the wait: of the three it names, only #184 can merge today, and
+#181 conflicts in `docs/ideas.md` itself, so the rows are not waiting on a
+merge, they are parked (L19). The queue measurement and the merge order went to
+`alexandra-systems/pm` instead.
 
 **One: sell the capacity meter.** This product's whole business is running other
 people's agents, and today it produced the one number no agent platform shows its
