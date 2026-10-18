@@ -47,10 +47,24 @@ mapfile -t rows < <(gh pr list --state open --limit 200 \
 work=$(mktemp -d); trap 'git worktree remove -f "$work" >/dev/null 2>&1; rm -rf "$work"' EXIT
 git worktree add -q --detach "$work" "$BASE" || { echo "no worktree"; exit 2; }
 
-seq_nums=(); blocked=()
+seq_nums=(); blocked=(); covered=()
 for row in "${rows[@]}"; do
   IFS=$'\t' read -r n draft sha title <<<"$row"
-  git -C "$work" merge-base --is-ancestor "pull/$n" HEAD >/dev/null 2>&1 && continue
+  # Already contained by something merged above it — say so rather than
+  # skipping the line. A silently dropped row makes the printed count differ
+  # from `gh pr list` with nothing to explain it, and a reader cannot tell a
+  # covered pull request from one the instrument never saw. On 2026-10-18 this
+  # dropped #190 — out of draft, green, and the one its author had just asked a
+  # merger to take — because #186, a draft of the same seat, contains it.
+  if git -C "$work" merge-base --is-ancestor "pull/$n" HEAD >/dev/null 2>&1; then
+    covered+=("$n")
+    by=$(for m in "${seq_nums[@]}"; do
+           git -C "$work" merge-base --is-ancestor "pull/$n" "pull/$m" >/dev/null 2>&1 \
+             && { echo "#$m"; break; }
+         done)
+    printf '%-6s %-5s %-9s covered already in %s\n' "#$n" "$draft" "$sha" "${by:-the sequence above}"
+    continue
+  fi
   if git -C "$work" merge --no-edit -q "pull/$n" >/dev/null 2>&1; then
     seq_nums+=("$n")
     printf '%-6s %-5s %-9s takes   %s\n' "#$n" "$draft" "$sha" "${title:0:58}"
@@ -63,6 +77,7 @@ for row in "${rows[@]}"; do
 done
 
 printf '\nthe sequence, in order: '
-printf '#%s ' "${seq_nums[@]}"; printf '\n%d of %d land in one pass; %d need a hand\n' \
-  "${#seq_nums[@]}" "$((${#seq_nums[@]} + ${#blocked[@]}))" "${#blocked[@]}"
+printf '#%s ' "${seq_nums[@]}"; printf '\n%d of %d land in one pass; %d need a hand; %d already covered by one above\n' \
+  "${#seq_nums[@]}" "$((${#seq_nums[@]} + ${#blocked[@]} + ${#covered[@]}))" \
+  "${#blocked[@]}" "${#covered[@]}"
 printf 'drafts in the sequence cannot be merged by anyone but their author — clear the flag first\n'

@@ -846,73 +846,49 @@ gh pr list -R alexandrapaiz/<repo> --state all --limit 400    --json number,head
 is the installed one*; L20, which is why this is an incident and not a note —
 the fix is on `main` and the defect is open.
 
-## Open fixes, re-measured 2026-10-18 at 14:25Z
+## Open fixes, re-measured 2026-10-18 at 14:45Z
 
-L20 obliges this seat to re-measure every entry whose fix is not on
-`main`, on every run, and to count instances rather than entries. This
-section is **replaced** each run and never appended to, so the register
-does not grow a row per pass. Measured against `main` 0d8629f from a
-clone this run had to unshallow first — which is the finding at the
-bottom of this section, and the reason these numbers differ from a
-shallow read taken forty-three seconds earlier.
+L20 obliges this seat to re-measure every entry whose fix is not on `main`, on
+every run, and to count instances rather than entries. This section is
+**replaced** each run and never appended to, so the register does not grow a row
+per pass. Measured against `main` `2c8d56c` from an unshallowed clone.
 
 | Incident | The fix | Where it is now | Instances |
 |---|---|---|---|
-| 5 — a run overwrote a partner seat's pull request body | #181 `77f94045`, now an ancestor of #190 | **ready, clean against `main`, and still not on `main`** — one hour fifteen minutes after it became mergeable. The defect is live and accelerating: `ls -d /tmp/epito-* \| wc -l` answers **387** in this window, against 166 at 14:04Z, 107 at 13:38Z and 87 at 13:03Z. Neither `TMPDIR` nor `EPITO_SCRATCH` is set here | 2 |
-| 8 — a quarter of the day's runs were refused and the events thrown away | the entry and L18 on #192 `dc1b615d`; the runtime half on #190 `37fa45de` | #192 clean, ready, unmerged since 12:31Z. #190 is out of draft and green on the engineer's own measurement at 14:07Z — 327 runs read, 41 that produced nothing, 37 of them named with the provider's reset time, 4 the box ended itself. It is **blocked in the sequence on `cli/src/temporal/workflows.js` against #186**, which is the one conflict in product code this queue has. **And the instrument now has a consumer it cannot reach**: HQ's runs table has a `refusal` column and four surfaces reading it as of 14:01Z, and no branch in this repository writes that field — see the row below | 1 window, 0 since 14:00Z |
-| 9 — the same shared path overwrote a board reply's references | same as 5 | same as 5. No third instance on the board | 2 on the defect, 1 on the landing path |
-| 10 — the runtime this company fixes is not the runtime it runs | nothing merged | unchanged, and measured properly for the first time. `readlink -f $(which epito)` → `/srv/asc/repos/epitome/cli/src/index.js`, at `5836dc0`, committed 2026-09-23T21:19:09Z, with `cli/src/index.js` and `cli/src/lib/runner.js` still modified in place. The distance is **365 commits** (`gh api .../compare/5836dc0...main` → `ahead_by: 365`); the same question asked with `git rev-list --count` inside a seat's own shallow clone answers **1** | 1 |
-| 11 — the merging seat's charter has never said it merges | one charter patch, `pm-the-standard-is-the-charter`, and an owner ask filed for it by HQ's project manager at 13:53Z | **the count is still climbing, and for the first time something is running on it.** Seven declines at 13:56Z, **ten** by 14:15Z — #209, #210 and #212 added, each naming the same missing sentence, one every six minutes — and **27 of this repository's 37 open pull requests** are that seat's passes from today. The ask HQ filed is correctly **not** on the forty-eight hour clock: §22 reserves widening a seat's own authority for the owner's word (L25). The other fourteen patches are not that kind, and the ask for them went to `epitome/pm` at 14:21Z | 10 passes, 1 charter |
+| 5 — a run overwrote a partner seat's pull request body | #181 `77f94045`, also an ancestor of #190 | **ready, clean against `main`, still not on `main`** — two hours after it became mergeable. `ls -d /tmp/epito-* \| wc -l` answers **405** in this window, against 387 at 14:25Z, 166 at 14:04Z and 87 at 13:03Z. Neither `TMPDIR` nor `EPITO_SCRATCH` is set in this run either | 2 |
+| 8 — a quarter of the day's runs were refused and the events thrown away | the entry and L18 are now on #211; the runtime half on #190 `37fa45de` | #190 is out of draft and green, and **it is not in the merge sequence**: it is contained whole by #186, a draft of the same seat, so a merger walking the queue in order merges #186 and #190 vanishes. Either #186 clears its flag and takes both, or #190 is merged before it. The refusal column at HQ still has no writer in this repository | 1 window, 0 since 14:00Z |
+| 9 — the same shared path overwrote a board reply's references | same as 5 | same as 5 | 2 on the defect, 1 on the landing path |
+| 10 — the runtime this company fixes is not the runtime it runs | nothing merged | **worse by one commit and now with a daily price.** `readlink -f $(which epito)` → `/srv/asc/repos/epitome/cli/src/index.js` at `5836dc0` of 2026-09-23, two files still hand-edited in place; `git rev-list --count 5836dc0..origin/main` = **366**. Incident 12 is what one of those 366 commits was worth in the two days it sat undeployed: ten misrecorded runs, eight of them after it merged | 2 |
+| 11 — the merging seat's charter has never said it merges | the `pm-the-standard-is-the-charter` patch on #211, and an owner ask filed by HQ's project manager at 13:53Z | unchanged, and the shape of the queue is now the measurement: **30 of this repository's 37 open pull requests belong to that one seat**, every one a pass that read the queue and declined. This seat is down to two | 10+ passes, 1 charter |
+| 12 — ten runs recorded as opening nothing | `ba763c7`, merged in #169 at 08:17Z | **on `main` and not on the box.** Same blocker as 10; no second fix is needed and no new patch is proposed for it | 10 runs, 5 triage passes |
 
-**The instrument with no writer, which is new this pass.** HQ's exo
-centralizer shipped a `refusal` column beside the runs table's exit
-integer, the daily brief, the scorecard, a seat timeline and the owner's
-runs panel all read it, and the capacity wake it feeds tells a project
-manager not to rerun before the hour the provider named. Searched across
-`main` and all 37 open pull requests: exactly one branch posts a run
-report to that endpoint at all — #186 `25699eaa`, a draft,
-`cli/src/lib/runreport.js` — its payload sends `exit: outcome === "ok" ?
-0 : 1`, and `grep -c refusal` over that file answers **0**. #190, which
-holds the whole refusal reader, does not contain the file. So a refused
-run on this box still files to HQ as a failed run, in the one field the
-new column exists to split, and will keep doing so after #190 merges.
-Both halves of this instrument are written and neither is running, which
-is the centralizer's own reading of it: "the deployment distance you
-measured is the real blocker for both halves of this." Routed to
-`epitome/engineer` as one field in one payload, and to the centralizer
-so its column is not read as empty data.
+**What this seat did to its own half of the queue this run.** It had six pull
+requests open and now has two. #211 was test-merged against #192, #195, #197,
+#204 and #208 one at a time in a throwaway worktree; each produced a tree
+byte-identical to #211's, so all five were closed with that measurement on them.
+#211 itself was a draft carrying a placeholder body, because the run that opened
+it was killed at its turn cap before it could write one — incident 12's own
+first row. It is out of draft with a real body now. Six pull requests claiming
+one tree was this seat's contribution to exactly the queue it keeps measuring.
 
-**The clone this seat measures from is not the clone it needs, and three
-of its instruments lie rather than refuse.** `git rev-parse
---is-shallow-repository` answered `true` in this run's checkout.
-`order.sh` ran in it at 14:22:08Z and reported **12 of 36** pull requests
-landing in one sequence; unshallowed — 0.16 seconds, because the objects
-are local — it reported **17 of 37** at 14:22:51Z, having been wrong in
-both directions: five branches it called conflicted merge clean (#132,
-#181, #184, #186, #187) and the one it cleared, #190, is the one real
-conflict. `check.sh`'s identifier check goes silently empty at depth 1,
-and the distance check proposed for the engineer's charter answers 1
-instead of 365. All three declared the requirement in a comment, which
-nothing enforces. Both scripts in `docs/agents/` now assert the depth and
-repair it before printing a number; the engineer's patch is their
-charter's and the one-line fix went to them on the board rather than
-being edited in here. Second half of L22's axis, recorded there rather
-than as a twelfth entry.
+**The instrument dropped a line rather than printing it, which is the same
+defect one scope down.** `order.sh` skipped any pull request already contained
+by one merged above it, silently, so it printed 36 where `gh pr list` returns 37
+and **#190 appeared nowhere** — the branch its author had, forty minutes
+earlier, asked a merger to take. A reader could not tell a covered pull request
+from one the instrument never saw. It now prints `covered already in #186` and
+counts it, and the printed total matches `gh pr list` again. A record that omits
+what it cannot classify is incident 12's mechanism with a different field in it.
 
-**The queue, generated at 14:22:51Z against `main` 0d8629f (L24).**
-37 open, **17 land in one sequence with no conflict**, in this order —
+**The queue, generated at 14:44Z against `main` `2c8d56c` (L24).** 37 open,
+**17 land in one sequence with no conflict**, one covered, 19 needing a hand —
 
-`#132 · #181 · #184 · #186 · #187 · #191 · #192 · #194 · #195 · #196 ·
-#197 · #198 · #204 · #208 · #210 · #212 · #213`
+`#132 · #181 · #184 · #186 · #187 · #191 · #194 · #196 · #198 · #210 · #211 ·
+#212 · #213 · #214 · #215 · #217 · #218`
 
-Of the 20 that do not, **17 conflict in `docs/backlog.md` and nothing
-else**, one of those also in `docs/ideas.md`; #209 conflicts in a cycle
-file and #190 in `cli/src/temporal/workflows.js`. The twentieth was this
-pull request, until this run folded #208 into it and resolved
-`docs/agents/lessons.md` by keeping both sides — L19 to L25 in numeric
-order, no identifier claimed twice — because a merger handed that
-conflict is being handed an editorial act on this seat's own text (L23).
-
-The not-landing half of all of it went to `alexandra-systems/pm` as this
-seat's charter requires, with the generated order and the one decision
-only the owner can take, rather than becoming a second entry here (L21).
+Of the 19 that do not, **18 conflict in `docs/backlog.md` and nothing else**,
+one of those also in `docs/ideas.md`, and #209 in a cycle file. Eleven of the
+seventeen in the sequence are drafts, which no merger but their author can
+clear. The not-landing half went to `alexandra-systems/pm` as this seat's
+charter requires, with the order and the one decision only the owner can take,
+rather than becoming a thirteenth entry here (L21).
