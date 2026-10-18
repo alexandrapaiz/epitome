@@ -5,6 +5,34 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 ~09:4x UTC: HQ engineer's dogfood ask
+  on the resident runtime answered, two of its three claims checked
+  and one corrected, cycle 2's file opened for real closing two
+  duplicate drafts of itself.** Inbox: an `ask` from
+  `alexandra-systems/engineer` reported our product's hand-patched
+  runtime copy on the resident host carries a fix `main` lacks — a
+  guard against writing to an already-closed log descriptor, which
+  took their whole daemon down one night — and, in passing, claimed
+  `main` also lacks per-seat tracing attributes and the board run
+  report. Checked all three against `cli/src/lib/runner.js` and
+  `trace.js` myself rather than taking the ask at face value: the
+  closed-descriptor claim is real and unfixed, filed as a new
+  `docs/ideas.md` entry and handed to `engineer`/`epitome` (this
+  charter never writes product code); the tracing claim is wrong —
+  `childTraceEnv` is wired into `runner.js` already — and I said so on
+  the board; the run-report claim is already tracked, this ledger's
+  own proposed idea on `POST $BOARD_API_URL/api/runs`, nothing new to
+  file. Replied to the asking seat in first person with all three.
+  Separately, found this seat had opened `docs/cycles/
+  2026-10-18-cycle-2.md` twice already today (#159, #178), neither run
+  aware of the other, and #159's hill chart was stale against the
+  #130/#131/#135/#136 chain that merged to `main` at 08:42 UTC after
+  #159 was written. Closed both with a comment naming this PR as the
+  one that lands, and opened the file fresh off current `main`. Asked
+  `pm`/`alexandra-systems` to merge this PR under the established
+  route, since a PM's own Tier B PR is not this seat's to merge.
+  Linear mirror: skipped, `LINEAR_API_KEY` absent from the environment
+  (probed this run).
 - [ ] **Message pass, 2026-10-18 09:29 UTC: the same engineer run and
   the same pull request (#175) this pass was dispatched to review had
   already been merged under the merge rule by the pass immediately
@@ -295,18 +323,16 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   evidence (merged commits) already showed them shipped inside
   appetite. The ADR-5 trial review itself is still the owner's to
   grade; this entry tracks the merge, not the grade.
-- [ ] **Bet cycle 2 — rewritten, still unbet.** PR #67 carried the
-  2026-10-05 draft (recommending Slack identity + the passport);
-  rewritten in full today for the owner's direct MVP override
-  ("we need our product to work, we need an MVP," relayed by the
-  chair): a stranger runs `init`, `validate`, `deploy` and `run` from
-  one manifest, npm-installed, README only. Still waits on her merge,
-  or proceeds under section 22 after 48 hours of silence from
-  2026-10-16. The two things only she can do — `NPM_TOKEN` and one
-  real GitHub App approval in her browser — were named in that memo as
-  "asked once on the board" but the run that wrote it ended before
-  posting the ask; this pass posted it for real (board message,
-  2026-10-16 18:2x UTC), so the claim and the fact now match.
+- [x] **Bet cycle 2 — placed.** PR #67 merged 2026-10-18T02:12:53Z,
+  betting mvp-stranger-npm-v0 per the owner's direct MVP override.
+  `docs/cycles/2026-10-18-cycle-2.md` opened this pass, superseding two
+  earlier drafts of itself (#159, #178 — see the message-pass entry
+  above) that opened it independently within the same hour without
+  seeing each other. Three of the bet's four scopes are merged to
+  `main` (08:42 UTC, the #130/#131/#135/#136 chain); what is left is
+  not engineering — the real `npm publish` and one human GitHub App
+  click, both named in the cycle file with the publish token's
+  2026-10-24 expiry as the standing risk.
 - [x] **The deck-archiving PR, closed.** PR #52 sat conflicting against
   main for twelve days with zero commits or comments since it opened
   2026-10-05, and it also touches `.github/workflows/`, a surface
