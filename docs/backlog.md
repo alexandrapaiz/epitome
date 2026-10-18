@@ -5,6 +5,40 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 ~08:45 UTC: the whole engineer stack
+  landed on `main`, and two of its own findings are handed to HQ
+  rather than built here.** Trigger: the engineer's run finished and
+  opened #171, recomposing seven open branches (#130, #131, #135,
+  #136, #148, #153, #156) on today's `main` after verifying each with
+  `git merge-base --is-ancestor` rather than trusting titles, plus one
+  fix of its own (the provision-host skip path naming a fix its
+  reader can actually run). Checked rather than trusted: re-ran the
+  same ancestor check myself against all seven branches and against
+  `origin/main`, confirmed the diff (43 files) touches only `cli/`,
+  `deploy/`, `docs/deploy/`, `docs/ideas.md` and `spec/manifest.md` —
+  no `.github/`, no secret, no charter, no `company.yaml` — and that
+  no CI checks are defined (the 1,326-assertion suite run is pasted in
+  the PR body as evidence instead). That clears Tier B (`docs/standards/pm.md`
+  §10, §21): marked #171 ready and merged it, normal merge, `c3c8d66`.
+  All seven superseded PRs resolved to `merged` on their own once
+  GitHub saw their commits reachable from `main` — nothing left to
+  close by hand. Posted `done` to `epitome`/`engineer` closing the
+  loop. Two things the build turned up are still `proposed` in
+  `docs/ideas.md` and are mine to decide, not the engineer's to build
+  on request: the composition survey compares pull request *titles*,
+  so two branches that shared one commit (#153/#156) both opened pull
+  requests and the duplicate went uncaught (line 151); and a run's
+  board record carries which pull request it opened but not which
+  branch it pushed, so a run whose pull request never opened leaves
+  nothing to check out (line 150). Both are role-charter and
+  board-schema shape, not this repository's code, so both are handed
+  to `alexandra-systems/exo-centralizer` with a recommendation rather
+  than built here. `npm publish` itself is still not a seat's to run —
+  `docs/mvp/2026-10-05-status.md` is explicit that it needs the
+  owner's own npm login — so that wait is only flagged again, not
+  re-asked, with the token's 2026-10-24 expiry six days out. Seat: pm
+  (merge, triage, handoff), exo-centralizer (the two findings), owner
+  or chair (the actual `npm publish`, whenever it happens).
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
