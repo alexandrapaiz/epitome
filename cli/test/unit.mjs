@@ -17,6 +17,7 @@ import { loadRoster, rosterRules, ROSTER_RULES } from "../src/lib/roster.js";
 import { SEVERITY, checkManifest, shape } from "../src/validate.js";
 import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
+import { runtimeBuild, buildLine, buildNote, porcelainPaths, thisRuntime } from "../src/lib/build.js";
 import { rosterEnv, namesFor, envTemplate, holding, runShortfall, shortfallSays, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
 import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, buildPrompt, shortfallLine, runBranchPrefix, pullRequestForRun, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP, noRepoMessage, webRoot, installUrl, appSettingsUrl } from "../src/lib/identity.js";
@@ -3755,4 +3756,157 @@ test("with the host unreachable, the transcript half no longer loses the address
     "the address is taken as it goes past, not read out of a window it has long since left");
   assert.match(logged, /# pull request: http:\/\/127\.0\.0\.1:1 could not be reached .*; recorded from the address the run printed instead/);
   assert.equal(r.turns, 1);
+});
+
+// --- which epito is running here (src/lib/build.js) ------------------------
+// The defect these pin: on 2026-10-18 the host's checkout of this repository
+// was at the merge of PR #6 (2026-09-20) with two tracked files carrying
+// uncommitted hand-patches, so four weeks of merged runtime fixes were not
+// running — and the daemon, the run logs, `epito ps` and `epito doctor` all
+// described behaviour without naming the code that produced it.
+
+// git, as a function, so every case below is a box and not a mock of one.
+const gitSays = (answers) => (args) => answers[args.join(" ")] ?? null;
+
+test("the revision is the runtime's own tree, and a hand-patched one says which files", () => {
+  const b = runtimeBuild({
+    dir: "/srv/epito/cli",
+    readVersion: () => JSON.stringify({ version: "0.1.0" }),
+    runGit: gitSays({
+      "rev-parse --is-inside-work-tree": "true",
+      "rev-parse --short HEAD": "5836dc0",
+      "rev-parse --abbrev-ref HEAD": "HEAD",
+      "rev-parse --show-toplevel": "/srv/epito",
+      // Exactly what the host answered, leading column and all.
+      "status --porcelain --untracked-files=no": " M cli/src/index.js\n M cli/src/lib/runner.js",
+    }),
+  });
+  assert.equal(b.commit, "5836dc0");
+  assert.equal(b.source, "git");
+  assert.equal(b.detached, true, "a detached HEAD is itself worth saying on a runtime host");
+  assert.equal(b.branch, null);
+  assert.equal(b.root, "/srv/epito", "the repository, not the cli/ directory a pull request cannot be opened from");
+  assert.deepEqual(b.modified, ["cli/src/index.js", "cli/src/lib/runner.js"]);
+  assert.equal(b.dirty, true);
+});
+
+test("porcelain's two status columns are columns, not something to trim", () => {
+  // The first version of this trimmed the whole output and reported
+  // "li/src/index.js": `.trim()` ate the leading space of an unstaged
+  // modification and took the first character of the path with it.
+  assert.deepEqual(porcelainPaths(" M cli/src/index.js\nM  a.js\n?? b.js"),
+    ["a.js", "b.js", "cli/src/index.js"]);
+  assert.deepEqual(porcelainPaths("R  old/name.js -> new/name.js"), ["new/name.js"],
+    "a rename is reported as where the file is now");
+  assert.deepEqual(porcelainPaths(""), []);
+  assert.deepEqual(porcelainPaths(null), []);
+});
+
+test("an epito installed from npm is not a fault, and says so without a revision", () => {
+  const b = runtimeBuild({
+    dir: "/usr/lib/node_modules/epito",
+    readVersion: () => JSON.stringify({ version: "0.1.0" }),
+    runGit: gitSays({}),
+  });
+  assert.equal(b.source, "package");
+  assert.equal(b.commit, null);
+  assert.equal(b.dirty, false);
+  assert.equal(buildLine(b), "epito 0.1.0 · installed, not a checkout");
+  assert.equal(buildNote(b).level, "ok", "no checkout is the ordinary shape of an install, not a warning");
+  assert.match(b.why, /is not a git checkout/);
+});
+
+test("a box where neither the version nor a checkout can be read says that, rather than throwing", () => {
+  const b = runtimeBuild({
+    dir: "/nowhere",
+    readVersion: () => { throw new Error("ENOENT"); },
+    runGit: gitSays({}),
+  });
+  assert.equal(b.source, "unknown");
+  assert.equal(b.version, null);
+  assert.equal(buildNote(b).level, "warn");
+  assert.match(buildNote(b).text, /cannot say which build it is/);
+});
+
+test("git present and refusing to name HEAD is a warning with its own sentence", () => {
+  const b = runtimeBuild({
+    dir: "/srv/epito/cli",
+    readVersion: () => JSON.stringify({ version: "0.1.0" }),
+    runGit: gitSays({ "rev-parse --is-inside-work-tree": "true" }),
+  });
+  assert.equal(b.source, "git");
+  assert.equal(b.commit, null);
+  assert.equal(buildNote(b).level, "warn");
+  assert.match(buildNote(b).text, /would not name HEAD/);
+});
+
+test("the clean line is one line, and the dirty note names the rule, the hazard and the fix", () => {
+  const clean = runtimeBuild({
+    dir: "/w/cli",
+    readVersion: () => JSON.stringify({ version: "0.1.0" }),
+    runGit: gitSays({
+      "rev-parse --is-inside-work-tree": "true",
+      "rev-parse --short HEAD": "3806b83",
+      "rev-parse --abbrev-ref HEAD": "main",
+      "rev-parse --show-toplevel": "/w",
+      "status --porcelain --untracked-files=no": "",
+    }),
+  });
+  assert.equal(buildLine(clean), "epito 0.1.0 · 3806b83 (main) · clean");
+  assert.equal(buildNote(clean).level, "ok");
+
+  const dirty = runtimeBuild({
+    dir: "/w/cli",
+    readVersion: () => JSON.stringify({ version: "0.1.0" }),
+    runGit: gitSays({
+      "rev-parse --is-inside-work-tree": "true",
+      "rev-parse --short HEAD": "5836dc0",
+      "rev-parse --abbrev-ref HEAD": "main",
+      "rev-parse --show-toplevel": "/w",
+      "status --porcelain --untracked-files=no": " M a.js\n M b.js\n M c.js\n M d.js\n M e.js\n M f.js",
+    }),
+  });
+  const note = buildNote(dirty);
+  assert.equal(note.level, "warn");
+  // The bar `epito validate` set: the rule broken, in the product's own
+  // vocabulary, with the fix in the message.
+  assert.match(note.text, /6 tracked files modified here: a\.js, b\.js, c\.js, d\.js and 2 more/);
+  assert.match(note.text, /not any revision in the repository/);
+  assert.match(note.text, /a fix merged on the default branch does not reach it/);
+  assert.match(note.text, /Fix, on a host: land them in a pull request from \/w/);
+  // And it does not pretend to know which of the two boxes it is on.
+  assert.match(note.text, /in a checkout you are working in it means what you expect/);
+});
+
+test("the build is read once per process, because the code a daemon runs is the code it loaded", () => {
+  // A `git pull` underneath a resident daemon changes the files and changes
+  // nothing about the running process. Re-reading would make the log name a
+  // revision whose fix the process does not have, which is the lie this
+  // module exists to stop.
+  const a = thisRuntime();
+  const b = thisRuntime();
+  assert.equal(a, b, "the same object, not an equal one: it is answered once and kept");
+});
+
+test("one tracked file is one file, not one files", () => {
+  const one = runtimeBuild({
+    dir: "/w/cli",
+    readVersion: () => JSON.stringify({ version: "0.1.0" }),
+    runGit: gitSays({
+      "rev-parse --is-inside-work-tree": "true",
+      "rev-parse --short HEAD": "abc1234",
+      "rev-parse --abbrev-ref HEAD": "main",
+      "rev-parse --show-toplevel": "/w",
+      "status --porcelain --untracked-files=no": " M only.js",
+    }),
+  });
+  assert.match(buildLine(one), /1 tracked file modified here: only\.js$/);
+});
+
+test("the run log header names the build that produced the run", async (t) => {
+  const { r, logged } = await noisyRun(t, { api: "http://127.0.0.1:1" });
+  assert.equal(r.exit, 0);
+  // Second line of the runtime's own header, above anything the child printed.
+  assert.match(logged, /^# epito run [\s\S]*?\n# trigger=[\s\S]*?\n# epito /m);
+  assert.match(logged, new RegExp(`# ${buildLine(thisRuntime()).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
 });

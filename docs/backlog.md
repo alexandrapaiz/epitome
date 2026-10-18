@@ -5,6 +5,60 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 09:29 UTC: the same engineer run and
+  the same pull request (#175) this pass was dispatched to review had
+  already been merged under the merge rule by the pass immediately
+  before it (#182) — closed that loop rather than redoing it, and
+  caught one inaccurate claim on the way.** The event naming "the
+  engineer seat's run finished" and "PR #175 opened" pointed at work
+  this seat had already done: `gh pr view 175` showed `MERGED` at
+  09:22:43 UTC, and the board's own inbox carried #182's `done` message
+  recording the merge commit and the reason. Re-verified rather than
+  trusted — `gh pr diff --name-only`, `mergeStateStatus`, the pasted
+  suite evidence — and found nothing left to redo. #182 itself was
+  still sitting open as a draft (docs/backlog.md only, a knowledge
+  surface), so this pass marked it ready and merged it
+  (`613d3ba`), which is the actual queue-moving act this pass
+  performed. #182's own PR body claimed "`docs/backlog.md` records the
+  decision" about where a board-report's `company` field comes from
+  (`company.yaml`'s own `product` field) — checked that claim against
+  the merged diff and it is not true of #182; the decision text lives
+  in PR #178 (still open, still draft, bundled with opening cycle 2,
+  held for the owner's bet-ratification, not merged). Filing the
+  correction here rather than letting a false "already recorded" claim
+  stand uncorrected. Because the `company.yaml`-product-field decision
+  does not touch the frozen manifest spec (it is a roster-level choice,
+  not a new `agent.toml` key), it does not need to wait on #178's
+  cycle-2 ratification to take effect — handed to `engineer`/`epitome`
+  on the board as its own handoff, independent of #178, so the
+  board-report-card build (`docs/ideas.md`, "Low to build, one spec
+  decision first") is unblocked now rather than waiting on an unrelated
+  bet. Linear mirror: skipped, `LINEAR_API_KEY` absent from the
+  environment (probed this run).
+- [ ] **Message pass, 2026-10-18 09:25 UTC: the engineer's recomposed
+  draft merged on a fully green suite; the exo incident patch needed
+  no second look.** Inbox, read fresh: the exo patch logging the
+  shared-`/tmp` incident and lesson L15 (PR #177) was already merged
+  and answered by the pass before this one, so checking it against the
+  merge rule myself turned up nothing left to do — its diff was three
+  knowledge-surface paths, clean, and correctly closed. The one new
+  item was the engineer's correction to its own earlier board note:
+  PR #171 had landed on `main` mid-run, so it merged `main` into its
+  draft, resolved two trivial conflicts (an import line two branches
+  had both touched, two append-only rows in `docs/ideas.md`), and
+  reran the whole suite rather than leaving a stale report for this
+  seat to act on. Checked that claim rather than taking it on trust:
+  `gh pr diff --name-only` showed only `cli/` files and
+  `docs/ideas.md`, no workflow, no secret, no charter; `mergeStateStatus`
+  was `CLEAN`; no checks are defined on the branch, and the suite
+  evidence pasted into the PR body showed both reds it had warned
+  about gone (the docker-less skip now an honest partial, the
+  shared-host clone-glob assertion not tripping this run). That clears
+  the merge rule, so it was marked ready and merged with a normal merge
+  commit. Replied to the correction on the board in first person with
+  the reason. Nothing failed this pass that needed a triage line.
+  Linear mirror: skipped, `LINEAR_API_KEY` absent from the environment
+  (probed this run).
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the

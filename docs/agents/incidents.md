@@ -536,6 +536,120 @@ exists to make safe.
 **Lesson produced.** L20 in `docs/agents/lessons.md`. First instance of
 the axis: incident 5.
 
+## Incident 10 — 2026-10-18 — The runtime this company fixes is not the runtime it runs
+
+**What happened, in the order it was found.** At 13:03:48Z this product's
+engineer seat posted a `done` to this seat on the board, saying the defect
+measured in incident 8 was built: the acknowledgement boundary moved, a refusal
+before a first turn gives the event back at the reset time the provider named,
+and a refused run is recorded as refused rather than failed. The reference is
+pull request 190, opened at 12:30:29Z and still a draft. The code is 828 added
+lines across sixteen files, with a live section in the bus suite against a real
+`nats-server` and eighteen new unit assertions; read on its own terms it does
+what the handoff asked for, including the part incident 8 did not think of — a
+bad key and an expired token deliberately left out of the refusal class, because
+an operator has to fix those and a column whose meaning is "later" would be
+lying about them.
+
+Then two checks on the host, which is where the 65 refusals of that morning were
+counted.
+
+*The reader does not match the host's sentence.* Every one of today's
+before-a-turn refusals ends its log the same way: `"api_error_status":429`, the
+result line `You've hit your session limit · resets 11:20am (UTC)` (nineteen of
+them; eighteen more with `resets 5am (UTC)`), `"num_turns":1`, and — disarmingly
+— `"subtype":"success"`. `cli/src/lib/refusal.js` matches on "usage limit
+reached", "session limit exceeded", `limit reached · resets`, a `retry-after`
+header, a `rate_limit_error` type, or the literal `429 Too Many Requests`.
+Today's string is none of those: the word after `limit` is `·`, not `reached`,
+and the 429 is a JSON field rather than a status line. Running the module from
+the branch against both of today's sentences returns `NO MATCH` for each. Its
+clock reader, asked directly, turns `11:20am (UTC)` into `2026-10-18T11:20:00Z`
+and `5am (UTC)` into `2026-10-19T05:00:00Z`, both correct — so the gap between
+built and working is one pattern line, and the `nothing-happened` guard in front
+of it (no pull request, no second turn) is already right.
+
+*The host does not run the file.* `/usr/bin/epito` resolves to
+`cli/src/index.js` inside `/srv/asc/repos/epitome`, and that checkout is at
+`5836dc0`, the runtime's first merge, dated 2026-09-23 — 364 commits behind
+`main` at `f2a1757`. Its `cli/src/lib/` holds six files: audit, cron, hooks,
+manifest, runner, slack. No `bus.js`, no `temporal/`, no `router.js`, no
+`refusal.js`; `epitod.service` has been up since 2026-10-17 21:13:37Z and there
+is no worker process. Two files in that tree are modified in place, with `.bak`
+copies beside them in `/srv/asc/state`, and the modifications are four
+hand-patches signed in their own comments by the HQ chair: 2026-09-30, tracing
+attributes per seat and company; 2026-10-05, a run report posted to the board's
+`/api/runs` so host runs appear beside Actions runs; 2026-10-17, a write to a
+closed log descriptor that "took the whole daemon down, with every other seat's
+window in it"; 2026-10-17, pipe-error and uncaught-exception handlers for the
+same reason.
+
+**Impact.** Three things, and the third is the one that outlives today.
+
+*The fix for incident 8 would not have fired.* Merged exactly as written, with
+the host as it stands, all 37 of today's before-a-turn refusals would still be
+read as plain failures and their events still thrown away, for both reasons at
+once: the pattern misses the sentence, and the file is not on the box.
+
+*The class still cannot reach the owner's board.* The surface she reads gets its
+host runs from the 2026-10-05 hand-patch, which posts `exit: exitCode` as a
+number (124 for a timeout, otherwise the child's code), and `board.runs.exit` in
+HQ's schema is an `int`. The word "refused" has nowhere to go in that table. The
+refused column pull request 190 adds is in `cli/src/lib/board.js`, which renders
+the local `.epito/board.jsonl` on a host that does not execute it.
+
+*Every "fix shipped" line in these registers has been a claim about a
+repository.* This register has written five of them this month. The ones whose
+fix is a document — a lesson, a charter patch, a standard — were true when they
+merged. The ones whose fix is runtime code were not: they described a file in a
+branch while the box ran a September copy with four hand-patches. The register
+did not distinguish the two, because this seat never looked at the box.
+
+**Root cause in the system, three parts, none of them a seat.**
+
+*Nothing names the installed artifact.* No charter, standard or register entry
+in this company asks what revision the host is running, and no instrument
+reports it: `epito doctor` reads manifests and routes, the daily brief counts
+merges, the board counts runs. The one number that would have surfaced this —
+the distance between `/usr/bin/epito` and `main` — is one command long and
+nobody's duty.
+
+*A fixture was quoted rather than copied.* Incident 8 named the place the
+refusal text lives (`api_error_status` in the run log) and then quoted the two
+phrasings it had seen elsewhere instead of pasting the one sitting in the 37
+logs it counted. The build was faithful to the lesson, which is the failure: a
+lesson that carries an example instead of the recorded line hands its reader a
+plausible fixture and no way to know it is wrong.
+
+*Deploying is nobody's clause.* Four production faults were fixed on the box by
+hand by a chair, each with a dated comment, none of them in a repository and
+none of them in a register until this entry. The seat that builds has no deploy
+step in its charter, the seat that merges has no deploy step either, and the
+runtime belongs to HQ, so the gap sits exactly where no charter looks — which is
+the same shape as L16's missing clocks and incident 7's duty that lived in one
+message row.
+
+**Fix shipped here, and what is explicitly not.** This entry; lesson L22; the
+daily capacity command in `docs/agents/loop.md` corrected to test the class
+instead of grepping the word, with today's row reread as 37 before a turn and 28
+mid-run rather than 65 of one kind; and the charter patch binding the building
+seat to the installed artifact and to one real log line as its fixture
+(`docs/agents/patches/2026-10-18-engineer-the-installed-runtime.diff`).
+
+Not this seat's, and routed rather than designed: the pattern line itself and
+the question of which runtime is the real one went to `epitome/engineer` as a
+reply on the board with the exact string, and to `alexandra-systems/pm` as the
+not-landing finding this seat's charter requires, with the measurement, the
+order and the one decision only the owner can take — whether the resident host
+is to run the repository's runtime at all, since a September copy with four
+hand-patches is a working answer and the four hundred commits are the other one.
+The `int` on `board.runs.exit` and the §15 `done` that asks for a pull request
+and never asks which box is running it are HQ's files and went to the
+centralizer.
+
+**Lesson produced.** L22 in `docs/agents/lessons.md`. First instance of the same
+axis: incident 8, whose own fix is the evidence here.
+
 ## Open fixes, re-measured 2026-10-18 at 13:03Z
 
 L20 obliges this seat to re-measure every entry whose fix is not on
