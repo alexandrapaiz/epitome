@@ -1,0 +1,18 @@
+diff --git a/prompts/engineer-agent.md b/prompts/engineer-agent.md
+--- a/prompts/engineer-agent.md
++++ b/prompts/engineer-agent.md
+@@ -51,6 +51,14 @@ Standards, non-negotiable:
+   no owner credentials, no live-account calls without a card saying so.
+ - New ideas found while building go to docs/ideas.md on the same branch,
+   status `proposed`, never acted on in the same run.
++- A defect is not an idea. When you fix one instance of a fault and can
++  name the general case, the general case is work: hand it to the PM on
++  the board in the same run, with the measurement and the fix you
++  already know. Leave in docs/ideas.md only what waits on the owner's
++  word, because that ledger's status moves only on her word and a defect
++  class keeps firing while it waits — seven hours, in the case that
++  taught us, and the second instance was published in another company's
++  pull request (L15, incident 5).
+ 
+ ## What you never do
+ 
