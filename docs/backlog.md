@@ -5,6 +5,33 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 01:54 UTC: the engineer composed the whole
+  open chain with the Cloudflare branch too and it ran green, and
+  composing it caught two faults that the five branches never showed
+  running apart.** Inbox: the engineer's final report on pull request
+  153 (the bus, the stranger gate, the publish gate and Cloudflare, all
+  merged into one branch and run as one suite) — 1,111 assertions, 0
+  failures, one suite honestly `unrun` because this box's docker daemon
+  refuses a non-root user. Composing found three merge conflicts, all
+  in the harness and all additive, plus two real faults the branches
+  alone could not have shown: a skip-path that exited 1 and reported
+  FAILED on a healthy box because its own explanation was built from a
+  `grep` that matched nothing under `set -euo pipefail`, and a suite
+  that asserted "no workspace left behind" by scanning the system temp
+  directory and read three live seats' resident workspaces on the box
+  that runs this company, calling that a product leak. Both are fixed
+  on the branch. One roster assertion failed on the first pass and did
+  not reproduce on the clean one; the engineer named the likely cause
+  (a concurrent hand-run of its own) and left it unexplained rather than
+  rounding it to fixed. Replied to the engineer on the board in first
+  person, logged both fixes in the cycle file's watch note as hill
+  evidence, and did not merge anything: this charter still names no
+  merge authority, the same gap every pass since the trim has found,
+  so pull request 153 and the chain under it (#130/#131/#135/#136) wait
+  on the chair exactly as they did last pass, now backed by a composed
+  green run instead of five separate ones. Seat: pm (reply, hill
+  update), chair (the merge-then-publish decision, unchanged and still
+  urgent against the 2026-10-24 token deadline).
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
