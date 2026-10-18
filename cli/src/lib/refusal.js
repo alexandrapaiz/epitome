@@ -29,6 +29,17 @@
 //   It says what it does not know. A refusal with no reset time in it gets a
 //   floor and a backoff, not an invented clock.
 //
+//   It is proved against the resource's OWN recorded words, and the proof is
+//   a fixture, not a paraphrase. This file shipped a day with patterns that
+//   read every sentence the provider's documentation uses and not the one
+//   this host actually prints ("You've hit your session limit · resets
+//   11:20am (UTC)"), so all 37 refusals it was written for still read as no
+//   refusal at all. Right code, wrong sentence, zero runs saved. The
+//   sentences themselves now live in test/fixtures/refusals.json, copied
+//   from the host's run logs, and a new shape is a row of data there rather
+//   than a new assertion — because the next sentence the provider invents
+//   will be caught by somebody reading a log, not by somebody reading this.
+//
 // Deliberately NOT a refusal here: a bad key, an expired token, a missing
 // login. Those are a box an operator has to fix, the run will be refused
 // again on the next delivery just as fast, and calling them "capacity" would
@@ -135,23 +146,60 @@ function nextClock({ hour, minute, utc, now }) {
 
 // Ordered most specific first: the first pattern that matches is the answer,
 // because "usage limit reached, resets at 5am" is also a line with the word
-// "limit" in it and the generic rule would throw the clock away.
+// "limit" in it and the generic rule would throw the clock away. The same
+// ordering is why every shape that NAMES a reset time comes before every
+// shape that does not: a refusal read by the weaker pattern would be held
+// for a floor when the provider had already said the hour.
 //
 // `when` names the capture group that holds the reset time, if the shape has
 // one. `kind` is the word the board and the run log use.
 const PATTERNS = [
   // The Claude CLI's own machine-readable line: the words, a pipe, an epoch.
   { kind: "limit", re: /((?:claude\s+ai\s+)?(?:usage|session|weekly|\d+-hour)\s+limit\s+reached)\s*[|:]\s*(\d{10,13})/i, when: 2 },
-  // The same thing in prose, from the CLI and from the console.
-  { kind: "limit", re: /((?:usage|session|weekly|rate|\d+-hour)\s+limit\s+(?:reached|exceeded)[^\n]{0,120}?reset[s]?(?:\s+at|\s+on|\s+in)?\s+([^\n.;]{1,40}))/i, when: 2 },
+
+  // --- the shapes that name a reset time ---
+  //
+  // THE one this host prints, and the reason this file was rewritten a day
+  // after it was written: `You've hit your session limit · resets 11:20am
+  // (UTC)`. The verb is "hit" and the limit is named AFTER "your", so every
+  // pattern below that anchors on "limit reached" missed it, and all 37 of
+  // the refusals this file exists for read as no-match.
+  //
+  // So this one is written around the sentence's shape — a verb, "your", up
+  // to two words of qualifier, "limit", then a reset — rather than around
+  // any one of the provider's words. The capture stops at a double quote
+  // because the sentence arrives inside the executor's JSON envelope and
+  // `resets 11:20am (UTC)"}` must not be handed to the clock reader whole.
+  { kind: "limit", re: /((?:you(?:'ve|\u2019ve|\s+have)\s+)?(?:hit|reached|exceeded)\s+your\s+(?:[a-z0-9-]+\s+){0,2}?limit[^\n]{0,40}?reset[s]?(?:\s+at|\s+on|\s+in)?\s+([^\n".;]{1,40}))/i, when: 2 },
+  // The same thing with the verb after the limit, from the CLI and console.
+  { kind: "limit", re: /((?:usage|session|weekly|rate|message|\d+-hour)\s+limit\s+(?:reached|exceeded)[^\n]{0,120}?reset[s]?(?:\s+at|\s+on|\s+in)?\s+([^\n".;]{1,40}))/i, when: 2 },
+  { kind: "limit", re: /(limit\s+reached\s*[·∙|]\s*resets?\s+([^\n".;]{1,40}))/i, when: 2 },
+
+  // --- the same refusals with no reset printed: still refusals, on a floor ---
+  { kind: "limit", re: /((?:you(?:'ve|\u2019ve|\s+have)\s+)?(?:hit|reached|exceeded)\s+your\s+(?:usage|session|weekly|rate|message|\d+-hour)\s+limit)\b/i },
   { kind: "limit", re: /((?:usage|session|weekly|\d+-hour)\s+limit\s+(?:reached|exceeded))/i },
-  { kind: "limit", re: /(limit\s+reached\s*[·∙|]\s*resets?\s+([^\n.;]{1,40}))/i, when: 2 },
+
   // A gateway answering 429. The header is the reset time when it is there.
   { kind: "rate", re: /(rate[_ ]limit[_ ]?(?:error|exceeded)[^\n]{0,200}?retry-?after["':=\s]+(\d{1,6}))/i, when: 2, seconds: true },
   { kind: "rate", re: /(retry-?after["':=\s]+(\d{1,6}))/i, when: 2, seconds: true },
   { kind: "rate", re: /(anthropic-ratelimit-[a-z-]*reset["':=\s]+([0-9T:+Z.-]{10,40}))/i, when: 2 },
   { kind: "rate", re: /("type"\s*:\s*"rate_limit_error"|\b429\s+too\s+many\s+requests\b)/i },
-  { kind: "overloaded", re: /("type"\s*:\s*"overloaded_error"|\b529\b[^\n]{0,40}overloaded|\boverloaded_error\b)/i },
+  // The status the executor's own result envelope carries when the prose is
+  // not ours to read: `"api_error_status":429`. Last of the 429 shapes, so a
+  // sentence that DID name its reset is read for the reset first — the whole
+  // defect was a reader that recognised less than the log contained. This is
+  // a structured field the runner writes and never agent prose, which is why
+  // it is trustworthy where a bare "429" in a transcript would not be; and
+  // it is `rate`, the honest reading of the status alone, because a status
+  // with no words does not say which window closed.
+  { kind: "rate", re: /("api_error_status"\s*:\s*429)/i },
+  // `[^\n"{}]` and not `[^\n]`: this alternative is for a plain-text line
+  // ("HTTP 529: upstream overloaded") and quoting it whole is the point. Let
+  // it cross a quote or a brace and it swallows half a JSON envelope into
+  // the sentence an operator reads, when the row below quotes the one field
+  // that actually said no.
+  { kind: "overloaded", re: /("type"\s*:\s*"overloaded_error"|\b529\b[^\n"{}]{0,40}overloaded|\boverloaded_error\b)/i },
+  { kind: "overloaded", re: /("api_error_status"\s*:\s*529)/i },
   { kind: "balance", re: /(credit\s+balance\s+is\s+too\s+low|insufficient[_ ]quota|billing[_ ](?:hard[_ ])?limit\s+reached)/i },
 ];
 
