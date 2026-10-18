@@ -1,6 +1,6 @@
-<!-- vendored-from: standards/lessons.md @ 391105d7357d219a8cf0d874470ed586701ba1fb -->
+<!-- vendored-from: standards/lessons.md @ 24eec753c8e4b34bc2aca35a285348e3077eb6b8 -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `391105d`,
+> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `24eec75`,
 > vendored 2026-10-18. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
@@ -1461,6 +1461,66 @@ ID it eventually gets is not the one its author would have chosen.
   2026-10-18, handed up with the measurement; written into
   `standards/pm.md` §15 the same day.)
 
+- **L-A66 — A gate that cites a section contradicting its own plain reading
+  is two rules, and the reader picks whichever sentence it reached first.**
+  `standards/pm.md` §10's Tier B condition 3 says a red check "is a failed run
+  (§11.7), never a merge"; §11.7 line 0 says a job no runner ever took is not a
+  failed run and is explicitly not the class the triage below it is about. Both
+  readings are honest readings of the same text, so the gate's answer stops
+  being a property of the pull request and becomes a property of the pass.
+  Measured at HQ on 2026-10-18: one merger, in one day, merged a pull request of
+  this seat's in the gated class at 13:45 "after checking its tier and its green
+  state myself rather than taking either number on faith", and withheld two more
+  of the same seat's at 18:33 because "a red check withholds a tier B merge
+  regardless of cause" — and that same withholding message reports that every
+  failed run in its own six-hour window was the never-started signature. One
+  message classifies the red and declares the classification irrelevant.
+  **A seat does not argue its own exception.** When a gate reads two ways and
+  the merger took the stricter one, the seat's move is to supply the evidence
+  the gate asks for in a form the merger can re-perform itself, not to re-argue
+  the reading in its own favour. A merger choosing the stricter reading of an
+  ambiguous criterion is doing its job, and the seat whose work is held is the
+  worst-placed actor in the company to adjudicate it.
+  **Whoever owns the gate's text fixes the text.** An ambiguity in a merge
+  criterion is never resolved by precedent, because precedent accumulates in
+  both directions at once; it is resolved by one amendment to the section that
+  holds the criterion, by the authority that holds that section. Until that
+  lands, the stricter reading is the operative one, and a pass says so out loud
+  rather than leaving each seat to discover it by being held.
+  **The test is cheap and belongs on every gate.** Read the criterion alone,
+  then read the section it cites alone, and ask whether a reader could act
+  differently on each. If yes, the gate has no single answer, and every pass
+  will produce whichever answer its reader was already leaning toward.
+  (HQ, 2026-10-18. The two withheld pull requests were this seat's own, and
+  this rule does not ask for them; it asks for one reading.)
+- **L-A67 — The lane that still flows is the one you must not contaminate: a
+  change's tier is the union of its paths, so one file outside your lane moves
+  the whole change into somebody else's queue.** This seat's charter describes a
+  single-file pull request it merges itself under ADR-011, and on 2026-10-18 it
+  opened seventeen pull requests at HQ of which sixteen were multi-file, so its
+  own scope check suspended its self-merge right on sixteen of seventeen and
+  each of those waited on another actor. The file that broke the scope was the
+  same nearly every time: its own run report under `docs/agents/runs/`, a record
+  that no tool in the company reads
+  (`grep -rl "agents/runs" tools/ runtime/ standards/ .github/` returns two
+  unrelated test fixtures and nothing else). The compound cost is measurable and
+  was paid twice in one day: the portfolio's four vendored copies of this file
+  fell 19KB behind while the rules that would have closed the gap sat in
+  multi-file pull requests, and both repairs were one command once the lane was
+  clean.
+  So the narrative goes in the pull request description and on the board, where
+  the owner actually reads it, the rules go in the one file, and the pass merges
+  itself. Generally: before adding a file to a change, ask which queue it moves
+  the change into. A convenience that costs a tier is not a convenience.
+  **And when a path is gated by a check that cannot run, this stops being
+  hygiene.** At HQ on 2026-10-18, 13 of 15 non-draft open pull requests touched
+  a workflow's path filter and not one of the non-gated ones was blocked by a
+  check at all, so the difference between a clean lane and a contaminated one
+  was the difference between landing that hour and not landing that week.
+  (HQ, 2026-10-18, this seat measuring its own queue after a merger declined two
+  of its pull requests. Companion to L-A55's provenance: a rule that must bind
+  every seat goes where distribution is already a merged fact.)
+
 ## engineer
 
 - **L-E0 — The bar is Omarchy or higher.** Owner, 2026-09-20: "high
@@ -1796,6 +1856,40 @@ ID it eventually gets is not the one its author would have chosen.
   as amended, and standards/operating-modes.md. Companion to L-A13,
   which says what synchronous mode is, and to L-P3, which says the PM
   seat exists to relieve her.)
+
+- **L-P8 — When a check cannot run anywhere, the merger picks one policy for
+  the whole gated class and applies it to every pull request in the pass.** Two
+  policies are defensible — withhold everything in the class until the
+  infrastructure returns, or accept a re-performed local run as the evidence —
+  and the damage is in alternating between them, because a seat cannot tell an
+  unlucky pass from a rule and will read the same gate as a coin flip. Say which
+  policy the pass is on, in the pass's own report.
+  **The class is computable, not a judgement.** A pull request is in it when its
+  diff matches a workflow's path filter — at HQ on 2026-10-18 that is `tools/**`,
+  `runtime/graphs/**`, `runtime/memory/**`, `.github/workflows/**`,
+  `tools/staged/**` and `standards/workflow-template.yml` — and
+  `python3 tools/check-run-ran.py --branch <branch>` answers in one call whether
+  the red is the never-started kind. Measured: 500 of 500 failing runs at HQ
+  since 2026-10-13T15:00Z never started and not one succeeded; 13 of 15
+  non-draft open pull requests were in the class; 4 of those merged clean and
+  were held by nothing else.
+  **Hold by the class and report the count, never one pull request at a time.**
+  A pass that withholds names the policy and how many it held under it, so the
+  cost reaches the owner as one number she can act on rather than as a series of
+  individual seats being unlucky — which is how a five-day infrastructure block
+  stayed a seat-by-seat triage line instead of a queue-wide one.
+  **And evidence a merger can re-perform beats evidence it must believe.** The
+  form is the command and its exit code, not the adjective: `python3
+  tools/check-pr-green.py <pr>` builds the real three-way merge and runs this
+  repository's own suites against it, which is better evidence than a forge
+  check on a branch tip that the merge will not ship — and for `runtime/board/**`
+  it is strictly stronger, because that suite has no workflow file at HQ at all,
+  so the forge has never checked it. A seat that posts the adjective is making a
+  claim; a seat that posts the command is handing over a check. Binds pm and
+  chair, and every seat whose work is held by one.
+  (HQ, 2026-10-18, measured on this seat's own two withheld pull requests and
+  the queue around them. The companion to L-A66, which is the same defect from
+  the held seat's side.)
 
 ## okr
 
