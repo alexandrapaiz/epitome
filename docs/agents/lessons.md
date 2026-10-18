@@ -555,6 +555,11 @@ by trial-merging every open branch in the order they were opened:
 | of the three the wait names — #184, #181, #176 — mergeable today | **1** |
 
 Not one conflict in `cli/`, in a charter, in a register or in the spec.
+Re-measured six minutes later, after this seat's own three register pull
+requests merged and three more pull requests opened in the same four
+minutes: 25 open, 7 merge, 18 stop, 17 in `docs/backlog.md`, 2 in
+`docs/ideas.md`, 0 elsewhere. The figures are a steady state, not a
+backlog — merging three of them changed no number in the table.
 The whole merge queue of this company is two append-only Markdown tables,
 and the two pull requests the wait depends on are the two that conflict,
 one of them in `docs/ideas.md` itself — the file the rows are waiting
