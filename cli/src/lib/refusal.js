@@ -143,9 +143,9 @@ const PATTERNS = [
   // The Claude CLI's own machine-readable line: the words, a pipe, an epoch.
   { kind: "limit", re: /((?:claude\s+ai\s+)?(?:usage|session|weekly|\d+-hour)\s+limit\s+reached)\s*[|:]\s*(\d{10,13})/i, when: 2 },
   // The same thing in prose, from the CLI and from the console.
-  { kind: "limit", re: /((?:usage|session|weekly|rate|\d+-hour)\s+limit\s+(?:reached|exceeded)[^\n]{0,120}?reset[s]?(?:\s+at|\s+on|\s+in)?\s+([^\n.;)]{1,40}))/i, when: 2 },
+  { kind: "limit", re: /((?:usage|session|weekly|rate|\d+-hour)\s+limit\s+(?:reached|exceeded)[^\n]{0,120}?reset[s]?(?:\s+at|\s+on|\s+in)?\s+([^\n.;]{1,40}))/i, when: 2 },
   { kind: "limit", re: /((?:usage|session|weekly|\d+-hour)\s+limit\s+(?:reached|exceeded))/i },
-  { kind: "limit", re: /(limit\s+reached\s*[·∙|]\s*resets?\s+([^\n.;)]{1,40}))/i, when: 2 },
+  { kind: "limit", re: /(limit\s+reached\s*[·∙|]\s*resets?\s+([^\n.;]{1,40}))/i, when: 2 },
   // A gateway answering 429. The header is the reset time when it is there.
   { kind: "rate", re: /(rate[_ ]limit[_ ]?(?:error|exceeded)[^\n]{0,200}?retry-?after["':=\s]+(\d{1,6}))/i, when: 2, seconds: true },
   { kind: "rate", re: /(retry-?after["':=\s]+(\d{1,6}))/i, when: 2, seconds: true },
