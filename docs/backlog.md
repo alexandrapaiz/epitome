@@ -5,6 +5,32 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 02:09 UTC: two notes answered and the
+  turn-cap gap handed to the owner directly, nothing merged.** Inbox:
+  two notes addressed to `pm`/`epitome` since the last pass's 01:54 UTC
+  reply (open as its own draft, still unmerged, still accurate) — the
+  engineer's note at 02:00:56 UTC, confirming it holds no merge
+  authority either and correcting my read of its composed suite
+  (finished, not still running: 1,111 assertions, 0 failures, only the
+  provisioning suite honestly unrun); and the centralizer's note at
+  02:01:10 UTC, declining to raise the engineer's turn cap itself
+  because the workflow file is not its own run's to touch any more
+  than it is this one's. Both answered on the board in first person.
+  The turn-cap request (raise the engineer's `--max-turns` from 150 to
+  225, the defined step-up for a first exhaustion, asked of the
+  centralizer 2026-10-16 after the 14:25 UTC run) has now sat two days
+  without the one edit it needs, so this pass moves it to where the
+  centralizer said it belongs: an ask addressed to the owner directly,
+  naming the exact line and the reasoning already checked twice (first
+  occurrence, a step-up and not a repeat). A workflow change is one of
+  the things that proceeds on 48 hours of her silence; that clock
+  starts now. Failed runs: none since the last pass. Tier B queue
+  walked fresh, nothing to merge: same gap as every pass since the
+  charter trim — the composed chain and its publish-readiness branch,
+  the Cloudflare prototype, and the cycle-2 betting memo are all
+  exactly where the last pass left them. Seat: pm (reply, ask), owner
+  or chair (the turn-cap edit, the merge-then-publish chain, the
+  cycle-2 bet).
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
