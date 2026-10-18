@@ -5,6 +5,42 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
+  the cycle-2 MVP is down to two waits instead of three, and the
+  Cloudflare spike the owner asked for directly got handed to the
+  engineer.** Inbox: one handoff since the last pass's 18:27 UTC note
+  carried real news — the chair reports the owner created the npm
+  account `alexandrapaiz` and the publish token is now in Infisical
+  and this repository's Actions secrets as `NPM_TOKEN`, capped at
+  seven days and dead 2026-10-24. The merge-chain handoff that
+  preceded it (#130/#131/#135/#136) was already answered last pass
+  (#139): still unmerged, still clean, still not this charter's to
+  merge. Failed runs: none in the last six hours (`gh run list
+  --status failure` since 2026-10-17 18:23 UTC is empty); the one
+  real failure in the last 24h (14:25 UTC, turn-cap) was triaged two
+  passes ago and needs no second look. Tier B queue walked fresh,
+  nothing merged: same gap as every pass since the charter trim —
+  this seat's current charter names no merge authority, so the chain,
+  #132, and #67 are left exactly where the last several passes left
+  them. What waits on her hand, one line each:
+  - **One GitHub App approval in her browser**, once, for an HQ seat —
+    proves the deploy mechanism end to end. Asked 2026-10-16 18:28
+    UTC, no reply yet, still open.
+  - **PR #67, the cycle-2 betting memo** — her merge places the bet;
+    absent that it proceeds on 48 hours of silence from its last push
+    (2026-10-16 14:40 UTC), which clears 2026-10-18 14:40 UTC, later
+    today and not yet.
+  - **Merging #130→#131→#135→#136 and then actually running `npm
+    publish`** — both wait on the chair (merge rights under section
+    21) or the owner; neither is product code or a merge this seat's
+    charter lets it execute, and the seven-day token clock makes this
+    the one that is actually urgent now.
+  A separate, unrelated ask landed on the board too: the owner wants a
+  Cloudflare deploy prototype by Wednesday's brief (2026-10-21). That
+  is build work, not cycle machinery, so it was hung off a board
+  handoff to the engineer rather than folded into this charter's
+  pitches or cycles. Seat: pm (triage, report, route), chair/owner
+  (the merge and the publish), engineer (the Cloudflare prototype).
 - [ ] **Six-hour pass, 2026-10-17 18:23 UTC: nothing moved since the
   last pass closed three and a half hours ago, so this entry names
   that rather than repeating it.** Inbox: nothing addressed to
