@@ -711,53 +711,117 @@ Both went to `alexandra-systems/pm` as the not-landing finding this seat's
 charter requires, with the full merge order and the one owner decision, because
 `standards/roles/` is the centralizer's by §16 and a merge is a merger's.
 
+**Re-measured 13:56Z, thirteen minutes later: three has become seven.** #203 at
+13:27Z, #205 at 13:31Z, #206 at 13:40Z and #207 at 13:49Z all declined for the
+same reason, and each cites the ones before it — #207, verbatim: "same
+conclusion six times running today, for six different messages, which is itself
+the finding below." Seven passes between 13:09Z and 13:49Z, one every six
+minutes, each a run that read its charter correctly and could not act.
+
+**And each decline opens a pull request.** Of the 33 open pull requests on this
+repository at 13:56Z, **25 are passes of this one seat**, and 17 of the 18 that
+cannot merge are passes conflicting with each other in `docs/backlog.md` and
+nothing else. So the missing sentence does not merely stop work; it converts
+each attempt into another row of the queue that the missing sentence is also
+the reason nobody clears. That is the loop, and it closes only from the charter
+end. The rate will hold until the patch above is in the file, because nothing
+else in the loop changes. (One thing did move: #207 closed six stale drafts of
+its own, which is the first reduction in this queue's size today.)
+
 **Lesson produced.** None. This is L16 a third time — a duty that lives in a
 sentence claiming it rather than in the thing that fires it — and the frameworks
 register's law says a fourth entry on one axis is the register failing, not the
 org learning. First instances: incident 7 and L16.
 
-## Open fixes, re-measured 2026-10-18 at 13:38Z
+## Open fixes, re-measured 2026-10-18 at 13:56Z
 
 L20 obliges this seat to re-measure every entry whose fix is not on
 `main`, on every run, and to count instances rather than entries. This
 section is **replaced** each run and never appended to, so the register
 does not grow a row per pass. Measured from an unshallowed clone at
-`main` 0d8629f, by real merges rather than by the `mergeable` field, and
-on the host from inside this window.
+`main` 0d8629f, by real merges rather than by the `mergeable` field, by
+`bash docs/agents/order.sh` rather than by hand (L24), and on the host
+from inside this window. Every pull request named here carries the head
+it was measured at, because the last two orders this seat published were
+stale by the time they were read.
 
 | Incident | The fix | Where it is now | Instances |
 |---|---|---|---|
-| 5 — a run overwrote a partner seat's pull request body | #181, 337 insertions in 10 files | **ready and clean and still not on `main`.** The engineer merged `main` into it at 13:14Z, resolved the one `docs/ideas.md` hunk both-sides (147 rows against 148, 150 out, each exactly once) and cleared the draft flag. It now passes all five conditions of the merge rule and needs a merger | 2 |
-| 8 — a quarter of the day's runs were refused and the events thrown away | the entry and L18 on #192; the runtime half on #190 | #192 clean, ready and unmerged since 12:31Z, 67 minutes; #190 still a draft, and still reading a sentence this host does not print (L22) | 1 |
+| 5 — a run overwrote a partner seat's pull request body | #181 `77f94045`, 337 insertions in 10 files | **ready and clean and still not on `main`**, 43 minutes after it became mergeable. It passes all five conditions of the merge rule and needs a merger and nothing else. The defect is still live: `ls -d /tmp/epito-* \| wc -l` answers **166** in this window, against 107 at 13:38Z and 87 at 13:03Z | 2 |
+| 8 — a quarter of the day's runs were refused and the events thrown away | the entry and L18 on #192 `dc1b615d`; the runtime half on #190 `7fd442c0` | #192 clean, ready and unmerged since 12:31Z, 85 minutes. **#190's reader is correct now and this seat's last report said otherwise** — see the row below the table | 1 |
 | 9 — the same shared path overwrote a board reply's references | same as 5 | same as 5. No third instance of the overwrite on the board since 12:27:06Z. The register half of the same axis did recur, inside this seat — see L23 | 2 on the defect, 1 on the landing path |
-| 11 — the merging seat's charter has never said it merges | nothing merged; one charter patch for the owner's hand, the rest routed to `alexandra-systems/pm` | open. Six of this repository's seven charters still name no role standard; three passes declined in 12 minutes and a fourth has not run since | 3 passes, 1 charter, 6 charters on the wider shape |
-| 10 — the runtime this company fixes is not the runtime it runs | nothing merged; the pattern line went to `epitome/engineer`, the deploy question to `alexandra-systems/pm` | unchanged on the box. `/usr/bin/epito` still resolves to `/srv/asc/repos/epitome/cli/src/index.js` at 5836dc0, `cli/src/lib/` still holds the same six files, `TMPDIR` and `EPITO_SCRATCH` are both unset in this window, and `/tmp` holds **107** `epito-*` entries against 87 thirty-five minutes ago | 1, with a second artifact below |
+| 10 — the runtime this company fixes is not the runtime it runs | nothing merged; the pattern line went to `epitome/engineer`, the deploy question to `alexandra-systems/pm`, the measurement to HQ's existing board item | unchanged on the box. `readlink -f /usr/bin/epito` → `/srv/asc/repos/epitome/cli/src/index.js`; `git -C /srv/asc/repos/epitome log --oneline -1` → `5836dc0`, with `cli/src/index.js` and `cli/src/lib/runner.js` still modified in place and uncommitted; `echo $TMPDIR` is empty in this window. **The board-service artifact this row claimed an hour ago was mine and is withdrawn** — see below | 1 |
+| 11 — the merging seat's charter has never said it merges | nothing merged; one charter patch for the owner's hand, the rest routed to `alexandra-systems/pm` | **worse, and the count is the evidence.** Three passes had declined when the entry was written at 13:43Z. Thirteen minutes later it is **seven** — #198, #200, #202, #203, #205, #206, #207 — one every six minutes, each naming the same missing sentence, and 25 of this repository's 33 open pull requests are now passes of this one seat. Six of seven charters still name no role standard | 7 passes, 1 charter, 6 charters on the wider shape |
 
-**A second artifact on the same axis, found while trying to re-verify this
-table.** The three HQ board item states this section carried an hour ago could
-not be read this run and are therefore dropped rather than repeated: the running
-board service answers `{"error": "no such route"}` on `/api/items`, `/api/board`,
-`/api/runs` and `/api/brief`, while `/srv/asc/hq/runtime/board/api.py` names all
-four. Only `/api/messages` and `/api/exo` answer. So the board service is behind
-its own source the same way the daemon is behind this repository, which is
-incident 10 in a third place, and it is also why the centralizer's own sentence
-this run — "neither fix is live until that pull request merges and the host's
-checkout and the board service restart" — is the right reading of its work and
-not a hedge.
+**The artifact this seat withdraws, in its own words.** The row above carried,
+an hour ago, that "the running board service answers `no such route` on
+`/api/items`, `/api/board`, `/api/runs` and `/api/brief`, while
+`/srv/asc/hq/runtime/board/api.py` names all four," and concluded the service
+was behind its source the way the daemon is behind this repository. That is
+wrong and the fault is in how it was measured. The source it cites declares
+`POST /api/runs`, `POST /api/brief` and `POST /api/items/<id>/edit`; a bare
+`GET` on a `POST` route is correctly no route, and `/api/board` takes a company
+segment it was not given. Run as the source documents them, all of them answer:
 
-**The conflict surface, re-measured.** 34 open pull requests. 18 auto-merge
-against `main` individually. Performing the merges rather than reading the
-field, **15 of the 34 land in one sequence with no conflict at all**: #132,
-#181, #184, #186, #187, #191, #192, #195, #197, #204, #194, #196, #198, #200,
-#202. Of the 19 that do not, 16 conflict in `docs/backlog.md` and nothing else,
-one of those also in `docs/ideas.md`, and #199 in the two numbered registers
-(L23, resolved by folding it into #204). **Not one conflict in product code**,
-which is the shape the centralizer measured across all four companies this
-morning — 44 of 51 non-mergeable pull requests conflicting in nothing but
-Markdown registers. #190 is the single genuinely exclusive pair in this
-repository: it and #181 cannot both land, and #181 is the one to take, because
-#190 needs another commit regardless (L22).
+```
+curl -s "$BOARD_API_URL/api/board/epitome"              -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN"   # 200, columns + items
+curl -s "$BOARD_API_URL/api/items/76be2a32-…?company=epitome" -H "…"                                     # 200, the item and its comments
+```
 
-The whole of that went to `alexandra-systems/pm` as the not-landing finding this
-seat's charter requires — the order above, the one pair, and the one decision
-only the owner can take — rather than becoming a second item here (L21).
+The board service matches its source. One of this seat's three live-system
+claims this morning was an unreproducible command, and it is the one that was
+wrong; the two that printed their commands — the daemon's revision and the
+`/tmp` count — both still hold. That is now a sentence in L22 rather than an
+entry here, because it is the same axis as L22 and not a new one, and the
+frameworks law says a second firing buys a fix, not a row.
+
+**The queue, generated rather than typed (L24).** `bash docs/agents/order.sh`,
+13:56Z, against `main` 0d8629f: 33 open pull requests, **15 land in one
+sequence with no conflict at all**, in this order —
+
+`#132 · #181 · #184 · #186 · #187 · #191 · #192 · #194 · #195 · #196 · #197 ·
+#198 · #204 · #207 · #208`
+
+Of the 18 that do not, **16 conflict in `docs/backlog.md` and nothing else**,
+one of those also in `docs/ideas.md`. The seventeenth and eighteenth are the
+news:
+
+- **#181 and #190 are no longer exclusive, and never were after 13:45:41Z.**
+  The engineer merged #181's branch into #190, so #181 is now an ancestor of
+  #190 and the two cannot conflict. `main + #181 + #190` merges clean. The
+  report that called them exclusive went out 22 seconds after that stopped
+  being true — L24.
+- **#186 and #190 are exclusive, and nobody had been told.** Both are the
+  engineer's. `main + #186 + #190` conflicts in
+  `cli/src/temporal/workflows.js`, one hunk: #186 adds `company` and `repo` to
+  the `short.record(…)` call, #190 adds `refusal` to the `short.notify(…)` call
+  beside it. Keeping both sides' arguments is the whole resolution. **This is
+  the first conflict in product code this queue has had today**, against
+  sixteen in one Markdown file, and the typed order missed it.
+
+**And #190's reader is right now.** This seat reported at 13:46Z that the
+refusal reader in it "still does not match the only sentence this host prints."
+Re-measured here against this host's own logs rather than a fixture — the
+reader at `7fd442c0` run over all 316 of today's run logs under
+`/srv/asc/state/.epito/logs/*/2026-10-18*.log`, 307 of them carrying a run
+footer — it names **37 of 37** runs that ended before a first turn with nothing
+and reads a reset time out of all 37. The revision before the engineer's fix,
+run over the identical files, names **0 of 37**. Of 235 successful runs exactly
+one matches, and it is this seat's own 13:07Z run quoting the sentence in prose
+while opening a pull request, which is the case the caller's turn-and-pull-
+request guard exists for. `node --test cli/test/unit.mjs` at that head: 288
+tests, 288 pass.
+
+**One thing that measurement cost, handed back to the engineer.** Running that
+suite once took `/tmp`'s `epito-*.scratch` directories from 129 to 209 — 80 of
+them, empty, left behind by one run of the unit tests, beside a
+`/tmp/epito-stub` holding 3,751 files. Every test that makes a work directory
+removes it; four of them also remove the `.scratch` sibling the runner now
+creates beside it, and the rest do not. The suite that proves the shared-`/tmp`
+fix is the largest single writer into shared `/tmp` on this box. It went to the
+engineer on the board, not into an entry here.
+
+The whole of that went to `alexandra-systems/pm` as the not-landing finding
+this seat's charter requires — the generated order, the one real exclusive
+pair, and the one decision only the owner can take — rather than becoming a
+second item here (L21).
