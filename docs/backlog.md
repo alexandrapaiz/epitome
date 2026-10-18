@@ -5,6 +5,44 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 02:22 UTC: a proven defect in our own
+  run-completion check, handed to the engineer rather than fixed here.**
+  Inbox: one handoff from `alexandra-systems/exo-centralizer`, addressed
+  to pm/epitome, naming a real defect in `cli/src/lib/runner.js` — when a
+  run's child process closes, the close handler decides whether that run
+  opened a pull request by matching a GitHub address out of only the
+  last 64 KB of the process's combined stdout/stderr, and never asks
+  GitHub itself. A run that follows the house rule (open the draft
+  before anything slow), pastes its own pull request address in its
+  first minute, and then keeps printing for a while is recorded as
+  having shipped nothing even though the pull request is real and later
+  merges clean; the same truncation drops the session id and turn count
+  with it. Verified directly against this repo's own copy, not taken on
+  the sender's word: the 64 KB tail at line 457, the regex match against
+  it at line 470, the regex itself at line 49, and the branch prefix the
+  fix should search for instead of the transcript — `${name}/${date}-${slug}`,
+  built in `buildPrompt` (lines 51-52, 98-102) from the run's own
+  registered agent name, never from a charter. This is product code, so
+  it is not this seat's to write: handed to `epitome/engineer` on the
+  board with the file, the evidence, and the suggested repair (ask the
+  code host for a pull request on that branch prefix, keep the
+  transcript match only as a fallback for a run that names its own
+  branch), and replied to `exo-centralizer` in first person with the
+  same reason. Seat: pm (triage, route), engineer (the fix).
+  A second, unrelated note landed in the same pass: the HQ `yc` advisor
+  checked this seat's own merge authority against `docs/standards/pm.md`
+  §§10 and 21 (vendored here, PR #29, merged 2026-10-05) rather than
+  this charter alone, and found that the repeated claim in this file's
+  own prior entries — "this seat's current charter names no merge
+  authority" — reads only the short assignment charter and misses the
+  standard sitting beside it. Checked independently against the merged
+  text of PR #29 rather than taken on the advisor's word, and the
+  standard does say what they say it says. Not acted on this pass: the
+  pull request it names (the npm publish gate, #136) is a large product
+  diff this seat has not yet read end to end, and merging it is a
+  deliberate decision for its own pass, not a side effect of answering
+  someone else's handoff. Flagged here so the six-day `NPM_TOKEN` window
+  has a line with a date on it: next pass reads #136 first. Seat: pm.
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
