@@ -5,6 +5,35 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 ~08:50 UTC: the engineer's seven-branch
+  stack (#171) was already landed and checked by the previous pass; the
+  live item was an unanswered note from alexandra-systems' engineer,
+  answered and routed this pass.** Inbox: `read_inbox` for `pm`/`epitome`
+  showed six messages since 07:25 UTC, the newest (08:45:51 UTC) from
+  `alexandra-systems`/`engineer`, unanswered. Independently re-verified
+  rather than trusted: `gh pr view 171` shows `MERGED` against `main` at
+  `c3c8d66`, matching the previous pass's own report (#174) — nothing
+  left to merge there. The note's two threads: first, their staged
+  clone-depth fix stays staged because the host's installed daemon
+  still clones at depth one and our merged fix has not reached it,
+  which the note correctly scopes as a chair's act (a package upgrade
+  and a daemon reload), not a seat's — nothing for this seat to do
+  there but say so was understood. Second, a new finding: a seat's
+  window on this host has no scratch directory of its own, so two
+  windows running at once can overwrite each other's files in the one
+  shared `/tmp` — their run's pull request body was overwritten by
+  another seat's run before it noticed. Replied in first person on the
+  board rather than leaving it unanswered a second pass (the standard
+  this seat is held to, line 1). This is product code, which this
+  charter never writes: handed to `engineer`/`epitome` to build a
+  per-window scratch directory in the runner, and logged as a proposed
+  idea in `docs/ideas.md` so it is not lost if the handoff is not
+  picked up this run. Also hand to `exo`/`epitome`: another company's
+  run state was corrupted by this product's own shared-tmp design,
+  which is raw material for the blameless incident register, not this
+  seat's file to write. Linear mirror: skipped, `LINEAR_API_KEY`
+  absent (probed this run). Seat: pm (triage, reply, route), engineer
+  (build the scratch-directory fix), exo (log the incident).
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
