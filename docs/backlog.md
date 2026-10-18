@@ -241,18 +241,16 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   evidence (merged commits) already showed them shipped inside
   appetite. The ADR-5 trial review itself is still the owner's to
   grade; this entry tracks the merge, not the grade.
-- [ ] **Bet cycle 2 — rewritten, still unbet.** PR #67 carried the
-  2026-10-05 draft (recommending Slack identity + the passport);
-  rewritten in full today for the owner's direct MVP override
-  ("we need our product to work, we need an MVP," relayed by the
-  chair): a stranger runs `init`, `validate`, `deploy` and `run` from
-  one manifest, npm-installed, README only. Still waits on her merge,
-  or proceeds under section 22 after 48 hours of silence from
-  2026-10-16. The two things only she can do — `NPM_TOKEN` and one
-  real GitHub App approval in her browser — were named in that memo as
-  "asked once on the board" but the run that wrote it ended before
-  posting the ask; this pass posted it for real (board message,
-  2026-10-16 18:2x UTC), so the claim and the fact now match.
+- [ ] **Bet cycle 2 — placed.** PR #67 merged 2026-10-18 02:12:53 UTC;
+  the bet is mvp-stranger-npm-v0. `docs/cycles/2026-10-18-cycle-2.md`
+  opened this pass with the bet's four scopes and their hills. Of the
+  two things only the owner could do, `NPM_TOKEN` landed (seven-day
+  token, dead 2026-10-24); the GitHub App approval in her browser has
+  not — asked 2026-10-16 18:28 UTC, still no reply. Three of the four
+  scopes are built and green on the engineer's unmerged chain
+  (#130→#131→#135→#136, recomposed in #153); what is left is a
+  merge-then-publish decision this charter cannot make itself, against
+  that same token clock.
 - [x] **The deck-archiving PR, closed.** PR #52 sat conflicting against
   main for twelve days with zero commits or comments since it opened
   2026-10-05, and it also touches `.github/workflows/`, a surface
