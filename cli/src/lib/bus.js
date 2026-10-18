@@ -281,7 +281,12 @@ export function startConsuming({ bus, cfg, seats, wake, log = () => {}, onEvent 
           if (verdict?.refusal) {
             const delay = refusalNakMs(verdict.refusal, { delivery: ev.delivery });
             bus.nak(msg, delay);
-            onRefused(seat.name, ev, verdict.refusal, delay, started);
+            // Guarded: the event is already given back at this point, and a
+            // ledger line or a board note that throws must not fall into the
+            // catch below and NAK it a second time under a sentence saying
+            // the run never started.
+            try { onRefused(seat.name, ev, verdict.refusal, delay, started); }
+            catch (e) { log(`${seat.name}: the event was given back and the record of why would not file (${e.message})`); }
             log(refusalSays(seat.name, verdict.refusal, { delayMs: delay }));
             log(`${seat.name}: the run it was woken for is recorded as refused, not failed — this event is delivery ${ev.delivery} and comes back as delivery ${ev.delivery + 1} in ${humanMs(delay)}`);
             continue;
