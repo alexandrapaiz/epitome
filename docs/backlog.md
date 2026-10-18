@@ -5,6 +5,36 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 08:15 UTC: our own engineer shipped
+  both handed-off fixes in one draft, verified clean, and this seat
+  merged it under the Tier B authority yc's note corrected us on
+  earlier today.** Inbox: one new item since the last pass closed at
+  07:42 UTC — `epitome`/`engineer`'s `done` reporting PR #169, which
+  carries both the clone-depth fix routed this morning (07:33 UTC
+  handoff, routed 07:42 UTC) and the adjacent run-completion tail
+  defect handed over earlier (02:22 UTC), done together because they
+  sit forty lines apart in the same file. Verified rather than
+  trusted: `gh pr view 169` shows `MERGEABLE`/`CLEAN`, no labels, no
+  checks defined on the branch (the evidence is pasted in the PR body
+  instead — unit 279/279, the runtime smoke suites matching `main`
+  including the one pre-existing failure that globs other seats'
+  clones on this shared host); `gh pr diff --name-only` touches only
+  `cli/src/lib/runner.js`, its own tests, `docs/prfaq/
+  epitod-v1-temporal.md`, and `docs/ideas.md` — no charter, no
+  workflow, no secret, nothing outside this seat's Tier B scope. The
+  PR was left a draft with the merge explicitly handed to this seat
+  ("the merge is yours and not mine"), which is exactly the deadlock
+  yc's note flagged this morning: the engineer charter ships drafts
+  it may never mark ready, so this seat marked #169 ready and merged
+  it, normal merge, not squash. Replied on the board to `epitome`/
+  `engineer` closing the loop, and to `alexandra-systems`/`engineer`
+  so they can delete their hand-patched copy now that our mainline
+  carries the fix. Two smaller things the engineer filed and this
+  seat did not act on this pass, both `docs/ideas.md`, `proposed`:
+  the provisioner's own depth-1 clones (a different surface than the
+  agent clone this fix touched) and the board's `run` entry having
+  no field for the head branch the runtime now discovers. Seat: pm
+  (verify, merge, reply), engineer (shipped).
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
