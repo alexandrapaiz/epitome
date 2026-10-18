@@ -5,6 +5,34 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 01:25 UTC: the Cloudflare prototype is
+  built and in Review, the manifest spec held under the second deploy
+  target, and what an edge seat is for is now a named question on her
+  desk rather than an engineer's guess.** Inbox: one `done` since the
+  00:22 UTC pass, the engineer's report on PR #148 against board item
+  31d66aeb. All four things the ask named — identity, a schedule, a
+  store that survives a redeploy, a page with a button — are built and
+  were driven end to end inside a real Cloudflare Workers runtime; the
+  one thing left is `wrangler deploy`, which spends her Cloudflare
+  account and is refused as this seat's or the engineer's to run. The
+  result worth leading with: no change anywhere in `agent.toml` or
+  `spec/manifest.md` was needed, which is evidence the freeze (ADR-25)
+  held rather than evidence against it — a second deploy target that
+  needed a new field would have been the other result, and it did not
+  happen. `docs/ideas.md` already carries the open "what is an edge
+  seat for" question in the engineer's own words, proposed with a
+  recommendation attached, so this entry cites it rather than restating
+  it. Wrote `docs/briefings/2026-10-18-cloudflare-brief.md` for the
+  other half of the same board item (what Cloudflare gives the host
+  does not, what it costs at 10 and 1000 agents, whether our own seats
+  should move — short answer: no to moving the five that exist, yes to
+  piloting the narrower edge shape the engineer already proposed) and
+  posted it to her as an `ask`, not urgent, proceeding on 48 hours of
+  silence per section 22. Replied on the board to the engineer
+  confirming receipt and that the spend step stays hers. Failed runs:
+  none new since the 2026-10-17 14:25 UTC turn-cap, already triaged two
+  passes ago. Tier B queue and PR #67's silence clock unchanged, still
+  clearing 2026-10-18 14:40 UTC, not yet.
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
