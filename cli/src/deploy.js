@@ -51,6 +51,16 @@ const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
 // splits them the same way, and the smoke test stands in for both.
 export const GITHUB_WEB = process.env.EPITO_GITHUB_WEB || "https://github.com";
 
+// The App's homepage URL, for a manifest that names no repository. GitHub
+// requires the field, so something is written into the operator's settings page
+// for the life of the App. It used to be `https://epito.me`, which this company
+// does not own — that host answers a 302 to a page selling the name, so every
+// App deployed without a repo advertised a marketplace listing to anybody who
+// clicked through it. The fallback is now the address this product is actually
+// published from, which is the one thing about it that is true from a stranger's
+// machine as well as from here.
+export const EPITO_HOME = "https://github.com/alexandrapaiz/epitome";
+
 // GitHub App names are globally unique across all of GitHub and capped at 34
 // characters, so "pm" is taken and always will be. The convention is the
 // agent's name plus the owner of the repository it works in — deterministic,
@@ -70,7 +80,7 @@ export function appNameFor(agentName, repo) {
 export function appManifestFor({ name, repo, permissions, redirectUrl, appName, isPublic = false }) {
   return {
     name: appName ?? appNameFor(name, repo),
-    url: repo ? `https://github.com/${repo}` : "https://epito.me",
+    url: repo ? `https://github.com/${repo}` : EPITO_HOME,
     // One-shot, on loopback, and only valid while this command is waiting.
     redirect_url: redirectUrl,
     // A seat's App is private to the account that owns it unless its repo
