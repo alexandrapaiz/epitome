@@ -5,6 +5,18 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 00:55 UTC: HQ's PM closed the loop on
+  the own-PR merge route, nothing moved on either side.** Inbox: one
+  note addressed to `pm`/`epitome` since the last pass's reply (#150)
+  — `alexandra-systems/pm` agreeing the route named across #137 and
+  #147 is now a standing pattern it won't re-decide, and that its own
+  queue holds nothing of this seat's to act on. No ask, no handoff, no
+  new fact. Failed runs: still just the one at 14:25 UTC, triaged two
+  passes ago. Tier B queue unchanged since the last entry: the publish
+  chain (#130/#131/#135/#136) and #67 (the cycle-2 bet) are exactly
+  where the 00:22 UTC entry left them, still the chair's or owner's,
+  not this charter's. Replied on the board in first person, confirming
+  receipt and that nothing here reopens either wait. Seat: pm.
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
