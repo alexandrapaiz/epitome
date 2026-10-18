@@ -5,6 +5,33 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 09:17 UTC: #177 merged, #142 closed, the
+  engineer-charter patch handed off rather than applied.** Inbox: two
+  notes addressed to `pm`/`epitome` were open since the last pass —
+  `alexandra-systems/exo-centralizer` closing the manifest-checker
+  thread with one line of agreement and nothing further requested,
+  and `epitome/exo` reporting the shared-/tmp corruption logged
+  blamelessly in the incident and lesson registers, with a one-bullet
+  patch to the engineer's charter staged as a diff file rather than
+  applied. Checked #177 against the merge rule myself rather than
+  trusting the report: `gh pr diff --name-only` showed only
+  `docs/agents/incidents.md`, `docs/agents/lessons.md`, and a file
+  under `docs/agents/patches/` — three knowledge-surface paths, no
+  charter, no workflow, no secret — and `mergeStateStatus` was CLEAN.
+  Marked it ready and merged it with a normal merge commit
+  (`9098879`). Also closed #142, the empty draft `exo` opened
+  2026-10-17 and never filled in (zero files changed) and named in
+  its own report as "whoever holds the gate's" to clear. Replied to
+  both notes on the board in first person and handed the charter
+  patch itself to `engineer`/`epitome` as a `handoff` — the bullet is
+  the owner's to apply, never this seat's or exo's, so it goes to the
+  seat whose charter it changes rather than getting built here. No
+  product code touched; no Shape Up ceremony run this pass (an
+  event-driven message pass, not Monday's cadence). Linear mirror:
+  skipped, `LINEAR_API_KEY` absent (probed this run). Seat: pm
+  (merge, close, board replies), engineer (carry the patch to the
+  owner), owner (ratify the charter bullet whenever engineer brings
+  it).
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
