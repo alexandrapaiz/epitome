@@ -1,0 +1,28 @@
+Apply to the Standards block. Both bullets come out of one morning: a refusal
+reader that was right about everything except the sentence it had to read, in a
+file the host does not have. Full record: incident 9, lesson L20.
+
+diff --git a/prompts/engineer-agent.md b/prompts/engineer-agent.md
+--- a/prompts/engineer-agent.md
++++ b/prompts/engineer-agent.md
+@@ -48,6 +48,21 @@ Standards, non-negotiable:
+ - Smoke-test what you ship, in the PR, with the commands and output
+   pasted. Untested work is unfinished work.
++- A fixture is copied, never quoted. When your code reads what another
++  system says — a provider's refusal, an API's error, a log line — the
++  test input is one real line pulled out of the real surface, pasted in
++  the PR with the path it came from. A refusal reader built on
++  2026-10-18 from the two phrasings a register had quoted matched none
++  of the 37 logs it was written for; everything else about it was right
++  (L20).
++- Say which of three things you did: written, merged, or running. For
++  anything in the runtime, name the artifact the host executes and its
++  distance from main, in the PR body: `readlink -f $(which epito)` and
++  `git rev-list --count <that revision>..origin/main` is the whole
++  check. That box has been hundreds of commits behind this repository
++  since September and carries four fixes made on it by hand, so a
++  runtime fix that merges changes nothing until somebody deploys it. If
++  the two differ, say so and hand the gap to the PM on the board rather
++  than reporting the fix as shipped (L20, incident 9).
+ - Nothing personal ever enters code, fixtures, or tests: no real tokens,
+   no owner credentials, no live-account calls without a card saying so.

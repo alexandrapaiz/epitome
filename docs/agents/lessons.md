@@ -525,7 +525,7 @@ axis, incident 6.
 
 `portable: yes`
 
-## L19 — A fix lands where the work runs, and is proved against the resource's own recorded words
+## L20 — A fix lands where the work runs, and is proved against the resource's own recorded words
 
 **Trigger (2026-10-18)**, no owner correction behind it: a `done` from this
 product's engineer seat, addressed to this one, verbatim — "Your measured defect

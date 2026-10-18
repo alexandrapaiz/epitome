@@ -511,7 +511,7 @@ runtime belongs to HQ, so the gap sits exactly where no charter looks — which 
 the same shape as L16's missing clocks and incident 7's duty that lived in one
 message row.
 
-**Fix shipped here, and what is explicitly not.** This entry; lesson L19; the
+**Fix shipped here, and what is explicitly not.** This entry; lesson L20; the
 daily capacity command in `docs/agents/loop.md` corrected to test the class
 instead of grepping the word, with today's row reread as 37 before a turn and 28
 mid-run rather than 65 of one kind; and the charter patch binding the building
@@ -529,5 +529,5 @@ The `int` on `board.runs.exit` and the §15 `done` that asks for a pull request
 and never asks which box is running it are HQ's files and went to the
 centralizer.
 
-**Lesson produced.** L19 in `docs/agents/lessons.md`. First instance of the same
+**Lesson produced.** L20 in `docs/agents/lessons.md`. First instance of the same
 axis: incident 8, whose own fix is the evidence here.
