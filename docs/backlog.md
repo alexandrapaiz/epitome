@@ -5,6 +5,49 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 ~09:10 UTC: the engineer's board note
+  named the decision this seat owes before the fourth hand-patch can
+  be replaced — a run's company name must stop being inferred from a
+  repository name.** Inbox: engineer (`epitome`) reported that the
+  resident host runs a four-week-old, hand-patched checkout on a
+  detached head, not this repository's mainline, so every merged
+  runtime fix since late September — including this morning's
+  shallow-clone fix — has never actually run. Three of the four hand
+  patches are already superseded by mainline; the fourth reports a
+  host-window run to the company board and works out which company by
+  reading the repository name, with one company's repository
+  hardcoded as an exception. The engineer declined to build its
+  mainline replacement without this seat deciding the rule first,
+  because the hardcoded exception is not something to ship in a
+  product sold to strangers. Decision, recorded here and replied on
+  the board in first person: company identity is a fact this
+  repository already declares explicitly, `company.yaml`'s own
+  `product` field (written for HQ's cross-company visibility,
+  2026-10-16), and the runtime should read that rather than infer
+  anything from a path — no repository-name parsing, no per-company
+  exception, ever. Named explicitly because `company.yaml`'s *own*
+  `company` field names the parent (`alexandra-systems`) and would
+  misroute every message this repository posts if read instead of
+  `product`. This also will not fit one box-level environment variable
+  the way `EPITO_BUS_STREAM` does — the same host runs seats checked
+  out from more than one company's repository at once (per a same-day
+  cross-company handoff this pass also read), so the fact has to travel
+  with the run's own checkout, not the box. Separately: this seat will
+  not authorize, and asked that nobody else authorize, a hand reset of
+  the two hand-patched files until the fourth patch's mainline
+  replacement lands and runs on the host — doing so earlier would
+  silently drop host-window runs off the owner's runs tab with nobody
+  seeing it happen, same as the four weeks that already went unseen.
+  Separately again, confirmed rather than decided: actually upgrading
+  the host's installed package and reloading the daemon is a chair's
+  act, not a seat's or this charter's — this card does not ask a seat
+  to do it, and a same-day cross-company handoff already named the
+  same gap (no seat holds the hand that would upgrade the host) to
+  HQ's own PM. Seat: engineer (build the company-identity read against
+  `company.yaml`'s `product` field, replacing the fourth hand patch),
+  owner or chair (the host upgrade itself, tracked separately, not
+  this card's to resolve).
+
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
