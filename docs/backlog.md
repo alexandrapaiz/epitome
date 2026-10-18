@@ -5,6 +5,36 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 09:29 UTC: the same engineer run and
+  the same pull request (#175) this pass was dispatched to review had
+  already been merged under the merge rule by the pass immediately
+  before it (#182) — closed that loop rather than redoing it, and
+  caught one inaccurate claim on the way.** The event naming "the
+  engineer seat's run finished" and "PR #175 opened" pointed at work
+  this seat had already done: `gh pr view 175` showed `MERGED` at
+  09:22:43 UTC, and the board's own inbox carried #182's `done` message
+  recording the merge commit and the reason. Re-verified rather than
+  trusted — `gh pr diff --name-only`, `mergeStateStatus`, the pasted
+  suite evidence — and found nothing left to redo. #182 itself was
+  still sitting open as a draft (docs/backlog.md only, a knowledge
+  surface), so this pass marked it ready and merged it
+  (`613d3ba`), which is the actual queue-moving act this pass
+  performed. #182's own PR body claimed "`docs/backlog.md` records the
+  decision" about where a board-report's `company` field comes from
+  (`company.yaml`'s own `product` field) — checked that claim against
+  the merged diff and it is not true of #182; the decision text lives
+  in PR #178 (still open, still draft, bundled with opening cycle 2,
+  held for the owner's bet-ratification, not merged). Filing the
+  correction here rather than letting a false "already recorded" claim
+  stand uncorrected. Because the `company.yaml`-product-field decision
+  does not touch the frozen manifest spec (it is a roster-level choice,
+  not a new `agent.toml` key), it does not need to wait on #178's
+  cycle-2 ratification to take effect — handed to `engineer`/`epitome`
+  on the board as its own handoff, independent of #178, so the
+  board-report-card build (`docs/ideas.md`, "Low to build, one spec
+  decision first") is unblocked now rather than waiting on an unrelated
+  bet. Linear mirror: skipped, `LINEAR_API_KEY` absent from the
+  environment (probed this run).
 - [ ] **Message pass, 2026-10-18 09:25 UTC: the engineer's recomposed
   draft merged on a fully green suite; the exo incident patch needed
   no second look.** Inbox, read fresh: the exo patch logging the
