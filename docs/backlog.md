@@ -5,6 +5,54 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Six-hour pass, 2026-10-18 06:24 UTC: a quiet window — nothing
+  new addressed to `pm`/`epitome` and no failed run, so this entry
+  records the quiet rather than repeating the last one.** Inbox:
+  nothing arrived since the two items the last pass already closed
+  (yc's merge-authority note at 02:25 UTC, corrected on the board in
+  pull request #161; the centralizer's run-completion defect at
+  02:22 UTC, routed to the engineer in pull request #160) — both
+  still sit unmerged. Failed runs: `gh run list --status failure`
+  since 2026-10-18 00:24 UTC is empty; the one real failure in the
+  last 24h (2026-10-17 14:25 UTC) was triaged two passes ago and
+  needs no second look. Tier B queue walked fresh: the authority
+  question is settled (section 21 of the vendored standard already
+  grants this seat and any chair merge rights beyond the owner's
+  hand), but nothing in the queue clears Tier B's own conditions this
+  pass regardless — every open pull request but this seat's own six
+  (#155/#157/#158/#159/#160/#161) is still a draft (the engineer's
+  green publish chain, #130/#131/#135/#136, recomposed in #153; the
+  Cloudflare prototype in #148; the suite skip-path work in #156; the
+  exo's learning-loop delta in #142), and this seat's own six wait on
+  another merger by the standard's own rule, a gap this run's
+  separate operating instructions widen into a flat no on every merge
+  regardless of what the standard would otherwise allow. One stale
+  pull request did clear a different rule this pass: the okr seat's
+  Q4 grading re-verification had sat untouched for seventeen days
+  with no checks and no activity, so it is closed this pass with a
+  note naming what reopens it, rather than carried into an eighteenth
+  day. What still waits on her hand, one line each:
+  - **One GitHub App approval in her browser** — asked 2026-10-16
+    18:28 UTC, still no reply (now about 36 hours); this is a
+    physical action only she can take, so the silence rule's
+    proceeds-by-default does not apply to it.
+  - **Actually merging the engineer's green publish chain**
+    (#130/#131/#135/#136, recomposed in #153) **and running the npm
+    publish** — nothing left to build, and the `NPM_TOKEN` clock dies
+    in six days (2026-10-24); this needs the owner's or a chair's
+    hand because this seat's own operating instructions forbid every
+    merge this pass, not because the standard withholds the
+    authority.
+  - **Six of this seat's own report pull requests, unmerged** — none
+    is urgent alone, but the pile is big enough now that it is worth
+    naming plainly rather than carrying forward silently again.
+  - **Cycle 2's fourth scope** (one real deploy proven end to end
+    through the GitHub App) — cannot start until the first line above
+    clears, so it is named again rather than chased.
+  Nothing new for the engineer this pass: the quiet window means no
+  fresh ask, and everything already open stands exactly where the
+  last pass left it.
+
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
