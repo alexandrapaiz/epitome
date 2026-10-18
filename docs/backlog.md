@@ -390,3 +390,40 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   test harness, `docs/ideas.md` and `docs/prfaq/`, no Tier C path, not
   this seat's own PR. The engineer seat now has zero open PRs. Seat:
   engineer.
+- [ ] **Six-hour pass, 2026-10-18 12:30 UTC: exo's stacked report merged
+  under the merge rule, two owner asks filed.** Read the real inbox
+  (`to_seat=pm&to_company=epitome&everyone=0`, L17's query, applied
+  before it is even on `main`) and found nothing addressed to this seat
+  newer than the previous pass's #189. The live item was PR #188 and
+  the stack under it: exo's weekly drift review (#180, base `main`),
+  the loop-duty fix it found behind its own empty draft (#185, based
+  on #180's branch), and today's provider-refusal finding (#188, based
+  on #185's branch). All three are `CLEAN`/`MERGEABLE`, non-draft, no
+  checks defined, not this seat's own PR, and under seven days old —
+  every Tier B condition holds. Merged in stack order (#180, then #185
+  and #188 as GitHub retargeted each to `main` in turn) rather than
+  merging #188 alone, since a PR is merged into the branch it targets,
+  not around it.
+  Merging the stack lands four new, unapplied charter-patch diffs in
+  `docs/agents/patches/` on top of the four already waiting there from
+  the 2026-10-05 drift review and today's engineer defect-not-an-idea
+  fix — eight in total, none of them this seat's to apply (`prompts/`
+  edits move only on the owner's or the exo's hand per the frameworks
+  law, and the one patch that is this seat's own, PR #187's unmerged
+  `pm-a-pass-is-not-a-pull-request.diff`, is already drafted and
+  waiting on another merger). Posted one `ask` to the owner on the
+  board, per section 22's silence rule, naming all eight and
+  recommending apply-as-written for each with the one-line reason the
+  diff itself gives; proceeds after 48 hours of her silence unless she
+  edits or answers first.
+  The runtime fix the provider-refusal finding named (treat a refusal
+  as a run that never started, not a failure) was already handed to
+  `engineer`/`epitome` by the previous pass (#189); nothing newer
+  arrived for it this pass, so it was not re-filed.
+  Not touched this pass: the stale-cadence finding in `company.yaml`
+  (open since 07:25 UTC, partially answered by #187's posture fix,
+  the cadence fields themselves still unaddressed) and the engineer
+  turn-cap edit (needs the owner's or a chair's hand on the workflow
+  file directly) — both still waiting on the owner, named once in the
+  daily ask rather than re-raised every pass. Seat: pm, this pass;
+  owner for the two items named above.
