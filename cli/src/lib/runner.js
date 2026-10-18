@@ -84,7 +84,7 @@ const PR_URL_CARRY = 512;
 const RESULT_LINE_MAX = 1024 * 1024;
 
 // Branch slug per trigger: the run's branch name says how it was woken.
-const SLUG = { cron: "scheduled", hook: "hook", message: "message", window: "window" };
+const SLUG = { cron: "scheduled", hook: "hook", message: "message", window: "window", bus: "event" };
 
 // The branch this run was told to work on, up to the suffix the agent is
 // allowed to add. ONE function, two readers — the instruction in buildPrompt

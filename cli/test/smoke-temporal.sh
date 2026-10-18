@@ -153,6 +153,24 @@ trap cleanup EXIT
 
 mkdir -p "$ORIGIN" "$ROSTER" "$STATE" "$STUB"
 
+# The clone a run works in is `os.tmpdir()/epito-<seat>-XXXXXX` (src/lib/runner.js),
+# and until now this suite asserted those are gone by globbing the system temp
+# directory itself. On a laptop that is exact. On the box that actually runs this
+# company it is not: a resident `pm` seat's live workspace is `/tmp/epito-pm-<rand>`
+# by the same rule, so "no clone left behind for pm" read three strangers'
+# directories and failed — the suite reporting a leak in the product when what it
+# had found was the product running correctly beside it. Found 2026-10-18 composing
+# every open branch on the dogfood host, with three such directories present.
+#
+# So give the suite its own temp root and point the worker at it. Every
+# `${TMPDIR:-/tmp}/epito-*` glob below is now scoped to this run by construction
+# rather than by hoping the box is otherwise idle, and cleanup already removes
+# $ROOT whole. Nothing here ever deletes a directory it did not create; the globs
+# only ever read — but an assertion that reads someone else's state is wrong
+# whether or not it writes.
+export TMPDIR="$ROOT/tmp"
+mkdir -p "$TMPDIR"
+
 step "engine: temporal server start-dev on 127.0.0.1:$GRPC_PORT, namespace $NS"
 "$TEMPORAL_BIN" server start-dev --headless --port "$GRPC_PORT" --namespace "$NS" \
   --db-filename "$ROOT/temporal.sqlite" --log-level error > "$ROOT/temporal.log" 2>&1 &

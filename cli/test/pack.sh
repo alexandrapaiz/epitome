@@ -60,17 +60,69 @@ trap cleanup EXIT
 
 mkdir -p "$PREFIX" "$WORK" "$TGZ_DIR"
 
+# ----------------------------------------- 0. is this suite a publish gate?
+# `prepublishOnly` runs this suite, which is right: nothing should reach the
+# registry that has not packed, installed and run. But npm exports its own
+# flags into every lifecycle script, and one of them is `npm_config_dry_run`.
+# Under `npm publish --dry-run` — the command anybody careful runs FIRST —
+# the `npm pack` below inherited it, wrote no tarball, and this suite printed
+#
+#   pack: SKIPPED — npm pack wrote no tarball
+#
+# and exited 0. So the dry run listed its files, said "Publishing ... (dry-run)"
+# and looked clean with not one assertion made, which is the one thing a gate
+# must never do quietly. Measured here 2026-10-17 on npm 10: the lifecycle gets
+# npm_command=publish, npm_config_dry_run=true, npm_lifecycle_event=prepublishOnly.
+#
+# Two fixes, one per half.
+#
+# First, the flag is removed from this suite's whole environment rather than
+# from the one command that noticed. Its first draft stripped it for `npm pack`
+# alone, which got as far as a tarball and then skipped at section 2 — the
+# `npm install` of that tarball into the throwaway prefix had inherited the
+# same flag and installed nothing. Every npm this suite runs is local, against
+# a file or a prefix under $TMPDIR, and none of them is the publish; a publish's
+# rehearsal flag has no business reaching any of them.
+#
+# Second, a pack that produces nothing anyway is a FAILURE while this suite is
+# a publish gate, where "nothing could be asserted" means the publish must not
+# proceed — rather than the SKIP it stays when a person runs it by hand on a
+# box whose npm is broken, which is an unrun suite and not a lie.
+GATE=0
+[ "${npm_command:-}" = "publish" ] && GATE=1
+case "${npm_lifecycle_event:-}" in prepublishOnly|prepublish|prepare) GATE=1 ;; esac
+# Kept for the assertions in 1b to report, since the point of them is what npm
+# handed this process before the next line took it away.
+HANDED_DRY_RUN="${npm_config_dry_run:-}"
+unset npm_config_dry_run
+
+pack_now() { (cd "$CLI" && npm pack --pack-destination "$TGZ_DIR"); }
+
+# Nothing packed, or nothing installed: a skip for a person, a refusal for a
+# publish. Either way the rest of the suite cannot run, and the difference is
+# only whether that is allowed to be quiet.
+nothing_packed() {
+  if [ "$GATE" = 1 ]; then
+    printf 'pack: FAILED — %s\n' "$1"
+    printf '      This run IS the publish gate (npm_command=%s, npm_lifecycle_event=%s), so\n' \
+      "${npm_command:-?}" "${npm_lifecycle_event:-?}"
+    printf '      a suite that asserted nothing must stop the publish rather than pass it.\n'
+    printf '      Fix: run `bash test/pack.sh` on its own and fix what it says, then publish.\n'
+    exit 1
+  fi
+  echo "pack: SKIPPED — $1; nothing could be asserted"
+  exit 0
+}
+
 # ---------------------------------------------------------------- 1. the pack
 step "1: npm pack — what a user actually downloads"
-if ! (cd "$CLI" && npm pack --pack-destination "$TGZ_DIR") >"$ROOT/pack.log" 2>&1; then
-  echo "pack: SKIPPED — \`npm pack\` failed in $CLI; nothing could be asserted"
+if ! pack_now >"$ROOT/pack.log" 2>&1; then
   sed 's/^/       /' "$ROOT/pack.log" | tail -15
-  exit 0
+  nothing_packed "\`npm pack\` failed in $CLI"
 fi
 TGZ="$(ls "$TGZ_DIR"/*.tgz 2>/dev/null | head -1)"
 if [ -z "$TGZ" ]; then
-  echo "pack: SKIPPED — npm pack wrote no tarball"
-  exit 0
+  nothing_packed "npm pack wrote no tarball"
 fi
 tar tzf "$TGZ" | sed 's|^package/||' | sort > "$ROOT/files.txt"
 BYTES=$(wc -c < "$TGZ")
@@ -89,6 +141,12 @@ check "  and the field catalogue the frozen spec is tested against" 'has src/lib
 # is how the README went missing for a commit.
 check "  and the readiness notes behind the ✓"   'has src/lib/readiness.js'
 check "  and the origin read behind \`epito init\`" 'has src/lib/origin.js'
+# The Cloudflare target READS this file off disk at deploy time and copies it
+# into the bundle, so a `files` entry that missed it would leave every
+# installed copy of `epito deploy --target cloudflare` dying on ENOENT while
+# every test in this repository stayed green. That is the exact failure this
+# whole suite exists for.
+check "  and the Worker source the Cloudflare target copies" 'has src/cloudflare/worker.mjs && has src/lib/cfpack.js && has src/deploy-cloudflare.js'
 check "the langgraph adapter ships: a seat may be one" 'has adapters/langgraph_run.py'
 check "a README ships — the npm page is not blank" 'has README.md'
 check "no test suite, no fixtures"                 'hasnt "^test/"'
@@ -99,12 +157,96 @@ check "no charters or docs"                        'hasnt "^prompts/" && hasnt "
 # got vendored by accident.
 check "under 1 MB on the wire"                     "[ $BYTES -lt 1048576 ]"
 
+# -------------------------- 1b. the gate still packs when it IS a publish gate
+step "1b: the gate asserts something under \`npm publish --dry-run\`'s own environment"
+# The defect this pins is at the top of this file: npm's own `--dry-run` reaches
+# the lifecycle script as npm_config_dry_run, every npm the script then runs
+# inherits it, and the suite skips itself on the exact command the publish is
+# being rehearsed with. Both halves are asserted, because an assertion that
+# only says "the fix works" goes quiet the day npm stops leaking and the
+# `unset` is dropped as dead code: first that a pack really does go silent when
+# that flag is in its environment, then that it is not in this suite's.
+LEAK="$ROOT/leak"; mkdir -p "$LEAK"
+(cd "$CLI" && npm_config_dry_run=true npm pack --pack-destination "$LEAK") >"$ROOT/leak.log" 2>&1 || true
+printf '  npm handed this run npm_config_dry_run=%s; the suite runs with it unset\n' "${HANDED_DRY_RUN:-(nothing)}"
+check "a pack writes nothing when npm's dry-run flag is in its environment — the trap" \
+  "[ -z \"\$(ls '$LEAK'/*.tgz 2>/dev/null)\" ]"
+check "...and this suite's own environment does not carry it, so every npm it runs is real" \
+  "[ -z \"\${npm_config_dry_run:-}\" ] && [ -n '$TGZ' ]"
+# And the publish is gated at all: `prepublishOnly` has to name both suites, or
+# the registry can be reached with neither having run.
+PRE="$(node -e 'console.log((JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).scripts||{}).prepublishOnly||"")' "$CLI/package.json")"
+printf '  prepublishOnly: %s\n' "${PRE:-(none)}"
+check "\`npm publish\` runs this suite before it reaches the registry" \
+  "printf '%s' \"\$PRE\" | grep -q 'pack.sh'"
+check "...and the stranger gate too, so the page is checked as well as the package" \
+  "printf '%s' \"\$PRE\" | grep -q 'stranger.sh'"
+
+# ------------------------------- 1c. the page npm would build from this package
+step "1c: the npm page's own fields — what a stranger reads before installing"
+# Everything above is about the FILES in the tarball. This is about the other
+# thing a publish sends: the manifest npm renders into a package page. A missing
+# `description` is a blank subtitle, a missing `repository` is a page with no
+# link to the source of a tool that asks for GitHub permissions, and a `bin`
+# whose file lost its shebang installs a symlink that cannot be executed. None
+# of it is caught by any other suite, and all of it is what the stranger sees
+# first — the install line is below it.
+#
+# Read from the TARBALL's package.json, not the tree's: `files`, `.npmignore`
+# and npm's own normalisation all stand between the two, and what is published
+# is the one that shipped.
+PT="$ROOT/pkgtar"; mkdir -p "$PT"; tar xzf "$TGZ" -C "$PT"
+PJ="$PT/package/package.json"
+node -e '
+  const fs = require("fs");
+  const p = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  const miss = [];
+  for (const f of ["name", "version", "description", "license", "author", "repository", "bugs", "engines", "bin", "keywords"])
+    if (p[f] === undefined || p[f] === null || p[f] === "" || (Array.isArray(p[f]) && !p[f].length)) miss.push(f);
+  console.log(`name: ${p.name}@${p.version}`);
+  console.log(`description: ${p.description || "(none)"}`);
+  console.log(`license: ${p.license || "(none)"}`);
+  console.log(`repository: ${(p.repository && (p.repository.url || p.repository)) || "(none)"}${p.repository && p.repository.directory ? ` (directory ${p.repository.directory})` : ""}`);
+  console.log(`engines.node: ${(p.engines || {}).node || "(none)"}`);
+  console.log(`bin: ${Object.entries(p.bin || {}).map(([k, v]) => `${k} -> ${v}`).join(", ") || "(none)"}`);
+  console.log(miss.length ? `MISSING: ${miss.join(" ")}` : "every page field is set");
+' "$PJ" > "$OUT" 2>&1
+shows -8
+check "every field the npm page renders is set in the package npm would send" \
+  "! said '^MISSING'"
+check "the source it points a stranger at is this repository, over https" \
+  "node -e 'const u=(JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\")).repository||{}).url||\"\"; process.exit(/^git\\+https:\\/\\/.+\\.git$/.test(u)?0:1)' '$PJ'"
+check "the bin it installs is a file the tarball carries, with a shebang node can start" \
+  "node -e '
+     const fs=require(\"fs\"); const p=JSON.parse(fs.readFileSync(process.argv[1],\"utf8\"));
+     const rel=Object.values(p.bin||{})[0]; if(!rel) process.exit(1);
+     const f=require(\"path\").join(process.argv[2],rel);
+     if(!fs.existsSync(f)) process.exit(1);
+     process.exit(fs.readFileSync(f,\"utf8\").startsWith(\"#!/usr/bin/env node\")?0:1)' '$PJ' '$PT/package'"
+# The licence and the file have to agree, and this suite does not pick either:
+# which licence this product carries is the owner's call, like the npm account
+# it publishes under. What it refuses is the two halves disagreeing — an SPDX
+# id on the page with no LICENSE in the tarball is a page that promises terms
+# nobody shipped, and `UNLICENSED` beside a LICENSE file is the reverse.
+LIC="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).license)' "$PJ")"
+if [ "$LIC" = "UNLICENSED" ]; then
+  printf '  NOTE: license is UNLICENSED, so the npm page will read "Proprietary" and a\n'
+  printf '        stranger who installs it has been granted no terms to use it. Which\n'
+  printf '        licence this carries is the owner'"'"'s call, named in docs/ideas.md and not\n'
+  printf '        decided inside a run; this suite only holds the field and the file to\n'
+  printf '        each other.\n'
+  check "UNLICENSED, and no LICENSE file in the tarball contradicts it" \
+    '! grep -qiE "^licen[sc]e" "$ROOT/files.txt"'
+else
+  check "a named licence ($LIC) ships the LICENSE file that states it" \
+    'grep -qiE "^licen[sc]e" "$ROOT/files.txt"'
+fi
+
 # ------------------------------------------------- 2. install, with NO engine
 step "2: install the tarball into a clean prefix — no engine, as a user gets it"
 if ! (cd "$ROOT" && npm install -g --prefix "$PREFIX" "$TGZ") >"$ROOT/install.log" 2>&1; then
-  echo "pack: SKIPPED — installing the tarball failed; nothing further could be asserted"
   sed 's/^/       /' "$ROOT/install.log" | tail -15
-  exit 0
+  nothing_packed "installing the tarball failed"
 fi
 INSTALLED_KB=$(du -sk "$PREFIX/lib/node_modules" | cut -f1)
 printf '  installed: %s KB in %s/lib/node_modules\n' "$INSTALLED_KB" "$PREFIX"
@@ -140,11 +282,22 @@ check "--for-runtime makes the same note an error"    "[ $RC = 1 ] && said 'the 
 printf 'repo = "acme/roster"\n' >> "$WORK/agent.toml"
 run_epito validate
 check "with repo set, the ✓ has nothing left to warn about" "[ $RC = 0 ] && ! said 'not ready to run'"
-for c in "deploy --dry-run" "token digest --dry-run" "routes" "env" "board" "audit" "doctor" "--help"; do
+for c in "deploy --dry-run" "token digest --dry-run" "routes" "env" "board" "audit" "doctor" "--help" "--version"; do
   # shellcheck disable=SC2086 -- $c is this script's own literal, split on purpose
   run_epito $c
   check "epito $c runs with no engine, and prints no stack" "! said ERR_MODULE_NOT_FOUND"
 done
+
+# The number `epito --version` prints has to be the number npm would serve, and
+# the installed binary is the only place that can be asked: section 1c reads the
+# manifest npm sends, this reads what the package then says about itself. A
+# version compiled into the source instead of read from the package.json beside
+# it would be right in the tree and wrong here the day a release bumps one and
+# not the other, which is the one way this particular line can lie.
+run_epito --version; shows -1
+check "...and \`epito --version\` says the version npm would serve, not one of its own" \
+  "said \"\$(node -e 'console.log(JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\")).version)' '$PJ')\""
+check "...with the manifest spec that version enforces beside it" "said 'manifest spec v'"
 
 # The seat this step minted names no secret at all, which is the first thing a
 # vibecoder's manifest looks like — so the box-names command has to answer that

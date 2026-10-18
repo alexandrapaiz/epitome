@@ -123,10 +123,11 @@ export const actionMatches = (lineAction, want) =>
 // --action` checks a typo against: an action name nothing ever wrote is a
 // filter that would have printed nothing and said nothing about why.
 export const ACTIONS = [
-  "deploy", "mint", "run.start", "run.end", "route.taken", "route.refused",
+  "deploy", "deploy.cloudflare", "mint", "run.start", "run.end", "route.taken", "route.refused",
   "hook", "message", "window.open", "window.close", "session.hold",
   "slack.post", "schedule.create", "schedule.update", "schedule.delete",
   "reconcile.start", "ingress.stop", "worker.start", "worker.stop",
+  "bus.consumer.create", "bus.consumer.update", "bus.event", "bus.refused",
 ];
 
 const permList = (p) =>
@@ -149,6 +150,16 @@ const SAY = {
     l.created ? `created App ${l.appId}${l.slug ? ` (${l.slug})` : ""}` : `recorded App ${l.appId}`,
     permList(l.permissions) && `${permList(l.permissions)} on ${l.repo}`,
     l.installation ? `installation ${l.installation}` : `not installed anywhere yet`,
+  ),
+  // The other deploy target. It creates nothing on anyone's account — it
+  // writes a bundle — so the line records what was packed and for which
+  // Worker, and `--action deploy` finds it beside the GitHub one because the
+  // dotted namespace is what that prefix match is for.
+  "deploy.cloudflare": (l) => phrase(
+    l.worker && `packed Worker ${l.worker}`,
+    l.out && `into ${l.out}`,
+    permList(l.scopes) && `${permList(l.scopes)} on ${l.repo}`,
+    l.cron ? `cron ${l.cron}` : "no schedule",
   ),
   // The line this whole command exists for: what was granted, on what, until
   // when. `permissions` is what GitHub actually issued and `scopes` is what
@@ -180,6 +191,13 @@ const SAY = {
   "reconcile.start": (l) => phrase(l.dir, l.address, l.namespace && `namespace ${l.namespace}`, l.queue && `queue ${l.queue}`),
   "worker.start": (l) => phrase(l.address, l.namespace && `namespace ${l.namespace}`, l.queue && `queue ${l.queue}`, l.executor, l.traces && `traces ${l.traces}`),
 };
+// An event the bus delivered, and what the runtime did with it. `delivery`
+// is printed only when it is not the first: a line that says "delivery 3" is
+// the evidence that an event survived two runs that could not start it.
+SAY["bus.event"] = (l) => phrase(l.subject, l.streamSeq != null && `stream seq ${l.streamSeq}`, l.delivery > 1 && `delivery ${l.delivery}`, l.outcome);
+SAY["bus.consumer.create"] = (l) => phrase(l.consumer, l.stream && `on ${l.stream}`, l.subjects?.length && l.subjects.join(" "));
+SAY["bus.consumer.update"] = SAY["bus.consumer.create"];
+SAY["bus.refused"] = (l) => phrase(l.consumer, l.detail);
 SAY["schedule.update"] = SAY["schedule.create"];
 SAY["schedule.delete"] = SAY["schedule.create"];
 SAY["worker.stop"] = (l) => phrase(l.signal);

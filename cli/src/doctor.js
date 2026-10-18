@@ -14,8 +14,9 @@
 // was knowable before 06:00 and nothing looked.
 //
 // So this is the preflight, and its contract is one sentence: exit 1 if a run
-// on this box would refuse, and name the piece. Seven sections, in the order a
-// run needs them —
+// on this box would refuse, and name the piece. Eight sections, in the order a
+// run needs them — seven of them always, and the bus only for a roster that
+// subscribes to one —
 //
 //   manifests  the roster loads and passes the spec (the validator's own code)
 //   names      what [runtime].env asks this box for, and what it holds
@@ -27,6 +28,13 @@
 //              started under the environment a RUN gives it (src/lib/probe.js)
 //   engine     something answering at TEMPORAL_ADDRESS — and, when the engine
 //              client is installed here, the real connect and namespace check
+//   bus        for the seats `[trigger].subscriptions` wakes, whether this box
+//              names a stream for them at all — a seat whose only trigger is
+//              the bus, on a box with EPITO_BUS_STREAM unset, is a seat that
+//              never fires, and until this row existed the way to find that
+//              out was to publish an event and watch nothing happen. It reads
+//              the box's settings and opens no connection; `epito bus <dir>`
+//              is the one that asks the server what is actually waiting
 //   worker     and whether anything is POLLING the queue the engine would put
 //              that run on (src/temporal/pollers.js). Every other row above
 //              asks whether a run would be ACCEPTED; this is the only one that
@@ -79,6 +87,7 @@
 import { resolve } from "node:path";
 import { loadRoster } from "./lib/roster.js";
 import { thisRuntime, buildNote } from "./lib/build.js";
+import { busEnv, subscribingSeats } from "./lib/bus.js";
 import { blockers, unchecked } from "./lib/readiness.js";
 import { rosterEnv, askers, HELD, EMPTY, ABSENT } from "./lib/boxenv.js";
 import { routesFor, liveRoutes, endpointLabel, DEFAULT_ROUTE } from "./lib/router.js";
@@ -193,6 +202,18 @@ export async function doctorCmd(args = []) {
   const buildSays = buildNote(build);
 
   const env = rosterEnv(roster, process.env);
+  // The bus, from this box's settings and the manifests — no socket. `epito
+  // bus` opens one because its question is "what is waiting"; this row's
+  // question is "could anything be", and that one is answerable offline.
+  const busCfg = busEnv();
+  const busSeats = subscribingSeats(roster);
+  // The seats for which the bus is the whole trigger. For a seat that also has
+  // a cron, a missing stream means it fires late rather than never, and the
+  // difference is worth a reader's attention.
+  const busOnly = busSeats.filter(({ name }) => {
+    const t = roster.get(name)?.manifest?.trigger ?? {};
+    return !t.cron && !t.webhook;
+  });
   const perSeat = [];
   for (const s of seats) {
     perSeat.push({
@@ -406,6 +427,14 @@ export async function doctorCmd(args = []) {
       deep: p.deep ? { state: p.deep.state, route: p.deep.route, turns: p.deep.turns ?? null, says: p.deep.says ?? null } : null,
     })),
     engine: { address: engine.address, namespace: engine.namespace, ok: engine.ok, depth: engine.depth, reason: engine.reason ?? null },
+    // `stream: null` is the whole answer this row exists for: the box names no
+    // stream, so whatever the manifests subscribe to, nothing is consumed
+    // here. `asked: false` says this row opened no connection, so a reader of
+    // the JSON never reads silence as "the bus is fine".
+    bus: {
+      url: busCfg.url, stream: busCfg.stream, group: busCfg.group, asked: false,
+      seats: busSeats.map(({ name, subjects }) => ({ agent: name, subjects, onlyTrigger: busOnly.some((b) => b.name === name) })),
+    },
     // The worker, as its own object rather than a field of `engine`: they are
     // two processes on a provisioned host and the whole point of this row is
     // that one of them can be fine while the other is gone. `state` is the
@@ -520,6 +549,18 @@ export async function doctorCmd(args = []) {
   // refusal: the engine row above has already said why, and an unasked
   // question must not read as an answer in either direction.
   row("worker", WORKER_REFUSES.has(worker.state) ? "bad" : worker.state === UNASKED ? "note" : "ok", worker.says);
+
+  // bus — printed only for a roster that asks for it. Every other row is a
+  // piece every run needs; a roster where nobody subscribes is not missing a
+  // bus, it simply has no events to be woken by, and a permanent "0 seats"
+  // line would be the kind of row an operator learns to skip.
+  if (busSeats.length) {
+    const who = busSeats.map((b) => b.name).join(", ");
+    row("bus", busCfg.stream ? "ok" : "note",
+      busCfg.stream
+        ? `stream "${busCfg.stream}" at ${busCfg.url} for ${plural(busSeats.length, "seat")} (${who}) — this row read the box's settings and opened nothing; \`epito bus ${dirArg}\` asks the server what is waiting`
+        : `${plural(busSeats.length, "seat")} ${busSeats.length === 1 ? "is woken" : "are woken"} by the bus (${who}) and this box names no stream${busOnly.length ? `, so ${busOnly.length === busSeats.length ? (busOnly.length === 1 ? "it never fires" : "they never fire") : `${busOnly.map((b) => b.name).join(", ")} never fires`}` : `, so those events do not reach ${busSeats.length === 1 ? "it" : "them"}`}`);
+  }
   if (deep) {
     const calls = [...deepByKey.values()];
     const okCalls = calls.filter((d) => d.state === "ok");
@@ -660,6 +701,9 @@ export async function doctorCmd(args = []) {
   const unasked = installed.filter((i) => i.state === UNREACHABLE);
   if (unasked.length) {
     asides.push(`${plural(unasked.length, "seat")} with an App of its own could not be checked at GitHub from this box (${unasked.map((i) => i.agent).join(", ")}): that is a report, not a refusal, for the same reason the runtime retries it — a blocked route and a rate limit are the kind of mint failure that passes, and an App installed nowhere is the kind that never does. The block above carries GitHub's own words. Nothing else about ${unasked.length === 1 ? "that seat" : "those seats"} is in doubt: ${unasked.length === 1 ? "its" : "their"} key signs here.`);
+  }
+  if (busSeats.length && !busCfg.stream) {
+    asides.push(`EPITO_BUS_STREAM is not set here, so ${plural(busSeats.length, "seat")} that ${busSeats.length === 1 ? "subscribes" : "subscribe"} (${busSeats.map((b) => b.name).join(", ")}) ${busSeats.length === 1 ? "is" : "are"} woken by no event${busOnly.length ? `, and ${busOnly.map((b) => b.name).join(", ")} ${busOnly.length === 1 ? "has" : "have"} no other trigger at all` : ""}. That is a report, not a refusal: \`epito run ${dirArg}\` says the same on startup and keeps serving, because a bus is one trigger and not the only one. Fix: set EPITO_BUS_STREAM to the stream that carries those subjects, and EPITO_BUS_URL if the bus is not ${busCfg.url}.`);
   }
   if (sharedSeats.length || noneSeats.length) {
     asides.push(`${plural(sharedSeats.length + noneSeats.length, "seat")} here ${sharedSeats.length + noneSeats.length === 1 ? "does" : "do"} not act as ${sharedSeats.length + noneSeats.length === 1 ? "itself" : "themselves"} (${[...sharedSeats, ...noneSeats].map((p) => p.agent).join(", ")}): ${sharedSeats.length ? "a shared credential belongs to a person, and every PR it opens is theirs" : "nothing authenticates the run's own \`gh\`"}. That is a report, not a refusal — it is how every seat ran before the identity leg. The block above names the two environment variables that change it per seat.`);
