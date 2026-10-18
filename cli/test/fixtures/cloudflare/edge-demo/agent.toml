@@ -1,0 +1,33 @@
+# The seat the Cloudflare target is driven end to end against, in `wrangler
+# dev`, on a machine with no Cloudflare account and no GitHub App.
+#
+# Both of its outside worlds are NAMES, not literals, which is the only reason
+# this is possible: `base_url_env` (spec v0.2) lets the road point at a stub
+# that the box supplies, and $EPITO_GITHUB_API does the same for GitHub the way
+# every other epito command already allows. So the manifest is an ordinary,
+# publishable manifest — nothing in it knows it is being tested — and the
+# stubs live in the harness where they belong.
+
+[agent]
+name = "edge-demo"
+description = "A seat that lives on Cloudflare: wakes on a schedule, reads its own charter, answers once."
+
+[identity]
+scopes = ["github:contents"]
+
+[trigger]
+cron = "*/5 * * * *"
+webhook = true
+
+[runtime]
+model = "claude-sonnet-5"
+entry = "prompts/edge-demo.md"
+repo = "acme/edge-demo"
+max_turns = 20
+env = ["STUB_BASE_URL", "STUB_API_KEY"]
+
+[[runtime.route]]
+name = "stub"
+model = "claude-sonnet-5"
+base_url_env = "STUB_BASE_URL"
+token_env = "STUB_API_KEY"

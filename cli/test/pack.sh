@@ -89,6 +89,12 @@ check "  and the field catalogue the frozen spec is tested against" 'has src/lib
 # is how the README went missing for a commit.
 check "  and the readiness notes behind the ✓"   'has src/lib/readiness.js'
 check "  and the origin read behind \`epito init\`" 'has src/lib/origin.js'
+# The Cloudflare target READS this file off disk at deploy time and copies it
+# into the bundle, so a `files` entry that missed it would leave every
+# installed copy of `epito deploy --target cloudflare` dying on ENOENT while
+# every test in this repository stayed green. That is the exact failure this
+# whole suite exists for.
+check "  and the Worker source the Cloudflare target copies" 'has src/cloudflare/worker.mjs && has src/lib/cfpack.js && has src/deploy-cloudflare.js'
 check "the langgraph adapter ships: a seat may be one" 'has adapters/langgraph_run.py'
 check "a README ships — the npm page is not blank" 'has README.md'
 check "no test suite, no fixtures"                 'hasnt "^test/"'

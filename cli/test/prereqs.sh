@@ -42,6 +42,8 @@ TEMPORAL_HOME="$DIR/temporalio"
 TEMPORAL_EXE="$TEMPORAL_HOME/bin/temporal"
 VENV="$DIR/lgvenv"
 VENV_PY="$VENV/bin/python"
+WRANGLER_HOME="$DIR/wrangler"
+WRANGLER_EXE="$WRANGLER_HOME/node_modules/.bin/wrangler"
 ENV_FILE="$DIR/env.sh"
 
 # ---- 1. the Temporal CLI -----------------------------------------------------
@@ -104,7 +106,39 @@ else
   say "  installed: $VENV_PY ($("$VENV_PY" -c 'from importlib.metadata import version; print("langgraph", version("langgraph"))'))"
 fi
 
-# ---- 3. write down where everything went ------------------------------------
+# ---- 3. wrangler, for the Cloudflare target ---------------------------------
+# smoke-cloudflare.sh's second section puts the generated bundle into a real
+# local Workers runtime and drives it end to end. It deliberately does NOT
+# reach for `npx wrangler` itself: a suite that downloads 100 MB mid-run fails
+# differently on a plane than it does on a runner, and the whole point of this
+# file is that the downloads are named, measured and done on purpose. So the
+# suite looks for a binary and this is what puts one there.
+step "wrangler, for the Cloudflare target"
+if [ -x "$WRANGLER_EXE" ] && "$WRANGLER_EXE" --version >/dev/null 2>&1; then
+  say "  already here: $WRANGLER_EXE ($("$WRANGLER_EXE" --version 2>&1 | tail -1))"
+elif command -v wrangler >/dev/null 2>&1; then
+  say "  already on PATH: $(command -v wrangler)"
+  WRANGLER_EXE="$(command -v wrangler)"
+elif ! command -v npm >/dev/null 2>&1; then
+  say "  SKIPPED — no npm on this machine, so there is nothing to install it with."
+  WRANGLER_EXE=""
+else
+  mkdir -p "$WRANGLER_HOME"
+  say "  installing wrangler into $WRANGLER_HOME (~90 MB, it carries the workerd binary)"
+  if ! (cd "$WRANGLER_HOME" && npm install --silent --no-package-lock --no-save wrangler) >"$DIR/.wrangler.log" 2>&1; then
+    say "  FAILED — npm said:"
+    tail -5 "$DIR/.wrangler.log" | sed 's/^/    /'
+    say "  smoke-cloudflare will keep reporting partial here, correctly: its"
+    say "  generator section still runs, and test/unit-cloudflare.mjs drives the"
+    say "  same worker against a fake Durable Object."
+    WRANGLER_EXE=""
+  else
+    [ -x "$WRANGLER_EXE" ] || { say "  FAILED — npm exited 0 but $WRANGLER_EXE is not executable."; WRANGLER_EXE=""; }
+    [ -n "$WRANGLER_EXE" ] && say "  installed: $WRANGLER_EXE ($("$WRANGLER_EXE" --version 2>&1 | tail -1))"
+  fi
+fi
+
+# ---- 4. write down where everything went ------------------------------------
 # One file, so that neither all.sh nor a human has to re-derive any of this.
 {
   echo "# Written by cli/test/prereqs.sh on $(date -u '+%Y-%m-%dT%H:%M:%SZ'). Source it:"
@@ -112,6 +146,7 @@ fi
   echo "export TEMPORAL_BIN=\"$TEMPORAL_EXE\""
   echo "export PATH=\"$(dirname "$TEMPORAL_EXE"):\$PATH\""
   [ -n "$VENV_PY" ] && echo "export EPITO_PYTHON=\"$VENV_PY\""
+  [ -n "$WRANGLER_EXE" ] && echo "export EPITO_WRANGLER=\"$WRANGLER_EXE\""
 } > "$ENV_FILE"
 
 step "what this put where"

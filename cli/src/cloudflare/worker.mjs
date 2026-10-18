@@ -182,6 +182,13 @@ export async function appJwt(appId, pem, nowSec = Math.floor(Date.now() / 1000))
   return `${signed}.${b64url(new Uint8Array(sig))}`;
 }
 
+// GitHub Enterprise puts the API somewhere else, and `epito`'s own commands
+// have taken $EPITO_GITHUB_API as the override since the mint landed. A
+// Worker gets the same knob under the same name, for the same reason — and it
+// is also what lets the bundle be driven end to end in `wrangler dev` against
+// a stub instead of against somebody's real account.
+export const githubApi = (env) => (env?.EPITO_GITHUB_API || GITHUB_API).replace(/\/+$/, "");
+
 async function gh(fetchImpl, url, { method = "GET", bearer, token, body, accept = "application/vnd.github+json" } = {}) {
   const res = await fetchImpl(url, {
     method,
@@ -203,14 +210,14 @@ export async function mintToken(env, fetchImpl = fetch, nowSec) {
     throw blocked(`"${AGENT.name}" has no identity on this Worker: ${!appId ? `$${APP_ID}` : `$${APP_KEY}`} is not set, and an agent with no App of its own would have to borrow somebody's credential to read its charter. Fix: \`wrangler secret put ${APP_ID}\` and \`wrangler secret put ${APP_KEY}\` with this agent's own App id and PKCS#8 key (\`epito deploy\` created the App; \`epito deploy --target cloudflare\` wrote the converted key).`);
   }
   const jwt = await appJwt(appId, env[APP_KEY], nowSec);
-  const found = await gh(fetchImpl, `${GITHUB_API}/repos/${AGENT.repo}/installation`, { bearer: jwt });
+  const found = await gh(fetchImpl, `${githubApi(env)}/repos/${AGENT.repo}/installation`, { bearer: jwt });
   if (!found.ok) {
     throw blocked(found.status === 404
       ? `"${AGENT.name}"'s GitHub App is not installed on ${AGENT.repo}, so it cannot read its own charter there. Fix: install the App on that repository once, in a browser — \`epito deploy\` prints the link.`
       : `GitHub refused to say where "${AGENT.name}"'s App is installed (${found.status}). An App id and key that do not match is the usual cause, and GitHub answers that the same way it answers a real 401. Fix: check $${APP_ID} against the App whose key is in $${APP_KEY}.`);
   }
   const installation = await found.json();
-  const minted = await gh(fetchImpl, `${GITHUB_API}/app/installations/${installation.id}/access_tokens`, {
+  const minted = await gh(fetchImpl, `${githubApi(env)}/app/installations/${installation.id}/access_tokens`, {
     method: "POST",
     bearer: jwt,
     // The ceiling, and the whole of it. `repositories` is the one repo the
@@ -234,7 +241,7 @@ export async function mintToken(env, fetchImpl = fetch, nowSec) {
 
 export async function readCharter(env, token, fetchImpl = fetch) {
   const ref = AGENT.ref ? `?ref=${encodeURIComponent(AGENT.ref)}` : "";
-  const url = `${GITHUB_API}/repos/${AGENT.repo}/contents/${AGENT.entry.split("/").map(encodeURIComponent).join("/")}${ref}`;
+  const url = `${githubApi(env)}/repos/${AGENT.repo}/contents/${AGENT.entry.split("/").map(encodeURIComponent).join("/")}${ref}`;
   const res = await gh(fetchImpl, url, { token, accept: "application/vnd.github.raw" });
   if (!res.ok) {
     throw blocked(res.status === 404
