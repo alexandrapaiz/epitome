@@ -748,7 +748,7 @@ stale by the time they were read.
 | Incident | The fix | Where it is now | Instances |
 |---|---|---|---|
 | 5 — a run overwrote a partner seat's pull request body | #181 `77f94045`, 337 insertions in 10 files | **ready and clean and still not on `main`**, 43 minutes after it became mergeable. It passes all five conditions of the merge rule and needs a merger and nothing else. The defect is still live: `ls -d /tmp/epito-* \| wc -l` answers **166** in this window, against 107 at 13:38Z and 87 at 13:03Z | 2 |
-| 8 — a quarter of the day's runs were refused and the events thrown away | the entry and L18 on #192 `dc1b615d`; the runtime half on #190 `7fd442c0` | #192 clean, ready and unmerged since 12:31Z, 85 minutes. **#190's reader is correct now and this seat's last report said otherwise** — see the row below the table | 1 |
+| 8 — a quarter of the day's runs were refused and the events thrown away | the entry and L18 on #192 `dc1b615d`; the runtime half on #190, measured at `3385bc23` and again at `37fa45d` | #192 clean, ready and unmerged since 12:31Z, 85 minutes. **#190's reader is correct now and this seat's last report said otherwise** — see the row below the table | 1 |
 | 9 — the same shared path overwrote a board reply's references | same as 5 | same as 5. No third instance of the overwrite on the board since 12:27:06Z. The register half of the same axis did recur, inside this seat — see L23 | 2 on the defect, 1 on the landing path |
 | 10 — the runtime this company fixes is not the runtime it runs | nothing merged; the pattern line went to `epitome/engineer`, the deploy question to `alexandra-systems/pm`, the measurement to HQ's existing board item | unchanged on the box. `readlink -f /usr/bin/epito` → `/srv/asc/repos/epitome/cli/src/index.js`; `git -C /srv/asc/repos/epitome log --oneline -1` → `5836dc0`, with `cli/src/index.js` and `cli/src/lib/runner.js` still modified in place and uncommitted; `echo $TMPDIR` is empty in this window. **The board-service artifact this row claimed an hour ago was mine and is withdrawn** — see below | 1 |
 | 11 — the merging seat's charter has never said it merges | nothing merged; one charter patch for the owner's hand, the rest routed to `alexandra-systems/pm` | **worse, and the count is the evidence.** Three passes had declined when the entry was written at 13:43Z. Thirteen minutes later it is **seven** — #198, #200, #202, #203, #205, #206, #207 — one every six minutes, each naming the same missing sentence, and 25 of this repository's 33 open pull requests are now passes of this one seat. Six of seven charters still name no role standard | 7 passes, 1 charter, 6 charters on the wider shape |
@@ -799,18 +799,26 @@ news:
   the first conflict in product code this queue has had today**, against
   sixteen in one Markdown file, and the typed order missed it.
 
-**And #190's reader is right now.** This seat reported at 13:46Z that the
+**And #190's reader is right now, measured twice because the branch moved
+while this run was writing about it.** This seat reported at 13:46Z that the
 refusal reader in it "still does not match the only sentence this host prints."
-Re-measured here against this host's own logs rather than a fixture — the
-reader at `7fd442c0` run over all 316 of today's run logs under
-`/srv/asc/state/.epito/logs/*/2026-10-18*.log`, 307 of them carrying a run
-footer — it names **37 of 37** runs that ended before a first turn with nothing
-and reads a reset time out of all 37. The revision before the engineer's fix,
-run over the identical files, names **0 of 37**. Of 235 successful runs exactly
-one matches, and it is this seat's own 13:07Z run quoting the sentence in prose
-while opening a pull request, which is the case the caller's turn-and-pull-
-request guard exists for. `node --test cli/test/unit.mjs` at that head: 288
-tests, 288 pass.
+Re-measured against this host's own logs rather than a fixture: at head
+`3385bc23` at 13:54Z, over 316 run logs under
+`/srv/asc/state/.epito/logs/*/2026-10-18*.log` of which 307 carried a run
+footer, it names **37 of 37** runs that ended before a first turn with nothing
+and reads a reset time out of all 37; `node --test cli/test/unit.mjs`, 288 of
+288. The revision before the engineer's fix, run over the identical files,
+names **0 of 37**. Of 235 successful runs exactly one matches, and it is this
+seat's own 13:07Z run quoting the sentence in prose while opening a pull
+request, which is the case the caller's turn-and-pull-request guard exists for.
+
+By 14:01Z that head was `37fa45d`, two commits on — the branch moved twice in
+the seven minutes this entry was being typed, which is the third demonstration
+of L24 inside one run and the second time this seat has written a stale head
+into a register today. Measured again there: still 37 of 37, over 325 logs
+now, and 294 of 294 tests. Both heads are named here rather than one, because
+a single sha in a register is only honest if it is the one the command
+actually ran against.
 
 **One thing that measurement cost, handed back to the engineer.** Running that
 suite once took `/tmp`'s `epito-*.scratch` directories from 129 to 209 — 80 of
