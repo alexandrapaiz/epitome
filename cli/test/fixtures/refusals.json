@@ -1,0 +1,130 @@
+{
+  "_": [
+    "Sentences a model provider has actually refused a run with, copied out of",
+    "this runtime's own run logs — never paraphrased, never written from the",
+    "provider's documentation. test/unit.mjs reads every row and asserts that",
+    "src/lib/refusal.js reads the kind and the reset time this file names.",
+    "",
+    "Why a data file: the first version of the reader was written from the",
+    "shapes the documentation describes and matched none of the 37 refusals",
+    "the host recorded on 2026-10-18, because this box says 'You've hit your",
+    "session limit' and the reader wanted 'limit reached'. A new shape is now",
+    "a row here, added by whoever reads the log, and the assertion comes free.",
+    "",
+    "'at' is the instant the reader is given, so a bare clock has a fixed",
+    "answer; 'resetAt' null means the provider named no moment and the",
+    "runtime is expected to fall back to its floor for that kind.",
+    "",
+    "Nothing personal is in here by construction: a row is the provider's",
+    "sentence and the status field beside it, with no seat, path, repository",
+    "or credential of any kind."
+  ],
+  "observed": [
+    {
+      "source": "host run log, 2026-10-18, 19 runs refused before a first turn",
+      "text": "{\"api_error_status\":429,\"result\":\"You've hit your session limit · resets 11:20am (UTC)\"}",
+      "at": "2026-10-18T09:30:00.000Z",
+      "kind": "limit",
+      "resetAt": "2026-10-18T11:20:00.000Z",
+      "says": "You've hit your session limit · resets 11:20am (UTC)"
+    },
+    {
+      "source": "host run log, 2026-10-18, 18 runs refused before a first turn",
+      "text": "{\"api_error_status\":429,\"result\":\"You've hit your session limit · resets 5am (UTC)\"}",
+      "at": "2026-10-18T09:30:00.000Z",
+      "kind": "limit",
+      "resetAt": "2026-10-19T05:00:00.000Z",
+      "says": "You've hit your session limit · resets 5am (UTC)"
+    },
+    {
+      "source": "the same sentence as written into a board message, comma for the separator",
+      "text": "You've hit your session limit, resets 11:20am (UTC)",
+      "at": "2026-10-18T09:30:00.000Z",
+      "kind": "limit",
+      "resetAt": "2026-10-18T11:20:00.000Z",
+      "says": "You've hit your session limit, resets 11:20am (UTC)"
+    },
+    {
+      "source": "a 429 whose prose this runtime has never seen: the status is all there is",
+      "text": "{\"api_error_status\":429,\"result\":\"request failed after 10 attempts\"}",
+      "at": "2026-10-18T09:30:00.000Z",
+      "kind": "rate",
+      "resetAt": null,
+      "says": "\"api_error_status\":429"
+    },
+    {
+      "source": "the Claude CLI's machine-readable line, pipe and epoch",
+      "text": "Claude AI usage limit reached|1792300800",
+      "at": "2026-10-18T01:57:00.000Z",
+      "kind": "limit",
+      "resetAt": "2026-10-18T05:20:00.000Z",
+      "says": "Claude AI usage limit reached"
+    },
+    {
+      "source": "the same limit in prose, as the console writes it",
+      "text": "Claude AI usage limit reached. Your limit will reset at 5am (UTC).",
+      "at": "2026-10-18T01:57:00.000Z",
+      "kind": "limit",
+      "resetAt": "2026-10-18T05:00:00.000Z",
+      "says": "usage limit reached. Your limit will reset at 5am (UTC)"
+    },
+    {
+      "source": "a weekly window, counted down rather than clocked",
+      "text": "weekly limit exceeded, resets in 2 hours",
+      "at": "2026-10-18T01:57:00.000Z",
+      "kind": "limit",
+      "resetAt": "2026-10-18T03:57:00.000Z",
+      "says": "weekly limit exceeded, resets in 2 hours"
+    },
+    {
+      "source": "a gateway, 429 with the seconds it wants back",
+      "text": "{\"type\":\"rate_limit_error\",\"message\":\"slow down\"}\nretry-after: 600",
+      "at": "2026-10-18T01:57:00.000Z",
+      "kind": "rate",
+      "resetAt": "2026-10-18T02:07:00.000Z",
+      "says": "retry-after: 600"
+    },
+    {
+      "source": "a 429 with no moment in it at all",
+      "text": "HTTP 429 Too Many Requests",
+      "at": "2026-10-18T01:57:00.000Z",
+      "kind": "rate",
+      "resetAt": null,
+      "says": "429 Too Many Requests"
+    },
+    {
+      "source": "the provider overloaded, by type and by status",
+      "text": "{\"type\":\"overloaded_error\"}",
+      "at": "2026-10-18T01:57:00.000Z",
+      "kind": "overloaded",
+      "resetAt": null,
+      "says": "\"type\":\"overloaded_error\""
+    },
+    {
+      "source": "the executor's envelope for the same thing",
+      "text": "{\"api_error_status\":529,\"result\":\"upstream overloaded\"}",
+      "at": "2026-10-18T01:57:00.000Z",
+      "kind": "overloaded",
+      "resetAt": null,
+      "says": "\"api_error_status\":529"
+    },
+    {
+      "source": "a billing state a person has to clear, which the runtime still backs off from",
+      "text": "Your credit balance is too low to access the Anthropic API.",
+      "at": "2026-10-18T01:57:00.000Z",
+      "kind": "balance",
+      "resetAt": null,
+      "says": "credit balance is too low"
+    }
+  ],
+  "not_refusals": [
+    {
+      "source": "this repository, today: a seat writing ABOUT the incident",
+      "text": "I read the incident: 65 runs hit a usage limit today."
+    },
+    {
+      "source": "a pull request body describing the fix itself",
+      "text": "The bus acknowledged the event the moment the workflow started, so a session limit threw it away."
+    }
+  ]
+}

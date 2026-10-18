@@ -3952,6 +3952,73 @@ test("the shapes a provider actually refuses in are read, each with its own rese
   }
 });
 
+// The correction. The patterns above were written from the shapes the
+// provider documents, and this runtime's own host prints none of them: every
+// one of the 37 runs refused before a first turn on 2026-10-18 ended
+// `{"api_error_status":429,"result":"You've hit your session limit · resets
+// 11:20am (UTC)"}`, and the reader returned no-match for all 37. The code was
+// right and the sentence was wrong, which saved exactly zero runs.
+//
+// So the sentences stopped being prose in a test and became data copied out
+// of the logs (test/fixtures/refusals.json). A shape the provider invents
+// next is a row added by whoever reads the log; the assertion comes free, and
+// nobody has to notice that a regex needed editing too.
+const REFUSAL_FIXTURE = JSON.parse(readFileSync(new URL("./fixtures/refusals.json", import.meta.url), "utf8"));
+
+test("every refusal sentence this runtime has actually recorded is read, from the fixture", () => {
+  assert.ok(REFUSAL_FIXTURE.observed.length >= 12, "the fixture is the coverage; it does not shrink");
+  for (const row of REFUSAL_FIXTURE.observed) {
+    const r = readRefusal(row.text, { now: Date.parse(row.at) });
+    assert.ok(r, `read as no refusal at all, which is the defect this file exists for: ${row.source}`);
+    assert.equal(r.kind, row.kind, row.source);
+    assert.equal(r.resetAt, row.resetAt, `the reset time in ${row.source}`);
+    assert.equal(r.says, row.says, `the sentence quoted back to the operator for ${row.source}`);
+    if (row.resetAt) {
+      assert.equal(refusalNakMs(r, { now: Date.parse(row.at) }),
+        Math.min(Math.max(Date.parse(row.resetAt) - Date.parse(row.at) + RESET_GRACE_MS, MIN_REFUSAL_NAK_MS), MAX_REFUSAL_NAK_MS),
+        `the wait for ${row.source} is the moment the provider named, not a floor`);
+    } else {
+      assert.equal(refusalNakMs(r, { now: Date.parse(row.at) }), FLOOR_MS[row.kind],
+        `${row.source} named no moment, so the wait is the floor for ${row.kind}`);
+    }
+  }
+  // The other half of the fixture: sentences that contain every word a
+  // refusal contains and are not one. This repository writes them all day.
+  for (const row of REFUSAL_FIXTURE.not_refusals) {
+    assert.equal(readRefusal(row.text, { now: NOW }), null, `read as a refusal and is not one: ${row.source}`);
+  }
+});
+
+test("the sentence THIS host prints is in the fixture, by name, and cannot be dropped", () => {
+  // Pinned separately from the loop because the loop would still pass if
+  // somebody deleted the row. This is the sentence the whole file is for.
+  const rows = REFUSAL_FIXTURE.observed.filter((r) => /hit your session limit/i.test(r.text));
+  assert.ok(rows.length >= 2, "the host's own sentence, in both the forms it was logged in");
+  assert.ok(rows.some((r) => r.text.includes('"api_error_status":429')),
+    "including the executor envelope it arrives inside, which is all a refused run leaves behind");
+  const r = readRefusal(rows[0].text, { now: Date.parse("2026-10-18T09:30:00.000Z") });
+  assert.equal(r.kind, "limit");
+  assert.equal(r.resetAt, "2026-10-18T11:20:00.000Z", "and the clock is read as the host wrote it, in UTC");
+  assert.ok(!r.says.includes('"'), "the sentence is lifted out of the JSON, not quoted with the JSON");
+});
+
+test("a status with no words is still a refusal, and says only what a status can say", () => {
+  // 429 is as much as a result envelope carries when the prose is one this
+  // runtime has never seen. Holding the event for a minute and backing off
+  // is right; inventing a window the provider did not name is not.
+  const r = readRefusal('{"api_error_status":429,"result":"request failed after 10 attempts"}', { now: NOW });
+  assert.equal(r.kind, "rate", "a bare status does not say which window closed, so it claims the smaller one");
+  assert.equal(r.resetAt, null, "and it invents no clock");
+  assert.equal(refusalNakMs(r, { now: NOW, delivery: 1 }), FLOOR_MS.rate);
+  assert.equal(refusalNakMs(r, { now: NOW, delivery: 5 }), FLOOR_MS.rate * 5, "and backs off if it keeps being refused");
+  // A sentence that DID name its reset is never read by this weaker rule:
+  // every shape that names a moment is ordered ahead of every shape that
+  // does not, which is what the fixture's 429 rows prove together.
+  const named = readRefusal('{"api_error_status":429,"result":"You\'ve hit your session limit · resets 5am (UTC)"}', { now: NOW });
+  assert.equal(named.kind, "limit");
+  assert.equal(named.resetAt, "2026-10-18T05:00:00.000Z", "the status is in the same line and the words still win");
+});
+
 test("a run that did its work is not a refusal, whatever it printed", () => {
   // The guard that makes this safe to run over every ending: the caller only
   // asks about an attempt that produced nothing, and the words alone are
