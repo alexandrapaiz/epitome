@@ -123,8 +123,9 @@ more than once and whether the three partner companies' project managers cite it
 
 **Two: give every seat a turn budget in its manifest.** Thirty-six percent of the
 portfolio's capacity goes to project-management passes and eighteen of this
-repository's twenty-two open pull requests are one seat's bookkeeping from one
-day. A budget per seat, visible in the brief, makes the scarcity the seat's own
+repository's twenty-four open pull requests are one seat's bookkeeping from one
+day (counted at 12:14Z; the drift review counted eighteen of twenty-two at
+09:19Z, which is the figure that went to the owner three hours later). A budget per seat, visible in the brief, makes the scarcity the seat's own
 problem instead of a charter's: a seat that spends its day on passes has less
 left for work. Her decision, because a budget changes what a seat may do and §21
 reserves a seat's own authority to her. Smallest test: budget one seat — this
