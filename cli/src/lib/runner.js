@@ -69,6 +69,7 @@ import { routesFor, liveRoutes, noRouteMessage, classifyAttempt, withLane, resol
 import { baseRunEnv } from "./runenv.js";
 import { runShortfall, shortfallSays } from "./boxenv.js";
 import { childTraceEnv, traceNote } from "./trace.js";
+import { readRefusal } from "./refusal.js";
 
 const PR_URL_RE = /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/\d+/g;
 
@@ -419,7 +420,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     if (fd !== null) closeSync(fd);
     return {
       exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null,
-      adapter: adapter.name, route: null, model: rt.model, attempts: [], ...extra,
+      adapter: adapter.name, route: null, model: rt.model, attempts: [], refusal: null, ...extra,
     };
   };
 
@@ -651,7 +652,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
       // The window first, because a result object pretty-printed across lines
       // is whole only there; the line kept above is what answers when the
       // window's copy was truncated away.
-      let { sessionId, turns, detail } = parseExecutorResult(tail);
+      let { sessionId, turns, detail, result } = parseExecutorResult(tail);
       if (resultLine && (sessionId === null || turns === null)) {
         // Field by field, and only where the window came back empty: the line
         // fills in what truncation ate and can never take away something the
@@ -660,6 +661,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
         sessionId ??= whole.sessionId;
         turns ??= whole.turns;
         detail ??= whole.detail;
+        result ??= whole.result;
       }
       // The host, then the transcript. Asking first is the fix: a run that
       // printed its address and then kept printing is still a run that opened
@@ -677,8 +679,20 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
       write(`# pull request: ${asked.pr
         ? `${asked.pr}, which GitHub says ${rt.repo} opened during this run on "${asked.branch}"`
         : `${asked.why}${printedPr ? `; recorded from the address the run printed instead, ${printedPr}` : ", and the run printed none either"}`}\n`);
-      write(`\n---\n# exit=${exit} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}${detail ? ` detail="${detail}"` : ""}\n`);
-      done({ exit, pr, sessionId, turns, detail });
+      // Did a resource refuse this run, rather than the run failing? The
+      // question is asked HERE, of an attempt that produced nothing: no
+      // pull request, no second turn, a non-zero ending. An agent that did
+      // its work and printed the words is not a refusal, and that guard is
+      // the whole reason this is not a grep over every run log.
+      const nothing = exit !== 0 && !pr && (turns === null || turns <= 1);
+      const refusal = nothing ? readRefusal([detail, result, tail].filter(Boolean).join("\n")) : null;
+      if (refusal) {
+        write(`# a resource refused this run before a first turn: ${refusal.says}\n`);
+        write(`# it ${refusal.resetAt ? `says it resets at ${refusal.resetAt}` : "named no reset time"}; the child's own ending was exit=${exit}, and the run is recorded as refused rather than failed\n`);
+        detail ??= refusal.says;
+      }
+      write(`\n---\n# exit=${refusal ? "refused" : exit} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}${detail ? ` detail="${detail}"` : ""}\n`);
+      done({ exit: refusal ? "refused" : exit, pr, sessionId, turns, detail, refusal });
     });
   });
 
@@ -695,6 +709,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     attempts.push({
       route: route.name, model: route.model, outcome: verdict, exit: out.exit,
       turns: out.turns ?? null, pr: out.pr ?? null, detail: out.detail ?? null,
+      refusal: out.refusal ?? null,
       startMs: startedAt, endMs: Date.now(),
     });
     if (verdict !== "route" || last) {

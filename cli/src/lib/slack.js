@@ -17,18 +17,24 @@
 
 const TIMEOUT_MS = 10_000;
 
-export function formatLine({ agent, trigger, turns, pr, durationMs, exit }) {
+// A refused run is not a failed one, and the channel is where that is read
+// first: ⚠️ means go and look at the code, ⏳ means a resource said "not now"
+// and named when. The day 65 runs were refused, every one of them posted the
+// warning sign and sent somebody looking for a bug that was not there.
+export function formatLine({ agent, trigger, turns, pr, durationMs, exit, refusal = null }) {
   const secs = durationMs != null ? `${Math.max(1, Math.round(durationMs / 1000))}s` : null;
-  const failed = exit !== 0 && exit !== null && exit !== undefined;
+  const refused = exit === "refused";
+  const failed = !refused && exit !== 0 && exit !== null && exit !== undefined;
   const parts = [
     agent,
     trigger,
     turns != null ? `${turns} turn${turns === 1 ? "" : "s"}` : null,
     secs,
+    refused ? `refused by the provider${refusal?.resetAt ? `, back at ${String(refusal.resetAt).slice(0, 16).replace("T", " ")} UTC` : ""}` : null,
     failed ? `exit ${exit}` : null,
     pr || null,
   ].filter(Boolean);
-  return `${failed ? "⚠️ " : ""}${parts.join(" · ")}`;
+  return `${refused ? "⏳ " : failed ? "⚠️ " : ""}${parts.join(" · ")}`;
 }
 
 // Returns { posted: true } or { posted: false, reason }. Never throws: a Slack

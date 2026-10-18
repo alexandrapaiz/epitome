@@ -95,7 +95,22 @@ export async function SeatRun(input) {
   const baseRunId = `${info.workflowId.replace(/[^A-Za-z0-9_.-]/g, "-")}-${info.runId.slice(0, 8)}`;
   let attempt = 0;
   let last = null;
-  setHandler(runState, () => ({ name, trigger: last?.trigger ?? input.trigger, attempt, queued: queued.length, last }));
+  // The two fields the BUS reads, and the only reason this query is asked by
+  // anything other than `epito ps`. The consumer that woke this run holds its
+  // event unacknowledged until one of them answers:
+  //
+  //   refusal   a resource refused the run before a first turn. The event is
+  //             given back, at the reset time the refusal named — the run
+  //             never happened and must not be thrown away with it.
+  //   past      the provider took the run, or it ended for a reason that is
+  //             not capacity. Acknowledge: whatever happens now belongs to
+  //             the run, and a redelivery would be a second one.
+  //
+  // Both are facts about the attempt in flight, so both are cleared when the
+  // next one starts.
+  let refusal = null;
+  let past = false;
+  setHandler(runState, () => ({ name, trigger: last?.trigger ?? input.trigger, attempt, queued: queued.length, last, refusal, past }));
 
   let req = input;
   for (;;) {
@@ -109,6 +124,8 @@ export async function SeatRun(input) {
     const borrowed = Boolean(req.workDir);
     let workDir = borrowed ? req.workDir : null;
     let result;
+    refusal = null;
+    past = false;
     try {
       if (!borrowed) workDir = (await short.clone({ name, manifest, runId: id })).workDir;
       result = await execute({
@@ -128,6 +145,10 @@ export async function SeatRun(input) {
       // ("clone", "charter-missing", "cancelled"); anything else is a run that
       // died for a reason no activity got to name.
       const exit = err?.cause?.type ?? "failed";
+      // Not capacity: a clone that would not clone, a charter that is not
+      // there, a dead worker. Said to the consumer at once so it acknowledges
+      // now rather than holding the event for the whole refusal window.
+      past = true;
       await CancellationScope.nonCancellable(async () => {
         // The useful sentence is the ACTIVITY's message, not the wrapper's:
         // Temporal's ActivityFailure says only "Activity task failed", and an
@@ -139,9 +160,11 @@ export async function SeatRun(input) {
       throw err;
     }
 
+    refusal = result.refusal ?? null;
+    past = !refusal;
     last = { trigger: req.trigger, ...result };
     await short.record({ name, trigger: req.trigger, runId: id, resume: req.resume ?? null, model: manifest.runtime.model, startedAt, ...result });
-    await short.notify({ name, manifest, trigger: req.trigger, turns: result.turns, pr: result.pr, durationMs: result.durationMs, exit: result.exit });
+    await short.notify({ name, manifest, trigger: req.trigger, turns: result.turns, pr: result.pr, durationMs: result.durationMs, exit: result.exit, refusal });
 
     // Who owns the clone: a window that lent it, a window that asked this run
     // to make one, or nobody, in which case it goes now.

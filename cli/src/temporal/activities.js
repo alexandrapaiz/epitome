@@ -300,6 +300,9 @@ async function fileRootSpan(line) {
       "epito.agent": line.agent, "epito.trigger": line.trigger ?? null, "epito.model": line.model ?? null,
       "epito.adapter": line.adapter ?? null, "epito.outcome": line.exit === 0 ? "ok" : String(line.exit ?? "failed"),
       "epito.turns": line.turns ?? null, "epito.pr": line.pr ?? null, "epito.log": line.log ?? null,
+      // A refused run carries what refused it and when it comes back, so the
+      // span answers "was this us or capacity" without opening the log.
+      "epito.refusal": line.refusal?.kind ?? null, "epito.refusal.resets": line.refusal?.resetAt ?? null,
     },
     error: line.exit === 0 ? null : (line.detail || `the run ended with exit ${line.exit ?? "failed"}`),
   });
@@ -333,8 +336,8 @@ function fileOnBoard(line) {
 // --- notify ---------------------------------------------------------------
 // One line to Slack per run, for the seats that named a webhook. The value is
 // read from THIS process's environment; the workflow only ever saw the name.
-export async function notify({ name, manifest, trigger, turns, pr, durationMs, exit }) {
-  const out = await postToSlack({ agent: name, manifest, trigger, turns, pr, durationMs, exit });
+export async function notify({ name, manifest, trigger, turns, pr, durationMs, exit, refusal = null }) {
+  const out = await postToSlack({ agent: name, manifest, trigger, turns, pr, durationMs, exit, refusal });
   if (out.text) {
     await record({ name, action: "slack.post", posted: out.posted, ...(out.reason ? { reason: out.reason } : {}) });
     if (!out.posted) console.log(`${name}: slack post failed (${out.reason})`);
