@@ -29,11 +29,20 @@ logged as a lesson against this seat.
 Runs, turns and refusals are read from the host's own run logs
 (`/srv/asc/state/.epito/logs/*/<date>*.log`), portfolio-wide, because the
 capacity is one pool and this product shares it with three others. "Dark" is the
-longest stretch of the day with no run of any seat.
+longest stretch of the day with no run of any seat. The row is read at the tick
+and says so; a day's counts keep moving after it.
+
+```bash
+cd /srv/asc/state/.epito/logs && D=$(date -u +%F)
+echo "runs $(ls */$D*.log | wc -l)" \
+     "turns $(grep -ho 'turns=[0-9]*' */$D*.log | cut -d= -f2 | paste -sd+ | bc)" \
+     "refused $(grep -l 'session limit' */$D*.log | wc -l)" \
+     "seats $(grep -l 'session limit' */$D*.log | cut -d/ -f1 | sort -u | wc -l)"
+```
 
 | Date | Runs | Turns | Refused | Dark | Weakest attribute | What it moved |
 |---|---|---|---|---|---|---|
-| 2026-10-18 | 253 | 16,079 | 65 (25.7%) | 342 min, 121 of them after capacity returned | Dashboards | incident 8, L18, the capacity experiment, three ideas to the owner |
+| 2026-10-18 (read 12:06Z) | 253 | 16,079 | 65 (25.7%) | 342 min, 121 of them after capacity returned | Dashboards | incident 8, L18, the capacity experiment, three ideas to the owner |
 
 ## Tick of 2026-10-18 — the first
 
