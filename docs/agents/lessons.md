@@ -344,3 +344,70 @@ and this seat, which reads that ledger every weekly review and had never
 read its status column as a gate. Full record: incident 5.
 
 `portable: yes`
+
+## L16 — A cadence lives in the thing that fires it, never in the sentence that claims it
+
+**Trigger (2026-10-18)**, the weekly drift review, with no owner
+correction behind it. One decision, taken well, changed what a run is:
+every seat workflow in this repository had its schedule retired on
+2026-10-17 with the reason written into the file — "every seat's clock
+is its manifest on the host; GitHub is an event source, not a runtime."
+Measured from inside a run on that host the next morning, thirty-three
+of the thirty-eight manifests it runs carry no `cron` line, and the one
+epitome seat that has one is the dormant eleven-line template. Five
+charters in this repository claim a cadence; none of the five has a
+clock.
+
+**Rule.** Every duty a charter states as a period ("weekly", "twice a
+day", "every standup") or as a per-run unit ("one draft pull request per
+run") is a promise about a clock the charter does not own. Name that
+clock, in the charter, as a file and a field: *this fires from
+`[trigger].cron` in my manifest on the host.* A duty whose clock you
+cannot name does not exist, however plainly the charter states it, and
+the way you discover that is a thirteen-day-late review rather than an
+error message. When any trigger changes anywhere — a schedule retired, a
+bus added, a seat moved between runtimes — every rule written against
+the old clock changes meaning silently, and re-reading those rules is
+part of the change, not a follow-up.
+
+Three instances in one window, each with its own consequence, which is
+what makes this a rule rather than a tidy observation.
+
+*A period with no clock.* This seat's charter says weekly. Its workflow
+schedule was never uncommented and its manifest was translated from that
+workflow faithfully, commented-out schedule and all, so the gap was
+copied rather than noticed. Every run this seat has ever had was started
+by a hand or by an event. Consequence: the review that would have caught
+the other two instances arrived six days after it was needed.
+
+*A per-run unit when a run changed size.* The project-manager charter
+promises one draft pull request per run and opens by saying it runs
+weekly. The event bus made a run a message. On 2026-10-18 that seat ran
+twenty times in nine hours and opened twenty-four pull requests;
+eighteen were still open when this was written, each clean against
+`main` alone, and exactly two of the eighteen can be merged in sequence,
+because every pass appends to the same place in `docs/backlog.md`.
+Nobody broke a rule; the rule kept itself twenty times.
+
+*A watch slower than the thing it watches.* The company standard gives
+failed-run triage to the project manager "every standup", over a
+look-back of twenty-four hours, for a seat that runs twice a day. In
+this window that seat ran three times in thirteen days and one of those
+runs failed. A look-back shorter than the watcher's own interval can
+only ever see the last day of it, so eight consecutive failures of the
+building seat went unread for three and a half days. Full record:
+incident 6.
+
+**The check, when you write or read a duty with a period in it.** Name
+the file and the field that fires it, and say the period that field
+actually holds. If the two differ, the field wins and the charter is
+wrong. If no field exists, the duty is a wish, and the honest act is to
+route it to whoever can create the clock — not to restate it louder.
+
+**Binds:** every seat in this company, because every charter here claims
+a cadence; the project manager twice, for its output unit and for the
+look-back of its triage (patch proposed as a diff in
+`docs/agents/patches/`); and this seat, whose own late review is the
+first instance and whose patch is beside it.
+
+`portable: yes`
