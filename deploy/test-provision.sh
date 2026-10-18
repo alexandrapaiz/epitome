@@ -11,6 +11,102 @@
 # box, and the pitch's definition of done covers them with one.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Can this box become root at all? Three answers, not two, because only one of
+# them makes `sudo systemctl start docker` the wrong thing to print:
+#
+#   yes          passwordless sudo answered, so the fix below is runnable here
+#   interactive  sudo wants a password — runnable by the operator, just not by
+#                this suite, which has no terminal to type into
+#   no           sudo refused for a reason no password fixes: no binary, no
+#                sudoers entry, or the kernel's `no new privileges` bit, which
+#                makes sudo refuse before it ever reads sudoers. Found
+#                2026-10-18 on the box that runs this company's own agents,
+#                where this suite printed `sudo usermod -aG docker` at a
+#                reader who cannot run sudo at all.
+#
+# Two globals rather than a return value: bash functions return a number, and
+# the reason is a sentence docker's own stderr wrote.
+ROOT_REACH=""
+ROOT_SAID=""
+probe_root() {
+  local said
+  said="$(sudo -n true 2>&1 || true)"
+  if [ -z "$said" ]; then ROOT_REACH=yes; ROOT_SAID=""; return; fi
+  ROOT_SAID="$(printf '%s\n' "$said" | head -1)"
+  if printf '%s' "$said" | grep -qiE 'password'; then ROOT_REACH=interactive; return; fi
+  ROOT_REACH=no
+}
+
+# The fix, in the product's own voice, for the box actually reading it. A pure
+# function of the two facts above so the checks at the bottom can prove every
+# case on a box that only has one of them — which is the whole difficulty with
+# a skip path: it runs exactly where you are not.
+fix_lines() {
+  local reach="$1" said="$2" who="${USER:-$(id -un)}"
+  case "$reach" in
+    yes|interactive)
+      echo "  start it:          sudo systemctl start docker"
+      echo "  or join its group: sudo usermod -aG docker \"$who\" && newgrp docker"
+      ;;
+    *)
+      echo "  and this box cannot become root either, so neither of those is your fix:"
+      printf '    %s\n' "$said"
+      echo
+      echo "  so run this suite where a usable daemon already is: a box whose own user is"
+      echo "  in the \`docker\` group, or CI, which starts one for the job."
+      echo "  to make it run HERE, somebody who does have root on this box runs:"
+      echo "    usermod -aG docker \"$who\"      # then \"$who\" logs in fresh"
+      ;;
+  esac
+}
+
+# The only assertions a box with no usable daemon can make: that the sentence
+# it just printed is one its reader can act on. Before this, a docker-less box
+# asserted NOTHING — `test/all.sh` called the suite `unrun`, which is honest
+# about the container checks and silent about the skip path, and the skip path
+# is the half that only ever runs on the machines nobody tests on.
+#
+# These are text checks on `fix_lines`, not another container: the fault they
+# cover was a sentence, and a sentence is checkable anywhere.
+skip_path_checks() {
+  local pass=0 fail=0 out
+  ok(){ pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
+  bad(){ fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
+  check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+
+  echo
+  echo "  == the skip path's own checks (what this box can still prove)"
+  check "a box with working sudo is told to start the daemon" \
+    "fix_lines yes '' | grep -q 'sudo systemctl start docker'"
+  check "and told the group fix, named for whoever is reading" \
+    "fix_lines yes '' | grep -q 'usermod -aG docker \"${USER:-$(id -un)}\"'"
+  check "sudo that only wants a password is still sudo, so the fix is unchanged" \
+    "[ \"\$(fix_lines interactive 'sudo: a password is required')\" = \"\$(fix_lines yes '')\" ]"
+  out="$(fix_lines no 'sudo: The \"no new privileges\" flag is set')"
+  # Both root-needing fixes by name, not an anchored `sudo` — sudo's own
+  # complaint is quoted in this branch and legitimately begins "sudo:", and an
+  # anchor loose enough to miss that was also loose enough to miss
+  # `  start it: sudo systemctl start docker` pasted back in mid-line, which is
+  # exactly the regression this check exists to catch.
+  check "a box that cannot become root is not told to run sudo" \
+    "! grep -qE 'sudo (systemctl|usermod)' <<<\"\$out\""
+  check "it is told why, in sudo's own words" \
+    "grep -q 'no new privileges' <<<\"\$out\""
+  check "and given a fix that does not need root on this box" \
+    "grep -q 'run this suite where a usable daemon already is' <<<\"\$out\""
+  check "plus the one somebody with root can run for it" \
+    "grep -q 'usermod -aG docker' <<<\"\$out\""
+  check "every case names a fix: no reach answer prints a bare complaint" \
+    "for r in yes interactive no; do fix_lines \$r x | grep -qE 'docker|daemon' || exit 1; done"
+
+  printf '\nprovision: %d ok, %d failed\n' "$pass" "$fail"
+  # A skip is not a failure; a skip path that lies is. So the exit code is
+  # about these checks only, and `test/all.sh` reads the tally above as the
+  # suite's own count either way.
+  [ "$fail" = 0 ] || exit 1
+  exit 0
+}
+
 # Probe the daemon, not the binary. `command -v docker` passes on a box whose
 # runtime user is not in the `docker` group, and then the first `docker run`
 # dies on "permission denied … /var/run/docker.sock" — so test/all.sh prints
@@ -28,18 +124,28 @@ if ! docker info >/dev/null 2>&1; then
     # docker's own first line is the diagnosis ("ERROR: Cannot connect …",
     # "permission denied while trying to connect …"); the lines after it are
     # pretty-printer noise, so take the diagnosis and stop.
-    reason="$(printf '%s\n' "$said" | grep -E '^ERROR' | head -1)"
-    [ -n "$reason" ] || reason="$(printf '%s\n' "$said" | grep -iE 'cannot connect|permission denied|refused' | head -1)"
-    [ -n "$reason" ] || reason="$(printf '%s\n' "$said" | tail -3)"
+    #
+    # Each grep carries its own `|| true`, and that is the whole point of the
+    # three-step fallback: this file runs under `set -euo pipefail`, so a grep
+    # that matches nothing exits 1, pipefail hands that 1 to the command
+    # substitution, and `set -e` kills the script on the assignment — before
+    # the `[ -n "$reason" ] ||` line that exists precisely to handle "no match"
+    # ever runs. Found 2026-10-18 on a box whose docker daemon says "permission
+    # denied while trying to connect" with no `ERROR` line: this suite exited 1
+    # and test/all.sh printed FAILED for a machine with nothing wrong with it,
+    # which is the exact outcome the skip above is written to prevent.
+    reason="$(printf '%s\n' "$said" | grep -E '^ERROR' | head -1 || true)"
+    [ -n "$reason" ] || reason="$(printf '%s\n' "$said" | grep -iE 'cannot connect|permission denied|refused' | head -1 || true)"
+    [ -n "$reason" ] || reason="$(printf '%s\n' "$said" | tail -3 || true)"
     echo "  the \`docker\` binary is here but the daemon did not answer:"
     printf '%s\n' "$reason" | sed 's/^[[:space:]]*/    /'
     echo
-    echo "  start it:          sudo systemctl start docker"
-    echo "  or join its group: sudo usermod -aG docker \"${USER:-$(id -un)}\" && newgrp docker"
+    probe_root
+    fix_lines "$ROOT_REACH" "$ROOT_SAID"
   else
     echo "  install it: https://docs.docker.com/engine/install/"
   fi
-  exit 0
+  skip_path_checks
 fi
 
 docker run --rm -i -v "$HERE/provision-host.sh:/provision-host.sh:ro" ubuntu:24.04 bash -s <<'IN_CONTAINER'

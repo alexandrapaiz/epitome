@@ -276,6 +276,9 @@ const REFUSALS = [
   ["trigger empty",         { trigger: { cron: undefined } }],
   ["cron unparseable",      { trigger: { cron: "@daily" } }],
   ["webhook not a bool",    { trigger: { webhook: "yes" } }],
+  ["subscriptions scalar",  { trigger: { subscriptions: "asc.events.>" } }],
+  ["subscriptions empty",   { trigger: { subscriptions: [] } }],
+  ["two subjects overlap",  { trigger: { subscriptions: ["asc.events.>", "asc.events.pm.message.posted"] } }],
   ["model missing",         { runtime: { model: undefined } }],
   ["entry missing",         { runtime: { entry: undefined } }],
   ["entry absent on disk",  { runtime: { entry: "prompts/nope.md", repo: undefined } }],
@@ -313,13 +316,15 @@ for (const [label, manifest] of ROUTE_REFUSALS) held(label, manifest);
 
 test("the bar covers EVERY refusal these two modules print in their own voice", () => {
   const read = (f) => readFileSync(new URL(`../src/lib/${f}`, import.meta.url), "utf8");
-  // Two of the pushes delegate to a module with its own bar (`...unknownKeys`
+  // Three of the pushes delegate to a module with its own bar (`...unknownKeys`
   // from fields.js, `...routeErrors` from router.js, counted on its own line
-  // below); every other push is the file's own voice, including the spread of
-  // its own `repoErrors`. router.js also refuses the whole field with a bare
-  // `return [message]`, which is why its count gets a +1.
+  // below, and `...subjectErrors` from subjects.js, whose every branch is held
+  // to this same bar in test/unit-bus.mjs); every other push is the file's own
+  // voice, including the spread of its own `repoErrors`. router.js also refuses
+  // the whole field with a bare `return [message]`, which is why its count gets
+  // a +1.
   const mine = (src) => (src.match(/errors\.push\(/g) ?? []).length
-    - (src.match(/errors\.push\(\.\.\.(unknownKeys|routeErrors)/g) ?? []).length;
+    - (src.match(/errors\.push\(\.\.\.(unknownKeys|routeErrors|subjectErrors)/g) ?? []).length;
   const manifestJs = read("manifest.js");
   const routerJs = read("router.js");
   // `adapter unknown` is a push of a message adapters.js composed; it is still
@@ -2234,8 +2239,11 @@ test("[trigger].on is retired, and the message says what replaces it", () => {
   const hit = errs.find((e) => e.includes("[trigger].on"));
   assert.ok(hit, errs.join("\n"));
   assert.match(hit, /webhook = true/);
-  // The seat could never have fired, and the triad rule now says so too.
-  assert.ok(errs.some((e) => /needs at least one of: cron .* or webhook/.test(e)), errs.join("\n"));
+  // The seat could never have fired, and the triad rule now says so too — in
+  // v0.2 it offers three ways to be woken, and the bus is the one that
+  // replaces what `on` pretended to be.
+  assert.ok(errs.some((e) => /needs at least one of: cron .*webhook .*or subscriptions /.test(e)), errs.join("\n"));
+  assert.match(hit, /subscriptions = \[/);
 });
 
 test("[runtime].image is retired: an image is a property of the box", () => {
@@ -2474,6 +2482,11 @@ test("the repo note names every command whose source refuses over [runtime].repo
     "deploy.js": ["deploy"],
     "token.js": ["token"],
     "lib/identity.js": ["deploy", "token"], // the mint path both of those reach
+    // The Cloudflare target refuses for its own reason — the Worker reads the
+    // charter out of [runtime].repo on every run, so a manifest with no
+    // repository describes a run with nothing to read — but it is still
+    // `epito deploy`, so the note's command list is unchanged by it.
+    "lib/cfpack.js": ["deploy"],
     // Deliberately absent: src/validate.js. `epito validate <dir> --for-runtime`
     // does refuse a roster over a missing [runtime].repo, but the note is the
     // thing `epito validate` PRINTS, and a note that listed the command you are
@@ -3498,9 +3511,22 @@ test("the two readers of the worker's state read it, and do not re-decide it", (
   // And the module stays importable on a box with no engine installed, which
   // is what lets `epito doctor` hold these sentences there (same invariant as
   // lib/engine.js: the connection is handed in, never imported).
-  const pollers = readFileSync(fileURLToPath(new URL("../src/temporal/pollers.js", import.meta.url)), "utf8");
-  assert.ok(!/^import /m.test(pollers),
-    "src/temporal/pollers.js has grown an import — an @temporalio one there would make `epito doctor`'s sentences need the ~300 MB of engine");
+  //
+  // This was written as "pollers.js has no imports at all", which is a proxy
+  // for the real rule and refused the first honest import it met: the one
+  // locator every message naming a file in this repository shares
+  // (src/lib/where.js, two string constants). So it now states the property
+  // itself — nothing this module pulls in may pull anything in either, so
+  // there is no path from here to an @temporalio package however deep.
+  const read = (f) => readFileSync(fileURLToPath(new URL(`../${f}`, import.meta.url)), "utf8");
+  const pollers = read("src/temporal/pollers.js");
+  for (const [, spec] of pollers.matchAll(/^import .* from "([^"]+)";/gm)) {
+    assert.ok(spec.startsWith("."),
+      `src/temporal/pollers.js imports the package ${spec} — a package here would make \`epito doctor\`'s sentences need the ~300 MB of engine`);
+    const leaf = read(`src/temporal/${spec}`.replace(/[^/]+\/\.\.\//g, ""));
+    assert.ok(!/^import /m.test(leaf),
+      `src/temporal/pollers.js imports ${spec}, which has imports of its own — the one thing this module may import is a leaf of constants`);
+  }
 });
 
 test("the engine look asks who is polling on the connection it already opened", async () => {

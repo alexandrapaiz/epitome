@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The two downloads that stand between a cold machine and a green run.
+# The four downloads that stand between a cold machine and a green run.
 #
 #   bash test/prereqs.sh              # into ${TMPDIR}/epito-prereqs
 #   bash test/prereqs.sh ~/.cache/epito-prereqs
@@ -15,10 +15,18 @@
 # never converged sat live for days behind an `unrun` line (PR #71 found it the
 # first time smoke-temporal actually ran).
 #
-# A permanent `partial` teaches people to read past the column. So the three
+# A permanent `partial` teaches people to read past the column. So the
 # prerequisites are one command now, and what they cost is measured rather than
 # guessed: the Temporal CLI is a ~45 MB download, the langgraph wheel set is
-# ~40 MB of pip, and everything else the suites need was already on the box.
+# ~40 MB of pip, nats-server is 7 MB, and wrangler is ~90 MB because it carries
+# the workerd binary. Everything else the suites need was already on the box.
+#
+# nats-server joined them on 2026-10-17, when the bus got a suite that drives a
+# real one: the NATS client in src/lib/nats.js is written here rather than
+# depended on, so a mock of the server tests the client against its own author's
+# idea of the protocol and nothing else. wrangler joined on 2026-10-18 for the
+# same reason one step further out — the Cloudflare bundle this repository
+# generates is only proved by a real Workers runtime executing it.
 #
 # What it does NOT do: decide whether a suite can run. Each suite owns that
 # question and already answers it honestly — this only puts the binaries where
@@ -41,7 +49,12 @@ step() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
 TEMPORAL_HOME="$DIR/temporalio"
 TEMPORAL_EXE="$TEMPORAL_HOME/bin/temporal"
 VENV="$DIR/lgvenv"
+NATS_HOME="$DIR/nats"
+NATS_EXE=""
+NATS_VERSION="v2.15.1"
 VENV_PY="$VENV/bin/python"
+WRANGLER_HOME="$DIR/wrangler"
+WRANGLER_EXE="$WRANGLER_HOME/node_modules/.bin/wrangler"
 ENV_FILE="$DIR/env.sh"
 
 # ---- 1. the Temporal CLI -----------------------------------------------------
@@ -104,7 +117,80 @@ else
   say "  installed: $VENV_PY ($("$VENV_PY" -c 'from importlib.metadata import version; print("langgraph", version("langgraph"))'))"
 fi
 
-# ---- 3. write down where everything went ------------------------------------
+# ---- 3. nats-server, for the bus ---------------------------------------------
+# smoke-bus.sh starts its own on a free port with its own JetStream store, so
+# the binary is the whole prerequisite; it looks at $NATS_BIN, then PATH, then
+# here. One pinned release rather than "latest": a suite that asserts how a
+# server answers should not change what it is asserting against overnight.
+step "nats-server (the bus)"
+FOUND="$(find "$NATS_HOME" -name nats-server -type f -perm -u+x 2>/dev/null | head -1)"
+if [ -n "$FOUND" ] && "$FOUND" --version >/dev/null 2>&1; then
+  NATS_EXE="$FOUND"
+  say "  already here: $NATS_EXE ($("$NATS_EXE" --version 2>&1 | head -1))"
+elif command -v nats-server >/dev/null 2>&1; then
+  NATS_EXE="$(command -v nats-server)"
+  say "  already on PATH: $NATS_EXE ($(nats-server --version 2>&1 | head -1))"
+else
+  case "$(uname -s)" in Linux) os=linux ;; Darwin) os=darwin ;; *) os="" ;; esac
+  case "$(uname -m)" in x86_64|amd64) arch=amd64 ;; arm64|aarch64) arch=arm64 ;; *) arch="" ;; esac
+  if [ -z "$os" ] || [ -z "$arch" ]; then
+    say "  SKIPPED — no published nats-server build for $(uname -s)/$(uname -m)."
+    say "  smoke-bus will report unrun here, correctly. Build one and set NATS_BIN."
+  else
+    pkg="nats-server-$NATS_VERSION-$os-$arch"
+    url="https://github.com/nats-io/nats-server/releases/download/$NATS_VERSION/$pkg.tar.gz"
+    mkdir -p "$NATS_HOME"
+    say "  downloading $pkg (~7 MB)"
+    if ! curl -fsSL --proto '=https' --tlsv1.2 "$url" -o "$NATS_HOME/$pkg.tar.gz"; then
+      say "  FAILED to download $url — this machine has no route to it."
+      say "  Install nats-server by hand and re-run with NATS_BIN set, or accept that"
+      say "  smoke-bus reports unrun here. It is not a failing test; it is an unrun one."
+      exit 1
+    fi
+    if ! tar xzf "$NATS_HOME/$pkg.tar.gz" -C "$NATS_HOME"; then
+      say "  FAILED to unpack $NATS_HOME/$pkg.tar.gz"
+      exit 1
+    fi
+    rm -f "$NATS_HOME/$pkg.tar.gz"
+    NATS_EXE="$(find "$NATS_HOME" -name nats-server -type f -perm -u+x 2>/dev/null | head -1)"
+    [ -n "$NATS_EXE" ] || { say "  FAILED — the tarball unpacked and carried no nats-server."; exit 1; }
+    say "  installed: $NATS_EXE ($("$NATS_EXE" --version 2>&1 | head -1))"
+  fi
+fi
+
+# ---- 4. wrangler, for the Cloudflare target ---------------------------------
+# smoke-cloudflare.sh's second section puts the generated bundle into a real
+# local Workers runtime and drives it end to end. It deliberately does NOT
+# reach for `npx wrangler` itself: a suite that downloads 100 MB mid-run fails
+# differently on a plane than it does on a runner, and the whole point of this
+# file is that the downloads are named, measured and done on purpose. So the
+# suite looks for a binary and this is what puts one there.
+step "wrangler, for the Cloudflare target"
+if [ -x "$WRANGLER_EXE" ] && "$WRANGLER_EXE" --version >/dev/null 2>&1; then
+  say "  already here: $WRANGLER_EXE ($("$WRANGLER_EXE" --version 2>&1 | tail -1))"
+elif command -v wrangler >/dev/null 2>&1; then
+  say "  already on PATH: $(command -v wrangler)"
+  WRANGLER_EXE="$(command -v wrangler)"
+elif ! command -v npm >/dev/null 2>&1; then
+  say "  SKIPPED — no npm on this machine, so there is nothing to install it with."
+  WRANGLER_EXE=""
+else
+  mkdir -p "$WRANGLER_HOME"
+  say "  installing wrangler into $WRANGLER_HOME (~90 MB, it carries the workerd binary)"
+  if ! (cd "$WRANGLER_HOME" && npm install --silent --no-package-lock --no-save wrangler) >"$DIR/.wrangler.log" 2>&1; then
+    say "  FAILED — npm said:"
+    tail -5 "$DIR/.wrangler.log" | sed 's/^/    /'
+    say "  smoke-cloudflare will keep reporting partial here, correctly: its"
+    say "  generator section still runs, and test/unit-cloudflare.mjs drives the"
+    say "  same worker against a fake Durable Object."
+    WRANGLER_EXE=""
+  else
+    [ -x "$WRANGLER_EXE" ] || { say "  FAILED — npm exited 0 but $WRANGLER_EXE is not executable."; WRANGLER_EXE=""; }
+    [ -n "$WRANGLER_EXE" ] && say "  installed: $WRANGLER_EXE ($("$WRANGLER_EXE" --version 2>&1 | tail -1))"
+  fi
+fi
+
+# ---- 5. write down where everything went ------------------------------------
 # One file, so that neither all.sh nor a human has to re-derive any of this.
 {
   echo "# Written by cli/test/prereqs.sh on $(date -u '+%Y-%m-%dT%H:%M:%SZ'). Source it:"
@@ -112,6 +198,8 @@ fi
   echo "export TEMPORAL_BIN=\"$TEMPORAL_EXE\""
   echo "export PATH=\"$(dirname "$TEMPORAL_EXE"):\$PATH\""
   [ -n "$VENV_PY" ] && echo "export EPITO_PYTHON=\"$VENV_PY\""
+  [ -n "$NATS_EXE" ] && echo "export NATS_BIN=\"$NATS_EXE\""
+  [ -n "$WRANGLER_EXE" ] && echo "export EPITO_WRANGLER=\"$WRANGLER_EXE\""
 } > "$ENV_FILE"
 
 step "what this put where"

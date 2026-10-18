@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { writeFileSync, existsSync, mkdirSync, statSync, accessSync, constants } from "node:fs";
+import { writeFileSync, readFileSync, existsSync, mkdirSync, statSync, accessSync, constants } from "node:fs";
 import { NAME_RE, kebab } from "./lib/manifest.js";
+import { SPEC_VERSION } from "./lib/fields.js";
 import { ignore } from "./lib/gitignore.js";
 import { engineImport } from "./lib/engine.js";
 import { originRepo } from "./lib/origin.js";
@@ -25,8 +26,10 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
   epito doctor [dir]  would a run on THIS box start? the manifests, the names,
                       the roads, the EXECUTOR epito spawns (resolved on the PATH
                       a run gets, started under the environment a run gives it),
-                      the engine, and whether a WORKER is polling its queue —
-                      exit 1 naming the piece that is missing
+                      the engine, whether a WORKER is polling its queue, and
+                      — for seats the bus wakes — whether this box names a
+                      stream for them at all; exit 1 naming the piece that is
+                      missing
                       (--deep also runs one real turn per road, which costs a
                       model call and is the only thing that proves credentials)
   epito run <dir>     put every agent.toml under <dir> on the runtime: one
@@ -42,6 +45,9 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       makes a seat that runs and quietly does less
                       (--template prints the env file, --complete makes a
                       missing name an error, --json)
+  epito bus [dir]     what the bus is holding for this roster on THIS box: the
+                      subjects each seat subscribes to, its durable consumer,
+                      and how many events are waiting for it (--json)
   epito board         what the seats have been doing: run reports, newest
                       last (--agent, --kind, --limit, --json)
   epito audit [name]  the ledger: every App created, every token minted and
@@ -65,15 +71,35 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       .epito/ (0600), record the installation on
                       [runtime].repo (--dry-run says what it would create and
                       touches neither the network nor a browser)
+  epito deploy [name] [dir] --target cloudflare
+                      pack the SAME manifest as a Cloudflare Worker that is
+                      the agent: its own App identity minted inside the
+                      Worker, [trigger].cron as the Worker's schedule, one
+                      Durable Object holding its runs, and a page showing the
+                      agent, its last run and a button that triggers it. Writes
+                      the bundle and stops — \`wrangler deploy\` spends your
+                      Cloudflare account, so it stays your command (--out,
+                      --dry-run)
+
+  epito --version     this copy's version, the manifest spec it enforces and
+                      the node it runs on (alias: epito version)
 
 The runtime is two processes and one engine: \`epito run\` reconciles and
 serves the ingress, \`epito worker\` executes, and Temporal (self-hosted,
 TEMPORAL_ADDRESS, default 127.0.0.1:7233) is what makes a run survive a
-reboot. See docs/prfaq/epitod-v1-temporal.md.
+reboot.
+
+A seat can also be woken by an event the bus is holding, not only by a clock
+or a push: \`[trigger].subscriptions\` names the subjects, \`epito run\` keeps one
+durable consumer per seat on them, and an event is acknowledged only once that
+seat's run has started — so it outlives a restart and is redelivered until a
+seat takes it. EPITO_BUS_URL (default nats://127.0.0.1:4222) and
+EPITO_BUS_STREAM say where those events are; \`epito bus\` says what is waiting.
 
 The board is where the runs show up: every seat epitod runs files its own
 report, and a seat that runs somewhere else files one with \`epito report\`.
-See ADR-16 (docs/decisions.md).
+Its store is an append-only event log: not a database, and not a file in the
+repository the seats work in.
 
 The board and the ledger answer two different questions. The board is "what
 have the seats been doing" — run reports, folded for an owner. The ledger
@@ -83,17 +109,33 @@ token actually held, on which repository, until when.
 
 A seat can declare several roads to a model: \`[[runtime.route]]\` names them in
 order, and a run takes the first one that starts it — falling back only while
-the agent has provably done nothing (ADR-19). \`epito routes\` says which are
-open on this box.
+the agent has provably done nothing. \`epito routes\` says which are open on
+this box.
 
 A seat does not have to be a Claude session: \`[runtime].adapter = "langgraph"\`
 runs a LangGraph app through the \`langgraph.json\` its author already wrote,
-unmodified (ADR-17). Set OTEL_EXPORTER_OTLP_ENDPOINT — Phoenix, Jaeger, Tempo,
-anything that takes OTLP — and every run files a trace: the run, its clone, its
-mint, and whatever the agent itself emits inside it (ADR-18).
+unmodified. Set OTEL_EXPORTER_OTLP_ENDPOINT — Phoenix, Jaeger, Tempo, anything
+that takes OTLP — and every run files a trace: the run, its clone, its mint, and
+whatever the agent itself emits inside it. The collector is a surface and never
+a dependency: nothing about a run changes when none is set.
 `;
 
 const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
+
+// The package's own manifest, beside the directory this file is in — the one
+// npm wrote when it installed this copy. Read rather than compiled in: a
+// version baked into the source is a version that is right in the tree and
+// wrong in the tarball the day a release bumps one and not the other, and
+// `npm version` only ever edits package.json.
+const pkg = () => {
+  const at = new URL("../package.json", import.meta.url);
+  try { return JSON.parse(readFileSync(at, "utf8")); }
+  catch (e) {
+    die(`this copy of epito has no package.json beside its source (looked in ${at.pathname}): ${e.message}. ` +
+      `A published package always carries one, so this is a checkout running from a moved or partly copied src/ directory. ` +
+      `Fix: reinstall it — \`npm i -g epito\` — or run it from the root of a full checkout.`);
+  }
+};
 
 // An option epito does not know is refused before the command runs. It used to
 // be dropped, which made `--dry-runn` a real mint and `--for-runtimes` a ✓ that
@@ -104,6 +146,35 @@ const gate = (name, argv, known) => { const e = unknownOption(name, argv, known)
 
 if (!cmd || cmd === "help" || cmd === "--help") {
   console.log(HELP);
+  process.exit(0);
+}
+
+// The first thing anybody types after `npm i -g epito`, to find out whether the
+// install took — and until now the answer was `unknown command "--version"`,
+// which reads as a broken install rather than a missing flag.
+//
+// Two spellings and deliberately not three. `-v` is not here, and the reason
+// is in docs/ideas.md, where this was already a `proposed` card: "a version
+// that reads package.json" is two lines in the dispatch, while `-h`, `-v` and
+// the rest are "one decision that is not two lines — whether `epito` grows a
+// convention for short flags at all, since right now it has exactly none and
+// adding `-h` implies the rest". A run does not settle that by typing one
+// letter into the first command that wanted it; `-v` also means verbose in
+// half the tools anybody has installed, which is its own argument for asking
+// rather than guessing. So this takes the half of that card that is lines and
+// leaves the half that is a decision.
+//
+// Three facts, one line. The CLI's own version is what npm would serve. The
+// manifest spec version is the one `epito validate` enforces, read from the
+// same constant the validator reads, because the two are allowed to move
+// apart: a patch release of the CLI does not change the spec, and a spec that
+// froze (v0.1, then v0.2's two optional fields) outlives several CLI versions.
+// The node version is here because `engines` says >=18 and a box below it
+// fails inside an import with a syntax error that names neither.
+if (cmd === "--version" || cmd === "version") {
+  gate(cmdRaw, args, []);
+  const { version, name } = pkg();
+  console.log(`${name} ${version} (manifest spec ${SPEC_VERSION}) — node ${process.version} on ${process.platform}-${process.arch}`);
   process.exit(0);
 }
 
@@ -264,6 +335,11 @@ if (cmd === "run") {
   const { envCmd, ENV_FLAGS } = await import("./env.js");
   gate("env", args, ENV_FLAGS);
   await envCmd(args);
+  process.exit(0);
+} else if (cmd === "bus") {
+  const { busCmd, BUS_FLAGS } = await import("./bus.js");
+  gate("bus", args, BUS_FLAGS);
+  await busCmd(args);
   process.exit(0);
 } else if (cmd === "board") {
   const { boardCmd } = await import("./board.js");
