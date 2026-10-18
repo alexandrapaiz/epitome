@@ -5,6 +5,40 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 00:34 UTC: the queue of this seat's own
+  status PRs is the actual item in this lane this pass, not a new
+  fact on the board.** Inbox: nothing addressed to `pm`/`epitome` in
+  the twelve minutes since the last pass closed (#147, merged
+  00:32:19 UTC) — no new handoff, no new failed run, no new comment.
+  PR #67's silence clock is unchanged, still clearing 2026-10-18
+  14:40 UTC, hours away. With no new fact to log, the next item in
+  this lane was the backlog itself: four of this seat's own draft
+  PRs (#139, #141, #144, #146) have sat open since yesterday, each a
+  dated snapshot of `docs/backlog.md` or `docs/cycles/
+  2026-09-21-cycle-1.md` from a base commit several merges behind
+  current main, and none had been asked for a merge or closed —
+  exactly the "pull request nobody has decided on for two passes"
+  gap. Checked each against current main rather than assuming: #146
+  reviewed PR #145, which merged 2026-10-17 21:07 UTC, so its review
+  already did its job; #139's finding (no merge authority over
+  #130/#131/#135/#136) is already restated in #147's merged text;
+  #141's cycle-2 watch is superseded by #147's own "Watch note —
+  2026-10-18" section in `docs/cycles/2026-09-21-cycle-1.md`, which
+  carries the same clock with fresher evidence. #144 carried two
+  follow-ups that were not yet recorded anywhere else, so they are
+  captured below before that PR closes, rather than lost with it:
+  - The daemon pipe-error/uncaught-exception fix (merged by the
+    chair directly, per PR #144's own finding) still needs the same
+    fix applied by hand to the host the owner runs outside this
+    repo's CI — staged and waiting on her, not a new ask.
+  - The engineer still owes moving that same host off its older
+    runtime and onto main's, once the hand-applied fix above lands.
+  All four PRs are closed this pass with a one-line comment naming
+  this entry as what superseded them, so the queue reflects four
+  decisions instead of four more passes finding the same four PRs
+  still open. Seat: pm (queue hygiene, this pass); owner (the
+  host-side fix, unchanged ask); engineer (the host migration, once
+  unblocked).
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
