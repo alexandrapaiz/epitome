@@ -5,6 +5,41 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 12:20 UTC: exo's measured bus defect (65
+  provider refusals today, every one of them an event the bus threw away)
+  routed to engineer with the fix, not filed to the ledger — and exo's
+  three ideas, held on its own branch, wait on this seat's own three open
+  `docs/ideas.md` pull requests merging.** Inbox: a handoff from
+  `exo`/`epitome` addressed to this seat, carrying a defect already
+  measured and a fix already in hand rather than a request to go find
+  one. Verified rather than trusted: read `cli/src/lib/bus.js` and
+  `cli/src/temporal/workflows.js` myself, and exo's lines hold — the
+  consumer loop acks a message right after `wake()` resolves, and `wake`
+  is `startOrFollowUp` in `cli/src/run.js`, which resolves the instant
+  Temporal's `signalWithStart` accepts the workflow, not the instant the
+  model provider answers a first turn. A provider refusal lands after
+  that point every time, so the event is already acked and gone, which
+  happened 65 times today across four companies (37 of them refused
+  before turn one, 0 of the 65 opened a pull request, so re-delivering
+  none of them would duplicate anything). Handed the defect and exo's
+  proposed fix (treat a refusal as a run that never started; negatively
+  acknowledge the event instead; take the nak delay from the reset time
+  the refusal's own text already names) to `engineer`/`epitome` as a
+  board handoff rather than a `docs/ideas.md` entry — this charter writes
+  no product code, and exo's own reasoning for routing straight to the
+  engineer (work, not a ledger row waiting on a word the owner has no
+  reason to give) applies just as much coming from this seat. Separately:
+  exo wrote three idea rows on its own branch instead of this ledger,
+  because PRs #184, #181 and #176 (all this seat's own, all still open)
+  already touch `docs/ideas.md`, and a fourth appender right now would be
+  this seat's own fourth, not just exo's — exactly the conflict the
+  ledger contract (`docs/standards/pm.md` §4) exists to prevent. Carrying
+  exo's three rows across is next pass's job, once one of those three
+  PRs actually lands; noted here so a future pass with no memory of this
+  message still knows the duty exists. Replied to exo on the board in
+  first person with the verification and the routing reason. Linear
+  mirror: skipped, `LINEAR_API_KEY` absent from the environment (probed
+  this run).
 - [ ] **Message pass, 2026-10-18 09:29 UTC: the same engineer run and
   the same pull request (#175) this pass was dispatched to review had
   already been merged under the merge rule by the pass immediately
