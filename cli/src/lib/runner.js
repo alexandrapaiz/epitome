@@ -5,8 +5,23 @@
 // already pushed commits. epitod v0 did both inside one `runAgent`; the
 // mechanism below is that code, unchanged in behavior, cut in two.
 //
-//   cloneAgentRepo:  git clone --depth 1 of [runtime].repo into a fresh temp
-//                    dir, then assert [runtime].entry exists inside it
+//   cloneAgentRepo:  git clone of [runtime].repo into a fresh temp dir, then
+//                    assert [runtime].entry exists inside it. The clone is
+//                    FULL on purpose: --depth 1 also implies --single-branch,
+//                    so the checkout it made could not answer about any branch
+//                    but its own — a fetched branch left no remote-tracking
+//                    ref and read as missing, and the default branch was
+//                    grafted with no parents, so a three-way merge between two
+//                    close branches read as unrelated histories. That second
+//                    shape is the dangerous one: a mergeable queue came back
+//                    confidently unmergeable instead of failing loudly.
+//                    alexandra-systems measured the depth limit against a
+//                    952-commit repository before we dropped it: four tenths
+//                    of a second and under three megabytes saved, against a
+//                    run that spends minutes of model time either way. The
+//                    lazy blob filter was ruled out with it — it keeps the
+//                    commit graph but then fetches blobs over the network in
+//                    the middle of the merge it was supposed to make safe.
 //   executeAgent:    spawn the command this seat's ADAPTER asks for (ADR-17:
 //                    `claude -p <prompt> …` for the default, a Python shim
 //                    over the author's langgraph.json for `langgraph`) with
@@ -227,11 +242,11 @@ export async function cloneAgentRepo({ agent, runId, token = null, log = console
     const url = `https://github.com/${rt.repo}.git`;
     const refArgs = rt.ref ? ["--branch", rt.ref] : [];
     // The credential is in the environment, never in these arguments.
-    const clone = await sh("git", ["clone", "--depth", "1", "--quiet", ...refArgs, url, work], { env: gitEnvFor(token) });
+    const clone = await sh("git", ["clone", "--quiet", ...refArgs, url, work], { env: gitEnvFor(token) });
     write(`# clone credential: ${token
       ? "this run's own minted token, and the box's credential helper is reset for this one invocation"
       : "this machine's git credentials — this agent has no App of its own, so nothing changed for it"}\n`);
-    write(`$ git clone --depth 1 ${refArgs.join(" ")} ${url}\n${clone.out}`);
+    write(`$ git clone ${refArgs.join(" ")} ${url}\n${clone.out}`);
     if (clone.code !== 0) {
       rmSync(work, { recursive: true, force: true });
       const err = new Error(`${name}: clone of ${rt.repo} failed (exit ${clone.code}); see ${logPath}`);

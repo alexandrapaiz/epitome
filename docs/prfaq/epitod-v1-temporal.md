@@ -478,7 +478,7 @@ thin wrappers over code that already exists and is already smoke-tested.
 | `notify` | `{ name, manifest, trigger, turns, pr, durationMs, exit }` | `{ posted, reason? }` | 3 attempts | 30 s |
 | `cleanup` | `{ workDir }` | `{}` | 3 attempts | 30 s |
 
-- `clone` is `git clone --depth 1 [--branch <ref>] https://github.com/<repo>.git`
+- `clone` is `git clone [--branch <ref>] https://github.com/<repo>.git`
   into `mkdtemp($TMPDIR/epito-<name>-)`, then a check that `entry` exists
   inside it. A missing charter is a permanent failure
   (`ApplicationFailure.nonRetryable`), not something to retry, and the
