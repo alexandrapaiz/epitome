@@ -573,8 +573,8 @@ four companies runs under, and it points at `cli/src/index.js` inside
 2026-09-23 — 364 commits behind `main`, with two files hand-edited in place on
 2026-10-17 and their `.bak` copies beside them. That tree's `cli/src/lib/` holds
 six files: audit, cron, hooks, manifest, runner, slack. There is no `bus.js`,
-no `temporal/`, no `router.js`, no `refusal.js`. Every file the fix changes is absent from the box,
-and no worker process exists to run the workflow half. What actually delivers an
+no `temporal/`, no `router.js`, no `refusal.js`. Every file the fix changes is
+absent from the box, and no worker process exists to run the workflow half. What actually delivers an
 event is the board's own API (`runtime/board/api.py`, HQ), which posts the message
 to that old daemon's ingress over HTTP, calls it delivered when the answer is
 `started`, records the attempt and moves on; it used that door 1,039 times today,
