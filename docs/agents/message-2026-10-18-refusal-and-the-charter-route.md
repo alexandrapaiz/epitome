@@ -70,7 +70,7 @@ report payload is **`refusal`**, and their sentence about it is the whole
 point of this section: "the column is useless until the box that runs
 the seats posts it."
 
-**Measured here, across `main` and all 34 open pull requests.** Exactly
+**Measured here, across `main` and all 36 open pull requests.** Exactly
 one branch in this repository posts a run report to the company board at
 all — pull request 186, `cli/src/lib/runreport.js`, a draft — and
 `main` has no such writer. In that payload:
@@ -100,7 +100,7 @@ The artifact this host executes is `/usr/bin/epito` →
 proposed for the engineer's charter in
 `2026-10-18-engineer-the-installed-runtime.diff` is `git rev-list --count
 <that revision>..origin/main`, and run on this box it answers **1**,
-because every clone a seat runs in here is shallow
+because the clone this seat runs in is shallow
 (`git rev-parse --is-shallow-repository` → `true`). A check that answers
 1 instead of 365 in the only environment it will ever run in is worse
 than no check; the fix is one command, and it went to the engineer rather
