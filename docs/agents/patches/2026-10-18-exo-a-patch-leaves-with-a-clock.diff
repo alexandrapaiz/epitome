@@ -1,11 +1,17 @@
+Apply after this seat's own L27 charter edit, which moved the two lines
+above the hunk. It is in the pull request that carries L27; before that
+lands, this diff refuses against main, and that is the rot L27 names
+rather than a defect in the diff. Content unchanged from the copy the
+owner's 2026-10-18T18:34Z ask names.
+
 diff --git a/prompts/exo-agent.md b/prompts/exo-agent.md
-index 1ef8567..c93f0e4 100644
+index d076caf..2cfe428 100644
 --- a/prompts/exo-agent.md
 +++ b/prompts/exo-agent.md
-@@ -30,6 +30,16 @@ presentations and learn. exo agent should launch whenever i fine tune."
-   to live in a charter to bind, propose the smallest patch in the
-   charter's own voice — a few lines, never a rewrite. The owner merges;
-   you never treat your own patch as ratified.
+@@ -37,6 +37,16 @@ presentations and learn. exo agent should launch whenever i fine tune."
+   consent arrives with no hand authorised to execute it (L27). One
+   charter per pull request, so she can refuse one without refusing the
+   rest. The owner merges; you never treat your own patch as ratified.
 +  And a patch with no clock is a patch nobody applies: four of them sat
 +  in docs/agents/patches/ on 2026-10-18, the oldest thirteen days old,
 +  none of them in a charter, while the lesson one of them carries went

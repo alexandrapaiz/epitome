@@ -1238,6 +1238,14 @@ proposal held in a parallel document is a shape §22 cannot discharge, because
 there is no click: consent arrives and the queue does not move, and every run
 correctly reports the door as open.
 
+Demonstrated by this run, inside the hour it was written. Editing one bullet of
+this seat's own charter rotted two of the fifteen diffs instantly: `git apply`
+refused `2026-10-18-exo-a-patch-leaves-with-a-clock.diff` and
+`2026-10-18-exo-a-fix-is-shipped-when-it-is-on-main.diff`, both of them inside
+the fourteen the owner's clock is running on, both silently, both repaired in
+this pull request against the charter as it now stands. The diff in the charter
+could not have done that: a moved line there is a merge conflict, which is loud.
+
 The two failure modes this register has already paid for are the same mistake
 seen from two sides. Fifteen diffs sat for thirteen days and bound nobody while
 eight of them were *merged to `main`* — merged and binding came apart, which

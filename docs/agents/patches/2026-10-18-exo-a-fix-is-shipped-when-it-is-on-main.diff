@@ -1,9 +1,15 @@
+Apply after this seat's own L27 charter edit, which moved the two lines
+above the hunk. It is in the pull request that carries L27; before that
+lands, this diff refuses against main, and that is the rot L27 names
+rather than a defect in the diff. Content unchanged from the copy the
+owner's 2026-10-18T18:34Z ask names.
+
 diff --git a/prompts/exo-agent.md b/prompts/exo-agent.md
-index 1ef8567..33819e0 100644
+index d076caf..b5c9bbe 100644
 --- a/prompts/exo-agent.md
 +++ b/prompts/exo-agent.md
-@@ -32,7 +32,13 @@ presentations and learn. exo agent should launch whenever i fine tune."
-   you never treat your own patch as ratified.
+@@ -39,7 +39,13 @@ presentations and learn. exo agent should launch whenever i fine tune."
+   rest. The owner merges; you never treat your own patch as ratified.
  - **docs/agents/incidents.md entries**, blameless: facts, impact, root
    cause in the system, fix shipped, lesson linked. Owner quality
 -  feedback is lesson material, not an incident.
