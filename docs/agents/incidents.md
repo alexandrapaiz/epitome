@@ -234,3 +234,80 @@ every seat the bus wakes through GitHub and will again leave no log when
 it does.
 
 **Lesson produced.** L16 in `docs/agents/lessons.md`.
+
+## Incident 7 — 2026-10-17 to 2026-10-18 — A standing duty the owner assigned lived for thirteen hours in one message row and nowhere else
+
+**What happened.** At 2026-10-17T20:06:00Z a chair carrying the owner's
+redesign of the learning loop addressed a handoff to this seat on the
+board, and to the exo seat of alexandria and of Ursa in the same second.
+Its last line names what it is: "The vendored standard carries section
+twenty-four when the centralizer re-vendors it; until then this handoff
+is your charter's delta." The run it woke opened pull request 142 as a
+draft ninety-four seconds later, with a body that says "Draft opened at
+the start of the run so the work ships even if the run dies", committed
+one commit that changed no file, and ended. The project manager closed
+the empty draft at 2026-10-18T09:17:12Z, thirteen hours and nine minutes
+later, and said so on the board rather than filing it as anything.
+
+**Impact.** An owner directive that makes this seat half of the
+company's learning loop was, for those thirteen hours, in no charter, no
+register, no board item and no file of this repository: `grep -ri
+"learning loop"` over `main` returns nothing. This seat ran again in
+that window — the weekly drift review published at 09:19:51Z — and that
+review does not mention the loop, because the run that wrote it read the
+inbox the way the standard documents it and the handoff was off the end
+of the page (L17). Of 56 pull requests this repository has closed
+unmerged, 142 is the only one with zero changed files, so the residue
+was visible and cheap to clear; the duty behind it was not visible at
+all.
+
+The duty itself is not late. `asc-brief.timer` on the host is enabled
+and active, it last fired at 2026-10-17T12:00:58Z — eight hours before
+the redesign — and fires next at 2026-10-18T12:01:04Z, which is the
+loop's first tick for this seat. The board's API emits `brief.sent` when
+the brief goes out and targets HQ's centralizer and the exo seat of
+alexandria, Ursa and epitome; delivery is the window door
+(`POST /message/epitome-exo`) and, failing that, a repository dispatch
+of type `asc.exo`, which `.github/workflows/agent-exo.yml` accepts. The
+clock and both doors exist. What did not exist was any record of what to
+do when it strikes.
+
+**Root cause in the system, three parts, none of them a seat.**
+
+*A run's only durable surface is its pull request.* The dispatch every
+seat on this host reads is built in `cli/src/lib/runner.js:149` and says
+to open the pull request draft-first, before anything else that takes
+time. That is the right instruction and it is incomplete: it makes the
+first artifact of every run a container, and a run that ends before it
+commits leaves the container and loses the content. Nothing in the
+dispatch, and nothing in this seat's charter, says that the duty a run
+accepted should be written down before it is worked.
+
+*The inbox read loses what is addressed to you.* Full measurement in
+L17: the read the company standard prints returns the newest hundred
+messages of the whole portfolio, just under eight hours at this volume,
+of which one point seven percent were this seat's; `everyone=0` cuts the
+same window to twelve, eight of which belong to another company's exo
+seat because the store matches `to_seat` without its company.
+
+*The standard this repository holds is two owner directives behind.*
+HQ's `standards/pm.md` carries section 23 (2026-10-17) and section 24
+(2026-10-18), the loop's own text; the copy vendored here stops at
+section 22. So the one place a fresh run would have found the duty
+described was absent, which is what the handoff's last line anticipated.
+
+**Fix shipped.** This run writes the delta into this repository where a
+fresh-context run will read it: lesson L17, this entry, and the charter
+patch `docs/agents/patches/2026-10-18-exo-the-loops-local-half.diff`,
+which adds the tick to this seat's own charter with the clock, the two
+doors and the output named. The patch is the owner's to apply; it went
+to the project manager as an ask under the silence rule (standard
+section 22) in the same run, with the two patches already waiting.
+
+**What is not this seat's.** The store's query and the command printed
+in section 15, and the re-vendor that would bring sections 23 and 24
+here, are HQ's files. Both went up as a handoff to
+`alexandra-systems/exo-centralizer`, which owns the standards and leads
+this loop, with the two-line fix and this measurement attached.
+
+**Lesson produced.** L17 in `docs/agents/lessons.md`.

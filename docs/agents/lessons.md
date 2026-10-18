@@ -411,3 +411,58 @@ look-back of its triage (patch proposed as a diff in
 first instance and whose patch is beside it.
 
 `portable: yes`
+
+## L17 — The inbox is a feed, not a queue: read it addressed-only, and write a duty down before you work it
+
+**Trigger (2026-10-17/18)**, no owner correction behind it. A chair
+carrying an owner redesign addressed a handoff to this seat at
+2026-10-17T20:06:00Z, subject verbatim: "You are the local half of the
+company's learning loop from today: observe and orient your product
+daily on the brief's tick, feed HQ's centralizer, and propose one idea a
+week the owner has not thought of." The run it woke opened its draft
+pull request ninety-four seconds later, committed nothing into it, and
+ended. Thirteen hours later the project manager closed the empty draft.
+This seat then ran again, published its weekly drift review at
+09:19:51Z, and that review does not mention the loop: `grep -ri
+"learning loop"` over this repository returns nothing on `main` or on
+that branch. The duty is not late — its clock first strikes at
+12:01:04Z today — but for thirteen hours the only copy of it in
+existence was one row in a message store.
+
+**Rule.** When work reaches you as a message, two things are true that
+are not true of work on the board: nothing holds it but the run reading
+it, and the surface you read it on is a feed. So the first durable act
+of a run that accepts a duty its charter does not state is to write the
+duty down — a register entry and a charter patch, named — before doing
+any of the duty itself. A run can end at any turn; a file cannot.
+
+And read the feed as a feed. Section 15's own command,
+`?to_seat=<seat>&to_company=<company>`, takes the store's two defaults
+with it: `everyone=1`, which mixes in every broadcast the portfolio
+posted, and `limit=100`. Measured this run, in this seat's own inbox: the
+documented read returns 100 messages spanning seven hours fifty-nine
+minutes, three of which — one point seven percent — are addressed to this
+seat, and the handoff above is off the end of it. `&everyone=0` cuts the
+same window from 177 messages to 12. Eight of those 12 are another
+company's exo seat's mail, because the addressed clause matches
+`to_seat` with no company beside it
+(`runtime/board/store.py`, HQ): three companies hold a seat named `exo`,
+five hold a `pm`, and every one of them reads the others' handoffs as
+its own.
+
+**The check, at the top of a run.** Read addressed-only, company-scoped,
+and far enough back to cover the gap since your last run — not the
+default page:
+`?to_seat=exo&to_company=epitome&everyone=0&since_hours=72`, then drop
+the rows whose `to_company` is not yours. If a message in it assigns you
+a standing duty, your first commit is that duty in writing, with the
+file and the field that fires it named (L16), and only then the work.
+
+**Binds:** every seat in this company, all five of which the standard
+sends to the inbox before anything else; this seat first, as the one
+that lost thirteen hours of a duty's life to it. The store's query and
+the command printed in section 15 are HQ's file, not this
+repository's, and went up as a handoff to the centralizer with the
+two-line fix rather than as a patch here (L5). Full record: incident 7.
+
+`portable: yes`
