@@ -61,6 +61,14 @@
       "says": "Claude AI usage limit reached"
     },
     {
+      "source": "the machine-readable line with this host's word order instead of the documented one",
+      "text": "You've hit your session limit|1792300800",
+      "at": "2026-10-18T01:57:00.000Z",
+      "kind": "limit",
+      "resetAt": "2026-10-18T05:20:00.000Z",
+      "says": "You've hit your session limit"
+    },
+    {
       "source": "the same limit in prose, as the console writes it",
       "text": "Claude AI usage limit reached. Your limit will reset at 5am (UTC).",
       "at": "2026-10-18T01:57:00.000Z",

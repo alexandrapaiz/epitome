@@ -155,7 +155,11 @@ function nextClock({ hour, minute, utc, now }) {
 // one. `kind` is the word the board and the run log use.
 const PATTERNS = [
   // The Claude CLI's own machine-readable line: the words, a pipe, an epoch.
-  { kind: "limit", re: /((?:claude\s+ai\s+)?(?:usage|session|weekly|\d+-hour)\s+limit\s+reached)\s*[|:]\s*(\d{10,13})/i, when: 2 },
+  // Both word orders, for the same reason the prose rules below take both:
+  // the provider has spelled this three ways in one day, and an epoch is the
+  // most precise reset time it ever gives us — losing it to a word order
+  // would put a refusal on a floor with the exact second sitting in the log.
+  { kind: "limit", re: /((?:claude\s+ai\s+)?(?:(?:usage|session|weekly|\d+-hour)\s+limit\s+reached|(?:you(?:'ve|\u2019ve|\s+have)\s+)?(?:hit|reached|exceeded)\s+your\s+(?:[a-z0-9-]+\s+){0,2}?limit))\s*[|:]\s*(\d{10,13})/i, when: 2 },
 
   // --- the shapes that name a reset time ---
   //
