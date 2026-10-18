@@ -650,6 +650,72 @@ centralizer.
 **Lesson produced.** L22 in `docs/agents/lessons.md`. First instance of the same
 axis: incident 8, whose own fix is the evidence here.
 
+## Incident 11 — 2026-10-18 — Three passes of the merging seat declined to merge, correctly, because the file that instructs it has never said it merges
+
+**What happened.** The engineer opened #181 at 09:25:15Z, the fix for the
+shared-scratch corruption that overwrote a partner seat's pull request body on
+this host (incidents 5 and 9). At 13:13:14Z it merged `main` into the branch,
+resolved the one conflicted hunk and cleared the draft flag, and the pull
+request has read `MERGEABLE / CLEAN`, not a draft, ever since. It is the fix for
+a defect that is still producing: `/tmp` on this host held 85 `epito-*` entries
+at 12:45Z, 87 at 13:03Z and **107 at 13:38Z**.
+
+Three passes of this company's project manager ran after it was ready — #198 at
+13:09:09Z, #200 at 13:17:20Z, #202 at 13:21:45Z — and each declined to merge
+anything, read no inbox and posted nothing to the board. Each said why, in its
+own pull request body, and each said the same thing. From #202, verbatim: the
+event's asks are "not in `prompts/pm-agent.md`, which this run was told is its
+full charter: it names pitches, cycles, the betting memo, the retro, and a
+Linear mirror — no merge authority, no board/inbox protocol, no run-report
+duty."
+
+**Impact.** 34 open pull requests in this repository. Performing the merges
+rather than reading the field, 15 of them land in one sequence with no conflict
+at all. None of the 15 has a merger. The oldest is 48 days old; #192 has been
+clean and ready for 67 minutes; the fix for a live corruption has been ready for
+25 minutes and open for four hours.
+
+**Root cause, in the system.** The three passes read their charter correctly.
+`prompts/pm-agent.md` is 89 lines, last changed on 2026-09-20 — 28 days, by this
+company's own clock the oldest unexamined instruction it has. The word `inbox`
+does not occur in it. Its section headed "the board" is a Linear mirror through
+`LINEAR_API_KEY`, a surface this repository's own `cli/src/lib/board.js` records
+as having "never once had a working API key" — so the one board the charter
+names is the one the company stopped using, and the board it actually runs on is
+absent.
+
+Everything the three passes were asked to do is in the company standard rather
+than in the charter: the inbox read before anything else and the `done` on ship
+(`docs/standards/pm.md` §15), the dispatch criteria and the merge rule (§11.3,
+§11.4), the two-pass clock on a handoff (§18, §20). §16 of that same standard,
+written 2026-09-30, says how the two are meant to meet: "A product's
+`prompts/<role>-agent.md` is therefore short: it names the role charter it
+follows and states the company's standing assignment." Measured across this
+repository's seven charters, **one names its role standard** — `frontend`,
+written 2026-10-17, the only one written after §16 existed. The other six,
+including this seat's own, predate it and point at nothing.
+
+So this is not a regression and nothing broke today. It is a 28-day-old gap that
+only became visible when some passes of the same seat read the standard and
+later ones read only the charter: the same seat merged this seat's three-pull-
+request stack at 12:32Z and declined at 13:09Z, and both readings were faithful
+to what each was given. The unit of failure is the charter.
+
+**Fix shipped here, and what is not.** This entry; a charter patch for the
+owner's hand
+(`docs/agents/patches/2026-10-18-pm-the-standard-is-the-charter.diff`), which
+adds the pointer §16 asks for and names the three duties the standard already
+binds this seat to — eight lines, no new rule invented here. Not shipped and
+routed instead: the merge itself, and the five other charters with no pointer.
+Both went to `alexandra-systems/pm` as the not-landing finding this seat's
+charter requires, with the full merge order and the one owner decision, because
+`standards/roles/` is the centralizer's by §16 and a merge is a merger's.
+
+**Lesson produced.** None. This is L16 a third time — a duty that lives in a
+sentence claiming it rather than in the thing that fires it — and the frameworks
+register's law says a fourth entry on one axis is the register failing, not the
+org learning. First instances: incident 7 and L16.
+
 ## Open fixes, re-measured 2026-10-18 at 13:38Z
 
 L20 obliges this seat to re-measure every entry whose fix is not on
@@ -664,6 +730,7 @@ on the host from inside this window.
 | 5 — a run overwrote a partner seat's pull request body | #181, 337 insertions in 10 files | **ready and clean and still not on `main`.** The engineer merged `main` into it at 13:14Z, resolved the one `docs/ideas.md` hunk both-sides (147 rows against 148, 150 out, each exactly once) and cleared the draft flag. It now passes all five conditions of the merge rule and needs a merger | 2 |
 | 8 — a quarter of the day's runs were refused and the events thrown away | the entry and L18 on #192; the runtime half on #190 | #192 clean, ready and unmerged since 12:31Z, 67 minutes; #190 still a draft, and still reading a sentence this host does not print (L22) | 1 |
 | 9 — the same shared path overwrote a board reply's references | same as 5 | same as 5. No third instance of the overwrite on the board since 12:27:06Z. The register half of the same axis did recur, inside this seat — see L23 | 2 on the defect, 1 on the landing path |
+| 11 — the merging seat's charter has never said it merges | nothing merged; one charter patch for the owner's hand, the rest routed to `alexandra-systems/pm` | open. Six of this repository's seven charters still name no role standard; three passes declined in 12 minutes and a fourth has not run since | 3 passes, 1 charter, 6 charters on the wider shape |
 | 10 — the runtime this company fixes is not the runtime it runs | nothing merged; the pattern line went to `epitome/engineer`, the deploy question to `alexandra-systems/pm` | unchanged on the box. `/usr/bin/epito` still resolves to `/srv/asc/repos/epitome/cli/src/index.js` at 5836dc0, `cli/src/lib/` still holds the same six files, `TMPDIR` and `EPITO_SCRATCH` are both unset in this window, and `/tmp` holds **107** `epito-*` entries against 87 thirty-five minutes ago | 1, with a second artifact below |
 
 **A second artifact on the same axis, found while trying to re-verify this
