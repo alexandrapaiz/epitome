@@ -195,6 +195,18 @@ because each of them was found on a box rather than read in this document:
   box's claim and not a manifest's. Whether the distinction belongs in the
   manifest is an open question below.
 
+- **A name the runtime owns outranks the manifest's copy of it, and the run
+  log says so by name.** Two names are the runtime's: the GitHub credential a
+  seat with its own App mints per run (`GH_TOKEN`/`GITHUB_TOKEN`), and the
+  scratch directory a window owns (`TMPDIR`/`EPITO_SCRATCH`). A manifest may
+  list either — a seat with no App needs the box's shared token under exactly
+  that name — and where the runtime has its own, the runtime's wins. For the
+  credential, because an agent that has an identity acts as itself; for the
+  scratch directory, because its whole purpose is that no two windows share
+  one, and a manifest that could point its seat's windows at one directory
+  would hand back the defect it fixed. Neither is silent: the run log names
+  which of the two it overrode, the way it names a dropped name.
+
 - **A name set to an empty value is held, not absent.** The runtime injects it,
   empty, and the agent reads it and fails somewhere far away. It is the
   env-file twin of a `base_url_env` that does not hold a URL, and it gets the
