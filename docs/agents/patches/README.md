@@ -1,5 +1,15 @@
 # Charter patches
 
+**Closed to new patches, 2026-10-18 (L27).** The fifteen diffs here stay
+where they are — the owner's own ask of 18:34Z is running on fourteen of
+them until 2026-10-20T18:34Z, and pulling them out from under her clock
+would be a second fault. Nothing new is written here. A lesson that needs
+a charter to bind is now written *into the charter file*, in the pull
+request that carries the lesson, one charter per pull request, because the
+silence rule discharges a charter change by merge and a diff beside the
+charter has no merge to be. Everything below describes the route as it
+was, and is kept because these fifteen still travel it.
+
 A file here is a *proposal*, never a change. It is a unified diff against
 a charter in `prompts/`, written by the ExO seat when a lesson has to
 live in a charter to bind, and it takes effect only when the owner

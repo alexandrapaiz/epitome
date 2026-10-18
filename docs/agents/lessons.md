@@ -1203,3 +1203,68 @@ read them as other seats' housekeeping, and was the fourth company to pay for
 the mechanism rather than the seat that named it. Full record: incident 12.
 
 `portable: yes`
+
+## L27 — A decision the silence rule releases has to be a merge: a diff that is not in the file it changes gives consent no hand to execute it
+
+**Trigger (2026-10-18T18:34Z)**, this company's project manager, filing to the
+owner the ask L25 said nobody had filed, verbatim and in full: "I am asking you
+to let fourteen charter patches proceed after your silence rather than waiting
+on an answer from you, because our exo checked each one against the company
+standard and none of them widens anyone's authority, which is the only reason a
+charter change would need your word instead of your quiet."
+
+The ask is correct, it is this register's own prescription executed four hours
+after it was written, and it starts a clock that expires **2026-10-20T18:34Z**.
+Nothing holds the other end of that clock. Her silence will consent to fourteen
+charter changes that no seat in this company is authorised to make: the project
+manager's charter does not edit `prompts/`, `docs/agents/patches/README.md` says
+in its own first line that a patch "takes effect only when the owner applies
+it", and this seat's charter said the owner merges. The asker is the one party
+forbidden to do what the silence releases.
+
+Not a local fault. Ursa's project manager declined the same act four hours
+earlier, for the same reason, in its own words (2026-10-18T14:48Z): "My own
+charter tells me twice not to, once by naming prompts as a surface I never edit
+and once by saying a charter change goes to the ledger rather than being
+self-applied." Two companies, two seats, one hole.
+
+**Rule.** The silence rule names no executor because it never needed one: its
+own sentence assumes the decision is already a pull request — "work that does
+[depend on the decision] is prepared so that the merge is one click on either
+side of the forty-eight hours" (standard §22). So a decision routed through
+silence must be *embodied* in the artifact it changes, in a branch, where the
+merge is the act. Write the change into the file; never into a file beside it. A
+proposal held in a parallel document is a shape §22 cannot discharge, because
+there is no click: consent arrives and the queue does not move, and every run
+correctly reports the door as open.
+
+The two failure modes this register has already paid for are the same mistake
+seen from two sides. Fifteen diffs sat for thirteen days and bound nobody while
+eight of them were *merged to `main`* — merged and binding came apart, which
+cannot happen to a diff that is in the charter. And a side copy rots: `git
+apply` refused one of the eight on `main` this morning while its repair sat on a
+branch (L25), a divergence git maintains for free when the diff is the file.
+
+**The check, before this seat writes a patch again.** The question is not "is
+this patch well-formed" — it is "when the door opens, whose hand moves?" If the
+answer is not "whoever merges this pull request", the patch is in the wrong
+place. Re-runnable, from a full clone: `git log --format='%ad %h' --date=short
+-- prompts/` names every charter edit this repository has ever landed, and
+`git apply --check --reverse docs/agents/patches/*.diff` says which proposals
+are applied. On 2026-10-18, before this pull request, the first command returned 13
+commits, of which the newest to carry a lesson into an existing charter is
+`d6bfd42` (2026-10-04) — a direct edit, and the clause this run files its own
+handoff under — and the second returned none applied: 0 of 15 in the 13 days
+since `251f848` created the directory.
+
+**Binds:** this seat, whose own charter is patched in the same pull request as
+this entry, by the route the entry prescribes; the project manager of this
+company, which may file one ask per charter against the pull request that
+carries the edit, so the ask it files has a merge at the end of it; and
+**headquarters' standard**, whose §22 should say who acts when silence expires —
+that clause binds four project managers in three companies, the file is HQ's,
+and it is routed there rather than patched here (§18). The fifteen diffs already
+under the owner's live ask are left exactly as they are: her clock is running on
+them and pulling them out from under it would be a second fault, not a fix.
+
+`portable: yes`

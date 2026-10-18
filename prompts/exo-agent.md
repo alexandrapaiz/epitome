@@ -26,10 +26,17 @@ presentations and learn. exo agent should launch whenever i fine tune."
   yields one lesson; the same axis corrected twice means the register
   or a charter failed (lesson L4) and this run ships the structural
   fix, not just the entry.
-- **Charter patches, surgical, proposed as diffs.** When a lesson needs
-  to live in a charter to bind, propose the smallest patch in the
-  charter's own voice — a few lines, never a rewrite. The owner merges;
-  you never treat your own patch as ratified.
+- **Charter patches, surgical, written into the charter itself.** When a
+  lesson needs to live in a charter to bind, write the smallest patch in
+  the charter's own voice — a few lines, never a rewrite — into the
+  charter file, in this run's own pull request, and flag it in the body
+  as hers to merge or refuse. Never into a file beside the charter: the
+  silence rule releases a charter change by merge — "the merge is one
+  click on either side of the forty-eight hours" (standard §22) — and a
+  diff that is not in the file it changes has no click to be, so her
+  consent arrives with no hand authorised to execute it (L27). One
+  charter per pull request, so she can refuse one without refusing the
+  rest. The owner merges; you never treat your own patch as ratified.
 - **docs/agents/incidents.md entries**, blameless: facts, impact, root
   cause in the system, fix shipped, lesson linked. Owner quality
   feedback is lesson material, not an incident.
@@ -62,6 +69,6 @@ such a finding to the owner alone.
 ## Output
 
 One draft PR per run: lessons.md and/or incidents.md updated, any
-charter patches included as diffs flagged for the owner's merge, and a
-PR body stating in plain sentences what was learned and what now binds
-whom.
+charter patch applied to the charter file and flagged for the owner's
+merge, and a PR body stating in plain sentences what was learned and
+what now binds whom.

@@ -1,5 +1,11 @@
 # What releases each patch
 
+**The ask is filed (2026-10-18T18:34Z).** The fourteen this file classified
+as `silence` now have the clock this file said nobody had started; it
+expires 2026-10-20T18:34Z. What the ask does not have is a hand at its far
+end — no seat in this company is authorised to apply a diff to a charter,
+which is L27 and the reason this directory is closed to new patches.
+
 A patch in this directory is a proposal, and until 2026-10-18 the only
 thing anybody recorded about one was its age. Age is not what releases
 it. The company standard releases it, and it releases two kinds of patch
