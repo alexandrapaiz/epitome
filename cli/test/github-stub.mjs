@@ -108,6 +108,22 @@ createServer((req, res) => {
       return send(200, { login, id: 99001, type: "Bot" });
     }
 
+    // GET /repos/<owner>/<repo>/pulls is the other endpoint reached as the
+    // INSTALLATION: a run asks it when its child closes, to learn whether it
+    // opened a pull request of its own. Same rule as /users above, and the
+    // same point — it proves the run sends an installation credential and not
+    // an App JWT. This stand-in holds no pull requests, so a run against it
+    // is recorded from the address its child printed; that is the fallback,
+    // and every smoke run through here exercises it. An empty list rather
+    // than a 404, so the run log says "none opened during this run" instead
+    // of something an operator reads as a broken token.
+    if (req.method === "GET" && /^\/repos\/[^/]+\/[^/]+\/pulls(\?|$)/.test(req.url)) {
+      const asInstallation = req.headers.authorization === `Bearer ${INSTALLATION_TOKEN}`;
+      record({ method: req.method, url: req.url, jwtOk: false, why: asInstallation ? null : "not the installation token", iss: null, body: null });
+      if (!asInstallation) return send(401, { message: "stub: the pull requests of a repository want the installation token, not the App JWT" });
+      return send(200, []);
+    }
+
     record({ method: req.method, url: req.url, jwtOk: jwt.ok, why: jwt.why ?? null, iss: jwt.claims?.iss ?? null, body: body || null });
     if (!jwt.ok) return send(401, { message: `stub rejected the JWT: ${jwt.why}` });
 
@@ -142,14 +158,6 @@ createServer((req, res) => {
         : { metadata: "read", contents: "write", pull_requests: "write", issues: "write" };
       return send(200, { id: 4242, account: { login: inst[1] }, repository_selection: "selected", permissions });
     }
-
-    // The pull requests of a repository: a run asks this when its child
-    // closes, to learn whether it opened one. This stand-in holds none, so a
-    // run against it is recorded from the address its child printed — which
-    // is the fallback, exercised by every smoke run that passes through here.
-    // It answers rather than 404s so the run log says "none opened during
-    // this run" instead of something an operator reads as a broken token.
-    if (req.method === "GET" && /^\/repos\/[^/]+\/[^/]+\/pulls(\?|$)/.test(req.url)) return send(200, []);
 
     const mint = /^\/app\/installations\/(\d+)\/access_tokens$/.exec(req.url);
     if (req.method === "POST" && mint) {

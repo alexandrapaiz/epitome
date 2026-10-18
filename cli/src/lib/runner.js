@@ -266,7 +266,13 @@ export async function pullRequestForRun({ repo, prefix, token = null, since = nu
       },
     });
   } catch (e) {
-    return { pr: null, branch: null, why: `${root} did not answer about the pull requests of ${repo} within ${Math.round(timeoutMs / 1000)}s (${e.message})` };
+    // A host that timed out and a host that refused the connection are two
+    // different things for whoever reads the run log: one is a slow GitHub,
+    // the other is a box with no route to it (or a stand-in that is not up).
+    const how = e.name === "TimeoutError"
+      ? `did not answer within ${timeoutMs >= 1000 ? `${Math.round(timeoutMs / 1000)}s` : `${timeoutMs}ms`}`
+      : "could not be reached";
+    return { pr: null, branch: null, why: `${root} ${how} about the pull requests of ${repo} (${e.message})` };
   }
   if (!res.ok) {
     return { pr: null, branch: null, why: `GitHub answered ${res.status} for the pull requests of ${repo}${res.status === 404 ? " — either it does not exist or this run's credential cannot read it" : ""}` };
@@ -641,8 +647,13 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
       // window's copy was truncated away.
       let { sessionId, turns, detail } = parseExecutorResult(tail);
       if (resultLine && (sessionId === null || turns === null)) {
+        // Field by field, and only where the window came back empty: the line
+        // fills in what truncation ate and can never take away something the
+        // window did read.
         const whole = parseExecutorResult(resultLine);
-        if (whole.sessionId) ({ sessionId, turns, detail } = whole);
+        sessionId ??= whole.sessionId;
+        turns ??= whole.turns;
+        detail ??= whole.detail;
       }
       // The host, then the transcript. Asking first is the fix: a run that
       // printed its address and then kept printing is still a run that opened

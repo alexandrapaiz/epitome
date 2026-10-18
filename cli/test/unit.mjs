@@ -3645,7 +3645,21 @@ test("every way the lookup can fail names itself and refuses nothing", async (t)
 
   const dead = await pullRequestForRun({ repo: "acme/roster", prefix: "pm/2026-10-18-scheduled", api: "http://127.0.0.1:1" });
   assert.equal(dead.pr, null);
-  assert.match(dead.why, /did not answer about the pull requests of acme\/roster within 10s/);
+  assert.match(dead.why, /^http:\/\/127\.0\.0\.1:1 could not be reached about the pull requests of acme\/roster/,
+    "a box with no route to the host and a host that is merely slow are not the same sentence");
+
+  // And the slow one, which is the shape that must never hold a run open: one
+  // request that answers nothing, against a lookup given 50ms to wait.
+  const slow = createServer(() => {});
+  slow.listen(0, "127.0.0.1");
+  await once(slow, "listening");
+  t.after(() => { slow.closeAllConnections?.(); slow.close(); });
+  const late = await pullRequestForRun({
+    repo: "acme/roster", prefix: "pm/2026-10-18-scheduled",
+    api: `http://127.0.0.1:${slow.address().port}`, timeoutMs: 50,
+  });
+  assert.equal(late.pr, null);
+  assert.match(late.why, /did not answer within 50ms about the pull requests of acme\/roster/);
 
   const nothing = await pullRequestForRun({ repo: null, prefix: null });
   assert.match(nothing.why, /names no repository and no branch prefix/);
@@ -3712,6 +3726,6 @@ test("with the host unreachable, the transcript half no longer loses the address
   assert.equal(r.exit, 0);
   assert.equal(r.pr, "https://github.com/acme/roster/pull/169",
     "the address is taken as it goes past, not read out of a window it has long since left");
-  assert.match(logged, /# pull request: http:\/\/127\.0\.0\.1:1 did not answer .*; recorded from the address the run printed instead/);
+  assert.match(logged, /# pull request: http:\/\/127\.0\.0\.1:1 could not be reached .*; recorded from the address the run printed instead/);
   assert.equal(r.turns, 1);
 });
