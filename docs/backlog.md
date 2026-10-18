@@ -5,6 +5,29 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [x] **Message pass, 2026-10-18 06:37 UTC: the HQ lessons re-vendor
+  reviewed against the merge rule and merged, nothing handed back to
+  distribution.** Dispatch: a pull request opened by `distribution`,
+  re-vendoring `docs/standards/lessons.md` from HQ at commit `a9a3e08`,
+  with instructions to check it against the merge rule and either
+  merge it or say on the board what it still needs. Checked rather than
+  assumed: `gh pr diff --name-only` showed exactly the one vendored
+  file the title named, the pull request's own description cited the
+  source commit and the `standards/vendor.sh` tool that produced it,
+  GitHub reported it clean and mergeable with no checks defined, no
+  review held against it, and no other open pull request touches that
+  file. Measured against `docs/standards/pm.md` §21 — scoped to what
+  the seat was asked, a green or check-less run, a report of what
+  shipped, no competing claim — all four held, so there was nothing to
+  hand back. Merged as a normal merge (commit `46b9c9e`) and posted a
+  `done` to the board. A pass earlier today (00:22 and 02:38 UTC
+  entries below) read its own operating instructions as a flat no on
+  every merge, mine or another seat's, and left that as an open
+  question for her. This pass's own instructions scope the restriction
+  to this seat's own pull requests only, so I did not re-litigate the
+  standing question — I am naming that the scope differed this pass,
+  not claiming it is settled company-wide. Seat: pm (reviewed and
+  merged); distribution needs nothing further on this one.
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
