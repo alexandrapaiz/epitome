@@ -63,6 +63,7 @@ import { join, resolve, sep } from "node:path";
 import { EPITO_DIR } from "./audit.js";
 import { GITHUB_API } from "./identity.js";
 import { redactor } from "./redact.js";
+import { thisRuntime, buildLine } from "./build.js";
 import { adapterFor } from "./adapters.js";
 import { routesFor, liveRoutes, noRouteMessage, classifyAttempt, withLane, resolveEndpoint, endpointLabel } from "./router.js";
 import { baseRunEnv } from "./runenv.js";
@@ -430,6 +431,11 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   if (droppedResume) resume = null;
 
   write(`# epito run ${name} ${runId}\n# trigger=${trigger} model=${rt.model} repo=${rt.repo} ref=${rt.ref ?? "(default)"} adapter=${adapter.name} command=${binary}${resume ? ` resume=${resume}` : ""} workdir=${workDir}\n`);
+  // The build that produced this run, in the run's own log. A log is read
+  // weeks later to explain a run, and until now every one of them described
+  // behaviour without naming the code that produced it — so a run from a
+  // hand-patched runtime was indistinguishable from a run from main.
+  write(`# ${buildLine(thisRuntime())}\n`);
   write(`${traceNote({ runId })}\n`);
 
   if (!existsSync(workDir)) {
