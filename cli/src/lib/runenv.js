@@ -17,10 +17,15 @@
 // cli/test/unit.mjs asserts neither of them spells the allowlist itself again.
 //
 // What is deliberately NOT here: the run's own minted credential, the trace
-// context, and the git author identity. Those are facts about one run — they
-// are built per run, in runner.js, on top of this — and a preflight has no
-// run to build them from. The executor does not read any of the three to
-// decide whether it can start, which is the only question a preflight asks.
+// context, the git author identity, and the window's scratch directory
+// (`TMPDIR`/`EPITO_SCRATCH`, src/lib/runner.js). Those are facts about one
+// run — they are built per run, in runner.js, on top of this — and a
+// preflight has no run to build them from: the scratch directory is derived
+// from the clone, and a preflight has no clone. The executor does not read
+// any of the four to decide whether it can start, which is the only question
+// a preflight asks. In particular `TMPDIR` does not belong in the list below:
+// a name in RUNTIME_GIVEN is read off the WORKER's environment, which is the
+// one directory every window on the box already shared.
 
 // The three the runtime gives every run, whatever the manifest says.
 export const RUNTIME_GIVEN = ["PATH", "HOME", "USER"];

@@ -47,6 +47,11 @@ export const KINDS = {
 
 const NUMBERS = new Set(["turns", "seconds"]);
 
+// The outcome the runtime files for a run no resource would take. It is a
+// word rather than an exit code for the same reason every other outcome is
+// (src/temporal/activities.js): the board speaks the product's vocabulary.
+export const REFUSED = "refused";
+
 // -> { event } | { error }. The error is the message the writer shows: it
 // names the rule broken and the fix, like `epito validate` does.
 export function boardEvent(raw, { now = new Date() } = {}) {
@@ -130,11 +135,18 @@ export function foldBoard(events, { agent = null, limit = 20, kind = null } = {}
 
   const seats = new Map();
   for (const e of kept) {
-    if (!seats.has(e.agent)) seats.set(e.agent, { name: e.agent, runs: 0, failed: 0, notes: 0, last: null, lastPr: null });
+    if (!seats.has(e.agent)) seats.set(e.agent, { name: e.agent, runs: 0, failed: 0, refused: 0, notes: 0, last: null, lastPr: null });
     const s = seats.get(e.agent);
     if (e.kind === "note") { s.notes++; continue; }
     s.runs++;
-    if (e.outcome && e.outcome !== "ok") s.failed++;
+    // A run a resource refused did not fail, and the two have been one number
+    // here since the board existed. On 2026-10-18 that number told the owner
+    // that a quarter of the day's runs had broken, when what had happened was
+    // that a provider said "not now" and named the hour it would be back
+    // (exo's incident 8). FAILED is now code that went wrong; REFUSED is
+    // capacity, and nobody should go reading a log over it.
+    if (e.outcome === REFUSED) s.refused++;
+    else if (e.outcome && e.outcome !== "ok") s.failed++;
     s.last = e;
     if (e.pr) s.lastPr = e.pr;
   }
@@ -159,9 +171,9 @@ export function renderBoard(fold, { unreadable = 0, path = BOARD_PATH } = {}) {
   out.push(`the board — ${fold.seats.length} seat${fold.seats.length === 1 ? "" : "s"}, ${fold.total} entr${fold.total === 1 ? "y" : "ies"} since ${iso16(fold.since)}`);
   out.push("");
   out.push(...table([
-    ["SEAT", "RUNS", "FAILED", "NOTES", "LAST", "OUTCOME", "TURNS", "LAST PR"],
+    ["SEAT", "RUNS", "FAILED", "REFUSED", "NOTES", "LAST", "OUTCOME", "TURNS", "LAST PR"],
     ...fold.seats.map((s) => [
-      s.name, s.runs, s.failed || "-", s.notes || "-",
+      s.name, s.runs, s.failed || "-", s.refused || "-", s.notes || "-",
       iso16(s.last?.ts), s.last?.outcome ?? "-", s.last?.turns ?? "-", s.lastPr ?? "-",
     ]),
   ]));

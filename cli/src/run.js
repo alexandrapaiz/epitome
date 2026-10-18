@@ -38,6 +38,7 @@ import { windowInstruction } from "./lib/runner.js";
 import { appendAudit, AUDIT_PATH } from "./lib/audit.js";
 import { appendBoard, readBoard, foldBoard, renderBoard, BOARD_PATH } from "./lib/board.js";
 import { busEnv, subscribingSeats, reconcileConsumers, startConsuming, busOffSays, durableFor } from "./lib/bus.js";
+import { humanMs } from "./lib/refusal.js";
 import { connectBus } from "./lib/nats.js";
 import { connect } from "./temporal/client.js";
 import { reconcile } from "./temporal/schedules.js";
@@ -69,6 +70,40 @@ export async function sendOrRestart(send, onRace = () => {}) {
     if (!justCompleted(e)) throw e;
     onRace();
     return { handle: await send(), raced: true };
+  }
+}
+
+// Did the provider take this run, or refuse it? Asked of the workflow itself,
+// because the worker is a different process (`epito worker`, its own systemd
+// unit) and the run's own state is the only channel that crosses that line
+// without inventing one.
+//
+// The bus consumer holds the event unacknowledged while this is being asked —
+// that is the whole point — so every branch here ends, and ends inside
+// `windowMs`. Three answers:
+//
+//   { refusal }                the run never began; the caller gives the
+//                              event back, at the reset time the refusal
+//                              named in its own words
+//   { refusal: null, why }     the provider took it, or it ended for a reason
+//                              that is not capacity: acknowledge
+//   { refusal: null, why }     the window passed with the run still going,
+//                              which is what a working run looks like:
+//                              acknowledge, exactly as this runtime always did
+//
+// A query that throws is the third answer too, never a refusal: a run is in
+// flight and a redelivery would start a second one.
+export async function awaitProviderVerdict({ handle, windowMs, pollMs = 2000, now = () => Date.now(), sleep = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
+  const until = now() + windowMs;
+  for (;;) {
+    let state = null;
+    try { state = await handle.query("state"); }
+    catch (e) { return { refusal: null, why: `the run could not be asked how the provider answered (${e.message})` }; }
+    if (state?.refusal) return { refusal: state.refusal, why: "a resource refused the run before a first turn" };
+    if (state?.past) return { refusal: null, why: "the run got past the provider" };
+    const left = until - now();
+    if (left <= 0) return { refusal: null, why: `the run was still going ${Math.round(windowMs / 1000)}s in, which is what a run that started looks like` };
+    await sleep(Math.min(pollMs, left));
   }
 }
 
@@ -387,6 +422,13 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
   // a start — a dead engine, a worker that is not polling — leaves the event
   // unacknowledged and in the stream.
   //
+  // And since 2026-10-18 the start is not the workflow's: a model provider
+  // that refuses the run refuses it a moment AFTER Temporal has accepted the
+  // workflow, which is where the acknowledgement used to be, and 65 of the
+  // day's events were thrown away in that gap. So the wake hands the loop a
+  // `verdict()` that asks the run itself, and a refusal gives the event back
+  // at the reset time the provider named.
+  //
   // It is wired AFTER the ingress is listening and it never stops the command:
   // a box whose bus is down still serves hooks, still runs its schedules, and
   // says per seat what it cannot be woken by. The bus is a trigger, and a
@@ -407,7 +449,30 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
       }
       bus.loop = startConsuming({
         bus: bus.conn, cfg: bus.cfg, seats: bus.seats, log,
-        wake: async (name, ev) => startOrFollowUp(name, "bus", { hookBody: ev.data }),
+        // The start, and then the one question the acknowledgement turns on.
+        // A trigger that COALESCED into a run already in flight gets no
+        // verdict: that run's event was already judged on its own, and the
+        // run now carrying this trigger is by definition one the provider
+        // took.
+        wake: async (name, ev) => {
+          const started = await startOrFollowUp(name, "bus", { hookBody: ev.data });
+          if (started.outcome !== "started") return started;
+          const handle = client.workflow.getHandle(started.workflow);
+          return { ...started, verdict: () => awaitProviderVerdict({ handle, windowMs: bus.cfg.refusalWindowMs }) };
+        },
+        onRefused: (name, ev, refusal, delay) => {
+          appendAudit({
+            agent: name, action: "bus.refused.provider", stream: bus.cfg.stream, consumer: durableFor(bus.cfg.group, name),
+            subject: ev.subject, event: ev.id, streamSeq: ev.streamSeq, delivery: ev.delivery,
+            refusal: refusal.kind, says: refusal.says, resetAt: refusal.resetAt ?? null, nakMs: delay,
+          });
+          try {
+            appendBoard({
+              kind: "note", agent: name, source: "bus",
+              text: `woken by ${ev.subject} and refused before a first turn by ${refusal.kind === "balance" ? "a credit balance too low to run" : `a ${refusal.kind} limit`}: ${refusal.resetAt ? `it resets at ${refusal.resetAt}` : "it named no reset time"}, so the event was NOT acknowledged and comes back in ${humanMs(delay)}`,
+            });
+          } catch (e) { log(`${name}: the board refused the note about the provider refusal (${e.message})`); }
+        },
         onEvent: (name, ev, started) => {
           appendAudit({ agent: name, action: "bus.event", stream: bus.cfg.stream, consumer: durableFor(bus.cfg.group, name), subject: ev.subject, event: ev.id, streamSeq: ev.streamSeq, delivery: ev.delivery, outcome: started.outcome });
           log(`${name}: run ${started.outcome} (${started.workflow}) — event acknowledged`);
@@ -423,7 +488,7 @@ export async function runDaemon(dirArg, { dryRun = false } = {}) {
         },
         onError: (name, e) => appendAudit({ agent: name, action: "bus.refused", stream: bus.cfg.stream, consumer: durableFor(bus.cfg.group, name), detail: e.message }),
       });
-      log(`the bus is live: ${bus.seats.length} consumer${bus.seats.length === 1 ? "" : "s"} on ${bus.cfg.stream} at ${bus.cfg.url}, acknowledged when a run starts (\`epito bus ${dirArg}\` is the report)`);
+      log(`the bus is live: ${bus.seats.length} consumer${bus.seats.length === 1 ? "" : "s"} on ${bus.cfg.stream} at ${bus.cfg.url}, acknowledged when a run starts and given back when a provider refuses one (within ${Math.round(bus.cfg.refusalWindowMs / 1000)}s, EPITO_BUS_REFUSAL_WINDOW_MS; \`epito bus ${dirArg}\` is the report)`);
     } catch (e) {
       // Named, not fatal, and said per seat: these seats are the ones that
       // will not be woken until this is fixed.

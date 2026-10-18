@@ -69,6 +69,7 @@ import { routesFor, liveRoutes, noRouteMessage, classifyAttempt, withLane, resol
 import { baseRunEnv } from "./runenv.js";
 import { runShortfall, shortfallSays } from "./boxenv.js";
 import { childTraceEnv, traceNote } from "./trace.js";
+import { readRefusal } from "./refusal.js";
 
 const PR_URL_RE = /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/\d+/g;
 
@@ -339,6 +340,47 @@ export function isCloneDir(name, dir) {
   return abs.startsWith(prefix) && abs.length > prefix.length && !abs.slice(prefix.length).includes(sep);
 }
 
+// --- the window's own scratch directory -----------------------------------
+// Where a run writes the files that are not its work: the pull-request body it
+// composes before it posts, a diff it pipes somewhere, whatever its tools keep
+// a filename for.
+//
+// Until this existed it wrote them to the box's own temp directory, and one
+// daemon hosts EVERY seat on a host under one user — so every window on the
+// box shared one namespace. A partner running a seat on our resident host lost
+// a pull request body to exactly that: their run wrote it, another seat's run
+// wrote a file of the same name over it between the write and the read, and
+// the read came back the other run's text. Nothing crashed, no log said a
+// word, and the wrong report was published before anyone noticed. Two runs
+// agreeing on a filename is not a rare accident between agents reading the
+// same charters — it is the normal case.
+//
+// So: one scratch directory per WINDOW, 0700, named to the run in `TMPDIR` and
+// in `EPITO_SCRATCH`. `TMPDIR` is the point of it — every tool that already
+// honours it (node's `os.tmpdir()`, python's `tempfile`, `mktemp`, `git`) is
+// fixed by this without knowing epito exists — and `EPITO_SCRATCH` is the name
+// a charter or a skill can be told to write to on purpose.
+//
+// It is the clone's SIBLING, derived from the clone's path:
+//
+//   - a sibling and not a directory inside the clone, because anything inside
+//     the clone shows up in the agent's own `git status` and is one `git add
+//     -A` away from being committed into somebody's repository.
+//   - derived and not `mkdtemp`ed, so cleanup finds it from the one path a
+//     workflow already carries (no second input to plumb, nothing to leak if a
+//     window dies between the two), and so a resumed run in a held window
+//     finds the files its earlier turn left — which is what makes it the
+//     window's scratch rather than the run's.
+export function scratchDirFor(workDir) {
+  if (typeof workDir !== "string" || !workDir) return null;
+  return `${resolve(workDir)}.scratch`;
+}
+
+// The two names the child is given for it. One function, because a second
+// spelling of this list is a tool pointed at the shared directory again.
+export function scratchEnv(dir) { return { TMPDIR: dir, EPITO_SCRATCH: dir }; }
+export const SCRATCH_ENV = ["TMPDIR", "EPITO_SCRATCH"];
+
 // The `clone` activity's body. Returns { workDir } or throws with a message
 // already in the product's voice; `permanent` marks the failures retrying
 // cannot help. Safe to retry: every attempt makes its own directory.
@@ -419,7 +461,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     if (fd !== null) closeSync(fd);
     return {
       exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null,
-      adapter: adapter.name, route: null, model: rt.model, attempts: [], ...extra,
+      adapter: adapter.name, route: null, model: rt.model, attempts: [], refusal: null, ...extra,
     };
   };
 
@@ -442,6 +484,25 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     write(`work directory ${workDir} is gone\n`);
     log(`${name}: the work directory for this run no longer exists; close the window and start a fresh run`);
     return finish("workdir-gone");
+  }
+
+  // This window's scratch directory (see scratchDirFor). Made here and not at
+  // clone time because a resumed run reuses a clone it did not make, and
+  // `mkdir -p` is the same call for the first turn and the fourth.
+  //
+  // A box that will not make it is a box where this run shares its temp
+  // directory with every other window on the host, which is the defect this
+  // guards. That is survivable and the run goes ahead — but it is said out
+  // loud, in the log and on the operator's console, because the whole cost of
+  // the original was that it was silent.
+  let scratch = scratchDirFor(workDir);
+  try {
+    mkdirSync(scratch, { recursive: true, mode: 0o700 });
+    write(`# scratch: ${scratch} — this window's own, named to the run as $TMPDIR and $EPITO_SCRATCH, and removed with the clone\n`);
+  } catch (e) {
+    write(`# scratch: ${scratch} could not be made (${e.message}), so this run shares ${tmpdir()} with every other window on this box — two runs that pick the same filename there overwrite each other\n`);
+    log(`${name}: this run has no scratch directory of its own (${e.message}) — it shares ${tmpdir()} with every other window on this box, so a file it writes can be overwritten by another seat's run`);
+    scratch = null;
   }
 
   // Told once, in words: the follow-up still runs, as a fresh run whose prompt
@@ -519,6 +580,16 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   // this runtime is listening, and never carrying the export headers, which
   // are the worker's secret and not this run's.
   Object.assign(baseEnv, childTraceEnv({ runId, agent: name, trigger }));
+  // Where this run's temporary files go. It overrides a $TMPDIR the manifest
+  // asked for through [runtime].env on purpose and says so: the point of the
+  // name is that the window owns it, and a seat that could hand its own
+  // windows one shared directory would hand back the defect.
+  if (scratch) {
+    for (const k of SCRATCH_ENV) {
+      if (rt.env?.includes(k) && process.env[k] !== undefined) write(`# scratch: ${k} from [runtime].env is overridden by this window's own scratch directory\n`);
+    }
+    Object.assign(baseEnv, scratchEnv(scratch));
+  }
   // The agent's own credential, minted for this one run by the caller, goes in
   // LAST and on purpose: it outranks a shared GH_TOKEN inherited through
   // [runtime].env. An agent that has an identity acts as itself, and the log
@@ -651,7 +722,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
       // The window first, because a result object pretty-printed across lines
       // is whole only there; the line kept above is what answers when the
       // window's copy was truncated away.
-      let { sessionId, turns, detail } = parseExecutorResult(tail);
+      let { sessionId, turns, detail, result } = parseExecutorResult(tail);
       if (resultLine && (sessionId === null || turns === null)) {
         // Field by field, and only where the window came back empty: the line
         // fills in what truncation ate and can never take away something the
@@ -660,6 +731,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
         sessionId ??= whole.sessionId;
         turns ??= whole.turns;
         detail ??= whole.detail;
+        result ??= whole.result;
       }
       // The host, then the transcript. Asking first is the fix: a run that
       // printed its address and then kept printing is still a run that opened
@@ -677,8 +749,20 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
       write(`# pull request: ${asked.pr
         ? `${asked.pr}, which GitHub says ${rt.repo} opened during this run on "${asked.branch}"`
         : `${asked.why}${printedPr ? `; recorded from the address the run printed instead, ${printedPr}` : ", and the run printed none either"}`}\n`);
-      write(`\n---\n# exit=${exit} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}${detail ? ` detail="${detail}"` : ""}\n`);
-      done({ exit, pr, sessionId, turns, detail });
+      // Did a resource refuse this run, rather than the run failing? The
+      // question is asked HERE, of an attempt that produced nothing: no
+      // pull request, no second turn, a non-zero ending. An agent that did
+      // its work and printed the words is not a refusal, and that guard is
+      // the whole reason this is not a grep over every run log.
+      const nothing = exit !== 0 && !pr && (turns === null || turns <= 1);
+      const refusal = nothing ? readRefusal([detail, result, tail].filter(Boolean).join("\n")) : null;
+      if (refusal) {
+        write(`# a resource refused this run before a first turn: ${refusal.says}\n`);
+        write(`# it ${refusal.resetAt ? `says it resets at ${refusal.resetAt}` : "named no reset time"}; the child's own ending was exit=${exit}, and the run is recorded as refused rather than failed\n`);
+        detail ??= refusal.says;
+      }
+      write(`\n---\n# exit=${refusal ? "refused" : exit} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}${detail ? ` detail="${detail}"` : ""}\n`);
+      done({ exit: refusal ? "refused" : exit, pr, sessionId, turns, detail, refusal });
     });
   });
 
@@ -695,6 +779,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     attempts.push({
       route: route.name, model: route.model, outcome: verdict, exit: out.exit,
       turns: out.turns ?? null, pr: out.pr ?? null, detail: out.detail ?? null,
+      refusal: out.refusal ?? null,
       startMs: startedAt, endMs: Date.now(),
     });
     if (verdict !== "route" || last) {
@@ -717,9 +802,17 @@ export function killGroup(child) {
 }
 
 // Delete a clone, refusing any path that is not one of this agent's clones.
+//
+// The window's scratch directory is this clone's sibling and dies with it: one
+// path in, both gone, so no workflow has to learn a second one and a window
+// that closes leaves nothing of either behind. The guard is applied to it too
+// rather than assumed from the first check — `removeClone` is the one function
+// in this file that deletes a directory it did not make.
 export function removeClone(name, dir) {
   if (!isCloneDir(name, dir)) {
     throw new Error(`refusing to delete "${dir}": a clone for "${name}" lives directly under ${tmpdir()} and is named epito-${name}-*`);
   }
   rmSync(dir, { recursive: true, force: true });
+  const scratch = scratchDirFor(dir);
+  if (isCloneDir(name, scratch)) rmSync(scratch, { recursive: true, force: true });
 }

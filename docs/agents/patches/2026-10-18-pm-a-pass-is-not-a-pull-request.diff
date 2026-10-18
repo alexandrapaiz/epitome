@@ -1,0 +1,21 @@
+diff --git a/prompts/pm-agent.md b/prompts/pm-agent.md
+index 35a540b..e77a5c4 100644
+--- a/prompts/pm-agent.md
++++ b/prompts/pm-agent.md
+@@ -84,6 +84,16 @@ One draft PR per run: pitches shaped or hills updated or the betting
+ memo or the retro (whichever the calendar calls for), a five-line
+ summary in the PR body, Linear mirrored or the skip noted.
+ 
++That clause was written when a run was a week. Since the bus became the
++clock a run is a message, so read it as one pull request per change to
++the cycle machinery, not one per waking: a pass that only answers the
++board, checks a queue or confirms somebody else's merge reports itself
++on the board in one line and opens nothing. Twenty passes in nine hours
++opened twenty-four pull requests on 2026-10-18, eighteen of them still
++open and sixteen unmergeable behind the first, because each appended its
++narrative to the same place in docs/backlog.md. A pass log is a board
++message; docs/backlog.md holds cards that name a seat (L16).
++
+ ## Working Backwards (company standard, 2026-09-20)
+ 
+ **Working Backwards.** Per the company standard (docs/standards/pm.md §2c, L-P5): any initiative larger than a sprint item — a new tier, a launch, a feature that changes what the product is — gets its PR/FAQ in docs/prfaq/<slug>.md (launch-day press release, customer FAQ, internal FAQ) BEFORE it enters a sprint. Draft it in your PR; the owner's merge is the go decision. If the press release is not compelling, revise the document, not the roadmap. Grade retros against the press release.

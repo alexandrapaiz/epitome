@@ -1,6 +1,6 @@
-<!-- vendored-from: standards/lessons.md @ 4464b1dacf79e49732236aaab3e6f3e204932131 -->
+<!-- vendored-from: standards/lessons.md @ 43a87dc482698798a58121917f63690175ce7d7d -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `4464b1d`,
+> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `43a87dc`,
 > vendored 2026-10-18. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
@@ -247,6 +247,26 @@ ID it eventually gets is not the one its author would have chosen.
   central register must keep a short sequential ID because charters cite
   it, as this file does, the fix is instead to make one author the only
   issuer and give everyone else an unnumbered inbox, per the preamble.
+
+  **Built 2026-10-18, for the decisions register first (HQ engineer).** The
+  inbox this amendment asked for is `docs/decisions/inbox/`: a seat writes
+  one file per decision, `YYYY-MM-DD-slug.md`, with no number anywhere, and
+  whoever merges runs `tools/adr.py issue --apply` on the mainline, where
+  there is one author and one snapshot. `tools/adr.py check` fails on a
+  duplicate number, on a heading that does not parse, on a conflict marker
+  left in the register and — with `--require-issued`, which is what the
+  mainline asserts — on an inbox that still holds anything, so forgetting to
+  issue is loud rather than silent. The five numbers this repository had
+  already issued twice stay as they are, on this clause's own instruction,
+  and `tools/adr-baseline.txt` records for each one which entry each live
+  citation means, which is the first time that ambiguity was resolvable by a
+  reader rather than merely visible. The cost of the old scheme, measured the
+  day the inbox was built: five ambiguous numbers, and three of the eight
+  unmergeable pull requests in the queue conflicting *only* on the position
+  of an append — including the one carrying that week's sprint goal, held
+  five days. A register the whole company appends to needs this; the two that
+  still do not have it, `docs/agents/incidents.md` and this file, are the
+  same defect waiting.
 
   **Third clause: an identifier cited across repositories carries its
   legislature.** This company has two bodies that number things and both
@@ -732,6 +752,438 @@ ID it eventually gets is not the one its author would have chosen.
   `docs/research/briefs/2026-09-19-orchestration.md` §1.2. A draft used
   as an implicit checkpoint is the pattern all three abandoned.)
 
+- **L-A33 — A sweep is point-in-time, so it must come back for what was
+  merely pending.** A merger, a dispatcher or a checker that walks a list
+  once sorts it into done and refused, and silently drops the third
+  state: in flight. An item whose check is still running at the moment
+  of the sweep is not red and is not merged, nothing in the sweep's
+  report distinguishes it from a refusal, and no later pass returns for
+  it — so it keeps its own staleness and waits for an accident. So a
+  sweep reports pending as its own state, re-reads anything pending
+  before it finishes, and when it cannot wait, names the item and the
+  one command that finishes it. "I swept" is not "the list is empty".
+  (alexandra-systems, 2026-10-18, measured in one morning. A
+  distribution sweep at 06:41Z took three vendored copies whose checks
+  read `CLEAN` and skipped the fourth, atelier-app #22, because it was
+  `UNSTABLE` — one test *pending*, not failing. Its check passed
+  fourteen seconds later. Nothing came back for it; the copy stayed
+  stale for twenty-one minutes and was merged at 07:02:54Z only because
+  the same seat happened to be woken for something else and had the item
+  on its own next-run list. One repository in four, for want of a second
+  look. The merger's-side twin of L-A32, where the seat's own artifact
+  is unreachable at the moment it matters, and of L-A18's fourth clause,
+  where "I could not look" is reported as "nothing is wrong" — a
+  pending check is the same unread answer wearing a merge queue's
+  clothes.)
+
+- **L-A34 — An absence measured from one vantage point is not a fact
+  about the world.** "None", "unobtainable", "not taken", "nothing ran",
+  "no such file": every one of those is a reading, and a reading has a
+  vantage point. So a seat that writes an absence names where it looked
+  and who could still see the thing — the surface or command used, and
+  the one party with a wider view — or it does not write the absence at
+  all. The cost is asymmetric, which is why this is law and not taste: a
+  wrongly reported presence invites the next reader to check it, and a
+  wrongly reported absence closes the question for everyone after.
+  (Three instances in one week across three seats, same mechanism,
+  different subjects; routed to this register by HQ's mba seat on
+  2026-10-18 as a handoff rather than written locally, with its own
+  error named first: "an absence measured from one vantage point is not
+  a fact about the world". One, mba run 5 wrote a product's usage
+  numbers were "none, and they are unobtainable by construction" after
+  a cold browser load, when the product's own front page prints them
+  and the owner can read them in ten seconds; found by the yc seat,
+  corrected in #249. Two, the same seat graded a recommendation "not
+  taken" that had been taken in full five days earlier, from a surface
+  that could not have shown it. Three, this seat's own: 163 red checks
+  were each true as a reading and meaningless as a fact, because no
+  surface distinguished a failing job from a job no runner ever took.
+  Companions: L-A18's fourth clause is this rule for a *program* — a
+  check names the refs it could not read and exits on its own code —
+  and L-A31 is the special case where the absent thing is a run. This
+  entry is the general form for a seat's own prose, where there is no
+  exit code to carry the doubt and the sentence has to carry it
+  instead.)
+
+- **L-A35 — A decision that moves a mechanism carries the checkers that
+  read it, in the same pass and into every repository that vendored
+  one.** Moving a thing is not done when the thing works somewhere else;
+  it is done when every program that audits it knows where to look.
+  Until then the checker is not silent, which would at least be honest —
+  it reports confident findings about a world that no longer exists, and
+  those findings cost more than no checker at all, because they are
+  mixed in with the real ones and they train every reader to skip the
+  category. So the pull request that moves a mechanism updates the
+  checks that read it, runs them across every repository in the
+  portfolio table, and treats a vendored copy of a check as part of the
+  mechanism rather than as somebody else's file. (alexandra-systems and
+  four product repositories, 2026-10-18, measured and then measured
+  again because the first reading was wrong. Decisions 049 and 056 moved
+  every seat's clock off GitHub Actions and onto the host on 2026-10-16
+  and 2026-10-17: the crons were commented out of the workflows and
+  carried into `runtime/agents/<seat>/agent.toml`, which is real and is
+  working. `tools/check-manifest.sh` was not carried, and it knows only
+  GitHub's scheduler, so it reported **35 findings across five
+  repositories — HQ 5, alexandria 10, Ursa 10, epitome 6, atelier-app
+  4 — of which 33 say "cadence declared but the workflow has no live
+  cron" and most of those are false**: the seat's clock exists, on the
+  host, in a file the check does not read. This register's first draft of
+  this entry asserted the opposite, that 33 manifests were stale, and
+  proposed to "fix" HQ's by blanking five true declarations to
+  `dispatch-only`; that edit was written, measured against the host's
+  own manifests, found to assert three falsehoods, and reverted inside
+  the same run. The cost of the real version is larger than the cost of
+  the false one. Two genuine drifts were hiding inside the 33 — HQ's
+  engineer declaring weekly while its host clock fires twice a day, and
+  HQ's okr declaring monthly while its host clock fires weekly on Sunday
+  — and nobody could see them through the noise. HQ's copy also makes
+  the manifest step of `tools-tests` fail on `main` alone, so every pull
+  request at HQ inherits a red no branch caused, and on 2026-10-18 HQ's
+  PM held two pull requests on it in one pass while an earlier pass that
+  day had merged through the identical finding. The cure was written on
+  2026-10-16 — the engineer's open pull request teaches the check all
+  three places a clock can live and corrects the engineer drift — and it
+  has been open ever since, behind the same queue. And the half nobody
+  owns: the four product copies of that checker are **vendored tools**,
+  and this company distributes vendored *standards* only, so when the
+  fix merges at HQ there is no pass that carries it to the four
+  repositories whose own test suites run the stale copy. Companion to
+  L-X15, where a company-wide fix takes every repository as an argument,
+  and to L-X16, where the source of a distributed copy is the law and
+  not a draft; both of those are about the file that is distributed, and
+  this one is about the checker that reads it.
+  **Correction, 2026-10-18, same day, by the three product PMs this rule
+  was handed to and then by this register's own search:** the sentence
+  above about "the four product copies of that checker" is false. There
+  are no product copies. `tools/check-manifest.sh` exists at HQ only;
+  Ursa's, epitome's and alexandria's PMs each looked for it in their own
+  repository before acting, each found nothing, and each said so, and a
+  code search finds zero hits for the filename in all four product
+  repositories and no script anywhere in them that reads `company.yaml`
+  at all. The 35 findings were produced by HQ's single copy reading the
+  four manifests from HQ. So the distribution gap this rule names is
+  real but a different shape: there is nothing downstream to update,
+  because the check is central and can only ever run centrally, and the
+  defect was asking four PMs to run a file that was never in their
+  hands. That ask is now its own rule, L-A38. The rest of this entry
+  stands as measured.)
+
+- **L-A36 — A credential's permission is proved by a write, and
+  `permissions.admin` is not a permission.** The `permissions` block the
+  GitHub API returns on a repository is a fact about the *account's* role
+  there, not about the scopes of the credential asking, so a
+  fine-grained token can read `admin: true` on five repositories and be
+  refused every write to all five. Before a seat reports that it *could
+  have* done something with the authority it holds, it runs the smallest
+  real call and reads the status code. (alexandra-systems, 2026-10-18.
+  HQ's yc seat handed up a harness finding and wrote, correctly in good
+  faith, "my own token reports admin on all four repositories, so I
+  could have flipped the setting in one command before writing any of
+  this, and I did not" — the restraint was right and the capability
+  claim was wrong. This register ran the call: `PATCH
+  /repos/alexandrapaiz/<repo>` with `delete_branch_on_merge=true`
+  returned **403 "Resource not accessible by personal access token"**
+  for both `EXO_TOKEN` and the runner's own token, on all five
+  repositories, while `.permissions.admin` read `true` on all five. The
+  setting is therefore an owner action and not a seat action, which is
+  the opposite of what the handoff believed and changes who the item is
+  routed to. Second instance of Incident 2's rule — reach is proved by
+  a write probe, never by a read — on a new surface: repository
+  settings rather than the Actions API. The cheap version of this rule
+  is one sentence: a 403 is information and an `admin: true` is a
+  rumour.)
+
+- **L-A37 — A merged branch does not survive its merge.** A ref left
+  behind after its pull request merges becomes an ancestor of the
+  default branch, so the next push onto that name is a clean
+  fast-forward that needs no force, and every `paths:`-filtered workflow
+  compares against the *old* head and therefore fires on every file the
+  default branch gained in between. The reds that result are statements
+  about `main` wearing a branch's name, and each one wakes a seat that
+  reads it as its own. So: every merge deletes its head branch
+  (`gh pr merge --delete-branch`, or the repository's
+  `delete_branch_on_merge`), and stranded refs are pruned rather than
+  left to accumulate. (alexandra-systems and four product repositories,
+  2026-10-18, measured by HQ's yc seat over every path-filtered run
+  rather than a sample: of 72 such runs on seat branches since the
+  Actions block began, **43 were not justified by any path in the branch
+  they name**, against 52 of 348 in the three weeks before. What changed
+  was not billing but rhythm — nine runs of one seat in a day, each
+  named from the same `<seat>/<date>-<trigger>` template, so a dormant
+  hazard became a frequent one. The mechanism is proven narrowly, for a
+  fast-forward onto a merged and undeleted ref, and the same seat
+  recorded the counter-observation that a later merge-commit push onto
+  the same branch fired nothing. At the time of writing **345 of the
+  portfolio's 638 remote branches were already-merged refs still
+  sitting there**: HQ 169 of 235, alexandria 67, epitome 76, Ursa 29,
+  atelier-app 4. All 345 were deleted by `tools/prune-merged-branches.sh
+  --apply`, which refuses to touch a ref that is not an ancestor of the
+  default branch, is the default branch, is protected by name, is the
+  head *or the base* of an open pull request, or whose pull request list
+  it could not read. Nothing is lost: the commits are on `main` and
+  GitHub still offers the ref back by name from the merged pull request.
+  The preventive half, the repository setting, was false on all five
+  repositories and is an owner action per L-A36.)
+
+- **L-A38 — An instruction to run a check names the repository the
+  check lives in, and a seat does not ask another company to run a file
+  it has not verified is in their hands.** Cross-repository instructions
+  are written from a checkout, and the writer's `tools/` is not the
+  reader's `tools/`. Name the repository, and either give the command
+  that proves the file is there or say plainly that it must be vendored
+  first. (alexandra-systems, 2026-10-18, this register's own error
+  against three product PMs in one pass. A handoff and then its own
+  correction both named "`tools/check-manifest.sh`, vendored in your own
+  repository, so that you can run it yourself". The file is at HQ only.
+  Ursa's PM: "I could not have run the checker even before your
+  correction arrived, not because I declined to, but because there is
+  nothing here to run." All three PMs spent a search proving an absence
+  and all three reported it back, which is three passes bought by one
+  unchecked possessive. The same error is corrected in L-A35's
+  provenance, where the false belief originated. Companion to L-A34: an
+  absence is a fact about where the reader stands, and so is a presence.)
+
+- **L-A39 — A freshness check that tests for presence answers a
+  different question.** When the rule is "compare against what governs
+  now", code that asks "is the ref/file/view *there*" passes in exactly
+  the case that matters — the stale copy is present — and returns the
+  false all-clear. Test for current: re-read, re-fetch, compare the
+  stamp, and let the read's own failure be the finding. (HQ, 2026-10-18,
+  found by the engineer seat reviewing this register's own distribution
+  tool. `resolve_source` fetched HQ's source ref only when the ref was
+  missing, and under the runtime's `--single-branch` clone
+  `refs/remotes/origin/main` is the one ref that is never missing and
+  always frozen at clone time, so a four-hour run read a `main` hours
+  old and reported every vendored copy current against it. Reproduced in
+  a fixture before the fix and after: a rule that lands on `main` after
+  the clone is read as "1 of 1 current" by the old code and `STALE` by
+  the new. Same family as L-A18's fourth clause — a check that cannot
+  read what it compares must say so — and the inverse of L-A34: here the
+  surface answered confidently *because* it never looked again.)
+
+- **L-A40 — Merged is not running, and the check compares what is
+  deployed against `HEAD`.** A change that merges into a repository is
+  not in effect until the system that runs it reports the new version,
+  and nothing in a pull request's green state says so. Every pipeline
+  that executes a file — a prompt, a view, a vendored copy, a workflow,
+  a host unit — records the identity of the version it is actually
+  running, and the check compares that identity against `HEAD` rather
+  than asking whether the merge happened. (alexandria, 2026-10-12, taken
+  from that product's research brief rather than from a `portable: yes`
+  lesson, because the library keeps its rulings in the brief and the
+  register: `docs/research/briefs/2026-10-12.md` §7, incident
+  `INC-2026-10-12-meta-review-proposal-merged-never-deployed`. A
+  meta-review's triage prompt merged on 2026-10-05 and was never
+  deployed; the pipeline kept running `ea61cbc` of 2026-09-29 and wrote
+  **8,861 triage rows against the old prompt** before anybody noticed,
+  and the brief records that "the org has now inferred this state by
+  hand six times". Their own fix is the generalizable part: `triage` and
+  `interpret` record prompt shas, so comparing those against `HEAD` is
+  the check — and the deploy gate was, meanwhile, refusing to deploy the
+  cure for the outage it was in. HQ has the same shape in three places
+  on 2026-10-18: `docs/company/`, the view every charter tells a seat to
+  orient from, generated 2026-10-12 and six days stale while the
+  workflow that regenerates it cannot run; a manifest checker whose fix
+  has been merged at HQ and read by nothing downstream; and 345 merged
+  refs whose merges were all green. Companion to L-A39: that rule is
+  about a check that tests presence instead of currency, this one is
+  about the gap between a merge and the running system, which no green
+  check closes.)
+
+- **L-A36 — Acceptance is not delivery: a transport's success code says
+  the message left, never that anything heard it.** Every wake in this
+  company goes through a transport that answers before a subscriber is
+  found. GitHub accepts a `repository_dispatch` with **204 No Content**
+  whether or not a single workflow in that repository listens for the
+  event type, and the host's window door answers `404` for a seat it has
+  never heard of. A delivery record that stores the transport's status
+  as the outcome therefore cannot tell a woken seat from a dropped
+  event, and it fails in the direction that hurts: the dashboard reads
+  green. Three clauses.
+  **Name the subscriber, not the code.** A program that reports delivery
+  reports who it reached. `status: 204` is recorded as *accepted by the
+  transport; a listener is not proven*, and the two words are never
+  collapsed.
+  **A declared path is proven end to end before anything is built on
+  it.** A seat whose manifest declares `cadence: dispatch-only` is
+  asserting that one door is its only door, which is a claim about the
+  subscriber side and must be checked there.
+  **The check reads the doors, not the dispatcher.**
+  `tools/check-bus-reach.py` answers it for every seat in every company
+  in one command, and it is the only honest answer, because the
+  dispatcher's own log is written by the half that thinks it succeeded.
+  (alexandra-systems, 2026-10-18, two independent sweeps and then a
+  measurement. The atelier company declares three seats, all three
+  `cadence: dispatch-only`, and on that morning all three were deaf on
+  **both** doors: no `repository_dispatch` trigger in any of the three
+  workflows, and no manifest under `runtime/agents/atelier/`, so the one
+  door its own manifest names as its only door reached none of them and
+  nothing anywhere recorded an error. epitome's frontend seat was deaf
+  on the workflow door and is absent from epitome's own `company.yaml`,
+  so a sweep driven by the manifest could not see it at all. In the same
+  hour, three `pr.merged` events at 07:09Z were dispatched to a seat
+  named `distribution` — an HQ-only seat, derived from this centralizer's
+  own branch prefix by `seat_of_branch` in the bus — in three product
+  companies that have no such seat; each recorded `window 404` and
+  `workflow status 204`, and all three woke nobody. The gap is old and
+  the messaging field named it long before we met it: AMQP's publisher
+  confirms exist because accepting a publish and routing it are
+  different events, and a publish sent `mandatory` that matches no queue
+  is returned to the publisher rather than quietly absorbed. GitHub's
+  dispatch API has no routing step and no return, so with this transport
+  the subscriber side has to be audited instead of trusted.)
+- **L-A37 — A finding the finder may not repair is an assignment, and an
+  assignment lives in a register, not in a feed.** The board wakes one
+  seat once and then scrolls. A defect that its finder is forbidden to
+  fix — by charter, by tier, by a dispatch's own boundary — is therefore
+  not recorded by handing it to somebody on the board: it is recorded in
+  the register the next reader will open, naming the owner, the exact
+  command or file, and the vehicle if one is already open. Two clauses.
+  **Hand it to the authority, not to the owner, and name all three
+  things.** The seat or role that holds the authority, the one-line
+  reason, and the vehicle: an open pull request that already touches
+  those files is the cheapest vehicle there is, and a second pull
+  request against the same files is a conflict somebody will have to
+  resolve.
+  **Write the one line where it will be found.** A finding nobody owns
+  is re-derived by every seat that notices it, and each re-derivation
+  reads as new work.
+  (alexandra-systems, 2026-10-18. The yc seat found atelier's three deaf
+  workflows, handed them to this seat because the standard makes a
+  product's workflow files HQ's, and this seat declined them inside its
+  own dispatch boundary and routed them to the HQ PM. Four days earlier
+  the same finding had already been half-fixed: pull request #19 in that
+  repository, opened by this seat on 2026-10-14, touches exactly those
+  three files, is mergeable, and adds the two guards that let a
+  dispatched run start but not the trigger that lets the dispatch
+  arrive. Nobody knew that, because it was on the board and not in a
+  register, so the item was derived three times by two seats in four
+  days and the company stayed deaf through all three. yc's own words in
+  the handoff that produced this rule: "What I am asking is that it stop
+  being unowned, so that the next person who asks why that company never
+  answers an event gets the real reason in one line instead of
+  re-deriving it.")
+- **L-A46 — A rule a stateless run must obey has to arrive with the
+  wake, and a register alone does not reach it.** A seat run is a
+  stateless request: woken by one event, it reads, it pushes, it ends,
+  and nothing of it survives. So a rule that asks a run to *remember*
+  something — to come back for an artifact, to not re-derive an answer,
+  to finish what a previous run started — is addressed to a reader who
+  does not exist, however correctly it is written down. The rule has to
+  be minted by the layer above and attached to the wake itself, next to
+  the event. Three clauses. **A standing fact rides the wake.** Anything
+  true of a seat's own lane at the moment it is woken — an outstanding
+  draft, an already-answered fault, a held branch — belongs in the wake
+  text, computed per seat by the bus, not left in a file the run may not
+  open. **It is a footer, never a gate.** Composing the standing block
+  fails silent: no token, a rate limit, an unreadable repository all
+  return nothing and the wake goes out unchanged, because a seat that is
+  not woken is worse than a seat woken without its footer. **A standing
+  fact with a short life gets a door, not a release.**
+  `BUS_STANDING_NOTICE` puts one sentence in front of every seat in the
+  company on a host restart, so an open incident does not need a code
+  change in five repositories to stop being re-derived.
+  This sharpens L-A37 rather than contradicting it: an assignment still
+  belongs in a register and not in a feed, and the register still has to
+  be read *to* the stateless run that must act on it.
+  (HQ, 2026-10-18, the centralizer's eleventh run of the day, from §24's
+  Observe phase. L-A32 — a run is over when its artifact is reachable —
+  became law at 07:00Z. Nine hours later the portfolio held **43 open
+  draft pull requests, 38 of them with no commit for longer than the
+  longest declared seat timeout and 23 carrying nothing but the commit
+  that opened them**, three times the population the rule had been
+  written off. In the same window **one third of all bus traffic, 63 of
+  200 events in 24 hours, was `check.failed` and `run.failed` for runs
+  that never started** — Incident 16, already answered by reference
+  under L-A31 — and five consecutive runs of this seat alone opened by
+  re-triaging it. The company's own ideas ledger had named the mechanism
+  on 2026-10-10 and asked for the wrong vehicle: a standup dispatch row,
+  which §11.4 can never fire because a seat holding an open pull request
+  is not dispatched and an orphaned draft *is* an open pull request. The
+  field had settled the direction first — alexandria
+  `docs/research/briefs/2026-09-19-orchestration.md` §1.2, three
+  independent primary sources moving the same way, durability leaving
+  the transport layer: MCP revision 2026-07-28 removed protocol sessions
+  outright and now has every request carry its own version and
+  capabilities in `_meta`, LangGraph ships checkpointers as separately
+  versioned packages, the OpenAI Agents SDK leads its session
+  documentation with resuming interrupted runs. The answer to
+  statelessness is not to ask the request to remember. Shipped as
+  `runtime/board/standing.py` and one line in `Bus._deliver`.)
+- **L-A47 — An instrument's scope is part of its answer, and a scope it
+  does not state is whatever it happened to be pointed at.** A check
+  that walks "the repository" rather than a named list of repositories
+  reports the drag in one place and reads as if it had measured the
+  company, and every rule written off its output inherits the error
+  silently. Two clauses. **A portfolio-wide question takes its scope
+  from the company's own registry**, `company.yaml`, so the scope of a
+  measurement and the scope of the company cannot drift apart; a list
+  kept inside the tool is a second registry that will disagree with the
+  first. **A target that could not be read is a named gap in the
+  output and changes the exit code**, because a partial census is a
+  floor and a caller who cannot tell a clean zero from an unanswered
+  question will quote the floor as the total. (HQ, 2026-10-18.
+  `tools/check-draft-prs.sh` is the only instrument in the company that
+  can tell an orphaned draft from a live run. It asked `gh pr list` with
+  no `-R` and refused to start unless `company.yaml` was in the working
+  directory, so every census it had produced in sixteen days described
+  HQ alone. L-A32 was written off the **14** drafts it could see; there
+  were **43**, and **29 of them were in the four repositories it had
+  never looked at**. This is the same defect as L-A39's freshness check
+  in a different dimension: that one answers a different question than
+  the one asked, this one answers the right question about a fifth of
+  the subject.)
+
+- **L-A44 — A helper that returns one value for several causes makes
+  every caller downstream a liar.** When a read can fail for reasons a
+  reader would act on differently, the cause travels with the answer or
+  the answer is not usable: `None` for a missing file, `None` for a
+  credential that may not look and `None` for a rate limit force the
+  caller to pick one sentence, and the sentence it picks is the one its
+  author happened to write. Two clauses, and they are mechanical.
+  **The cause rides with the value.** One return, two parts: what was
+  read and why it was not. A caller may then say "I could not check"
+  where it used to say "there is nothing there".
+  **An absence is confirmed against its container before it is
+  published.** A missing path and an invisible container answer
+  identically on most interfaces — a code host 404s both — so the
+  container is asked once, on failure only, and only container-visible
+  plus path-missing may be reported as an absence. Everything else is a
+  gap in the reader's reach and is named as one, with the cause.
+  A transient cause is retried once before it becomes a sentence,
+  because one extra call is cheaper than a false claim that lives until
+  the next regeneration.
+  (alexandra-systems, 2026-10-18. HQ's mba seat, orienting from the
+  company view as four HQ charters require, read that the research
+  product's manifest was "staged at headquarters" because "it is not
+  installed in the subcompany yet". That repository had carried its own
+  manifest for thirteen days and declared ten of eleven seats active;
+  the copy published in its place said three. One helper in
+  `tools/sync-company.sh` returned the same `None` for a private
+  repository, a missing file, a rate limit and a timeout, and the caller
+  printed the only cause it knew how to say. mba's own words routing it:
+  "that is the absence rule in a program's clothes rather than a seat's
+  prose". Companion to L-A34, which is the rule for a seat's prose, and
+  to L-A18's fourth clause, which is it for a check's exit code. This
+  entry is for the layer underneath both: the function that lost the
+  distinction before any sentence was written.)
+
+- **L-A45 — Compare objects, not the sentences written about them.** A
+  title, a label, a branch name and a run's own description are
+  authored, and two authors describing one thing differently defeat any
+  check that compares their words. So a check for duplicate work
+  compares the thing: a commit tip, a file hash, an identifier the
+  object carries itself. Where only prose exists, the check says it is
+  reading prose and cannot be conclusive.
+  (epitome, 2026-10-18, routed to this register by that company's PM
+  because the gap is in a role charter and not in their code: one of
+  their runs pushed the identical commit to two branches and opened a
+  pull request from each under different names, and the duplicate-build
+  check compared the two titles, found them different, and let both
+  through. The engineer role charter now asks for `git rev-parse` of the
+  tip against every open pull request's `headRefOid` before `gh pr
+  create`, which is one call and is the same object in every clone.)
+
 ## engineer
 
 - **L-E0 — The bar is Omarchy or higher.** Owner, 2026-09-20: "high
@@ -978,6 +1430,26 @@ ID it eventually gets is not the one its author would have chosen.
   summary, because no API serves a job summary and a verdict nobody can
   re-read is a verdict nobody can correct.
   (HQ incident 14, 2026-10-05.))
+
+- **L-E12 — A read-only intention must be read-only in the flags.** A
+  measurement that runs inside a directory somebody else is standing in
+  may only ask questions. The flags that look like thrift are the ones
+  that write: `git fetch --depth=N` into a complete repository writes
+  `.git/shallow` and leaves it shallow for every later reader, a
+  checkout moves their HEAD, a reset moves their work. Fetch into a
+  scratch tree, or read the blob out of `FETCH_HEAD`, and if cheapness
+  is genuinely needed pick the flag that does not rewrite the caller's
+  history (`--filter=blob:none`). (HQ, 2026-10-18, engineer review of
+  this register's own distribution tool, which fetched `--depth=1` into
+  each of four checkouts named by `--repos-dir` in order to measure
+  them, five lines below its own comment that "a measurement that moves
+  their HEAD is a measurement that breaks the thing it measured". The
+  same shallow-clone fault had cost six HQ passes their first turns that
+  morning, and this loop would have manufactured it in four more
+  repositories. Verified by the reviewer on a throwaway server:
+  `shallow=false` before the fetch, `shallow=true` after. Now pinned by
+  a test that a caller's complete checkout is still complete after a
+  `--check` run.)
 
 - *Pending harvest: the owner reports substantial engineer corrections
   in Ursa chair sessions not yet captured in any register (partially
@@ -1312,6 +1784,49 @@ ID it eventually gets is not the one its author would have chosen.
   landed, so the provenance here is the date and the seat, and the
   number becomes citable when the owner merges it.)
 
+  **The enforcement now exists, so the clause above is a pointer rather
+  than a request** (2026-10-17, sprint 2026-10-12 item 1).
+  `tools/check-secret-print.py` reads a command, a file, or a
+  `PreToolUse` payload and names four shapes: `X5-DEFAULT`, the
+  `${<SECRET>:-literal}` expansion above; `X5-PRINT`, a value expansion
+  inside `echo`, `printf`, `sed` or any other command that writes;
+  `X5-REDACT`, a filter that guesses at credential prefixes or masks
+  them, which is Incident 3's mistake rather than its fix; and
+  `X5-ENVDUMP`, `printenv` on a secret or a bare `env` piped somewhere.
+  It decides from variable NAMES and shell shape alone and never reads a
+  value. HQ registers it as a `PreToolUse` hook in `.claude/settings.json`,
+  so the refusal arrives before the command runs, with this rule's safe
+  form already written out for that variable; a seat outside Claude Code
+  is covered by the same checker run over the repository in CI
+  (`tools/tests/test_secret_print.py`). Three things a seat adopting this
+  should know. The guard fails open: an internal error allows the call,
+  because a guard that breaks the harness is worse than the failure it
+  guards. The forms this rule asks for are tested as false-positive
+  cases, which is the half that decides whether anyone keeps it
+  (`[ -n "$T" ]`, `${#T}`, `${T:+yes}`, `${A:-$B}` as a fallback chain,
+  a credential in an `Authorization` header). And a finding the company
+  decides to keep goes in a baseline file with the reason written down,
+  not into a silenced check. The honest limit: it reads text, not a
+  shell, so a command inside a quoted string or a value copied into a
+  variable with an innocent name is outside it. It stops the habit, which
+  is what four occurrences showed was the thing to stop.
+
+  **A command and an edit are different risks, and the guard treats them
+  differently (2026-10-18).** A command runs now, in this session, and
+  nothing reviews it before it does, so nothing suppresses it: a marker
+  or a baseline line on a command is ignored. An edit writes text that
+  only matters when something later runs the file, and it has two
+  reviewers the command does not have — the diff, and the repository scan
+  in CI — so an edit honours a marker with a reason and a baseline line
+  for that path. This is not a softening. It is the only reason the
+  baseline and the counter-example tests can be maintained at all: a
+  guard that refuses every edit quoting the idiom refuses the lesson that
+  teaches it, and it refused this seat three times on the day it was
+  fixed. The same day's other correction: what the shell does not expand
+  is not a print — inside single quotes, after a backslash, or in a
+  heredoc with a quoted delimiter — and a guard that calls a read-only
+  `grep` a leak is a guard a seat learns to route around.
+
 - **L-X6 — The cadence test: a duty is owned only when the seat's
   cadence is shorter than the duty's trigger rate.** Put the trigger
   rate and the assignee's cron side by side. If the cron is slower,
@@ -1634,6 +2149,38 @@ ID it eventually gets is not the one its author would have chosen.
   workflow rule the drift check cannot test reads as undistributed no
   matter how many registers carry it, and to L-X13, where the merge is
   the distribution and the pull request is not.)
+
+- **L-X16 — Distribute from the law, not from the draft you are standing
+  in.** A tool that copies one repository's file into another must read
+  the source from the ref that governs — `origin/main`, fetched, not
+  assumed present — and never from `$HQ_ROOT/`, which is whatever branch
+  the seat that invoked it happens to have checked out. Otherwise the
+  answer depends on the invoker's directory, which means the drift
+  report is unfalsifiable and the copies carry a proposal as if it were
+  a rule. Three clauses: the source is a named ref and the report prints
+  which one; a ref that cannot be read is "could not look" and its own
+  exit code, never a silent fall back to the working tree; and
+  distributing an unmerged standard on purpose is a flag the caller has
+  to type. (alexandra-systems, 2026-10-18, this seat against itself.
+  `tools/sync-standards.sh` measured drift on `main` as L-X13 requires
+  and then read the standard out of its own checkout. At 06:27:59Z PR
+  #220 merged; at 06:28:02Z PR #154 merged, moving `main` by 32 lines;
+  at 06:40Z the tool, run from a branch based on the first, cut four
+  syncs carrying the older text and reported them current. Same command,
+  same minute, same four repositories, forty minutes later: **from the
+  seat's branch "4 of 4 current", exit 0; from a `main` checkout "0 of
+  4", four STALE.** The 32 lines it failed to carry were L-A18's fourth
+  clause — a check that cannot read what it compares must say so instead
+  of answering all-clear — so the tool broke that rule on that rule,
+  twelve minutes after it landed. Fixed the same morning with `--source
+  REF`, defaulting to `origin/main` materialised as a real worktree so
+  the vendored header dates from `main`'s commit; re-cut, 4 of 4 current
+  in 29 seconds. Companion to L-X13, where the merge is the distribution
+  and the pull request is not, and to L-X15, where the fix takes every
+  repository as an argument. Still owed, and the next harvest's business:
+  `standards/vendor.sh --check` compares against the same `$HQ_ROOT`
+  working tree and will answer the same way to anyone who calls it by
+  hand.)
 
 ## security
 

@@ -344,3 +344,183 @@ and this seat, which reads that ledger every weekly review and had never
 read its status column as a gate. Full record: incident 5.
 
 `portable: yes`
+
+## L16 — A cadence lives in the thing that fires it, never in the sentence that claims it
+
+**Trigger (2026-10-18)**, the weekly drift review, with no owner
+correction behind it. One decision, taken well, changed what a run is:
+every seat workflow in this repository had its schedule retired on
+2026-10-17 with the reason written into the file — "every seat's clock
+is its manifest on the host; GitHub is an event source, not a runtime."
+Measured from inside a run on that host the next morning, thirty-three
+of the thirty-eight manifests it runs carry no `cron` line, and the one
+epitome seat that has one is the dormant eleven-line template. Five
+charters in this repository claim a cadence; none of the five has a
+clock.
+
+**Rule.** Every duty a charter states as a period ("weekly", "twice a
+day", "every standup") or as a per-run unit ("one draft pull request per
+run") is a promise about a clock the charter does not own. Name that
+clock, in the charter, as a file and a field: *this fires from
+`[trigger].cron` in my manifest on the host.* A duty whose clock you
+cannot name does not exist, however plainly the charter states it, and
+the way you discover that is a thirteen-day-late review rather than an
+error message. When any trigger changes anywhere — a schedule retired, a
+bus added, a seat moved between runtimes — every rule written against
+the old clock changes meaning silently, and re-reading those rules is
+part of the change, not a follow-up.
+
+Three instances in one window, each with its own consequence, which is
+what makes this a rule rather than a tidy observation.
+
+*A period with no clock.* This seat's charter says weekly. Its workflow
+schedule was never uncommented and its manifest was translated from that
+workflow faithfully, commented-out schedule and all, so the gap was
+copied rather than noticed. Every run this seat has ever had was started
+by a hand or by an event. Consequence: the review that would have caught
+the other two instances arrived six days after it was needed.
+
+*A per-run unit when a run changed size.* The project-manager charter
+promises one draft pull request per run and opens by saying it runs
+weekly. The event bus made a run a message. On 2026-10-18 that seat ran
+twenty times in nine hours and opened twenty-four pull requests;
+eighteen were still open when this was written, each clean against
+`main` alone, and exactly two of the eighteen can be merged in sequence,
+because every pass appends to the same place in `docs/backlog.md`.
+Nobody broke a rule; the rule kept itself twenty times.
+
+*A watch slower than the thing it watches.* The company standard gives
+failed-run triage to the project manager "every standup", over a
+look-back of twenty-four hours, for a seat that runs twice a day. In
+this window that seat ran three times in thirteen days and one of those
+runs failed. A look-back shorter than the watcher's own interval can
+only ever see the last day of it, so eight consecutive failures of the
+building seat went unread for three and a half days. Full record:
+incident 6.
+
+**The check, when you write or read a duty with a period in it.** Name
+the file and the field that fires it, and say the period that field
+actually holds. If the two differ, the field wins and the charter is
+wrong. If no field exists, the duty is a wish, and the honest act is to
+route it to whoever can create the clock — not to restate it louder.
+
+**Binds:** every seat in this company, because every charter here claims
+a cadence; the project manager twice, for its output unit and for the
+look-back of its triage (patch proposed as a diff in
+`docs/agents/patches/`); and this seat, whose own late review is the
+first instance and whose patch is beside it.
+
+`portable: yes`
+
+## L17 — The inbox is a feed, not a queue: read it addressed-only, and write a duty down before you work it
+
+**Trigger (2026-10-17/18)**, no owner correction behind it. A chair
+carrying an owner redesign addressed a handoff to this seat at
+2026-10-17T20:06:00Z, subject verbatim: "You are the local half of the
+company's learning loop from today: observe and orient your product
+daily on the brief's tick, feed HQ's centralizer, and propose one idea a
+week the owner has not thought of." The run it woke opened its draft
+pull request ninety-four seconds later, committed nothing into it, and
+ended. Thirteen hours later the project manager closed the empty draft.
+This seat then ran again, published its weekly drift review at
+09:19:51Z, and that review does not mention the loop: `grep -ri
+"learning loop"` over this repository returns nothing on `main` or on
+that branch. The duty is not late — its clock first strikes at
+12:01:04Z today — but for thirteen hours the only copy of it in
+existence was one row in a message store.
+
+**Rule.** When work reaches you as a message, two things are true that
+are not true of work on the board: nothing holds it but the run reading
+it, and the surface you read it on is a feed. So the first durable act
+of a run that accepts a duty its charter does not state is to write the
+duty down — a register entry and a charter patch, named — before doing
+any of the duty itself. A run can end at any turn; a file cannot.
+
+And read the feed as a feed. Section 15's own command,
+`?to_seat=<seat>&to_company=<company>`, takes the store's two defaults
+with it: `everyone=1`, which mixes in every broadcast the portfolio
+posted, and `limit=100`. Measured this run, in this seat's own inbox: the
+documented read returns 100 messages spanning seven hours fifty-nine
+minutes, three of which — one point seven percent — are addressed to this
+seat, and the handoff above is off the end of it. `&everyone=0` cuts the
+same window from 177 messages to 12. Eight of those 12 are another
+company's exo seat's mail, because the addressed clause matches
+`to_seat` with no company beside it
+(`runtime/board/store.py`, HQ): three companies hold a seat named `exo`,
+five hold a `pm`, and every one of them reads the others' handoffs as
+its own.
+
+**The check, at the top of a run.** Read addressed-only, company-scoped,
+and far enough back to cover the gap since your last run — not the
+default page:
+`?to_seat=exo&to_company=epitome&everyone=0&since_hours=72`, then drop
+the rows whose `to_company` is not yours. If a message in it assigns you
+a standing duty, your first commit is that duty in writing, with the
+file and the field that fires it named (L16), and only then the work.
+
+**Binds:** every seat in this company, all five of which the standard
+sends to the inbox before anything else; this seat first, as the one
+that lost thirteen hours of a duty's life to it. The store's query and
+the command printed in section 15 are HQ's file, not this
+repository's, and went up as a handoff to the centralizer with the
+two-line fix rather than as a patch here (L5). Full record: incident 7.
+
+`portable: yes`
+
+## L18 — A run a resource refused did not fail; record the refusal, give the work back, and resume when the resource returns
+
+**Trigger (2026-10-18)**, the learning loop's first tick, no owner correction
+behind it. Twice today the model provider refused every seat on the resident
+host — 65 of the day's 253 runs, 19 of 38 seats, all four companies — and each
+refusal was written down as a run that failed, exit 1, in the same field and with
+the same value as a seat whose work went wrong. Thirty-seven of the 65 were
+refused at turn one, having done nothing; none of the 65 opened a pull request.
+Because the event bus acknowledges a message once the run has *started*
+(`cli/src/lib/bus.js:9`), all 65 messages were consumed and nothing re-delivers
+them. Twelve minutes before the first of the two windows, this register received
+incident 6, which is the same shape through GitHub's billing state.
+
+**Rule.** A resource a run does not own — the model provider's session limit, an
+account's payment state, a disk, a token's rate — can refuse a run, and a
+refusal is not an outcome of the work. Three consequences, each of which the
+company got wrong today:
+
+1. **Record the class, not just the result.** An exit code that is the same for
+   "this seat did the wrong thing" and "this seat was never allowed to begin"
+   cannot be triaged, cannot be counted, and cannot be alarmed on. Whatever
+   surface records a run records which of the two it was, in a field of its own,
+   or every instrument downstream is blind to the whole class.
+2. **Give the work back.** Idempotence is the right question and the answer
+   depends on the refusal, not on the policy: a run refused before its first turn
+   did nothing and is safe to re-deliver by the one-attempt policy's own
+   reasoning (`cli/src/temporal/workflows.js:49` — "an execution that half-ran
+   has already pushed commits"). Work that is thrown away because the thrower
+   could not tell whether it had begun is a classification failure wearing a
+   safety policy's clothes.
+3. **Resume on your own.** A refusal ends when the resource returns, and
+   something has to be watching for that. Of today's 342 dark minutes, 121 came
+   after the limit had already reset, because the bus is this company's only
+   clock and a knock from outside is the only thing that starts anything (L16).
+   A system whose recovery waits for an unrelated event has an outage as long as
+   its quietest hour.
+
+**The check, in any run that reads a failure.** Read the error class before the
+exit code: the host writes the provider's own sentence into the run log
+(`/srv/asc/state/.epito/logs/<seat>/<run>.log`), and `api_error_status` with the
+refusal text is the only place the distinction exists today. If the class is a
+refusal, the finding is a capacity measurement, not a triage item, and it is
+counted — how many runs, how many seats, how long dark, how much after the
+resource returned.
+
+**Binds:** engineer, which owns the ack boundary, the run record and the refusal
+class (routed to `epitome/pm` with the measurement rather than designed in this
+register); the project manager, whose failed-run triage reads conclusions and
+logs and will read this class the same way it could not read incident 6's; this
+seat, which publishes the capacity line on every tick of the learning loop and
+had no such number before today (patch in `docs/agents/patches/`); and the
+company standard's own two-pass clock on a handoff (§18, §20), which counts a
+destination seat's passes without noticing when its passes were refused — HQ's
+file, routed to the centralizer. Full record: incident 8; first instance of the
+axis, incident 6.
+
+`portable: yes`

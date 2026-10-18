@@ -99,7 +99,9 @@ subscriptions = ["asc.events.*.message.posted"]
                                         # filtered to exactly these, and acknowledges an event
                                         # only once the seat's run has started — so an event
                                         # outlives a restart and is redelivered until a seat
-                                        # takes it. A subject is dot-separated tokens, with `*`
+                                        # takes it, and a run a provider refused before its
+                                        # first turn gives the event back at the reset time the
+                                        # refusal named. A subject is dot-separated tokens, with `*`
                                         # for one token and `>` for the rest; two filters that
                                         # overlap are refused here rather than by the server at
                                         # startup. WHICH stream carries them is a fact about the
@@ -194,6 +196,18 @@ because each of them was found on a box rather than read in this document:
   is the *operator* asserting that this box should hold all of them, which is a
   box's claim and not a manifest's. Whether the distinction belongs in the
   manifest is an open question below.
+
+- **A name the runtime owns outranks the manifest's copy of it, and the run
+  log says so by name.** Two names are the runtime's: the GitHub credential a
+  seat with its own App mints per run (`GH_TOKEN`/`GITHUB_TOKEN`), and the
+  scratch directory a window owns (`TMPDIR`/`EPITO_SCRATCH`). A manifest may
+  list either — a seat with no App needs the box's shared token under exactly
+  that name — and where the runtime has its own, the runtime's wins. For the
+  credential, because an agent that has an identity acts as itself; for the
+  scratch directory, because its whole purpose is that no two windows share
+  one, and a manifest that could point its seat's windows at one directory
+  would hand back the defect it fixed. Neither is silent: the run log names
+  which of the two it overrode, the way it names a dropped name.
 
 - **A name set to an empty value is held, not absent.** The runtime injects it,
   empty, and the agent reads it and fails somewhere far away. It is the
@@ -390,6 +404,22 @@ that arrives while the runtime is down is still there when it comes back.
   "how many are waiting, and how many have been tried more than once" is
   answerable per box.
 
+- **And "started" means the provider did not refuse it** (v0.2, 2026-10-18).
+  It used to mean "the engine accepted the workflow", which is reached in
+  milliseconds and almost never fails — so the failure that actually happens,
+  a model provider refusing the run, landed *after* the acknowledgement every
+  time. On one measured day that threw away 65 events across four companies;
+  37 of their runs had taken no turn at all and not one of the 65 opened a
+  pull request, so there was nothing to duplicate by redelivering and nothing
+  kept by acknowledging. A refusal before a first turn is now negatively
+  acknowledged, with the delay read from the reset time the refusal names in
+  its own words, so the event comes back when capacity does. The runtime
+  waits up to `EPITO_BUS_REFUSAL_WINDOW_MS` (default 120000) to learn which
+  happened; past that, a run still going is a run that started and the event
+  is acknowledged as before. A refused run is recorded with its own outcome,
+  `refused`, on the board and in the ledger: a run a resource would not take
+  did not fail.
+
 - **A subject is an address, not an envelope.** `asc.events.*.message.posted`
   wakes the seat for every message posted by any company, including messages
   addressed to somebody else: the subject carries who published and what
@@ -406,7 +436,10 @@ that arrives while the runtime is down is still there when it comes back.
 - **Which stream, and which bus, are facts about the box.** `EPITO_BUS_URL`
   (default `nats://127.0.0.1:4222`) and `EPITO_BUS_STREAM` say where the events
   are; `EPITO_BUS_GROUP` (default `epito`) names the consumer group, so two
-  rosters reading one stream do not fight over one durable. None of the three
+  rosters reading one stream do not fight over one durable;
+  `EPITO_BUS_REFUSAL_WINDOW_MS` (default 120000) is how long the runtime will
+  hold one event unacknowledged while it learns whether the provider took the
+  run. None of the four
   belongs in a manifest, for the reason the interpreter and the container image
   do not: a manifest that named a server would stop being portable at exactly
   the moment a second person ran it. A box that names no stream runs the roster

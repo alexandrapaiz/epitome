@@ -165,3 +165,255 @@ not-landing clause of this seat's charter, with the measurement and the
 one decision the owner would be asked.
 
 **Lesson produced.** L15 in `docs/agents/lessons.md`.
+
+## Incident 6 — 2026-10-12 to 2026-10-16 — The building seat did not start for three and a half days, and nobody read why
+
+**What happened.** Between 2026-10-12T20:25Z and 2026-10-16T01:41Z, nine
+scheduled runs of this company failed: eight of the engineer seat and
+one of the project manager. Every one of them failed in three to five
+seconds with zero steps executed. The runs are 38304103670,
+38305248719, 38343913575, 38447241753, 38499668570, 38593912693,
+38667959433, 38762870877 and 38836464924, and the cause is the same
+sentence on each, read this run from the job's check-run annotation,
+verbatim:
+
+> The job was not started because recent account payments have failed or
+> your spending limit needs to be increased. Please check the 'Billing &
+> plans' section in your settings
+
+Two engineer runs on 2026-10-16T15:32Z and 2026-10-17T01:34Z completed
+normally, so the block cleared on its own before anyone recorded that it
+had been there. The failure on 2026-10-17T14:25Z is unrelated: that run
+worked for twenty-seven minutes and exhausted its hundred-and-fifty-turn
+cap, and the project manager triaged it correctly two passes later.
+
+**Impact.** The company's only building seat was stopped for three and a
+half days, across eight of its scheduled runs, during the window in
+which a cycle was waiting to open. Nothing on the board, in the queue or
+in any pull request said so. The project manager's pass note of
+2026-10-18 reports "none in the last six hours" and names the turn-cap
+run as "the one real failure in the last 24h", which was true of the
+twenty-four hours it looked at.
+
+**Root cause in the system, two parts, neither of them a seat.**
+
+*The read step is blind to this class.* The company standard's triage
+procedure says to read each failure with `gh run view <id> --log-failed`
+and the model trace. A job that never started wrote no log: that command
+returns `log not found` for all nine, while successful runs of the same
+two days return eighty kilobytes each, so this is not log retention. The
+only place the explanation exists is
+`GET /repos/{owner}/{repo}/check-runs/{job}/annotations`, which no
+charter and no standard names. A procedure that reads conclusions and
+logs can see that a run failed and can never see that the account was
+blocked.
+
+*The watch is slower than what it watches.* The same procedure runs
+"every standup" with a twenty-four-hour look-back, against a seat that
+runs twice a day. Its escalation rule — "two failures in a row on one
+seat is an incident, not a third try" — was satisfied four times over,
+and the count was never computed, because the triage that computes it
+ran three times in thirteen days and one of those runs was itself
+blocked by the same billing failure. A look-back shorter than the
+watcher's own interval cannot see its own escalation condition. That is
+lesson L16's third instance.
+
+**Fix shipped, and what is not this seat's.** This run ships the entry,
+lesson L16 and the triage patch beside it
+(`docs/agents/patches/2026-10-18-pm-a-pass-is-not-a-pull-request.diff`
+carries the output unit; the look-back and the annotation read belong to
+the company standard's section 11.7, which is HQ's file and not this
+repository's, and went up as a note to the centralizer rather than as a
+patch here).
+
+The billing state itself is the owner's and nothing else's: company
+standard section 22 says spending never proceeds on her silence. It is
+in the handoff to `alexandra-systems/pm` as the single decision to put
+in front of her, with the measurement, because the same block will stop
+every seat the bus wakes through GitHub and will again leave no log when
+it does.
+
+**Lesson produced.** L16 in `docs/agents/lessons.md`.
+
+## Incident 7 — 2026-10-17 to 2026-10-18 — A standing duty the owner assigned lived for thirteen hours in one message row and nowhere else
+
+**What happened.** At 2026-10-17T20:06:00Z a chair carrying the owner's
+redesign of the learning loop addressed a handoff to this seat on the
+board, and to the exo seat of alexandria and of Ursa in the same second.
+Its last line names what it is: "The vendored standard carries section
+twenty-four when the centralizer re-vendors it; until then this handoff
+is your charter's delta." The run it woke opened pull request 142 as a
+draft ninety-four seconds later, with a body that says "Draft opened at
+the start of the run so the work ships even if the run dies", committed
+one commit that changed no file, and ended. The project manager closed
+the empty draft at 2026-10-18T09:17:12Z, thirteen hours and nine minutes
+later, and said so on the board rather than filing it as anything.
+
+**Impact.** An owner directive that makes this seat half of the
+company's learning loop was, for those thirteen hours, in no charter, no
+register, no board item and no file of this repository: `grep -ri
+"learning loop"` over `main` returns nothing. This seat ran again in
+that window — the weekly drift review published at 09:19:51Z — and that
+review does not mention the loop, because the run that wrote it read the
+inbox the way the standard documents it and the handoff was off the end
+of the page (L17). Of 56 pull requests this repository has closed
+unmerged, 142 is the only one with zero changed files, so the residue
+was visible and cheap to clear; the duty behind it was not visible at
+all.
+
+The duty itself is not late. `asc-brief.timer` on the host is enabled
+and active, it last fired at 2026-10-17T12:00:58Z — eight hours before
+the redesign — and fires next at 2026-10-18T12:01:04Z, which is the
+loop's first tick for this seat. The board's API emits `brief.sent` when
+the brief goes out and targets HQ's centralizer and the exo seat of
+alexandria, Ursa and epitome; delivery is the window door
+(`POST /message/epitome-exo`) and, failing that, a repository dispatch
+of type `asc.exo`, which `.github/workflows/agent-exo.yml` accepts. The
+clock and both doors exist. What did not exist was any record of what to
+do when it strikes.
+
+**Root cause in the system, three parts, none of them a seat.**
+
+*A run's only durable surface is its pull request.* The dispatch every
+seat on this host reads is built in `cli/src/lib/runner.js:149` and says
+to open the pull request draft-first, before anything else that takes
+time. That is the right instruction and it is incomplete: it makes the
+first artifact of every run a container, and a run that ends before it
+commits leaves the container and loses the content. Nothing in the
+dispatch, and nothing in this seat's charter, says that the duty a run
+accepted should be written down before it is worked.
+
+*The inbox read loses what is addressed to you.* Full measurement in
+L17: the read the company standard prints returns the newest hundred
+messages of the whole portfolio, just under eight hours at this volume,
+of which one point seven percent were this seat's; `everyone=0` cuts the
+same window to twelve, eight of which belong to another company's exo
+seat because the store matches `to_seat` without its company.
+
+*The standard this repository holds is two owner directives behind.*
+HQ's `standards/pm.md` carries section 23 (2026-10-17) and section 24
+(2026-10-18), the loop's own text; the copy vendored here stops at
+section 22. So the one place a fresh run would have found the duty
+described was absent, which is what the handoff's last line anticipated.
+
+**Fix shipped.** This run writes the delta into this repository where a
+fresh-context run will read it: lesson L17, this entry, and the charter
+patch `docs/agents/patches/2026-10-18-exo-the-loops-local-half.diff`,
+which adds the tick to this seat's own charter with the clock, the two
+doors and the output named. The patch is the owner's to apply; it went
+to the project manager as an ask under the silence rule (standard
+section 22) in the same run, with the two patches already waiting.
+
+**What is not this seat's.** The store's query and the command printed
+in section 15, and the re-vendor that would bring sections 23 and 24
+here, are HQ's files. Both went up as a handoff to
+`alexandra-systems/exo-centralizer`, which owns the standards and leads
+this loop, with the two-line fix and this measurement attached.
+
+**Lesson produced.** L17 in `docs/agents/lessons.md`.
+
+## Incident 8 — 2026-10-18 — A quarter of the day's runs were refused by a limit the runtime cannot see, and the events were thrown away
+
+**What happened.** Twice today every seat on the resident host — thirty-eight
+manifests across four companies — was refused by the model provider's session
+limit, and each refusal was recorded as a run that failed. The provider's own
+words, from the result line of a refused run
+(`/srv/asc/state/.epito/logs/pm/2026-10-18T09-55-31-705Z-message.log`),
+verbatim:
+
+> You've hit your session limit · resets 11:20am (UTC)
+
+Measured this run over all 253 run logs the host wrote today:
+
+| | |
+|---|---|
+| runs attempted | 253 |
+| refused by the session limit | **65 (25.7%)** |
+| of those, refused at turn 1 — no work done, no commit, no pull request | 37 |
+| refused mid-run, between 5 and 129 turns in | 28 |
+| of all 65, how many had opened a pull request | **0** |
+| seats affected | 19 of 38, in every one of the four companies |
+
+Two windows, not one. The first refusal came at 01:57:06Z and the last of that
+window at 02:42:07Z, 36 runs across 19 seats, against a limit that reset at
+05:00Z. The second began at 09:29:39Z and ended at 09:56:51Z, 29 runs across 11
+seats, against the limit that reset at 11:20Z. Nothing ran between 02:42:07Z and
+06:20:00Z, and nothing ran between 09:56:51Z and 12:01:08Z, which is this seat's
+own brief tick: 342 dark minutes in the day's first twelve hours.
+
+**Impact, in two parts that have different causes.**
+
+*The work was lost, not delayed.* `cli/src/lib/bus.js` acknowledges an event the
+moment the seat's run has started, and says so in the file at line 9: "acknowledge
+an event only once the seat's run has STARTED." A session-limit refusal arrives
+inside a run that started, so `bus.ack(msg)` fires on line 223 and the event is
+gone from the stream. The branch below it is the one that would have saved them —
+`bus.nak(msg, cfg.nakDelayMs)`, reached only when the start itself throws, with
+the log line "the event is NOT acknowledged and comes back." Sixty-five messages
+the bus delivered were therefore consumed by runs that did nothing, and no
+mechanism anywhere re-delivers them. Thirty-seven of the sixty-five did not get
+past turn one.
+
+*Then the company did not restart itself.* The first limit reset at 05:00Z and
+the first run after it was at 06:20:00Z; the second reset at 11:20Z and the first
+run after it was at 12:01:08Z. So 121 of the 342 dark minutes were not the
+limit's doing at all: capacity had returned and nothing fired, because since
+2026-10-17 the bus is this company's only clock and thirty-three of the
+thirty-eight manifests carry no `cron` (L16, drift review of 2026-10-18 §1). A
+capacity outage therefore ends when something external happens to knock, not when
+the capacity comes back.
+
+**Root cause in the system, three parts, none of them a seat.**
+
+*The runtime has no notion of its own capacity.* `grep -rn "session limit\|429"`
+over `cli/src` returns nothing. The one-attempt policy on the execute activity is
+deliberate and correct for what it was written against —
+`cli/src/temporal/workflows.js:49`, with the reason in the comment above it: "an
+execution that half-ran has already pushed commits and may have opened a PR, so
+replaying it is worse than failing." That reasoning holds for a run that did
+work. It does not describe a run the provider refused at turn one, and the
+runtime has no way to tell the two apart, so it applies the stricter rule to
+both. Today that cost 37 refusals that were safe to re-deliver by the policy's
+own test, and none of the 65 had opened a pull request.
+
+*No instrument reports capacity.* The board's run record carries `exit`, and an
+exit of 1 is the same value for a seat whose work failed and a seat that was
+never allowed to begin. The daily brief that went out at 12:01Z — the artifact
+the owner reads daily, and the thing that woke this run — counted eight shipped
+items, four products and four decisions, and contains no run count, no failure
+count and no mention of either outage. The one daily instrument whose subject is
+the shape of the host, `epitod-health.timer`, has been in `failed` since 07:00Z
+(drift review §6). The number that would have shown this — turns spent per seat
+per day — exists today only in the footer of each run's log file, and totalling
+it by hand is how this entry was written.
+
+*The escalation route presumes the actor can run.* Company standard §20 sends
+every not-landing finding to `alexandra-systems/pm`, and §18 gives that seat two
+passes before the handoff counts as its own failure. This seat handed that seat
+two findings this morning, at 09:07Z and in the drift review. Of HQ's project
+manager's nine runs after 09:07Z, one completed; the other eight were refused by
+this limit, seven of them at turn one. The standard's clock counts passes and
+nothing in it notices that the passes were not available.
+
+**Fix shipped here, and what is not this seat's.** This entry, lesson L18, the
+first tick of the learning loop in `docs/agents/loop.md` with the capacity line
+in it, and the charter patch that makes the line a standing duty of this seat
+(`docs/agents/patches/2026-10-18-exo-the-capacity-line.diff`). The runtime change
+— classify a provider refusal as a start failure, nak it, and take the nak delay
+from the reset time the refusal already carries — is the engineer seat's, and
+went to `epitome/pm` on the board with this measurement rather than being
+designed here. The brief's missing numbers and the §18 pass clock are HQ's files
+and went to `alexandra-systems/exo-centralizer`. The limit itself is a plan the
+owner holds, and the single decision only she can make is named in the handoff to
+`alexandra-systems/pm` under this seat's not-landing clause; company standard §22
+says spending never proceeds on her silence.
+
+**Relationship to incident 6, which is why this is a lesson and not a repair.**
+Incident 6 was written into this register at 09:17Z today: nine runs blocked by a
+GitHub billing state, three and a half days of a building seat lost, no log and
+no instrument, discovered by a review thirteen days late. Twelve minutes later
+the same shape fired through a different mechanism and took four companies down.
+Two instances of one axis is the condition L4 names, so what ships here is the
+generalization, not another repair of one mechanism.
+
+**Lesson produced.** L18 in `docs/agents/lessons.md`.

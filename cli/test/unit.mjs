@@ -19,7 +19,7 @@ import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
 import { runtimeBuild, buildLine, buildNote, porcelainPaths, thisRuntime } from "../src/lib/build.js";
 import { rosterEnv, namesFor, envTemplate, holding, runShortfall, shortfallSays, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
-import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, buildPrompt, shortfallLine, runBranchPrefix, pullRequestForRun, GIT_TOKEN_ENV } from "../src/lib/runner.js";
+import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, buildPrompt, shortfallLine, runBranchPrefix, pullRequestForRun, removeClone, scratchDirFor, scratchEnv, SCRATCH_ENV, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP, noRepoMessage, webRoot, installUrl, appSettingsUrl } from "../src/lib/identity.js";
 import {
   actsAs, rosterActs, rosterInstalled, grantGap, IDENTITY_FIX,
@@ -62,7 +62,7 @@ import { createServer } from "node:http";
 import { cpSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 
 // Every temp dir this suite makes, swept when the suite ends. Ten call sites
 // made one each and removed none, so a single `node --test test/unit.mjs` left
@@ -1036,6 +1036,165 @@ test("with no App, the run is exactly what it was before the identity slice", as
   }
 });
 
+// --- the window's own scratch directory -----------------------------------
+// Incident 5: every window on a host shared one temporary directory, a run
+// wrote its pull request body to a path it picked by name, another seat's run
+// wrote the same path between the write and the read, and the first seat
+// published the other run's report. These assert the four things that fix is:
+// the directory exists before the child does, its name reaches the child, two
+// windows never get the same one, and it dies with the clone.
+
+const scratchRun = async (name, { work, resume = null, text = null, env = {}, timeoutMs = 30_000 }) => {
+  const prior = {};
+  for (const [k, v] of Object.entries(env)) { prior[k] = process.env[k]; process.env[k] = v; }
+  try {
+    return await executeAgent({
+      agent: seat(name, { runtime: { model: "m", entry: "e", repo: "acme/roster", env: Object.keys(env) } }),
+      trigger: "cron", runId: `scratch-${name}-${Math.random().toString(36).slice(2, 8)}`,
+      workDir: work, resume, text: text ?? (resume ? "and now this, please" : null), timeoutMs, log: () => {},
+      executor: new URL("./stub-executor.mjs", import.meta.url).pathname,
+    });
+  } finally {
+    for (const [k, v] of Object.entries(prior)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  }
+};
+
+test("the scratch directory is the clone's sibling, never a path inside it", () => {
+  const work = join(tmpdir(), "epito-pm-AbC123");
+  const scratch = scratchDirFor(work);
+  assert.equal(scratch, `${work}.scratch`);
+  assert.ok(!resolve(scratch).startsWith(`${resolve(work)}${sep}`),
+    "anything inside the clone shows up in the agent's own `git status` and is one `git add -A` from being committed into somebody's repository");
+  // Two clones are two scratch directories, by construction rather than by
+  // luck: that is the whole of the isolation.
+  assert.notEqual(scratchDirFor(join(tmpdir(), "epito-pm-ZzZ999")), scratch);
+  // And it is still one of this agent's own paths, so cleanup's guard covers it.
+  assert.equal(isCloneDir("pm", scratch), true);
+  assert.equal(scratchDirFor(null), null);
+  assert.deepEqual(scratchEnv("/tmp/x.scratch"), { TMPDIR: "/tmp/x.scratch", EPITO_SCRATCH: "/tmp/x.scratch" });
+  assert.deepEqual(SCRATCH_ENV, ["TMPDIR", "EPITO_SCRATCH"]);
+});
+
+test("two runs at once each write the file they read back, under their own names", async () => {
+  const dir = tmpDir();
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const pm = mkdtempSync(cloneDirPrefix("pm"));
+  const okr = mkdtempSync(cloneDirPrefix("okr"));
+  try {
+    // Both children write "pr-body.md" in the temp directory they were given,
+    // at the same time, which is exactly what the two seats on the host did.
+    const env = { EPITO_STUB_SCRATCH_FILE: "pr-body.md", EPITO_STUB_SCRATCH_WAIT_MS: "250" };
+    const [a, b] = await Promise.all([
+      scratchRun("pm", { work: pm, env }),
+      scratchRun("okr", { work: okr, env }),
+    ]);
+    assert.equal(a.exit, 0);
+    assert.equal(b.exit, 0);
+    for (const [r, work] of [[a, pm], [b, okr]]) {
+      const logged = readFileSync(r.log, "utf8");
+      assert.match(logged, /ours=yes/, "the run read back its OWN pull request body — the readback is the incident's own test");
+      assert.match(logged, new RegExp(`EPITO_SCRATCH=${work}\\.scratch`), "and the child was told where its scratch directory is, by name");
+      assert.match(logged, new RegExp(`TMPDIR=${work}\\.scratch`), "under $TMPDIR too, which is what fixes every tool that already honours it without knowing epito exists");
+      assert.ok(existsSync(`${work}.scratch`), "the directory existed before the child ran, not after it asked");
+    }
+    // The proof that this is isolation and not coincidence: the two runs wrote
+    // the same filename and the two files are different files.
+    const read = (f) => readFileSync(join(`${f}.scratch`, "pr-body.md"), "utf8");
+    assert.notEqual(read(pm), read(okr), "one filename, two windows, two files");
+    assert.match(read(pm), /epito-pm-/);
+  } finally {
+    process.chdir(cwd);
+    for (const w of [pm, okr]) rmSync(w, { recursive: true, force: true });
+    for (const w of [pm, okr]) rmSync(`${w}.scratch`, { recursive: true, force: true });
+    delete process.env.EPITO_STUB_SCRATCH_FILE; delete process.env.EPITO_STUB_SCRATCH_WAIT_MS;
+  }
+});
+
+test("a window keeps its scratch across the runs inside it, and a fresh window starts empty", async () => {
+  const dir = tmpDir();
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const work = mkdtempSync(cloneDirPrefix("pm"));
+  const other = mkdtempSync(cloneDirPrefix("pm"));
+  try {
+    const env = { EPITO_STUB_SCRATCH_FILE: "notes.md", EPITO_STUB_SCRATCH_WAIT_MS: "0" };
+    const first = await scratchRun("pm", { work, env });
+    assert.match(readFileSync(first.log, "utf8"), /prior=no/, "the first run in a window finds nothing of its own there");
+    // A follow-up message in the SAME window: same clone, so the same scratch,
+    // so the files its earlier turn left are still where it left them. That is
+    // what makes this the window's scratch and not the run's.
+    const again = await scratchRun("pm", { work, resume: first.sessionId, env });
+    assert.match(readFileSync(again.log, "utf8"), /prior=yes/, "a resumed run finds what its earlier turn wrote");
+    // A different window of the SAME seat does not.
+    const stranger = await scratchRun("pm", { work: other, env });
+    assert.match(readFileSync(stranger.log, "utf8"), /prior=no/, "a different window of the same seat is a different scratch directory");
+  } finally {
+    process.chdir(cwd);
+    for (const w of [work, other]) { rmSync(w, { recursive: true, force: true }); rmSync(`${w}.scratch`, { recursive: true, force: true }); }
+    delete process.env.EPITO_STUB_SCRATCH_FILE; delete process.env.EPITO_STUB_SCRATCH_WAIT_MS;
+  }
+});
+
+test("a window's scratch dies with its clone, and the guard still refuses a stranger's path", () => {
+  const work = mkdtempSync(cloneDirPrefix("pm"));
+  const scratch = scratchDirFor(work);
+  mkdirSync(scratch, { recursive: true });
+  writeFileSync(join(scratch, "pr-body.md"), "a body nobody should have to find later");
+  removeClone("pm", work);
+  assert.equal(existsSync(work), false);
+  assert.equal(existsSync(scratch), false, "the scratch directory is the clone's sibling and dies with it: one path in, both gone");
+  // Unchanged: the path arrives from a workflow input, which is not a trusted
+  // source, and a scratch directory does not widen what cleanup may delete.
+  assert.throws(() => removeClone("pm", join(tmpdir(), "not-a-clone")), /refusing to delete/);
+  assert.throws(() => removeClone("pm", tmpdir()), /refusing to delete/);
+});
+
+test("a manifest cannot point its own windows at one shared temp directory", async () => {
+  const dir = tmpDir();
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const work = mkdtempSync(cloneDirPrefix("pm"));
+  const shared = join(dir, "everybody");
+  mkdirSync(shared, { recursive: true });
+  try {
+    const r = await scratchRun("pm", { work, env: { TMPDIR: shared, EPITO_STUB_SCRATCH_FILE: "pr-body.md", EPITO_STUB_SCRATCH_WAIT_MS: "0" } });
+    assert.equal(r.exit, 0);
+    const logged = readFileSync(r.log, "utf8");
+    assert.match(logged, /TMPDIR from \[runtime\]\.env is overridden by this window's own scratch directory/,
+      "said by name, like the identity override above it: a seat that could hand its own windows one shared directory would hand back the defect");
+    assert.match(logged, new RegExp(`TMPDIR=${work}\\.scratch`));
+    assert.equal(existsSync(join(shared, "pr-body.md")), false, "and nothing was written to the shared directory the manifest asked for");
+  } finally {
+    process.chdir(cwd);
+    rmSync(work, { recursive: true, force: true }); rmSync(`${work}.scratch`, { recursive: true, force: true });
+    delete process.env.TMPDIR; delete process.env.EPITO_STUB_SCRATCH_FILE; delete process.env.EPITO_STUB_SCRATCH_WAIT_MS;
+  }
+});
+
+test("a box that will not make the directory gets a run and a sentence, not a refusal", async () => {
+  const dir = tmpDir();
+  const cwd = process.cwd();
+  process.chdir(dir);
+  const work = mkdtempSync(cloneDirPrefix("pm"));
+  try {
+    // A file where the directory goes: the run cannot have its own scratch,
+    // and the one thing it must not do is pretend otherwise.
+    writeFileSync(scratchDirFor(work), "in the way");
+    const r = await scratchRun("pm", { work, env: { EPITO_STUB_SCRATCH_FILE: "pr-body.md", EPITO_STUB_SCRATCH_WAIT_MS: "0" } });
+    assert.equal(r.exit, 0, "a run still runs: the whole cost of the original was that it was silent, not that it stopped");
+    const logged = readFileSync(r.log, "utf8");
+    assert.match(logged, /could not be made/);
+    assert.match(logged, /two runs that pick the same filename there overwrite each other/,
+      "the log names the hazard the run is now exposed to, in the words of the thing that happened");
+    assert.match(logged, /EPITO_SCRATCH=\(none\)/, "and the child is told nothing it would be false to tell it");
+  } finally {
+    process.chdir(cwd);
+    rmSync(work, { recursive: true, force: true }); rmSync(scratchDirFor(work), { recursive: true, force: true });
+    delete process.env.EPITO_STUB_SCRATCH_FILE; delete process.env.EPITO_STUB_SCRATCH_WAIT_MS;
+  }
+});
+
 // --- the clone's own credential -------------------------------------------
 // gitEnvFor is the whole of "the clone runs as the agent", so its three rules
 // are asserted on the value itself, and then proved end to end against a
@@ -2003,7 +2162,7 @@ const stubSeat = (over = {}) => ({
   agent: { name: "pm" },
   runtime: {
     model: "claude-opus-5", entry: "e", repo: "acme/roster",
-    env: ["MOONSHOT_API_KEY", "EPITO_STUB_DIR", "EPITO_STUB_REFUSE_BASE_URL", "EPITO_STUB_ECHO_ROUTE"],
+    env: ["MOONSHOT_API_KEY", "EPITO_STUB_DIR", "EPITO_STUB_REFUSE_BASE_URL", "EPITO_STUB_REFUSE_SAYS", "EPITO_STUB_ECHO_ROUTE"],
     route: [
       { name: "kimi", model: "kimi-k2-turbo-preview", base_url: "https://api.moonshot.ai/anthropic", token_env: "MOONSHOT_API_KEY" },
       { name: "subscription", model: "claude-opus-5" },
@@ -3909,4 +4068,377 @@ test("the run log header names the build that produced the run", async (t) => {
   // Second line of the runtime's own header, above anything the child printed.
   assert.match(logged, /^# epito run [\s\S]*?\n# trigger=[\s\S]*?\n# epito /m);
   assert.match(logged, new RegExp(`# ${buildLine(thisRuntime()).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+});
+
+// --- a refused run did not fail (src/lib/refusal.js) ----------------------
+//
+// The measurement behind every assertion here: on 2026-10-18 the host
+// attempted 253 runs and a model provider refused 65 of them, 37 before a
+// first turn. Every one was recorded as a failure, and every one threw away
+// the bus event that woke it. What is pinned below is the three places that
+// changed: the reading of the provider's own words, the delay taken from the
+// reset time those words name, and the surfaces that now tell a refusal from
+// a failure.
+import {
+  readRefusal, refusalNakMs, refusalSays, parseResetMoment, humanMs,
+  MIN_REFUSAL_NAK_MS, MAX_REFUSAL_NAK_MS, RESET_GRACE_MS, FLOOR_MS,
+} from "../src/lib/refusal.js";
+import { awaitProviderVerdict } from "../src/run.js";
+import { formatLine } from "../src/lib/slack.js";
+
+const NOW = Date.parse("2026-10-18T01:57:00.000Z");
+
+test("the shapes a provider actually refuses in are read, each with its own reset time", () => {
+  const cases = [
+    // The Claude CLI's own machine-readable line: the words, a pipe, an epoch.
+    ["Claude AI usage limit reached|1792300800", "limit", "2026-10-18T05:20:00.000Z"],
+    // The same thing in prose, which is what lands in a run log.
+    ["Claude AI usage limit reached. Your limit will reset at 5am (UTC).", "limit", "2026-10-18T05:00:00.000Z"],
+    ["weekly limit exceeded, resets in 2 hours", "limit", "2026-10-18T03:57:00.000Z"],
+    // A gateway answering 429 with the seconds it wants back.
+    ['{"type":"rate_limit_error","message":"slow down"}\nretry-after: 600', "rate", "2026-10-18T02:07:00.000Z"],
+    // Refusals that name no moment at all: still refusals.
+    ["HTTP 429 Too Many Requests", "rate", null],
+    ['{"type":"overloaded_error"}', "overloaded", null],
+    ["Your credit balance is too low to access the Anthropic API.", "balance", null],
+  ];
+  for (const [text, kind, resetAt] of cases) {
+    const r = readRefusal(text, { now: NOW });
+    assert.ok(r, `not read as a refusal: ${text}`);
+    assert.equal(r.kind, kind, text);
+    assert.equal(r.resetAt, resetAt, text);
+    assert.ok(r.says.length > 0 && r.says.length <= 200, "the provider's own sentence comes back, bounded");
+  }
+});
+
+// The correction. The patterns above were written from the shapes the
+// provider documents, and this runtime's own host prints none of them: every
+// one of the 37 runs refused before a first turn on 2026-10-18 ended
+// `{"api_error_status":429,"result":"You've hit your session limit · resets
+// 11:20am (UTC)"}`, and the reader returned no-match for all 37. The code was
+// right and the sentence was wrong, which saved exactly zero runs.
+//
+// So the sentences stopped being prose in a test and became data copied out
+// of the logs (test/fixtures/refusals.json). A shape the provider invents
+// next is a row added by whoever reads the log; the assertion comes free, and
+// nobody has to notice that a regex needed editing too.
+const REFUSAL_FIXTURE = JSON.parse(readFileSync(new URL("./fixtures/refusals.json", import.meta.url), "utf8"));
+
+test("every refusal sentence this runtime has actually recorded is read, from the fixture", () => {
+  assert.ok(REFUSAL_FIXTURE.observed.length >= 12, "the fixture is the coverage; it does not shrink");
+  for (const row of REFUSAL_FIXTURE.observed) {
+    const r = readRefusal(row.text, { now: Date.parse(row.at) });
+    assert.ok(r, `read as no refusal at all, which is the defect this file exists for: ${row.source}`);
+    assert.equal(r.kind, row.kind, row.source);
+    assert.equal(r.resetAt, row.resetAt, `the reset time in ${row.source}`);
+    assert.equal(r.says, row.says, `the sentence quoted back to the operator for ${row.source}`);
+    if (row.resetAt) {
+      assert.equal(refusalNakMs(r, { now: Date.parse(row.at) }),
+        Math.min(Math.max(Date.parse(row.resetAt) - Date.parse(row.at) + RESET_GRACE_MS, MIN_REFUSAL_NAK_MS), MAX_REFUSAL_NAK_MS),
+        `the wait for ${row.source} is the moment the provider named, not a floor`);
+    } else {
+      assert.equal(refusalNakMs(r, { now: Date.parse(row.at) }), FLOOR_MS[row.kind],
+        `${row.source} named no moment, so the wait is the floor for ${row.kind}`);
+    }
+  }
+  // The other half of the fixture: sentences that contain every word a
+  // refusal contains and are not one. This repository writes them all day.
+  for (const row of REFUSAL_FIXTURE.not_refusals) {
+    assert.equal(readRefusal(row.text, { now: NOW }), null, `read as a refusal and is not one: ${row.source}`);
+  }
+});
+
+test("the sentence THIS host prints is in the fixture, by name, and cannot be dropped", () => {
+  // Pinned separately from the loop because the loop would still pass if
+  // somebody deleted the row. This is the sentence the whole file is for.
+  const rows = REFUSAL_FIXTURE.observed.filter((r) => /hit your session limit/i.test(r.text));
+  assert.ok(rows.length >= 2, "the host's own sentence, in both the forms it was logged in");
+  assert.ok(rows.some((r) => r.text.includes('"api_error_status":429')),
+    "including the executor envelope it arrives inside, which is all a refused run leaves behind");
+  const r = readRefusal(rows[0].text, { now: Date.parse("2026-10-18T09:30:00.000Z") });
+  assert.equal(r.kind, "limit");
+  assert.equal(r.resetAt, "2026-10-18T11:20:00.000Z", "and the clock is read as the host wrote it, in UTC");
+  assert.ok(!r.says.includes('"'), "the sentence is lifted out of the JSON, not quoted with the JSON");
+});
+
+test("a status with no words is still a refusal, and says only what a status can say", () => {
+  // 429 is as much as a result envelope carries when the prose is one this
+  // runtime has never seen. Holding the event for a minute and backing off
+  // is right; inventing a window the provider did not name is not.
+  const r = readRefusal('{"api_error_status":429,"result":"request failed after 10 attempts"}', { now: NOW });
+  assert.equal(r.kind, "rate", "a bare status does not say which window closed, so it claims the smaller one");
+  assert.equal(r.resetAt, null, "and it invents no clock");
+  assert.equal(refusalNakMs(r, { now: NOW, delivery: 1 }), FLOOR_MS.rate);
+  assert.equal(refusalNakMs(r, { now: NOW, delivery: 5 }), FLOOR_MS.rate * 5, "and backs off if it keeps being refused");
+  // A sentence that DID name its reset is never read by this weaker rule:
+  // every shape that names a moment is ordered ahead of every shape that
+  // does not, which is what the fixture's 429 rows prove together.
+  const named = readRefusal('{"api_error_status":429,"result":"You\'ve hit your session limit · resets 5am (UTC)"}', { now: NOW });
+  assert.equal(named.kind, "limit");
+  assert.equal(named.resetAt, "2026-10-18T05:00:00.000Z", "the status is in the same line and the words still win");
+});
+
+test("a run that did its work is not a refusal, whatever it printed", () => {
+  // The guard that makes this safe to run over every ending: the caller only
+  // asks about an attempt that produced nothing, and the words alone are
+  // never enough. An agent writing ABOUT usage limits is the ordinary case
+  // on this repository, today especially.
+  assert.equal(readRefusal("I read the incident: 65 runs hit a usage limit today."), null,
+    "prose about a limit names no refusal shape");
+  assert.equal(readRefusal(""), null);
+  assert.equal(readRefusal(null), null);
+});
+
+test("a bare clock is the NEXT time the clock reads it, and UTC is honoured when named", () => {
+  assert.equal(parseResetMoment("5am (UTC)", { now: Date.parse("2026-10-18T09:00:00Z") }), "2026-10-19T05:00:00.000Z",
+    "at 9am, 'resets at 5am' is tomorrow");
+  assert.equal(parseResetMoment("1792300800", { now: NOW }), "2026-10-18T05:20:00.000Z", "ten digits is seconds");
+  assert.equal(parseResetMoment("2026-10-18T05:00:00Z", { now: NOW }), "2026-10-18T05:00:00.000Z");
+  assert.equal(parseResetMoment("whenever", { now: NOW }), null, "what it cannot read, it does not invent");
+});
+
+test("the delay is the reset the refusal named, not the bus's fixed fifteen seconds", () => {
+  const r = readRefusal("Claude AI usage limit reached. Your limit will reset at 5am (UTC).", { now: NOW });
+  const ms = refusalNakMs(r, { now: NOW });
+  assert.equal(ms, Date.parse("2026-10-18T05:00:00Z") - NOW + RESET_GRACE_MS,
+    "three hours and three minutes, plus a moment, because coming back on the second a limit lifts earns a second refusal");
+  // 121 of the day's 342 dark minutes were after capacity had already come
+  // back. A reset already in the past is a minute away, not six hours.
+  assert.equal(refusalNakMs(r, { now: Date.parse("2026-10-18T06:00:00Z") }), MIN_REFUSAL_NAK_MS);
+  // And no refusal holds an event past the ceiling.
+  assert.equal(refusalNakMs({ kind: "limit", resetAt: "2026-10-25T00:00:00Z", says: "x" }, { now: NOW }), MAX_REFUSAL_NAK_MS);
+});
+
+test("a refusal that named no reset gets a floor for what refused, backed off by delivery", () => {
+  const balance = readRefusal("Your credit balance is too low to access the Anthropic API.", { now: NOW });
+  assert.equal(refusalNakMs(balance, { now: NOW, delivery: 1 }), FLOOR_MS.balance);
+  assert.equal(refusalNakMs(balance, { now: NOW, delivery: 4 }), FLOOR_MS.balance * 4,
+    "nine runs sat blocked by a billing state for three and a half days; knocking every half hour forever is not the answer");
+  assert.ok(refusalNakMs(balance, { now: NOW, delivery: 99 }) <= MAX_REFUSAL_NAK_MS, "and it is still bounded");
+  assert.equal(refusalNakMs(null), null, "no refusal, no delay to compute");
+});
+
+test("the sentence names what refused, when it is back, and what happened to the event", () => {
+  const r = readRefusal("Claude AI usage limit reached. Your limit will reset at 5am (UTC).", { now: NOW });
+  const says = refusalSays("engineer", r, { delayMs: refusalNakMs(r, { now: NOW }) });
+  assert.match(says, /^engineer: the run did not start/, "the rule broken, first");
+  assert.match(says, /a usage limit refused it before a first turn/);
+  assert.match(says, /it says it resets at 2026-10-18T05:00/, "in the provider's own words");
+  assert.match(says, /NOT acknowledged and comes back in 3\.1h/, "and what the runtime did about it");
+  const vague = refusalSays("pm", { kind: "overloaded", says: "overloaded_error", resetAt: null }, { delayMs: 60_000 });
+  assert.match(vague, /named no reset time, so the wait is this runtime's floor/, "what it does not know, it says");
+  assert.deepEqual([humanMs(45_000), humanMs(600_000), humanMs(3 * 3_600_000)], ["45s", "10m", "3h"]);
+});
+
+test("a run the provider refused ends as refused, and carries when capacity comes back", async () => {
+  const r = await stubRun(stubSeat({ route: undefined }), {}, {
+    EPITO_STUB_REFUSE_SAYS: "Claude AI usage limit reached. Your limit will reset at 5am (UTC).",
+  });
+  assert.equal(r.exit, "refused", "not exit 1: the code did not fail, a resource would not take it");
+  assert.equal(r.pr, null);
+  assert.ok(r.refusal, "the run carries the refusal out to the workflow and the bus");
+  assert.equal(r.refusal.kind, "limit");
+  assert.ok(Date.parse(r.refusal.resetAt) > Date.now(), "with a reset time in the future");
+  assert.match(r.logged, /a resource refused this run before a first turn/, "and the run log says so in the product's words");
+  assert.match(r.logged, /recorded as refused rather than failed/);
+  assert.match(r.logged, /# exit=refused/);
+});
+
+test("a run that failed on its own is untouched by any of this", async () => {
+  const r = await stubRun(stubSeat({ route: undefined }), {}, { EPITO_STUB_REFUSE_SAYS: null });
+  assert.equal(r.exit, 0, "the stub's ordinary run still ends the way it always did");
+  assert.equal(r.refusal, null);
+});
+
+test("the board counts a refusal in a column of its own, never as a failure", () => {
+  const e = (over) => boardEvent({ agent: "pm", trigger: "bus", ...over }).event;
+  const fold = foldBoard([
+    e({ runId: "a", outcome: "ok", turns: 6 }),
+    e({ runId: "b", outcome: "refused", detail: "Claude AI usage limit reached" }),
+    e({ runId: "c", outcome: "refused" }),
+    e({ runId: "d", outcome: "clone" }),
+  ]);
+  assert.equal(fold.seats[0].runs, 4);
+  assert.equal(fold.seats[0].refused, 2, "two runs nobody has to go and debug");
+  assert.equal(fold.seats[0].failed, 1, "and one that somebody does");
+  const text = renderBoard(fold);
+  assert.match(text, /SEAT +RUNS +FAILED +REFUSED/, "the column is on the board an owner reads");
+  assert.match(text, /Claude AI usage limit reached/, "with the provider's own sentence beside it");
+});
+
+test("Slack says 'refused', with an hourglass rather than a warning sign", () => {
+  const line = formatLine({
+    agent: "engineer", trigger: "bus", turns: null, pr: null, durationMs: 7_000,
+    exit: "refused", refusal: { kind: "limit", resetAt: "2026-10-18T05:00:00.000Z", says: "usage limit reached" },
+  });
+  assert.match(line, /^⏳ engineer · bus · 7s · refused by the provider, back at 2026-10-18 05:00 UTC$/);
+  assert.ok(!line.includes("⚠️"), "a quarter of the day's runs posted a warning sign for a bug that did not exist");
+  assert.match(formatLine({ agent: "pm", trigger: "cron", exit: 1 }), /^⚠️ pm · cron · exit 1$/, "a real failure is unchanged");
+  assert.match(formatLine({ agent: "pm", trigger: "cron", exit: 0, turns: 3 }), /^pm · cron · 3 turns$/);
+});
+
+// --- the verdict the bus waits for (src/run.js) ---------------------------
+//
+// The worker is a different process from the ingress, so the run's own state
+// is the only channel between the refusal and the consumer holding the event.
+// Driven here with a fake handle: the thing being pinned is the decision, and
+// it must not need an engine to check.
+const fakeHandle = (answers) => {
+  let i = 0;
+  return { query: async () => { const a = answers[Math.min(i++, answers.length - 1)]; if (a instanceof Error) throw a; return a; } };
+};
+const instantly = { now: (() => { let t = 0; return () => (t += 1000); })(), sleep: async () => {} };
+
+test("a refusal travels from the run to the consumer, and nothing else does", async () => {
+  const refusal = { kind: "limit", says: "usage limit reached", resetAt: "2026-10-18T05:00:00.000Z" };
+  const refused = await awaitProviderVerdict({ handle: fakeHandle([{ past: false }, { refusal, past: false }]), windowMs: 120_000, pollMs: 1, ...instantly });
+  assert.deepEqual(refused.refusal, refusal);
+  assert.match(refused.why, /refused the run before a first turn/);
+
+  const past = await awaitProviderVerdict({ handle: fakeHandle([{ past: true }]), windowMs: 120_000, pollMs: 1, ...instantly });
+  assert.equal(past.refusal, null);
+  assert.match(past.why, /got past the provider/);
+});
+
+test("the window ends, and a run still going is a run that started", async () => {
+  const out = await awaitProviderVerdict({ handle: fakeHandle([{ past: false }]), windowMs: 5_000, pollMs: 1_000, ...instantly });
+  assert.equal(out.refusal, null, "the old boundary is the fallback, so this can only ever buy events back");
+  assert.match(out.why, /still going 5s in/);
+});
+
+test("asking can never un-start a run: a query that throws is not a refusal", async () => {
+  const out = await awaitProviderVerdict({ handle: fakeHandle([new Error("engine is not answering")]), windowMs: 120_000, ...instantly });
+  assert.equal(out.refusal, null);
+  assert.match(out.why, /could not be asked how the provider answered \(engine is not answering\)/);
+});
+
+// --- can this build read THIS box's refusals? (src/lib/runlogs.js) --------
+//
+// The row that would have caught the defect above in a minute instead of a
+// day. What is pinned here is the survey's honesty rather than its prose:
+// that it counts only the runs that produced nothing (the runner's own
+// guard), that it says how many of those this build can actually name, and
+// that an ending it cannot read is reported with the sentence somebody needs
+// in order to fix it — never rounded away.
+import { surveyEndings, endingsSays, footerOf, endedWithNothing, startedAt, stoppedByTheBox } from "../src/lib/runlogs.js";
+
+const logBox = (runs) => {
+  const dir = tmpDir("epito-logs-");
+  for (const r of runs) {
+    mkdirSync(join(dir, r.seat), { recursive: true });
+    const name = `${r.at.replace(/:/g, "-").replace(/\.(\d{3})Z$/, "-$1Z")}-${r.trigger ?? "message"}.log`;
+    const footer = r.running ? "" : `\n---\n# exit=${r.exit} pr=${r.pr ?? "-"} session=s1 turns=${r.turns ?? "-"}${r.detail ? ` detail="${r.detail}"` : ""}\n`;
+    writeFileSync(join(dir, r.seat, name), `${r.body ?? ""}${footer}`);
+  }
+  return dir;
+};
+
+const REFUSED_LINE = '{"api_error_status":429,"result":"You\'ve hit your session limit · resets 11:20am (UTC)"}';
+
+test("the survey counts the runs that produced nothing, and says how many this build can name", () => {
+  const now = Date.parse("2026-10-18T12:00:00.000Z");
+  const dir = logBox([
+    { seat: "pm", at: "2026-10-18T09-30-00-000Z", exit: "1", turns: 1, body: REFUSED_LINE },
+    { seat: "pm", at: "2026-10-18T09-31-00-000Z", exit: "refused", turns: 0, body: REFUSED_LINE },
+    { seat: "engineer", at: "2026-10-18T10-00-00-000Z", exit: "0", turns: 44, pr: "https://github.com/a/b/pull/1", body: `I read the incident: 65 runs ${REFUSED_LINE}` },
+    { seat: "engineer", at: "2026-10-18T11-00-00-000Z", exit: "1", turns: 9, body: "the suite went red on my own change" },
+    { seat: "exo", at: "2026-10-18T11-30-00-000Z", exit: "1", turns: 0, running: true, body: "still going" },
+    { seat: "exo", at: "2026-10-16T09-00-00-000Z", exit: "1", turns: 1, body: REFUSED_LINE },
+  ]);
+  const s = surveyEndings({ dir, now });
+  assert.equal(s.runs, 4, "the run with no footer has not ended, and the one two days ago is outside the window");
+  assert.equal(s.ended, 2, "a run with a pull request and a run with 9 turns did work, whatever they printed");
+  assert.equal(s.named, 2);
+  assert.equal(s.withReset, 2, "and both carry the moment the provider named");
+  assert.deepEqual(s.kinds, { limit: 2 });
+  assert.deepEqual(s.unnamed, []);
+  const says = endingsSays(s);
+  assert.equal(says.level, "ok");
+  assert.match(says.text, /4 runs ended here in the last 24 hours, 2 of them producing nothing, and this build names all 2/);
+});
+
+test("an ending this build cannot read is a note with the sentence that fixes it", () => {
+  const now = Date.parse("2026-10-18T12:00:00.000Z");
+  const dir = logBox([
+    { seat: "pm", at: "2026-10-18T09-30-00-000Z", exit: "1", turns: 1, body: REFUSED_LINE },
+    { seat: "market", at: "2026-10-18T11-45-00-000Z", exit: "1", turns: 0, body: "the model is at capacity for your organisation until the hour turns" },
+    { seat: "market", at: "2026-10-18T11-50-00-000Z", exit: "1", turns: 1, detail: "a sentence this reader has never seen" },
+  ]);
+  const s = surveyEndings({ dir, now });
+  assert.equal(s.ended, 3);
+  assert.equal(s.named, 1);
+  assert.equal(s.unnamed.length, 2);
+  assert.equal(s.unnamed[0].seat, "market", "newest first, because that is the one somebody is looking at");
+  assert.equal(s.unnamed[0].says, "a sentence this reader has never seen", "the runner's own detail when it wrote one");
+  assert.match(s.unnamed[1].says, /^the model is at capacity/, "and the last line of output when it did not");
+  const says = endingsSays(s);
+  assert.equal(says.level, "note", "a reader with a gap in it never refuses a run; it only means nobody can say why the last one stopped");
+  assert.match(says.text, /can name only 1 — 2 endings are unread/);
+  assert.match(says.text, /newest market at 2026-10-18 11:50Z ending "a sentence this reader has never seen"/);
+  assert.match(says.text, /copy the sentence into cli\/test\/fixtures\/refusals\.json in github\.com\/alexandrapaiz\/epitome/,
+    "the fix is in the message — a row of data rather than a regex — and it says which repository holds the file, for the reader who installed from npm");
+});
+
+test("a run this box killed is counted as this box's doing, not as a refusal nobody can read", () => {
+  // Four of this host's own endings were exit 143 at the minute the daemon
+  // restarted. Telling an operator to add SIGTERM to a fixture of provider
+  // sentences is how a row earns the right to be ignored, so the box's own
+  // endings are counted and named separately — and still counted, because a
+  // run the box killed lost its work the same way a refusal does.
+  const now = Date.parse("2026-10-18T12:00:00.000Z");
+  const dir = logBox([
+    { seat: "pm", at: "2026-10-18T09-30-00-000Z", exit: "143", body: "$ claude -p <prompt> --output-format json" },
+    { seat: "ursa-pm", at: "2026-10-18T09-31-00-000Z", exit: "timeout", body: "$ claude -p <prompt> --output-format json" },
+    { seat: "engineer", at: "2026-10-18T09-32-00-000Z", exit: "1", turns: 1, body: REFUSED_LINE },
+  ]);
+  const s = surveyEndings({ dir, now });
+  assert.equal(s.ended, 3);
+  assert.equal(s.named, 1);
+  assert.equal(s.stoppedCount, 2);
+  assert.equal(s.unnamedCount, 0, "neither of them is an unread refusal");
+  const says = endingsSays(s);
+  assert.equal(says.level, "ok", "a restart is not a gap in the reader");
+  assert.match(says.text, /names 1 as a refusal .*, 2 this box ended itself \(over its time limit, asked to stop\)/);
+  assert.equal(stoppedByTheBox("143"), "asked to stop");
+  assert.equal(stoppedByTheBox(0), null, "an ordinary exit code says nothing about who ended the run");
+  assert.equal(stoppedByTheBox("refused"), null, "and a refusal is the provider's doing, which the reader already said");
+  // Every ending accounted for and none of them a refusal: still ✓, and the
+  // sentence says what happened rather than nothing.
+  const allKilled = surveyEndings({ dir: logBox([{ seat: "pm", at: "2026-10-18T09-30-00-000Z", exit: "137" }]), now });
+  assert.equal(endingsSays(allKilled).level, "ok");
+  assert.match(endingsSays(allKilled).text, /every one of those ended by this box itself \(killed\)/);
+});
+
+test("the count is the whole gap even though only the newest few are quoted", () => {
+  const now = Date.parse("2026-10-18T12:00:00.000Z");
+  const dir = logBox(Array.from({ length: 9 }, (_, i) => ({
+    seat: "pm", at: `2026-10-18T0${i + 1}-00-00-000Z`, exit: "1", turns: 1,
+    detail: `an ending number ${i} nothing here can read`,
+  })));
+  const s = surveyEndings({ dir, now });
+  assert.equal(s.ended, 9);
+  assert.equal(s.unnamed.length, 3, "three samples keep the row one line");
+  assert.match(endingsSays(s).text, /9 endings are unread/, "and the number is all nine");
+});
+
+test("a box with no logs at all prints no row rather than a zero", () => {
+  const s = surveyEndings({ dir: join(tmpDir(), "never-ran"), now: Date.now() });
+  assert.equal(s.looked, false);
+  assert.equal(s.runs, 0);
+  assert.match(endingsSays(s).text, /nothing for this build's refusal reader to be measured against/);
+  const quiet = surveyEndings({ dir: logBox([{ seat: "pm", at: "2026-10-18T09-30-00-000Z", exit: "0", turns: 7 }]), now: Date.parse("2026-10-18T12:00:00.000Z") });
+  assert.equal(quiet.ended, 0);
+  assert.match(endingsSays(quiet).text, /every one of them did some work, so no refusal has been recorded/);
+});
+
+test("the footer is read the way the runner writes it, and the guard is the runner's own", () => {
+  const f = footerOf('\n---\n# exit=refused pr=- session=abc turns=1 detail="You\'ve hit your session limit"\n');
+  assert.deepEqual(f, { exit: "refused", pr: null, session: "abc", turns: 1, detail: "You've hit your session limit" });
+  assert.equal(footerOf("a log of a run that has not ended"), null, "no footer is a run still going, not an ending");
+  assert.ok(endedWithNothing(f));
+  assert.ok(!endedWithNothing(footerOf("# exit=1 pr=https://github.com/a/b/pull/2 session=- turns=1")), "it opened a pull request");
+  assert.ok(!endedWithNothing(footerOf("# exit=1 pr=- session=- turns=12")), "it took twelve turns");
+  assert.ok(!endedWithNothing(footerOf("# exit=0 pr=- session=- turns=1")), "it ended fine");
+  assert.equal(startedAt("2026-10-18T02-19-52-615Z-message.log"), Date.parse("2026-10-18T02:19:52.615Z"));
+  assert.equal(startedAt("someone-elses-name.log", 42), 42, "a name this runtime did not write falls back to the file's own time");
 });
