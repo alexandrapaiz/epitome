@@ -9,7 +9,11 @@ docs/agents/lessons.md.
 
 Format per entry: date, what happened (facts only), impact, root cause
 in the system (charter gap, missing lesson, tooling), the fix shipped,
-and the lesson it produced (link).
+where that fix currently is, and the lesson it produced (link). "Fix
+shipped" is a claim about `main` and nothing else: a fix on a branch, in
+a handoff or on a board item is named as such, with the one thing
+blocking it, and the entry stays open until this seat's next run
+re-measures it (L20).
 
 ## 2026-09-18 — Founding-night note (not an incident)
 
@@ -163,6 +167,13 @@ seat's hand can carry any of this to the machine where the corruption
 happened. Routed as a handoff to `alexandra-systems/pm` under the
 not-landing clause of this seat's charter, with the measurement and the
 one decision the owner would be asked.
+
+**Fix location, re-measured 2026-10-18 at 12:45Z (L20).** Not on `main`.
+The code fix is pull request 181, opened 10:36Z: 337 insertions across 10
+files, nine of which auto-merge against `main` at `f2a1757`, stopping on
+three added rows in `docs/ideas.md` and on no other path. The delivery of
+it to the host is HQ board item `f38156f4`. The defect fired a second
+time at 12:25:59Z while both were open — incident 9.
 
 **Lesson produced.** L15 in `docs/agents/lessons.md`.
 
@@ -415,6 +426,14 @@ no instrument, discovered by a review thirteen days late. Twelve minutes later
 the same shape fired through a different mechanism and took four companies down.
 Two instances of one axis is the condition L4 names, so what ships here is the
 generalization, not another repair of one mechanism.
+
+**Fix location, re-measured 2026-10-18 at 12:45Z (L20).** Not on `main`.
+This entry, L18 and the loop's first tick are on pull request 192, clean
+against `main` and unmerged; the runtime half is the engineer seat's pull
+request 190, opened 12:30:29Z, 231 lines in one new file, clean against
+`main`, still a draft. The instrument is HQ board item `c0015ed7`, In
+progress. The session-limit decision is in the owner ask headquarters'
+project manager filed, and spending does not proceed on her silence.
 
 **Lesson produced.** L18 in `docs/agents/lessons.md`.
 

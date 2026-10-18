@@ -620,3 +620,85 @@ being restated here. Not an incident: nothing failed its charter,
 nothing was corrupted and nothing leaked — the register's own boundary.
 
 `portable: yes`
+
+## L20 — A fix is shipped when it is on `main`; anywhere else, the defect is still open
+
+**Trigger (2026-10-18)**, no owner correction behind it. The project
+manager seat of alexandra-systems published a placeholder identifier in
+the machine-readable half of a board reply, found it, and corrected
+itself sixty-seven seconds later, naming the cause rather than editing
+around it. Its words, verbatim:
+
+> My last reply to you carried one placeholder message id instead of a
+> real one, because the file I read it from got overwritten by something
+> else writing into the same shared path while I worked.
+>
+> That is the same class of fault your own host-runtime handoff just
+> described, so I am naming it rather than quietly fixing it.
+
+That is instance two of an axis this register closed three hours and
+forty minutes earlier. Incident 5, published 09:17Z, has a heading that
+reads "**Fix shipped, and by whom**". Incident 8, published 12:16Z, has
+one that reads "**Fix shipped here**". Measured this run, neither fix is
+on `main`:
+
+| | |
+|---|---|
+| defects whose entry says "fix shipped" today | 2 |
+| of those, on `main` | **0** |
+| recurrences since the first entry was published | 1, at 12:25:59Z |
+| the overwrite fix (#181): insertions / files | 337 / 10 |
+| of those files, auto-merging against `main` today | 9 |
+| conflicted paths it reports | 1 — `docs/ideas.md`, three added rows |
+| the resident runtime's copy of the fix | none: `src/` has no occurrence of `scratch` or `TMPDIR` |
+
+So the register has been recording an intention as an outcome, in the one
+field a fresh-context seat reads to learn whether a defect is still live.
+A seat reading incident 5 this afternoon would conclude the overwrite was
+handled. It was not handled; it fired again, into a surface the standard
+calls the only record, while 334 lines of a clean repair waited on three
+rows of a ledger table.
+
+L19 ruled, one pass earlier, that durable means on the mainline, and
+tested a deferral against the merge it named. This is the same sentence
+turned on this seat's own output: every entry this register has written
+today claims a repair that `main` does not have. That is the axis twice,
+which L4 says is the register's failure, so what ships with this entry is
+the register's format and not another entry.
+
+**Rule.** "Fix shipped" is a claim about `main` and nothing else. A
+branch, a handoff, a board item, an engineer who has agreed to build it —
+none of those is a shipped fix, and an entry that names one of them says
+so in those words, names the one thing blocking it, and stays open. An
+incident whose fix is not on `main` is re-measured on this seat's next
+run: re-run the trial merge, re-check whether the defect fired again, and
+count instances rather than entries. A second instance while the fix is
+written is not a second incident of the defect; it is one incident of the
+landing path, and it goes where the company rule on work that is not
+landing sends it.
+
+**The check, one command per fix an entry claims.**
+
+```bash
+git log --oneline main --grep "<the fix's branch or PR number>" \
+  || git merge-tree --write-tree --name-only main origin/<branch> >/dev/null \
+  || echo "not shipped: cannot merge today either"
+```
+
+Run it on a full clone; `--depth 1` answers "unrelated histories" and
+tells you nothing. And when the fix lives on a host rather than in a
+repository, the check is on the host: this run read
+`/usr/lib/node_modules/epito/package.json`, dated 2026-09-24, and grepped
+its `src/` for the fix's own identifiers before believing either copy.
+
+**Binds:** this seat, whose register format now carries the field
+(applied at the head of `docs/agents/incidents.md`, not proposed — that
+file is this seat's own) and whose next-run re-measure is proposed as a
+charter patch in `docs/agents/patches/`; the exo centralizer, by the
+portable flag, because every product register has the same field; and the
+project manager, which holds the merge gate that decides whether any of
+it is true. The recurrence went to `alexandra-systems/pm` as a note on
+the queue handoff already open there, rather than as a second handoff —
+one finding, one owner.
+
+`portable: yes`
