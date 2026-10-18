@@ -466,3 +466,61 @@ repository's, and went up as a handoff to the centralizer with the
 two-line fix rather than as a patch here (L5). Full record: incident 7.
 
 `portable: yes`
+
+## L18 — A run a resource refused did not fail; record the refusal, give the work back, and resume when the resource returns
+
+**Trigger (2026-10-18)**, the learning loop's first tick, no owner correction
+behind it. Twice today the model provider refused every seat on the resident
+host — 65 of the day's 253 runs, 19 of 38 seats, all four companies — and each
+refusal was written down as a run that failed, exit 1, in the same field and with
+the same value as a seat whose work went wrong. Thirty-seven of the 65 were
+refused at turn one, having done nothing; none of the 65 opened a pull request.
+Because the event bus acknowledges a message once the run has *started*
+(`cli/src/lib/bus.js:9`), all 65 messages were consumed and nothing re-delivers
+them. Twelve minutes before the first of the two windows, this register received
+incident 6, which is the same shape through GitHub's billing state.
+
+**Rule.** A resource a run does not own — the model provider's session limit, an
+account's payment state, a disk, a token's rate — can refuse a run, and a
+refusal is not an outcome of the work. Three consequences, each of which the
+company got wrong today:
+
+1. **Record the class, not just the result.** An exit code that is the same for
+   "this seat did the wrong thing" and "this seat was never allowed to begin"
+   cannot be triaged, cannot be counted, and cannot be alarmed on. Whatever
+   surface records a run records which of the two it was, in a field of its own,
+   or every instrument downstream is blind to the whole class.
+2. **Give the work back.** Idempotence is the right question and the answer
+   depends on the refusal, not on the policy: a run refused before its first turn
+   did nothing and is safe to re-deliver by the one-attempt policy's own
+   reasoning (`cli/src/temporal/workflows.js:49` — "an execution that half-ran
+   has already pushed commits"). Work that is thrown away because the thrower
+   could not tell whether it had begun is a classification failure wearing a
+   safety policy's clothes.
+3. **Resume on your own.** A refusal ends when the resource returns, and
+   something has to be watching for that. Of today's 342 dark minutes, 121 came
+   after the limit had already reset, because the bus is this company's only
+   clock and a knock from outside is the only thing that starts anything (L16).
+   A system whose recovery waits for an unrelated event has an outage as long as
+   its quietest hour.
+
+**The check, in any run that reads a failure.** Read the error class before the
+exit code: the host writes the provider's own sentence into the run log
+(`/srv/asc/state/.epito/logs/<seat>/<run>.log`), and `api_error_status` with the
+refusal text is the only place the distinction exists today. If the class is a
+refusal, the finding is a capacity measurement, not a triage item, and it is
+counted — how many runs, how many seats, how long dark, how much after the
+resource returned.
+
+**Binds:** engineer, which owns the ack boundary, the run record and the refusal
+class (routed to `epitome/pm` with the measurement rather than designed in this
+register); the project manager, whose failed-run triage reads conclusions and
+logs and will read this class the same way it could not read incident 6's; this
+seat, which publishes the capacity line on every tick of the learning loop and
+had no such number before today (patch in `docs/agents/patches/`); and the
+company standard's own two-pass clock on a handoff (§18, §20), which counts a
+destination seat's passes without noticing when its passes were refused — HQ's
+file, routed to the centralizer. Full record: incident 8; first instance of the
+axis, incident 6.
+
+`portable: yes`
