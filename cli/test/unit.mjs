@@ -4311,3 +4311,133 @@ test("asking can never un-start a run: a query that throws is not a refusal", as
   assert.equal(out.refusal, null);
   assert.match(out.why, /could not be asked how the provider answered \(engine is not answering\)/);
 });
+
+// --- can this build read THIS box's refusals? (src/lib/runlogs.js) --------
+//
+// The row that would have caught the defect above in a minute instead of a
+// day. What is pinned here is the survey's honesty rather than its prose:
+// that it counts only the runs that produced nothing (the runner's own
+// guard), that it says how many of those this build can actually name, and
+// that an ending it cannot read is reported with the sentence somebody needs
+// in order to fix it — never rounded away.
+import { surveyEndings, endingsSays, footerOf, endedWithNothing, startedAt, stoppedByTheBox } from "../src/lib/runlogs.js";
+
+const logBox = (runs) => {
+  const dir = tmpDir("epito-logs-");
+  for (const r of runs) {
+    mkdirSync(join(dir, r.seat), { recursive: true });
+    const name = `${r.at.replace(/:/g, "-").replace(/\.(\d{3})Z$/, "-$1Z")}-${r.trigger ?? "message"}.log`;
+    const footer = r.running ? "" : `\n---\n# exit=${r.exit} pr=${r.pr ?? "-"} session=s1 turns=${r.turns ?? "-"}${r.detail ? ` detail="${r.detail}"` : ""}\n`;
+    writeFileSync(join(dir, r.seat, name), `${r.body ?? ""}${footer}`);
+  }
+  return dir;
+};
+
+const REFUSED_LINE = '{"api_error_status":429,"result":"You\'ve hit your session limit · resets 11:20am (UTC)"}';
+
+test("the survey counts the runs that produced nothing, and says how many this build can name", () => {
+  const now = Date.parse("2026-10-18T12:00:00.000Z");
+  const dir = logBox([
+    { seat: "pm", at: "2026-10-18T09-30-00-000Z", exit: "1", turns: 1, body: REFUSED_LINE },
+    { seat: "pm", at: "2026-10-18T09-31-00-000Z", exit: "refused", turns: 0, body: REFUSED_LINE },
+    { seat: "engineer", at: "2026-10-18T10-00-00-000Z", exit: "0", turns: 44, pr: "https://github.com/a/b/pull/1", body: `I read the incident: 65 runs ${REFUSED_LINE}` },
+    { seat: "engineer", at: "2026-10-18T11-00-00-000Z", exit: "1", turns: 9, body: "the suite went red on my own change" },
+    { seat: "exo", at: "2026-10-18T11-30-00-000Z", exit: "1", turns: 0, running: true, body: "still going" },
+    { seat: "exo", at: "2026-10-16T09-00-00-000Z", exit: "1", turns: 1, body: REFUSED_LINE },
+  ]);
+  const s = surveyEndings({ dir, now });
+  assert.equal(s.runs, 4, "the run with no footer has not ended, and the one two days ago is outside the window");
+  assert.equal(s.ended, 2, "a run with a pull request and a run with 9 turns did work, whatever they printed");
+  assert.equal(s.named, 2);
+  assert.equal(s.withReset, 2, "and both carry the moment the provider named");
+  assert.deepEqual(s.kinds, { limit: 2 });
+  assert.deepEqual(s.unnamed, []);
+  const says = endingsSays(s);
+  assert.equal(says.level, "ok");
+  assert.match(says.text, /4 runs ended here in the last 24 hours, 2 of them producing nothing, and this build names all 2/);
+});
+
+test("an ending this build cannot read is a note with the sentence that fixes it", () => {
+  const now = Date.parse("2026-10-18T12:00:00.000Z");
+  const dir = logBox([
+    { seat: "pm", at: "2026-10-18T09-30-00-000Z", exit: "1", turns: 1, body: REFUSED_LINE },
+    { seat: "market", at: "2026-10-18T11-45-00-000Z", exit: "1", turns: 0, body: "the model is at capacity for your organisation until the hour turns" },
+    { seat: "market", at: "2026-10-18T11-50-00-000Z", exit: "1", turns: 1, detail: "a sentence this reader has never seen" },
+  ]);
+  const s = surveyEndings({ dir, now });
+  assert.equal(s.ended, 3);
+  assert.equal(s.named, 1);
+  assert.equal(s.unnamed.length, 2);
+  assert.equal(s.unnamed[0].seat, "market", "newest first, because that is the one somebody is looking at");
+  assert.equal(s.unnamed[0].says, "a sentence this reader has never seen", "the runner's own detail when it wrote one");
+  assert.match(s.unnamed[1].says, /^the model is at capacity/, "and the last line of output when it did not");
+  const says = endingsSays(s);
+  assert.equal(says.level, "note", "a reader with a gap in it never refuses a run; it only means nobody can say why the last one stopped");
+  assert.match(says.text, /can name only 1 — 2 endings are unread/);
+  assert.match(says.text, /newest market at 2026-10-18 11:50Z ending "a sentence this reader has never seen"/);
+  assert.match(says.text, /copy the sentence into cli\/test\/fixtures\/refusals\.json/, "the fix is in the message, and it is a row of data rather than a regex");
+});
+
+test("a run this box killed is counted as this box's doing, not as a refusal nobody can read", () => {
+  // Four of this host's own endings were exit 143 at the minute the daemon
+  // restarted. Telling an operator to add SIGTERM to a fixture of provider
+  // sentences is how a row earns the right to be ignored, so the box's own
+  // endings are counted and named separately — and still counted, because a
+  // run the box killed lost its work the same way a refusal does.
+  const now = Date.parse("2026-10-18T12:00:00.000Z");
+  const dir = logBox([
+    { seat: "pm", at: "2026-10-18T09-30-00-000Z", exit: "143", body: "$ claude -p <prompt> --output-format json" },
+    { seat: "ursa-pm", at: "2026-10-18T09-31-00-000Z", exit: "timeout", body: "$ claude -p <prompt> --output-format json" },
+    { seat: "engineer", at: "2026-10-18T09-32-00-000Z", exit: "1", turns: 1, body: REFUSED_LINE },
+  ]);
+  const s = surveyEndings({ dir, now });
+  assert.equal(s.ended, 3);
+  assert.equal(s.named, 1);
+  assert.equal(s.stoppedCount, 2);
+  assert.equal(s.unnamedCount, 0, "neither of them is an unread refusal");
+  const says = endingsSays(s);
+  assert.equal(says.level, "ok", "a restart is not a gap in the reader");
+  assert.match(says.text, /names 1 as a refusal .*, 2 this box ended itself \(over its time limit, asked to stop\)/);
+  assert.equal(stoppedByTheBox("143"), "asked to stop");
+  assert.equal(stoppedByTheBox(0), null, "an ordinary exit code says nothing about who ended the run");
+  assert.equal(stoppedByTheBox("refused"), null, "and a refusal is the provider's doing, which the reader already said");
+  // Every ending accounted for and none of them a refusal: still ✓, and the
+  // sentence says what happened rather than nothing.
+  const allKilled = surveyEndings({ dir: logBox([{ seat: "pm", at: "2026-10-18T09-30-00-000Z", exit: "137" }]), now });
+  assert.equal(endingsSays(allKilled).level, "ok");
+  assert.match(endingsSays(allKilled).text, /every one of those ended by this box itself \(killed\)/);
+});
+
+test("the count is the whole gap even though only the newest few are quoted", () => {
+  const now = Date.parse("2026-10-18T12:00:00.000Z");
+  const dir = logBox(Array.from({ length: 9 }, (_, i) => ({
+    seat: "pm", at: `2026-10-18T0${i + 1}-00-00-000Z`, exit: "1", turns: 1,
+    detail: `an ending number ${i} nothing here can read`,
+  })));
+  const s = surveyEndings({ dir, now });
+  assert.equal(s.ended, 9);
+  assert.equal(s.unnamed.length, 3, "three samples keep the row one line");
+  assert.match(endingsSays(s).text, /9 endings are unread/, "and the number is all nine");
+});
+
+test("a box with no logs at all prints no row rather than a zero", () => {
+  const s = surveyEndings({ dir: join(tmpDir(), "never-ran"), now: Date.now() });
+  assert.equal(s.looked, false);
+  assert.equal(s.runs, 0);
+  assert.match(endingsSays(s).text, /nothing for this build's refusal reader to be measured against/);
+  const quiet = surveyEndings({ dir: logBox([{ seat: "pm", at: "2026-10-18T09-30-00-000Z", exit: "0", turns: 7 }]), now: Date.parse("2026-10-18T12:00:00.000Z") });
+  assert.equal(quiet.ended, 0);
+  assert.match(endingsSays(quiet).text, /every one of them did some work, so no refusal has been recorded/);
+});
+
+test("the footer is read the way the runner writes it, and the guard is the runner's own", () => {
+  const f = footerOf('\n---\n# exit=refused pr=- session=abc turns=1 detail="You\'ve hit your session limit"\n');
+  assert.deepEqual(f, { exit: "refused", pr: null, session: "abc", turns: 1, detail: "You've hit your session limit" });
+  assert.equal(footerOf("a log of a run that has not ended"), null, "no footer is a run still going, not an ending");
+  assert.ok(endedWithNothing(f));
+  assert.ok(!endedWithNothing(footerOf("# exit=1 pr=https://github.com/a/b/pull/2 session=- turns=1")), "it opened a pull request");
+  assert.ok(!endedWithNothing(footerOf("# exit=1 pr=- session=- turns=12")), "it took twelve turns");
+  assert.ok(!endedWithNothing(footerOf("# exit=0 pr=- session=- turns=1")), "it ended fine");
+  assert.equal(startedAt("2026-10-18T02-19-52-615Z-message.log"), Date.parse("2026-10-18T02:19:52.615Z"));
+  assert.equal(startedAt("someone-elses-name.log", 42), 42, "a name this runtime did not write falls back to the file's own time");
+});
