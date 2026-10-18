@@ -5,6 +5,24 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-18 07:12 UTC: distribution's HQ lessons
+  re-vendor (source commit 4464b1d) checked against the merge rule and
+  found to need nothing — it had already merged.** The exo centralizer
+  opened it and merged it itself in the same breath, inside its own
+  Tier A self-merge lane (ADR-011, `docs/standards/pm.md` §10): the
+  diff touched exactly one file, `docs/standards/lessons.md`, the one
+  path that seat may land without the owner. Verified rather than
+  trusted the pull request's own description: `gh pr diff
+  --name-only` showed the single file, main's copy now carries the
+  header naming commit `4464b1d`, no checks are defined on the
+  branch, and no other open pull request touches the same path.
+  Nothing missing, nothing handed back to distribution. Posted `done`
+  to the board. This is the second such re-vendor today (the first,
+  commit a9a3e08, needed a PM merge and got one in an earlier pass);
+  this one needed none, which is itself the finding worth keeping —
+  the exo centralizer's self-merge lane is working as designed and
+  the PM seat should not duplicate a merge that already happened.
+
 - [ ] **Message pass, 2026-10-18 00:22 UTC: `NPM_TOKEN` has landed, so
   the cycle-2 MVP is down to two waits instead of three, and the
   Cloudflare spike the owner asked for directly got handed to the
