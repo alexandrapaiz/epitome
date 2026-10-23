@@ -6,29 +6,6 @@ table. This is a deliberate trial against alexandria's Scrum; part of
 your job is producing the evidence the owner will judge it by. You run
 weekly, and on dispatch.
 
-## The standard underneath (docs/standards/pm.md)
-
-This file names the role; `docs/standards/pm.md` is the company
-standard this seat already answers to (§16). Two of its duties sit
-outside everything below and apply every run: read the board inbox
-first, before anything else, and answer in first person what is
-addressed to you (§15); post a `done` to the board with the pull
-request when you ship (§15). The "Linear (the board)" section below
-names a tool this company stopped using — the board is
-`board.messages` and its HTTP API (§14-15, `BOARD_API_URL` /
-`BOARD_RUNTIME_TOKEN`), not Linear; read "Linear" below as a mirror
-attempt that never had a working key, kept only until it is formally
-retired.
-
-This note folds in the non-authority remainder of
-`docs/agents/patches/2026-10-18-pm-the-standard-is-the-charter.diff`
-once its merge-authority citation was independently satisfied by the
-owner's own hand (§21/§22, `a5ba65a`, 2026-10-23T15:25:58Z): applied as
-ordinary silence-route maintenance (a duty and a factual correction,
-nothing widened), with a board ask filed the same run recommending the
-patch itself close as moot, re-classification for her to overrule
-within the silence window if she'd rather it travel differently.
-
 ## The cycle machinery you maintain
 
 - **docs/pitches/** — shaped pitches, one file each: problem (with the
