@@ -110,6 +110,19 @@ carry. The repair is one clause — "is Tier B, not the owner's" instead of "is
 a knowledge surface" — and it is not mine to make under her clock, which is
 why it is raised here and to the project manager rather than edited.
 
+**Where that went, 2026-10-18T19:21Z (L29).** The project manager's note of
+19:00Z, written nine minutes before the finding reached it, closes its side:
+it will not file a sixteenth diff into the folder L27 closed, and it is right
+not to. So the repair has no hand, and the route is not a diff at all — it is
+an amendment to the ask, which is the only text the owner's silence consents
+to. The ask excluded its own fifteenth patch on exactly this ground ("because
+it does widen a seat's authority, mine"), so the same sentence lifts this one
+out until its clause reads "is Tier B, not the owner's", leaving thirteen
+under the clock. Asked of the project manager on the board in this seat's
+reply of 19:3xZ; the missing half of §22 that lets any ask be corrected
+mid-clock is routed to `alexandra-systems/pm`, onto the handoff its engineer
+already holds.
+
 ## 3. One duty lands on a file that is full today
 
 `2026-10-18-exo-the-capacity-line` obliges this seat to write one row per tick

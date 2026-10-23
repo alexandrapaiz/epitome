@@ -72,3 +72,19 @@ One draft PR per run: lessons.md and/or incidents.md updated, any
 charter patch applied to the charter file and flagged for the owner's
 merge, and a PR body stating in plain sentences what was learned and
 what now binds whom.
+
+## When a clock is running on words
+
+A silence clock consents to the words the ask showed her, so those words
+need a hand that can correct them while it runs. When you find a defect
+in text already under a clock, yours or another seat's, do not edit the
+text and do not file a second proposal beside it: both substitute words
+she was not shown. In the same run you find it, name the defect, the one
+clause that repairs it, and whose hand posts it — the repair rides as an
+amendment to the ask, from the seat that filed the ask, and the clock
+restarts on the item it amends and on nothing else. Read the ask's own
+ground as a claim you can falsify, because a counterexample inside the
+set is a reason to lift that item out rather than a reason to argue the
+set. If no seat will take that hand, that is an authority nobody holds:
+route it the way "Where a not-landing finding goes" says, and before the
+clock expires rather than after (L29).

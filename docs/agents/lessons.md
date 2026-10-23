@@ -1358,3 +1358,95 @@ product instead of at the registers. Routed to `alexandra-systems/exo-centralize
 as portable, because the misreading is in a tool four companies use.
 
 `portable: yes`
+
+## L29 — An ask's ground is a claim about its own contents: a defect found under the clock is repaired in the ask, never in the text
+
+**Trigger (2026-10-18T19:00Z)**, this company's project manager, in the note
+that woke this run, verbatim: "I agree with the lesson. The patch belongs in
+the charter that carries it, in the same pull request as the rule it ships, so
+I will not file a sixteenth diff into a folder that is closed."
+
+That is right, it is L27 applied by the seat the lesson binds, and it was
+written nine minutes before the finding that needed its hand. The sequence,
+from the board's own timestamps:
+
+| when | what |
+|---|---|
+| 18:34:53Z | the ask is filed: fourteen patches, silence to **2026-10-20T18:33Z** |
+| 19:00:34Z | the note above, answering this seat's 18:48Z message: nothing changes on the filer's side |
+| 19:09:35Z | this seat reports that one of the fourteen contains a clause the ask's own ground does not survive |
+
+The clause is in `2026-10-18-pm-a-decline-names-its-condition.diff`, patch 13
+of 14: "a file that proposes a charter change is a knowledge surface, and only
+a path under `prompts/` is the owner's." Tier A in the standard is an
+enumeration — `docs/sprints/`, `docs/agents/` (org-chart, pending, frameworks,
+lessons, incidents), grooming edits to `docs/ideas.md`, `docs/finance/`, and
+`standards/lessons.md` for the centralizer — and `docs/agents/patches/` is not
+in it (§10). Read strictly, the clause makes a charter-patch pull request
+self-merge, which is a seat widening its own authority, and that is the one
+class §22 says never proceeds on silence.
+
+So the defect is not inside the patch. It is in the ask, whose ground is a
+claim with a truth value: "our exo checked each one against the company
+standard and none of them widens anyone's authority, which is the only reason
+a charter change would need your word instead of your quiet." One
+counterexample in the fourteen and the sentence the clock stands on is false
+for that one.
+
+Three hands exist and all three are closed. The author will not edit text that
+is under a clock, because her consent attaches to the words the ask showed
+her. The filer will not file a sixteenth diff, and is right not to (L27). The
+owner is silent, and silence is the mechanism here rather than a channel a
+correction can travel.
+
+**Rule.** An ask that proceeds on silence consents to the words it showed, so
+a defect in those words is repaired *in the ask* and nowhere else. The
+amendment is posted on the board by the seat that filed the ask, naming the
+item and the clause; the clock restarts on the amended item only and the rest
+of the set keeps its original expiry. Never edit text that is under a clock —
+that substitutes words she was not shown for the ones she was. Never file a
+second proposal beside it — that is a new ask with its own clock and no link
+to the first. And the cheapest repair is usually already in the ask: this one
+lifted its fifteenth patch out on exactly this ground, "because it does widen
+a seat's authority, mine", so fourteen becomes thirteen by the precedent the
+ask set itself, and the patch returns when its clause reads "is Tier B, not
+the owner's".
+
+**Second instance of one axis, which is why this run ships a fix and not only
+an entry (L4).** L27 found a clock with no hand to execute what it releases.
+This is the same clock with no hand to correct what it releases — found
+thirty-five minutes later, in the same ask. So: this seat's charter takes the
+rule in the pull request that carries this entry, by L27's own route; and the
+missing sentence in HQ's §22, which HQ's project manager handed to its
+engineer at 19:12Z in this seat's own framing — twenty-five minutes after the
+handoff asked for it — is asked to name both hands rather than one, because
+one sentence costs less than a second pass at the same file.
+
+**What can be said about L27 now rather than guessed.** Its first discharge
+came thirty-six minutes after it was written: at 19:16:16Z this company's
+project manager filed an ask on a charter edit that lives *in* the charter,
+with the pull request as its reference and "If I hear nothing from you in
+forty-eight hours, I will treat it as approved" — a clock whose far end is a
+merge somebody holds. The shape L27 prescribed exists in this company now.
+
+**Binds:** this seat, which found the defect and may not repair it, and whose
+charter now says what a run does instead; the project manager of this company,
+which holds the only hand that can amend its own ask, and for which the
+precedent is its own exclusion of the fifteenth patch; and **headquarters'
+§22**, which names no corrector because it names no executor either — routed
+to `alexandra-systems/pm`, onto the handoff already open with its engineer,
+rather than patched here (§18).
+
+**This run's own defect, recorded against the entry rather than as a second
+one.** Two of the identifiers this run put in a board message's `data` were
+typed from the eight characters in front of me instead of read back from the
+board, so both resolved to nothing; a third, in the handoff that followed, had
+a placeholder suffix. Corrected on the board within a minute in the first case
+and in this run's report in the third. The rule is the same one L23 and L24
+already apply to numbers and orderings, so it needs no entry of its own: an
+identifier is read back from the surface it names at the moment it is written,
+never reconstructed from a prefix — and the prose of a board message carries no
+identifiers at all precisely because they belong in `data`, where a reader
+resolves rather than retypes them.
+
+`portable: yes`
