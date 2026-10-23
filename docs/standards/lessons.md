@@ -1,6 +1,6 @@
-<!-- vendored-from: standards/lessons.md @ 43a87dc482698798a58121917f63690175ce7d7d -->
+<!-- vendored-from: standards/lessons.md @ 24eec753c8e4b34bc2aca35a285348e3077eb6b8 -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `43a87dc`,
+> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `24eec75`,
 > vendored 2026-10-18. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
@@ -1183,6 +1183,343 @@ ID it eventually gets is not the one its author would have chosen.
   through. The engineer role charter now asks for `git rev-parse` of the
   tip against every open pull request's `headRefOid` before `gh pr
   create`, which is one call and is the same object in every clone.)
+- **L-A48 — One pass, one file. A shared append-only register is a
+  mutual-exclusion anchor, and every concurrent pass is clean against the
+  mainline and exclusive with its neighbours.** A pass that appends its
+  narrative at a fixed place in a file every other pass also appends to
+  produces a queue that cannot be merged in any order: each branch is
+  individually `MERGEABLE` against `main`, which is the only question any
+  per-pull-request check asks, and mutually exclusive with every sibling,
+  which is the question nobody asks until the merge. Three clauses.
+  **A pass writes its own file.** A dated file per pass, per seat, under a
+  directory; the shared table, if one is wanted, is generated from them or
+  appended to by exactly one writer. Two passes must never be editing the
+  same anchor.
+  **The reminder never goes in the file you are deferring because of.** Work
+  deferred into the same contended file is deferred into the thing that is
+  blocking it, and the deferral is not a plan.
+  **Measure it with the real merge, not with `mergeable`.**
+  `tools/merge-order.sh` performs the sequential and pairwise merges with
+  `git merge-tree` and names the file that blocks the most pull requests;
+  one name at the top of that table is the whole finding.
+  (epitome/exo 2026-10-18, who found the shape and asked for it to be checked
+  elsewhere: "a pass appends its narrative at a fixed anchor in a shared file,
+  so every concurrent pass is clean against the mainline and mutually
+  exclusive with its neighbours … Any repository where seats write their own
+  logs into one table will have it." Measured the same day by this seat with
+  `tools/merge-order.sh` in all four repositories, oldest-first: **84 open
+  pull requests, 33 merge in sequence, 51 cannot — and 44 of those 51 conflict
+  in nothing but Markdown registers under `docs/` or `standards/`. 100 of the
+  104 mutually exclusive pairs are exclusive over nothing else.** Top anchor
+  per repository: HQ `docs/architecture/agentic-system.md` (9),
+  alexandria `docs/sprints/pending.md` (15), epitome `docs/backlog.md` (18),
+  Ursa `docs/agents/learning-log.md` (3). Not one conflict in product code in
+  any of the four.)
+- **L-A49 — A merge driver declared in `.gitattributes` changes nothing
+  about what GitHub's merge button does, and `union` silently destroys
+  records. The fix for an append-anchor is the file layout, never the
+  attribute.** This is the rule that stops the obvious fix from being
+  proposed a fifth time, because the obvious fix is measured and it is wrong.
+  **GitHub does not honour it.** Ursa measured all three arms on byte-identical
+  commits: no attribute, `merge=union` (built into git, so it needs no
+  per-clone config), and a named driver. Local `git merge` honoured `union`;
+  `POST /repos/{owner}/{repo}/merges` answered **409 on all three**,
+  deterministically, re-run four times and the whole probe twice.
+  **`union` loses data where it does run.** It concatenates both sides'
+  *lines*, so two appended records whose trailing lines are byte-identical
+  (`- Cost:`, `- Status:`) have those lines aligned as shared context: Ursa's
+  probe put two entries in and got one and a half out, **exit 0, no conflict
+  marker, the file still valid Markdown.** A conflict stops a human; this does
+  not.
+  **A named driver needs installing in every clone, and a seat's clone is
+  fresh every run.** An attribute pointing at a driver nobody registered is
+  the default line merge wearing a convention's clothes.
+  (Ursa engineer, 2026-09-27 and the measurement in
+  `docs/design/server-side-merge-measurement.md`; generalized here 2026-10-18
+  after this seat verified the local half itself — `merge=union` turned a
+  mutually exclusive alexandria pair into a clean `git merge-tree` — and was
+  one commit away from writing the local result into company law. The local
+  merge agreeing is exactly what makes this trap expensive. The portfolio
+  state the same day: one repository of four declares a merge attribute at
+  all, Ursa, on `docs/ideas.md` — and Ursa's remaining contention has
+  relocated to `docs/agents/learning-log.md`, the register where it is not
+  declared.)
+- **L-A50 — Two outcomes that share one field cannot be told apart by
+  anything downstream. Give the class its own field at the boundary that
+  knows it.** A run the model provider refused and a run whose work went
+  wrong were both `exit = 1`, `turns = 1`, "no pull request. It exited 1." in
+  `board.runs`, so the scorecard, the brief, every PM's triage and every clock
+  that counts passes read capacity as defect. No amount of reading downstream
+  recovers a distinction the record never made. Three clauses.
+  **Class it where the fact exists.** The host's run log carries the
+  provider's verbatim refusal and its HTTP status; the board's record carried
+  neither. `tools/capacity.py` reads the log and classes the run
+  (refused / failed / completed / running), and the ordering matters: a
+  refusal exits non-zero, so `refused` must be decided before `failed` or the
+  class stays invisible.
+  **Never let a clock count a class it cannot see.** A standard that charges
+  a seat for two passes must count passes the seat actually got
+  (`standards/pm.md` §18, amended the same day).
+  **One instrument, every surface.** The brief, the API route and the CLI all
+  read the same tool, or the owner has three numbers for one question.
+  (epitome/exo 2026-10-18: "Every refusal is recorded as a run that failed, in
+  the same field and with the same value as a seat whose work went wrong, so
+  nothing downstream can count the class at all." Measured independently by
+  this seat from the same logs: 280 runs attempted, 65 refused in three
+  windows, 37 of them at turn one, 342 dark minutes of which 121 after the
+  limit had already reset. Same shape as L-A31's never-started reds: there, a
+  job no runner took is `failure` in the field a real failure uses, and the
+  answer was the same — a separate instrument, `tools/check-run-ran.py`,
+  because the field could not be fixed.)
+  **Second instance, and this one the field could be fixed.** On the same day
+  epitome's exo handed the other half up: the board's `runs` table had `exit`
+  as an integer, so even once the host could tell a refusal from a failure
+  there was nowhere to put the word. The answer was one nullable text column
+  beside the integer (`board.runs.refusal`), carrying the provider's own
+  sentence, and every surface that reads `exit <> 0` now counts a row with a
+  refusal apart: the brief, the scorecard, a seat's timeline, the Runs tab,
+  and the wake the PM gets, which says capacity rather than triage. The
+  general clause: when the boundary that knows the class is a table you own,
+  add the field; a separate instrument is the answer only when the record is
+  someone else's. (epitome/exo 2026-10-18, handed to the centralizer rather
+  than patched locally, because the board is HQ's machinery.)
+- **L-A51 — Hand work on with the test the other authority will run, already
+  run, with the result in the ask; and when you decline, name the numbered
+  condition that withholds it and the seat that can clear it.** Two clauses,
+  and the second is the one that costs days.
+  **The ask carries its own evidence.** For a merge, the tier condition read
+  off the changed paths plus a trial merge from a full clone. For a charter
+  patch, `git apply --check` against the mainline as it stands today. A
+  request to act that has not been tested by the asker is a request for the
+  other seat to do the test, and the other seat is usually the busier one.
+  **A decline names its condition.** "Unauthorized" with no numbered rule
+  behind it leaves the work standing on nobody and reads as caution in every
+  report written afterwards. Name the section, and name who can clear it.
+  (epitome/exo L21, 2026-10-18, flagged portable. Evidence, measured: epitome's
+  PM merged pull requests 180, 185 and 188 at 12:31Z and 193 at 12:35Z, then at
+  12:49Z declined 192 as unauthorized — `docs/agents/` only, zero `prompts/`
+  paths, CLEAN, not a draft, the same shape it had merged four times in
+  eighteen minutes. And eight charter patches sat on that mainline, none
+  applied, the oldest thirteen days, one of them failing `git apply --check`
+  outright with a corrupt hunk header — and that one had already travelled
+  into an ask to the owner without anyone running the single command she
+  would run on it. Related: `standards/pm.md` §10 Tier C is `prompts/`, so a
+  file that *proposes* a charter change is a knowledge surface and not the
+  owner's tier; §10's own wording is under review by the owner this week and
+  until she rules, cite the path you read, not the intent you inferred.)
+- **L-A52 — A register's "fix shipped" field is a claim about the mainline and
+  nothing else.** The one field a fresh-context seat reads to learn whether a
+  defect is still live must not describe a branch. Three sentences: the field
+  is true only of `main`; an entry whose fix is elsewhere says where it sits
+  and the one thing blocking it; and the entry stays open until a later run
+  re-measures it and says so.
+  (epitome/exo 2026-10-18, a register-format candidate handed up because the
+  field exists in every product's incident register. Evidence: two entries
+  written that day said "fix shipped" with neither fix on the mainline, and the
+  defect one of them describes fired again at 12:25:59Z — in a board reply —
+  while its clean fix sat on a branch. Same family as L-A40: a change that
+  merged and never deployed is not shipped either, and the honest field says
+  where it is.)
+
+- **L-A53 — An attribute read off a field that cannot carry the
+  distinction is not a weak grade, it is no grade, and it fails in one
+  direction every time.** `standards/roles/exo.md` §5 attribute 9 told
+  every ExO seat to grade autonomy as "the share of pull requests that
+  landed without the owner," and named GitHub as the surface. Since the
+  seats moved onto the resident host (decision 056) every seat runs with
+  the owner's own personal access token, so `mergedBy` records her login
+  for a merge she made and for a merge a seat made, and `gh api user`
+  from inside a seat's own window answers `alexandrapaiz / User` rather
+  than an app. The field has one value where the question has two, which
+  is L-A50's shape one layer up: there the class was missing from the
+  record, here the class is missing from the *reading*. Two clauses.
+  **Read a "who did it" attribute off the surface where the doer records
+  itself**, which in this company is the board: a seat's own `done`
+  message is first-party testimony and the forge's actor field is not.
+  **State the floor and say it is a floor.** A join that resolves part of
+  the population gives a lower bound, and a lower bound reported as a
+  rate is the same lie with better manners. (Ursa/exo handed this up on
+  2026-10-18 rather than fixing it in eleven charters, having printed the
+  wrong number to the owner first: it reported 43 merges by her against 9
+  by the PM for the week and graded autonomy the weakest of the ten
+  attributes on that split, when 8 of the 10 merges that day are claimed
+  by the PM on the board in its own words. Re-measured here across the
+  whole portfolio, 2026-10-11 to 2026-10-18: of 289 merges GitHub
+  attributes 261 to `alexandrapaiz` and 28 to `app/claude`, so the
+  instrument as written grades autonomy at 9.7% company-wide and at
+  **exactly 0% in epitome and atelier-app**, which is false in both. Over
+  the last 24 hours it reads 4 of 170; the board's structured data,
+  partial and conventional, already resolves 57 of the same 170 to a
+  seat. The instrument understates every product in the portfolio in the
+  same direction, which is the property that makes it worse than no
+  instrument: a blind one reads as a bad grade and gets acted on.
+  Amended the same day in `standards/roles/exo.md` §5 attribute 9 and
+  `standards/pm.md` §15. Companion to attribute 7's own sentence, which
+  had already stated the principle and was not applied to its neighbour:
+  "its silence is indistinguishable from good news.")
+
+- **L-A54 — A run that repairs one instrument after a platform change
+  owes a sweep of every other instrument fed by the same surface, in the
+  same pass.** A platform change does not break one reading, it breaks a
+  class of readings, and the ones nobody happened to exercise that hour
+  stay broken while the repair is written up as done. So the pass that
+  finds the first failure enumerates what else reads that surface, states
+  the count it checked, and names any it could not. (Ursa/exo, 2026-10-18.
+  The 2026-10-17 move of the seats off GitHub Actions and onto the
+  resident host blinded two of that seat's instruments at the same
+  instant. `gh run list` went blind and was found 36 hours later by the
+  first window of the day, which patched it and shipped. `mergedBy` went
+  blind in the identical way and was found ten hours after that, by the
+  fourth window, **after it had already printed the wrong authorship
+  number to the owner**. One sweep in the first window would have cost
+  minutes and caught the second. The general case is cheap because the
+  enumeration is mechanical: the surface that changed is named in the
+  decision record, and the instruments are the commands the seat's own
+  charter tells it to run. Companion to L-A47, which says an instrument's
+  scope is part of its answer; this one says the instrument's *substrate*
+  is too.)
+
+- **L-A55 — The seat that supersedes a pull request is the seat that
+  closes it, and a duty with no holder lands on whoever is present.** The
+  all-seats rule tells a seat to look for its finished work in its own
+  open pull request before rebuilding it, and to name in the new
+  description which earlier ones it subsumes "so the owner can close them
+  as one decision." It never says who closes them, so nobody does, and
+  the retirement is paid by whatever seat walks past: on 2026-10-18 that
+  was Ursa's project manager, which spent part of a pass doing ancestry
+  forensics over another seat's stack. This widens L-A27's "close what you
+  supersede" clause, which was written for recurring ceremony artifacts,
+  to a seat's own work stack, and carries the two exceptions that were
+  earned the same day. **Never close a pull request another seat has named
+  in a live ask to the owner** — moving an artifact a seat promised would
+  not move costs more than the queue slot saves. **Never delete the branch
+  of one closed as superseded**, because containment in an unmerged tip
+  lasts exactly as long as the tip. And the proof half, because the
+  closure is only safe if the direction is right: write that one thing is
+  **contained in** another, never that it is an ancestor of it, and paste
+  the command in the order it was run, so the sentence carries its own
+  proof. (Ursa/exo handed this up on 2026-10-18, having written the duty
+  into its own charter first; the same pass's PM wrote the ancestry
+  relation correctly in three closing comments and backwards once in the
+  board note that summarised them, which left the owner's pending decision
+  pointed at the subsumed pull request rather than the live tip. The
+  handoff asked for the block to be written once at the centralizer
+  instead of eleven times, and measuring that is how this rule found its
+  own home: the block exists in **11 of 12 charters in Ursa and in 0 of
+  the 43 charters in the other four repositories** — alexandria 0 of 20,
+  epitome 0 of 8, atelier-app 0 of 4, HQ 0 of 11. There is no shared
+  charter surface to write it once into. There is exactly one surface
+  that reaches every seat in the portfolio, and it is this file, vendored
+  as `docs/standards/lessons.md`. That is the general lesson underneath
+  the specific one: a rule that must bind every seat goes where
+  distribution is already a merged fact, not where eleven copies have to
+  agree.)
+
+- **L-A56 — A filter that is accepted and ignored is worse than a filter
+  that does not exist, and the test for one is to ask for a value that
+  cannot exist.** An interface that takes a parameter it does not honour
+  hands every caller a false scope and no way to notice: the caller
+  believes it narrowed the read and acts on the result. The board's
+  message read accepted the company, the sender and the kind and honoured
+  only the addressee, so a seat that scoped its inbox by company was handed
+  the whole portfolio's feed. Three clauses, and they generalize to any
+  filtered read: an endpoint, a tool's flags, a check's path filter, a
+  query in a dashboard.
+  **The proof is an impossible value.** Ask for a sender that cannot exist.
+  Nothing back means the filter works; the unfiltered count back means it
+  was never applied. Measured: 179 with no parameters, 207 with the
+  addressee set, 179 again with an impossible sender.
+  **Refuse what you do not honour.** A parameter an interface does not know
+  is an error naming the ones it does, never silence, and the names it
+  refuses against are the names its own standard documents, so documented
+  and honoured cannot drift.
+  **A shared name is not an address.** Five companies hold a seat called
+  `exo` and four hold a `pm`, so the addressee alone does not identify a
+  reader: of 28 addressed messages one such read returned, 4 were the
+  reader's and 13 were a sister company's seat of the same name, one of
+  them naming the reader's company in its own subject line. That is the
+  sentence a memoryless run answers as if it were its own, which makes this
+  a correctness bug in the first thing every seat is told to do, not an
+  efficiency one. (Ursa/exo 2026-10-18, measured against the live board and
+  handed up rather than patched, because the board is HQ's machinery; fixed
+  at the store, with the old code's behaviour reproduced against a real
+  database first. Ursa patched its own charter to filter client-side the
+  same day, which is the right belt-and-braces and is also how a product
+  should respond while HQ's fix is in flight.)
+- **L-A57 — A `done` says which of three things happened, written, merged
+  or running, and a change to the runtime names the artifact the box
+  executes and its distance from the branch.** A pull request proves where
+  the change is, never that anything is executing it. Epitome's engineer
+  posted a correct `done` for a runtime fix whose files were not on the host
+  at all, the host's checkout being 364 commits behind `main`, and no field
+  the standard asked for would have caught it, because the pull request
+  existed. So a `done` carries its stage, and a runtime `done` carries
+  `host_artifact` and `host_distance` in `data`; one that cannot name those
+  two is a *written*, and says so. The general clause: evidence that a
+  change exists is not evidence that it runs, and the only seat that can
+  tell the difference is the one that can read the box. (epitome/exo
+  2026-10-18, handed up with the measurement; written into
+  `standards/pm.md` §15 the same day.)
+
+- **L-A66 — A gate that cites a section contradicting its own plain reading
+  is two rules, and the reader picks whichever sentence it reached first.**
+  `standards/pm.md` §10's Tier B condition 3 says a red check "is a failed run
+  (§11.7), never a merge"; §11.7 line 0 says a job no runner ever took is not a
+  failed run and is explicitly not the class the triage below it is about. Both
+  readings are honest readings of the same text, so the gate's answer stops
+  being a property of the pull request and becomes a property of the pass.
+  Measured at HQ on 2026-10-18: one merger, in one day, merged a pull request of
+  this seat's in the gated class at 13:45 "after checking its tier and its green
+  state myself rather than taking either number on faith", and withheld two more
+  of the same seat's at 18:33 because "a red check withholds a tier B merge
+  regardless of cause" — and that same withholding message reports that every
+  failed run in its own six-hour window was the never-started signature. One
+  message classifies the red and declares the classification irrelevant.
+  **A seat does not argue its own exception.** When a gate reads two ways and
+  the merger took the stricter one, the seat's move is to supply the evidence
+  the gate asks for in a form the merger can re-perform itself, not to re-argue
+  the reading in its own favour. A merger choosing the stricter reading of an
+  ambiguous criterion is doing its job, and the seat whose work is held is the
+  worst-placed actor in the company to adjudicate it.
+  **Whoever owns the gate's text fixes the text.** An ambiguity in a merge
+  criterion is never resolved by precedent, because precedent accumulates in
+  both directions at once; it is resolved by one amendment to the section that
+  holds the criterion, by the authority that holds that section. Until that
+  lands, the stricter reading is the operative one, and a pass says so out loud
+  rather than leaving each seat to discover it by being held.
+  **The test is cheap and belongs on every gate.** Read the criterion alone,
+  then read the section it cites alone, and ask whether a reader could act
+  differently on each. If yes, the gate has no single answer, and every pass
+  will produce whichever answer its reader was already leaning toward.
+  (HQ, 2026-10-18. The two withheld pull requests were this seat's own, and
+  this rule does not ask for them; it asks for one reading.)
+- **L-A67 — The lane that still flows is the one you must not contaminate: a
+  change's tier is the union of its paths, so one file outside your lane moves
+  the whole change into somebody else's queue.** This seat's charter describes a
+  single-file pull request it merges itself under ADR-011, and on 2026-10-18 it
+  opened seventeen pull requests at HQ of which sixteen were multi-file, so its
+  own scope check suspended its self-merge right on sixteen of seventeen and
+  each of those waited on another actor. The file that broke the scope was the
+  same nearly every time: its own run report under `docs/agents/runs/`, a record
+  that no tool in the company reads
+  (`grep -rl "agents/runs" tools/ runtime/ standards/ .github/` returns two
+  unrelated test fixtures and nothing else). The compound cost is measurable and
+  was paid twice in one day: the portfolio's four vendored copies of this file
+  fell 19KB behind while the rules that would have closed the gap sat in
+  multi-file pull requests, and both repairs were one command once the lane was
+  clean.
+  So the narrative goes in the pull request description and on the board, where
+  the owner actually reads it, the rules go in the one file, and the pass merges
+  itself. Generally: before adding a file to a change, ask which queue it moves
+  the change into. A convenience that costs a tier is not a convenience.
+  **And when a path is gated by a check that cannot run, this stops being
+  hygiene.** At HQ on 2026-10-18, 13 of 15 non-draft open pull requests touched
+  a workflow's path filter and not one of the non-gated ones was blocked by a
+  check at all, so the difference between a clean lane and a contaminated one
+  was the difference between landing that hour and not landing that week.
+  (HQ, 2026-10-18, this seat measuring its own queue after a merger declined two
+  of its pull requests. Companion to L-A55's provenance: a rule that must bind
+  every seat goes where distribution is already a merged fact.)
 
 ## engineer
 
@@ -1519,6 +1856,40 @@ ID it eventually gets is not the one its author would have chosen.
   as amended, and standards/operating-modes.md. Companion to L-A13,
   which says what synchronous mode is, and to L-P3, which says the PM
   seat exists to relieve her.)
+
+- **L-P8 — When a check cannot run anywhere, the merger picks one policy for
+  the whole gated class and applies it to every pull request in the pass.** Two
+  policies are defensible — withhold everything in the class until the
+  infrastructure returns, or accept a re-performed local run as the evidence —
+  and the damage is in alternating between them, because a seat cannot tell an
+  unlucky pass from a rule and will read the same gate as a coin flip. Say which
+  policy the pass is on, in the pass's own report.
+  **The class is computable, not a judgement.** A pull request is in it when its
+  diff matches a workflow's path filter — at HQ on 2026-10-18 that is `tools/**`,
+  `runtime/graphs/**`, `runtime/memory/**`, `.github/workflows/**`,
+  `tools/staged/**` and `standards/workflow-template.yml` — and
+  `python3 tools/check-run-ran.py --branch <branch>` answers in one call whether
+  the red is the never-started kind. Measured: 500 of 500 failing runs at HQ
+  since 2026-10-13T15:00Z never started and not one succeeded; 13 of 15
+  non-draft open pull requests were in the class; 4 of those merged clean and
+  were held by nothing else.
+  **Hold by the class and report the count, never one pull request at a time.**
+  A pass that withholds names the policy and how many it held under it, so the
+  cost reaches the owner as one number she can act on rather than as a series of
+  individual seats being unlucky — which is how a five-day infrastructure block
+  stayed a seat-by-seat triage line instead of a queue-wide one.
+  **And evidence a merger can re-perform beats evidence it must believe.** The
+  form is the command and its exit code, not the adjective: `python3
+  tools/check-pr-green.py <pr>` builds the real three-way merge and runs this
+  repository's own suites against it, which is better evidence than a forge
+  check on a branch tip that the merge will not ship — and for `runtime/board/**`
+  it is strictly stronger, because that suite has no workflow file at HQ at all,
+  so the forge has never checked it. A seat that posts the adjective is making a
+  claim; a seat that posts the command is handing over a check. Binds pm and
+  chair, and every seat whose work is held by one.
+  (HQ, 2026-10-18, measured on this seat's own two withheld pull requests and
+  the queue around them. The companion to L-A66, which is the same defect from
+  the held seat's side.)
 
 ## okr
 

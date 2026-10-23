@@ -496,6 +496,15 @@ check "the transcript has two turns in ONE session" "[ \$(wc -l < \"$STUB/$SESSI
 check "the second turn was a --resume" "grep -q '\"resumed\":true' \"$STUB/$SESSION.jsonl\""
 check "both turns ran in the SAME clone" "[ \$(node -e 'const l=require(\"fs\").readFileSync(process.argv[1],\"utf8\").trim().split(\"\\n\").map(JSON.parse);console.log(new Set(l.map(x=>x.cwd)).size)' \"$STUB/$SESSION.jsonl\") = 1 ]"
 check "the agent answered in context (it names its own PR)" "grep -q 'my PR is still' .epito/logs/pm/*.log"
+# Incident 5: every window on a host wrote its temporary files into one shared
+# directory, so a file a run named itself was a shared mailbox. The window now
+# owns a scratch directory beside its clone, and both turns above were told
+# where it is — the removal half is the `gone` glob when the window closes,
+# which matches `epito-pm-*.scratch` as well as the clone.
+check "the window has a scratch directory of its own, beside its clone" "ls -d ${TMPDIR:-/tmp}/epito-pm-*.scratch >/dev/null 2>&1"
+check "and it is not inside the clone, where the agent's own git would see it" "[ \$(ls -d ${TMPDIR:-/tmp}/epito-pm-*/*scratch* 2>/dev/null | wc -l) = 0 ]"
+check "the run log names it, under both names the child is given" "grep -q 'named to the run as \$TMPDIR and \$EPITO_SCRATCH' .epito/logs/pm/*.log"
+check "and the child really got them" "grep -qE 'env passed:.*TMPDIR' .epito/logs/pm/*.log && grep -qE 'env passed:.*EPITO_SCRATCH' .epito/logs/pm/*.log"
 
 step "4: IDENTITY — pm's runs minted their own credential, and the log never saw it"
 # Three mints for two runs, and that is the design: law 7 forbids a token

@@ -15,7 +15,7 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { appNameFor, appManifestFor, formPage, readPrincipals, writePrincipals, recordInstallation, resolveAgent } from "../src/deploy.js";
+import { appNameFor, appManifestFor, formPage, EPITO_HOME, readPrincipals, writePrincipals, recordInstallation, resolveAgent } from "../src/deploy.js";
 import { permissionsFor } from "../src/lib/identity.js";
 
 const temps = [];
@@ -33,6 +33,26 @@ test("the App name is the agent plus the repo owner, inside GitHub's 34-char cap
 
 test("a manifest with no repo still yields a name rather than a dangling dash", () => {
   assert.equal(appNameFor("solo", undefined), "solo");
+});
+
+test("the App's homepage is the repo it works in, or this product's own source", () => {
+  // Whatever goes in `url` sits on the App's settings page for as long as the
+  // App exists, and the operator never typed it. With a repo it is that repo.
+  const withRepo = appManifestFor({
+    name: "historian", repo: "acme/roster", permissions: { contents: "write" },
+    redirectUrl: "http://127.0.0.1:1/callback",
+  });
+  assert.equal(withRepo.url, "https://github.com/acme/roster");
+  // Without one it used to be `https://epito.me`, a name this company does not
+  // own and which redirects to a page selling it. Pinned as a host rather than
+  // as a string, so the next edit to this fallback has to point somewhere the
+  // package already points too.
+  const noRepo = appManifestFor({
+    name: "solo", permissions: { contents: "write" },
+    redirectUrl: "http://127.0.0.1:1/callback",
+  });
+  assert.equal(noRepo.url, EPITO_HOME);
+  assert.equal(new URL(noRepo.url).host, "github.com");
 });
 
 test("the permissions in the App manifest ARE the manifest's scopes, mapped", () => {

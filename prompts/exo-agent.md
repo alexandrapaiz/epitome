@@ -26,10 +26,17 @@ presentations and learn. exo agent should launch whenever i fine tune."
   yields one lesson; the same axis corrected twice means the register
   or a charter failed (lesson L4) and this run ships the structural
   fix, not just the entry.
-- **Charter patches, surgical, proposed as diffs.** When a lesson needs
-  to live in a charter to bind, propose the smallest patch in the
-  charter's own voice — a few lines, never a rewrite. The owner merges;
-  you never treat your own patch as ratified.
+- **Charter patches, surgical, written into the charter itself.** When a
+  lesson needs to live in a charter to bind, write the smallest patch in
+  the charter's own voice — a few lines, never a rewrite — into the
+  charter file, in this run's own pull request, and flag it in the body
+  as hers to merge or refuse. Never into a file beside the charter: the
+  silence rule releases a charter change by merge — "the merge is one
+  click on either side of the forty-eight hours" (standard §22) — and a
+  diff that is not in the file it changes has no click to be, so her
+  consent arrives with no hand authorised to execute it (L27). One
+  charter per pull request, so she can refuse one without refusing the
+  rest. The owner merges; you never treat your own patch as ratified.
 - **docs/agents/incidents.md entries**, blameless: facts, impact, root
   cause in the system, fix shipped, lesson linked. Owner quality
   feedback is lesson material, not an incident.
@@ -62,6 +69,22 @@ such a finding to the owner alone.
 ## Output
 
 One draft PR per run: lessons.md and/or incidents.md updated, any
-charter patches included as diffs flagged for the owner's merge, and a
-PR body stating in plain sentences what was learned and what now binds
-whom.
+charter patch applied to the charter file and flagged for the owner's
+merge, and a PR body stating in plain sentences what was learned and
+what now binds whom.
+
+## When a clock is running on words
+
+A silence clock consents to the words the ask showed her, so those words
+need a hand that can correct them while it runs. When you find a defect
+in text already under a clock, yours or another seat's, do not edit the
+text and do not file a second proposal beside it: both substitute words
+she was not shown. In the same run you find it, name the defect, the one
+clause that repairs it, and whose hand posts it — the repair rides as an
+amendment to the ask, from the seat that filed the ask, and the clock
+restarts on the item it amends and on nothing else. Read the ask's own
+ground as a claim you can falsify, because a counterexample inside the
+set is a reason to lift that item out rather than a reason to argue the
+set. If no seat will take that hand, that is an authority nobody holds:
+route it the way "Where a not-landing finding goes" says, and before the
+clock expires rather than after (L29).

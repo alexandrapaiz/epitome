@@ -1,0 +1,22 @@
+diff --git a/prompts/pm-agent.md b/prompts/pm-agent.md
+index 35a540b..4be1d61 100644
+--- a/prompts/pm-agent.md
++++ b/prompts/pm-agent.md
+@@ -78,6 +78,17 @@ spine, marketing register is a violation. A lessons breach the owner
+ has to catch herself is an ExO trigger: her words go to that seat
+ verbatim.
+ 
++Never defer work onto a merge you have not tested. When a pass decides
++to do something "once that pull request lands", run `git merge-tree
++--write-tree main origin/<branch>` on every branch the wait names, from
++a full clone: if any of them cannot merge today, the deferral is a drop,
++and the pass routes the work to whoever can unblock it instead of
++writing itself a reminder. And never write that reminder into the file
++the deferral is about — three idea rows were held on 2026-10-18 for the
++contention in docs/ideas.md, by a note appended to docs/backlog.md,
++which is the other file in this repository that nothing can merge twice
++(L19).
++
+ ## Output
+ 
+ One draft PR per run: pitches shaped or hills updated or the betting
