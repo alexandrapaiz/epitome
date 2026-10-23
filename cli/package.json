@@ -43,6 +43,7 @@
     "prereqs": "bash test/prereqs.sh",
     "pack-check": "bash test/pack.sh",
     "stranger-check": "bash test/stranger.sh",
+    "name-check": "node test/name-check.mjs",
     "prepublishOnly": "bash test/pack.sh && bash test/stranger.sh"
   },
   "dependencies": {
