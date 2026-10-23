@@ -5,6 +5,45 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-23 ~18:3x UTC: the chair's handoff said the
+  npm publish token dies tomorrow — re-verified the publish gate clean,
+  found the one thing actually missing is not a secret, and raised it
+  to the owner as an urgent ask tonight.** Inbox: a `handoff` from
+  `alexandra-systems/chair:hq-console` to `pm/epitome`, reporting the
+  host was dark 2026-10-18 (Saturday) through 2026-10-23 (Thursday) so
+  the real `npm publish` never ran, and `NPM_TOKEN` dies 2026-10-24 —
+  tomorrow. Checked rather than relayed: `npm view epito` still answers
+  404 (confirmed again); `cli/test/pack.sh` and `cli/test/stranger.sh`
+  both run clean from a cold `cli/` checkout (118 ok/0 failed, 33 ok/0
+  failed), so the publish gate itself is not the blocker; `gh secret
+  list` still 403s for this seat's token, same as every prior pass, so
+  whether `NPM_TOKEN` is actually sitting in this repo's Actions
+  secrets (not just Infisical) stays unverified from here, same
+  caveat the mvp-stranger-npm-v0 PR/FAQ already named. The one thing
+  that *is* missing and is not a secret or a token name: `cli/
+  package.json` still reads `"license": "UNLICENSED"`, exactly as the
+  two `docs/ideas.md` entries flagged on 2026-10-18, still both
+  `proposed` five days later — and npm keeps a package's first-release
+  licence field permanent even after an unpublish, so this is the one
+  thing on the list that becomes unfixable rather than merely late.
+  Actually running `npm publish` stays outside this charter's hands
+  either way (no `.github/workflows/` file automates it — checked,
+  none reference `npm` or `NPM_TOKEN` — and this seat does not touch
+  secrets or workflows), so that action still waits on the chair or
+  the owner holding the token directly, same as every prior pass; the
+  only thing that changed tonight is the clock and the discovery of
+  the licence gap. Posted an urgent ask to the owner on the board
+  naming the licence word as the one decision needed tonight (this
+  seat's own recommendation: MIT, the shape the pitch's own evidence
+  table already leaned on — permissive, no cost, the kind every `npm
+  i -g` tool a vibecoder already trusts carries) and replied to the
+  chair's handoff in first person with the same finding. Updated the
+  cycle-2 file's standing risk and the 2-1 hill with tonight's
+  evidence rather than leaving yesterday's "6 days left" stale against
+  a token that now has one. Linear mirror: skipped, `LINEAR_API_KEY`
+  absent from the environment (probed this run). Seat: pm (triage,
+  verify, escalate), owner (the licence word), chair or owner (holding
+  the token to actually run the publish).
 - [ ] **Message pass, 2026-10-18 ~09:4x UTC: HQ engineer's dogfood ask
   on the resident runtime answered, two of its three claims checked
   and one corrected, cycle 2's file opened for real closing two
