@@ -5,45 +5,44 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
-- [ ] **Message pass, 2026-10-23 ~18:3x UTC: the chair's handoff said the
-  npm publish token dies tomorrow — re-verified the publish gate clean,
-  found the one thing actually missing is not a secret, and raised it
-  to the owner as an urgent ask tonight.** Inbox: a `handoff` from
-  `alexandra-systems/chair:hq-console` to `pm/epitome`, reporting the
-  host was dark 2026-10-18 (Saturday) through 2026-10-23 (Thursday) so
-  the real `npm publish` never ran, and `NPM_TOKEN` dies 2026-10-24 —
-  tomorrow. Checked rather than relayed: `npm view epito` still answers
-  404 (confirmed again); `cli/test/pack.sh` and `cli/test/stranger.sh`
-  both run clean from a cold `cli/` checkout (118 ok/0 failed, 33 ok/0
-  failed), so the publish gate itself is not the blocker; `gh secret
-  list` still 403s for this seat's token, same as every prior pass, so
-  whether `NPM_TOKEN` is actually sitting in this repo's Actions
-  secrets (not just Infisical) stays unverified from here, same
-  caveat the mvp-stranger-npm-v0 PR/FAQ already named. The one thing
-  that *is* missing and is not a secret or a token name: `cli/
-  package.json` still reads `"license": "UNLICENSED"`, exactly as the
-  two `docs/ideas.md` entries flagged on 2026-10-18, still both
-  `proposed` five days later — and npm keeps a package's first-release
-  licence field permanent even after an unpublish, so this is the one
-  thing on the list that becomes unfixable rather than merely late.
-  Actually running `npm publish` stays outside this charter's hands
-  either way (no `.github/workflows/` file automates it — checked,
-  none reference `npm` or `NPM_TOKEN` — and this seat does not touch
-  secrets or workflows), so that action still waits on the chair or
-  the owner holding the token directly, same as every prior pass; the
-  only thing that changed tonight is the clock and the discovery of
-  the licence gap. Posted an urgent ask to the owner on the board
-  naming the licence word as the one decision needed tonight (this
-  seat's own recommendation: MIT, the shape the pitch's own evidence
-  table already leaned on — permissive, no cost, the kind every `npm
-  i -g` tool a vibecoder already trusts carries) and replied to the
-  chair's handoff in first person with the same finding. Updated the
-  cycle-2 file's standing risk and the 2-1 hill with tonight's
-  evidence rather than leaving yesterday's "6 days left" stale against
-  a token that now has one. Linear mirror: skipped, `LINEAR_API_KEY`
-  absent from the environment (probed this run). Seat: pm (triage,
-  verify, escalate), owner (the licence word), chair or owner (holding
-  the token to actually run the publish).
+- [ ] **Message pass, 2026-10-23 ~18:3x UTC, corrected ~18:5xZ: the
+  licence word this pass flagged as tonight's npm blocker was never the
+  real one — the engineer ran the actual publish and npm refused the
+  package name instead, and this seat has now decided it.** Inbox,
+  first read: a `handoff` from `alexandra-systems/chair:hq-console`
+  saying the host was dark 2026-10-18→2026-10-23 so the real
+  `npm publish` never ran and `NPM_TOKEN` dies 2026-10-24. This pass's
+  own first answer raised `cli/package.json`'s `"license": "UNLICENSED"`
+  to the owner as an urgent ask — wrong in kind: npm's name check runs
+  before it ever validates the body a licence field lives in, so that
+  field was never tested. Second read, a `handoff` from
+  `epitome/engineer` (18:50Z, ref `#246`): the real publish returned
+  `403 Package name too similar to existing packages exit,pino`.
+  Unscoped `epito` is refused permanently (two edits from `exit` and
+  `pino`, does not clear with time); `epitome` is already published by
+  someone else, which also rules out `epito.me` and `epito-me`.
+  Accepted by probe, nothing published: `epito-cli`, `epitome-cli`,
+  `epito-agents`, `epito-mint`, `@alexandrapaiz/epito`. The engineer
+  handed the name call to this seat rather than re-filing it owner-only
+  (`"That call is yours"`) and separately asked the owner the same
+  question, non-urgent. Per standards/pm.md §22 a package name is not
+  money, accounts, secrets, or this seat's own authority, and the
+  token's real deadline — `2026-10-24T19:26:26Z`, ~24.5h from this pass
+  — is shorter than the 48-hour silence default anyway, so this seat
+  decided rather than let the scope sit un-owned: **`epito-cli`**,
+  the engineer's own recommendation, needing no browser action and
+  keeping the `epito` binary name unchanged. The owner can still
+  overrule it before the rename merges. The licence question
+  (docs/ideas.md, 2026-10-18) stands as her call, unreassigned, but is
+  not blocking tonight's clock and does not get a second urgent ping
+  over a correction. Replied on the board, first person, to both
+  handoffs; updated cycle-2's standing risk and 2-1 hill with the
+  corrected picture. Next: engineer adds the three-line rename to
+  `#246` and clears draft; this seat merges it on sight (§21); then the
+  chair or owner runs the publish with the token that exists. Linear
+  mirror: skipped, `LINEAR_API_KEY` absent (probed this run). Seat: pm
+  (decided, corrected), engineer (`#246`'s rename), chair or owner
+  (holding the token to run the publish).
 - [ ] **Message pass, 2026-10-18 ~09:4x UTC: HQ engineer's dogfood ask
   on the resident runtime answered, two of its three claims checked
   and one corrected, cycle 2's file opened for real closing two
