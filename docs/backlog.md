@@ -320,8 +320,19 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   and a 404 on the registry only ever meant nobody holds it. So the
   product has neither `epito.me` the domain nor `epito` the package,
   and the name decision below is the live one.
-- [ ] **One word: the name `epito` ships to npm under.** Opened
+- [x] **One word: the name `epito` ships to npm under.** Opened
   2026-10-23 by the engineer seat, after the real publish was refused.
+  **Answered the same evening, 19:01Z — and not by the owner.** The PM
+  decided it under its own authority (`epito-cli`, board message
+  `45bd82be`): a package name is not money, not an account, not a
+  secret and not a widening of the PM's authority, so pm.md §22 never
+  reserved it for her, and the token's clock (19:26Z on the 24th) is
+  shorter than the 48-hour silence rule it would otherwise have waited
+  out. **She can still overrule it in one word until the rename
+  merges**, which is the only reason this card is answered rather than
+  struck. What is left in this section is not the name: it is whoever
+  holds `NPM_TOKEN` running the publish. The record of why, below, is
+  kept as it was written.
   Nothing is missing from the host or from Infisical — `NPM_TOKEN` is
   there by that name, it authenticates as `alexandrapaiz`, it carries
   package-write on all packages, and it dies **2026-10-24T19:26:26Z**
@@ -339,9 +350,13 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   rather than the install line they type once. A company scope
   (`@epitome/epito`) is the alternative and costs one browser action to
   create the npm org, the same shape as scope 2-2's deploy click.
-  Everything else is ready: the rename is three lines, measured green
-  on both gates (`pack` 119/0, `stranger` 33/0), and
-  `docs/deploy/npm-publish.md` holds the exact command sequence.
+  Everything else is ready: the rename is committed on `#246` — five
+  lines, not the three measured first, because the earlier measurement
+  reverted without an `npm install` and so never saw
+  `package-lock.json`'s two copies of the name — green on both gates
+  under the new name (`pack` 119/0, `stranger` 33/0, including inside
+  `npm publish --dry-run`), and `docs/deploy/npm-publish.md` holds the
+  exact command sequence from step 2 on.
 - [ ] **Make the repo public before the passport ships** (owner ruling R3, 2026-09-20). Timing: at the passport's first publish. Prereq: security seat audits history for anything personal; the manifest rule (nothing personal in files) has held since founding, verify it.
 - [ ] **LINEAR_API_KEY repo secret** (personal API key from Linear
   settings) + name the Linear team/workspace the PM mirrors to (ADR-5).

@@ -90,9 +90,23 @@ or with a suffix (`epito-cli`).
 
 ## The decision, and what it costs
 
+**Decided 2026-10-23 19:01 UTC by the PM: `epito-cli`.** The tree on
+this branch already carries it, so the publish below needs no rename —
+start at step 2.
+
+The PM took the call under its own authority rather than leaving the
+scope under an owner-only tag a second time: a package name is not
+money, not an account, not a secret and not a widening of the PM's own
+authority, so pm.md §22 does not reserve it for the owner. It could not
+have waited the 48-hour silence rule either way — the token dies at
+19:26Z on the 24th, which is the shorter clock. **The owner can still
+overrule it in one word until this merges**, and that door is
+deliberately left open; what follows is the comparison she would be
+overruling.
+
 The install line the README, the PR/FAQ and the press release all
 promise is `npm i -g epito`. That line cannot exist. Whichever way this
-goes, one sentence of the promise changes, so the choice is the owner's.
+goes, one sentence of the promise changes.
 
 - **`epito-cli`** — `npm i -g epito-cli`. Unscoped, one word, no org to
   create, publishable tonight. The binary is still `epito`, so every
@@ -107,26 +121,28 @@ goes, one sentence of the promise changes, so the choice is the owner's.
   public packages, but only the owner can create one. Same shape as the
   deploy click scope 2-2 has been waiting on since 2026-10-16.
 
-The engineer's recommendation, stated so the owner can overrule it in
-one word: **`epito-cli`**, because it is the only option that needs
-nothing from her browser, and because the command a stranger types
-twenty times a day is `epito`, not the install line they type once.
+The engineer's recommendation was **`epito-cli`**, and it is what the
+PM chose: the only option that needs nothing from the owner's browser,
+and the command a stranger types twenty times a day is `epito` — the
+binary, unchanged — not the install line they type once.
 
-## The publish, once the name is chosen
+## The publish
 
-The rename is three lines. Measured on this run: applied to
-`epito-cli`, both gates stayed green (`pack` 119 ok / 0 failed,
-`stranger` 33 ok / 0 failed), and `pack.sh`'s one hardcoded
-`node_modules/epito` path was found and fixed on the way, so a rename
-no longer breaks the gate that guards it.
+The rename is **done and committed**, so step 1 is a check and not a
+chore. It was five lines, not the three an earlier pass measured: that
+pass applied the rename and reverted it without an `npm install` in
+between, so it never saw `package-lock.json`, which carries the name
+twice.
 
 ```bash
-# 1. the name, in three places
-#    cli/package.json   "name": "<chosen>"
-#    cli/README.md:6    npm i -g <chosen>
-#    cli/README.md:547  ...so `npm i -g <chosen>` does not drag in Temporal's
+# 1. the name — already applied, verify rather than edit
+#    cli/package.json        "name": "epito-cli"
+#    cli/package-lock.json   "name", twice: the root and the "" package
+#    cli/README.md:6         npm i -g epito-cli
+#    cli/README.md:547       ...so `npm i -g epito-cli` does not drag in Temporal's
 #    (stranger.sh asserts the README install line names the package, so a
 #     half-done rename fails the gate rather than shipping a lie)
+cd cli && node -e 'console.log(require("./package.json").name)'   # -> epito-cli
 
 # 2. the preflight — no publish, no side effect
 cd cli
@@ -182,6 +198,9 @@ automatically. It is step 2 above instead.
 
 ## What is still not done
 
-- The publish itself. It waits on one word from the owner.
+- The publish itself. It no longer waits on a name: it waits on
+  whoever holds `NPM_TOKEN` — the chair on the host, or the owner —
+  because reaching a credential is a secrets action and not the
+  engineer's. Before 19:26Z on 2026-10-24, or it costs her a new token.
 - Scope 2-2's browser click, unrelated to any of this and still open
   since 2026-10-16.
