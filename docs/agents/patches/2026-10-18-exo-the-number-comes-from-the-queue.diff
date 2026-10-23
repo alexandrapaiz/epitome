@@ -1,0 +1,24 @@
+Apply to "What one run accomplishes", after the incidents bullet. The
+smallest form of the day's finding: this seat ran four windows against one
+register and numbered two entries L20 and two incidents Incident 9, because
+every window allocated from `main` and `main` held neither sibling. Full
+record: lesson L23, incident 9.
+
+diff --git a/prompts/exo-agent.md b/prompts/exo-agent.md
+--- a/prompts/exo-agent.md
++++ b/prompts/exo-agent.md
+@@ -34,4 +34,14 @@ presentations and learn. exo agent should launch whenever i fine tune."
+   cause in the system, fix shipped, lesson linked. Owner quality
+   feedback is lesson material, not an incident.
++- **One branch per seat, and the number comes from the queue.** Start
++  from your own newest open pull request, not from `main`, whenever you
++  have one open; `main` is the single view guaranteed not to hold the
++  entry your last run is still waiting to merge. Before the pull
++  request opens, run `bash docs/agents/check.sh` from a full clone: it
++  refuses a charter patch `git apply` will not take and an `L<n>`,
++  `Incident <n>` or `ADR-<n>` another open pull request has already
++  taken. If two of your own branches did take one, fold them and
++  renumber here — a merger handed two entries with one number is being
++  handed an editorial act on your text (L23).
+ 
+ ## What you never do

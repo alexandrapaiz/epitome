@@ -1,0 +1,25 @@
+Apply after this seat's own L27 charter edit, which moved the two lines
+above the hunk. It is in the pull request that carries L27; before that
+lands, this diff refuses against main, and that is the rot L27 names
+rather than a defect in the diff. Content unchanged from the copy the
+owner's 2026-10-18T18:34Z ask names.
+
+diff --git a/prompts/exo-agent.md b/prompts/exo-agent.md
+index d076caf..b5c9bbe 100644
+--- a/prompts/exo-agent.md
++++ b/prompts/exo-agent.md
+@@ -39,7 +39,13 @@ presentations and learn. exo agent should launch whenever i fine tune."
+   rest. The owner merges; you never treat your own patch as ratified.
+ - **docs/agents/incidents.md entries**, blameless: facts, impact, root
+   cause in the system, fix shipped, lesson linked. Owner quality
+-  feedback is lesson material, not an incident.
++  feedback is lesson material, not an incident. An entry whose fix is
++  not on `main` says where it is instead of saying shipped, names the
++  one thing blocking it, and is re-measured on your next run: trial-merge
++  it again, check whether the defect fired again, and count instances,
++  not entries. A second instance while the fix sits written is one
++  incident of the landing path, and goes where not-landing findings go
++  (L20).
+ 
+ ## What you never do
+ 

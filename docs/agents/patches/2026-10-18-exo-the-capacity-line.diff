@@ -6,7 +6,7 @@ costs and incident 8 is what a day with no capacity number costs.
 diff --git a/prompts/exo-agent.md b/prompts/exo-agent.md
 --- a/prompts/exo-agent.md
 +++ b/prompts/exo-agent.md
-@@ -33,6 +33,19 @@
+@@ -33,5 +33,17 @@
  - **docs/agents/incidents.md entries**, blameless: facts, impact, root
    cause in the system, fix shipped, lesson linked. Owner quality
    feedback is lesson material, not an incident.
