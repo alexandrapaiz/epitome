@@ -6,7 +6,12 @@ never who erred. Each entry carries the owner's triggering words
 producing owner-facing artifacts check against this file before
 shipping; a violation the owner has to catch herself is an ExO trigger.
 The frameworks-register law applies here too: a lesson is one rule a
-fresh-context seat can apply, never a process.
+fresh-context seat can apply, never a process. Entry numbers are allocated
+from this seat, across the open queue and not against `main` (L23); this
+company's project manager confirmed the convention on 2026-10-18 — "the
+numbering convention you proposed, that it comes from your seat going
+forward, stands unless she says otherwise" — so a seat that needs a number
+asks for it rather than taking the next one it can see.
 
 ## L1 — Mechanism is the spine; process vocabulary is a footnote
 
@@ -1274,5 +1279,82 @@ that clause binds four project managers in three companies, the file is HQ's,
 and it is routed there rather than patched here (§18). The fifteen diffs already
 under the owner's live ask are left exactly as they are: her clock is running on
 them and pulling them out from under it would be a second fault, not a fix.
+
+`portable: yes`
+
+## L28 — A dry run that writes nothing is not the run: check a set by applying it, in a recorded order, and throw the result away
+
+**Trigger (2026-10-18T18:35Z)**, this company's project manager, in the note
+that woke this run, verbatim: "I am naming one thing I did not do so it does
+not sit as a silent gap: I have not reviewed the content of the fourteen
+patches line by line, only their route. If any of them turns out to need a
+second look before her clock clears, that is still worth raising, and I would
+rather you catch it than the clock alone decide it."
+
+It was right to ask, and the thing it found was not in the content. Fourteen
+charter patches are under an owner's silence clock that expires
+2026-10-20T18:33Z, with the recommendation "let all fourteen apply as
+written". Measured at 19:05Z, that sentence had nothing it could resolve to:
+
+| run | answer |
+|---|---|
+| `git apply --check` on each of the fifteen, alone | 15 of 15 apply |
+| `git apply --check` on all fifteen at once | exit 0, "applies" |
+| `git apply` on all fifteen at once | exit 1 on the fourth, two charters left half-written |
+| `git apply` one at a time, in the ask's order | 9 of 14 |
+| the same, in reverse | 9 of 14, a different five |
+| `patch -F3` one at a time | 14 of 14, five with fuzz, one landed through the middle of another bullet's sentence |
+
+Fourteen of the fifteen insert at four shared anchors, and each was written
+against the unpatched charter, so the first patch at an anchor eats the
+trailing context the next one needs. No ordering fixes that; two patches
+anchored on the same before-and-after can never both apply cleanly.
+
+**Rule.** A check that does not perform the act cannot answer for the act.
+`git apply --check a.diff b.diff` writes nothing, so it tests each patch
+against the *unmodified* file and is structurally blind to siblings — it is a
+per-patch check wearing a set check's name. So: verify a set by applying it
+for real, one step at a time, in an order that is written down, into a copy
+you throw away — `git worktree add --detach` and `git worktree remove
+--force` cost less than a second. And where steps share an anchor, the order
+is not a preference and it does not live in a run's memory: it goes in a file
+beside them, because the order decides which steps silently vanish. A tool
+that reports every step applied, with fuzz, is the worst of the three
+answers: it is the one that puts text where nobody asked for it and exits 0.
+
+**What this names about fuzz.** Fuzz is a merge decision taken by a program
+with no stake in the sentence. `patch -F3` got all fourteen in and put a
+charter bullet inside another bullet's sentence; `git apply`, which has no
+fuzz, refused instead. Prefer the tool that refuses, then fix the anchor.
+
+**The check, for this seat, before it asks anyone to apply anything.**
+`bash docs/agents/check.sh` now applies the set in `docs/agents/patches/ORDER`
+in a scratch worktree, names the patches that need their predecessors, and
+refuses a diff that has no place in the order at all. And when a set is
+re-anchored under a live clock, the guarantee to state is the one that is
+checkable: the added lines, as a multiset across the whole set, are
+byte-identical before and after — 136 lines, in this instance — and only
+context moved.
+
+**Second instance of the axis, which is why the fix is structural (L4).**
+L25 found a route readable per patch and nobody filing the ask. L27 found the
+ask filed with no hand at its far end and ruled that a charter change rides in
+the charter. This is the third thing that goes wrong with a diff kept beside
+the file it changes, and the sharpest: the set of them stops being applicable
+without anybody touching it, and the instrument says it is fine. L27's
+prescription is what prevents the whole class — two edits to one bullet in a
+branch are a merge conflict a person sees, and `git apply` offers nobody that.
+The fifteen already under her clock stay where they are, re-anchored, with
+their content unmoved.
+
+**Binds:** this seat, which built the false check and filed the table the ask
+was written from; the project manager of this company, whose ask is the thing
+with a clock on it and whose one reading worth revisiting is named in
+`docs/agents/patch-review-2026-10-18.md` §2; and every seat that offers a
+`--dry-run`, `--check` or `validate` as proof — this product sells three of
+them, and `epito validate`'s own contract is that a tick must not promise
+what the command downstream will refuse, which is this lesson pointed at the
+product instead of at the registers. Routed to `alexandra-systems/exo-centralizer`
+as portable, because the misreading is in a tool four companies use.
 
 `portable: yes`

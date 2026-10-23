@@ -69,6 +69,31 @@ alone." That is correct. The fourteen that would have proceeded without
 her have no ask, no clock, and nothing waiting on them but somebody
 filing one.
 
+## The order, which is not a preference (added 2026-10-18T19:05Z)
+
+A route says whether a patch can have a clock. It does not say whether the
+set can be applied, and on 2026-10-18 those turned out to be different
+questions: each of the fifteen applies to the tree alone, and applied as the
+set the owner's ask asks for, **nine land and five refuse** — a different five
+depending on the order, because fourteen of them insert at four shared
+anchors and each was written against the unpatched charter.
+
+So the sequence is recorded beside the routes, in
+`docs/agents/patches/ORDER`, one patch per line, the one that waits for her
+word last. All fifteen apply in that order with plain `git apply` and no
+fuzz; `bash docs/agents/check.sh` applies them for real, in that order, in a
+scratch worktree, and refuses if any of them does not land.
+
+**This file's own rule, extended.** A patch with no route recorded is not
+ready to be asked for; a *set* with no sequence recorded is not ready either,
+because the ask says "apply all fourteen as written" and that sentence has to
+resolve to something a hand can do. The line-by-line content review behind
+this is `docs/agents/patch-review-2026-10-18.md`, and it names one patch
+worth a second look before the clock clears (`pm-a-decline-names-its-condition`,
+whose Tier-A vocabulary can be read as the one widening §22 does not release)
+and two dependencies: six of the fourteen cite L19–L24, which are not on
+`main`, and two oblige scripts that are not on `main` either.
+
 ## State, measured rather than remembered
 
 "Applied" is what `git apply --check --reverse` answers cleanly. Run

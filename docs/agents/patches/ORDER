@@ -1,0 +1,25 @@
+# The order the diffs in this directory apply in, one per line, oldest route
+# first. Not a preference: fourteen of them insert at four shared anchors, so
+# applied in any other order some of them silently refuse, and applied with
+# fuzz they land in positions their own diffs do not name (L28).
+#
+# docs/agents/check.sh applies them in this order, with plain `git apply` and
+# no fuzz, in a scratch worktree. All fifteen land.
+#
+# The last line is the one patch the owner's silence does not release: it
+# widens a seat's own authority and waits for her word (L25, routes.md).
+2026-10-05-engineer-check-the-register
+2026-10-05-engineer-landing-has-a-stop
+2026-10-05-exo-two-standing-counts
+2026-10-18-engineer-a-defect-is-not-an-idea
+2026-10-18-exo-a-patch-leaves-with-a-clock
+2026-10-18-exo-the-capacity-line
+2026-10-18-exo-the-loops-local-half
+2026-10-18-pm-a-pass-is-not-a-pull-request
+2026-10-18-engineer-the-installed-runtime
+2026-10-18-exo-a-fix-is-shipped-when-it-is-on-main
+2026-10-18-exo-the-number-comes-from-the-queue
+2026-10-18-exo-the-order-is-measured-at-publication
+2026-10-18-pm-a-decline-names-its-condition
+2026-10-18-pm-a-deferral-is-a-merge
+2026-10-18-pm-the-standard-is-the-charter
