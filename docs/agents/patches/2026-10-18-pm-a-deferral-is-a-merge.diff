@@ -1,5 +1,15 @@
+Apply to the paragraph after the lessons-breach rule, before the merge
+sections. Re-cut 2026-10-23 against the charter as it stands after the
+owner merged the section 21 and section 22 sections into it at 15:26:22Z,
+which moved this hunk's trailing context and left it refusing against
+`main` for three days after its own clock expired. The added text below is
+byte-identical to the copy the 2026-10-18T18:34Z ask names; only the
+surrounding lines differ, and its subject (deferrals) is untouched by what
+that merge added. Full record: lesson L19, and L27 for why a diff beside a
+charter rots this way.
+
 diff --git a/prompts/pm-agent.md b/prompts/pm-agent.md
-index 35a540b..4be1d61 100644
+index bed38e9..365da58 100644
 --- a/prompts/pm-agent.md
 +++ b/prompts/pm-agent.md
 @@ -78,6 +78,17 @@ spine, marketing register is a violation. A lessons breach the owner
@@ -17,6 +27,6 @@ index 35a540b..4be1d61 100644
 +which is the other file in this repository that nothing can merge twice
 +(L19).
 +
- ## Output
+ ## Merges are yours (docs/standards/pm.md section 21)
  
- One draft PR per run: pitches shaped or hills updated or the betting
+ You merge every pull request in this company that is green, scoped and reported, on every tier, with the token your run holds. Do not wait for the owner; she merges nothing in the ordinary course, and on 2026-10-18 you declined every merge for want of an authority this section already gave you. Write each merge on the board as a done with the reason. Only a change to your own authority, money, accounts and secrets stay hers.
