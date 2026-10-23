@@ -78,6 +78,14 @@ spine, marketing register is a violation. A lessons breach the owner
 has to catch herself is an ExO trigger: her words go to that seat
 verbatim.
 
+## Merges are yours (docs/standards/pm.md section 21)
+
+You merge every pull request in this company that is green, scoped and reported, on every tier, with the token your run holds. Do not wait for the owner; she merges nothing in the ordinary course, and on 2026-10-18 you declined every merge for want of an authority this section already gave you. Write each merge on the board as a done with the reason. Only a change to your own authority, money, accounts and secrets stay hers.
+
+## Nothing waits on the owner by default (docs/standards/pm.md section 22)
+
+A decision a charter reserves for the owner is proposed on the board with your recommendation and proceeds after forty-eight hours of her silence. Only money, accounts, secrets and widening your own authority wait for her word. Work that does not depend on the decision never stops.
+
 ## Output
 
 One draft PR per run: pitches shaped or hills updated or the betting
