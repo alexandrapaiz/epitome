@@ -1,5 +1,5 @@
 {
-  "name": "epito",
+  "name": "epito-cli",
   "version": "0.1.0",
   "description": "Mint agents: identity + trigger + runtime from one file",
   "keywords": [
