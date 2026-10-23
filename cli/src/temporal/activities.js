@@ -16,6 +16,7 @@ import {
 import { postToSlack } from "../lib/slack.js";
 import { appendAudit } from "../lib/audit.js";
 import { appendBoard } from "../lib/board.js";
+import { postRunReport, runReportBody, runUrlFor } from "../lib/runreport.js";
 import { mintForRun } from "../lib/identity.js";
 import { emit, span, traceConfig, traceIdFor } from "../lib/trace.js";
 import { temporalEnv } from "./env.js";
@@ -276,14 +277,28 @@ export async function execute({ name, manifest, runId, workDir, trigger, payload
 // Slack post that failed. The board answers the owner's question, which is
 // "what have the seats been doing", and it holds run reports only. Filing a
 // run in both from one activity is what makes them agree.
+//
+// A fourth surface since 2026-10-18, and only when a box is configured for it:
+// the COMPANY board's `POST /api/runs`, which is where an owner who runs more
+// than one company looks and which, until now, only ever showed runs that
+// happened on a GitHub runner. It is filed here rather than in the executor's
+// close handler — where the hand-patch on this company's own host put it —
+// because a run that took three roads passes through that handler three times
+// and would file three reports for one run.
+//
+// `company` and `repo` are facts about the ROSTER the run came from rather
+// than about the run, so they are lifted off the entry and never reach the
+// audit line or the local board: the board refuses a field it does not hold,
+// by name, and that refusal is a feature.
 export async function record(entry) {
-  const { name, action, runId, ...rest } = entry;
+  const { name, action, runId, company = null, repo = null, ...rest } = entry;
   const line = { agent: name ?? null, action: action ?? "run.end", ...(runId ? { runId } : {}), ...rest };
   for (const k of Object.keys(line)) if (line[k] === undefined) delete line[k];
   try { appendAudit(line); } catch (e) { console.error(`epito: could not append to the audit log (${e.message})`); }
   if (line.action === "run.end") {
     fileOnBoard(line);
     await fileRootSpan(line);
+    await fileOnCompanyBoard(line, { company, repo });
   }
   return {};
 }
@@ -300,6 +315,9 @@ async function fileRootSpan(line) {
       "epito.agent": line.agent, "epito.trigger": line.trigger ?? null, "epito.model": line.model ?? null,
       "epito.adapter": line.adapter ?? null, "epito.outcome": line.exit === 0 ? "ok" : String(line.exit ?? "failed"),
       "epito.turns": line.turns ?? null, "epito.pr": line.pr ?? null, "epito.log": line.log ?? null,
+      // A refused run carries what refused it and when it comes back, so the
+      // span answers "was this us or capacity" without opening the log.
+      "epito.refusal": line.refusal?.kind ?? null, "epito.refusal.resets": line.refusal?.resetAt ?? null,
     },
     error: line.exit === 0 ? null : (line.detail || `the run ended with exit ${line.exit ?? "failed"}`),
   });
@@ -330,11 +348,42 @@ function fileOnBoard(line) {
   }
 }
 
+// The same run, on the COMPANY board, when this box holds BOARD_API_URL and
+// BOARD_RUNTIME_TOKEN. Best-effort by HQ's own instruction — "a run report is
+// not worth failing a run over" — so this cannot throw and cannot be retried
+// into a loop: `record` IS retried, and `run_url` is the endpoint's
+// idempotency key, so a retry after a successful POST rewrites the same row
+// rather than adding a second one.
+//
+// Silent on a box with no company board, which is every stranger's: `epito`
+// works on a laptop for nothing (ADR-6), and a warning about an integration
+// nobody asked for is the product telling a new user they are missing
+// something they are not.
+async function fileOnCompanyBoard(line, { company, repo }) {
+  if (!company) return;
+  const outcome = line.exit === 0 ? "ok" : String(line.exit ?? "failed");
+  await postRunReport(runReportBody({
+    company,
+    agent: line.agent,
+    repo,
+    trigger: line.trigger ?? null,
+    runId: line.runId ?? null,
+    model: line.model ?? null,
+    outcome,
+    turns: line.turns ?? null,
+    seconds: line.durationMs != null ? Math.max(1, Math.round(line.durationMs / 1000)) : null,
+    pr: line.pr ?? null,
+    detail: line.detail ?? null,
+    startedAt: line.startedAt ?? null,
+    runUrl: runUrlFor({ agent: line.agent, runId: line.runId }),
+  }));
+}
+
 // --- notify ---------------------------------------------------------------
 // One line to Slack per run, for the seats that named a webhook. The value is
 // read from THIS process's environment; the workflow only ever saw the name.
-export async function notify({ name, manifest, trigger, turns, pr, durationMs, exit }) {
-  const out = await postToSlack({ agent: name, manifest, trigger, turns, pr, durationMs, exit });
+export async function notify({ name, manifest, trigger, turns, pr, durationMs, exit, refusal = null }) {
+  const out = await postToSlack({ agent: name, manifest, trigger, turns, pr, durationMs, exit, refusal });
   if (out.text) {
     await record({ name, action: "slack.post", posted: out.posted, ...(out.reason ? { reason: out.reason } : {}) });
     if (!out.posted) console.log(`${name}: slack post failed (${out.reason})`);

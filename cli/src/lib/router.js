@@ -289,7 +289,14 @@ export function endpointLabel(route) {
 
 // Rule 3, and the only judgement call in this file. `exit` is the child's
 // code, or one of the stage names executeAgent uses ("timeout", "spawn",
-// "cancelled", "workdir-gone").
+// "cancelled", "workdir-gone", "refused").
+//
+// "refused" is the named case of the fingerprint below: the provider said so
+// in words (src/lib/refusal.js) instead of leaving us to infer it from a
+// turn count. It is a "route" like any other nothing-happened ending — the
+// next road may be a different provider with capacity left — and when it is
+// the LAST road, the run carries the refusal out to the bus, which gives the
+// event back rather than acknowledging work that never began.
 //
 //   "ok"     the run happened, stop here
 //   "route"  nothing happened, and the next road is worth trying

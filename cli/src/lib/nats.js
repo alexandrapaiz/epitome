@@ -208,6 +208,12 @@ class Bus {
   }
 
   ack(msg) { if (msg.reply) this.publish(msg.reply, ""); }
+  // `+WPI`: still working on it, do not redeliver yet. The consumer's
+  // ack_wait is thirty seconds and the question the loop now waits on — did
+  // the provider take this run, or refuse it — can take longer than that on a
+  // box whose clone is slow. Without this the server would hand the same
+  // event to the same loop again while the first copy was still deciding.
+  working(msg) { if (msg.reply) this.publish(msg.reply, "+WPI"); }
   // `-NAK {"delay": ns}`: do not give it to me again just yet. The delay is
   // what keeps a seat whose runs cannot start (a dead engine, say) from
   // spinning the same event through the loop as fast as the socket allows,
