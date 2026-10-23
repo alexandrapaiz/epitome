@@ -9,6 +9,10 @@ docs/prfaq/epitod-v1-temporal.md).
 | `epito worker` | polls the `seats` task queue and does the work: clone, execute, record, notify | `epitod-worker.service` |
 | Temporal server + UI | the engine. Self-hosted, on loopback, never Temporal Cloud | not epito's: install it first, **"Temporal server + UI"** below |
 
+How the CLI itself reaches a stranger is a third thing again:
+`npm-publish.md` beside this file is the publish path — the token, the
+gates, and the name npm refused.
+
 A box is not the only place a seat can live: `cloudflare.md` beside this file
 is the other target — the same manifest packed as a Cloudflare Worker, with
 no box to provision and nothing to keep alive. Everything below is about the
