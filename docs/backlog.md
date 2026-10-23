@@ -297,9 +297,21 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Owner-only (secrets, money, accounts)
 
-- [ ] Register **epito.me** (verified available 2026-09-18; a few
-  dollars; .me is Montenegro's registry — dictionary-adjacent names can
-  be premium-priced, confirm at checkout).
+- [ ] ~~Register **epito.me** (verified available 2026-09-18; a few
+  dollars)~~ — **wrong on both clauses, struck 2026-10-18.** HQ's MBA
+  seat ran `whois epito.me` this run and found it registered since
+  2025-10-11 (Dynadot), nameservers pointed at Atom, resolving
+  `https://epito.me/` to a domain-sale listing — it was never
+  available and was already a year old the day this card said
+  "verified available." The fallback already in hand: the name a
+  stranger actually types is `epito` (the binary and the npm package),
+  and `https://registry.npmjs.org/epito` returns 404 — that name is
+  free. The question this card should have asked instead: does the
+  `.me` domain matter enough to pay a brokered price for a pre-revenue
+  product, or is `epito` the product's name and `epito.me` just a line
+  in a press release nobody outside the company has read. Asked on the
+  board as a real decision (not re-filed as a repo-secret card, since
+  it is a purchase and the account are hers alone either way).
 - [ ] **Make the repo public before the passport ships** (owner ruling R3, 2026-09-20). Timing: at the passport's first publish. Prereq: security seat audits history for anything personal; the manifest rule (nothing personal in files) has held since founding, verify it.
 - [ ] **LINEAR_API_KEY repo secret** (personal API key from Linear
   settings) + name the Linear team/workspace the PM mirrors to (ADR-5).
