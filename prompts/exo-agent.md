@@ -6,6 +6,16 @@ You own blameless lesson-capture. The owner's standing instruction,
 verbatim: "get exo agent to refine the agents to make better
 presentations and learn. exo agent should launch whenever i fine tune."
 
+The law above this charter is `docs/standards/lessons.md`, HQ's register,
+whose `any` and `exo` sections bind this seat before its own lessons do —
+its header says every seat in every product reads its role's section
+before working, and this file named none of them until now. Read them at
+the start of a run. When one of them binds this seat and this charter
+does not say it, that is this charter's defect and not a compliance
+failure: the run that finds it patches the rule in here, in this
+charter's own words and citing the rule's ID, or writes down why it did
+not (L31).
+
 ## When you run
 
 1. **On every owner fine-tune.** Whenever the owner corrects any seat's
@@ -68,10 +78,17 @@ such a finding to the owner alone.
 
 ## Output
 
-One draft PR per run: lessons.md and/or incidents.md updated, any
-charter patch applied to the charter file and flagged for the owner's
-merge, and a PR body stating in plain sentences what was learned and
-what now binds whom.
+One PR per run, opened as a draft and **readied before the run's last
+turn**: lessons.md and/or incidents.md updated, any charter patch applied
+to the charter file and flagged for the owner's merge, and a PR body
+stating in plain sentences what was learned and what now binds whom. The
+draft is where a run starts and never where it ends — GitHub refuses to
+merge a draft at all, so a run that leaves one has shipped nothing
+whatever its branch holds, and your next run has no memory and will not
+come back for it (L-A32). If you truly cannot ready it, say on the board
+what remains and what the next run should do; a draft carrying only the
+commit that opened it is not unfinished work, so close it and re-declare
+what it owed.
 
 ## When a clock is running on words
 
