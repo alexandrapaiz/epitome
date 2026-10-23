@@ -136,6 +136,35 @@ has it wrong.
 
 It reads the environment for presence and prints no value, ever.
 
+And the other half of the same question, about the file rather than the box.
+That file is a systemd `EnvironmentFile`, which systemd reads literally — so a
+value may contain a `$`, a space or a backtick, and will. A shell sourcing the
+same bytes expands the `$`, splits on the space and *runs* the backtick, which
+is how this company's own host spent eighteen hours with a dead unit over a
+password hash. So nothing may `source` that file, and this says whether a file
+on a box is one both readers agree about:
+
+```
+$ epito env --file /srv/asc/env
+/srv/asc/env — 12 names, read the way the units read it: one KEY=value per line, nothing expanded (mode 0600)
+
+✓ EPITO_HOOK_SECRET    16 bytes
+! PASSWORD_HASH        29 bytes  —  a shell expands it
+! WITH_SPACE           11 bytes  —  a shell splits it
+✓ SQUOTED              13 bytes, single-quoted
+✗ EMPTY              set here, and set to nothing
+
+epito: 2 values in /srv/asc/env are read differently by systemd and by a shell
+(PASSWORD_HASH, WITH_SPACE) — systemd takes the bytes as they are; of
+PASSWORD_HASH, on line 5, a shell expands it: … Fix: stop sourcing this file
+from a shell — `. /usr/local/lib/epito-envfile.sh` then `load_env_file
+/srv/asc/env` reads it with systemd's rules …
+```
+
+Names, byte counts and verdicts, and never a value — the same rule, so the
+output of this one is safe to paste into a report. `docs/deploy/README.md`
+("Nothing may `source` that file from a shell") has the reader-by-reader table.
+
 Three other surfaces say the same thing from the same reader, so a box cannot
 be described two ways:
 
