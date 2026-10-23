@@ -169,6 +169,46 @@ own environment carries the values. Both units still read the same
 `EnvironmentFile` on the company host, because one file is easier to rotate
 than two, but nothing in the design requires the ingress to hold a token.
 
+### Nothing may `source` that file from a shell
+
+The file is a systemd `EnvironmentFile`, and systemd reads it **literally**:
+one `KEY=value` per line, no quoting needed, nothing expanded. A shell reading
+the same bytes reads something else, and this cost this company's own host
+eighteen hours of a dead unit before anyone noticed:
+
+| the line | systemd gives the unit | a shell sourcing the file |
+|---|---|---|
+| `PASSWORD_HASH=$2b$12$KIX…` | the hash, whole | `$2` and `$12` expanded away — a shorter, wrong value, silently |
+| `GREETING=hello world` | `hello world` | `GREETING=hello`, and `world` **run as a command** — this is how a fragment of a value reaches a log |
+| ``TOKEN=`cmd` `` or `TOKEN=$(cmd)` | the text | **runs `cmd`**, as whoever sourced the file |
+| any of the above, under `set -u` | fine | the `.` line itself exits 1, and the script dies there |
+
+So no script on a provisioned box sources it. `deploy/provision-host.sh`
+installs one reader with systemd's rules, and every script it writes — and
+every script you write next — uses that:
+
+```sh
+. /usr/local/lib/epito-envfile.sh
+load_env_file /srv/asc/env                      # export every name in it
+tok="$(env_file_value /srv/asc/env GH_TOKEN)"   # one name, exported nowhere
+```
+
+To ask whether a file already on a box is one both readers agree about:
+
+```sh
+epito env --file /srv/asc/env
+```
+
+It names every line the two would read differently, and what the shell does to
+each. It prints names, byte counts and verdicts and **never a value**, so its
+output is safe to paste into a pull request or a board report. `cli/src/lib/
+envfile.js` is the parse it shares with the box's reader, and
+`cli/test/unit-envfile.mjs` runs both over one fixture so they cannot drift.
+
+If a shell must source the file anyway, single quotes are the only quoting the
+two readers read alike: inside double quotes a shell still expands `$` and
+still runs a `` ` ``.
+
 ## Giving an agent its own identity
 
 Without this, every seat on the box clones and pushes with the same

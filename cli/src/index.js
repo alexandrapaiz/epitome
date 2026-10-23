@@ -45,6 +45,13 @@ const HELP = `epito — mint agents: identity + trigger + runtime from one file
                       makes a seat that runs and quietly does less
                       (--template prints the env file, --complete makes a
                       missing name an error, --json)
+  epito env --file <path>
+                      the other half: read an env file a box holds the way the
+                      UNITS read it, and name every line a shell sourcing the
+                      same bytes would read differently — a value that starts
+                      with a dollar sign is right for systemd and silently
+                      wrong for every script that sources the same file.
+                      Names, byte counts and verdicts; never a value
   epito bus [dir]     what the bus is holding for this roster on THIS box: the
                       subjects each seat subscribes to, its durable consumer,
                       and how many events are waiting for it (--json)

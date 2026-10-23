@@ -188,6 +188,100 @@ ENV
   echo "  TEMPORAL_ADDRESS=127.0.0.1:7233 TEMPORAL_NAMESPACE=asc assumed: change them if the engine is elsewhere"
 fi
 
+# The env file is NOT a shell script, and the box learned that the expensive
+# way: this company's resident host ran for eighteen hours with its daily
+# health post dead, because one value in $BASE/env was a password hash, a hash
+# begins with `$`, and the health script read the file with `set -a; . file`.
+# systemd reads an EnvironmentFile literally -- so epitod itself was fine the
+# whole time -- while a shell sourcing the same bytes expands `$2b` to nothing,
+# splits a value with a space and runs the tail of it as a command, and will
+# happily run a `` ` `` or a `$(...)` that arrives inside a secret. Three
+# different wrongs, all silent, from a file every unit on the box reads.
+#
+# So the box gets a reader that has systemd's semantics instead of the shell's,
+# installed as a file rather than copied into each caller: this script, the
+# generated health script, and anything an operator writes next all read the
+# file one way. `cli/src/lib/envfile.js` is the same parse in the product, and
+# `epito env --file` is how you ask whether a file on a box is safe to read
+# this way -- the suite cross-checks the two against one fixture so they cannot
+# drift apart.
+#
+# What it implements, from systemd.exec(5): KEY=value per line, leading
+# whitespace ignored, `#` and `;` comments ignored, one layer of matching
+# quotes stripped (the form HQ's own `requote` leaves behind), and NO
+# expansion of anything. What it deliberately does not: the trailing-backslash
+# continuation, because `epito env --template` never writes one and a value
+# that needs one cannot live in this file anyway.
+say "the env-file reader every script on this box shares"
+install -d -m 0755 /usr/local/lib
+cat > /usr/local/lib/epito-envfile.sh <<'ENVLIB'
+#!/usr/bin/env bash
+# systemd EnvironmentFile semantics, in a shell. Installed by
+# deploy/provision-host.sh; the same parse lives in cli/src/lib/envfile.js.
+#
+# NEVER source an EnvironmentFile with `.` or `source`: a value starting with
+# `$`, or holding a space, a backtick or a `$(...)`, reaches the shell as code
+# or as the wrong value, and nothing says so. Use these two instead:
+#
+#   . /usr/local/lib/epito-envfile.sh
+#   load_env_file /srv/asc/env                  # export every name in it
+#   v="$(env_file_value /srv/asc/env GH_TOKEN)" # just one, no exports
+#
+# Both are pure parameter expansion: no eval, no subshell interpreting the
+# value, so a value is only ever data here.
+
+# One line -> name and value, with systemd's rules. Prints nothing; sets
+# __ENVFILE_NAME and __ENVFILE_VALUE, and returns 1 for a line that is not an
+# assignment (blank, comment, or a name a shell could not hold anyway).
+__envfile_parse_line() {
+  local line="$1" name value
+  line="${line#"${line%%[![:space:]]*}"}"
+  case "$line" in ''|'#'*|';'*) return 1;; esac
+  case "$line" in *=*) ;; *) return 1;; esac
+  name="${line%%=*}"
+  value="${line#*=}"
+  case "$name" in ''|[0-9]*|*[!A-Za-z0-9_]*) return 1;; esac
+  case "$value" in
+    '"'*'"') value="${value#\"}"; value="${value%\"}";;
+    "'"*"'") value="${value#\'}"; value="${value%\'}";;
+  esac
+  __ENVFILE_NAME="$name"; __ENVFILE_VALUE="$value"
+}
+
+# Export every name an EnvironmentFile holds, the way the units get them.
+load_env_file() { # <path>
+  local line
+  if [ ! -r "${1:-}" ]; then
+    echo "epito-envfile: cannot read ${1:-<no path given>} — load_env_file takes the path of an env file this box holds (the one the units name in EnvironmentFile=). Fix: pass that path, or create the file first." >&2
+    return 1
+  fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    __envfile_parse_line "$line" || continue
+    export "$__ENVFILE_NAME=$__ENVFILE_VALUE"
+  done < "$1"
+  unset __ENVFILE_NAME __ENVFILE_VALUE
+}
+
+# One value on stdout, exported nowhere. Last assignment wins, which is what
+# systemd does with a name written twice. Empty output for a name the file does
+# not hold AND for a name it holds as empty -- the caller that needs those two
+# apart should ask `epito env --file <path>`, which says which it is by name.
+env_file_value() { # <path> <name>
+  local line found=""
+  [ -r "${1:-}" ] || return 1
+  while IFS= read -r line || [ -n "$line" ]; do
+    __envfile_parse_line "$line" || continue
+    [ "$__ENVFILE_NAME" = "${2:-}" ] && found="$__ENVFILE_VALUE"
+  done < "$1"
+  unset __ENVFILE_NAME __ENVFILE_VALUE
+  printf '%s' "$found"
+}
+ENVLIB
+chmod 0644 /usr/local/lib/epito-envfile.sh
+# shellcheck source=/dev/null
+. /usr/local/lib/epito-envfile.sh
+echo "  /usr/local/lib/epito-envfile.sh — load_env_file and env_file_value, systemd's rules not the shell's"
+
 # git asks gh, and gh reads GH_TOKEN from the environment. This is the box's
 # shared credential and it is the FALLBACK, not the default: a seat that has a
 # GitHub App below clones on its own minted token, with this helper list reset
@@ -202,7 +296,12 @@ git config --system --replace-all safe.directory "*" || true
 # $BASE/env. It is read here, handed to the seat user's git through the
 # environment only (never an argument, never printed), and the run stops by
 # name if it is still the placeholder.
-GH_TOKEN="$(sed -n 's/^GH_TOKEN=//p' "$BASE/env" | head -1)"
+# Read with the shared reader, not `sed`: a `sed -n 's/^GH_TOKEN=//p'` keeps
+# whatever quoting the line has, so the moment anyone quotes that file -- which
+# is exactly what HQ's own `tools/host.sh requote` does to make the file safe
+# for the shells that were sourcing it -- every clone below authenticates with
+# a token that has two extra bytes on it and fails as "bad credentials".
+GH_TOKEN="$(env_file_value "$BASE/env" GH_TOKEN)"
 [ "$GH_TOKEN" = replace-me ] && GH_TOKEN=""
 [ -n "$GH_TOKEN" ] || echo "  (no GH_TOKEN in $BASE/env yet: a private repository will refuse to clone below, and this script will say so)"
 export GH_TOKEN GIT_TERMINAL_PROMPT=0
@@ -268,7 +367,12 @@ unset GH_TOKEN
 # aborted provision of a box that is otherwise finished. `set -e` is on.
 say "what this roster asks of this box"
 if [ -n "$(find -L "$ROSTER_DIR/" -name agent.toml -print -quit 2>/dev/null)" ]; then
-  ( set -a; . "$BASE/env"; set +a; epito env "$ROSTER_DIR" ) || true
+  ( load_env_file "$BASE/env"; epito env "$ROSTER_DIR" ) || true
+  # And the file itself, read the way the units read it: which of its lines a
+  # shell would have read differently. This is the check that would have caught
+  # the eighteen-hour outage above on the day the hash was written, not a day
+  # and a half later.
+  epito env --file "$BASE/env" || true
   echo "  add any name above that this box should hold to $BASE/env, then: systemctl restart epitod-worker epitod"
   echo "  \`epito env $ROSTER_DIR --template\` prints those lines ready to paste (it comments out the names already set, so pasting cannot blank one)"
 else
@@ -428,13 +532,24 @@ cat > /usr/local/bin/epitod-health <<HEALTH
 # One post a day: is epitod alive, and what does its roster look like. Also
 # the traffic that keeps an Always Free instance from being reclaimed as idle.
 set -uo pipefail
-set -a; . $BASE/env; set +a
+# NOT \`set -a; . $BASE/env\`, which is what this line was and what killed this
+# unit for eighteen hours: the file is a systemd EnvironmentFile, one of its
+# values was a password hash, and a hash begins with a dollar sign. This reader
+# has systemd's rules (/usr/local/lib/epito-envfile.sh).
+. /usr/local/lib/epito-envfile.sh
+load_env_file $BASE/env
 state="\$(cd $BASE/state && epito ps 2>&1 || true)"
 # BOTH units, because only one of them does the work: epitod registers the
 # schedules and serves the ingress, epitod-worker executes the seats. A post
 # that said "epitod is active" over a dead worker was a green line about a box
-# running nothing — `epito ps` now says so in its own header too, and this is
-# the half that is true even when the engine cannot be reached to ask.
+# running nothing -- \`epito ps\` now says so in its own header too, and this is
+# the half that is true even when the engine cannot be reached to ask. (Those
+# two backticks are escaped: an unquoted heredoc RUNS a backtick, so until this
+# line was fixed every provision ran \`epito ps\` in the provisioning shell and
+# spliced its stdout -- nothing, since it exits 1 outside a state directory --
+# into this comment, while its stderr landed in the provision log. The same
+# mistake as the one this unit's env line was fixed for: text one reader takes
+# literally and another executes.)
 active="\$(systemctl is-active epitod) / worker \$(systemctl is-active epitod-worker)"
 [ "\${SLACK_WEBHOOK_URL:-replace-me}" = "replace-me" ] && { echo "\$state"; exit 0; }
 payload=\$(jq -Rn --arg a "\$active" --arg s "\$(cat <<<"\$state")" '{text: ("epitod on \$(hostname) is " + \$a + "\n\`\`\`\n" + \$s + "\n\`\`\`")}')
