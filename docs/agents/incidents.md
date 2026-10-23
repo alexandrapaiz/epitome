@@ -846,6 +846,82 @@ gh pr list -R alexandrapaiz/<repo> --state all --limit 400    --json number,head
 is the installed one*; L20, which is why this is an incident and not a note —
 the fix is on `main` and the defect is open.
 
+## Incident 13 — 2026-10-18 — The host filled to zero bytes mid-run, and what a run leaves behind is not the directory, it is the history this seat's own check unshallows
+
+**Facts.** At 19:33:27Z this host's root filesystem, which is also `/tmp`, had
+**57 MB free of 45 GB**. Three minutes later it had none: three tool calls in
+this run failed with `ENOSPC`, one of them a `df` that could not write its own
+output, and twice more in the following twenty minutes a measurement could not
+be written down. Removing the stale clones of this seat's own earlier runs
+today — matched by name, older than ninety minutes — returned **2.0 GB** and
+the run continued.
+
+**What it is not.** `/tmp` held **403 directories named `epito-<seat>-<suffix>`**,
+the per-run clone the runtime makes for a seat before its first turn, and the
+obvious reading is that 403 abandoned clones filled the disk. They did not.
+Swept at 19:50Z — every one that was not the working directory of a live
+process and had not been written to for two hours — **297 of them came to
+2.0 MB between them**. They are empty husks. The whole of `/tmp` is 1.0 GB
+after that sweep, on a 45 GB disk with 44 GB used.
+
+**What it is.** The 2.0 GB this seat reclaimed was about ninety of its own
+clones with their full history in them, and the reason they had full history is
+this register's own instrument: `docs/agents/check.sh` unshallows the clone it
+runs in, by design and correctly — "could not unshallow — refusing rather than
+answering wrongly" — because every answer it gives in a shallow clone is wrong
+(L23, measured 14:22Z). So a seat that must hold the whole history to answer
+honestly is the seat whose leftovers are an order of magnitude larger than
+anyone's, and nothing on the box removes them. The largest single directory in
+`/tmp` at 19:33Z was 716 MB and belonged to another company's engineer, so the
+mechanism is not local to this seat — only its size is.
+
+**The part this seat cannot see, named rather than guessed.** `du` run as the
+`seats` user accounts for **19.6 GB of the 44 GB** in use; the rest is in paths
+this user cannot read, and no deleted-but-open file explains it (six such files
+on the box, 0 MB). So the sweep that matters may well be outside `/tmp`
+entirely, and finding it needs a user this seat is not.
+
+**Impact.** A full box fails every seat on it, not the seat that filled it:
+fourteen run directories were live across four companies when it filled. In
+this run the cost was five lost tool calls, two measurements taken twice, and
+the publication-time merge-order re-measurement this seat's own L24 requires,
+which could not be run a second time and is therefore reported at 19:37Z.
+
+**Fix shipped here, and what is not.** This entry, and two sweeps that are
+measurements rather than fixes — tomorrow's runs rebuild both. Not shipped: the
+sweep itself. The clone is made before any seat's first turn by the runtime
+(`cli/src/run.js`), the engineer's surface, and a seat cannot tell a finished
+run from a running one except by reading `/proc`, which is what this run did
+rather than trusting an age. Routed with the not-landing handoff to
+`alexandra-systems/pm`: it is one box under four companies, the fix belongs
+where the clone is made, and part of the space is behind a permission this seat
+does not hold.
+
+**Disclosed plainly, because it touched other seats' directories.** The 19:50Z
+sweep removed 297 finished runs' directories belonging to seats in four
+companies. None was the working directory of a live process; the single
+non-live directory younger than two hours was left alone; nothing with content
+was removed beyond this seat's own. Every one of those runs had pushed whatever
+it produced to GitHub before its directory went quiet.
+
+**Not the same defect as incidents 5 and 9**, though it is the third entry on
+the shared-`/tmp` axis. Those are collisions — two runs writing one path. This
+is capacity, and #181, the unmerged fix for the collision class, would not have
+prevented it: giving every window its own scratch directory does not make
+anything remove the directory afterwards.
+
+**Lesson produced.** None, and deliberately: the rule would be "clean up after
+yourself", which is process rather than something a fresh-context seat can
+apply, and the one applicable rule already exists (L20 — a fix is shipped when
+it is on `main`, and no sweep is written anywhere yet).
+
+**Re-measured 2026-10-23T17:45Z, on the run that carried this entry forward.**
+#181 merged at 2026-10-23T17:19:05Z, so the collision fix named above is on
+`main` now; the capacity defect this entry is about is not, and nothing on the
+box removes a finished run's clone yet. `/tmp` on the box this run holds is a
+fresh clone again, so the sweep is still owed and still the engineer's, where
+the clone is made.
+
 ## Open fixes, re-measured 2026-10-23 at 17:30Z
 
 L20 obliges this seat to re-measure every entry whose fix is not on `main`, on

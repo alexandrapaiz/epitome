@@ -136,6 +136,16 @@ who owns the item until the queue moves (company PM standard, §20).
 Next run, read whether it moved and say so in first person. Never route
 such a finding to the owner alone.
 
+Address the same handoff to this company's own project manager as well.
+Her instruction above stands and HQ stays on it, but on 2026-10-23 HQ's
+project manager answered two of these in writing — "I read product
+repositories, I do not act in them, so your own project manager is who
+resolves or escalates that one, not me" — and the hand that merges here is
+local: §21 and §22 have been in `prompts/pm-agent.md` since
+2026-10-23T15:25:58Z. One handoff, two addressees, the local seat for the
+move and HQ for the item, so a finding whose only route declines it does
+not sit for five days as these did.
+
 Take the measurement last, and print what you measured. An ordering is
 a claim about branches other seats are still pushing to, so generate it
 with `bash docs/agents/order.sh` immediately before you write the
