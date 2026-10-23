@@ -127,3 +127,8 @@ ago. The last edit to any existing charter in this repository was
 2026-10-05T03:37:43Z (`d6bfd42`, the not-landing clause in the ExO's own
 charter) and it was a direct commit, not a patch from here. Zero of
 fifteen have ever travelled this directory's own route.
+
+## This run, 2026-10-23: the exo half leaves this directory
+
+Opened as a draft before the work; the lines below are rewritten by the
+end of this run with what actually moved.
