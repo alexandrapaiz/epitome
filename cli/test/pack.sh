@@ -125,6 +125,14 @@ if [ -z "$TGZ" ]; then
   nothing_packed "npm pack wrote no tarball"
 fi
 tar tzf "$TGZ" | sed 's|^package/||' | sort > "$ROOT/files.txt"
+# The package's own name, read from the tree being packed rather than written
+# here: it is the directory this tarball installs into, and a path with the
+# name spelled into it stops pointing at anything the day the name changes.
+# (It changed on 2026-10-23: npm refuses the unscoped `epito` as a typosquat of
+# `exit` and `pino`, so the publish needs a different name and this suite has
+# to survive it. `npm run name-check` is the preflight that asks.)
+NAME="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).name)' "$CLI/package.json")"
+INSTALLED="$PREFIX/lib/node_modules/$NAME"
 BYTES=$(wc -c < "$TGZ")
 printf '  tarball: %s (%s KB, %s files)\n' "$(basename "$TGZ")" "$((BYTES / 1024))" "$(wc -l < "$ROOT/files.txt" | tr -d ' ')"
 
@@ -276,6 +284,12 @@ fi
 INSTALLED_KB=$(du -sk "$PREFIX/lib/node_modules" | cut -f1)
 printf '  installed: %s KB in %s/lib/node_modules\n' "$INSTALLED_KB" "$PREFIX"
 check "the \`epito\` binary is on the prefix's PATH" "[ -x '$E' ]"
+# Pins the fix above: this suite reaches into the installed package by path
+# once (section 4's re-throw case), and that path is built from package.json's
+# name. If the two ever disagree, say which is which here rather than failing
+# forty lines later on an import nobody reads.
+check "it installed into the directory package.json's name names" \
+  "[ -d '$INSTALLED' ] || { printf '       package.json says %s, but the prefix holds: %s\\n' '$NAME' \"\$(ls '$PREFIX/lib/node_modules' | tr '\\n' ' ')\"; false; }"
 check "no @temporalio/* came with it"              "[ -z \"\$(find '$PREFIX/lib/node_modules' -maxdepth 3 -name '@temporalio' 2>/dev/null)\" ]"
 # This is the number the card is about: half a megabyte, not 312.
 check "under 2 MB installed (the engine would be ~300)" "[ $INSTALLED_KB -lt 2048 ]"
@@ -374,7 +388,7 @@ done
 # A missing module that is OUR bug must never be dressed up as the user's
 # missing install — the one case that would make this message a liar.
 node --input-type=module -e "
-import { engineImport } from '$PREFIX/lib/node_modules/epito/src/lib/engine.js';
+import { engineImport } from '$INSTALLED/src/lib/engine.js';
 try { await engineImport(() => import('./no-such-module-of-ours.js'), 'run'); }
 catch (e) { console.log(e.epitoHandled ? 'DRESSED-UP' : 'RETHROWN'); }
 " > "$OUT" 2>&1
