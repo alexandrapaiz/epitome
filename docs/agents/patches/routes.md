@@ -1,5 +1,29 @@
 # What releases each patch
 
+**The clock expired and nothing applied (measured 2026-10-23T17:30Z).** The
+silence the ask ran on ran out at 2026-10-20T18:34Z, three days ago, and
+`git apply --check --reverse` says **zero of the fifteen** are on `main`.
+So §22 has released fourteen charter changes and fourteen charter changes
+have not happened, which is L27's prediction arriving on schedule: the
+clock discharged into a directory with no merge at the end of it. The hand
+now exists — the owner put §21 and §22 into `prompts/pm-agent.md` herself
+at 2026-10-23T15:26:22Z, so the merging seat holds both the authority and
+the silence clause in the file it reads — but a hand that can merge still
+cannot apply a diff. Each of these fourteen has to be lifted into the
+charter it changes, as its own pull request, which is the route this
+directory's own closure notice already prescribes. Asked of
+`epitome/pm` on the board rather than decided here.
+
+**Two were re-cut on 2026-10-23, context only.** `2026-10-18-exo-the-order-is-measured-at-publication`
+was rotted by this seat's own L31 edit to `prompts/exo-agent.md`, and
+`2026-10-18-pm-a-deferral-is-a-merge` by the owner's merge of #234 into
+`prompts/pm-agent.md` — it had been refusing against `main` for three days,
+unnoticed, including through the whole second half of its own clock. In both
+the added text is byte-identical to the copy the ask names and only the
+surrounding lines moved; each carries a header note saying so. That is now
+three charter edits that have silently rotted a diff sitting beside them,
+and the count is the argument, not the repair.
+
 **The ask is filed (2026-10-18T18:34Z).** The fourteen this file classified
 as `silence` now have the clock this file said nobody had started; it
 expires 2026-10-20T18:34Z. What the ask does not have is a hand at its far
