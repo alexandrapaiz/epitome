@@ -542,8 +542,14 @@ state="\$(cd $BASE/state && epito ps 2>&1 || true)"
 # BOTH units, because only one of them does the work: epitod registers the
 # schedules and serves the ingress, epitod-worker executes the seats. A post
 # that said "epitod is active" over a dead worker was a green line about a box
-# running nothing — `epito ps` now says so in its own header too, and this is
-# the half that is true even when the engine cannot be reached to ask.
+# running nothing -- \`epito ps\` now says so in its own header too, and this is
+# the half that is true even when the engine cannot be reached to ask. (Those
+# two backticks are escaped: an unquoted heredoc RUNS a backtick, so until this
+# line was fixed every provision ran \`epito ps\` in the provisioning shell and
+# spliced its stdout -- nothing, since it exits 1 outside a state directory --
+# into this comment, while its stderr landed in the provision log. The same
+# mistake as the one this unit's env line was fixed for: text one reader takes
+# literally and another executes.)
 active="\$(systemctl is-active epitod) / worker \$(systemctl is-active epitod-worker)"
 [ "\${SLACK_WEBHOOK_URL:-replace-me}" = "replace-me" ] && { echo "\$state"; exit 0; }
 payload=\$(jq -Rn --arg a "\$active" --arg s "\$(cat <<<"\$state")" '{text: ("epitod on \$(hostname) is " + \$a + "\n\`\`\`\n" + \$s + "\n\`\`\`")}')

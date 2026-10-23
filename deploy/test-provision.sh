@@ -232,6 +232,12 @@ check "health posts epito ps" "grep -q 'epito ps' /usr/local/bin/epitod-health"
 # "epitod is active" over a dead epitod-worker was a green line about a box
 # that was running nothing.
 check "health names both units, not just the ingress" "grep -q 'is-active epitod-worker' /usr/local/bin/epitod-health"
+# An unquoted heredoc runs a backtick, and this comment had two unescaped ones:
+# every provision ran `epito ps` in the provisioning shell and spliced its
+# stdout into the generated file. The sentence arriving whole is the proof that
+# nothing was executed on the way in.
+check "the generated script's own comments arrive as text, not as commands" \
+  "grep -q 'running nothing -- .epito ps. now says so' /usr/local/bin/epitod-health"
 
 # The eighteen-hour outage, as four assertions. This unit died every run for a
 # day and a half on this company's own host because its fourth line was
