@@ -214,6 +214,31 @@ node -e '
 shows -8
 check "every field the npm page renders is set in the package npm would send" \
   "! said '^MISSING'"
+# Set is not the same as ours. `author` was `epito.me` until 2026-10-18 — a name
+# this company does not own, whose host answers a 302 to a page selling it — so
+# the publisher of a credential-minting CLI was a marketplace listing, and every
+# check above passed on it because the field was there. npm keeps a version's
+# document forever, so this one is only ever caught before the publish. The rule
+# is narrow on purpose: every host the page links to is one this company
+# demonstrably controls, and the author is a name rather than a bare domain.
+node -e '
+  const fs = require("fs");
+  const p = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  const OURS = new Set(["github.com"]);
+  const author = typeof p.author === "string" ? p.author : (p.author || {}).name || "";
+  const text = JSON.stringify([p.author, p.homepage, p.repository, p.bugs]);
+  const hosts = [...new Set([...text.matchAll(/https?:\/\/([^\/"\\\s)<>]+)/g)].map((m) => m[1]))];
+  console.log(`author: ${author || "(none)"}`);
+  console.log(`hosts the page links to: ${hosts.join(", ") || "(none)"}`);
+  const foreign = hosts.filter((h) => !OURS.has(h));
+  if (foreign.length) console.log(`FOREIGN HOST: ${foreign.join(" ")}`);
+  if (/^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$/i.test(author.trim())) console.log(`AUTHOR IS A BARE DOMAIN: ${author.trim()}`);
+' "$PJ" > "$OUT" 2>&1
+shows -4
+check "every host the package page links a stranger to is one this company controls" \
+  "! said 'FOREIGN HOST'"
+check "the author it publishes under is a name, not a bare domain that can be sold" \
+  "! said 'AUTHOR IS A BARE DOMAIN'"
 check "the source it points a stranger at is this repository, over https" \
   "node -e 'const u=(JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\")).repository||{}).url||\"\"; process.exit(/^git\\+https:\\/\\/.+\\.git$/.test(u)?0:1)' '$PJ'"
 check "the bin it installs is a file the tarball carries, with a shebang node can start" \
