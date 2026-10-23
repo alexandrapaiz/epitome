@@ -986,6 +986,30 @@ test("the preflight and the run read one precedence: only acts.js asks who a sea
   }
 });
 
+test("a run log that is already closed cannot throw EBADF back into the daemon", () => {
+  // What this proves and what it does not. The failure is a write that happens
+  // AFTER finish() closed the descriptor — a child's pipe `error` event firing
+  // late, on an async boundary no activity owns — which this suite cannot
+  // schedule from the outside, since the descriptor belongs to the activity.
+  // So this asserts the two properties that make the throw impossible rather
+  // than the throw's absence: every write is inside a catch, and every close
+  // nulls the handle so the next write short-circuits. It cost HQ's engineer a
+  // resident daemon and four seat windows on 2026-10-17 to find out that
+  // `const fd` plus a bare writeSync cannot be made safe by any caller.
+  const src = readFileSync(new URL("../src/lib/runner.js", import.meta.url), "utf8");
+  const writes = [...src.matchAll(/const write = \(s\) => \{([^\n]*)\};/g)].map((m) => m[1]);
+  assert.equal(writes.length, 2, "runner.js has exactly two run-log writers (clone and execute)");
+  for (const body of writes) {
+    assert.match(body, /try \{ writeSync/, "a run-log write is best effort, never a throw into the runtime");
+    assert.match(body, /catch \{ fd = null; \}/, "a write that failed stops the writer rather than repeating it");
+  }
+  assert.ok(!/const fd = \(\(\) => \{ try \{ return openSync/.test(src),
+    "the descriptor is `let`: a `const fd` can be closed but never disowned");
+  const closes = [...src.matchAll(/closeSync\(fd\);?([^\n]*)/g)].map((m) => m[0]);
+  assert.equal(closes.length, 2, "runner.js closes the run log in exactly two places");
+  for (const c of closes) assert.match(c, /fd = null/, `every close disowns the descriptor: ${c.trim()}`);
+});
+
 // --- identity: the token reaches the child and not the log ----------------
 
 test("a minted token is injected into the run and scrubbed out of its log", async () => {

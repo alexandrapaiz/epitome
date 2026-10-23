@@ -389,9 +389,9 @@ export async function cloneAgentRepo({ agent, runId, token = null, log = console
   const rt = agent.runtime;
   const logPath = runLogPath(name, runId);
   mkdirSync(join(EPITO_DIR, "logs", name), { recursive: true });
-  const fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
+  let fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
   const scrub = redactor(token ? [token] : []);
-  const write = (s) => { if (fd !== null) writeSync(fd, scrub(s)); };
+  const write = (s) => { if (fd === null) return; try { writeSync(fd, scrub(s)); } catch { fd = null; } };
   const work = mkdtempSync(cloneDirPrefix(name));
   try {
     const url = `https://github.com/${rt.repo}.git`;
@@ -418,7 +418,7 @@ export async function cloneAgentRepo({ agent, runId, token = null, log = console
     }
     log(`${name}: cloned ${rt.repo}${rt.ref ? `@${rt.ref}` : ""} into ${work}`);
     return { workDir: work, log: logPath };
-  } finally { if (fd !== null) closeSync(fd); }
+  } finally { if (fd !== null) { closeSync(fd); fd = null; } }
 }
 
 // The `execute` activity's body. `workDir` is required: cloning is somebody
@@ -439,7 +439,18 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   const date = new Date().toISOString().slice(0, 10);
   const logPath = runLogPath(name, runId);
   mkdirSync(join(EPITO_DIR, "logs", name), { recursive: true });
-  const fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
+  // `let`, not `const`, and every write guarded: writing this log must never be
+  // the thing that takes a run — or the whole daemon — down. A run that could
+  // not open a log file at all already runs fine (fd stays null just above), so
+  // a run whose log has since been CLOSED gets the same treatment: the line is
+  // lost, the run continues, nothing throws. The alternative cost HQ's engineer
+  // a resident daemon and four seat windows with it on 2026-10-17, when a
+  // child's pipe fired an `error` event after finish() had closed this
+  // descriptor: writeSync raised EBADF across an async boundary no activity
+  // owned, and an unhandled throw there is the process. Handed to this seat by
+  // the PM on the board (2026-10-18 09:41 UTC) and filed in docs/ideas.md;
+  // fixed here, in the file the rest of this branch already composes.
+  let fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
   // Every secret this run can print: the minted token the caller named, the
   // key of every route this box could take, and — since v0.2 — the ADDRESS of
   // every road whose address is itself confidential. A provider that refuses
@@ -456,9 +467,9 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     return out;
   });
   const scrub = redactor([...(redact ?? []), ...routeSecrets]);
-  const write = (s) => { if (fd !== null) writeSync(fd, scrub(s)); };
+  const write = (s) => { if (fd === null) return; try { writeSync(fd, scrub(s)); } catch { fd = null; } };
   const finish = (exit, extra = {}) => {
-    if (fd !== null) closeSync(fd);
+    if (fd !== null) { closeSync(fd); fd = null; }
     return {
       exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null,
       adapter: adapter.name, route: null, model: rt.model, attempts: [], refusal: null, ...extra,
