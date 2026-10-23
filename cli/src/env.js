@@ -37,15 +37,18 @@
 // the reader, shared with `epito doctor`, so the two cannot disagree about who
 // a seat is — and the exit code stays this command's own: whether a run would
 // REFUSE is doctor's contract, not this one's.
+import { readFileSync, statSync } from "node:fs";
 import { loadRoster } from "./lib/roster.js";
 import { inRepo } from "./lib/where.js";
 import { rosterEnv, envTemplate, askers, shortfallSays, HELD, EMPTY, ABSENT } from "./lib/boxenv.js";
 import { rosterActs, IDENTITY_FIX, OWN, REFUSED, HALF, SHARED, NONE } from "./lib/acts.js";
+import { envFileReport } from "./lib/envfile.js";
 
 export const ENV_FLAGS = [
   { name: "json", does: "the report as JSON" },
   { name: "template", does: "print the env file these names belong in, one commented KEY= per name" },
   { name: "complete", does: "make a name this box does not hold an error, not a report — the box check" },
+  { name: "file", value: true, does: "read an env file this box holds the way the UNITS read it, and say which of its lines a shell reading the same bytes would read differently" },
 ];
 
 // The box's own environment: real, required, and in no manifest. Named in the
@@ -91,7 +94,112 @@ function printIdentity(roster, dir) {
   return acts;
 }
 
+
+// --- `--file`: the file itself, not the box ------------------------------
+// A different question from the rest of this command, which is why it is a
+// mode and not a column: everything else here asks "what does this box hold",
+// read out of `process.env`. This asks "what does this FILE say, and does
+// every reader of it agree", which is answerable about a box you are not on
+// and about a file no unit has loaded yet.
+//
+// It exists because the answer was "no" on this company's own host for
+// eighteen hours and no command could say so (cli/src/lib/envfile.js tells
+// that story). The shell reader the box now uses is
+// /usr/local/lib/epito-envfile.sh, installed by deploy/provision-host.sh, and
+// it has the same rules as this.
+//
+// No value is printed, ever -- names, byte counts and verdicts only, the same
+// rule the rest of this command follows. That is deliberate and it is the
+// reason this output is safe to paste anywhere, which is what somebody will do
+// with it the first time a box misbehaves.
+function envFileArg(args) {
+  const eq = args.find((a) => a.startsWith("--file="));
+  if (eq !== undefined) return eq.slice("--file=".length);
+  const i = args.indexOf("--file");
+  if (i === -1) return null;
+  const next = args[i + 1];
+  return next === undefined || next.startsWith("-") ? "" : next;
+}
+
+const SEVERITY = { "a shell runs it": 3, "a shell runs the rest of the line": 3, "a shell splits it": 2, "a shell expands it": 2, "a shell drops characters from it": 1, "a shell may swallow the lines after it": 1 };
+
+function envFileCmd(path, { json = false } = {}) {
+  if (path === "") {
+    console.error("epito: `epito env --file` names no file. Fix: give it the path the units name in `EnvironmentFile=` — `epito env --file /srv/asc/env` — which is the file this command reads the way systemd reads it.");
+    process.exit(1);
+  }
+  let text, mode;
+  try {
+    text = readFileSync(path, "utf8");
+    mode = (statSync(path).mode & 0o777).toString(8).padStart(4, "0");
+  } catch (e) {
+    console.error(`epito: cannot read the env file ${path} (${e.code ?? e.message}) — \`--file\` reads an env file this box already holds, and does not create one. Fix: check the path the units name in \`EnvironmentFile=\`, or run as a user that may read it (the file holds secrets and is 0600 by design); \`epito env <roster> --template\` prints what belongs in it.`);
+    process.exit(1);
+  }
+  const report = envFileReport(text);
+  if (json) {
+    console.log(JSON.stringify({
+      file: path,
+      mode,
+      names: report.names.map((r) => ({ name: r.name, line: r.at, bytes: r.bytes, quoted: r.quote || null, times: r.times, diverges: r.diverges.map((d) => d.says) })),
+      malformed: report.malformed.map((r) => ({ line: r.at })),
+      badNames: report.badNames.map((r) => ({ line: r.at, name: r.name })),
+    }, null, 2));
+    process.exit(report.diverging.length || report.malformed.length || report.badNames.length || report.empty.length ? 1 : 0);
+  }
+
+  const n = report.names.length;
+  console.log(`${path} — ${plural(n, "name")}, read the way the units read it: one KEY=value per line, nothing expanded (mode ${mode})\n`);
+  if (n) {
+    const w = Math.max(...report.names.map((r) => r.name.length));
+    for (const row of report.names) {
+      const worst = [...row.diverges].sort((a, b) => (SEVERITY[b.says] ?? 0) - (SEVERITY[a.says] ?? 0));
+      const mark = row.bytes === 0 ? "✗" : worst.length ? "!" : "✓";
+      const says = row.bytes === 0
+        ? "set here, and set to nothing"
+        : `${String(row.bytes).padStart(4)} bytes${row.quote ? `, ${row.quote === "'" ? "single" : "double"}-quoted` : ""}`;
+      console.log(`${mark} ${row.name.padEnd(w)}  ${says}${worst.length ? `  —  ${worst.map((d) => d.says).join("; ")}` : ""}`);
+    }
+    console.log("");
+  }
+
+  // The value of a repeated name is not the line most people would edit.
+  for (const row of report.repeated) {
+    console.log(`! ${row.name} is assigned ${row.times} times in this file and systemd takes the LAST one, line ${row.at} — so an edit to any earlier line of it changes nothing. Fix: delete the lines that do not win.`);
+  }
+  if (report.repeated.length) console.log("");
+
+  const problems = [];
+  if (report.diverging.length) {
+    const first = report.diverging[0];
+    const worst = [...first.diverges].sort((a, b) => (SEVERITY[b.says] ?? 0) - (SEVERITY[a.says] ?? 0))[0];
+    problems.push(`${plural(report.diverging.length, "value")} in ${path} ${report.diverging.length > 1 ? "are read" : "is read"} differently by systemd and by a shell (${report.diverging.map((r) => r.name).join(", ")}) — systemd takes the bytes as they are; of ${first.name}, on line ${first.at}, ${worst.says}: ${worst.detail}. `
+      + `A unit with \`EnvironmentFile=${path}\` therefore works while every script that sources the same file gets a wrong value, runs part of one, or dies on \`set -u\` — which is the eighteen-hour outage this check exists because of. `
+      + `Fix: stop sourcing this file from a shell — \`. /usr/local/lib/epito-envfile.sh\` then \`load_env_file ${path}\` reads it with systemd's rules (deploy/provision-host.sh installs it) — or, if a shell must source it, single-quote those ${report.diverging.length > 1 ? "values" : "that value"}, which is the one quoting a shell and systemd read alike.`);
+  }
+  if (report.badNames.length) {
+    problems.push(`${plural(report.badNames.length, "line")} in ${path} assign a name neither systemd nor a shell can hold (${report.badNames.map((r) => `line ${r.at}, "${r.name}"`).join("; ")}) — a variable name is a letter or underscore followed by letters, digits and underscores, so systemd drops ${report.badNames.length > 1 ? "those lines" : "that line"} and the name never reaches a run. Fix: rename ${report.badNames.length > 1 ? "them" : "it"}, or delete the ${report.badNames.length > 1 ? "lines" : "line"}.`);
+  }
+  if (report.malformed.length) {
+    problems.push(`${plural(report.malformed.length, "line")} in ${path} ${report.malformed.length > 1 ? "are" : "is"} neither a comment nor a KEY=value assignment (${report.malformed.map((r) => `line ${r.at}`).join(", ")}) — systemd ignores ${report.malformed.length > 1 ? "them" : "it"} silently. Fix: put a \`#\` in front of ${report.malformed.length > 1 ? "them" : "it"} if ${report.malformed.length > 1 ? "they are notes" : "it is a note"}, or give ${report.malformed.length > 1 ? "them" : "it"} a name and an \`=\`.`);
+  }
+  if (report.empty.length) {
+    problems.push(`${plural(report.empty.length, "name")} in ${path} ${report.empty.length > 1 ? "are" : "is"} set and set to nothing (${report.empty.map((r) => r.name).join(", ")}) — the runtime injects an empty value, the agent reads it, and whatever it builds out of it fails somewhere far from here. Fix: put the value after the \`=\`, or delete the line entirely, which is the honest way to say this box does not have it.`);
+  }
+  if (problems.length) {
+    for (const line of problems) console.error(`epito: ${line}`);
+    process.exit(1);
+  }
+  console.log(`✓ every line of ${path} reads the same whether systemd or a shell reads it. ${inRepo("deploy/provision-host.sh")} writes this file and ${inRepo("cli/src/lib/envfile.js")} is the parse both this command and the box's own reader use.`);
+  process.exit(0);
+}
+
 export async function envCmd(args = []) {
+  // Before the roster: this mode asks about a file, and a box being asked
+  // about a file does not have to carry manifests at all.
+  const file = envFileArg(args);
+  if (file !== null) return envFileCmd(file, { json: args.includes("--json") });
+
   const dir = args.find((a) => !a.startsWith("-")) ?? ".";
   const roster = loadRoster(dir);
   const report = rosterEnv(roster, process.env);

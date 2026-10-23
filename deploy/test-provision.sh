@@ -232,6 +232,33 @@ check "health posts epito ps" "grep -q 'epito ps' /usr/local/bin/epitod-health"
 # "epitod is active" over a dead epitod-worker was a green line about a box
 # that was running nothing.
 check "health names both units, not just the ingress" "grep -q 'is-active epitod-worker' /usr/local/bin/epitod-health"
+
+# The eighteen-hour outage, as four assertions. This unit died every run for a
+# day and a half on this company's own host because its fourth line was
+# `set -a; . /srv/asc/env`, the file is a systemd EnvironmentFile, and one
+# value in it was a password hash -- which begins with a dollar sign. systemd
+# was never confused; every shell that read the same bytes was. So no script
+# this box writes may source that file again, and the assertion is written as
+# a prohibition rather than a presence: a future edit that reintroduces
+# `. /srv/asc/env` anywhere fails here.
+check "the shared env-file reader is installed" "[ -f /usr/local/lib/epito-envfile.sh ] && grep -q 'load_env_file' /usr/local/lib/epito-envfile.sh"
+check "the reader has systemd's rules, not the shell's (no eval of a value)" \
+  "! grep -qE '^[^#]*eval' /usr/local/lib/epito-envfile.sh"
+check "the health script reads the env file with that reader" \
+  "grep -q '^\. /usr/local/lib/epito-envfile.sh' /usr/local/bin/epitod-health && grep -q '^load_env_file /srv/asc/env' /usr/local/bin/epitod-health"
+check "nothing this box wrote sources the env file as a shell script" \
+  "! grep -rlE '^[^#]*(\.|source)[[:space:]]+[\"\x27]?/srv/asc/env' /usr/local/bin/epitod-health /etc/systemd/system/epitod*.service"
+# And the reader, against a value of the shape that caused it: proof on this
+# box rather than in the unit suite, because what is under test here is the
+# copy this script installed.
+cat > /tmp/hash.env <<'HASHENV'
+PASSWORD_HASH=$2b$12$KIXQe1mJ0rZ8wV
+WITH_SPACE=hello world
+HASHENV
+check "a hash and a space survive the reader byte for byte" \
+  "bash -c '. /usr/local/lib/epito-envfile.sh; load_env_file /tmp/hash.env; [ \"\$PASSWORD_HASH\" = \x27\$2b\$12\$KIXQe1mJ0rZ8wV\x27 ] && [ \"\$WITH_SPACE\" = \x27hello world\x27 ]'"
+check "and the old way still mangles them, which is why the reader exists" \
+  "! bash -c 'set -u; set -a; . /tmp/hash.env; set +a' 2>/dev/null"
 # The engine is not installed with the CLI any more (cli/package.json makes
 # @temporalio/* optional peers so `npm i -g epito` stays half a megabyte), so
 # this box has to ask for it by name. It got all the way through this suite
