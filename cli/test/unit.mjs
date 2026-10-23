@@ -85,6 +85,26 @@ const tmpDir = (prefix = "epito-unit-") => {
 };
 after(() => { for (const d of TMPDIRS) rmSync(d, { recursive: true, force: true }); });
 
+// A clone directory for a seat, and the one way this suite is allowed to make
+// one. The sweep below removes it with `removeClone`, the same function the
+// runtime uses, so the scratch sibling the runner now creates beside a clone
+// goes with it.
+//
+// It is the helper and not a line in each test because the sweep above already
+// learned this lesson once and only half of it: a clone directory removed by
+// hand leaves `<clone>.scratch` standing, and sixteen call sites made one each
+// while four removed the sibling. So the suite that proves no seat has to
+// share the box's temp directory was itself the largest single writer into it —
+// two directories per full `bash test/all.sh`, for as long as the box keeps
+// them. One path in, both gone, and no test has to remember the second one.
+const CLONEDIRS = [];
+const cloneDir = (name) => {
+  const d = mkdtempSync(cloneDirPrefix(name));
+  CLONEDIRS.push([name, d]);
+  return d;
+};
+after(() => { for (const [name, d] of CLONEDIRS) removeClone(name, d); });
+
 const seat = (name, over = {}) => ({
   agent: { name, description: "A seat." },
   identity: { scopes: ["github:contents"] },
@@ -972,7 +992,7 @@ test("a minted token is injected into the run and scrubbed out of its log", asyn
   const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);                              // .epito/logs/<agent>/ is relative
-  const work = mkdtempSync(cloneDirPrefix("pm"));
+  const work = cloneDir("pm");
   try {
     const token = "ghs_UNITTESTTOKEN00000000000000000000";
     const agent = {
@@ -1000,7 +1020,7 @@ test("a minted token is injected into the run and scrubbed out of its log", asyn
     // A clone this test made is a clone this test removes: smoke-temporal.sh
     // asserts that no epito-<agent>-* directory survives a run, and a unit
     // test that litters $TMPDIR fails it from the outside.
-    rmSync(work, { recursive: true, force: true });
+    removeClone("pm", work);
     delete process.env.GH_TOKEN; delete process.env.EPITO_STUB_ECHO_TOKEN; delete process.env.EPITO_STUB_DIR;
   }
 });
@@ -1009,7 +1029,7 @@ test("with no App, the run is exactly what it was before the identity slice", as
   const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
-  const work = mkdtempSync(cloneDirPrefix("okr"));
+  const work = cloneDir("okr");
   try {
     const agent = {
       agent: { name: "okr" },
@@ -1031,7 +1051,7 @@ test("with no App, the run is exactly what it was before the identity slice", as
     // A clone this test made is a clone this test removes: smoke-temporal.sh
     // asserts that no epito-<agent>-* directory survives a run, and a unit
     // test that litters $TMPDIR fails it from the outside.
-    rmSync(work, { recursive: true, force: true });
+    removeClone("okr", work);
     delete process.env.GH_TOKEN; delete process.env.EPITO_STUB_ECHO_TOKEN; delete process.env.EPITO_STUB_DIR;
   }
 });
@@ -1079,8 +1099,8 @@ test("two runs at once each write the file they read back, under their own names
   const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
-  const pm = mkdtempSync(cloneDirPrefix("pm"));
-  const okr = mkdtempSync(cloneDirPrefix("okr"));
+  const pm = cloneDir("pm");
+  const okr = cloneDir("okr");
   try {
     // Both children write "pr-body.md" in the temp directory they were given,
     // at the same time, which is exactly what the two seats on the host did.
@@ -1105,8 +1125,7 @@ test("two runs at once each write the file they read back, under their own names
     assert.match(read(pm), /epito-pm-/);
   } finally {
     process.chdir(cwd);
-    for (const w of [pm, okr]) rmSync(w, { recursive: true, force: true });
-    for (const w of [pm, okr]) rmSync(`${w}.scratch`, { recursive: true, force: true });
+    removeClone("pm", pm); removeClone("okr", okr);
     delete process.env.EPITO_STUB_SCRATCH_FILE; delete process.env.EPITO_STUB_SCRATCH_WAIT_MS;
   }
 });
@@ -1115,8 +1134,8 @@ test("a window keeps its scratch across the runs inside it, and a fresh window s
   const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
-  const work = mkdtempSync(cloneDirPrefix("pm"));
-  const other = mkdtempSync(cloneDirPrefix("pm"));
+  const work = cloneDir("pm");
+  const other = cloneDir("pm");
   try {
     const env = { EPITO_STUB_SCRATCH_FILE: "notes.md", EPITO_STUB_SCRATCH_WAIT_MS: "0" };
     const first = await scratchRun("pm", { work, env });
@@ -1131,13 +1150,13 @@ test("a window keeps its scratch across the runs inside it, and a fresh window s
     assert.match(readFileSync(stranger.log, "utf8"), /prior=no/, "a different window of the same seat is a different scratch directory");
   } finally {
     process.chdir(cwd);
-    for (const w of [work, other]) { rmSync(w, { recursive: true, force: true }); rmSync(`${w}.scratch`, { recursive: true, force: true }); }
+    for (const w of [work, other]) removeClone("pm", w);
     delete process.env.EPITO_STUB_SCRATCH_FILE; delete process.env.EPITO_STUB_SCRATCH_WAIT_MS;
   }
 });
 
 test("a window's scratch dies with its clone, and the guard still refuses a stranger's path", () => {
-  const work = mkdtempSync(cloneDirPrefix("pm"));
+  const work = cloneDir("pm");
   const scratch = scratchDirFor(work);
   mkdirSync(scratch, { recursive: true });
   writeFileSync(join(scratch, "pr-body.md"), "a body nobody should have to find later");
@@ -1150,11 +1169,38 @@ test("a window's scratch dies with its clone, and the guard still refuses a stra
   assert.throws(() => removeClone("pm", tmpdir()), /refusing to delete/);
 });
 
+// The suite holds itself to the thing it is testing. Sixteen tests made their
+// clone directory raw, and twelve of them removed the clone and left
+// `<clone>.scratch` standing, which made this file the box's largest single
+// writer into the shared temp directory the rest of it exists to get seats
+// out of. Nobody was careless; the sibling is simply a second path to
+// remember, so the fix is to make it unnecessary to remember rather than to
+// remember it twelve more times.
+//
+// Reading the file is the only check that holds for a test not written yet.
+// The call it looks for is spelled at run time rather than written out,
+// because a literal in this test is a line in this file and the check would
+// find itself.
+test("no test in this file makes a clone directory the end-of-run sweep will not find", () => {
+  const raw = ["mkdtempSync(", "cloneDirPrefix("].join("");
+  const helper = `const d = ${raw}name));`;
+  const self = readFileSync(fileURLToPath(import.meta.url), "utf8").split("\n");
+  const direct = self
+    .map((line, i) => [i + 1, line])
+    .filter(([, line]) => line.includes(raw) && !line.includes(helper))
+    .map(([n]) => n);
+  assert.deepEqual(direct, [],
+    `test/unit.mjs line(s) ${direct.join(", ")} make a clone directory with ${raw}…)) directly, so the clone is ` +
+    "swept at the end of the run but the scratch directory the runner makes beside it is not, and it stays in " +
+    `${tmpdir()} for as long as the box does. Use cloneDir("<seat>") instead: it registers the clone so the ` +
+    "sweep removes both with removeClone, the same call the runtime makes.");
+});
+
 test("a manifest cannot point its own windows at one shared temp directory", async () => {
   const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
-  const work = mkdtempSync(cloneDirPrefix("pm"));
+  const work = cloneDir("pm");
   const shared = join(dir, "everybody");
   mkdirSync(shared, { recursive: true });
   try {
@@ -1167,8 +1213,14 @@ test("a manifest cannot point its own windows at one shared temp directory", asy
     assert.equal(existsSync(join(shared, "pr-body.md")), false, "and nothing was written to the shared directory the manifest asked for");
   } finally {
     process.chdir(cwd);
-    rmSync(work, { recursive: true, force: true }); rmSync(`${work}.scratch`, { recursive: true, force: true });
-    delete process.env.TMPDIR; delete process.env.EPITO_STUB_SCRATCH_FILE; delete process.env.EPITO_STUB_SCRATCH_WAIT_MS;
+    removeClone("pm", work);
+    // Not `delete process.env.TMPDIR`. scratchRun already put TMPDIR back to
+    // whatever this process started with, so deleting it here does not undo
+    // the test — it unsets the box's own setting for everything that runs
+    // after, and `os.tmpdir()` reads that variable on every call. Under a
+    // `TMPDIR=… node --test` the rest of the file then made its clones
+    // somewhere other than where the sweep was told to look.
+    delete process.env.EPITO_STUB_SCRATCH_FILE; delete process.env.EPITO_STUB_SCRATCH_WAIT_MS;
   }
 });
 
@@ -1176,7 +1228,7 @@ test("a box that will not make the directory gets a run and a sentence, not a re
   const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
-  const work = mkdtempSync(cloneDirPrefix("pm"));
+  const work = cloneDir("pm");
   try {
     // A file where the directory goes: the run cannot have its own scratch,
     // and the one thing it must not do is pretend otherwise.
@@ -1190,7 +1242,7 @@ test("a box that will not make the directory gets a run and a sentence, not a re
     assert.match(logged, /EPITO_SCRATCH=\(none\)/, "and the child is told nothing it would be false to tell it");
   } finally {
     process.chdir(cwd);
-    rmSync(work, { recursive: true, force: true }); rmSync(scratchDirFor(work), { recursive: true, force: true });
+    removeClone("pm", work);
     delete process.env.EPITO_STUB_SCRATCH_FILE; delete process.env.EPITO_STUB_SCRATCH_WAIT_MS;
   }
 });
@@ -1595,7 +1647,7 @@ test("a langgraph seat runs: the graph's steps are its turns, and its PR is read
   const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
-  const work = mkdtempSync(cloneDirPrefix("seat"));
+  const work = cloneDir("seat");
   try {
     fixture("langgraph-stub", work);
     const agent = seat("seat", { runtime: { adapter: "langgraph", env: ["EPITO_STUB_ECHO_TOKEN"] } });
@@ -1624,7 +1676,7 @@ test("a langgraph seat runs: the graph's steps are its turns, and its PR is read
   } finally {
     process.chdir(cwd);
     delete process.env.EPITO_STUB_ECHO_TOKEN;
-    rmSync(work, { recursive: true, force: true });
+    removeClone("seat", work);
   }
 });
 
@@ -1632,7 +1684,7 @@ test("a repository with no langgraph.json refuses in the product's voice, on the
   const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
-  const work = mkdtempSync(cloneDirPrefix("seat"));
+  const work = cloneDir("seat");
   try {
     writeFileSync(join(work, "README.md"), "a repository that is not a langgraph app\n");
     const r = await executeAgent({
@@ -1647,7 +1699,7 @@ test("a repository with no langgraph.json refuses in the product's voice, on the
     assert.match(r.detail, /or set \[runtime\]\.adapter = "claude"/);
   } finally {
     process.chdir(cwd);
-    rmSync(work, { recursive: true, force: true });
+    removeClone("seat", work);
   }
 });
 
@@ -1655,7 +1707,7 @@ test("a follow-up to an adapter that holds no session starts a fresh run, and sa
   const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
-  const work = mkdtempSync(cloneDirPrefix("seat"));
+  const work = cloneDir("seat");
   const said = [];
   try {
     fixture("langgraph-stub", work);
@@ -1671,7 +1723,7 @@ test("a follow-up to an adapter that holds no session starts a fresh run, and sa
     assert.doesNotMatch(logged, /resume=/, "and no --resume was invented for an adapter that cannot use one");
   } finally {
     process.chdir(cwd);
-    rmSync(work, { recursive: true, force: true });
+    removeClone("seat", work);
   }
 });
 
@@ -1817,7 +1869,7 @@ test("an agent's own spans land in the run's trace: the shim nests under `execut
   const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
-  const work = mkdtempSync(cloneDirPrefix("seat"));
+  const work = cloneDir("seat");
   const traced = { ...process.env, OTEL_EXPORTER_OTLP_ENDPOINT: `http://127.0.0.1:${port}` };
   const saved = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   try {
@@ -1841,7 +1893,7 @@ test("an agent's own spans land in the run's trace: the shim nests under `execut
   } finally {
     process.chdir(cwd);
     if (saved === undefined) delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT; else process.env.OTEL_EXPORTER_OTLP_ENDPOINT = saved;
-    rmSync(work, { recursive: true, force: true });
+    removeClone("seat", work);
   }
 });
 
@@ -2137,7 +2189,7 @@ const stubRun = async (agent, over = {}, env = {}) => {
   const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
-  const work = mkdtempSync(cloneDirPrefix(agent.agent.name));
+  const work = cloneDir(agent.agent.name);
   const saved = {};
   // `null` means this box does NOT hold the name, which stopped being the same
   // thing as holding it empty: a blank value is an env-file line somebody
@@ -2152,7 +2204,7 @@ const stubRun = async (agent, over = {}, env = {}) => {
     return { ...r, logged: readFileSync(r.log, "utf8") };
   } finally {
     process.chdir(cwd);
-    rmSync(work, { recursive: true, force: true });
+    removeClone(agent.agent.name, work);
     for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
     delete process.env.EPITO_STUB_DIR;
   }
@@ -3250,7 +3302,7 @@ test("a run says which of its declared names the box did not have", async () => 
   const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);
-  const work = mkdtempSync(cloneDirPrefix("pm"));
+  const work = cloneDir("pm");
   const said = [];
   try {
     const agent = seat("pm", { runtime: {
@@ -3299,7 +3351,7 @@ test("a run says which of its declared names the box did not have", async () => 
     assert.ok(!handed.includes("GW_KEY"), "and a closed road is the router's sentence, not the agent's problem to route around");
   } finally {
     process.chdir(cwd);
-    rmSync(work, { recursive: true, force: true });
+    removeClone("pm", work);
     delete process.env.EPITO_STUB_DIR;
     delete process.env.LINEAR_API_KEY;
   }
@@ -3859,12 +3911,12 @@ const noisyRun = async (t, { api, over = {} } = {}) => {
   const dir = tmpDir();
   const cwd = process.cwd();
   process.chdir(dir);                                   // .epito/logs/<agent>/ is relative
-  const work = mkdtempSync(cloneDirPrefix("engineer"));
+  const work = cloneDir("engineer");
   const saved = process.env.EPITO_GITHUB_API;
   if (api) process.env.EPITO_GITHUB_API = api;
   t.after(() => {
     process.chdir(cwd);
-    rmSync(work, { recursive: true, force: true });
+    removeClone("engineer", work);
     process.env.EPITO_GITHUB_API = saved;
     delete process.env.EPITO_STUB_DIR; delete process.env.EPITO_STUB_PR_EARLY;
     delete process.env.EPITO_STUB_NOISE_KB; delete process.env.EPITO_STUB_RESULT_KB; delete process.env.EPITO_STUB_PR;
