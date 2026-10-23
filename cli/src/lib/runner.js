@@ -69,6 +69,7 @@ import { routesFor, liveRoutes, noRouteMessage, classifyAttempt, withLane, resol
 import { baseRunEnv } from "./runenv.js";
 import { runShortfall, shortfallSays } from "./boxenv.js";
 import { childTraceEnv, traceNote } from "./trace.js";
+import { readRefusal } from "./refusal.js";
 
 const PR_URL_RE = /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/\d+/g;
 
@@ -388,9 +389,9 @@ export async function cloneAgentRepo({ agent, runId, token = null, log = console
   const rt = agent.runtime;
   const logPath = runLogPath(name, runId);
   mkdirSync(join(EPITO_DIR, "logs", name), { recursive: true });
-  const fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
+  let fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
   const scrub = redactor(token ? [token] : []);
-  const write = (s) => { if (fd !== null) writeSync(fd, scrub(s)); };
+  const write = (s) => { if (fd === null) return; try { writeSync(fd, scrub(s)); } catch { fd = null; } };
   const work = mkdtempSync(cloneDirPrefix(name));
   try {
     const url = `https://github.com/${rt.repo}.git`;
@@ -417,7 +418,7 @@ export async function cloneAgentRepo({ agent, runId, token = null, log = console
     }
     log(`${name}: cloned ${rt.repo}${rt.ref ? `@${rt.ref}` : ""} into ${work}`);
     return { workDir: work, log: logPath };
-  } finally { if (fd !== null) closeSync(fd); }
+  } finally { if (fd !== null) { closeSync(fd); fd = null; } }
 }
 
 // The `execute` activity's body. `workDir` is required: cloning is somebody
@@ -438,7 +439,18 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
   const date = new Date().toISOString().slice(0, 10);
   const logPath = runLogPath(name, runId);
   mkdirSync(join(EPITO_DIR, "logs", name), { recursive: true });
-  const fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
+  // `let`, not `const`, and every write guarded: writing this log must never be
+  // the thing that takes a run — or the whole daemon — down. A run that could
+  // not open a log file at all already runs fine (fd stays null just above), so
+  // a run whose log has since been CLOSED gets the same treatment: the line is
+  // lost, the run continues, nothing throws. The alternative cost HQ's engineer
+  // a resident daemon and four seat windows with it on 2026-10-17, when a
+  // child's pipe fired an `error` event after finish() had closed this
+  // descriptor: writeSync raised EBADF across an async boundary no activity
+  // owned, and an unhandled throw there is the process. Handed to this seat by
+  // the PM on the board (2026-10-18 09:41 UTC) and filed in docs/ideas.md;
+  // fixed here, in the file the rest of this branch already composes.
+  let fd = (() => { try { return openSync(logPath, "a"); } catch { return null; } })();
   // Every secret this run can print: the minted token the caller named, the
   // key of every route this box could take, and — since v0.2 — the ADDRESS of
   // every road whose address is itself confidential. A provider that refuses
@@ -455,12 +467,12 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     return out;
   });
   const scrub = redactor([...(redact ?? []), ...routeSecrets]);
-  const write = (s) => { if (fd !== null) writeSync(fd, scrub(s)); };
+  const write = (s) => { if (fd === null) return; try { writeSync(fd, scrub(s)); } catch { fd = null; } };
   const finish = (exit, extra = {}) => {
-    if (fd !== null) closeSync(fd);
+    if (fd !== null) { closeSync(fd); fd = null; }
     return {
       exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null,
-      adapter: adapter.name, route: null, model: rt.model, attempts: [], ...extra,
+      adapter: adapter.name, route: null, model: rt.model, attempts: [], refusal: null, ...extra,
     };
   };
 
@@ -721,7 +733,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
       // The window first, because a result object pretty-printed across lines
       // is whole only there; the line kept above is what answers when the
       // window's copy was truncated away.
-      let { sessionId, turns, detail } = parseExecutorResult(tail);
+      let { sessionId, turns, detail, result } = parseExecutorResult(tail);
       if (resultLine && (sessionId === null || turns === null)) {
         // Field by field, and only where the window came back empty: the line
         // fills in what truncation ate and can never take away something the
@@ -730,6 +742,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
         sessionId ??= whole.sessionId;
         turns ??= whole.turns;
         detail ??= whole.detail;
+        result ??= whole.result;
       }
       // The host, then the transcript. Asking first is the fix: a run that
       // printed its address and then kept printing is still a run that opened
@@ -747,8 +760,20 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
       write(`# pull request: ${asked.pr
         ? `${asked.pr}, which GitHub says ${rt.repo} opened during this run on "${asked.branch}"`
         : `${asked.why}${printedPr ? `; recorded from the address the run printed instead, ${printedPr}` : ", and the run printed none either"}`}\n`);
-      write(`\n---\n# exit=${exit} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}${detail ? ` detail="${detail}"` : ""}\n`);
-      done({ exit, pr, sessionId, turns, detail });
+      // Did a resource refuse this run, rather than the run failing? The
+      // question is asked HERE, of an attempt that produced nothing: no
+      // pull request, no second turn, a non-zero ending. An agent that did
+      // its work and printed the words is not a refusal, and that guard is
+      // the whole reason this is not a grep over every run log.
+      const nothing = exit !== 0 && !pr && (turns === null || turns <= 1);
+      const refusal = nothing ? readRefusal([detail, result, tail].filter(Boolean).join("\n")) : null;
+      if (refusal) {
+        write(`# a resource refused this run before a first turn: ${refusal.says}\n`);
+        write(`# it ${refusal.resetAt ? `says it resets at ${refusal.resetAt}` : "named no reset time"}; the child's own ending was exit=${exit}, and the run is recorded as refused rather than failed\n`);
+        detail ??= refusal.says;
+      }
+      write(`\n---\n# exit=${refusal ? "refused" : exit} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}${detail ? ` detail="${detail}"` : ""}\n`);
+      done({ exit: refusal ? "refused" : exit, pr, sessionId, turns, detail, refusal });
     });
   });
 
@@ -765,6 +790,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     attempts.push({
       route: route.name, model: route.model, outcome: verdict, exit: out.exit,
       turns: out.turns ?? null, pr: out.pr ?? null, detail: out.detail ?? null,
+      refusal: out.refusal ?? null,
       startMs: startedAt, endMs: Date.now(),
     });
     if (verdict !== "route" || last) {

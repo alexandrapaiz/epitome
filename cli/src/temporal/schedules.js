@@ -22,9 +22,16 @@ import { scheduleId, seatOfScheduleId, runId, temporalEnv } from "./env.js";
 // The fields a registered schedule carries. Anything here that differs between
 // disk and engine is an update; anything not here cannot change a run, so
 // changing it must not churn the schedule.
-export function scheduleShape(manifest) {
+//
+// `company` is in the shape and not only in the args because it DOES change a
+// run: it is the name the run's board report is filed under, and a roster that
+// renames its product in `company.yaml` would otherwise go on filing scheduled
+// runs under the old name until somebody deleted the schedules by hand. Null
+// on a roster with no `company.yaml`, which is every stranger's.
+export function scheduleShape(manifest, { company = null } = {}) {
   const rt = manifest.runtime;
   return {
+    company,
     cron: manifest.trigger.cron,
     model: rt.model,
     repo: rt.repo,
@@ -41,12 +48,12 @@ const sameShape = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 // The diff, as a pure function so it is testable without a server.
 // desired: Map<name, manifest>            (only seats with [trigger].cron)
 // actual:  Array<{ id, shape }>           (only ids starting "seat:")
-export function reconcilePlan(desired, actual) {
+export function reconcilePlan(desired, actual, { company = null } = {}) {
   const plan = { create: [], update: [], delete: [], unchanged: [] };
   const byId = new Map(actual.map((s) => [s.id, s]));
   for (const [name, manifest] of desired) {
     const id = scheduleId(name);
-    const shape = scheduleShape(manifest);
+    const shape = scheduleShape(manifest, { company });
     const have = byId.get(id);
     if (!have) plan.create.push({ name, id, shape });
     else if (!sameShape(have.shape, shape)) plan.update.push({ name, id, shape, was: have.shape });
@@ -65,13 +72,16 @@ export function reconcilePlan(desired, actual) {
 // The workflow argument a schedule carries: the manifest snapshot itself. It
 // is publishable by design (spec rule 1), which is the only reason it is safe
 // to persist in Temporal's database.
-function action({ name, manifest, cfg }) {
+function action({ name, manifest, cfg, company = null }) {
   return {
     type: "startWorkflow",
     workflowType: "SeatRun",
     workflowId: runId(name),
     taskQueue: cfg.taskQueue,
-    args: [{ name, manifest, trigger: "cron", runTimeoutMs: cfg.runTimeoutMs }],
+    // `company` rides beside the manifest snapshot for the same reason the
+    // snapshot itself does (law 3): the worker never reads the roster
+    // directory, and `company.yaml` lives in it.
+    args: [{ name, manifest, company, trigger: "cron", runTimeoutMs: cfg.runTimeoutMs }],
     workflowRunTimeout: cfg.runTimeoutMs,
   };
 }
@@ -113,11 +123,12 @@ async function listSeatSchedules(client) {
     try {
       const d = await client.schedule.getHandle(s.scheduleId).describe();
       const manifest = d.action?.args?.[0]?.manifest;
+      const company = d.action?.args?.[0]?.company ?? null;
       // A shape of null is not an error, it is "this schedule was not
       // registered from a manifest this version understands" — and an
       // unreadable shape must read as a difference, so the next reconcile
       // rewrites the action and the one after it converges.
-      if (manifest?.trigger?.cron && manifest?.runtime) shape = scheduleShape(manifest);
+      if (manifest?.trigger?.cron && manifest?.runtime) shape = scheduleShape(manifest, { company });
     } catch {
       shape = null;   // deleted between the list and the describe, or undecodable
     }
@@ -128,13 +139,13 @@ async function listSeatSchedules(client) {
 
 // Reconcile, and report what it did in the product's vocabulary. `dryRun`
 // prints the plan and touches nothing.
-export async function reconcile({ client, roster, env = process.env, dryRun = false, log = console.log }) {
+export async function reconcile({ client, roster, company = null, env = process.env, dryRun = false, log = console.log }) {
   const cfg = temporalEnv(env);
   const desired = new Map();
   for (const [name, a] of roster) if (a.manifest.trigger?.cron) desired.set(name, a.manifest);
 
   const actual = await listSeatSchedules(client);
-  const plan = reconcilePlan(desired, actual);
+  const plan = reconcilePlan(desired, actual, { company });
 
   const presenceOnly = [...roster.keys()].filter((n) => !desired.has(n));
   log(`roster: ${roster.size} seat${roster.size === 1 ? "" : "s"}, ${desired.size} on a cron, ${presenceOnly.length} presence-only`);
@@ -152,7 +163,7 @@ export async function reconcile({ client, roster, env = process.env, dryRun = fa
       // v0 hand-wrote this: a fire arriving while the seat is still running is
       // coalesced into a single follow-up, never dropped, never stacked.
       policies: { overlap: ScheduleOverlapPolicy.BUFFER_ONE, catchupWindow: "1 hour" },
-      action: action({ name: s.name, manifest: desired.get(s.name), cfg }),
+      action: action({ name: s.name, manifest: desired.get(s.name), cfg, company }),
       memo: memo(s.name),
       note: `epito seat ${s.name}: ${desired.get(s.name).agent.description}`,
     });
@@ -164,7 +175,7 @@ export async function reconcile({ client, roster, env = process.env, dryRun = fa
     await handle.update((prev) => ({
       ...prev,
       spec: { ...prev.spec, cronExpressions: [s.shape.cron], timezone: "UTC", calendars: [], intervals: [] },
-      action: action({ name: s.name, manifest: desired.get(s.name), cfg }),
+      action: action({ name: s.name, manifest: desired.get(s.name), cfg, company }),
     }));
     const changed = Object.keys(s.shape).filter((k) => JSON.stringify(s.shape[k]) !== JSON.stringify(s.was?.[k]));
     log(`  ~ ${s.id}  changed: ${changed.join(", ") || "(re-registered)"}`);

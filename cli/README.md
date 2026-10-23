@@ -292,6 +292,48 @@ pm    0 12 * * 1 2026-10-13T12:00Z ok        1 (no worker)   -       …
   the run and nothing will pick it up.
 ```
 
+The **endings** row is the only one that looks backwards, and it exists
+because of how its own defect hides. The refusal reader (`src/lib/refusal.js`)
+was written on the day a provider refused 65 of this host's 253 runs, and it
+matched none of them: every pattern in it came from the provider's
+documentation, and this box prints a different sentence. The suite was green
+throughout — it had to be, since a reader proved against the sentences
+somebody imagined cannot fail on the sentence nobody imagined — and the gap
+was found by a person typing a one-liner at a log directory. So the row asks
+that question for you, offline, from the logs the runtime already writes:
+
+```
+✓ endings    321 runs ended here in the last 24 hours, 41 of them producing nothing, and this
+             build names 37 as a refusal (37 limit; 37 with the reset time the resource itself
+             named), 4 this box ended itself (asked to stop)
+! endings    321 runs ended here in the last 24 hours, 41 of them producing nothing, and this
+             build can name only 4, 4 this box ended itself (asked to stop) — 33 endings are
+             unread, newest epitome-pm at 2026-10-18 09:29Z ending "You've hit your session
+             limit · resets 11:20am (UTC)". If a resource refused that run, its event is being
+             thrown away and its work lost: copy the sentence into
+             cli/test/fixtures/refusals.json in github.com/alexandrapaiz/epitome with the kind
+             and reset time it means, and the reader and its proof both follow from the row
+```
+
+The ✓ above is this host on 2026-10-18, and the ✗ beside it is the same box as
+it stood that morning before the reader was corrected. An ending the **box**
+produced rather than the provider — a signal, a timeout, a daemon restart that
+ends four runs at 143 in one minute — is counted and named separately, because
+telling an operator to add SIGTERM to a fixture of provider sentences is how a
+row earns the right to be ignored. It is still counted: a run this box killed
+lost its work the same way a refusal does.
+
+It counts only the runs that produced **nothing** — no pull request, no second
+turn, a non-zero ending — which is the same guard `src/lib/runner.js` puts in
+front of the reader, because a survey with a wider definition than the code it
+reports on would quote a number nothing acts on. An agent that did its work
+and wrote "usage limit" into its transcript is not an unread refusal. It reads
+the last 16 KB of each log in the window and opens no connection, it prints
+nothing on a box that has not run anything, and it never refuses: an unread
+ending does not stop the next run, it only means nobody can say why the last
+one stopped. `--json` carries the counts, the kinds, and the newest few
+unread endings with the sentence each one ended on.
+
 The **identity** section answers the other question a box decides: not whether
 a run would start but whose name its pull request would open under. It reads
 the run path's own credential lookup, so it cannot predict a seat the runtime

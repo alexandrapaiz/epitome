@@ -259,18 +259,26 @@ test("a dry run plans and writes nothing", async () => {
 // counts how many times this event has been handed out, which is what makes
 // redelivery observable without a server.
 function fakeStream(events) {
-  const state = { acked: [], naked: [], delivered: 0 };
+  const state = { acked: [], naked: [], delivered: 0, working: 0 };
   const queue = [...events];
+  // A NAK carries a delay and the server honours it: the message is not
+  // handed out again before it passes. The fake honours it too, because a
+  // fake that redelivers instantly is a fake that cannot tell a fifteen
+  // second NAK from a three hour one — which is the whole subject of the
+  // refusal tests below.
+  let notBefore = 0;
   return {
     state,
     async fetch() {
       const ev = queue[0];
-      if (!ev) return [];
+      if (!ev || Date.now() < notBefore) return [];
       state.delivered++;
       return [{ subject: ev.subject, data: ev.data, headers: {}, reply: `$JS.ACK.S.C.${state.delivered}.${ev.seq}.1.0.0`, meta: { streamSeq: ev.seq, delivered: state.delivered, pending: queue.length - 1 } }];
     },
     ack(msg) { state.acked.push(msg.meta.streamSeq); queue.shift(); },
-    nak(msg, delay) { state.naked.push({ seq: msg.meta.streamSeq, delay }); },
+    nak(msg, delay) { state.naked.push({ seq: msg.meta.streamSeq, delay }); notBefore = Date.now() + (delay || 0); },
+    // `+WPI`, the half of the protocol that makes waiting for a verdict legal.
+    working() { state.working++; },
   };
 }
 
@@ -331,6 +339,99 @@ test("stop() ends the loop and acknowledges nothing on the way out", async () =>
   assert.deepEqual(bus.state.acked, [], "an event whose run never started belongs to the next runtime");
 });
 
+// --- the provider's refusal, and the event it no longer loses --------------
+//
+// The defect, measured on 2026-10-18: `wake` resolves when Temporal accepted
+// the workflow, which is milliseconds and almost never fails, so the failure
+// that DOES happen — a model provider refusing the run — always landed after
+// the acknowledgement. 65 events went that way in one day; 37 of those runs
+// took no turn at all and not one of the 65 opened a pull request, so there
+// was nothing to duplicate by re-delivering and nothing kept by acking.
+
+const REFUSAL = { kind: "limit", says: "Claude AI usage limit reached", resetAt: null, floorMs: 10 * 60_000 };
+
+test("a run the provider refused gives its event back instead of acknowledging it", async () => {
+  const bus = fakeStream([EVENT]);
+  const refused = [];
+  let wakes = 0;
+  const loop = startConsuming({
+    bus, cfg: CFG, seats: [{ name: "engineer", subjects: ["asc.events.>"] }],
+    wake: async () => {
+      wakes++;
+      // The run DID start on the engine, and then the provider said no. That
+      // is the whole shape of the bug: nothing threw.
+      return { outcome: "started", workflow: "run:engineer", verdict: async () => ({ refusal: REFUSAL }) };
+    },
+    onRefused: (name, ev, refusal, delay) => refused.push([name, ev.streamSeq, refusal.kind, delay]),
+  });
+  await waitFor(() => bus.state.naked.length >= 1);
+  await loop.stop();
+  assert.deepEqual(bus.state.acked, [], "the event is NOT acknowledged: this run never began");
+  assert.equal(bus.state.naked[0].seq, 7);
+  assert.deepEqual(refused[0].slice(0, 3), ["engineer", 7, "limit"]);
+  assert.ok(wakes >= 1);
+});
+
+test("the delay is the one the refusal named, never the bus's fixed NAK", async () => {
+  const bus = fakeStream([EVENT]);
+  const resetAt = new Date(Date.now() + 90 * 60_000).toISOString();
+  const naked = [];
+  const loop = startConsuming({
+    bus, cfg: { ...CFG, nakDelayMs: 15_000 }, seats: [{ name: "engineer", subjects: ["asc.events.>"] }],
+    wake: async () => ({ outcome: "started", workflow: "run:engineer", verdict: async () => ({ refusal: { ...REFUSAL, resetAt } }) }),
+    onRefused: (...a) => naked.push(a),
+  });
+  await waitFor(() => bus.state.naked.length >= 1);
+  await loop.stop();
+  const delay = bus.state.naked[0].delay;
+  assert.ok(delay > 85 * 60_000 && delay < 95 * 60_000,
+    `the event comes back when capacity does (about 90 minutes), not in 15 seconds: ${delay}ms`);
+});
+
+test("the event is held alive while the verdict is being decided, so nothing is delivered twice", async () => {
+  const bus = fakeStream([EVENT]);
+  const loop = startConsuming({
+    // The beat is half the ack_wait and never faster than a quarter second,
+    // so a tiny ack_wait is what makes it observable in a unit test; on a box
+    // it is thirty seconds and the beat is every fifteen.
+    bus, cfg: { ...CFG, ackWaitMs: 100 }, seats: [{ name: "engineer", subjects: ["asc.events.>"] }],
+    wake: async () => ({
+      outcome: "started", workflow: "run:engineer",
+      verdict: () => new Promise((r) => setTimeout(() => r({ refusal: null }), 700)),
+    }),
+  });
+  await waitFor(() => bus.state.acked.length === 1);
+  await loop.stop();
+  assert.ok(bus.state.working >= 1, "the loop told the server it was still working on this event");
+  assert.deepEqual(bus.state.acked, [7], "and then acknowledged it, because the provider took the run");
+});
+
+test("a verdict that cannot be had acknowledges the event: a run is in flight", async () => {
+  const bus = fakeStream([EVENT]);
+  const said = [];
+  const loop = startConsuming({
+    bus, cfg: CFG, seats: [{ name: "engineer", subjects: ["asc.events.>"] }],
+    log: (m) => said.push(m),
+    wake: async () => ({ outcome: "started", workflow: "run:engineer", verdict: async () => { throw new Error("the engine blinked"); } }),
+  });
+  await waitFor(() => bus.state.acked.length === 1);
+  await loop.stop();
+  assert.deepEqual(bus.state.naked, [], "asking must never un-start a run");
+  assert.match(said.join("\n"), /could not be asked how the provider answered \(the engine blinked\)/);
+});
+
+test("a wake that offers no verdict is acknowledged the moment it resolves, as it always was", async () => {
+  const bus = fakeStream([EVENT]);
+  const loop = startConsuming({
+    bus, cfg: CFG, seats: [{ name: "engineer", subjects: ["asc.events.>"] }],
+    wake: async () => ({ outcome: "coalesced", workflow: "run:engineer" }),
+  });
+  await waitFor(() => bus.state.acked.length === 1);
+  await loop.stop();
+  assert.deepEqual(bus.state.acked, [7]);
+  assert.equal(bus.state.working, 0, "nothing to wait for, nothing to hold alive");
+});
+
 // --- the words ------------------------------------------------------------
 
 test("an event is read without trusting its payload to be JSON", () => {
@@ -364,6 +465,8 @@ test("the box's bus settings default to the local server and no stream", () => {
   assert.equal(cfg.group, "epito");
   const set = busEnv({ EPITO_BUS_URL: "nats://bus:4300", EPITO_BUS_STREAM: "ASC_EVENTS", EPITO_BUS_GROUP: "hq", EPITO_BUS_ACK_WAIT_MS: "1000" });
   assert.deepEqual([set.url, set.stream, set.group, set.ackWaitMs], ["nats://bus:4300", "ASC_EVENTS", "hq", 1000]);
+  assert.equal(cfg.refusalWindowMs, 120_000, "how long the loop will hold an event waiting to hear from the provider");
+  assert.equal(busEnv({ EPITO_BUS_REFUSAL_WINDOW_MS: "5000" }).refusalWindowMs, 5000);
 });
 
 // --- the wire ------------------------------------------------------------

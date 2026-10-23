@@ -9,15 +9,30 @@
 // acknowledge an event only once the seat's run has STARTED. Then a restart
 // costs nothing and an event is redelivered until a seat takes it.
 //
+// "Started" was read as "Temporal accepted the workflow" until 2026-10-18,
+// when a day's measurement showed that the failure that actually happens —
+// a model provider refusing the run — lands after that point and threw 65
+// events away. It now means "the provider did not refuse it before a first
+// turn", which is startConsuming's contract below and the only line of this
+// file that changed shape.
+//
 // The shape of it mirrors the schedules, deliberately (src/temporal/
 // schedules.js): a roster is reconciled onto the bus at startup and on SIGHUP,
 // which is idempotent, so a restart reconciles rather than duplicates.
 import { subjectsOverlap } from "./subjects.js";
+import { refusalNakMs, refusalSays, humanMs } from "./refusal.js";
 
 export const DEFAULT_BUS_URL = "nats://127.0.0.1:4222";
 export const DEFAULT_GROUP = "epito";
 export const DEFAULT_ACK_WAIT_MS = 30_000;
 export const DEFAULT_NAK_MS = 15_000;
+// How long the loop will hold one event unacknowledged while it waits to
+// learn whether the provider took the run or refused it. Two minutes because
+// the provider call is behind a clone, and a cold clone of a large repository
+// is the slow half; a refusal itself lands in seconds. Past it the event is
+// acknowledged, which is what this runtime did from the first line of code —
+// the window only ever buys back the case it can prove.
+export const DEFAULT_REFUSAL_WINDOW_MS = 120_000;
 
 // Where the bus is, which stream carries the events, and under what name this
 // roster's consumers live. All three are facts about the BOX, never fields in
@@ -35,6 +50,7 @@ export function busEnv(env = process.env) {
     group: env.EPITO_BUS_GROUP || DEFAULT_GROUP,
     ackWaitMs: Number(env.EPITO_BUS_ACK_WAIT_MS) || DEFAULT_ACK_WAIT_MS,
     nakDelayMs: Number(env.EPITO_BUS_NAK_MS) || DEFAULT_NAK_MS,
+    refusalWindowMs: Number(env.EPITO_BUS_REFUSAL_WINDOW_MS) || DEFAULT_REFUSAL_WINDOW_MS,
     batch: Number(env.EPITO_BUS_BATCH) || 1,
   };
 }
@@ -185,15 +201,48 @@ export const eventSays = (seat, ev) => {
   return `${seat}: bus event ${ev.subject}${where ? ` (${where})` : ""}`;
 };
 
+// Hold the event alive while we wait for an answer. JetStream will hand the
+// same message out again once ack_wait passes, so a loop that waits longer
+// than that without saying "still working" wakes the seat twice for one
+// event. `working` is optional on the bus object: the unit suite's fake
+// stream does not have it, and neither does an older client.
+async function whileDeciding(bus, msg, cfg, work) {
+  const every = Math.max(250, Math.floor((cfg.ackWaitMs ?? DEFAULT_ACK_WAIT_MS) / 2));
+  const beat = setInterval(() => { try { bus.working?.(msg); } catch { /* the ack deadline is best-effort */ } }, every);
+  try { return await work(); }
+  finally { clearInterval(beat); }
+}
+
 // The consume loop, one per seat, each pulling one event at a time.
 //
-// `wake(name, event, raw)` is the runtime's own start path, and the contract is
-// the whole feature: it RESOLVES once the seat's run has started, and then and
-// only then is the event acknowledged. If it throws — a dead engine, a worker
-// that is not polling, anything — the event is negatively acknowledged with a
-// delay and comes back. Nothing here swallows an error quietly: the loop logs
-// what refused the start, by name, every time it comes round.
-export function startConsuming({ bus, cfg, seats, wake, log = () => {}, onEvent = () => {}, onError = () => {} }) {
+// `wake(name, event, raw)` is the runtime's own start path, and the contract
+// is the whole feature: it RESOLVES once the seat's run has started, and then
+// and only then is the event acknowledged. If it throws — a dead engine, a
+// worker that is not polling, anything — the event is negatively acknowledged
+// with a delay and comes back. Nothing here swallows an error quietly: the
+// loop logs what refused the start, by name, every time it comes round.
+//
+// WHERE "STARTED" IS, and why it moved (2026-10-18, exo's incident 8). It
+// used to be "Temporal accepted the workflow", which `wake` reaches in
+// milliseconds and which almost never fails — so the one failure that
+// actually happens, a model provider refusing the run, always landed AFTER
+// the acknowledgement, inside a workflow the loop had already counted as
+// started. 65 events went that way in one day; 37 of their runs had not taken
+// a single turn and none of the 65 opened a pull request, so there was
+// nothing to duplicate and nothing to keep. They were simply gone.
+//
+// So `wake` may now hand back a `verdict()` — a function returning a promise
+// that answers the one question the acknowledgement actually turns on:
+//
+//   { refusal }   a resource refused the run before a first turn. NAK, with
+//                 the delay read from the reset time the refusal named in its
+//                 own words, so the event comes back when capacity does and
+//                 not fifteen seconds from now.
+//   anything else acknowledge, exactly as before.
+//
+// A `wake` that returns no `verdict` is acknowledged the moment it resolves,
+// which is every other caller and every older one.
+export function startConsuming({ bus, cfg, seats, wake, log = () => {}, onEvent = () => {}, onError = () => {}, onRefused = () => {} }) {
   let running = true;
   const loops = seats.map(async (seat) => {
     const durable = durableFor(cfg.group, seat.name);
@@ -220,8 +269,30 @@ export function startConsuming({ bus, cfg, seats, wake, log = () => {}, onEvent 
         log(`${eventSays(seat.name, ev)} — starting the run`);
         try {
           const started = await wake(seat.name, ev, msg);
+          // Asking must never un-start a run. If the question itself fails —
+          // the engine blinked, the query was rejected — the event is
+          // acknowledged as it always was, because a run IS in flight and a
+          // redelivery would make a second one.
+          let verdict = null;
+          if (typeof started?.verdict === "function") {
+            try { verdict = await whileDeciding(bus, msg, cfg, () => started.verdict()); }
+            catch (e) { log(`${seat.name}: the run was started and could not be asked how the provider answered (${e.message}) — acknowledging the event, because a run is in flight`); }
+          }
+          if (verdict?.refusal) {
+            const delay = refusalNakMs(verdict.refusal, { delivery: ev.delivery });
+            bus.nak(msg, delay);
+            // Guarded: the event is already given back at this point, and a
+            // ledger line or a board note that throws must not fall into the
+            // catch below and NAK it a second time under a sentence saying
+            // the run never started.
+            try { onRefused(seat.name, ev, verdict.refusal, delay, started); }
+            catch (e) { log(`${seat.name}: the event was given back and the record of why would not file (${e.message})`); }
+            log(refusalSays(seat.name, verdict.refusal, { delayMs: delay }));
+            log(`${seat.name}: the run it was woken for is recorded as refused, not failed — this event is delivery ${ev.delivery} and comes back as delivery ${ev.delivery + 1} in ${humanMs(delay)}`);
+            continue;
+          }
           bus.ack(msg);
-          onEvent(seat.name, ev, started);
+          onEvent(seat.name, ev, started, verdict ?? null);
         } catch (e) {
           bus.nak(msg, cfg.nakDelayMs);
           onError(seat.name, e, ev);
