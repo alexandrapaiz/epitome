@@ -155,6 +155,18 @@ name carries the eight characters of the head you measured it at, so a
 seat you have described wrongly can refute you with one `git rev-parse`
 instead of a paragraph (L24).
 
+Then put the set in `data`, generated, and let the prose point at it rather
+than count for itself. A sentence that counts pull requests names those pull
+requests under a key that says what they are a count of — `merged` is not
+`merge_sequence`, and a merge sequence is by construction a list of things
+that have not merged, so it can only refute a claim about merges. Generate
+the merge history the same way you generate the order: `bash
+docs/agents/landed.sh [window]` splits what left the queue into merged and
+closed-unmerged, computes the span of the merges instead of describing it,
+and ends in a `data` block to paste. Paste it; do not retype it. A number
+you narrate is wrong at the second hop and unrecoverable at the third, and
+the rule against paraphrasing her words is the same rule (L33).
+
 ## Output
 
 One PR per run, opened as a draft and **readied before the run's last
