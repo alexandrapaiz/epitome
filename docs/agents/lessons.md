@@ -1450,3 +1450,81 @@ identifiers at all precisely because they belong in `data`, where a reader
 resolves rather than retypes them.
 
 `portable: yes`
+
+## L31 — A law binds where the seat reads, not where the register keeps it: a rule above your charter is a rule you do not have
+
+**Trigger (2026-10-23T17:18:42Z)**, the standing note attached to every wake of
+this seat, verbatim: "one of your pull requests is an open draft with no live
+run behind it, so no gate can reach it — GitHub refuses to merge a draft at
+all (standards/lessons.md L-A32): #232 epitome-exo/2026-10-18-message-15 (idle
+4d). Ready it, or close it and re-declare on the board what it owed, or write
+in it which clause keeps it a draft. Your next run will not come back for it:
+this message is the only thing that remembers."
+
+The note is right and it is the wrong place for the rule to be. L-A32 was
+already law, already in this repository, and already citing this company by
+number — and it bound nothing.
+
+| when | what |
+|---|---|
+| 2026-10-18T06:37:16Z | L-A32 lands on this repository's `main` in `daf3842`, with its first clause `gh pr ready` before the run's last turn, or the run did not deliver, and naming "epitome's exo draft #142" by number |
+| 2026-10-18T19:30:43Z | **twelve hours and fifty-three minutes later**, this seat opens #232 as a draft |
+| 2026-10-18T19:47:05Z | the run's last push; the host had filled to zero bytes and the run ended without readying it |
+| 2026-10-23T17:17:51Z | the owner's recovery pass retargets its deleted base onto `main` |
+| 2026-10-23T17:18:35Z | the same pass readies it — four days and twenty-one hours idle, by a hand that was not this seat's |
+
+**The measurement, and it is not close.** `docs/standards/lessons.md` says in
+its own header that "Every seat in every product reads its role's section
+before working." By that sentence **72 rules bind this seat**: 56 in `## any`,
+16 in `## exo`. Before this entry's pull request, `prompts/exo-agent.md` — the
+only file this seat reads cold, with no memory of a previous run — named
+**none** of them. **Five** of the 72 (L-A4, L-A7, L-A8, L-A48, L-A49) appear
+anywhere in this seat's own 2,346 lines of register. And no charter in this
+repository's `prompts/` points at the register at all: `pm-agent.md` points at
+`docs/standards/pm.md`, `frontend-agent.md` at an HQ role charter, and the
+other six name no standard of any kind.
+
+**The same mechanism at company scale, proved this afternoon rather than
+argued.** Section 21 of the vendored PM standard — "Merges belong to the PMs
+and the chairs, not to the owner" — arrived on this `main` on
+2026-10-05T23:32:08Z in `f095f20`. For **seventeen days** the merging seat
+declined every merge and every merge ask as out of charter, which incident 11
+records in its own words, because `prompts/pm-agent.md` never said it. At
+2026-10-23T15:26:22Z the owner merged #234, whose whole diff is those two
+sections written into that charter and whose body says it plainly: "the
+vendored standard §21 had given it merges on every tier since 2026-10-05. The
+charter never said it." **One hour and fifty minutes later the seat merged
+thirteen pull requests in seven minutes**, 17:16:26Z to 17:23:23Z, including
+every one of this seat's five stacked reports. Nothing about the authority
+changed. The file the seat reads changed.
+
+**Rule.** A register is an archive and a charter is an instruction, and only
+the instruction executes. So when a law lands above your charter — HQ's
+lessons register, a vendored company standard — the run that reads it patches
+it into every charter it binds, in that charter's own words and citing the
+rule's ID, or records that it declined and why. A seat that failed such a rule
+has not been undisciplined: its charter is defective, and the unit of failure
+is the charter (this seat's own never-do). Never answer a missed law by telling
+the seat about it, because a fresh-context seat is told nothing; and never
+count a rule as distributed because it reached the repository, because a
+repository is not a reader.
+
+**Not a second pass on L27's axis, and the difference is the whole entry.**
+L27 is the proposal end: a change seeking consent must live in the file it
+changes, or the consent has no hand to execute. L31 is the ratified end: a
+change that already has consent must live in the file the seat reads, or the
+compliance has no reader. Same geometry, opposite side of the clock, and this
+company has now paid for both — L27 in fourteen diffs nobody could apply, L31
+in seventeen days of merges nobody made.
+
+**Binds:** this seat, whose charter takes both halves in this entry's own pull
+request — the pointer to the register, and the readying clause of L-A32 its
+Output section contradicted by naming "one draft PR per run" as the deliverable.
+The other seven charters in `prompts/` are not patched here: one charter per
+pull request is this seat's own rule, and a charter's pointer to its role
+standard is `standards/roles/` work the centralizer owns by §16. That half goes
+to `alexandra-systems/pm` as a handoff under the not-landing clause — zero of
+eight charters carry the route, and no seat in this company holds the authority
+to give all eight one.
+
+`portable: yes`
