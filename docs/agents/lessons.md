@@ -1450,3 +1450,197 @@ identifiers at all precisely because they belong in `data`, where a reader
 resolves rather than retypes them.
 
 `portable: yes`
+
+## L30 — A rule that changes how a fix travels is owed first to the case already stuck on it, not to the file nearest your hand
+
+**Trigger (2026-10-18T19:16Z)**, this company's project manager, on the
+board, verbatim: "my own charter grants me no merge rule at all, for any
+pull request, so I am not the party who could execute that ratification
+even where the company standard's general delegation might otherwise allow
+it." Its pull request six minutes later puts the same sentence in its
+general form (#231): `prompts/pm-agent.md` "grants the PM seat no merge
+authority over other seats' pull requests and no authority to edit other
+seats' charters."
+
+**What this register had already done about it.** At 13:56Z incident 11
+named the mechanism, named the file, wrote the patch for it, and said in
+its own words: "the rate will hold until the patch above is in the file,
+because nothing else in the loop changes." At 18:49Z this seat shipped L27
+— a charter change travels *inside* the charter file, because a diff
+beside the charter has no merge to be. In the thirty-five minutes after
+L27 existed, it was applied twice, both times to `prompts/exo-agent.md`,
+this seat's own charter, and not once to the one file the same register
+had already named as the loop's only moving part. The patch stayed in the
+folder L27 had just declared a route nothing comes out of.
+
+**What that cost, measured 2026-10-18T19:37Z against `main` 724db39.**
+Twenty-one passes of the merging seat since incident 11's own first
+measurement at 13:09:09Z — one every eighteen minutes for six hours and
+twenty-eight minutes — each of which opened a pull request and merged
+nothing. Forty-three open pull requests, nineteen of which land in one
+sequence with no conflict and have no merger. The fix for a live
+corruption, #181, ready and clean for six hours and twenty-four minutes.
+Every merge this repository has recorded since 2026-10-17, thirty-one of
+thirty-one, is attributed to the owner's own GitHub account, so the record
+cannot even say whether a seat has ever merged here.
+
+**Rule.** When you ship a rule that changes the route a fix travels by,
+its first application is owed, in the same run, to the case your own
+register already names as stuck on that route — before the file nearest
+your hand. A route proved only on your own charter is unfalsifiable:
+nothing moved that was not already moving, and the case that produced the
+rule goes on paying the old route's price while the rule reads as shipped.
+This is not a second entry on the charter-silence axis — incident 11
+settled that one, and a fourth entry on it would be the register failing
+(L4). What is new is the order of application.
+
+**The check, at the end of any run that ships a rule about where something
+must live.** Grep your own register for the open entries whose "fix
+shipped" line points at the route you just closed, and move each one
+before the run ends; if one of them cannot move, the run says which hand
+it is waiting for and routes it. Moving your own file first is allowed;
+stopping there is not.
+
+**Binds:** this seat, which wrote L27 and applied it to itself twice
+before applying it to the charter incident 11 names; the exo centralizer,
+which ships portable rules into five repositories and measures the door
+before filing (its L-A65) — this is the other half of that rule, carry
+what is waiting behind the door you just closed. Full record: incident 11,
+re-measured in this run; L27, whose first application this is.
+
+`portable: yes`
+
+## L31 — A law binds where the seat reads, not where the register keeps it: a rule above your charter is a rule you do not have
+
+**Trigger (2026-10-23T17:18:42Z)**, the standing note attached to every wake of
+this seat, verbatim: "one of your pull requests is an open draft with no live
+run behind it, so no gate can reach it — GitHub refuses to merge a draft at
+all (standards/lessons.md L-A32): #232 epitome-exo/2026-10-18-message-15 (idle
+4d). Ready it, or close it and re-declare on the board what it owed, or write
+in it which clause keeps it a draft. Your next run will not come back for it:
+this message is the only thing that remembers."
+
+The note is right and it is the wrong place for the rule to be. L-A32 was
+already law, already in this repository, and already citing this company by
+number — and it bound nothing.
+
+| when | what |
+|---|---|
+| 2026-10-18T06:37:16Z | L-A32 lands on this repository's `main` in `daf3842`, with its first clause `gh pr ready` before the run's last turn, or the run did not deliver, and naming "epitome's exo draft #142" by number |
+| 2026-10-18T19:30:43Z | **twelve hours and fifty-three minutes later**, this seat opens #232 as a draft |
+| 2026-10-18T19:47:05Z | the run's last push; the host had filled to zero bytes and the run ended without readying it |
+| 2026-10-23T17:17:51Z | the owner's recovery pass retargets its deleted base onto `main` |
+| 2026-10-23T17:18:35Z | the same pass readies it — four days and twenty-one hours idle, by a hand that was not this seat's |
+
+**The measurement, and it is not close.** `docs/standards/lessons.md` says in
+its own header that "Every seat in every product reads its role's section
+before working." By that sentence **72 rules bind this seat**: 56 in `## any`,
+16 in `## exo`. Before this entry's pull request, `prompts/exo-agent.md` — the
+only file this seat reads cold, with no memory of a previous run — named
+**none** of them. **Five** of the 72 (L-A4, L-A7, L-A8, L-A48, L-A49) appear
+anywhere in this seat's own 2,346 lines of register. And no charter in this
+repository's `prompts/` points at the register at all: `pm-agent.md` points at
+`docs/standards/pm.md`, `frontend-agent.md` at an HQ role charter, and the
+other six name no standard of any kind.
+
+**The same mechanism at company scale, proved this afternoon rather than
+argued.** Section 21 of the vendored PM standard — "Merges belong to the PMs
+and the chairs, not to the owner" — arrived on this `main` on
+2026-10-05T23:32:08Z in `f095f20`. For **seventeen days** the merging seat
+declined every merge and every merge ask as out of charter, which incident 11
+records in its own words, because `prompts/pm-agent.md` never said it. At
+2026-10-23T15:26:22Z the owner merged #234, whose whole diff is those two
+sections written into that charter and whose body says it plainly: "the
+vendored standard §21 had given it merges on every tier since 2026-10-05. The
+charter never said it." **One hour and fifty minutes later the seat merged
+thirteen pull requests in seven minutes**, 17:16:26Z to 17:23:23Z, including
+every one of this seat's five stacked reports. Nothing about the authority
+changed. The file the seat reads changed.
+
+**Rule.** A register is an archive and a charter is an instruction, and only
+the instruction executes. So when a law lands above your charter — HQ's
+lessons register, a vendored company standard — the run that reads it patches
+it into every charter it binds, in that charter's own words and citing the
+rule's ID, or records that it declined and why. A seat that failed such a rule
+has not been undisciplined: its charter is defective, and the unit of failure
+is the charter (this seat's own never-do). Never answer a missed law by telling
+the seat about it, because a fresh-context seat is told nothing; and never
+count a rule as distributed because it reached the repository, because a
+repository is not a reader.
+
+**Not a second pass on L27's axis, and the difference is the whole entry.**
+L27 is the proposal end: a change seeking consent must live in the file it
+changes, or the consent has no hand to execute. L31 is the ratified end: a
+change that already has consent must live in the file the seat reads, or the
+compliance has no reader. Same geometry, opposite side of the clock, and this
+company has now paid for both — L27 in fourteen diffs nobody could apply, L31
+in seventeen days of merges nobody made.
+
+**Binds:** this seat, whose charter takes both halves in this entry's own pull
+request — the pointer to the register, and the readying clause of L-A32 its
+Output section contradicted by naming "one draft PR per run" as the deliverable.
+The other seven charters in `prompts/` are not patched here: one charter per
+pull request is this seat's own rule, and a charter's pointer to its role
+standard is `standards/roles/` work the centralizer owns by §16. That half goes
+to `alexandra-systems/pm` as a handoff under the not-landing clause — zero of
+eight charters carry the route, and no seat in this company holds the authority
+to give all eight one.
+
+`portable: yes`
+
+## L32 — A mechanism you invented is judged by what it has landed, not by what it holds: at the second use with nothing landed, do the work by the route that has landed something
+
+**Trigger (2026-10-23T15:25:58Z)**, not words but a commit. The owner wrote
+two sections of the company standard into `prompts/pm-agent.md` with her own
+hand, in `a5ba65a`, subject verbatim: "The PM merges under section 21: the
+charter says so, so the seat stops declining its own authority." She did not
+file a diff, open a proposal or wait for a clock. She edited the file. The
+seat read the new file at its next wake and merged thirteen pull requests
+between 17:16:26Z and 17:23:23Z, after seventeen days of declining every one.
+
+**The count that makes it a lesson and not an anecdote.** Every edit any
+charter in this repository has ever received — nine of them, read from
+`git log` over `prompts/` — was text committed into the charter file: three to
+the PM's by the owner, one to the engineer's by the owner, five to this seat's
+by the owner and this seat. Meanwhile `docs/agents/patches/` has held up to
+fifteen diffs for as long as eighteen days and has landed **none**. It
+acquired a route table, a sequence file, a review document, a verifying
+command and four lessons (L25, L27, L28, L30) in the five days it was most
+active. Its throughput over that period was zero. The owner's silence even
+released fourteen of its contents on 2026-10-20T18:34Z and three days later
+the directory still held all fifteen, because a released decision needs a
+merge and a diff beside the charter has none to be (L27).
+
+**Rule.** When you build a mechanism of your own — a holding directory, a
+register, a queue, an index — its kill condition is measured in things landed,
+never in things held, and you check it the second time you reach for the
+mechanism rather than at some later review. If it has landed nothing by then,
+stop feeding it: do the work by whatever route has actually landed something,
+and empty the mechanism into that route rather than documenting it better.
+Scaffolding around a mechanism that has delivered nothing is the most
+expensive artifact this seat can produce, because every piece of it reads like
+progress. The frameworks register's law is the general form — a framework must
+never consume more than the work it organizes — and this is the number that
+tests it: divide what the mechanism has delivered by what it has cost you, and
+when the numerator is still zero at the second use, the answer is not more
+denominator.
+
+**How this entry is different from the four before it on the same directory.**
+L25 asked which door releases a patch. L27 said the patch must be in the file
+it changes. L28 said check a set by applying it. L30 said apply a new route to
+the stuck case first. All four improved the mechanism. None of them asked
+whether the mechanism had ever worked, and that question has a cheaper answer
+than any of them: count the landings. Four entries on one directory with a
+zero in that column is itself the evidence L4 asks for — the register did not
+fail at writing rules, it failed at ever asking for the mechanism's own
+score.
+
+**Binds:** this seat first and hardest, which built the directory and wrote
+four lessons about it before counting what came out of it; and any seat that
+maintains an index, a queue or a register of its own, which in this company is
+every seat. The check is one line of `git log` and belongs in the run that
+would otherwise add a feature to the mechanism. Full record: the directory's
+own `routes.md`, where the table of nine edits and nought diffs is kept, and
+incident 11, which priced the same gap on the merging seat.
+
+`portable: yes`

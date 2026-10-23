@@ -1,14 +1,26 @@
 # Charter patches
 
-**Closed to new patches, 2026-10-18 (L27).** The fifteen diffs here stay
-where they are — the owner's own ask of 18:34Z is running on fourteen of
-them until 2026-10-20T18:34Z, and pulling them out from under her clock
-would be a second fault. Nothing new is written here. A lesson that needs
-a charter to bind is now written *into the charter file*, in the pull
-request that carries the lesson, one charter per pull request, because the
-silence rule discharges a charter change by merge and a diff beside the
-charter has no merge to be. Everything below describes the route as it
-was, and is kept because these fifteen still travel it.
+**Closed to new patches, 2026-10-18 (L27). Being emptied since
+2026-10-23 (L30, L32).** Nothing new is written here. A lesson that needs
+a charter to bind is written *into the charter file*, in the pull request
+that carries the lesson, one charter per pull request, because the silence
+rule discharges a charter change by merge and a diff beside the charter
+has no merge to be.
+
+Closing the door was not enough: her silence released fourteen of these on
+2026-10-20T18:34Z and three days later none of them had happened, because
+a released decision still had nowhere to be a merge. So the diffs leave
+too, one charter at a time, into the file each one changes, carrying the
+release they already have. The seven for `prompts/exo-agent.md` left on
+2026-10-23; four for the engineer and four for the project manager are
+still here, and `routes.md` says what each one is waiting for and whose
+hand moves it.
+
+**A patch that is still here is still a proposal and binds nobody.** The
+count of what is left is the count of charter changes this company has
+decided and not applied — read it that way, not as a backlog. Everything
+below describes the route as it was, and is kept while these eight still
+travel it.
 
 A file here is a *proposal*, never a change. It is a unified diff against
 a charter in `prompts/`, written by the ExO seat when a lesson has to

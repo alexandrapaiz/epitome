@@ -1,5 +1,29 @@
 # What releases each patch
 
+**The clock expired and nothing applied (measured 2026-10-23T17:30Z).** The
+silence the ask ran on ran out at 2026-10-20T18:34Z, three days ago, and
+`git apply --check --reverse` says **zero of the fifteen** are on `main`.
+So §22 has released fourteen charter changes and fourteen charter changes
+have not happened, which is L27's prediction arriving on schedule: the
+clock discharged into a directory with no merge at the end of it. The hand
+now exists — the owner put §21 and §22 into `prompts/pm-agent.md` herself
+at 2026-10-23T15:26:22Z, so the merging seat holds both the authority and
+the silence clause in the file it reads — but a hand that can merge still
+cannot apply a diff. Each of these fourteen has to be lifted into the
+charter it changes, as its own pull request, which is the route this
+directory's own closure notice already prescribes. Asked of
+`epitome/pm` on the board rather than decided here.
+
+**Two were re-cut on 2026-10-23, context only.** `2026-10-18-exo-the-order-is-measured-at-publication`
+was rotted by this seat's own L31 edit to `prompts/exo-agent.md`, and
+`2026-10-18-pm-a-deferral-is-a-merge` by the owner's merge of #234 into
+`prompts/pm-agent.md` — it had been refusing against `main` for three days,
+unnoticed, including through the whole second half of its own clock. In both
+the added text is byte-identical to the copy the ask names and only the
+surrounding lines moved; each carries a header note saying so. That is now
+three charter edits that have silently rotted a diff sitting beside them,
+and the count is the argument, not the repair.
+
 **The ask is filed (2026-10-18T18:34Z).** The fourteen this file classified
 as `silence` now have the clock this file said nobody had started; it
 expires 2026-10-20T18:34Z. What the ask does not have is a hand at its far
@@ -103,3 +127,68 @@ ago. The last edit to any existing charter in this repository was
 2026-10-05T03:37:43Z (`d6bfd42`, the not-landing clause in the ExO's own
 charter) and it was a direct commit, not a patch from here. Zero of
 fifteen have ever travelled this directory's own route.
+
+## The exo half left this directory, 2026-10-23
+
+The seven patches that change `prompts/exo-agent.md` are not in this
+directory any more. They are in `prompts/exo-agent.md`, applied with plain
+`git apply` from the diffs themselves and verified line for line: all
+seventy added lines are present in the charter as one contiguous block
+each, byte-identical to the copy the owner's 18:34Z ask names. Nothing was
+retyped and nothing was re-worded.
+
+**What authorised that.** Her silence under §22, which ran out at
+2026-10-20T18:34Z and released all fourteen. The release was three days
+old and nothing had happened, because §22 discharges a charter change *by
+merge* and there was no merge to make: a diff in this directory is not the
+charter (L27). So this is not a new decision. It is the decision she
+already made, moved to the only place a hand can execute it.
+
+**Why only these seven.** One charter per pull request, so she can refuse
+one without refusing the rest, and `prompts/exo-agent.md` is the only
+charter this seat may write. The engineer's four and the project manager's
+four leave the same way, in their own pull requests, and that is on the
+board for `epitome/pm` rather than decided here.
+
+**The merge-authority patch has been answered by a different hand.**
+`2026-10-18-pm-the-standard-is-the-charter` is still in this directory and
+its route is still `her word`, but the thing it asked for arrived without
+it: the owner wrote §21 and §22 into `prompts/pm-agent.md` herself in
+`a5ba65a` at 2026-10-23T15:25:58Z, merged as #234 at 15:26:22Z. So the
+grant is made and the diff is now partly stale — its own first line says
+three of the standard's duties are "not stated anywhere below", and one of
+the three is stated below now. What survives of it is three duties that
+travel by silence, not by her word: read the inbox first (§15), name the
+numbered condition when you decline (§11.4), post a `done` with the pull
+request (§15). That re-classification is a question for the project
+manager to re-ask, not a re-cut this seat performs, so the file stays as
+she last saw it and the note lives here.
+
+## What this directory has delivered, counted rather than recalled
+
+Every edit any charter in this repository has ever received, by `git log`
+over `prompts/`:
+
+| charter | edits | by whose hand | route |
+|---|---|---|---|
+| `prompts/pm-agent.md` | 3 (2026-09-19, 2026-09-20, 2026-10-23) | the owner, all three | a direct commit to the file |
+| `prompts/exo-agent.md` | 5 (2026-09-19, 2026-10-04, two on 2026-10-18, 2026-10-23) | the owner twice, this seat three times | a direct commit to the file |
+| `prompts/engineer-agent.md` | 1 (2026-09-29) | the owner | a direct commit to the file |
+
+**Nine charter edits have landed here. All nine were text in the charter
+file. None was a diff from this directory, in eighteen days and across
+fifteen diffs.** The route with a hundred per cent record is the one the
+owner used three hours ago; the route with a nought per cent record is the
+one this seat built. That is the whole argument for emptying this
+directory, and it is L32.
+
+**And the price of the gap is measured, once, on the case next door.**
+§21 reached this repository on 2026-10-05 in `f095f20` and the merging
+seat declined every merge for seventeen days, because the file it reads
+never said it. The owner put §21 and §22 into that file at 15:25:58Z. The
+seat merged thirteen pull requests between 17:16:26Z and 17:23:23Z — six
+minutes and fifty-seven seconds of queue, seven minutes after it next
+woke — including #181, the fix for a live corruption that had been
+mergeable and unmerged since 2026-10-18T13:13Z. Nothing about the
+authority changed in those seventeen days. The file the seat reads
+changed.

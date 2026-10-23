@@ -34,10 +34,21 @@ pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
 bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
 check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
-# `grep -F --` every time: half the strings asserted here start with a dash,
-# because half of what this command says is the name of an option.
-has()  { printf '%s' "$2" | grep -qF -- "$3" && ok "$1" || bad "$1"; }
-hasnt(){ printf '%s' "$2" | grep -qF -- "$3" && bad "$1" || ok "$1"; }
+# The substring test happens in this shell, not down a pipe. `printf | grep -qF`
+# forks twice per assertion, and when either half of that pipeline cannot run,
+# its non-zero status is indistinguishable from "the string is not there" — so
+# the harness reports a defect in the product it never actually looked for.
+# That is not hypothetical: inside test/all.sh on 2026-10-23 this suite failed
+# "the page names the agent and its description" (needle `edge-demo`) and
+# passed, two lines later and against the same captured page, "the page carries
+# the button" (needle `Run edge-demo now`) — which contains the needle that had
+# just been declared missing. Run on its own the same suite was 54/54 twice.
+# A quoted pattern inside `case` is a literal substring match with no
+# subprocess at all: no dash is an option, no `*` or `[` in a needle is a glob,
+# and there is nothing transient left to mistake for an absence. (L-A34: an
+# absence is a reading, and this harness now only reports the one it took.)
+has()  { case "$2" in *"$3"*) ok "$1" ;; *) bad "$1" ;; esac; }
+hasnt(){ case "$2" in *"$3"*) bad "$1" ;; *) ok "$1" ;; esac; }
 step() { printf '\n== %s\n' "$1"; }
 
 cleanup() {

@@ -14,9 +14,10 @@
 // was knowable before 06:00 and nothing looked.
 //
 // So this is the preflight, and its contract is one sentence: exit 1 if a run
-// on this box would refuse, and name the piece. Eight sections, in the order a
-// run needs them — seven of them always, and the bus only for a roster that
-// subscribes to one —
+// on this box would refuse, and name the piece. Nine sections, in the order a
+// run needs them — seven of them always, the bus only for a roster that
+// subscribes to one, and the endings row only on a box that has already run
+// something —
 //
 //   manifests  the roster loads and passes the spec (the validator's own code)
 //   names      what [runtime].env asks this box for, and what it holds
@@ -41,6 +42,16 @@
 //              asks whether it would be performed, and the two come apart on
 //              any box where `epitod-worker` died — the engine goes on taking
 //              schedules and starting runs that nothing picks up
+//   endings    and, looking backwards instead of forwards, what this box's own
+//              run logs say happened to the runs that produced nothing — and
+//              how many of those endings THIS build's refusal reader can name
+//              (src/lib/runlogs.js). It is the only row here that reads
+//              history, and it is here because of how its defect hides: the
+//              reader shipped on 2026-10-18 matched none of the 37 refusals
+//              the host recorded that day, with a green suite, and the gap
+//              was found by a person typing a one-liner at a log directory.
+//              A row costs one directory listing per seat and 16 KB per log,
+//              touches no network, and never refuses
 //
 // And two halves that only `--deep` reaches, because they leave this box:
 //
@@ -101,6 +112,7 @@ import { engineAddress, engineAnswering, engineFix, engineMissing, missingEngine
 // are acts.js's — half of an identity and no identity at all.
 import { describeQueue, summarize, WORKER_REFUSES, POLLED, UNASKED } from "./temporal/pollers.js";
 import { temporalEnv } from "./temporal/env.js";
+import { surveyEndings, endingsSays } from "./lib/runlogs.js";
 import { SPEC_VERSION } from "./lib/fields.js";
 
 export const DOCTOR_FLAGS = [
@@ -286,6 +298,13 @@ export async function doctorCmd(args = []) {
       : `the engine client is not installed on this box (${engine.address} answered a TCP connect, and asking who polls a queue takes a real gRPC connection)`,
   });
 
+  // What already happened here, read by the build running now. Offline, and
+  // deliberately last among the sections: every row above is about the next
+  // run, and this one is about whether this build could have told you why the
+  // last one never started.
+  const endings = surveyEndings();
+  const endingsNote = endingsSays(endings);
+
   // --- the verdict ---------------------------------------------------------
   // The executor's problems, grouped by the problem itself, because that is
   // the shape of the fix: five seats sharing one `claude` share one missing
@@ -457,6 +476,22 @@ export async function doctorCmd(args = []) {
     // above is — and `key` is what says which of them shared one: two seats on
     // the same App and repo carry the same key and cost one request.
     installed: deep ? installed.map((i) => ({ agent: i.agent, key: i.key, appId: i.appId, repo: i.repo, state: i.state, declared: i.declared, installation: i.installation, status: i.status, slug: i.slug ?? null, login: i.login ?? null })) : null,
+    // Backwards-looking, and shaped so a machine can watch the gap rather
+    // than the prose: `ended` is how many runs produced nothing, `named` how
+    // many of those this build can read as a refusal, and `unnamed` the
+    // newest few it cannot, each with the sentence it ended on.
+    endings: {
+      window_hours: endings.hours, runs: endings.runs, ended: endings.ended,
+      named: endings.named, withReset: endings.withReset, kinds: endings.kinds,
+      unnamed: endings.unnamed.map((u) => ({ agent: u.seat, at: new Date(u.at).toISOString(), exit: u.exit, turns: u.turns, says: u.says })),
+      unnamedCount: endings.unnamedCount ?? endings.unnamed.length,
+      // Endings the box produced rather than the provider — a signal, a
+      // timeout, a daemon restart. Counted apart from the unread ones so a
+      // watcher cannot read a restart as a reader that has fallen behind.
+      stoppedByTheBox: endings.stoppedCount ?? 0,
+      stopped: (endings.stopped ?? []).map((u) => ({ agent: u.seat, at: new Date(u.at).toISOString(), exit: u.exit, was: u.was })),
+      unreadable: endings.skipped, says: endingsNote.text,
+    },
     refusals: refusals.map((r) => ({ agents: r.agents, says: r.says })),
   };
   if (json) {
@@ -561,6 +596,12 @@ export async function doctorCmd(args = []) {
         ? `stream "${busCfg.stream}" at ${busCfg.url} for ${plural(busSeats.length, "seat")} (${who}) — this row read the box's settings and opened nothing; \`epito bus ${dirArg}\` asks the server what is waiting`
         : `${plural(busSeats.length, "seat")} ${busSeats.length === 1 ? "is woken" : "are woken"} by the bus (${who}) and this box names no stream${busOnly.length ? `, so ${busOnly.length === busSeats.length ? (busOnly.length === 1 ? "it never fires" : "they never fire") : `${busOnly.map((b) => b.name).join(", ")} never fires`}` : `, so those events do not reach ${busSeats.length === 1 ? "it" : "them"}`}`);
   }
+  // endings — printed only when this box has logs to read, for the reason the
+  // bus row is conditional too: a permanent "0 runs" line on a fresh box is a
+  // row an operator learns to skip, and this one has to be read on the day it
+  // changes. Never a refusal: an unread ending does not stop the next run.
+  if (endings.looked && endings.runs) row("endings", endingsNote.level, endingsNote.text);
+
   if (deep) {
     const calls = [...deepByKey.values()];
     const okCalls = calls.filter((d) => d.state === "ok");

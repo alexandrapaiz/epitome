@@ -13,6 +13,12 @@
 //                    nothing done. That is L-E7's fingerprint, and it is the
 //                    only failure the router is allowed to take a detour
 //                    around.
+//   EPITO_STUB_REFUSE_SAYS
+//                    refuse before a first turn and say so in the provider's
+//                    own words — "Claude AI usage limit reached|<epoch>" and
+//                    the rest of the shapes src/lib/refusal.js reads. This is
+//                    the 2026-10-18 failure: zero turns, nothing done, a
+//                    sentence naming when capacity comes back.
 //   EPITO_STUB_ECHO_ROUTE
 //                    print the route's endpoint and model in the result, so a
 //                    test can read which road the run actually took.
@@ -68,6 +74,18 @@ const transcript = join(dir, `${sessionId}.jsonl`);
 // A provider that is out of concurrency answers before the agent does
 // anything at all. The stub reproduces exactly that shape: the run never
 // started, so the router may try the next road.
+// The refusal that names its own reset time, on whichever road it is asked
+// for: a usage window is a fact about the account, not about the endpoint.
+const says = process.env.EPITO_STUB_REFUSE_SAYS;
+if (says) {
+  process.stdout.write(JSON.stringify({
+    type: "result", subtype: "error_during_execution", is_error: true,
+    duration_ms: 7, num_turns: 0, result: says,
+    session_id: sessionId, total_cost_usd: 0,
+  }) + "\n");
+  process.exit(1);
+}
+
 const refuse = process.env.EPITO_STUB_REFUSE_BASE_URL;
 if (refuse && process.env.ANTHROPIC_BASE_URL === refuse) {
   process.stdout.write(JSON.stringify({
