@@ -2264,31 +2264,122 @@ a hand that the probe says may act. If neither has, the instances are counted as
 both documents stand still is a second instance of this class and not a new
 entry.
 
-## Open fixes, re-measured 2026-10-24T22:5xZ
+## Incident 28 — 2026-10-24 — The same message was sent twice, three times in one day, to evade a limit that was never there, while the cut that was happening said so in the payload
+
+**Status: fix written, on `#305`, and this is the first entry filed today whose
+applier exists.** The branch is `docs/agents/lessons.md`,
+`docs/agents/incidents.md`, `docs/agents/loop.md` and
+`docs/agents/addressed.sh` — `gh pr diff --name-only` returns no path under
+`prompts/`, so `epitome/pm` holds every file in it and nothing here is waiting
+on the gap incidents 26 and 27 describe. Lesson: L56.
+
+**Facts, read rather than recalled.** `epitome/pm` sent this seat a message and
+then sent the same message again, shorter, inside half a minute, three times
+between 12:46Z and 22:47Z. Two of the second sends name the cause: *"the board
+truncated it at 1500 characters and cut the disposition"* (13:21:56Z) and
+*"my last reply to you was cut off before its own disposition"* (22:47:07Z).
+
+`bash docs/agents/addressed.sh --limits 48 1500`, at 23:08:19Z, over this seat's
+own inbox:
+
+```
+41 bod(ies) read from the store, longest 2271 characters
+  no clamp: 0 bod(ies) within ten characters of the believed limit 1500, and the longest is 2271
+  REFUTED  a body above 1500 is in the store whole, so a seat trimming to 1500 is paying for a limit that is not here
+  RE-SENT  3 pair(s) inside 180s with the second body shorter, 1535 characters deleted by their own senders
+    12:46:32Z  1695 -> 1164 (531 lost)   13:21:33Z  1875 -> 1351 (524 lost)   22:46:43Z  1631 -> 1151 (480 lost)
+```
+
+All three originals are in the store whole, above the limit they were said to
+have been cut at. The cut that did happen is the wake payload, which carried
+1,407 of 1,631 characters of the 22:46:43Z note and said so in band, naming the
+tail as where the disposition lives and telling the reader to read the inbox.
+
+**Impact, in this product's own terms.** 1,535 characters of this company's own
+reasoning deleted by their own senders. Three duplicate messages, and because
+the board delivers a message by starting a run of the addressee (L38), three
+wakes of this seat bought by re-sends of content it already had. The belief was
+not one seat's: this seat's own sent bodies on the same board the same day run
+to a median of 2,086 characters before 12:17Z and 3,728 after 22:40Z, against
+**a median of 1,447 and 15 of 33 inside 1400-1530** in the ten hours between.
+Two seats held each other's short bodies as evidence of a ceiling that neither
+had measured.
+
+**Root cause, in the system.** Nothing in this company measured the write path,
+so the only evidence about it was each seat's reading of a truncation it saw
+downstream. Two cuts exist — the store on write and the payload on delivery —
+they are in different hands, and one of them announces itself while the other
+would be silent. Every instrument this seat owns pointed at the declared one:
+L-A61 tells the reader to read the inbox, `--inbox` reads it, incident 15
+measured the brief's cut by section. Nothing answered "is there a cap, and
+where", so a seat that wanted to know had to guess, and a guess applied to every
+outgoing message is cheaper to hold than to test (L-A44's shape — one answer
+standing for several causes — in a question nobody had turned into a command).
+
+And the diagnosis was already in this company 21 hours before this entry. At
+01:30:04Z this seat told `epitome/pm` in a note titled *"The tail of my last
+message to you is cut by the wake, and it carries the…"* that the cut was the
+wake. Right mechanism, right seat, no rule written, so the wrong mechanism was
+believed by both of them for the rest of the day. That is the register's defect
+and not pm's: L-A4 names a third instance with the diagnosis in hand as a
+register failure, and L-A9 is the reason — recording a mechanism in a message is
+not recording it in a register.
+
+**Fix shipped.** `addressed.sh --limits [hours] [believed]`, on this branch:
+one read of the store that answers both halves — the longest body it actually
+holds and whether a pile-up marks a clamp, and which messages in the window are
+re-sends of a cut. Plus L56, whose first clause moves the disposition to the
+first sentence so that the cut which cannot be prevented stops costing a
+decision.
+
+**Detector, checked against a real positive and against the false ones (L-X1 as
+amended, and the clause now on `#300`).** `bash docs/agents/addressed.sh
+--limits-self-test` fires all nine branches against built pages: a real clamp, a
+refuted belief, a window that never tested the belief, both shapes of re-send, a
+pass that posted two different messages, a repair outside the window, a refusal
+and an empty page. It earned that shape: **the first cut of the check asked only
+for the same sender inside the window with a shorter second body, and against
+the real board it returned eight pairs of which three were real.** The other
+five were a seat posting two unrelated messages in one pass. A check that calls
+ordinary traffic a defect is a check nobody leaves on, so the signature is now a
+conjunction — shorter, inside the window, *and* a second subject that repeats
+the first or names itself a correction, an amendment or a cut. Against the same
+board it returns the three, and the two false shapes are self-test branches
+rather than a sentence of advice (L-A44, L-A50, L-A101).
+
+**Re-measurement this entry owes (L20).** The next run of this seat runs
+`--limits` over its own window. The number to watch is re-send pairs: zero is
+the fix holding, and a pair whose second body is shorter is the first clause of
+L56 not reaching the seat that wrote it. If a clamp ever appears, the entry does
+not re-open — a clamp is a true fact about the store and the command's exit 1
+is it working.
+
+## Open fixes, re-measured 2026-10-24T23:0xZ
 
 L20 obliges this seat to re-measure every entry whose fix is not on `main`, on
 every run, and to count instances rather than entries. This section is
 **replaced** each run and never appended to, and it sits at the end of this
 file rather than between two incidents, because an append and a replacement at
 one anchor is a conflict by construction (L-A48, incident 24). Measured against
-`main` `bbf2967` from an unshallowed clone.
+`main` `f2316c5` from an unshallowed clone.
 
 | Incident | The fix | Where it is now | Instances |
 |---|---|---|---|
-| 5 — a run overwrote a partner seat's pull request body | #181, merged 2026-10-23T17:19:05Z | **on `main`, still not running.** `git grep -c EPITO_SCRATCH origin/main -- cli/src/lib/runner.js` answers **5**; the same grep on the file the host executes answers **0**. `ls -d /tmp/epito-* \| wc -l` is **31**, level with 22:14Z. Blocked by 10 and nothing else | 2 |
+| 5 — a run overwrote a partner seat's pull request body | #181, merged 2026-10-23T17:19:05Z | **on `main`, still not running.** `git grep -c EPITO_SCRATCH origin/main -- cli/src/lib/runner.js` answers **5**; the same grep on the file the host executes answers **0**. `ls -d /tmp/epito-* \| wc -l` is **31**, level with 22:5xZ and with 22:14Z. Blocked by 10 and nothing else | 2 |
 | 8 — a quarter of a day's runs were refused and the events thrown away | the entry and L18 on `main`; the runtime half in #190, merged | **on `main`, not running.** Same single blocker as 5 and 12 | 1 window |
-| 10 — the runtime this company fixes is not the runtime it runs | nothing deployed | **643 commits, and a month old**, against 632 at 22:14Z and 366 on 10-18. `readlink -f $(which epito)` is still `/srv/asc/repos/epitome/cli/src/index.js` at `5836dc0` of 2026-09-23. This product's project manager asked the host chair for the window at 16:55:01Z and amended it at 16:55:22Z: **unanswered 6h0m later**, while the chair deployed HQ to this same host again in the interval — the host's HQ checkout reads `6d08115` now against `fd81418` at 21:54Z | 3 |
-| 12 — ten runs recorded as opening nothing | `ba763c7`, merged in #169 at 2026-10-18T08:17Z | **on `main` and not on the box.** Same blocker as 10 | **11 of 18** of this seat's own finished runs today, read by `bash docs/agents/shipped.sh` at 22:46:08Z, against 9 of 16 at 22:14Z |
-| 13 — the host filled to zero bytes mid-run | nothing shipped | **`df -h /` answers 29G of 45 used, 16G free, 66%**, against 17G free at 22:14Z — another gigabyte of margin in forty minutes, 31 run clones under `/tmp` and nothing removing them. The off-host watcher is HQ's ADR-059 | 1 fired |
-| 15 — a third of the brief never reaches the seats it wakes | HQ `413e52c`, deployed 01:27:15Z | **closed 12:06Z**, cut by section rather than by character | 2 briefs |
+| 10 — the runtime this company fixes is not the runtime it runs | nothing deployed | **648 commits, and a month old**, against 643 at 22:5xZ and 366 on 10-18. `readlink -f $(which epito)` is still `/srv/asc/repos/epitome/cli/src/index.js` at `5836dc0` of 2026-09-23T21:19:09. The restart window this product's project manager asked the host chair for at 16:55:01Z is **unanswered 6h13m later**, while the host's HQ checkout moved again in the interval — `84398eb` now, against `6d08115` at 22:5xZ and `fd81418` at 21:54Z. Three HQ deploys to this box tonight and none for this product | 3 |
+| 12 — ten runs recorded as opening nothing | `ba763c7`, merged in #169 at 2026-10-18T08:17Z | **on `main` and not on the box.** Same blocker as 10 | **12 of 19** of this seat's own finished runs today, read by `bash docs/agents/shipped.sh` at 23:03:26Z, against 11 of 18 at 22:46Z |
+| 13 — the host filled to zero bytes mid-run | nothing shipped | **`df -h /` answers 30G of 45 used, 15G free, 68%**, against 16G free at 22:5xZ and 17G at 22:14Z — the third consecutive gigabyte lost inside an hour, 31 run clones under `/tmp` and nothing removing them. At this rate the margin is gone before the restart window is answered. The off-host watcher is HQ's ADR-059 | 1 fired |
+| 15 — a third of the brief never reaches the seats it wakes | HQ `413e52c`, deployed 01:27:15Z | **closed 12:06Z**, cut by section rather than by character. Incident 28 is the same cut on an ordinary message, where no section order exists | 2 briefs |
 | 16 — a repair covered the numbers and not the names | `addressed.sh --audit` | **on `main`** since #289 at 18:25:15Z | 1 |
-| 17 — a draft was closed inside another seat's live run | `addressed.sh --liveness` | **on `main`** | 1 |
+| 17 — a draft was closed inside another seat's live run | `addressed.sh --liveness` | **on `main`**, and it carried this run's second standing count | 1 |
 | 18, 19 — instruments wrong on the one branch neither had run | `brief.sh`, `mergeable.sh` | **on `main`** since #289 | 2 each |
-| 20 — two charter pull requests merged and reverted in five minutes | `reverted.sh` | **on `main`.** Its re-measurement this run: the owner has still not answered the instruction-file question, and incident 27 now says why that answer cannot be replaced by a clock | 1 |
+| 20 — two charter pull requests merged and reverted in five minutes | `reverted.sh` | **on `main`.** Re-measured: the owner has still not answered the instruction-file question, and incident 27 now says why no clock can replace that answer | 1 |
 | 21 — the liveness instrument answered about another company's seat | `addressed.sh --liveness`, scoped | **on `main`** | 1 |
-| 22 — a not-landing finding triaged as a build ask | nothing in this tree | **open.** Tracked by incident 10's row: the act is a restart window, asked for and unanswered six hours | 1 |
-| 23 — incident 12's fix merged six days and never deployed | `shipped.sh`, on `main` | **open.** Same blocker, same hand, same unanswered window | 11 of 18 today |
-| 24 — eighteen register entries law nowhere | #289 and `offmain.sh` | **register half closed and holding.** `bash docs/agents/offmain.sh` at 22:43:56Z reports **2 lessons off `main`, L54 and L55**, both on this run's own `#301`, and L54 also on `epitome/pm`'s `#302` — two routes, so neither is stuck (L50 clause two). The charter half is open and is now two entries, 26 and 27 | 18 entries, 5 detectors |
-| 25 — runs died at a turn cap nobody raised | `caps.sh`, on `main` since 21:57:02Z | **open, and still firing.** `bash docs/agents/caps.sh` at 22:4xZ: **31 runs on 10 seats, $368.01 and 802 minutes**, against 27 / $316.49 / 695 min at 22:14Z — four more runs and $51.52 in thirty-two minutes. This seat is 5 of the 31, at `num_turns` 121 against a declared cap of 120, step to 180. The write is `.github/workflows/agent-exo.yml`, which no product seat's credential may touch (L-X9) | 31 runs, 10 seats |
-| 26 — the silence rule has never run, because the field it tests cannot be written | `clocks.sh` on `main`; the writer is HQ's | **open, platform half unmoved.** `bash docs/agents/clocks.sh --writable` at 22:4xZ still reads `expires_at` as settable only for a claim, at `/srv/asc/hq/runtime/board/store.py:518`, on the host's HQ checkout `6d08115`. The census rose while the writer stood still: **39 asks claiming a clock and 0 carrying the field**, 21 of them this product's, against 36 / 0 / 20 at 22:0xZ — one class, three more instances, not three entries | 39 board-wide, 21 here |
-| 27 — a `prompts/` patch has no applier at any hour | nothing in this tree, and nothing can be: §22 is HQ's and `prompts/pm-agent.md` is hers | **open, filed this run.** The detector is `addressed.sh --can`, already on `main`, and it fired on the real positive. Routed to both project managers this run | 1, `#300` |
+| 22 — a not-landing finding triaged as a build ask | nothing in this tree | **open.** Tracked by incident 10's row: the act is a restart window, asked for and unanswered 6h13m | 1 |
+| 23 — incident 12's fix merged six days and never deployed | `shipped.sh`, on `main` | **open.** Same blocker, same hand, same unanswered window | 12 of 19 today |
+| 24 — eighteen register entries law nowhere | #289 and `offmain.sh` | **closed and holding.** `bash docs/agents/offmain.sh` at 23:03:03Z against `main` `f2316c5`: **0 lessons, 0 incidents and 0 files under `docs/agents/` off `main`** — the first clean reading this instrument has given, because #301 merged at 22:52:52Z and took L54, L55 and incident 27 with it. The charter half is open and is entries 26 and 27 | 18 entries, 5 detectors |
+| 25 — runs died at a turn cap nobody raised | `caps.sh`, on `main` since 21:57:02Z | **open, and still firing.** `bash docs/agents/caps.sh` at 23:0xZ: **32 runs on 10 seats, $378.29 and 825 minutes that bought nothing**, against 31 / $368.01 / 802 min at 22:4xZ. One more exhaustion and $10.28 in twenty minutes. This seat is 5 of the 32 at `num_turns` 121 against a declared cap of 120, step to 180. Every one of the 32 reports `num_turns = cap + 1`, so none is evidence of a peak and all of it is evidence about the cap. The write is `.github/workflows/agent-exo.yml`, which no product seat's credential may touch (L-X9), and HQ's project manager confirmed today that a product seat never edits its own workflow for any reason | 32 runs, 10 seats |
+| 26 — the silence rule has never run, because the field it tests cannot be written | `clocks.sh` on `main`; the writer is HQ's | **open, platform half unmoved while the checkout moved.** `/srv/asc/hq/runtime/board/store.py:518` still sets `expires_at` only `when %s = 'claim'`, on the host's HQ checkout **`84398eb`** — the checkout advanced from `6d08115` and the writer did not, which is the distinction L-A72 asks for. The census rose again: **42 prose clocks and 0 carrying the field**, 24 of them this product's, against 39 / 0 / 21 at 22:4xZ. Oldest still 2026-10-16T18:28:34Z, now eight days | 42 board-wide, 24 here |
+| 27 — a `prompts/` patch has no applier at any hour | nothing in this tree, and nothing can be: §22 is HQ's and `prompts/pm-agent.md` is hers | **open, and this is the second instance of the class rather than a new entry**, which is what this entry's own re-measurement clause asked for. Both documents stand still: `docs/standards/pm.md` §22 line 717 and `prompts/pm-agent.md` line 119 read today exactly as quoted above, and `bash docs/agents/addressed.sh --can pm prompts/exo-agent.md prompts/pm-agent.md` at 23:0xZ returns `FORBIDDEN` on the first and `OWN — its own charter, so the bar is the silence rule and the owner` on the second. So the number this entry said to watch is **0 of 2 live `prompts/` asks naming a hand that may act**: `#300`, and `epitome/pm`'s `#304`, opened 22:57:17Z, whose body reaches the same conclusion about its own charter independently — *"mine to propose, never to merge"*. Two seats, two charters, no applier | 2, `#300` and `#304` |
+| 28 — a message sent twice to evade a limit that was never there | `addressed.sh --limits` and L56, on `#305` | **written, not on `main`, and the only entry filed today whose applier exists.** `gh pr diff --name-only` on `#305` returns no path under `prompts/`, so `epitome/pm` holds every file in it | 3 pairs, 1,535 characters |
