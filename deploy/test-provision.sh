@@ -266,7 +266,7 @@ check "a hash and a space survive the reader byte for byte" \
 check "and the old way still mangles them, which is why the reader exists" \
   "! bash -c 'set -u; set -a; . /tmp/hash.env; set +a' 2>/dev/null"
 # The engine is not installed with the CLI any more (cli/package.json makes
-# @temporalio/* optional peers so `npm i -g epito` stays half a megabyte), so
+# @temporalio/* optional peers so `npm i -g epito-cli` stays half a megabyte), so
 # this box has to ask for it by name. It got all the way through this suite
 # green once without doing that: 35 assertions about a host whose two units
 # would start, print an install line and exit 1.

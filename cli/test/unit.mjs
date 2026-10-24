@@ -2639,6 +2639,63 @@ test("every install line the package ships names the package npm serves", () => 
   }
 });
 
+// The other half of the same rule, because the tarball is not where a stranger
+// reads the install line first.
+//
+// The test above walks `package.json`'s `files`, which is everything npm
+// serves. It is blind by construction to every surface in this repository that
+// is not in the tarball, and the rename proved that is where the stale line
+// actually survives: after `epito` → `epito-cli` landed in #246, the PR/FAQ's
+// press release still printed `npm i -g epito` inside a fenced block — the one
+// line in that document a reader copies rather than reads — and said the
+// registry serves it under a name it does not.
+//
+// Only fenced blocks, and that narrowness is the point. Prose quoting the old
+// line is history and often has to stay: the ADR that explains why the engine
+// is an optional peer, this repository's decision log, the cycle file, the
+// pitch. A fenced block is not history, it is an instruction, and an
+// instruction that 404s is the defect. Placeholders (`<chosen>`, `${...}`) and
+// `@scope/...` engine peers are not this package and are skipped.
+test("every install line this repository prints into a code block is one that works", () => {
+  const repoRootDir = fileURLToPath(new URL("../../", import.meta.url));
+  const skip = new Set([".git", "node_modules", ".epito"]);
+  const docs = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory()
+      ? (skip.has(e.name) ? [] : docs(join(dir, e.name)))
+      : (e.name.endsWith(".md") ? [join(dir, e.name)] : []));
+
+  const pages = docs(repoRootDir);
+  assert.ok(pages.length > 10, `only ${pages.length} Markdown pages found under ${repoRootDir}, so this test asserted nothing`);
+
+  let checked = 0;
+  for (const page of pages) {
+    const where = page.slice(repoRootDir.length);
+    let fenced = false;
+    let n = 0;
+    for (const line of readFileSync(page, "utf8").split("\n")) {
+      n += 1;
+      if (/^\s*```/.test(line)) { fenced = !fenced; continue; }
+      if (!fenced) continue;
+      // Only the FIRST word after `-g`, which is the package the line
+      // installs. Reading every word instead made this test fail on the word
+      // "does" in `…so \`npm i -g epito-cli\` does not drag in Temporal's…` —
+      // a sentence that quotes a correct install line and happens to live
+      // inside a block. A line installing several packages at once is an
+      // engine-peer line, and its first word is already `@temporalio/...`.
+      for (const [, rest] of line.matchAll(/npm i(?:nstall)? -g +(.*)$/g)) {
+        const named = rest.trim().split(/\s+/)[0].replace(/[`'"]/g, "");
+        if (!named || named.startsWith("@") || named.startsWith("$") || named.startsWith("<") || named.startsWith("-") || named === ".") continue;
+        checked += 1;
+        assert.equal(named.replace(/@[\^~]?[\d.].*$/, ""), PACKAGE,
+          `${where}:${n} is a block a reader pastes, and it installs "${named}" — this CLI is published as "${PACKAGE}", ` +
+          `so that line answers 404 from the registry. ` +
+          `Fix: write \`${INSTALL}\` there, or, if the line is quoting what the install USED to be, take it out of the code block and say so in prose.`);
+      }
+    }
+  }
+  assert.ok(checked > 0, "no fenced install line was found anywhere in the repository, so this test asserted nothing — the README's front page has one");
+});
+
 // --- readiness: a ✓ that does not overclaim ---------------------------------
 //
 // `epito init` wrote a manifest, `epito validate` ticked it, and `epito run`,
