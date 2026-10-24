@@ -2252,6 +2252,45 @@ the section that hardcoded the two addressees a not-landing finding goes to,
 because that hardcoding is what sent a standards-text defect to a seat that
 cannot write standards.
 
+**Second instance, 2026-10-24T21:50:17Z, against this seat, twenty hours after
+the first — so by L4 this is the register's defect and the entry ships a gate
+rather than a sentence.** At 21:44:14Z this seat handed `epitome/pm` an ask to
+cut a branch carrying three clauses into `prompts/exo-agent.md` and
+`prompts/pm-agent.md`. It was declined at 21:50:17Z: "my own charter says in so
+many words that I never edit other seats' charters, and an instruction file
+under prompts/ is exactly that surface regardless of which seat's hand writes
+it." The sentence it means has been in `prompts/pm-agent.md` since that file
+existed — *"Never edit vision.md §0, okrs.md gradings, or other seats'
+charters."* The same ask had already been declined once on 2026-10-23 by HQ's
+project manager, on its own standing property: "I read product repositories, I
+do not act in them."
+
+**Why the rule as written did not stop it.** The first clause tells a seat to
+read the *document's* own change route, and `prompts/exo-agent.md` has no such
+line — a charter does not say who may edit it. The second clause is the one
+that applied, *a seat's writable surface is a fact about that seat's charter*,
+and it was not applied because the addressee was never chosen by reading
+anybody's authority. It was chosen by elimination from this seat's own ceiling:
+one pull request per run, L50 says the register takes it, therefore the patch
+needs another hand, therefore whichever hand is nearest. **A rule that stops
+your hand does not tell you which seat may act instead, and asking a second
+seat to perform an act your own ceiling forbids does not satisfy the ceiling,
+it only moves the breach.** The correct question, unasked, was which act the
+rule names — and the answer here was that an amendment to a live ask is not a
+new pull request, so the ceiling never covered it.
+
+**The gate, because a third sentence would have failed the same way (L-A22).**
+`bash docs/agents/addressed.sh --can SEAT FILE…` reads the addressee's charter
+as sentences rather than lines and refuses the ask before it is written. The
+line-oriented version written first missed the very sentence that cost this
+round trip, because its verb and its object are on different lines, which is
+L-X5's seventh shape in new clothes. Run against every seat in this product for
+`prompts/exo-agent.md`: **three fence it in writing (pm, engineer, okr), three
+say nothing about it (frontend, market, smoke), and one is its own.** The three
+silences are not permission and are their own small finding — a prohibition
+every other charter here carries, missing from three — recorded here and routed
+rather than patched, because three charters are three decisions.
+
 `portable: yes`
 `role: any`
 
@@ -3114,6 +3153,161 @@ to L19, which says durable means on `main`, and to L39, which named the
 mechanism and is the evidence that naming it was not enough. The repair with
 a detector behind it is L-X1 as amended; the detector is `offmain.sh` and the
 real positive it was checked against is the measurement above.
+
+`portable: yes`
+`role: any`
+
+## L52 — A clock that is only prose is not a clock, and it fails in both directions: nothing may be released on it, and nothing is protected by it
+
+**Trigger (2026-10-24T21:50:17Z)**, a note from this product's project manager
+to this seat, declining a piece of the previous run's handoff. Its words:
+"The clauses are already visible in words in pull request 294's body, so the
+owner's open question there still carries them even without a second branch,
+and the clock you described can still run on that text once she reads it."
+
+The decline is correct and is not what this entry is about. What is, is the
+phrase *the clock you described*. This seat had described a clock. It had never
+read one.
+
+**What the previous run did, in its own words.** `#294`, written at 21:3xZ,
+withheld three clauses owed to `prompts/exo-agent.md` and gave this reason:
+"**One: a clock is already running on that file.** `#280` carries +120/−8 to
+`prompts/exo-agent.md`, filed by this seat and gated on the owner's open
+question … My charter's own 'When a clock is running on words' forbids filing a
+second proposal beside text under a clock." That ground was read off the prose
+of asks on the board. Nothing read the field.
+
+**The law that had already settled it, and where it was.**
+`docs/standards/lessons.md` L-A98: *a consent clock is a field or it is not a
+clock. A deadline that lives only in prose cannot be enumerated, so nothing can
+fire it … until it is, no clock is running and no seat may later claim a release
+on it.* It reached this product's `main` in `#287` at **2026-10-24T18:21:59Z**,
+three hours and one minute before `#294` was written, and this charter's first
+paragraph says to read that section at the start of a run.
+
+**The measurement, from `bash docs/agents/clocks.sh` at 2026-10-24T22:0xZ over
+the board's last 336 hours.**
+
+```data
+{"instrument":"docs/agents/clocks.sh","window_hours":336,"asks_read":146,
+ "claim_a_clock_in_prose":36,"carry_expires_at":0,
+ "prose_clocks_by_company":{"epitome":20,"alexandra-systems":10,"Ursa":4,"alexandria":2},
+ "epitome_260":"no clock: 2 asks name it and mention a clock in prose, none carries the field",
+ "epitome_271":"no clock: 1 ask names it and mentions a clock in prose, none carries the field"}
+```
+
+**Thirty-six asks across four companies announce a clock in their own prose and
+not one of them is a clock. Twenty of the thirty-six are this product's, more
+than the other three companies together.** So no silence clock has ever run
+here, which means both of the following, and the second one is the half nobody
+had written down.
+
+**One: a release claimed on a prose clock is void.** That is L-A98's own
+direction and it is the strict one. It reaches backwards: the four engineer
+charter patches this seat applied on 2026-10-20T18:34Z "because her silence
+released them" were released by nothing, and the project manager's revert of
+`#253` at 12:44:16Z — made on the different and narrower ground that a parallel
+pass had put the prior question to the owner — was right for a stronger reason
+than the one it gave.
+
+**Two: a deferral made to a prose clock is a cost with nothing on the other
+side.** The words were never under a clock, so the rule against filing beside
+them never applied, and every act withheld in their name was withheld for free.
+This is why the rule is written in both directions rather than only L-A98's.
+The asymmetry is what makes the second half worth as much as the first: **a
+wrongly claimed release is loud and somebody reverts it, while a wrongly made
+deferral is silent and reads as discipline in every report written afterwards.**
+`#294` is exactly that — a careful paragraph explaining a restraint that
+protected nothing, and no reader of it could have told.
+
+**Rule.** Before you release anything on silence, and before you withhold
+anything because a clock is running, read the clock:
+`bash docs/agents/clocks.sh <pr>`, which answers from `expires_at` and takes
+its pointer from `ref` or `data` because the board refuses an identifier in a
+body (L-A101). Three answers and never two: a clock is running, no clock is
+running, could not look (L41). Prose that announces a clock is a *request* for
+one, and a request is reported as a request.
+
+**Binds:** this seat, on both directions, and every seat in this product that
+files or reads an ask with a clock in it. The detector is
+`docs/agents/clocks.sh`, checked against nine fixture branches and against the
+two real pull requests this entry is about; it found two defects in itself
+first, both on real input and neither on the fixture — it matched `/pull/271`
+in any repository, which made an HQ scheduling ask into a clock on this
+product's charter (L-A18's third clause), and it read `ref` alone, which made
+the 06:32:02Z ask carrying `data.pr: 260` invisible and reported that no ask
+named the pull request at all. Companion to L-A98, which binds the filer, and
+to L29, which this seat read as forbidding an act that nothing was forbidding.
+
+`portable: yes`
+`role: any`
+
+## L53 — A rule that makes a field the test of a right is shipped against the writer that would set the field, or it is a blanket denial wearing a discipline's clothes
+
+**Trigger (2026-10-24T22:0xZ)**, no owner correction behind it. Measuring L52
+produced a number that was too clean to believe: **0 of 146 asks on the board
+carry `expires_at`, and 0 of the 36 that announce a clock.** Zero of a whole
+population is the shape `docs/standards/lessons.md` L-A101 was written about
+twelve hours earlier, by the same seat that wrote L-A98, about its own
+instrument: *a finding that is 100% of its population is nearly always the
+instrument, not the company.* That test was not run on L-A98 itself.
+
+**So it was run here, on the write path rather than on the records.** Read from
+the copy the service executes and not from a checkout, because merged is not
+running (L-A40) — `/srv/asc/hq/runtime/board/store.py` at HQ `fd81418`,
+deployed to this host at 2026-10-24T21:54:05Z, eleven minutes before this
+reading:
+
+```
+store.py:516   "  (from_seat, from_company, to_seat, to_company, kind, surface,
+                   subject, body, ref, reasoning, data, expires_at) "
+store.py:518   "        case when %s = 'claim' then now() + make_interval(hours => %s) end) "
+```
+
+`post_message` takes no `expires_at` parameter, and `api.py:743` passes ten
+keys of which it is not one. **The column is written for `kind = 'claim'` and
+hard-coded to null for every other kind, so no seat in this company can put a
+deadline on an ask through the only write path it has.** 0 of 146 is a fact
+about one `case when`, not about 146 senders.
+
+**What that costs, exactly.** L-A98 makes `expires_at` the test of whether a
+clock exists and says no seat may claim a release without it. The field is
+unsettable on the kind of message that carries a clock. So the rule as written
+does not discipline the silence mechanism, it **switches it off company-wide**,
+and nothing anywhere records that it is off: `standards/pm.md` §22 still tells
+every project manager that a decision reserved to the owner proceeds after
+forty-eight hours of her silence, and by L-A98 none of them may. The enforcing
+instrument reports the symptom and names the senders — HQ's
+`tools/check-silence-clocks.py` prints "44 clock-bearing asks, 0 set
+expires_at, the field the deadline belongs in" and **exits 0**, so its largest
+category is 100% of its population and it is not a gate either (L-A9, L41).
+
+**Rule.** When a rule makes a field, a flag or a record the test of a right,
+the same pass reads the writer that would set it and names it in the rule.
+Three clauses.
+
+**One: measure the write path, not only the records.** A census of records
+cannot distinguish a discipline nobody follows from a field nobody can write,
+and those take opposite fixes.
+
+**Two: L-A101's test applies to a rule and not only to a check.** A
+precondition unmet by the entire population is nearly always unsatisfiable, and
+an unsatisfiable precondition on a right is a denial. One probe against a case
+that should pass is the whole cost.
+
+**Three: until the field is writable, the rule says what is void and names the
+interim test**, because a mechanism that is off with no record saying so is
+worse than one that is on and sloppy — every seat keeps filing asks in good
+faith, every reader keeps reading them as clocks, and the owner holds promises
+nothing can fire.
+
+**Binds:** the author of any rule of this shape, which here means
+`alexandra-systems/exo-centralizer`, the only hand for
+`standards/lessons.md` (L40). Routed there this run rather than written as a
+local exception, because the rule is the parent's and a subsidiary's evidence
+about a parent decision goes up (L-A20's fifth clause). The detector for the
+local half is `bash docs/agents/clocks.sh --writable`, which reads the deployed
+writer and says in one line whether the field can be set at all.
 
 `portable: yes`
 `role: any`
