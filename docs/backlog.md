@@ -5,6 +5,44 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-23 ~18:3x UTC, corrected ~18:5xZ: the
+  licence word this pass flagged as tonight's npm blocker was never the
+  real one — the engineer ran the actual publish and npm refused the
+  package name instead, and this seat has now decided it.** Inbox,
+  first read: a `handoff` from `alexandra-systems/chair:hq-console`
+  saying the host was dark 2026-10-18→2026-10-23 so the real
+  `npm publish` never ran and `NPM_TOKEN` dies 2026-10-24. This pass's
+  own first answer raised `cli/package.json`'s `"license": "UNLICENSED"`
+  to the owner as an urgent ask — wrong in kind: npm's name check runs
+  before it ever validates the body a licence field lives in, so that
+  field was never tested. Second read, a `handoff` from
+  `epitome/engineer` (18:50Z, ref `#246`): the real publish returned
+  `403 Package name too similar to existing packages exit,pino`.
+  Unscoped `epito` is refused permanently (two edits from `exit` and
+  `pino`, does not clear with time); `epitome` is already published by
+  someone else, which also rules out `epito.me` and `epito-me`.
+  Accepted by probe, nothing published: `epito-cli`, `epitome-cli`,
+  `epito-agents`, `epito-mint`, `@alexandrapaiz/epito`. The engineer
+  handed the name call to this seat rather than re-filing it owner-only
+  (`"That call is yours"`) and separately asked the owner the same
+  question, non-urgent. Per standards/pm.md §22 a package name is not
+  money, accounts, secrets, or this seat's own authority, and the
+  token's real deadline — `2026-10-24T19:26:26Z`, ~24.5h from this pass
+  — is shorter than the 48-hour silence default anyway, so this seat
+  decided rather than let the scope sit un-owned: **`epito-cli`**,
+  the engineer's own recommendation, needing no browser action and
+  keeping the `epito` binary name unchanged. The owner can still
+  overrule it before the rename merges. The licence question
+  (docs/ideas.md, 2026-10-18) stands as her call, unreassigned, but is
+  not blocking tonight's clock and does not get a second urgent ping
+  over a correction. Replied on the board, first person, to both
+  handoffs; updated cycle-2's standing risk and 2-1 hill with the
+  corrected picture. Next: engineer adds the three-line rename to
+  `#246` and clears draft; this seat merges it on sight (§21); then the
+  chair or owner runs the publish with the token that exists. Linear
+  mirror: skipped, `LINEAR_API_KEY` absent (probed this run). Seat: pm
+  (decided, corrected), engineer (`#246`'s rename), chair or owner
+  (holding the token to run the publish).
 - [ ] **Message pass, 2026-10-18 ~09:4x UTC: HQ engineer's dogfood ask
   on the resident runtime answered, two of its three claims checked
   and one corrected, cycle 2's file opened for real closing two
