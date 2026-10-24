@@ -485,6 +485,14 @@ in one `[trigger]`. Both name a concept in that company's own runtime
 standard, neither is a field epito's runtime reads, and 39 seats epito blesses
 could not be validated as a roster because of them.
 
+**A key the v0.1 draft carried is the same case.** `[trigger].on` is retired,
+and the sentence that says where its meaning went — `[trigger].subscriptions`,
+which the runtime does read — is printed at whichever severity its table
+carries, so in `[trigger]` it is now a warning. Nothing is lost by that: what
+`on` actually cost a seat was never being woken, and `[trigger]` refuses a
+table carrying none of `cron`, `webhook` or `subscriptions` on its own. The
+retirement sentence is still printed in full, every time.
+
 **A warning is not the old silence.** The key is printed, by table and name,
 on a line a reader can act on; `epito validate` exits 0 and says how many it
 saw; `epito run` prints the same sentences before it starts the roster. What a

@@ -47,9 +47,22 @@ epito audit            # read the ledger: what was granted, to whom, until when
 ```
 
 `epito validate` is the contract: a field the spec does not define is
-refused by name, with the fix in the message, because a manifest that
+named by name, with the fix in the message, because a manifest that
 validates with a tick and then behaves differently is the bug its author
 cannot debug.
+
+Named in all four tables, and in two of them it costs the tick. In
+`[identity]` and `[runtime]` an unknown key is refused, because those
+tables have fields that mean something specific when they are ABSENT —
+`max_turns`, `adapter`, `ref` — so an unread key beside them changes how
+a seat runs with nobody told. In `[agent]` and `[trigger]` it is a `⚠`
+and the manifest still validates, because those two separately refuse
+every field whose absence changes behaviour (no `name`, no
+`description`, or a `[trigger]` carrying none of `cron`/`webhook`/
+`subscriptions`), so a key nothing reads cannot leave a seat
+misconfigured there. If your roster carries a field of your own in those
+two tables, `epito validate` tells you epito will not act on it and
+blesses the roster anyway.
 
 Which is why the tick also says what it did **not** promise. A few rules
 belong to the commands downstream rather than to the validator —
