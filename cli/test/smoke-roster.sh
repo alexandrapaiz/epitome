@@ -57,13 +57,26 @@ check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 # it.
 #
 # Every check below used to read `printf '%s' "$OUT" | grep -q '<pattern>'`, and
-# that shape reports FAILURE on a pattern it MATCHED. `grep -q` exits the instant
-# it matches; the `printf` whose pipe it just closed dies of SIGPIPE (141); and
-# `set -o pipefail`, above, makes the pipeline's status that 141 rather than
-# grep's own 0. It is the same fault PR #265 measured and fixed in
-# smoke-validate.sh (8 false failures in 3000 invocations under load,
-# `PIPESTATUS=[0]` every time — grep had matched), and this suite carried 58 of
-# them. A herestring has no pipe and no second process to kill.
+# that shape can report FAILURE on a pattern it MATCHED. `grep -q` exits the
+# instant it matches; the producer whose pipe it just closed dies writing into
+# it; and `set -o pipefail`, above, makes the pipeline's status that death
+# rather than grep's own 0.
+#
+# How often, measured rather than asserted, because the first version of this
+# comment quoted a rate from a probe whose own method could not have read it
+# (`st=$?` collapses PIPESTATUS to `[0]`, for a real failure as readily as for a
+# false one). Reading PIPESTATUS first, with the real binaries, on this box at
+# load 22: the shape fires when and only when the producer's output outruns the
+# 64 KiB pipe buffer. At 1 KiB, 16 KiB and 64 KiB — 0 false failures in 20
+# invocations each. At 256 KiB and 1 MiB — 20 of 20, every time, curl exiting 23
+# and node exiting 1. This suite's producers write hundreds of bytes: 3,000
+# invocations of the `printf '%s' "$OUT" | grep -q` shape over real `epito
+# validate` output (544 bytes) produced 0 false failures.
+#
+# So these 66 sites were latent and not firing, and they are converted anyway:
+# a gate that is one output-size away from lying about its own result is not a
+# gate, and output only ever grows. A herestring has no pipe and no second
+# process to kill.
 said() { local hay="$1"; shift; grep -q "$@" <<<"$hay"; }
 step() { printf '\n== %s\n' "$1"; }
 cleanup() { if [ -n "${EPITO_SMOKE_KEEP:-}" ]; then printf '\nkept: %s\n' "$TMP"; else rm -rf "$TMP"; fi; }
