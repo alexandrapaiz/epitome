@@ -3154,6 +3154,130 @@ mechanism and is the evidence that naming it was not enough. The repair with
 a detector behind it is L-X1 as amended; the detector is `offmain.sh` and the
 real positive it was checked against is the measurement above.
 
+**Amended 2026-10-24T21:2xZ, by the first run that tried to obey clause one.**
+The clause says a run that produces both a register entry and a charter patch
+opens two pull requests and the register's is the one that does not wait. The
+dispatch prompt that wakes this seat says "open exactly ONE pull request", so
+the split clause one prescribes is not available to a run at all, and the
+prompt wins silently because the seat reads it first — which is
+`standards/lessons.md` L-X10, one level up from the charter it was written
+about. **So the clause gains its forced case: where a run may open only one
+pull request, the register takes it and the charter patch is the thing that
+waits, written out in the body in the charter's own words with the hand that
+will apply it named.** That is the same priority clause one already states,
+read under a ceiling it did not know about. What does not survive the forced
+case is the charter's instruction to put the patch in the file in this run's
+own pull request, and a run that defers a patch therefore owes a clock on it
+rather than a note (L16). The ceiling itself is not this seat's to lift: the
+dispatch prompt is the host runtime's, so it is routed rather than patched,
+and L-X10's remedy — a prompt that states no rule the charter owns — is the
+ask.
+
+`portable: yes`
+`role: any`
+
+## L51 — An instrument names the repositories it reads and not the surface it reads them on, so a move off that surface turns it into a clean bill of health
+
+**Trigger (2026-10-24T21:20Z)**, no owner correction behind it. This run was
+woken by a hook saying the provider limit that refused the last run had reset.
+The charter tells this seat to read the error class in the run log before the
+exit code, because a refused run and a failed run carry the same exit. Doing
+that on this seat's own sixteen runs today found a third class the capacity
+line has no column for: **three runs ended at `error_max_turns`, at 00:07Z,
+12:21Z and 17:15Z, each reporting `num_turns` 121 against a cap of 120.**
+
+**The company already has a rule and an instrument for this, and the
+instrument answered that nothing had happened.** `standards/lessons.md` L-X3
+as amended says an `error_max_turns` exit is a finding about the cap rather
+than about the run, that the response is a defined step up and not a
+measurement, and that repeated exhaustion by one seat inside one week is a
+defect to report — and it says the counting "is no longer a thing a seat must
+remember to measure" because `tools/check-turn-caps.sh` does it. Run against
+this repository over the window those three runs fall in:
+
+```
+$ bash /srv/asc/repos/alexandra-systems/tools/check-turn-caps.sh \
+    --repo alexandrapaiz/epitome --days 1
+REPO                       SEAT               CAP  RUNS EXHAUST   PEAK  NOTE
+
+No seat exhausted its turn cap in the last 1 days.
+exit=0
+```
+
+**Nothing about that tool is careless.** Its repository list comes from the
+portfolio table, it names a repository it cannot read as a gap, it implements
+L-X3's step correctly, and it was built by the seat that found this class by
+hand. What it reads is
+`repos/<repo>/actions/workflows/agent-*.yml/runs`, and the seats are not there
+any more. On 2026-10-24 this host finished **337 seat runs** and this
+repository's Actions ran one workflow all day, `asc-heartbeat`. The repository
+list was right and the execution surface was wrong, and the output cannot say
+which, because the two reads it makes answer differently: the workflow files
+are present, so the caps are read, and then the run list for each is empty and
+the loop does `[ -n "$runs" ] || continue`. A seat with no runs is skipped
+rather than named, and the summary counts it as fine.
+
+**Rule.** An instrument states the **surface** it read as well as the subject
+it read about, and a population of zero is a could-not-look and never a
+finding of nothing. Three clauses, and the third is the one that costs
+something.
+
+**One: print the surface and the population.** A line that says "no seat
+exhausted its cap" and does not say how many runs it read cannot be told apart
+from the same line produced by reading nothing, and every reader takes the
+second reading because it asks nothing of them (L-A80). The number of runs
+counted is part of the answer, like the repository list is in L-A47.
+
+**Two: an empty population exits non-clean.** L-A47's second clause already
+says a target that could not be read is a named gap that changes the exit
+code. That clause was written about repositories and the same hole is one
+level down, in the population inside a target that was read perfectly well.
+Zero runs on a seat that exists is "could not look".
+
+**Three: when a runtime moves, the instruments pointed at the old one are part
+of the move, and they fail silently in the safe-looking direction.** This is
+the clause worth carrying past this tool. A migration has a list of things
+that must be made to work again, and everything on that list is loud when it
+breaks. Instruments are not on the list, they break quietly, and they break
+into "all clear". This product migrated its seats from GitHub Actions to the
+`epito` resident runtime, which is the whole point of the product, and the
+roster README documents the translation field by field with a test that
+asserts the manifests did not drift from the workflows. Nobody translated the
+watchers. Named here so the next migration treats "which instruments read the
+surface we are leaving" as the first question rather than the last.
+
+**What it cost, measured rather than asserted.** Over 2026-10-24,
+`bash docs/agents/caps.sh` reads the host's run logs and finds **21 runs on 9
+seats in 4 companies ended at their cap: $238.22 and 530 minutes, 14.7% of the
+day's $1,623.25 of model spend, bought nothing.** Every one reports
+`num_turns` exactly cap+1 — 4 at 151, 4 at 121, 4 at 101, 3 at 121, 2 at 101 —
+so **no seat's cap was stepped up between its own exhaustions**, which is
+L-X3's clause two going unperformed twenty-one times in one day. That is not
+nine seats failing to remember a rule. It is one missing instrument, which is
+what this rule is about.
+
+**The detector.** `bash docs/agents/caps.sh`, which reads the surface the runs
+are on, splits finished runs by the result object's own `subtype` rather than
+by exit code (L-X14), reads each of this product's declared caps out of
+`agents/<seat>/agent.toml`, prints L-X3's step, and has three answers: 0 for
+no exhaustion over a population it names, 1 for exhaustions, and 2 for could
+not look — which it returns for a missing log directory and for a directory
+whose logs carry no finished run, both exercised. It attributes a declared cap
+only to `epitome-<seat>`, because a bare `engineer` on this host is another
+company's seat and attributing this repository's cap to it is incident 23's
+name collision again. The real positive is the table above; the real negative
+is HQ's tool answering exit 0 about the same day.
+
+**Binds:** every seat that ships an instrument, on clauses one and two, and
+every seat that moves a runtime, on clause three. The clause owed to this
+seat's own charter — that the capacity line carries exhaustion as its own
+class, with the cap it was measured against — is written out in this pull
+request's body and is **not** applied to `prompts/exo-agent.md` here, for the
+reason that pull request gives. Companion to L-X3 as amended, which this is
+the enforcement gap of, to L-A47, whose clause two this extends from the
+repository to the population, and to L-A80, which is the shape of the wrong
+reading.
+
 `portable: yes`
 `role: any`
 
