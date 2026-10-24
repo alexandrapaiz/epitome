@@ -48,22 +48,23 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # The allowance: what each file still carries, and the ceiling it may not pass.
 # A file absent from this list is allowed none. Lower a number when you convert
 # a suite; there is no reason for one to rise, and a rise is what this fails on.
-# Counts read 2026-10-24 on `main` after #277 merged: 159 sites in eight files,
-# less the one in test/all.sh that this branch converts. smoke-validate.sh and
+# Counts read 2026-10-24 on `main` after #270 and #284 merged: 93 sites in six
+# files, less the 31 in smoke-doctor.sh that this branch converts. smoke-validate.sh and
 # smoke-temporal.sh are converted and absent, so allowed none.
 #
 # One line here is not an allowance but an exemption, and it is named rather
 # than hidden: probe-pipefail.sh carries five of the shape because exhibiting it
-# IS that file's subject. It is counted so that it cannot quietly grow a sixth. smoke-validate.sh
-# is the one already converted and so is absent, allowed none. smoke-roster.sh
-# and smoke-temporal.sh are converted in two pull requests open as this lands,
-# and when either merges this gate says so and asks for its number to come
-# down; it does not go red for a suite getting better.
+# IS that file's subject. It is counted so that it cannot quietly grow a sixth.
+# Converted and therefore absent, allowed none: smoke-validate.sh (#265),
+# smoke-temporal.sh (#277), smoke-roster.sh (#270, which merged after the list
+# above was written and left its own number stale for one pass), all.sh and
+# smoke-doctor.sh. smoke-deploy.sh keeps 34 until #290 merges: this gate asks a
+# stale number to come down, so a number that is too HIGH costs one advisory
+# line, and a number lowered for a conversion that then does not land fails the
+# gate on main. That asymmetry is why the stale direction is the safe one.
 ALLOWED="
 cli/test/probe-pipefail.sh 5
-cli/test/smoke-roster.sh 66
 cli/test/smoke-deploy.sh 34
-cli/test/smoke-doctor.sh 31
 cli/test/smoke-langgraph.sh 19
 deploy/test-provision.sh 4
 cli/test/smoke-bus.sh 2
