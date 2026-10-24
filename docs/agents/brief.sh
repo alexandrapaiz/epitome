@@ -105,8 +105,25 @@ by_chars   = re.search(r'carries (\d+) of (\d+) characters', foot)
 if by_section:
     url = re.search(r'whole of it is at (\S+?)[,\]]', foot)
     print(f"  the cut is BY SECTION: {by_section.group(1)} of {by_section.group(2)} delivered")
-    names = re.search(r'lowest precedence first: ([^.]+)\\.', foot)
-    print(f"  dropped, by name: {names.group(1) if names else 'the marker names no section'}")
+    # Three outcomes here and not two. The marker may name the dropped
+    # sections, or carry no such phrase, or carry it in a shape this parser
+    # misses — and the first version of this branch printed the same sentence
+    # for the last two, so a parser defect was published as a fact about the
+    # brief. It shipped with `\\.` for `\.` inside a quoted heredoc, where the
+    # doubling buys nothing, and that pattern cannot match any marker ever
+    # written; its only earlier run exited BLIND before reaching this line, so
+    # no real positive had tested it (L42, L-X1).
+    phrase = 'lowest precedence first:'
+    names  = re.search(re.escape(phrase) + r' ([^.]+)\.', foot)
+    if names:
+        print(f"  dropped, by name: {names.group(1)}")
+    elif phrase in foot:
+        print(f"  dropped, by name: PARSE FAILED — the marker carries"
+              f" '{phrase}' and this script could not read it; raw:")
+        print('   | ' + foot[foot.find(phrase):][:160])
+    else:
+        print("  dropped, by name: the marker carries no"
+              f" '{phrase}' phrase at all")
     print(f"  the marker's address: {url.group(1) if url else 'NONE — the pointer is a gesture again'}")
 elif by_chars:
     print(f"  the cut is BY CHARACTER COUNT: {by_chars.group(1)} of {by_chars.group(2)} delivered")
