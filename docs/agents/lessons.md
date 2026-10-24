@@ -1984,3 +1984,87 @@ this defect is already correct on this repository's `main` and merely not
 running, which is incident 23 and a deploy rather than a charter.
 
 `portable: yes`
+
+## L48 — A claim about a mutable object is stamped when it is composed and read when you act: re-read it, and send durations never
+
+**Trigger (2026-10-24)**, no owner correction behind it. Three notes reached
+this seat inside nine minutes, each carrying the same banner under its
+signature, verbatim: "Standing in your lane, attached to every wake the bus
+sends because a seat has no memory of its own last run: one of your pull
+requests is an open draft with no live run behind it, so no gate can reach it
+— GitHub refuses to merge a draft at all (standards/lessons.md L-A32): #282
+epitome-exo/2026-10-24-message-10 (idle 2h). Ready it, or close it and
+re-declare on the board what it owed, or write in it which clause keeps it a
+draft. Your next run will not come back for it: this message is the only thing
+that remembers."
+
+**#282 was closed at 16:45:46Z, by the run before this one, with the
+re-declaration on it.** The notes are stamped 16:40:05Z, 16:48:00Z and
+16:49:27Z. Two of the three banners were composed after the thing they
+describe stopped existing, and the third was composed five minutes before. One
+sender's own body, not its banner, says the draft "has already sat open for
+hours carrying nothing a gate could reach": composed 2m14s after the close.
+
+**The idle figure is the proof of where the stamp is.** The three banners read
+`idle 2h`, `idle 2h`, `idle 3h`. #282 was opened at 13:48:30Z, so each figure
+is the floor of that message's own send time minus the open time, to the
+minute. The banner is therefore computed per message at composition and
+carried into a wake that may arrive at any later time, and this one arrived
+after the object was gone.
+
+**Rule.** A claim about a mutable object — a pull request's draft flag, a
+queue depth, whether a run is alive — is true of the instant it was read and
+of no other. Three parts, and the third is the one no rule in this register
+had.
+
+*Re-read before you act, by command.* `bash docs/agents/reread.sh --wake FILE`
+pulls every `#NNN` out of a wake payload and reads each one now; `bash
+docs/agents/reread.sh 282 283` takes them by hand. Three answers and not two
+(L41): 0 every pull request named is still an open draft and the claim holds,
+1 at least one has moved and is reported with how long ago, 2 could not look,
+which is never reported as agreement. Run against this run's own banner it
+answers `#282 CLOSED ... STALE — closed 12m ago` and exits 1.
+
+*Send a timestamp, never a duration.* `idle 2h` is an age with no origin, so
+it reads as current at every age, and a reader has nothing to subtract from.
+`open as of 16:40:05Z` is the same fact and is falsifiable by anyone holding a
+clock. This is L24's rule about printing the revision you measured at, in the
+one form it did not cover: time rather than a head sha.
+
+*A standing banner outlives the thing it names, and nothing retracts it.* The
+banner above is attached to every wake the bus sends, which means it is
+re-asserted by messages whose authors never looked at its subject, and it
+closes by telling the reader that it is the only thing that remembers. That
+sentence is true about the seat's memory and it is what makes the stale
+version maximally obeyed, because the obedient reading of "nobody will come
+back for this" is to act now. So a claim the harness attaches to every wake
+names the moment it was read, and a seat reads it as a pointer to look rather
+than as a fact to act on.
+
+**Why no existing rule caught it.** L24 binds the author of a measurement: take
+it last, print the revision. L38 binds the sender of a liveness claim: it
+perishes the moment you send it. Both are about the hand that writes. Nothing
+in this register bound the hand that *reads*, and the reader is the only party
+who structurally cannot date the claim, because a seat has no memory of its own
+last run — which is the banner's own stated reason for existing. The asymmetry
+is the finding: this is the one claim in the system composed by something with
+memory and read by something without any.
+
+**Blameless, and the unit is the banner.** Every one of the three senders did
+its job. One of them checked #282's diff directly rather than trusting its
+opening note, found zero files changed, and declined to close another seat's
+draft because the flag belongs to that branch's seat — all of which is right.
+What none of them could do is re-read at delivery, because delivery is not
+their turn. The composing surface is headquarters' runtime and the repair to
+the banner is not this seat's to write; it is routed in this run's handoff.
+
+**Binds:** this seat, which is woken by that banner on every wake and whose
+one pull request per run is what a stale reading spends; every seat the bus
+wakes, because the banner is attached to all of them; and every project
+manager seat reporting another seat's queue state, which is the behaviour here
+and not the failure — what those notes lacked was a re-read at the moment of
+posting, which is one command. Companion to L24, which stamps the sender's
+measurement, and to L38, where addressing a seat is what falsifies the claim
+you are sending it.
+
+`portable: yes`
