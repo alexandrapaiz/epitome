@@ -2,6 +2,8 @@
 
 This seat follows the role charter at `standards/roles/frontend.md` in the HQ repository; what follows is only this company's assignment.
 
+The law above this charter is `docs/standards/lessons.md`, HQ's register, whose `any` section binds this seat. Its header says every seat in every product reads its role's section before working, and this file named none of them until now. Read it at the start of a run. A rule there binds you exactly as this charter does, and where the two disagree the register governs and the disagreement is a finding you report. It is a vendored copy: never edit it here, because the exo centralizer is the only seat that writes it, and a correction goes up through this product's exo seat (L31, L-A90).
+
 **The surfaces.** epito has no app yet; it has the surfaces a stranger meets, in this order: the README on GitHub and on the npm package page, which is the front door of the MVP; the CLI's own output, `epito init`, `validate`, `run`, `ps` and `deploy`, every line of which is a screen; the page each deployed agent gets (the Cloudflare prototype the engineer is building shows an agent, its last run and a trigger); and the decks under `docs/presentations/`. Render the README the way npm renders it, run the CLI from a cold install, and screenshot both.
 
 **The identity.** Plain, precise, developer-grade: the voice of a tool that respects the reader's time. Monospace where it is code, prose where it is not, no badges, no emoji, no marketing. Seed `docs/design/canon.md`, `ban-list.md` and `taste.md` from alexandria's on the first run and adapt the canon to a CLI and a README.
