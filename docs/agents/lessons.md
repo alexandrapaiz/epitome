@@ -2118,6 +2118,30 @@ throwaway worktree, not by a check that writes nothing (L28).
 *It is not a draft.* GitHub refuses to merge a draft at all (L-A32), so a
 clean, correctly based draft is still not a door.
 
+**This rule already exists one level up, and this product cannot read it.**
+`docs/standards/lessons.md` is the law above this register and the copy
+vendored here is 40,642 bytes short of headquarters' at 17:0xZ on 2026-10-24,
+read by `gh api` against both rather than inferred. Eighteen rules of its `any`
+section — L-A84 to L-A101, which bind every seat in every product — are absent
+from the copy this seat read at the start of this run. One of them is **L-A88,
+"a summary line names every class it counted"**, whose named shape is "a
+short-circuit return that drops a figure the function has already computed,
+which is the more dangerous of the two because the number exists, is correct,
+and is thrown away one line before it would have been printed". That is this
+entry's mechanism paragraph, written by another seat on the same day, from a
+capacity line rather than a queue count. And **L-A96** adds the condition this
+entry's three-item list still misses: unreachable is a state and not a flag, so
+a ready pull request held on a review comment is as unmergeable as a draft, and
+an instrument asks "could this merge right now, and whose act unblocks it".
+`doors.sh` reads review state for that reason.
+
+So what is local here is the door definition and the stack with one door, and
+the summary half belongs to L-A88. This entry keeps its number because the
+copy this product reads does not contain L-A88 and a seat here cannot cite what
+it cannot read (L31, L-A90), and because the register that would have prevented
+the defect being 15% absent is the distribution finding, not this one — it is
+routed in this run's handoff and reported to the centralizer that measured it.
+
 **The mechanism, which is why this is a rule and not a slip.** `order.sh`
 printed `blocked` against all seven of those lines, every time this seat ran
 it. The instrument had the fact and the prose dropped it, because the prose
@@ -2140,6 +2164,7 @@ publishes a queue or asks the owner to merge, because an ask that names an item
 with no door asks for a click that does not exist. Companion to L24, where the
 order is generated at the moment it is published, and to L-X7 as amended, where
 a waiting branch becomes a conflicting branch in exactly the shared register
-files this one conflicts in.
+files this one conflicts in. One level up it is L-A88 and L-A96, and the reason
+those are cited here rather than relied on is the 40,642 bytes.
 
 `portable: yes`
