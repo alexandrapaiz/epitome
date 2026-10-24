@@ -6,6 +6,8 @@
 #   bash docs/agents/addressed.sh --audit [since]   every message this seat sent
 #   bash docs/agents/addressed.sh --body FILE ...   bodies you are about to post
 #   bash docs/agents/addressed.sh --liveness SEAT   is a run of that seat open now
+#   bash docs/agents/addressed.sh --can SEAT FILE... may that seat write these files
+#   bash docs/agents/addressed.sh --can-self-test
 #
 # 1. A body sent unchanged to two companies, containing a referent that
 #    resolves at the reader. On 2026-10-24T00:46:32Z this seat sent one body to
@@ -16,6 +18,15 @@
 #    twenty minutes earlier, written per addressee, moved both of its items.
 #    So the test is the conjunction: identical body AND more than one company
 #    AND a reader-relative referent. Rewrite per addressee, or name the seat.
+#
+# 3. Whether the seat you are about to ask may perform the act at all, read
+#    from its charter rather than inferred from what the work is about. L40
+#    already said a seat's writable surface is a fact about that seat's charter;
+#    on 2026-10-24T21:44:14Z this seat asked epitome/pm to cut a branch editing
+#    two files under prompts/ and was declined six minutes later by a sentence
+#    that had been in prompts/pm-agent.md the whole time. A second instance of
+#    a rule already in the register is a register defect (L4), so the rule
+#    stopped being a sentence to remember and became this.
 #
 # 2. Whether a seat is running, read from the footer and not from a date.
 #    A liveness claim about another seat perishes when you send it, because a
@@ -55,7 +66,110 @@ liveness() {  # $1 = seat directory name under the host's log root
   [ $open = 1 ] && return 1 || return 0
 }
 
+# May that seat write that file? Answered from its charter, read as sentences
+# and not as lines. A charter wraps its prose, so the prohibition that cost
+# this seat a round trip tonight has its verb on one line and its object on the
+# next — "Never edit vision.md §0, okrs.md gradings, or / other seats'
+# charters" — and a line-oriented grep sees neither half. Same defect as
+# L-X5's seventh shape: the record is a sentence and the reader assumed a line.
+#
+# Three answers (L41). 0 nothing in the charter fences this surface, 1 the
+# charter fences it in its own words or a credential does, 2 could not look.
+# Charter silence about a surface a token decides is not permission (L-X9).
+sentences() {  # $1 = file; prints one sentence per line
+  tr '\n' ' ' < "$1" | sed -E 's/[[:space:]]+/ /g; s/([.!?]) /\1\n/g'
+}
+
+surface_words() {  # $1 = path; the words a charter uses to fence it
+  case "$1" in
+    prompts/*)             echo 'charter|instruction file|prompts/' ;;
+    .github/workflows/*)   echo 'workflow' ;;
+    docs/standards/*)      echo 'standard' ;;
+    vision.md|*/vision.md) echo 'vision\.md' ;;
+    okrs.md|*/okrs.md)     echo 'okrs\.md' ;;
+    *)                     echo '' ;;
+  esac
+}
+
+can() {  # $1 = seat, $2 = path
+  local seat=$1 path=$2 charter words hits
+  charter="prompts/$1-agent.md"
+  if [ ! -r "$charter" ]; then
+    printf '  COULD NOT LOOK  %-26s %s: no charter at %s, so this checkout cannot answer for it\n' \
+      "$path" "$seat" "$charter"; return 2
+  fi
+  words=$(surface_words "$path")
+  if [ -z "$words" ]; then
+    printf '  no rule   %-26s %s: not a surface any charter here fences by name\n' "$path" "$seat"
+    return 0
+  fi
+  # A seat editing its own charter is a different question from this one: these
+  # charters fence *other* seats' charters, and widening a seat's own authority
+  # is the owner's by the silence rule. Name which question it is.
+  if [ "$path" = "$charter" ]; then
+    printf '  OWN       %-26s %s: its own charter, so the bar is the silence rule and the owner\n' \
+      "$path" "$seat"; return 0
+  fi
+  hits=$(sentences "$charter" \
+         | grep -iE "$words" \
+         | grep -iE "never|do not|is hers|are hers|the owner's" \
+         | head -2)
+  if [ -n "$hits" ]; then
+    printf '  FORBIDDEN %-26s %s fences this surface in its own words:\n' "$path" "$seat"
+    echo "$hits" | cut -c1-190 | sed "s|^|    $charter: |"
+    return 1
+  fi
+  case "$path" in
+    .github/workflows/*)
+      printf '  TOKEN     %-26s %s: charter silent, and this surface is decided by the credential rather than the charter (L-X9) — probe by write\n' \
+        "$path" "$seat"; return 1 ;;
+  esac
+  printf '  may write %-26s %s: no sentence in its charter fences this surface\n' "$path" "$seat"
+  return 0
+}
+
 case "${1:-}" in
+--can-self-test)
+  # Every branch of `--can` fired against an input, because a branch nothing
+  # has ever hit decides the answer on the day it hits (L42). The fixture is a
+  # throwaway charter so the test does not move when a real one does.
+  tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT; rc=0
+  mkdir -p "$tmp/prompts"
+  # The wrap is deliberate: the prohibition's verb and object land on
+  # different lines, which is the case a line-oriented reader misses.
+  cat > "$tmp/prompts/fixture-agent.md" <<'MD'
+## What you never do
+
+Never write product code. Never edit vision.md §0, okrs.md gradings, or
+other seats' charters. Never shape a pitch that violates ADR-1.
+MD
+  check() { # $1 label $2 want $3.. argv
+    local label=$1 want=$2; shift 2
+    ( cd "$tmp" && bash "$OLDPWD/docs/agents/addressed.sh" "$@" ) >"$tmp/out" 2>&1
+    local got=$?
+    if [ "$got" = "$want" ]; then printf '  ok    %-42s exit %s\n' "$label" "$got"
+    else printf '  FAIL  %-42s want %s got %s\n' "$label" "$want" "$got"; sed 's/^/        /' "$tmp/out"; rc=1; fi
+  }
+  check "wrapped prohibition is found"  1 --can fixture prompts/other-agent.md
+  check "its own charter is not this question" 0 --can fixture prompts/fixture-agent.md
+  check "unfenced surface passes"       0 --can fixture docs/agents/lessons.md
+  check "workflow is the token's, not the charter's" 1 --can fixture .github/workflows/a.yml
+  check "no charter is could-not-look"  2 --can nosuchseat prompts/other-agent.md
+  check "too few arguments"             2 --can fixture
+  exit $rc ;;
+
+--can)
+  # Run this before writing a handoff that asks a seat to touch a file. A
+  # decline costs two runs and a day and arrives looking like caution, so it is
+  # cheaper to be refused here (L40 as amended).
+  shift
+  [ $# -ge 2 ] || { echo "usage: addressed.sh --can SEAT FILE [FILE...]" >&2; exit 2; }
+  seat=$1; shift; rc=0
+  printf 'may %s write these, read from prompts/%s-agent.md in this checkout\n' "$seat" "$seat"
+  for f in "$@"; do can "$seat" "$f"; v=$?; [ $v -gt $rc ] && rc=$v; done
+  [ $rc = 1 ] && echo "  -> do not ask this seat for this act; route it to the hand its charter leaves standing (L40)"
+  exit $rc ;;
+
 --liveness)
   shift; rc=0; for s in "$@"; do liveness "$s" || rc=1; done; exit $rc ;;
 
