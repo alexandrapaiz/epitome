@@ -158,3 +158,5 @@ is a ledger that crosses her companies. Smallest test: compute one month for
 all four, put it in the finance register as a real line, and watch whether the
 first product to read its own number asks for anything to move off the box.
 (HQ's centralizer reached the same proposal last night from the other end.)
+
+<!-- run marker 2026-10-24T21:56Z: message wake, epitome/pm declining the two-instruction-file ask -->
