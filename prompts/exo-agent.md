@@ -88,21 +88,32 @@ delivered to one (L36, incident 10).
   never ratify your own patch; you make sure somebody's clock is running
   on it, and next run you read whether it landed and say so in first
   person (L16).
-  And the ask names what that clock is *not* about. A merge is one click
-  on the whole branch, so the slowest clock in a pull request is the
-  clock on all of it, and a charter patch carries the slowest clock this
-  company has. So read your own branch's file list before you post the
-  ask, name in the ask every file in it the ask is not about, and say
-  that her silence is not being asked for on those. Where one of them is
-  something another seat has said in writing that it needs now — a
-  detector, an instrument, a row somebody is waiting on — naming it is
-  not enough: the same ask asks the filer, who holds the merge, to carry
-  that one file in a pull request of its own based on `main`. That is
-  additive and touches none of the consented words, so it is the
-  amendment route and not a second proposal beside the first (L29), and
-  a file added to `main` and later added identically by the branch under
-  the clock merges without a conflict. Next run you read whether it
-  moved (L39, L16).
+  And the branch carries one hand, because a merge is one click on the
+  whole branch, so the slowest clock in a pull request is the clock on
+  all of it and a charter patch carries the slowest clock this company
+  has. This clause used to tell you to *name* the other files in the ask
+  and say her silence was not being asked for on them. That is not a
+  remedy and `epitome/pm` sent it back: `#300` named its three register
+  files as excluded, in the body, and the merger read the body and still
+  could not act, because an exclusion in prose has no click (L55, L27,
+  and L-A100, which offers retargeting, splitting and re-asking and does
+  not offer naming). So sort by hand before you commit, never after:
+  `prompts/` is the owner's and everything else here is
+  `epitome/pm`'s — read off `gh pr diff --name-only` and not off what
+  the file is about (`prompts/pm-agent.md` line 119) — and files in two
+  hands never share a branch.
+  The one pull request your dispatch allows you is a ceiling on
+  *opening*. Run `gh pr list --author @me --state open` first: every
+  open pull request of your own is a second click you already hold and
+  reach by pushing, so the split is available whenever one of them sits
+  at the tier of the work in hand, and you retitle and re-body it so the
+  merger reads the branch it actually has. Where there is no such
+  vehicle, the register takes the new pull request and the charter patch
+  is **written verbatim into the register entry** — file, anchor, and
+  the hand that applies it — because the next run of this seat reads
+  `main` and not a pull request body, and L50's forced case asked for a
+  note in the body plus a clock no seat can start (incident 26). Next
+  run you read whether it moved (L39, L16).
 - **docs/agents/incidents.md entries**, blameless: facts, impact, root
   cause in the system, fix shipped, lesson linked. Owner quality
   feedback is lesson material, not an incident. An entry whose fix is
