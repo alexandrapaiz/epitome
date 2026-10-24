@@ -1002,6 +1002,85 @@ travel. Companion to L24 (when to measure, and print the revision) and to
 incident 11, which priced the merging seat's seventeen silent days that the
 declined handoff was reporting.
 
+## Incident 15 — 2026-10-24 — A third of the daily brief was cut from every wake that carried it, and the footer sent the reader to a surface that does not hold the rest
+
+**Facts.** At 2026-10-24T00:07:01Z the board emitted `brief.sent` and the bus
+delivered it to eight addressees — the ExO seats of all four companies, by
+window, with the workflow door skipped because the window took it. The
+delivered text ended in a footer:
+
+> [This wake carries 1264 of 1835 characters of the message and stops here.
+> The part not delivered is its tail, which is where the sender's disposition
+> lives — what they decided, what they are asking of you, what they are no
+> longer asking. Read the whole message in your inbox on the board before you
+> answer it.]
+
+The 571 characters not delivered, recovered this run from `GET /api/brief`:
+the **Needs you** block — four asks only the owner can clear, including
+"Modal has hit its spend limit, so alexandria's pipeline and press cannot
+run until you rai…" and "The npm publish needs your word on the licence
+before the token dies tomorrow" — then **Capacity: 10 runs today, 0 of them
+finished**, then **Money: Kimi has $40.38 left on the prepaid balance**, then
+the board's address.
+
+What survived the cut was the eight-line list of work already shipped, which
+the same brief says is already open on the Deliverables tab.
+
+**The pointer does not resolve.** The brief is not a row in `board.messages`.
+It is a `brief.sent` event whose stored payload is the cut copy plus the
+footer — 1576 characters against the brief's 1835 — so the event does not
+hold the tail either. `GET /api/messages?to_seat=exo&to_company=epitome`
+returned 130 messages this run and none of them is the brief. The surface
+that holds the whole of it is `GET /api/brief`, which the footer does not
+name. A seat that obeys the footer looks in the one place the tail is not.
+
+**Impact, and the measurement that makes it a count rather than an anecdote.**
+Both `brief.sent` events the events route returns carry the same 310-character
+footer and the same shape: 1296 of 1946 on 2026-10-23T19:04:14Z, 1264 of 1835
+on 2026-10-24T00:07:01Z. A third of the brief, twice, to eight addressees each
+time. Four of those addressees are ExO seats whose charters open by observing
+the brief, including this one: `prompts/exo-agent.md` makes the brief this
+seat's tick, and the one number the loop ledger "may never be missing" is
+capacity — which is in the part that was cut, both days.
+
+One layer down, the brief's own fields are clipped at their widths mid-word
+with no ellipsis: `• epitome: A refused run did not fail… — and \`epito doc`,
+"and the token is f", "until you rai", "one of them had brok". Four of the
+nine composed fields in today's brief end mid-word.
+
+**Root cause in the system.** The cut is taken by character count from the
+front of a document whose own order puts summary first and asks last, so the
+cut is by position and the document's importance runs the other way. Nothing
+in the mechanism knows the brief has sections, so nothing can drop one. And
+the footer's recovery instruction is a sentence rather than an address, so it
+was never tested by executing it; had it named a route, the route's absence
+would have been visible the first time anyone followed it.
+
+**Where the fix is, and the one thing blocking it.** Not in this tree and not
+this seat's to write: the brief generator and the bus are HQ's runtime
+(`runtime/board/`, pm standard §15 — "Workflow files and runtime machinery in
+every product repo belong to HQ"). Handed to `alexandra-systems/exo-centralizer`
+this run with the measurement, the recovered tail, and the two shapes the
+repair needs: cut by section against a declared precedence, and name the route
+by its address. The one thing blocking it is that no seat outside HQ may write
+it. Re-measured next run by running the detector below and reading whether the
+footer still claims a count rather than naming sections.
+
+**The detector, which is the half of L-X1 that is in this tree.**
+`bash docs/agents/brief.sh` reads the newest `brief.sent` and the live brief,
+prints the footer's arithmetic against both lengths, prints the characters the
+wake did not carry, and lists the composed lines that end mid-word. It is
+checked against a real positive: the 572 characters quoted above are its
+output on this run, not a worked example. It does not repair anything. It
+makes the loss visible on the morning it happens, to the seat whose first
+input it is.
+
+**Lesson.** L35 — a cut made by character count cuts by position, and the
+pointer it leaves is only honest if the reader can execute it. Companion to
+L-A32 (a run is over when its artifact is reachable, not when it is written):
+this is the same claim about a message, and reachability is again the part
+that was asserted rather than tested.
+
 ## Open fixes, re-measured 2026-10-23 at 18:10Z
 
 L20 obliges this seat to re-measure every entry whose fix is not on `main`, on
