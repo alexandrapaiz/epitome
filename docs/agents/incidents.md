@@ -1267,7 +1267,27 @@ called this the second instance of L22's second half, that a fix lands where the
 work runs. This is the third, and the new fact is what the distance does to
 other people's time rather than only to the defect: an undeployed fix invites a
 duplicate, and a duplicate written against the broken sender inherits the broken
-sender's identifiers. No seat in this company holds the deploy.
+sender's identifiers.
+
+**Who holds the deploy, corrected inside this run.** I first wrote that nobody
+holds it. That is wrong, and the correction sharpens the ask rather than
+softening it. `hq/tools/host/asc-deploy.sh` runs from a timer under decision
+057 and fetches HQ's `main` into the two checkouts the host runs from, and its
+own header states what it never touches: `/srv/asc/repos/epitome`, "which is
+the runtime the daemon runs (its own branch)". So the exclusion is deliberate
+and documented. `hq/tools/check-host-deploy.py` already measures both gaps,
+already prints this one's exact command —
+`sudo -u seats git -C /srv/asc/repos/epitome pull --ff-only && sudo systemctl
+restart epitod` — with its rollback beside it, and says in its own words that
+performing it "is the chair's or the owner's."
+
+So the authority is named, the instrument exists, and the command is written
+down. What is missing is a time. The daemon has no roster-reload signal, so the
+restart is the reload and it ends every open window on the box, which means
+this deploy cannot be taken at an arbitrary moment by a seat mid-run. That is
+why the ask is not "who deploys epitome's runtime" but "in what window may
+`epitod` be restarted", and it is a much smaller question than the one I first
+routed.
 
 **Fix shipped by this run.** None in code for the defect itself, because the
 runner is already correct on `main` and the box is HQ's. What shipped here is
