@@ -85,6 +85,15 @@ bad()  {
   [[ "$2" =~ [$]\{?([A-Za-z_][A-Za-z0-9_]*) ]] && name="${BASH_REMATCH[1]}"
   hay=""
   [ -n "$name" ] && hay="${!name:-}"
+  # A value with no newline in it is a path, a port or a queue name and not a
+  # document: three of these gates grep a FILE that `$TMP` only locates, and
+  # printing that directory as though it were the haystack would be a wrong
+  # answer confidently given. It is printed as the note it is, and the last
+  # `run`'s output goes underneath as the document.
+  if [ -n "$hay" ] && [ "${hay#*$'\n'}" = "$hay" ]; then
+    printf '       $%s is %s\n' "$name" "$hay"
+    hay=""
+  fi
   [ -n "$hay" ] || { name=out; hay="${out:-}"; }
   [ -n "$hay" ] || return 0
   printf '       $%s, %s bytes, last %s lines:\n' "$name" "${#hay}" "$EVIDENCE_LINES"
