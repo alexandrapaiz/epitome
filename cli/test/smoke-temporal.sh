@@ -92,6 +92,31 @@ pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
 bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
 check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# `said <captured output> [grep flags] <pattern>` — the one way this suite looks
+# inside a command's output, and it contains no pipe. That is the whole point of
+# it.
+#
+# Every check below used to read `<producer> | grep -q '<pattern>'`, and that
+# shape reports FAILURE on a pattern it MATCHED. `grep -q` exits the instant it
+# matches; the producer whose pipe it just closed dies writing to it; and
+# `set -o pipefail`, above, makes the pipeline's status that death rather than
+# grep's own 0. The producers here are worse than smoke-validate.sh's `printf`,
+# because what they die of differs by language: `temporal` is Go, which takes
+# the default SIGPIPE on stdout and exits 141; `node` raises EPIPE; `curl`
+# exits 23. All three read as a failing assertion. PR #265 measured the
+# `printf` form at 8 false failures in 3000 invocations under load with
+# `PIPESTATUS=[0]` every time — grep had matched — and this suite carried 39
+# pipes of the same family. A herestring has no pipe and no writer to kill.
+said() { local hay="$1"; shift; grep -q "$@" <<<"$hay"; }
+# The two-stage case: pick the line, then match inside it. `grep clock | grep
+# -q paused` has the same fault one step earlier — the selecting grep is the
+# process the quiet grep kills — so both stages read a herestring here, and
+# the selector grep reads its whole input the way it always did.
+saidline() {
+  local hay="$1" sel="$2"; shift 2
+  local picked; picked="$(grep -- "$sel" <<<"$hay")" || return 1
+  grep -q "$@" <<<"$picked"
+}
 # Assert the audit log holds N lines matching a JSON pattern. Matching by
 # predicate, not by substring: a substring match on a serialized object is an
 # assertion about key order, which is not a promise this runtime makes.
@@ -348,7 +373,7 @@ for a in clock pm okr ghost badkey graphs routed cheap; do
   out=$(cd "$ROSTER/$a" && node "$CLI/src/index.js" validate 2>&1); rc=$?
   check "validate $a: $out" "[ $rc = 0 ]"
 done
-check "and validate names an adapter that is not the default, so a reader knows" "(cd '$ROSTER/graphs' && node '$CLI/src/index.js' validate) | grep -q 'a langgraph agent'"
+check "and validate names an adapter that is not the default, so a reader knows" "said \"\$(cd '$ROSTER/graphs' && node '$CLI/src/index.js' validate)\" 'a langgraph agent'"
 
 step "identity fixture: one throwaway RSA App for pm, and a stand-in api.github.com"
 # Generated here and thrown away with $ROOT: nothing personal ever enters a
@@ -397,9 +422,9 @@ export TEMPORAL_ADDRESS="127.0.0.1:$GRPC_PORT" TEMPORAL_NAMESPACE="$NS" \
 doc() { docout="$(node "$CLI/src/index.js" doctor "$ROSTER" 2>&1)"; docrc=$?; }
 doc
 check "doctor refuses before the worker exists" "[ $docrc -eq 1 ]"
-check "...on the worker row, with the engine's row still ✓" "printf '%s' \"\$docout\" | grep -q '✓ engine' && printf '%s' \"\$docout\" | grep -q '✗ worker'"
-check "...naming the queue a run here would use" "printf '%s' \"\$docout\" | grep -q 'nothing is polling seats'"
-check "...and the two commands that start one" "printf '%s' \"\$docout\" | grep -q 'epito worker' && printf '%s' \"\$docout\" | grep -q 'systemctl start epitod-worker'"
+check "...on the worker row, with the engine's row still ✓" "said \"\$docout\" '✓ engine' && said \"\$docout\" '✗ worker'"
+check "...naming the queue a run here would use" "said \"\$docout\" 'nothing is polling seats'"
+check "...and the two commands that start one" "said \"\$docout\" 'epito worker' && said \"\$docout\" 'systemctl start epitod-worker'"
 
 node "$CLI/src/index.js" worker > "$ROOT/worker.log" 2>&1 & WORKER_PID=$!
 for _ in $(seq 1 100); do grep -q 'state: .RUNNING' "$ROOT/worker.log" && break; sleep 0.3; done
@@ -407,9 +432,9 @@ check "the worker is polling the seats queue" "grep -q 'epito worker: 127.0.0.1:
 # And the engine says so too, which is the half the log cannot prove: a worker
 # process that printed RUNNING and a queue the engine has seen a poll on are
 # two different facts, and the second is the one a run needs.
-for _ in $(seq 1 40); do doc; printf '%s' "$docout" | grep -q '✓ worker' && break; sleep 0.5; done
-check "and the engine confirms the poll, not just the worker's own log" "printf '%s' \"\$docout\" | grep -q '✓ worker .*polling seats for both workflow and activity tasks'"
-check "...with the identity the engine saw and how fresh it is" "printf '%s' \"\$docout\" | grep -qE 'last polled [0-9]+s ago'"
+for _ in $(seq 1 40); do doc; said "$docout" '✓ worker' && break; sleep 0.5; done
+check "and the engine confirms the poll, not just the worker's own log" "said \"\$docout\" '✓ worker .*polling seats for both workflow and activity tasks'"
+check "...with the identity the engine saw and how fresh it is" "said \"\$docout\" -E 'last polled [0-9]+s ago'"
 
 node "$CLI/src/index.js" run "$ROSTER" > "$ROOT/ingress.log" 2>&1 & INGRESS_PID=$!
 for _ in $(seq 1 100); do curl -fs "http://127.0.0.1:$PORT/healthz" >/dev/null 2>&1 && break; sleep 0.3; done
@@ -420,22 +445,22 @@ step "1: reconcile registered ONE schedule — the three presence-only seats got
 check "one schedule created, nothing else" "grep -q 'reconciled: 1 created, 0 updated, 0 deleted, 0 unchanged' '$ROOT/ingress.log'"
 check "the presence-only seats are named as such" "grep -qF 'presence-only (no [trigger].cron, so no schedule): badkey, cheap, ghost, graphs, okr, pm, routed' '$ROOT/ingress.log'"
 check "the schedule is seat:clock, in UTC, with its model and repo" "grep -qF '+ seat:clock  * * * * * UTC  claude-sonnet-5  acme/roster' '$ROOT/ingress.log'"
-check "temporal itself lists it" "'$TEMPORAL_BIN' schedule list --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -q seat:clock"
+check "temporal itself lists it" "said \"\$('$TEMPORAL_BIN' schedule list --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null)\" seat:clock"
 audit "the audit log records the registration" '{"agent":"clock","action":"schedule.create","schedule":"seat:clock"}'
-check "/healthz reports the engine it depends on" "curl -fs http://127.0.0.1:$PORT/healthz | grep -q '\"temporal\":\"127.0.0.1:$GRPC_PORT\"'"
+check "/healthz reports the engine it depends on" "said \"\$(curl -fs http://127.0.0.1:$PORT/healthz)\" '\"temporal\":\"127.0.0.1:$GRPC_PORT\"'"
 # Read the schedule back through `epito ps` while it is still live: a paused
 # schedule is asserted separately, after the fire.
 node "$CLI/src/index.js" ps "$ROSTER" | sed 's/^/  /'
-check "epito ps shows clock's cron, its next fire, and a healthy schedule" "node '$CLI/src/index.js' ps '$ROSTER' | grep clock | grep -qE '\* \* \* \* \* +[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}Z +ok'"
-check "...and that a worker is polling the queue it would fire onto" "node '$CLI/src/index.js' ps '$ROSTER' | grep -q 'queue=seats (1 worker polling)'"
+check "epito ps shows clock's cron, its next fire, and a healthy schedule" "saidline \"\$(node '$CLI/src/index.js' ps '$ROSTER')\" clock -E '\* \* \* \* \* +[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}Z +ok'"
+check "...and that a worker is polling the queue it would fire onto" "said \"\$(node '$CLI/src/index.js' ps '$ROSTER')\" 'queue=seats (1 worker polling)'"
 # The same roster, the same registered schedule, read while pointed at a queue
 # nothing polls: the schedule is still there and still has a NEXT time, and
 # the honest thing to say about that time is that nothing will happen at it.
 # (A seat's queue is the box's, not the manifest's, so this is one env name —
 # no process is killed and no schedule is touched.)
 quiet_ps="$(EPITO_TASK_QUEUE=a-queue-nobody-polls node "$CLI/src/index.js" ps "$ROSTER" 2>&1)"
-check "a NEXT time with no worker is said to be a time nothing fires at" "printf '%s' \"\$quiet_ps\" | grep -q 'will not run at'"
-check "...with the schedule still listed, because it IS registered" "printf '%s' \"\$quiet_ps\" | grep -q 'seat' || printf '%s' \"\$quiet_ps\" | grep -q clock"
+check "a NEXT time with no worker is said to be a time nothing fires at" "said \"\$quiet_ps\" 'will not run at'"
+check "...with the schedule still listed, because it IS registered" "said \"\$quiet_ps\" 'seat' || said \"\$quiet_ps\" clock"
 
 post() { curl -s -o "$ROOT/body.json" -w '%{http_code}' -X POST -H "x-epito-secret: $SECRET" -H 'content-type: application/json' --data "$2" "http://127.0.0.1:$PORT$1"; }
 get()  { curl -s -o "$ROOT/body.json" -w '%{http_code}' -H "x-epito-secret: $SECRET" "http://127.0.0.1:$PORT$1"; }
@@ -461,7 +486,7 @@ audit "it recorded its model, its turns, and the PR it opened" '{"agent":"clock"
 # clock has no App of its own, so the identity slice must be invisible to it.
 check "a seat with no App ran on the shared credential, exactly as before" "grep -q 'GH_TOKEN=$SHARED_TOKEN' .epito/logs/clock/*.log"
 none "and it minted nothing" '{"agent":"clock","action":"mint"}'
-check "nobody started it by hand: the workflow id carries the scheduled time" "'$TEMPORAL_BIN' workflow list --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -qE 'run:clock-[0-9]{4}-[0-9]{2}-[0-9]{2}T'"
+check "nobody started it by hand: the workflow id carries the scheduled time" "said \"\$('$TEMPORAL_BIN' workflow list --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null)\" -E 'run:clock-[0-9]{4}-[0-9]{2}-[0-9]{2}T'"
 # Every-minute is a test fixture, not a seat anyone would write. Pause it now
 # so the rest of the run is not racing a fresh clone every 60 seconds.
 # Driven with the stock `temporal` CLI on purpose: seat:clock is an ordinary
@@ -474,9 +499,9 @@ sleep 1
 gone "and the clone it ran in is gone" "${TMPDIR:-/tmp}/epito-clock-*"
 # Schedule listing is eventually consistent by Temporal's own documentation, so
 # a pause is a thing to wait for rather than to read once.
-for _ in $(seq 1 40); do node "$CLI/src/index.js" ps 2>/dev/null | grep clock | grep -q paused && break; sleep 0.5; done
-check "epito ps shows the schedule as paused, read from the engine" "node '$CLI/src/index.js' ps | grep clock | grep -q paused"
-check "and a paused seat advertises no next fire" "node '$CLI/src/index.js' ps | grep clock | grep -qvE '[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}Z +paused'"
+for _ in $(seq 1 40); do saidline "$(node "$CLI/src/index.js" ps 2>/dev/null)" clock paused && break; sleep 0.5; done
+check "epito ps shows the schedule as paused, read from the engine" "saidline \"\$(node '$CLI/src/index.js' ps)\" clock paused"
+check "and a paused seat advertises no next fire" "saidline \"\$(node '$CLI/src/index.js' ps)\" clock -vE '[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}Z +paused'"
 
 step "2: a WINDOW holds a session, and a message resumes THAT session in the same clone"
 code=$(post /window/open '{"scope":"pm","text":"Agenda: cycle 2 hill check."}'); echo "  $code $(body)"
@@ -559,19 +584,19 @@ check "the human summary went to stderr, naming installation and expiry" "grep -
 check "and it hands back the commit address, so a scripted \`gh pr create\` can match it" "grep -qF 'GIT_AUTHOR_EMAIL=\"99001+epito-seat-1234[bot]@users.noreply.github.com\"' '$ROOT/token.err'"
 check "stderr holds no token either" "! grep -q '$STUB_TOKEN' '$ROOT/token.err'"
 node "$CLI/src/index.js" token pm "$ROSTER" --dry-run | sed 's/^/  /'
-check "--dry-run says what it would ask for, with no request to GitHub" "before=\$(wc -l < '$GH_LOG'); node '$CLI/src/index.js' token pm '$ROSTER' --dry-run | grep -q 'pull_requests: write' && [ \$(wc -l < '$GH_LOG') = \$before ]"
+check "--dry-run says what it would ask for, with no request to GitHub" "before=\$(wc -l < '$GH_LOG'); said \"\$(node '$CLI/src/index.js' token pm '$ROSTER' --dry-run)\" 'pull_requests: write' && [ \$(wc -l < '$GH_LOG') = \$before ]"
 out=$(node "$CLI/src/index.js" token okr "$ROSTER" 2>&1 || true); echo "  $out"
-check "an agent with no App is told so, with the two env names to set" "printf '%s' \"\$out\" | grep -q 'EPITO_APP_ID_OKR' && printf '%s' \"\$out\" | grep -q 'EPITO_APP_KEY_OKR'"
+check "an agent with no App is told so, with the two env names to set" "said \"\$out\" 'EPITO_APP_ID_OKR' && said \"\$out\" 'EPITO_APP_KEY_OKR'"
 out=$(node "$CLI/src/index.js" token nobody "$ROSTER" 2>&1 || true); echo "  $out"
-check "an unknown agent is told the roster it searched" "printf '%s' \"\$out\" | grep -q 'the roster there is'"
+check "an unknown agent is told the roster it searched" "said \"\$out\" 'the roster there is'"
 
 step "3: \`epito ps\` reads TEMPORAL — schedules, running workflows, and the window's own answer"
 node "$CLI/src/index.js" ps "$ROSTER" | sed 's/^/  /'
 PS=$(node "$CLI/src/index.js" ps "$ROSTER")
-check "ps names the engine it read" "printf '%s' \"\$PS\" | grep -q 'epitod on 127.0.0.1:$GRPC_PORT namespace=$NS queue=seats'"
-check "ps still shows clock's cron, and that its schedule is paused" "printf '%s' \"\$PS\" | grep clock | grep -qE '\* \* \* \* \* +- +paused'"
-check "ps shows pm's open window, queried from the window workflow" "printf '%s' \"\$PS\" | grep pm | grep -q 'left'"
-check "ps shows the held session's first eight characters" "printf '%s' \"\$PS\" | grep -q \"\${SESSION:0:8}\""
+check "ps names the engine it read" "said \"\$PS\" 'epitod on 127.0.0.1:$GRPC_PORT namespace=$NS queue=seats'"
+check "ps still shows clock's cron, and that its schedule is paused" "saidline \"\$PS\" clock -E '\* \* \* \* \* +- +paused'"
+check "ps shows pm's open window, queried from the window workflow" "saidline \"\$PS\" pm 'left'"
+check "ps shows the held session's first eight characters" "said \"\$PS\" \"\${SESSION:0:8}\""
 check "ps read no state.json, because there is none" "[ ! -e .epito/state.json ]"
 
 step "8: per-agent Slack routing — okr posts to ITS webhook, pm posts to #hq"
@@ -636,11 +661,11 @@ check "and no run was started for it" "[ \"$after\" = \"$before\" ]"
 step "the CLI wrappers speak to the same ingress"
 node "$CLI/src/index.js" window open okr | sed 's/^/  /'
 node "$CLI/src/index.js" message okr "what did you open?" | sed 's/^/  /'
-check "epito message reports the held session" "node '$CLI/src/index.js' message okr 'again' | grep -q 'in held session'"
+check "epito message reports the held session" "said \"\$(node '$CLI/src/index.js' message okr 'again')\" 'in held session'"
 node "$CLI/src/index.js" window close okr | sed 's/^/  /'
-check "a wrong secret is refused in the client's voice too" "(EPITO_HOOK_SECRET=wrong node '$CLI/src/index.js' message okr hi 2>&1 || true) | grep -q 'x-epito-secret header missing or wrong'"
-check "no ingress at the port is named, with the fix" "(EPITO_PORT=1 node '$CLI/src/index.js' message okr hi 2>&1 || true) | grep -q 'is EPITO_PORT right'"
-check "no engine at the address is named, with the fix" "(TEMPORAL_ADDRESS=127.0.0.1:1 node '$CLI/src/index.js' ps 2>&1 || true) | grep -q 'temporal server start-dev'"
+check "a wrong secret is refused in the client's voice too" "said \"\$(EPITO_HOOK_SECRET=wrong node '$CLI/src/index.js' message okr hi 2>&1 || true)\" 'x-epito-secret header missing or wrong'"
+check "no ingress at the port is named, with the fix" "said \"\$(EPITO_PORT=1 node '$CLI/src/index.js' message okr hi 2>&1 || true)\" 'is EPITO_PORT right'"
+check "no engine at the address is named, with the fix" "said \"\$(TEMPORAL_ADDRESS=127.0.0.1:1 node '$CLI/src/index.js' ps 2>&1 || true)\" 'temporal server start-dev'"
 
 step "1 (idempotence): reconciling again changes nothing"
 node "$CLI/src/index.js" run "$ROSTER" --dry-run > "$ROOT/dry.log" 2>&1
@@ -681,7 +706,7 @@ check "the update names the field that changed, not \"(re-registered)\"" "grep -
 # structured calendar, which is why the shape cannot be read back from the spec
 # and why "*/2" appears here as the range "0-59/2".
 eventually "the engine really took it" \
-  "'$TEMPORAL_BIN' schedule describe --schedule-id seat:clock --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -qF '0-59/2'" 15 \
+  "said \"\$('$TEMPORAL_BIN' schedule describe --schedule-id seat:clock --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null)\" -F '0-59/2'" 15 \
   "'$TEMPORAL_BIN' schedule describe --schedule-id seat:clock --address 127.0.0.1:$GRPC_PORT --namespace $NS"
 # The regression, in one assertion: reconcile a third time and nothing is left
 # to do. Before the fix this printed "would update seat:clock" every time it
@@ -689,7 +714,7 @@ eventually "the engine really took it" \
 node "$CLI/src/index.js" run "$ROSTER" --dry-run > "$ROOT/dry-upd2.log" 2>&1
 sed 's/^/  /' "$ROOT/dry-upd2.log"
 check "reconcile CONVERGES: the next one would change nothing" "grep -q '1 unchanged' '$ROOT/dry-upd2.log' && ! grep -qE 'would (create|update|delete)' '$ROOT/dry-upd2.log'"
-check "epito ps reads the cron the engine holds, not the one it was born with" "node '$CLI/src/index.js' ps '$ROSTER' | grep -E '^clock' | grep -qF '*/2 * * * *'"
+check "epito ps reads the cron the engine holds, not the one it was born with" "saidline \"\$(node '$CLI/src/index.js' ps '$ROSTER')\" '^clock' -F '*/2 * * * *'"
 
 step "1 (the other direction): a seat that loses its cron loses its schedule"
 write_manifest clock "" "SLACK_WEBHOOK_URL"        # presence-only from now on
@@ -698,7 +723,7 @@ eventually "SIGHUP re-read the roster and deleted the schedule" \
   "grep -qF -e '- seat:clock  (no manifest with a [trigger].cron behind it any more)' '$ROOT/ingress.log'" 15 \
   "tail -5 '$ROOT/ingress.log'"
 eventually "temporal has no seat schedules left" \
-  "! '$TEMPORAL_BIN' schedule list --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null | grep -q seat:clock" 15 \
+  "! said \"\$('$TEMPORAL_BIN' schedule list --address 127.0.0.1:$GRPC_PORT --namespace $NS 2>/dev/null)\" seat:clock" 15 \
   "'$TEMPORAL_BIN' schedule list --address 127.0.0.1:$GRPC_PORT --namespace $NS"
 audit "the deletion is in the audit log too" '{"agent":"clock","action":"schedule.delete","schedule":"seat:clock"}'
 
@@ -719,7 +744,7 @@ const b=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));
 const seats=Object.fromEntries(b.seats.map(s=>[s.name,s.runs]));
 console.log(\"    seats:\", JSON.stringify(seats));
 process.exit(seats.pm>=3 && seats.clock>=1 && seats.ghost>=1 && seats.badkey>=1 ? 0 : 1)'"
-check "a scheduled run reads as a scheduled run: trigger cron, outcome ok" "board | grep -q '\"trigger\": \"cron\"' && board | node -e '
+check "a scheduled run reads as a scheduled run: trigger cron, outcome ok" "said \"\$(board)\" '\"trigger\": \"cron\"' && board | node -e '
 const b=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));
 process.exit(b.recent.some(e=>e.agent===\"clock\"&&e.trigger===\"cron\"&&e.outcome===\"ok\"&&e.source===\"epitod\")?0:1)'"
 # The board is where you find out WHY a seat is not working, which is the
@@ -732,7 +757,7 @@ process.exit(e.outcome===\"mint\" && /not a readable PEM/.test(e.detail||\"\")?0
 check "a run that refused for a missing charter says so on the board too" "board | node -e '
 const b=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));
 process.exit(b.recent.some(e=>e.agent===\"ghost\"&&e.outcome===\"charter-missing\")?0:1)'"
-check "the PR a run opened is on the board, so the owner reads one place" "board | grep -q 'alexandrapaiz/epitome/pull/999'"
+check "the PR a run opened is on the board, so the owner reads one place" "said \"\$(board)\" 'alexandrapaiz/epitome/pull/999'"
 check "no board entry anywhere contains a token" "! grep -qF '$STUB_TOKEN' .epito/board.jsonl && ! grep -qF '$SHARED_TOKEN' .epito/board.jsonl"
 check "the board files a run ONCE: no duplicate survived the retried record" "board | node -e '
 const b=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));
@@ -834,10 +859,10 @@ step "9: THE ROUTER — a seat declares its roads, and the runtime takes the det
 # to the subscription when it refuses (L-E7). Here the runtime does it, once,
 # and every seat gets it — including the two that are not Claude sessions.
 node "$CLI/src/index.js" routes "$ROSTER" | sed 's/^/  /'
-check "epito routes says which road each seat takes ON THIS MACHINE" "node '$CLI/src/index.js' routes '$ROSTER' | grep -q 'routed (claude) — takes open'"
-check "and names the road that is closed here, and why" "node '$CLI/src/index.js' routes '$ROSTER' | grep -qF 'premium: a-model-this-box-cannot-reach' && node '$CLI/src/index.js' routes '$ROSTER' | grep -q 'closed: ABSENT_ROUTE_KEY is not set'"
-check "a box without the key sees the floor instead — the same manifests, a different machine" "env -u OPEN_ROUTE_KEY node '$CLI/src/index.js' routes '$ROSTER' | grep -q 'cheap (claude) — takes subscription'"
-check "no route line ever prints a key" "! node '$CLI/src/index.js' routes '$ROSTER' | grep -qF '$OPEN_KEY'"
+check "epito routes says which road each seat takes ON THIS MACHINE" "said \"\$(node '$CLI/src/index.js' routes '$ROSTER')\" 'routed (claude) — takes open'"
+check "and names the road that is closed here, and why" "said \"\$(node '$CLI/src/index.js' routes '$ROSTER')\" -F 'premium: a-model-this-box-cannot-reach' && said \"\$(node '$CLI/src/index.js' routes '$ROSTER')\" 'closed: ABSENT_ROUTE_KEY is not set'"
+check "a box without the key sees the floor instead — the same manifests, a different machine" "said \"\$(env -u OPEN_ROUTE_KEY node '$CLI/src/index.js' routes '$ROSTER')\" 'cheap (claude) — takes subscription'"
+check "no route line ever prints a key" "! said \"\$(node '$CLI/src/index.js' routes '$ROSTER')\" -F '$OPEN_KEY'"
 
 code=$(post /hooks/routed '{"why":"the open road refuses this one"}'); echo "  $code $(body)"
 node "$CLI/test/wait-for.mjs" runs routed 1 120000
@@ -909,7 +934,7 @@ check "and no value of anything appears in it" "! grep -qF '$OPEN_KEY' '$ROOT/dr
 
 kill -HUP "$INGRESS_PID"
 eventually "the ingress re-read the roster, so the next run of pm carries the new names" \
-  "grep -c 'SIGHUP' '$ROOT/ingress.log' | grep -qv '^0$'" 15 "tail -3 '$ROOT/ingress.log'"
+  "said \"\$(grep -c 'SIGHUP' '$ROOT/ingress.log')\" -v '^0$'" 15 "tail -3 '$ROOT/ingress.log'"
 sleep 1
 code=$(post /hooks/pm '{"why":"a run on a box that is short of two names"}'); echo "  $code $(body)"
 node "$CLI/test/wait-for.mjs" runs pm 1 120000 >/dev/null 2>&1 || true
@@ -918,7 +943,7 @@ SHORTLOG="$(grep -l 'env missing' .epito/logs/pm/*.log | tail -1)"
 sed 's/^/  /' "$SHORTLOG" | head -6
 check "the run's own log says both, in one sentence" \
   "grep -qF '# env missing: SMOKE_NOT_HERE is not available to this run; SMOKE_HALF_FILLED arrives empty' '$SHORTLOG'"
-check "a name the run MINTED for itself is not a name the box is short of" "! grep 'env missing' '$SHORTLOG' | grep -q 'GH_TOKEN'"
+check "a name the run MINTED for itself is not a name the box is short of" "! said \"\$(grep 'env missing' '$SHORTLOG')\" 'GH_TOKEN'"
 check "the operator watching journalctl hears it too" \
   "grep -qF 'pm: 2 names from [runtime].env are not what this box holds (SMOKE_NOT_HERE, SMOKE_HALF_FILLED)' '$ROOT/worker.log'"
 check "the agent itself was told, in the prompt the child really received" "node -e '
