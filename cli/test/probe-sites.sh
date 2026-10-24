@@ -192,7 +192,8 @@ if [ "$MODE" = all ] || [ "$MODE" = one ]; then
 fi
 
 if [ "$MODE" = all ] || [ "$MODE" = helpers ]; then
-  printf '\n  the three helper definitions: forced, not re-needled, because 129 assertions share them\n'
+  printf '\n  the three helper definitions: forced, not re-needled, because the count of call\n'
+  printf '  sites a helper has is not the count of verdicts that depend on it\n'
   for h in said saidf said_in; do
     for dir in never always; do
       case "$dir" in
