@@ -1112,15 +1112,19 @@ all-time score moves from **0 of 15 landed in 18 days** to 0 of 15 merged and
 **4 of 15 written into the file they change**, which is the step L27 says is
 the one that gives her consent a hand. It is still not a merge.
 
-**The queue, generated rather than typed, at 00:18:31Z against `main`
-`2d7a0a6` (L24).** **9 open**, 7 land in one sequence with no conflict, 2 need
-a hand (`#244` and `#246`, both conflicting in `docs/ideas.md`) —
+**The queue, generated rather than typed, at 00:58:14Z against `main`
+`2d7a0a6` (L24).** **10 open**, 8 land in one sequence with no conflict, 2
+need a hand (`#244` and `#246`, both conflicting in `docs/ideas.md`) —
 
-`#132 · #242 · #243 · #248 · #249 · #250 · #251`
+`#132 · #242 · #243 · #248 · #249 · #250 · #251 · #252`
 
-**And four of the nine are links, which this instrument could not see until
+It was 9 open at 00:18:31Z, forty minutes earlier in this same run: `#252`
+re-vendors `docs/standards/lessons.md` from HQ `c2705bc` and opened while this
+entry was being written, which is the whole of L24 in one line.
+
+**And four of the ten are links, which this instrument could not see until
 tonight.** `#242` and `#246` are contained in `#250`; `#243` is contained in
-`#249` and `#249` in `#251`. **Nine open is five independent decisions**, and
+`#249` and `#249` in `#251`. **Ten open is six independent decisions**, and
 the count the owner reads has been high by four. `order.sh`'s coverage test
 only fired when something already merged into the running composite contained
 a later row — the chain written oldest-last — and every chain in this
