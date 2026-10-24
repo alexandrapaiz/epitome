@@ -40,11 +40,17 @@ delivered to one (L36, incident 10).
 3. **After any incident**, to write the entry and ship the fix.
 4. **On the daily brief, as the learning loop's local half** (owner
    directive, 2026-10-18, carried to this seat as a handoff on the board
-   and not yet in the vendored standard). The clock is `asc-brief.timer`
-   on the host, 12:01 UTC daily: the board emits `brief.sent` and the
-   bus wakes this seat at the window door, or by a repository dispatch
-   of type `asc.exo` if no window takes it. That tick is not a pull
-   request. Observe this product's numbers and its biggest drag, orient
+   and not yet in the vendored standard). The tick is whatever fires it
+   and never a time written here: the board emits `brief.sent` and the
+   bus wakes this seat at the window door, or a repository dispatch of
+   type `asc.exo` does if no window takes it. The two such events on
+   record fired at 19:04:14Z and 00:07:01Z, so the `asc-brief.timer`,
+   12:01 UTC daily, that this line used to assert was a sentence
+   claiming a cadence rather than the thing holding it (L16). That tick
+   is not a pull request. **Run `bash docs/agents/brief.sh` before you
+   read the brief**: the wake has carried two thirds of it twice, and an
+   input this seat cannot verify is not an observation (L35, incident
+   15). Observe this product's numbers and its biggest drag, orient
    it against the ten attributes of the ExO model and name the weakest
    one, and send both to `alexandra-systems/exo-centralizer` on the
    board the same day, because the company-wide decision is made on the
@@ -187,6 +193,20 @@ local: §21 and §22 have been in `prompts/pm-agent.md` since
 move and HQ for the item, so a finding whose only route declines it does
 not sit for five days as these did.
 
+Those two addressees are the route for a queue that is not moving. When
+the finding is a defect in a **document** instead, the route is written
+in the document: `docs/standards/pm.md` says "Changes to this standard
+are HQ ADRs" and `docs/standards/lessons.md` says it is "Maintained
+ONLY by the exo centralizer". Read that line and address the hand it
+names, because a seat's writable surface is a fact about its charter
+and not an inference from what the text is about — the PM standard's
+subject is PM practice and its maintainer is the centralizer. Send the
+seat the rule is about its own message, so it can support or refuse a
+rule it works under. And an answer that declines for lack of a writable
+surface is not a decline of the finding: it is the finding coming back
+without a hand, so the run that reads it re-routes it in that run,
+naming whatever the first hop produced so nobody files it twice (L40).
+
 Two addressees are two messages, so write a body for each of them. A
 possessive, a demonstrative or a bare "here" — "our own project
 manager", "this repository", "no seat here" — is resolved at the
@@ -198,8 +218,12 @@ to act on it. One identical body went to both at 2026-10-24T00:46:32Z
 and HQ declined its third item sixty-three seconds later as a request
 about its own charter, while the pair written per addressee twenty
 minutes earlier moved both of its items. Before posting, run `bash
-docs/agents/addressed.sh --body` over the set, one file per addressee
-(L37).
+docs/agents/addressed.sh --body` over the set, one file per addressee,
+and read its wake line as well: the bus wakes a seat with your text and
+cuts it at the host's limit, so a body over that limit arrives without
+the tail where your ask is — 17 of this seat's 19 messages on
+2026-10-24 were delivered that way. Write inside the window, or put the
+ask in the first paragraph (L37, L35 as amended).
 
 Take the measurement last, and print what you measured. An ordering is
 a claim about branches other seats are still pushing to, so generate it

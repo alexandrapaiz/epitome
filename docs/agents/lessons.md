@@ -13,6 +13,16 @@ numbering convention you proposed, that it comes from your seat going
 forward, stands unless she says otherwise" — so a seat that needs a number
 asks for it rather than taking the next one it can see.
 
+**A portable lesson carries two markers, not one.** `portable: yes` offers the
+rule to the company register; `role: <sections>` says which of that register's
+role sections it belongs under, comma-separated, `any` when the rule binds every
+seat. The second one is not decoration: the centralizer's harvest can infer
+everything about a lesson except where it files, so a portable lesson with no
+role arrives unassigned and waits for a human read. On 2026-10-24 all
+twenty-three portable lessons in this file were unassigned for that reason, and
+twenty-two of them were law nowhere outside this repository, the oldest for five
+weeks. Write both markers in the same edit that writes the lesson.
+
 ## L1 — Mechanism is the spine; process vocabulary is a footnote
 
 **Trigger (2026-09-18)**, on the PM's first cycle briefing: "the
@@ -258,6 +268,7 @@ weekly review. Companion to L9: a landing pull request that nobody reads
 has reported nothing either.
 
 `portable: yes`
+`role: engineer, pm, exo`
 
 ## L14 — The owner-facing surface this org has most of is a pull request description
 
@@ -298,6 +309,7 @@ no pre-ship check against this register at all; a patch adding it is in
 `docs/agents/patches/`.
 
 `portable: yes`
+`role: any`
 
 ## L15 — A defect you have already fixed once is work, not an idea
 
@@ -349,6 +361,7 @@ and this seat, which reads that ledger every weekly review and had never
 read its status column as a gate. Full record: incident 5.
 
 `portable: yes`
+`role: engineer, exo`
 
 ## L16 — A cadence lives in the thing that fires it, never in the sentence that claims it
 
@@ -416,6 +429,7 @@ look-back of its triage (patch proposed as a diff in
 first instance and whose patch is beside it.
 
 `portable: yes`
+`role: any`
 
 ## L17 — The inbox is a feed, not a queue: read it addressed-only, and write a duty down before you work it
 
@@ -471,6 +485,7 @@ repository's, and went up as a handoff to the centralizer with the
 two-line fix rather than as a patch here (L5). Full record: incident 7.
 
 `portable: yes`
+`role: any`
 
 ## L18 — A run a resource refused did not fail; record the refusal, give the work back, and resume when the resource returns
 
@@ -535,6 +550,7 @@ file, routed to the centralizer. Full record: incident 8; first instance of the
 axis, incident 6.
 
 `portable: yes`
+`role: engineer, pm`
 
 ## L19 — Durable means on `main`: a deferral is only as real as the merge it waits for
 
@@ -631,6 +647,7 @@ being restated here. Not an incident: nothing failed its charter,
 nothing was corrupted and nothing leaked — the register's own boundary.
 
 `portable: yes`
+`role: any`
 
 ## L20 — A fix is shipped when it is on `main`; anywhere else, the defect is still open
 
@@ -713,6 +730,7 @@ the queue handoff already open there, rather than as a second handoff —
 one finding, one owner.
 
 `portable: yes`
+`role: exo`
 
 ## L21 — Hand work on with the test the other authority will run, and name the condition when you refuse
 
@@ -807,6 +825,7 @@ check the directory is held to. The queue measurement went to
 authority that ends this is a merger and not a register.
 
 `portable: yes`
+`role: pm, exo`
 
 ## L22 — A fix lands where the work runs, and is proved against the resource's own recorded words
 
@@ -910,6 +929,7 @@ centralizer. Full record: incident 10. Companion to L16: a cadence lives in the
 thing that fires it, and a fix lives in the thing that runs it.
 
 `portable: yes`
+`role: engineer, pm, exo`
 
 ## L23 — A row may be united if nothing cites it by name; allocate an identifier across the open queue, not against `main`
 
@@ -1003,6 +1023,7 @@ and went back to the centralizer on the board rather than up as a second rule
 (L5). First instance of the axis: incident 9.
 
 `portable: yes`
+`role: exo, pm`
 
 ## L24 — A measurement of someone else's branch perishes; take it at the moment you publish, and print the revision you took it at
 
@@ -1066,6 +1087,7 @@ the behaviour, not the failure. Companion to L20: a fix is shipped when it is on
 `main`, and a measurement is true only of the revision it names.
 
 `portable: yes`
+`role: exo, pm`
 
 ## L25 — A charter patch's route is readable from the standard, per patch: a duty proceeds on silence, an authority waits for her word
 
@@ -1134,6 +1156,7 @@ answers most of them per case and an answerable question sent upward costs two
 passes and gets back what was already in the file.
 
 `portable: yes`
+`role: any`
 
 ## L26 — A triage is local and a cause is not: name the mechanism, then count it across every seat on the box
 
@@ -1208,6 +1231,7 @@ read them as other seats' housekeeping, and was the fourth company to pay for
 the mechanism rather than the seat that named it. Full record: incident 12.
 
 `portable: yes`
+`role: pm, engineer`
 
 ## L27 — A decision the silence rule releases has to be a merge: a diff that is not in the file it changes gives consent no hand to execute it
 
@@ -1281,6 +1305,7 @@ under the owner's live ask are left exactly as they are: her clock is running on
 them and pulling them out from under it would be a second fault, not a fix.
 
 `portable: yes`
+`role: exo, pm`
 
 ## L28 — A dry run that writes nothing is not the run: check a set by applying it, in a recorded order, and throw the result away
 
@@ -1358,6 +1383,7 @@ product instead of at the registers. Routed to `alexandra-systems/exo-centralize
 as portable, because the misreading is in a tool four companies use.
 
 `portable: yes`
+`role: exo, pm, engineer`
 
 ## L29 — An ask's ground is a claim about its own contents: a defect found under the clock is repaired in the ask, never in the text
 
@@ -1450,6 +1476,7 @@ identifiers at all precisely because they belong in `data`, where a reader
 resolves rather than retypes them.
 
 `portable: yes`
+`role: exo, pm`
 
 ## L30 — A rule that changes how a fix travels is owed first to the case already stuck on it, not to the file nearest your hand
 
@@ -1509,6 +1536,7 @@ what is waiting behind the door you just closed. Full record: incident 11,
 re-measured in this run; L27, whose first application this is.
 
 `portable: yes`
+`role: exo`
 
 ## L31 — A law binds where the seat reads, not where the register keeps it: a rule above your charter is a rule you do not have
 
@@ -1587,6 +1615,7 @@ eight charters carry the route, and no seat in this company holds the authority
 to give all eight one.
 
 `portable: yes`
+`role: any`
 
 ## L32 — A mechanism you invented is judged by what it has landed, not by what it holds: at the second use with nothing landed, do the work by the route that has landed something
 
@@ -1644,6 +1673,7 @@ own `routes.md`, where the table of nine edits and nought diffs is kept, and
 incident 11, which priced the same gap on the merging seat.
 
 `portable: yes`
+`role: any`
 
 ## L33 — A number travels as a labelled identifier or it does not travel: put the set in `data`, generated, and never let the prose re-derive it
 
@@ -1738,6 +1768,7 @@ says the number must arrive labelled and generated, or the next reader joins it
 to whatever numbers are in the room.
 
 `portable: yes`
+`role: any`
 
 ## L34 — A kill condition denominated in calendar time measures the clock, not the thing, and one its own author can satisfy measures nothing at all
 
@@ -1791,6 +1822,7 @@ judging window has to be denominated in the mechanism's own units and scored
 by somebody else.
 
 `portable: yes`
+`role: any`
 
 ## L35 — A cut made by character count cuts by position, and position is not importance; the pointer it leaves is only honest if the reader can execute it
 
@@ -1864,7 +1896,38 @@ not a worked example. Companion to L-A32, which says a run is over when its
 artifact is reachable: this is the same claim about a message, and the
 reachability is the part that was asserted rather than tested.
 
+**Amended 2026-10-24T01:45Z, and the amendment is about the author rather
+than the surface.** The brief half of this is fixed: HQ merged it at
+413e52c and the chair deployed it at 01:27Z, so the brief now composes as
+nine named sections, the wake drops whole sections against a declared
+precedence with *Needs you* last of all, and the marker gives the address of
+`GET /api/brief`, which composes and returns and sends nothing. Eighty
+minutes from handoff to deployed. What is *not* fixed, and is not a defect,
+is the cut on an ordinary message: `wake_body` still keeps the head at
+WAKE_BODY_CHARS — 1500 — and HQ's code says why in the file, which is that
+prose has one author and a disposition at the end, and the marker's pointer
+to the inbox resolves for a message because a message really is in an inbox.
+
+So on that surface the only remaining hand is the sender's, and this seat has
+been the worst user of it on the board. Measured on the board's own record at
+01:43Z: **17 of the 19 messages this seat posted today were longer than the
+wake**, the longest 3,862 characters — two and a half windows — and of the 87
+messages posted company-wide in the 58 minutes the event feed could still
+see, 27 were delivered cut and 12 of those 27 were this seat's. The register
+that wrote this rule in the morning was the biggest producer of truncated
+wakes on the board that night.
+
+**The clause.** A message you send is delivered by waking its reader with its
+text, so a body longer than the window is a body whose ask the reader has not
+seen. Write inside the window, or put the ask in the first paragraph and let
+the argument be the part that is cut — never the other way round. `bash
+docs/agents/addressed.sh --body FILE` answers it before posting, against the
+host's own limit rather than a number remembered here, and it is checked
+against both controls: the 17 real positives above and a short body that
+passes.
+
 `portable: yes`
+`role: any`
 
 ## L36 — Count the surfaces that instruct a seat, and read the whole duty in each one: three of this product's four said "open a draft" and none of them said "ready it"
 
@@ -1943,6 +2006,7 @@ block's wake-path gap is HQ's runtime, handed to
 named above and asked for.
 
 `portable: yes`
+`role: any`
 
 ## L37 — A possessive resolves at the reader, so one body sent to two companies says two different things: in a multi-addressee message, name every seat, file and repository by its own name
 
@@ -2007,6 +2071,7 @@ possessive is an identifier written in prose. Portable, because the surface is
 the board and the board is every company's.
 
 `portable: yes`
+`role: any`
 
 ## L38 — A message to a seat is a wake, so a liveness claim about that seat is void the moment you send it: name the moment you read it, and re-read before any hand acts
 
@@ -2061,6 +2126,7 @@ and one charter per pull request is this seat's rule. Portable: the wake-on-
 message mechanic is the board's, so it is every company's.
 
 `portable: yes`
+`role: exo, pm`
 
 ## L39 — A pull request's clock is the slowest clock inside it, so a charter patch holds every file that shares its branch
 
@@ -2130,3 +2196,112 @@ charter changes travel under a silence rule, which is all of them under
 `standards/pm.md` §22.
 
 `portable: yes`
+`role: any`
+
+## L40 — A document names its own change route, and a seat's writable surface is a fact about its charter rather than an inference from the subject
+
+**Trigger (2026-10-24T01:30:06Z)**, a note from HQ's project manager to this
+seat, verbatim: "I am logging it as a proposed entry in our own ideas ledger
+rather than editing the standard directly, since standards/ sits outside this
+seat's writable surface and the fix belongs to whoever drafts that sentence,
+the centralizer or the owner."
+
+**What this seat had done.** At 01:25:56Z it handed a finding about
+`standards/pm.md` §22 — the silence clock says what decision it releases and
+nothing about what else rides the branch carrying it — to
+`alexandra-systems/pm`, because §20 and §22 are the PM standard and the PM
+standard is about project management. That is an inference from the subject.
+The fact was in this repository the whole time, in two vendored files this
+seat reads at the start of every run:
+
+- `docs/standards/pm.md`, line 8: "Changes to this standard are HQ ADRs."
+- `docs/standards/lessons.md`, header: "Maintained ONLY by the exo centralizer
+  (`prompts/exo-centralizer.md`); products receive it as a vendored copy."
+
+Neither sentence names a project manager. Both name a route this seat could
+have addressed on the first hop.
+
+**Impact, exactly.** Small and not nothing: the finding is alive, correct and
+undisputed — "I am not disputing the finding" — and it now sits as a proposed
+entry in another company's ideas ledger, which binds no seat and starts no
+clock, twenty minutes after it was filed. Nobody declined it. It lost its
+hand, which by this charter's own section is the "authority nobody holds"
+case, and that case is routed and not recorded.
+
+**Rule.** Before addressing a defect in a document, read the document's own
+line about how it changes, and address the hand that line names. A seat's
+writable surface is a fact about that seat's charter, not an inference from
+what the text is about: the PM standard's *subject* is PM practice and its
+*maintainer* is the centralizer, and those are two different seats. Where the
+rule is about a seat as well, that seat gets its own message — not a copy of
+the other one (L37) — so it can support or refuse the change to a rule it
+works under.
+
+And the second half, because the first half alone would have made this a
+cheaper mistake rather than a corrected one: **a decline for lack of a
+writable surface is not a decline of the finding.** It is the finding coming
+back without a hand. The run that reads such an answer re-routes it in that
+run, to the hand the document names, carrying the same measurement and naming
+the ledger entry the first hop produced so nobody files it twice. Done this
+run, to `alexandra-systems/exo-centralizer`.
+
+**Binds:** every seat that finds a defect outside its own writable surface — a
+vendored standard, another product's register, a workflow, a charter it does
+not own. Written into `prompts/exo-agent.md` in this entry's pull request, in
+the section that hardcoded the two addressees a not-landing finding goes to,
+because that hardcoding is what sent a standards-text defect to a seat that
+cannot write standards.
+
+`portable: yes`
+`role: any`
+
+## L41 — A check has three answers and not two: clean, finding, and could-not-look, and the third must never be spelled like the first
+
+**Trigger**, this run at 2026-10-24T01:41Z. The first act of the brief tick,
+newly written into this seat's charter an hour earlier, is `bash
+docs/agents/brief.sh`. It printed:
+
+> no brief.sent in the window the events route returned; nothing to compare
+
+and exited 0. Read in a hurry, by the seat that wrote it, that says the brief
+arrived whole. What it actually means is that the script never saw a brief at
+all.
+
+**Why it could not look.** `GET /api/events` honours `since_hours` and
+nothing else: `limit` is accepted and ignored, and the store caps every answer
+at the newest 200 rows (`store.events(..., limit: int = 200)`, and the route
+never passes one). Verified by varying it — `?limit=5` returned 200 events,
+`?limit=400` returned 200 — which is the only way to verify a filter. On a
+quiet morning 200 events reached back past the 00:07Z brief, which is why the
+detector worked when it was written. At 01:41Z tonight 200 events spanned 58
+minutes, 87 of them `message.posted`, and the brief fires once a day. The
+detector's window is set by other seats' traffic and nothing in it said so.
+
+**Rule.** A check reports three outcomes and gives each its own spelling and
+its own exit status: clean, a finding, and *I could not take a reading*. The
+third one names the window it actually searched — the count, the span, the
+route and the parameter the route honours — and exits non-zero, because a
+silent instrument and a healthy subject produce the same output and only one
+of them is news. Corollary, for anything built on a shared feed: a detector's
+reach is a function of other people's traffic, so it degrades to what it can
+still answer alone rather than to nothing. `brief.sh` now prints everything
+`GET /api/brief` can say by itself — the section list, the honestly elided
+lines — before it declares itself blind on the wake, and that part is true on
+a blind run.
+
+**Companion, and the part that is HQ's.** `runtime/board/api.py` writes, of
+the messages route, "Every filter named here is honoured and anything else is
+a 400, because a filter silently ignored reads as a filter that worked." The
+events route is the counterexample to its own file: it accepts `limit` and
+ignores it. Handed to `alexandra-systems/exo-centralizer` with this entry,
+because the fix is one argument in one call and the rule it violates is
+already written down in the same file. This is L-X1 as amended one turn
+further: a detector is checked against a real positive, *and* against the day
+its subject is not there.
+
+**Binds:** every seat that writes a check against a feed, a log directory or
+any window it does not control — which in this company is every detector
+either register has asked for.
+
+`portable: yes`
+`role: any`
