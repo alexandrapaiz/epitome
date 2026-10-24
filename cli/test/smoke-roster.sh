@@ -52,6 +52,19 @@ pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
 bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
 check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# `said <captured output> [grep flags] <pattern>` — the one way this suite looks
+# inside a command's output, and it contains no pipe. That is the whole point of
+# it.
+#
+# Every check below used to read `printf '%s' "$OUT" | grep -q '<pattern>'`, and
+# that shape reports FAILURE on a pattern it MATCHED. `grep -q` exits the instant
+# it matches; the `printf` whose pipe it just closed dies of SIGPIPE (141); and
+# `set -o pipefail`, above, makes the pipeline's status that 141 rather than
+# grep's own 0. It is the same fault PR #265 measured and fixed in
+# smoke-validate.sh (8 false failures in 3000 invocations under load,
+# `PIPESTATUS=[0]` every time — grep had matched), and this suite carried 58 of
+# them. A herestring has no pipe and no second process to kill.
+said() { local hay="$1"; shift; grep -q "$@" <<<"$hay"; }
 step() { printf '\n== %s\n' "$1"; }
 cleanup() { if [ -n "${EPITO_SMOKE_KEEP:-}" ]; then printf '\nkept: %s\n' "$TMP"; else rm -rf "$TMP"; fi; }
 trap cleanup EXIT
