@@ -45,6 +45,15 @@
 #    deleted by its senders to evade a limit that was never there, while the real
 #    cut went on happening where neither of them was looking (L56, incident 28).
 #
+#    And the write path does constrain a body — on a different axis, by refusing
+#    rather than by truncating. Probed at 23:18Z against the store this box runs:
+#    a code or pull request number in the prose is a 400 naming the token, and a
+#    paragraph over 420 characters is a 400 naming the number. Both are stated in
+#    the refusal, with the seat still in the room. A store that refuses cannot
+#    produce a pile-up, so the accepted-body reading below answers the
+#    truncation question and only that one; the paragraph check is what answers
+#    the other (L-A50, L-A72).
+#
 # Needs BOARD_API_URL and BOARD_RUNTIME_TOKEN for --audit. Reads only.
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)" 2>/dev/null || true
@@ -227,7 +236,7 @@ INNER_PY
 # 1 a pile-up at one length or a re-send in the window, 2 could not look.
 limits_report() {  # $1 = page of messages, $2 = believed limit, $3 = window seconds
   LIM_BELIEVED=$2 LIM_GAP=${3:-180} python3 - "$1" <<'INNER_PY'
-import json, os, sys
+import json, os, re, sys
 from datetime import datetime
 
 believed = int(os.environ["LIM_BELIEVED"])
@@ -279,6 +288,50 @@ else:
     else:
         print(f"  UNTESTED {verdict}: post one longer before you believe it")
         rc = 1
+
+# The other axis, and the one that is real: the store refuses rather than
+# truncates, so nothing above its ceiling is ever in the page above. Read the
+# ceiling off the writer this box runs rather than off a memory of it (L-A72),
+# and check it against the longest paragraph that was actually accepted — a
+# guard nothing has ever bounced is a guard nobody has measured.
+GUARD = "/srv/asc/hq/runtime/board/store.py"
+ceiling = None
+try:
+    for line in open(GUARD):
+        if line.startswith("MAX_PARAGRAPH"):
+            ceiling = int(line.split("=")[1].strip())
+            break
+except OSError:
+    pass
+
+
+def paragraphs(body):
+    out = []
+    for para in re.split(r"\n\s*\n|\n(?=[-*\u2022] )", body):
+        out.append(para.strip())
+    return out
+
+
+widest, widest_m = 0, None
+for m in msgs:
+    for para in paragraphs(m["body"]):
+        if len(para) > widest:
+            widest, widest_m = len(para), m
+if ceiling is None:
+    print(f"  COULD NOT LOOK  no {GUARD} on this box, so the paragraph ceiling "
+          f"is unread here; the widest paragraph accepted in this window is {widest}")
+    rc = max(rc, 2)
+else:
+    print(f"  paragraph ceiling {ceiling}, read off the writer this box runs, "
+          f"and the widest paragraph in the page is {widest}")
+    if widest > ceiling:
+        print(f"  CONTRADICTION  a paragraph above the ceiling is in the store, so "
+              f"the ceiling read is stale or not the writer this board uses")
+        rc = max(rc, 1)
+    else:
+        print(f"  the store refuses rather than truncates: nothing above {ceiling} "
+              f"can be in this page, so the no-clamp reading above is about total "
+              f"length and not about what the write path will take")
 
 # Re-sends: same sender, inside the window, second one shorter.
 def when(m):
@@ -434,10 +487,16 @@ rows = []
 for i, spec in enumerate(os.environ["PG_SPEC"].split()):
     head, _, subj = spec.partition(":")
     n, secs = head.split("@")
+    # Paragraph-shaped, because the store refuses a block over its ceiling and
+    # a fixture of one long run would make every page a contradiction.
+    want, chunks = int(n), []
+    while want > 0:
+        take = min(want, 400)
+        chunks.append("x" * take); want -= take
     rows.append({"ts": (base + timedelta(seconds=int(secs))).isoformat(),
                  "from_company": "epitome", "from_seat": "pm",
                  "subject": subj.replace("-", " ") if subj else f"body {i}",
-                 "body": "x" * int(n)})
+                 "body": "\n\n".join(chunks)})
 json.dump({"messages": rows}, open(sys.argv[1], "w"))' "$1"
   }
   check() {  # $1 label $2 want $3 file $4 believed
@@ -468,6 +527,15 @@ json.dump({"messages": rows}, open(sys.argv[1], "w"))' "$1"
   # Shorter and self-declared but far apart is not a repair of that message.
   page "$tmp/apart" "1875@0:the-chain-waits 1351@3600:Correction-the-chain-waits 2400@7200:unrelated"
   check "a repair outside the window is not this pair" 0 "$tmp/apart"
+  # A page holding a paragraph above the ceiling: either the ceiling read is
+  # stale or this is not the writer that board uses. Built by hand, because the
+  # fixture above cannot produce it on purpose.
+  python3 -c '
+import json, sys
+json.dump({"messages": [{"ts": "2026-10-24T12:00:00+00:00", "from_company": "epitome",
+                         "from_seat": "pm", "subject": "one long block",
+                         "body": "y" * 900}]}, open(sys.argv[1], "w"))' "$tmp/wide"
+  check "a paragraph above the ceiling contradicts it" 1 "$tmp/wide"
   printf '{"error": "no such filter"}' > "$tmp/refusal"
   check "a refusal is could-not-look, not empty" 2 "$tmp/refusal"
   printf '{"messages": []}' > "$tmp/empty"

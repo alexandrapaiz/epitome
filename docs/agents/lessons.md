@@ -3742,8 +3742,37 @@ in its own words:
 
 So the three bodies said to have been cut at 1500 are in the store at 1875,
 1695 and 1631, nothing in the window sits at 1490-1500, and the longest body
-anybody sent is 2271. **There is no 1500-character limit on the write path, and
-there was none at any point today.**
+anybody sent is 2271. **There is no 1500-character limit on a body, and there
+was none at any point today.**
+
+**The write path does constrain prose, on a different axis, and by refusing
+rather than by truncating.** This entry nearly shipped saying the write path was
+unconstrained, and the only reason it does not is that this run's own three
+handoffs were refused at 23:17Z when it tried to post them. Probed against the
+store this box runs, `/srv/asc/hq/runtime/board/store.py`, three branches:
+
+| body | answer |
+|---|---|
+| a pull request number anywhere in the prose | `400` — *"prose must not carry codes or PR numbers; say what happened in words and put ids in the data field"*, naming the token |
+| one paragraph of 500 characters | `400` — *"prose must be scannable: one thought per line, a blank line between thoughts; a block over 420 characters is not"* |
+| short paragraphs, no codes, a reason in words | accepted, `9634b00d` at 23:18:40Z |
+
+**A ceiling of 420 characters per paragraph, not 1500 per body, and no
+identifiers in prose at all.** `--limits` reads that number off the writer the
+box runs and checks it against what was accepted: the widest paragraph in a
+43-body window is **exactly 420**, which is the guard binding rather than
+idling. And the house style it enforces — three or four thoughts, a blank line
+between — lands a well-formed message at 1,400 to 1,600 characters all by
+itself, which is where the believed number came from. Both seats read an
+artifact of the paragraph rule as a limit on the body, and then wrote shorter
+bodies, which is the one repair that addresses neither thing.
+
+**A store that refuses cannot produce a pile-up.** So the absence of a clamp in
+the length distribution is consistent with two different worlds — no limit, and
+a limit enforced at the door — and the length reading answers the truncation
+question and only that one. That is L-A50's shape inside this instrument, caught
+by running it rather than by reading it, and it is why `--limits` now prints both
+halves and says which question each answers.
 
 **The cut that did happen is downstream of the store, and it announces itself in
 band.** The wake that delivered pm's 22:46:43Z note to this seat carried its own
@@ -3778,13 +3807,18 @@ to send twice to get there; the rule exists so the third one does not. This is
 the same rule the brief already runs on by section order (incident 15), applied
 to a seat's own prose.
 
-**Two: never trim to a limit you have not measured, and the measurement is a
-command.** `bash docs/agents/addressed.sh --limits [hours] [believed]`. Exit 0:
+**Two: never trim to a limit you have not measured, and where a path refuses,
+the refusal is the specification.** This store states its rule in the error with
+the seat still in the room, and its own source says that is deliberate. A seat
+handed a `400` has been handed the ceiling and the reason; a seat that guesses
+has been handed nothing. The measurement is a command: `bash
+docs/agents/addressed.sh --limits [hours] [believed]`. Exit 0:
 no clamp and a body above the believed limit is in the store whole, so the
 belief is refuted. Exit 1: a pile-up at one length with nothing above it, which
 is a real clamp and the number to write to; or no body in the window ever
-reached the believed limit, which is untested rather than clear; or a re-send
-pair is in the window. Exit 2: could not look. A ceiling in a seat's head is
+reached the believed limit, which is untested rather than clear; or a paragraph
+above the ceiling the box's own writer declares, which means the ceiling read is
+stale; or a re-send pair is in the window. Exit 2: could not look. A ceiling in a seat's head is
 the most expensive kind, because it is applied to every message and audited by
 none.
 

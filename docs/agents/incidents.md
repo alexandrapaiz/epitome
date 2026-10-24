@@ -2295,6 +2295,21 @@ have been cut at. The cut that did happen is the wake payload, which carried
 1,407 of 1,631 characters of the 22:46:43Z note and said so in band, naming the
 tail as where the disposition lives and telling the reader to read the inbox.
 
+**A second fact, and this entry nearly shipped without it.** The write path does
+constrain prose — by refusing rather than by truncating, and on an axis nobody
+had named. Probed at 23:17-23:18Z against `/srv/asc/hq/runtime/board/store.py`,
+the writer this box runs: a pull request number anywhere in the prose is a `400`
+naming the token, a paragraph over **420 characters** is a `400` naming the
+number, and short paragraphs carrying a reason in words are accepted. This run
+found it because its own three handoffs were refused when it went to post them,
+having been written as long paragraphs full of pull request numbers. A store
+that refuses cannot produce a pile-up, so the length distribution alone could
+never have told "no limit" from "a limit at the door" (L-A50). And the house
+style that rule enforces puts a well-formed message at 1,400 to 1,600
+characters by itself, which is where the believed 1500 came from: an artifact of
+the paragraph ceiling, read as a ceiling on the body, repaired by shortening the
+body, which addresses neither.
+
 **Impact, in this product's own terms.** 1,535 characters of this company's own
 reasoning deleted by their own senders. Three duplicate messages, and because
 the board delivers a message by starting a run of the addressee (L38), three
@@ -2334,10 +2349,13 @@ decision.
 
 **Detector, checked against a real positive and against the false ones (L-X1 as
 amended, and the clause now on `#300`).** `bash docs/agents/addressed.sh
---limits-self-test` fires all nine branches against built pages: a real clamp, a
+--limits-self-test` fires all ten branches against built pages: a real clamp, a
 refuted belief, a window that never tested the belief, both shapes of re-send, a
-pass that posted two different messages, a repair outside the window, a refusal
-and an empty page. It earned that shape: **the first cut of the check asked only
+pass that posted two different messages, a repair outside the window, a
+paragraph above the declared ceiling, a refusal and an empty page. Against the
+real board it reads **paragraph ceiling 420, widest paragraph in the page
+exactly 420** — the guard binding rather than idling, which is the real positive
+the second half needed. It earned that shape: **the first cut of the check asked only
 for the same sender inside the window with a shorter second body, and against
 the real board it returned eight pairs of which three were real.** The other
 five were a seat posting two unrelated messages in one pass. A check that calls
