@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Three readers, one captured output: which half of a flaky assertion moves.
 #
-#   bash test/probe-readers.sh                    # from cli/
+#   bash test/probe-readers.sh                    # from cli/: all three loops
+#   bash test/probe-readers.sh --sizes            # the third loop only, no engine
 #   READERS_FIXED=4000 READERS_FRESH=40 bash test/probe-readers.sh
 #
 # docs/ideas.md carries a row for a family of intermittent failures in this
@@ -23,7 +24,7 @@
 #   the herestring  grep -qF -e "$N" <<<"$out"                the shape after
 #   bash itself     [[ $out == *"$N"* ]]                       no fork at all
 #
-# Two loops, because they answer different halves. The FIXED loop asks all
+# Three loops, because they answer different halves. The FIXED loop asks all
 # three of one capture, over and over: every disagreement there is a reader's,
 # since the bytes cannot change. The FRESH loop runs the product again for each
 # iteration: a capture that no reader finds the sentence in is the product's own
@@ -34,6 +35,11 @@
 set -uo pipefail
 CLI="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ROSTER="$CLI/../agents"
+MODE=all
+for a in "$@"; do case "$a" in
+  --sizes) MODE=sizes ;;
+  *) printf 'test/probe-readers.sh: unknown option "%s". There is one: --sizes.\n' "$a"; exit 2 ;;
+esac; done
 FIXED="${READERS_FIXED:-2000}"
 FRESH="${READERS_FRESH:-20}"
 N='answered and then refused the connection this question needs'
@@ -44,10 +50,54 @@ trap cleanup EXIT
 
 printf '\n== three readers, one captured output: which half of the flake moves\n\n'
 
-if ! node -e 'import("@temporalio/client").then(()=>process.exit(0),()=>process.exit(1))' 2>/dev/null; then
+if [ "$MODE" != sizes ] && ! node -e 'import("@temporalio/client").then(()=>process.exit(0),()=>process.exit(1))' 2>/dev/null; then
   printf '  SKIPPED -- @temporalio/client is not installed here, so the real connect this\n'
   printf '  scenario needs never happens and the row under test is never printed.\n'
   printf '  Run `npm ci` in %s first.\n' "$CLI"
+  exit 0
+fi
+
+sizes_loop() {
+  # Where the threshold really is. A producer that is a shell builtin writes
+  # through stdio, whose buffer is 4 KiB here — not the 64 KiB of the pipe — so
+  # any output past 4 KiB takes a SECOND write, and the second write is the one
+  # that lands on a pipe quiet grep has already closed. The needle goes on the
+  # first line, which is where a report's own verdict usually is.
+  local asks="${READERS_ASKS:-200}" sizes="${READERS_SIZES:-1024 2048 4096 4300 8192 65536}"
+  local size payload wrong i ps rc s
+  printf '\n  loop 3 — what the pipe reader is actually wrong about, %s asks each cell\n' "$asks"
+  printf '    (the producer is `printf`, a builtin, as in the suites; `first` puts the needle on\n'
+  printf '     line 1 and `last` on the final line, which is the only other thing that changes)\n'
+  local where
+  for size in $sizes; do
+   for where in first last; do
+    if [ "$where" = first ]; then
+      payload="$N"$'\n'"$(yes 'the same line of filler a real report prints' | head -c "$size")"
+    else
+      payload="$(yes 'the same line of filler a real report prints' | head -c "$size")"$'\n'"$N"
+    fi
+    wrong=0; i=0; : > "$WORK/sizes-ps.txt"
+    while [ "$i" -lt "$asks" ]; do
+      i=$((i+1))
+      printf '%s' "$payload" | grep -qF -e "$N"
+      ps="${PIPESTATUS[*]}"; rc=0; for s in $ps; do [ "$s" != 0 ] && rc=$s; done
+      [ "$rc" != 0 ] && { wrong=$((wrong+1)); printf '%s\n' "$ps" >> "$WORK/sizes-ps.txt"; }
+    done
+    printf '    %6s bytes  needle %-5s %4s/%s wrong   PIPESTATUS %s\n' \
+      "$(printf '%s' "$payload" | wc -c)" "$where" "$wrong" "$asks" \
+      "$(sort "$WORK/sizes-ps.txt" | uniq -c | tr -s ' \n' ' ' | sed 's/^ //;s/ $//')"
+    : > "$WORK/sizes-ps.txt"
+   done
+  done
+}
+
+if [ "$MODE" = sizes ]; then
+  printf '  the needle: %s\n' "$N"
+  printf '  the box:   load%s\n' "$(uptime | sed 's/.*load average/ average/')"
+  sizes_loop
+  printf '\n-----------------------------------------------\n'
+  printf 'probe-readers: read which cells have a non-zero count beside them. That is where this\n'
+  printf "repository's remaining pipe sites stop being latent, and it is not only 64 KiB.\n"
   exit 0
 fi
 
@@ -144,6 +194,8 @@ done
 printf '    pipe %s/%s, herestring %s/%s, bash %s/%s matched\n' "$fp" "$FRESH" "$fh" "$FRESH" "$fb" "$FRESH"
 printf '    captures the product did not print the sentence in: %s of %s\n' "$missing" "$FRESH"
 printf '  the box:   load%s\n' "$(uptime | sed 's/.*load average/ average/')"
+
+sizes_loop
 
 printf '\n-----------------------------------------------\n'
 printf 'probe-readers: the product printed the sentence in %s of %s fresh runs.\n' "$fb" "$FRESH"

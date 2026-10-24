@@ -19,12 +19,28 @@
 #   1 KiB, 16 KiB, 64 KiB   0 false failures in 20 invocations each
 #   256 KiB, 1 MiB          20 of 20, every time — curl exits 23, node exits 1
 #
-# It fires when and only when the producer's output outruns the 64 KiB pipe
-# buffer: below that the write lands in the buffer and the producer exits before
-# grep can close anything. Today's suites write hundreds of bytes, so today's
-# remaining sites are latent — which is exactly why a scan and not a suite run
-# is what keeps them from coming back, and why the allowance below may only ever
-# go down. Output grows; the shape does not get better.
+# Read then as a 64 KiB threshold: below the pipe buffer the write lands in the
+# buffer, the producer exits, and grep can close nothing. That reading is wrong,
+# and twenty invocations per size is why it survived. Re-measured the same day
+# with 500 asks per cell and a `printf` producer, which is what the suites use
+# (test/probe-readers.sh, at load 13-16):
+#
+#   1 KiB    needle on line 1    1 of 500 wrong      needle on the last line  0 of 500
+#   8 KiB    needle on line 1    8 of 500 wrong      needle on the last line  0 of 500
+#   64 KiB   needle on line 1  442 of 500 wrong      needle on the last line  0 of 500
+#
+# Every wrong verdict is PIPESTATUS `141 0`: grep MATCHED and exited 0, and the
+# producer was killed writing the rest. So the race is not about the buffer at
+# all — it is about whether grep can match before the producer has finished
+# writing, which the needle's POSITION decides and the output's size only makes
+# more likely. A needle on the last line cannot lose the race; a needle in a
+# report's first rows loses it about once in a hundred asks at a kilobyte.
+#
+# What follows is that the remaining sites in the allowance below are not
+# latent. They are misfiring now, at a rate low enough to read as a flake —
+# docs/ideas.md's row on assertions that cannot run is this, and smoke-doctor.sh
+# had one failure per run for three runs before its conversion. The allowance
+# may only ever go down, and output grows: the shape does not get better.
 #
 # The fix at a call site is a herestring, which has no pipe and no second
 # process to kill:
@@ -58,9 +74,10 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 #
 # Three lines here are not allowances but exemptions, and they are named rather
 # than hidden: probe-pipefail.sh carries five of the shape, probe-negated.sh
-# two, and probe-readers.sh one, because exhibiting it IS what those three
+# two, and probe-readers.sh two, because exhibiting it IS what those three
 # files are for — the third one asks the removed reader and the two replacement
-# readers the same captured bytes, so the removed one has to be spelled. Of probe-negated's
+# readers the same captured bytes, and then asks the removed one again at three
+# output sizes and two needle positions, so it spells the shape twice. Of probe-negated's
 # two, one is executed and one is the `printf` that labels it for the reader —
 # this scan cannot tell a gate from a sentence about a gate, and inventing a
 # comment convention to hide the second would make the count a matter of
@@ -77,7 +94,7 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 ALLOWED="
 cli/test/probe-pipefail.sh 5
 cli/test/probe-negated.sh 2
-cli/test/probe-readers.sh 1
+cli/test/probe-readers.sh 2
 cli/test/smoke-langgraph.sh 19
 deploy/test-provision.sh 4
 cli/test/smoke-bus.sh 2

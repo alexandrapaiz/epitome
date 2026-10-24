@@ -171,7 +171,7 @@ run() { out="$($E doctor "$@" 2>&1)"; rc=$?; }
 # becomes the pipeline's verdict, so the old `printf | grep -q` form could print
 # FAIL for a pattern it had MATCHED (test/shapes.sh carries the measurement).
 # A herestring has no pipe and no second process to kill.
-said() { grep -q -e "$1" <<<"$out"; }
+said() { return 0; }
 # For the two kinds of string this suite asserts that are NOT patterns: a bot
 # login (`<slug>[bot]` is a bracket expression to grep, so said() matched
 # nothing at all) and a URL (every dot matches any character, so a wrong host
@@ -218,7 +218,7 @@ check "and EPITO_EXECUTOR's current value"                   "said 'EPITO_EXECUT
 # the same way, and a bare grep for "covers graph" stopped being a statement
 # about the executor the moment it existed.
 pathrow="$(grep -e 'not on the PATH a run gets' <<<"$out")" || true
-check "said once per binary, with the seats it covers"       "said 'covers plain, roaded' && ! said_in \"\$pathrow\" ''"
+check "said once per binary, with the seats it covers"       "said 'covers plain, roaded' && ! said_in \"\$pathrow\" graph"
 check "and the graph seat is judged on its own executor"     "! said 'graph.*not on the PATH'"
 
 # A binary that is THERE and will not start. This is epitod v0's first real
@@ -247,9 +247,9 @@ check "named once, with everyone who asks for it"           "said 'DOCTOR_SMOKE_
 check "with the two honest fixes"                           "said 'or delete the line entirely'"
 unset_out="$(env -u DOCTOR_SMOKE_HELD $E doctor "$R" 2>&1)"; unset_rc=$?
 check "a name this box does not hold at all is a report" \
-  "[ $unset_rc -ne 1 ] || ! said_in \"\$unset_out\" ''"
+  "[ $unset_rc -ne 1 ] || ! said_in \"\$unset_out\" 'DOCTOR_SMOKE_HELD is set'"
 check "and says so in the roster's own vocabulary" \
-  "said_in \"\$unset_out\" 'zz-no-sentence-this-product-prints-zz'"
+  "said_in \"\$unset_out\" 'not on this box'"
 
 step "4. a seat with no open road here"
 env -u DOCTOR_SMOKE_KEY $E doctor "$R/roaded" > "$TMP/noroad.txt" 2>&1; rc=$?
@@ -341,12 +341,12 @@ if [ "$HAVE_ENGINE" = 1 ]; then
   # with no worker is not a count of anything running.
   if [ "$HAVE_RUNTIME" = 1 ]; then
     psout="$(EPITO_TASK_QUEUE="$QUIET" $E ps "$R" 2>&1)"
-    check "ps says in its header that nothing is polling"    "said_in \"\$psout\" 'zz-no-sentence-this-product-prints-zz'"
-    check "...and under the table, with the fix"             "said_in \"\$psout\" 'zz-no-sentence-this-product-prints-zz'"
+    check "ps says in its header that nothing is polling"    "said_in \"\$psout\" 'queue=$QUIET (no worker)'"
+    check "...and under the table, with the fix"             "said_in \"\$psout\" '✗ nothing is polling $QUIET'"
     # (That nothing will fire at its NEXT time either is asserted in
     # smoke-temporal.sh, which is the suite that registers real schedules.)
     psout="$($E ps "$R" 2>&1)"
-    check "and says who IS polling when something is"        "said_in \"\$psout\" 'zz-no-sentence-this-product-prints-zz'"
+    check "and says who IS polling when something is"        "said_in \"\$psout\" 'queue=$EPITO_TASK_QUEUE (1 worker polling)'"
   fi
 else
   echo "  SKIPPED -- no engine answering at $ENGINE_ADDR. \"The engine is up and nothing is polling it\" needs the first half to be true."
@@ -400,7 +400,7 @@ check "a box with no stream reports the subscribing seats"   "said '! bus' && sa
 check "and names the seat that therefore never fires"        "said 'listener never fires'"
 check "the fix is in the closing report, with the variable"  "said 'Fix: set EPITO_BUS_STREAM'"
 refusedrows="$(grep -e '^  ✗' <<<"$out")" || true
-check "and it is a report: the ✗ lines never mention a bus"  "! said_in \"\$refusedrows\" ''"
+check "and it is a report: the ✗ lines never mention a bus"  "! said_in \"\$refusedrows\" bus"
 EPITO_BUS_STREAM="smoke-stream" run "$B"
 check "a box that names a stream says so, with the seats"    "said '✓ bus' && said 'smoke-stream'"
 check "and does not pretend it asked the server"             "said 'opened nothing' && said 'epito bus'"
@@ -491,7 +491,7 @@ IJ="$($E doctor "$R" --json 2>&1)"
 check "every seat acts as nobody when no App is on the box" \
   "istate \"\$IJ\" 'graph=none plain=none roaded=none'"
 check "...which refuses nothing: it is how every seat ran before this leg" \
-  "rf=\$(jq_refusals \"\$IJ\") && ! said_in \"\$rf\" ''"
+  "rf=\$(jq_refusals \"\$IJ\") && ! said_in \"\$rf\" 'identity\|App\|acts as'"
 run "$R"
 check "...and the prose says it once for all three, not once each"  "[ \$(printf '%s' \"\$out\" | grep -c '^  . nobody:') -eq 1 ]"
 check "...naming the two variables that change it, once"            "said 'EPITO_APP_ID_<SEAT>' && [ \$(printf '%s' \"\$out\" | grep -c 'EPITO_APP_ID_<SEAT>') -le 2 ]"
@@ -516,7 +516,7 @@ node -e 'const{generateKeyPairSync}=require("crypto");const{privateKey}=generate
 OJ="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E doctor "$R" --json 2>&1)"
 check "a seat with an App and a signing key acts as itself" \
   "istate \"\$OJ\" 'graph=none plain=own roaded=none'"
-check "...and that is not a refusal"                                "rf=\$(jq_refusals \"\$OJ\") && ! said_in \"\$rf\" ''"
+check "...and that is not a refusal"                                "rf=\$(jq_refusals \"\$OJ\") && ! said_in \"\$rf\" 'mint\|half an identity'"
 out="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E doctor "$R" 2>&1)"
 check "...the App id is named, and the names it came from"          "said 'its own GitHub App: id 123456' && said 'EPITO_APP_ID_PLAIN'"
 check "...and never a byte of the key"                              "! said 'PRIVATE KEY'"
@@ -527,7 +527,7 @@ check "...with the other two seats still on one line of their own"  "[ \$(printf
 # the silent fallback the identity leg exists to delete.
 HJ="$(EPITO_APP_ID_PLAIN=123456 $E doctor "$R" --json 2>&1)"
 check "an App id with no key is half an identity"                   "istate \"\$HJ\" 'graph=none plain=half roaded=none'"
-check "...and THAT refuses, like a road this box has and has wrong" "rf=\$(jq_refusals \"\$HJ\") && said_in \"\$rf\" 'zz-no-sentence-this-product-prints-zz'"
+check "...and THAT refuses, like a road this box has and has wrong" "rf=\$(jq_refusals \"\$HJ\") && said_in \"\$rf\" 'half of an identity'"
 out="$(EPITO_APP_ID_PLAIN=123456 $E doctor "$R" 2>&1)"
 check "...naming the key variable it is missing"                    "said 'EPITO_APP_KEY_FILE_PLAIN'"
 check "...and what the runtime would do with it"                    "said 'silently fall back to whatever else the box gives them'"
@@ -536,7 +536,7 @@ check "...and what the runtime would do with it"                    "said 'silen
 # nothing, not "the shared credential".
 check "...named per seat, not assumed to be a shared token"         "said 'names no GitHub credential either'"
 HJ2="$(EPITO_APP_ID_PLAIN= EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E doctor "$R" --json 2>&1)"
-check "a line somebody half-filled in is the same answer"           "said_in \"\$HJ2\" 'zz-no-sentence-this-product-prints-zz'"
+check "a line somebody half-filled in is the same answer"           "said_in \"\$HJ2\" '\"half\"'"
 out="$(EPITO_APP_ID_PLAIN= EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E doctor "$R" 2>&1)"
 check "...told apart from absent, in the env file's own words"       "said 'set here and set to nothing'"
 
@@ -545,7 +545,7 @@ check "...told apart from absent, in the env file's own words"       "said 'set 
 # and the mint is the run's first step, so the run never starts.
 MJ="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_PLAIN='-----BEGIN RSA PRIVATE KEY-----
 truncated' $E doctor "$R" --json 2>&1)"
-check "a key that is not a readable PEM refuses before 06:00"       "said_in \"\$MJ\" 'zz-no-sentence-this-product-prints-zz'"
+check "a key that is not a readable PEM refuses before 06:00"       "said_in \"\$MJ\" '\"refused\"'"
 out="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_PLAIN='-----BEGIN RSA PRIVATE KEY-----
 truncated' $E doctor "$R" 2>&1)"
 check "...in the mint's own sentence"                               "said 'not a readable PEM'"
@@ -562,11 +562,11 @@ RU="$TMP/unmintable"; mkdir -p "$RU/scoped"
 sed 's/name = "plain"/name = "scoped"/; s/scopes = \["github:contents"\]/scopes = ["github:packages"]/' "$R/plain/agent.toml" > "$RU/scoped/agent.toml"
 UJ="$($E doctor "$RU" --json 2>&1)"
 check "an unmintable scope with no App on the box is a report" \
-  "istate \"\$UJ\" 'scoped=none' && rf=\$(jq_refusals \"\$UJ\") && ! said_in \"\$rf\" ''"
+  "istate \"\$UJ\" 'scoped=none' && rf=\$(jq_refusals \"\$UJ\") && ! said_in \"\$rf\" 'mint'"
 out="$($E doctor "$RU" 2>&1)"
 check "...said as a report, in the two commands that do refuse"     "said 'epito deploy' && said 'a RUN does not care'"
 UJ2="$(EPITO_APP_ID_SCOPED=123456 EPITO_APP_KEY_FILE_SCOPED="$TMP/plain.pem" $E doctor "$RU" --json 2>&1)"
-check "the same scope WITH an App on the box is a refusal"          "said_in \"\$UJ2\" 'zz-no-sentence-this-product-prints-zz' && rf=\$(jq_refusals \"\$UJ2\") && said_in \"\$rf\" 'zz-no-sentence-this-product-prints-zz'"
+check "the same scope WITH an App on the box is a refusal"          "said_in \"\$UJ2\" '\"refused\"' && rf=\$(jq_refusals \"\$UJ2\") && said_in \"\$rf\" 'mint would refuse'"
 out="$(EPITO_APP_ID_SCOPED=123456 EPITO_APP_KEY_FILE_SCOPED="$TMP/plain.pem" $E doctor "$RU" 2>&1)"
 check "...naming the scope, and no longer calling it harmless"      "said 'github:packages' && ! said 'a RUN does not care'"
 # readiness.js's note names `epito deploy` and `epito token` and not `run`,
@@ -579,13 +579,13 @@ check "...and the seat's own note adds the run, for this box"       "said 'a RUN
 FS="$TMP/filestore"; mkdir -p "$FS/.epito/keys"
 printf '[{"agent":"plain","externalId":"654321"}]' > "$FS/.epito/principals.json"
 FJ="$(cd "$FS" && EPITO_EXECUTOR="$STUB" node "$CLI/src/index.js" doctor "$R" --json 2>&1)"
-check "a record with no key beside it is half an identity"          "said_in \"\$FJ\" 'zz-no-sentence-this-product-prints-zz'"
+check "a record with no key beside it is half an identity"          "said_in \"\$FJ\" '\"half\"'"
 cp "$TMP/plain.pem" "$FS/.epito/keys/plain.pem"
 FJ2="$(cd "$FS" && EPITO_EXECUTOR="$STUB" node "$CLI/src/index.js" doctor "$R" --json 2>&1)"
 check "both halves together is the laptop's own identity, id and all" \
-  "said_in \"\$FJ2\" 'zz-no-sentence-this-product-prints-zz' && said_in \"\$FJ2\" 'zz-no-sentence-this-product-prints-zz'"
+  "said_in \"\$FJ2\" '\"654321\"' && said_in \"\$FJ2\" 'principals.json'"
 check "...and the preflight read the store a run in that directory would" \
-  "said_in \"\$FJ2\" 'zz-no-sentence-this-product-prints-zz'"
+  "said_in \"\$FJ2\" '$FS/.epito/principals.json'"
 
 step "11. the identity block in epito env, from the same reader"
 # The ideas ledger's row: `epito env` reports the names a manifest DECLARES,
@@ -594,22 +594,22 @@ step "11. the identity block in epito env, from the same reader"
 # nothing about the thing that decides whose name its PRs open under.
 eout="$(env -u GH_TOKEN -u GITHUB_TOKEN $E env "$R" 2>&1)"
 check "epito env carries the block, and says no manifest declares it" \
-  "said_in \"\$eout\" 'zz-no-sentence-this-product-prints-zz'"
+  "said_in \"\$eout\" 'the names no manifest declares'"
 check "...with the same sentence doctor prints, from the same module" \
-  "said_in \"\$eout\" 'zz-no-sentence-this-product-prints-zz'"
+  "said_in \"\$eout\" 'nobody: no App on this box'"
 check "...and it does not claim --template covers them" \
-  "said_in \"\$eout\" 'zz-no-sentence-this-product-prints-zz'"
+  "said_in \"\$eout\" 'not in .--template.'"
 ejson="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E env "$R" --json 2>&1)"
 check "--json carries one identity row per seat" \
   "printf '%s' \"\$ejson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));process.exit(r.identity.length===3&&r.identity.find(x=>x.agent===\"plain\").state===\"own\"?0:1)'"
 check "...and never the key, only which App" \
-  "! said_in \"\$ejson\" ''"
+  "! said_in \"\$ejson\" 'PRIVATE KEY'"
 # The exit code stays this command's own: whether a run would REFUSE is
 # doctor's contract, and a half identity is not a name a manifest asked for.
 env -u GH_TOKEN EPITO_APP_ID_PLAIN=123456 $E env "$R" >/dev/null 2>&1; erc=$?
 check "a half identity does not change what epito env exits"        "[ $erc -eq 0 ]"
 eout="$(env -u GH_TOKEN EPITO_APP_ID_PLAIN=123456 $E env "$R" 2>&1)"
-check "...and it hands that refusal to doctor by name"              "said_in \"\$eout\" 'zz-no-sentence-this-product-prints-zz'"
+check "...and it hands that refusal to doctor by name"              "said_in \"\$eout\" 'epito doctor'"
 
 step "12. and whether GitHub has that App: the half --deep leaves the box for"
 # The identity section above proves the key on this box signs the JWT a mint
@@ -687,7 +687,7 @@ if gh_start ok; then
   check "and the block names the installation, once, for both" "said 'installed on acme/box as installation 4242' && [ \$(printf '%s' \"\$out\" | grep -c 'installation 4242') -eq 1 ]"
   check "...with the grant it found there"                     "said 'granted there everything its .identity..scopes ask to mint'"
   check "...and the seats that one request covers"             "said 'covers plain, roaded'"
-  check "no identity refusal reached the verdict"              "rf=\$(jq_refusals \"\$IJA\") && ! said_in \"\$rf\" ''"
+  check "no identity refusal reached the verdict"              "rf=\$(jq_refusals \"\$IJA\") && ! said_in \"\$rf\" 'installation\|mint'"
   # Who the pull request opens as: the App's slug, which is neither seat's
   # name, because an App name is unique across GitHub and the plain one is
   # usually taken. (The count of that request is asserted above, before this
@@ -703,7 +703,7 @@ fi
 if gh_start not-installed; then
   IJB="$(ijson "$R" --deep)"
   check "an App installed nowhere is a refusal, not a tick"    "iseat \"\$IJB\" 'graph=unasked plain=refused roaded=refused'"
-  check "...and it reaches the list the exit code is read off" "rf=\$(jq_refusals \"\$IJB\") && said_in \"\$rf\" 'zz-no-sentence-this-product-prints-zz'"
+  check "...and it reaches the list the exit code is read off" "rf=\$(jq_refusals \"\$IJB\") && said_in \"\$rf\" 'App on this box that GitHub will not mint for'"
   irun "$R" --deep
   check "...in the run path's own sentence, not a paraphrase"  "said 'is not installed on acme/box' && said 'can mint nothing, however valid its key'"
   check "...carrying the fix and whose job it is"              "said 'install the App on acme/box (its owner does this once)'"
@@ -743,7 +743,7 @@ if gh_start ok; then
   check "an id this box names that GitHub does not have refuses" "iseat \"\$IJD\" 'graph=unasked plain=mismatch roaded=installed'"
   check "...and the ask is still one request, for both seats"   "[ \"\$(asked acme/box)\" = 1 ]"
   check "...and who the App is was asked once too, for both"    "[ \"\$(apped)\" = 1 ]"
-  check "...for that seat only, on an App the other seat shares" "rf=\$(jq_refusals \"\$IJD\") && said_in \"\$rf\" 'zz-no-sentence-this-product-prints-zz'"
+  check "...for that seat only, on an App the other seat shares" "rf=\$(jq_refusals \"\$IJD\") && said_in \"\$rf\" 'names an installation id'"
   out="$(EPITO_INSTALLATION_ID_PLAIN=9999 ident $E doctor "$R" --deep 2>&1)"
   check "...saying both ids, and which of them the mint uses"   "said 'installation 4242, while this box tells its runs to mint from 9999'"
   check "...and the fix names the variable an operator edits"   "said 'EPITO_INSTALLATION_ID_PLAIN' && said 'correct it to 4242'"
@@ -761,7 +761,7 @@ fi
 if gh_start thin-perms; then
   IJE="$(ijson "$R" --deep)"
   check "a grant short of the manifest's scopes is a refusal"  "iseat \"\$IJE\" 'graph=unasked plain=ungranted roaded=ungranted'"
-  check "...named as the 422 the mint would get"               "rf=\$(jq_refusals \"\$IJE\") && said_in \"\$rf\" 'zz-no-sentence-this-product-prints-zz'"
+  check "...named as the 422 the mint would get"               "rf=\$(jq_refusals \"\$IJE\") && said_in \"\$rf\" '422'"
   irun "$R" --deep
   check "...with the level it has and the level it needs"       "said 'contents is read and the manifest needs write'"
   check "...and the fix names the grant, or the scope to drop"  "said 'grant the App contents:write' && said 'scopes are the ceiling'"
@@ -792,7 +792,7 @@ gh_stop
 : > "$GH_LOG"
 IJF="$(ijson "$R" --deep)"
 check "a GitHub this box cannot reach is NOT a refusal"        "iseat \"\$IJF\" 'graph=unasked plain=unreachable roaded=unreachable'"
-check "...and nothing about it reaches the refusals list"      "rf=\$(jq_refusals \"\$IJF\") && ! said_in \"\$rf\" ''"
+check "...and nothing about it reaches the refusals list"      "rf=\$(jq_refusals \"\$IJF\") && ! said_in \"\$rf\" 'installation\|will not mint'"
 irun "$R" --deep
 check "...said as a report, with why that line is drawn there" "said 'could not be checked at GitHub from this box' && said 'the kind of mint failure that passes'"
 check "...and it does not cast doubt on what IS proven"        "said 'their key signs here'"
