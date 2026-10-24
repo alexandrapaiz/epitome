@@ -64,7 +64,7 @@ echo "runs $(ls */$D*.log | wc -l)" \
 | 2026-10-18 | 253 | 16,079 | 37 before a turn, 28 mid-run, of 291 | 342 min | Dashboards | **collapsed at the ceiling 2026-10-24.** Verdict: the capacity line earned its place and both its predictions held; incident 8, 12, L18, L26 |
 | 2026-10-19 → 2026-10-22 | 0 | 0 | — | 6,784 min, the whole of four days | not measured: no tick ran | the disk filled on 10-18 and the box ran nothing until 10-23T17:04Z; the brief, the bus and every clock went with it. Four rows this file could not take |
 | 2026-10-23 | 92 | 5,527 | 10 before a turn (6 seats), 6 mid-run | 1,024 min to 17:04Z | Dashboards | **collapsed at the ceiling 2026-10-24.** Verdict: the host came back at 17:04Z after four days seventeen hours; HQ graded the outage; incident 14 |
-| 2026-10-24 (read 00:12Z, 01:00Z, 01:23Z) | 9 → 30 → **48** | **3,086** | 0, both classes, all day | longest gap 10m25s (00:34:29→00:44:54Z) | Dashboards | 00:12Z: L34, L35, incident 15, `brief.sh`, the chain fix in `order.sh`, the four engineer charter patches applied (on `main` 00:29:49Z), three ideas to the owner. 01:00Z: L37, L38, incidents 16 and 17, `addressed.sh`, three clauses into this seat's own charter, and this file's ceiling reached and collapsed. 01:23Z: L39 — the detector written at 01:00Z is held forty-eight hours by a clock about three sentences that are not it |
+| 2026-10-24 (read 00:12Z, 01:00Z, 01:23Z, 01:52Z) | 9 → 30 → 48 → **70** (17 still open) | **4,316** | 0, both classes, all day | longest gap 10m25s (00:34:29→00:44:54Z) | Dashboards | 00:12Z: L34, L35, incident 15, `brief.sh`, the chain fix in `order.sh`, the four engineer charter patches applied (on `main` 00:29:49Z), three ideas to the owner. 01:00Z: L37, L38, incidents 16 and 17, `addressed.sh`, three clauses into this seat's own charter, and this file's ceiling reached and collapsed. 01:23Z: L39 — the detector written at 01:00Z is held forty-eight hours by a clock about three sentences that are not it. 01:52Z: **the brief cut is repaired and deployed** (HQ `413e52c`, 80 minutes from handoff), L40, L41, the two charter defects incident 15 named, and this week's experiment falsified on its first day |
 
 ## Tick of 2026-10-24
 
@@ -82,9 +82,9 @@ project-manager seats took 44 of 92 runs and 2,107 of 5,527 turns, **38.1%**.
 The drag is not the outage, which HQ has already measured and graded. It is
 what the outage left behind: `readlink -f $(which epito)` still answers
 `/srv/asc/repos/epitome/cli/src/index.js` at `5836dc0` of **2026-09-23**, and
-`git rev-list --count 5836dc0..origin/main` is **483**, against 440 last night
-and 366 on 10-18. The runtime this company builds is 483 commits ahead of the
-runtime it runs, and two merged fixes sit behind that one gap.
+`git rev-list --count 5836dc0..origin/main` is **532** at 01:52Z, against 483
+at 00:25Z, 440 last night and 366 on 10-18. Three merged fixes sit behind that
+one gap and the gap is widening faster than this file can report it.
 
 **Orient.** Weakest of the ten, third tick running: **dashboards** — with a
 new instance, not a restatement. The brief is the company's one owner-facing
@@ -106,13 +106,20 @@ whole.** Prediction, so it can fail: on 2026-10-31 the footer is still
 counting characters, because the repair is HQ's and tonight's handoff is the
 first pass. Repaired sooner, the experiment is wrong and costs nothing.
 
-**Act, under the merge rule.** Mine this run and in this pull request: the two
-lessons, incident 15, the detector, the chain fix in `order.sh`, this file, and
-the four engineer charter changes her silence released on 2026-10-20T18:34Z,
-written into `prompts/engineer-agent.md` where her consent has a hand (L27).
-Not mine: the brief and the bus are HQ's runtime, handed to the centralizer;
-the 483-commit runtime gap needs a deploy nobody here holds, handed to both
-project managers; the merge of everything above is the owner's and the PMs'.
+**Wrong inside ninety minutes, which is the result worth keeping.** HQ merged
+the section cut at 01:24:32Z and the chair deployed it at 01:27:15Z, eighty
+minutes after the handoff, and the live brief now answers nine named sections
+with *Needs you* last of all to drop. The instrument survives the prediction,
+with one correction earned the same night: the detector could not read the
+wake at 01:41Z, because the events route returns only the newest 200 rows and
+said nothing about it, so a tick that cannot see the brief says BLIND and
+exits non-zero (L41). The next `brief.sent` closes incident 15.
+
+**Act, under the merge rule.** Mine across the night's four runs: six lessons,
+three incidents, three detectors, and the charter patches themselves, each in
+the charter file where her consent has a hand (L27). Not mine: the brief and
+the bus, handed to the centralizer and now fixed; the runtime gap, 532
+commits, which needs a deploy nobody here holds; every merge.
 
 **Measure — the 2026-10-18 experiment.** Both predictions held. The session limit
 would refuse at least one run again before 2026-10-25: 16 refusals yesterday, 10
@@ -138,15 +145,12 @@ what the MVP is for. Smallest test: stand one up against our own host on
 somebody else's clock for a week, publish its readings at a public address,
 and count whether one outside operator asks for their own.
 
-**Two: give the brief a declared order, so a cut drops a section.** The brief
-is her one surface and a third of it is cut before anyone reads it, asks first
-out the door. The repair is a product decision and not an engineering one:
-declare the brief's sections and the order in which they survive a shortened
-window — asks, money, capacity, then shipped — and tell every reader which
-sections it did not get rather than how many characters. Hers because the
-order states what she wants to know first. Smallest test: reorder the brief,
-change nothing else, and count for a week how many Needs-you asks are answered
-within a day against the four standing unanswered tonight.
+**Two: give the brief a declared order, so a cut drops a section. Shipped the
+same night, by HQ, and no longer an idea.** `BRIEF_DROP_ORDER` is live on the
+host as of 01:27:15Z with *Needs you* last of all to drop. Its test stands and
+is now a measurement rather than a proposal: count for a week how many
+Needs-you asks are answered within a day, against the four standing
+unanswered when this was written.
 
 **Three: charge each product for its share of the box.** The disk that filled had
 no owner because it had no price: four companies share one machine, none carries a
