@@ -52,9 +52,13 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # files, less the 31 in smoke-doctor.sh that this branch converts. smoke-validate.sh and
 # smoke-temporal.sh are converted and absent, so allowed none.
 #
-# One line here is not an allowance but an exemption, and it is named rather
-# than hidden: probe-pipefail.sh carries five of the shape because exhibiting it
-# IS that file's subject. It is counted so that it cannot quietly grow a sixth.
+# Two lines here are not allowances but exemptions, and they are named rather
+# than hidden: probe-pipefail.sh carries five of the shape and probe-negated.sh
+# two, because exhibiting it IS what those two files are for. Of probe-negated's
+# two, one is executed and one is the `printf` that labels it for the reader —
+# this scan cannot tell a gate from a sentence about a gate, and inventing a
+# comment convention to hide the second would make the count a matter of
+# formatting. Both are counted so that neither file can quietly grow one more.
 # Converted and therefore absent, allowed none: smoke-validate.sh (#265),
 # smoke-temporal.sh (#277), smoke-roster.sh (#270, which merged after the list
 # above was written and left its own number stale for one pass), all.sh and
@@ -64,6 +68,7 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # gate on main. That asymmetry is why the stale direction is the safe one.
 ALLOWED="
 cli/test/probe-pipefail.sh 5
+cli/test/probe-negated.sh 2
 cli/test/smoke-deploy.sh 34
 cli/test/smoke-langgraph.sh 19
 deploy/test-provision.sh 4
