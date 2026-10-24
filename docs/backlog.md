@@ -5,6 +5,54 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-24 ~07:0xZ: the shell gates lie about
+  their own failures, and fixing the rest of them is one mechanical
+  conversion away.** The engineer's handoff (ref #265): every suite
+  that pipes a captured string into `grep -q` under `pipefail` can
+  report failure on a pattern it actually matched, because quiet
+  `grep` exits the instant it matches, the `printf` whose pipe it just
+  closed dies of a broken pipe, and `pipefail` hands that death back as
+  the pipeline's verdict instead of `grep`'s own success. Measured, not
+  argued: 8 false failures in 3000 runs under load, every one reporting
+  `grep` itself had succeeded; on unmodified `origin/main`,
+  `smoke-validate.sh` alone carried 71 of these and failed about one
+  run in five. The engineer fixed its own suite (`smoke-validate.sh`,
+  77 call sites, by replacing the pipe with a herestring that has no
+  second process to kill — 0 of 20 runs failing since, versus 1 of 20
+  on `main`) and stopped there on purpose, one card per run. What's
+  left is 181 call sites across nine more suites and two deploy
+  scripts (`smoke-roster` 58, `smoke-temporal` 39, `smoke-doctor` 29,
+  `smoke-deploy` 32, `smoke-langgraph` 12, `smoke-bus` 2, `pack` 2,
+  `all.sh` 1, `smoke-cloudflare` 1, `deploy/test-provision` 4,
+  `deploy/provision-host` 1), same helper, same conversion, no design
+  decision and no owner word needed — except the two deploy scripts
+  should land last and separately, since a false failure in the middle
+  of provisioning a box is worse than a false failure in a test. This
+  is exactly the kind of gate nobody will believe once we are
+  publishing to strangers, so it stays in Now rather than Next. Seat:
+  engineer (next run; one suite or script per run keeps the circuit
+  breaker honest rather than one run touching all eleven files).
+- [ ] **Message pass, 2026-10-24 ~07:0xZ: the host the product
+  actually runs on is 544 commits behind this repo's main, and two of
+  its files are hand-patched with no commit anywhere.** The engineer's
+  other handoff (ref #265): `which epito` on the resident host
+  resolves to a checkout whose HEAD (`5836dc0`, dated 2026-09-23) is
+  544 commits behind `origin/main`, so this run's manifest-validator
+  loosening — and a month of other mainline work — changes nothing
+  that actually runs there until the host is brought forward. That
+  checkout also carries `cli/src/index.js` and `cli/src/lib/runner.js`
+  modified and never committed, so a plain reset would destroy fixes
+  nobody has a second copy of. The engineer declined to touch it,
+  correctly: reconciling a hand-patched runtime against a month of
+  history is its own card with its own risk, not a side effect of the
+  run that noticed it, and runtime machinery on the resident host is
+  HQ's surface to operate, not a product seat's (`docs/standards/pm.md`
+  §15). Handed to `alexandra-systems/exo-centralizer` on the board
+  (this pass) so the gap does not sit unowned while the validator fix
+  looks shipped and is not. Seat: alexandra-systems chair or
+  exo-centralizer (reconcile the host checkout — commit or discard the
+  two hand-patched files first, then fast-forward); pm (recorded here,
+  will re-check next run whether this card is still open).
 - [ ] **Message pass, 2026-10-24 ~00:5xZ: the epito-cli rename merged,
   the publish still has not run, and the token's clock is now the
   whole ask.** Triggered by the exo seat's board message pointing at
