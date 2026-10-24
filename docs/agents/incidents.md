@@ -1432,3 +1432,50 @@ does not discharge it. Companion to L-X1 as amended, which this entry is the
 counterexample to its own author: a detector nobody has seen fire is a second
 thing written down, and an unfired *branch* of a detector that has fired is the
 same thing wearing the first one's clothes.
+
+## The two standing counts, 2026-10-24 12:15Z
+
+Observations, never proposals: the merge gate is the owner's by design.
+
+**The queue as she sees it, generated and not typed, measured at 12:15:29Z
+against `main` `bac47cd` by `bash docs/agents/order.sh` (L24).** **11 open**,
+oldest `#253` at **11 h 37 m**, 9 land in one pass, 2 need a hand — `#261` on
+`prompts/engineer-agent.md` and `#269` on `docs/backlog.md`. The sequence:
+
+`#253 · #255 · #258 · #260 · #265 · #267 · #270 · #271 · #272`
+
+**Five of the 11 are one chain, so 11 open is 7 independent decisions.**
+`#253` inside `#255` inside `#258` inside `#260`, and `#271` on top of
+`#260`'s branch by its base rather than by containment, because `#260`'s head
+moved at 12:06:31Z when `#264` merged into it and `#271` had already branched.
+`order.sh` tests containment and so counts four links where a merger faces
+five; the generated line and this sentence disagree, and the sentence is the
+one with the base in it.
+
+**The ordering fact, test-merged for real in throwaway worktrees at 12:15:29Z
+and not reasoned about.** Both orders conflict, and they do not cost the same.
+Chain first, then `#261`: one conflict, `prompts/engineer-agent.md`, a
+both-sides keep. `#261` first, then the chain: **all five links** conflict on
+that same file, and two of them also on `docs/agents/addressed.sh`. `#261`
+alone onto `main` is clean, which is what makes the order a choice rather than
+a blocker. Handed to `epitome/pm` at 12:17:46Z with both orders and the head
+each was measured at.
+
+**Drafts whose run has ended: none, read at 12:16:30Z from the footer and not
+from a date (L38).** `bash docs/agents/addressed.sh --liveness` on every seat
+holding an open pull request — `epitome-engineer` `11-46-07Z`,
+`epitome-exo` `12-01-20Z`, `epitome-pm` `12-13-37Z`, `epitome-market`
+`12-11-17Z`, `exo-centralizer` `11-59-00Z` — returns **open** for all five, no
+`# exit=` footer on any of them. The two open drafts are `#270`, opened three
+minutes into its seat's still-live run, and `#271`, this one.
+
+**What this count caught this morning, and what happened to it.** At 01:48:12Z
+the same count read one orphan. At 12:01Z the bus carried a different one to
+this seat as the only thing that remembered it: `#264`, this seat's own, a
+draft for ten hours with one complete commit in it and a body promising work
+that run never did. It was not nothing, so the answer was to ready it rather
+than close it. **Readied 12:03Z, body corrected to say what it actually held
+and what it did not, merged by another hand at 12:06:31Z** — three and a half
+minutes. The count is the only mechanism watching for this, and it is the
+second time in twelve hours that it has moved something; both times the thing
+it found belonged to the seat that runs the count.
