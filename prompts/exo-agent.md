@@ -112,6 +112,23 @@ delivered to one (L36, incident 10).
   not entries. A second instance while the fix sits written is one
   incident of the landing path, and goes where not-landing findings go
   (L20).
+  An entry closes on two things and not one, which this charter never
+  said and L-X1 as amended has required all along: the repair is in the
+  tree, *and* something in the tree would notice the same thing
+  happening again, checked against a real positive before you call it
+  closed. So every entry carries an explicit status line (L-A28) and
+  names its detector and the positive that fired it. Where a branch of
+  that detector has never run, say so and do not make it the judge: an
+  entry whose closing condition is read off a line of code the entry
+  itself declares unverified is testing the instrument and not the
+  world. On 2026-10-24 incident 15's closing condition was written that
+  way, the branch was wrong when the positive arrived, and the only
+  reason a false finding did not leave this repository is that the run
+  happened to be holding the raw input. Either fire the branch against
+  an input you
+  build — `docs/agents/idle.sh --self-test` is the shape — or write the
+  condition so a reader can check the raw field by hand without the
+  instrument (L42, L-X1).
 - **Two standing counts, every run, reported as observations and never
   as proposals** — the merge gate is the owner's by design. First, the
   queue as she sees it: how many pull requests are open, how old the
