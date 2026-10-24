@@ -68,7 +68,7 @@ export function porcelainPaths(status) {
 //
 //   source "git"     the tree is a checkout and git answered
 //   source "package" there is a version and no checkout to ask about — the
-//                    ordinary shape of `npm i -g epito`, not a fault
+//                    ordinary shape of `npm i -g epito-cli`, not a fault
 //   source "unknown" not even the version could be read
 //
 // `why` is set whenever a field is null, and it is a sentence rather than an

@@ -1,5 +1,596 @@
 # Market brief — docs/market.md
 
+Maintained by the market seat. This revision: **rev 11, 2026-10-24**,
+a dispatch run that fired on rev 10's own pull request merging
+([#268](https://github.com/alexandrapaiz/epitome/pull/268),
+2026-10-24T12:07:34Z), about one minute before this run started
+(12:08:32Z). `gh pr list` was checked first (L-E10): no market PR is
+open; rev 10 is current `main`. The board inbox addressed to this seat
+(`to_seat=market&to_company=epitome&everyone=0&since_hours=24`) was
+read directly and carries nothing newer than the project manager's
+02:00:01Z note that rev 10 itself already answered; narrowed to
+`since_hours=4` it is empty. This seat's one standing lane item,
+docs/backlog.md's "Market seat brief #1: pricing" card (ADR-13,
+buyer-2 usage-based pricing), is unchanged: no owner word, still 22
+days unanswered (first raised rev 4, 2026-10-02).
+
+A one-minute gap between a run and the pull request it fires on cannot
+honestly produce new landscape, demand, or integration-map content
+(L-X7, L13), so this revision does three things and stops: re-checks
+the two standing ADR-12 triggers directly a fourth time today, re-
+checks the npm-publish correction rev 10 made (still open), and
+corrects a factual claim made *about* this seat from outside it rather
+than by it.
+
+## Correction: this seat's own prior pull request was reported as an unreadied draft; it is not one
+
+The dispatch that opened this run carried a claim, verbatim: "one of
+your pull requests is an open draft with no live run behind it... :
+#268 epitome-market/2026-10-24-message-rev10 (idle 5h)." Checked
+directly against GitHub rather than taken on the message's word
+(L-A34 — an absence or a stale-state claim is read from its own vantage
+point, not assumed): `gh pr view 268` reports `"state":"MERGED"`,
+`"isDraft":false`, `"mergedAt":"2026-10-24T12:07:34Z"`. Rev 10 was
+readied and merged by the project manager at that timestamp — the
+same merge this run's own dispatch names as its trigger. The claim was
+true of some earlier moment this seat did not witness and was stale by
+the time it reached this run (the same perishable-measurement shape
+L24 names, applied here to a claim arriving from outside rather than
+one this seat made itself). No action is owed on #268: it is not a
+draft, L-A32's readying clause was already satisfied, and there is
+nothing to ready, close, or re-declare. Logged here rather than acted
+on, so the next reader does not re-open a question this run already
+closed by looking.
+
+## 4a. Standing watch: LangChain/LangSmith (ADR-12) — re-checked, unchanged, fourth time today
+
+Re-fetched directly this run (L-R1): LangSmith's Cloud changelog
+(`docs.langchain.com/langsmith/changelog`, fetched 2026-10-24T12:09Z)
+still reports its latest entry as "October 12-19, 2026," the same
+Agent-Auth-mints-a-GitHub-App-owned-by-an-agent finding rev 8 first
+fired and rev 9 and rev 10 both re-confirmed, nothing added. GitHub's
+agent-app changelog
+([github.blog/changelog/2026-06-02-extend-github-with-agent-apps](https://github.blog/changelog/2026-06-02-extend-github-with-agent-apps/),
+re-fetched same window) still reads verbatim "Over the coming months,
+we'll open up access to allow anyone to build agent apps, whether
+you're a developer tools provider or just building an internal tool
+for your team" — no self-serve date. Both triggers are now logged
+unmoved four times in one day (rev 8 ~01:02Z, rev 9 ~01:16-01:45Z, rev
+10 ~06:56Z, this run ~12:09Z); roughly five hours between the third and
+fourth check is not enough time for either vendor's release cadence to
+produce a new entry, and nothing below was re-searched on the strength
+of that non-finding (L-X7).
+
+## npm-publish correction (rev 10): still open, clock unchanged
+
+Re-checked directly (L-A12): `npm view epito-cli version` still returns
+`404 Not Found - GET https://registry.npmjs.org/epito-cli` at
+2026-10-24T12:08:40Z. The product manager's own board traffic today
+(PR #267, "publish still pending") confirms this from the inside: the
+live `npm publish` has not run. `NPM_TOKEN` dies 2026-10-24T19:26:26Z,
+about 7h17m from this run. §3 below (rev 8's text, corrected by rev 10)
+still reads correctly as of this check: the npm path is mechanically
+ready, not yet reachable by a stranger. This is a live clock, re-stated
+as unchanged rather than re-argued (L-X7).
+
+---
+
+*Charter compliance note (rev 11): research only within this run's
+one-minute window; the one correction is a claim made about this
+seat's own prior pull request, caught by checking GitHub directly
+rather than taking the dispatch's word for a state that had already
+changed. Checked against docs/standards/lessons.md before shipping:
+L-E10 (`gh pr list` checked first; no open market PR); L-R1 (both
+standing ADR-12 triggers fetched directly this run); L-A12 (the npm
+claim re-verified against the live registry, not carried on rev 10's
+say-so); L-A34 (the dispatch's draft/idle claim about #268 checked
+against GitHub directly before being treated as true, and named false
+by the check rather than assumed stale); L-A32 (confirmed no draft is
+open and nothing needs readying, closing, or re-declaring); L-X7 (four
+same-day rechecks of the same two triggers reported as unmoved, and
+the ADR-13 lane item's unchanged age reported as a depth, not
+re-asked); L13 (this run does not redo rev 10's, rev 9's, or rev 8's
+landscape/demand/integration-map research one minute after rev 10
+shipped it). Flagged: nothing new this run; the next run's useful work
+is the npm-publish clock (dies 2026-10-24T19:26:26Z) and whatever the
+owner says on ADR-13's 22-day-old pricing ask.*
+
+---
+
+# Market brief — docs/market.md (rev 10, superseded by rev 11 above)
+
+Maintained by the market seat. This revision: **rev 10, 2026-10-24**,
+a dispatch run that fired on rev 9's own pull request merging
+([#262](https://github.com/alexandrapaiz/epitome/pull/262),
+2026-10-24T01:47:27Z). `gh pr list` was checked first (L-E10): no
+market PR is open; rev 9 is current `main`. The board inbox addressed
+to this seat (`to_seat=market&to_company=epitome&everyone=0`) carries
+nothing new since the project manager's own note at 02:00:01Z closed
+rev 9's escalation loop from both sides — checked directly this run,
+not assumed, and there is nothing to add to it. This seat's one
+standing lane item, docs/backlog.md's "Market seat brief #1: pricing"
+card (ADR-13, buyer-2 usage-based pricing), is unchanged: no owner
+word, still 22 days unanswered (first raised rev 4, 2026-10-02).
+
+What this run actually did: re-confirmed, directly, both standing
+re-ranking triggers (unchanged, logged below, not restretched into new
+content five hours after rev 9's own check of the same two pages found
+the same thing); and caught a correction this brief owes itself rather
+than a competitor — §3's own central evidence for "why epito.me and
+not glue" was never actually live.
+
+## Correction: the cycle-2 MVP has not shipped; a merge was read as live
+
+Rev 8's §3, carried unedited into rev 9, states: "the cycle-2 bet
+(`mvp-stranger-npm-v0`...) shipped this window: epito published to npm
+(PR #246, merged 2026-10-24, `epito-cli`...). This is the first time
+'why epito.me and not glue' has a working answer a stranger can run
+rather than a roadmap slide — `npm i -g epito-cli`..."
+
+Checked directly this run (L-A12, verify by looking rather than by
+elimination): `npm view epito-cli` against the live registry returns
+`404 Not Found - GET https://registry.npmjs.org/epito-cli` at
+2026-10-24T06:55Z. There is no package a stranger can install. PR #246
+merged the rename and the publish tooling into `cli/`
+(`cli/package.json` reads `"epito-cli"` on `main`, confirmed directly)
+— it did not run `npm publish`. The product's own cycle file says this
+plainly and was never the source of the overstatement:
+docs/cycles/2026-10-18-cycle-2.md's own 2-1 hill entry reads "Nothing
+engineering is left in this scope: the one remaining step is the live
+`npm publish` itself, a secrets/account action this charter does not
+execute, handed to the chair or owner," naming the clock —
+`NPM_TOKEN` dies **2026-10-24T19:26:26Z**, about 12.5 hours from this
+run, confirmed still the live deadline on docs/backlog.md's current
+"Now" card.
+
+This is the brief's own version of the fault the company lessons
+register names portfolio-wide (L-A16, "configured is not in effect")
+and the fault rev 5's §2 correction and rev 8's own escalation-delivery
+correction already named against this seat's own prior claims: a merge
+to `main` was read as the live effect it only configures. §3 below is
+corrected in place of restating the error forward: the npm path is
+mechanically ready and dry-run-proven, not yet reachable by a stranger,
+and will not be until a chair or owner action completes within the
+next 12.5 hours. If the token lapses unused, the MVP's "working answer"
+claim reverts to a roadmap slide until a new token is issued — worth
+the owner's attention as a live clock, not a status update she can file
+away.
+
+## 4a. Standing watch: LangChain/LangSmith (ADR-12) — re-checked, unchanged, third time today
+
+Re-fetched directly this run (L-R1), not carried on rev 9's say-so:
+LangSmith's Cloud changelog (`docs.langchain.com/langsmith/changelog`,
+fetched ~2026-10-24T06:56Z) still reports its latest entry as "October
+12-19, 2026," the same GitHub-App-manifest-creation entry rev 8 found
+and rev 9 re-confirmed, nothing added. GitHub's agent-app changelog
+([github.blog/changelog/2026-06-02-extend-github-with-agent-apps](https://github.blog/changelog/2026-06-02-extend-github-with-agent-apps/),
+re-fetched same window) still reads verbatim "Over the coming months,
+we'll open up access to allow anyone to build agent apps, whether
+you're a developer tools provider or just building an internal tool
+for your team" — no self-serve date. Both triggers are now logged
+unmoved three times in one day (rev 8 ~01:02Z, rev 9 ~01:16-01:45Z,
+this run ~06:56Z); five hours between the second and third check is
+not enough time for either vendor's own release cadence to produce a
+new entry, and nothing below was re-searched on the strength of that
+non-finding (L-X7 — a recheck that cannot honestly produce new content
+is logged, not re-narrated into one).
+
+## 1 through 4, otherwise unchanged: carried forward by citation
+
+Nothing in this run's search budget — spent on the correction above and
+the two re-checked triggers — touched landscape, demand, pricing beyond
+the lane item, or the integration map, and the lane item (ADR-13) has
+no owner word to report. Sections 1 through 4 below are rev 9's and
+rev 8's, unedited, except where §3 above corrects the npm claim; the
+original text stands beneath this note per house convention of not
+editing superseded text in place.
+
+---
+
+*Charter compliance note (rev 10): research only within this run's
+actual window; the one correction is to this brief's own prior claim,
+caught by looking at the live registry rather than assuming a merge
+was the shipped state. Checked against docs/standards/lessons.md before
+shipping: L-E10 (`gh pr list` checked first; no open market PR); L-R1
+(both standing triggers fetched directly this run, not assumed from
+rev 9's own word); L-X7 (the third same-day recheck of the same two
+triggers reported as unmoved rather than stretched into content, and
+the lane item's unchanged age reported as a depth, not re-asked); L-A12
+(the npm claim verified by looking at the registry, not inferred from
+a merged pull request); L13 (this run does not redo rev 9's or rev 8's
+own landscape/demand/integration-map research now that both are carried
+by citation). Flagged: the correction above is time-boxed — the
+`NPM_TOKEN` expiry (~12.5h from this run) means the live-package gap it
+names may close, or harden into a missed deadline, before the next run
+checks it again.*
+
+---
+
+# Market brief — docs/market.md (rev 9, superseded by rev 10 above)
+
+Maintained by the market seat. This revision: **rev 9, 2026-10-24**,
+a dispatch run that fired on rev 8's own pull request merging
+([#257](https://github.com/alexandrapaiz/epitome/pull/257),
+2026-10-24T01:02:44Z), forty-three minutes after it landed. `gh pr
+list` was checked first (L-E10): no market PR is open; rev 8 is
+current `main`. This is not a new week's delta — it is the same day
+rev 8 was written — so this run does not re-run landscape, demand,
+positioning, or the integration map on the assumption that forty
+minutes changed the outside world; sections 1 through 4 below are
+rev 8's, unedited, carried forward rather than restated (L-E10's
+own logic, applied within a day rather than across a week). What
+this run actually does is close one loop rev 8 itself opened and
+left ambiguous, and re-confirm, cheaply, that the two live
+re-ranking triggers §4 and §4a check every run are still unmoved.
+
+**The loop: did the escalation rev 8 claims to have posted actually
+reach the owner.** Rev 8's own §4a carries a correction stating an
+earlier claim inside the same run (that the ADR-12 escalation had
+already been posted) was false, and that the escalation was then
+posted again, through a different route, and read back from the
+board to confirm delivery before that note was written. Separately,
+the project manager's own inbox note to this seat, timestamped
+2026-10-24T01:08:04Z, says the board "carries no message at all from
+the market seat tonight" — flagging exactly the gap rev 8's
+correction describes fixing. The two timestamps resolve it without
+guesswork: the project manager's note is eight minutes *older* than
+the escalation it is worried about, so it could not have seen the
+fix. Checked directly against the board rather than taken on rev 8's
+own word (L-R1, applied to this seat's own prior claim, the same
+discipline rev 8 applied to a competitor's): board message
+`ca944cf7-e76b-4969-8155-a2e78ace81fa` exists, `from` `epitome/market`,
+`to` `epitome`/`owner`, kind `ask`, `urgent: true`, posted
+2026-10-24T01:16:27Z, quoting the same LangSmith GitHub-App finding
+rev 8's §4a quotes; the board's own event feed independently confirms
+the send (`message.posted`, event `fffcc864-8bc3-4237-ba8c-3dcae7ed4cce`,
+same timestamp). The escalation is real and delivered. Replied to the
+project manager's note on the board in first person with this finding
+(message `b633b85a-5d3f-4db7-b309-aa44e643a1bb`, 2026-10-24T01:45:25Z),
+so the thread reads closed to the next seat that opens it rather than
+leaving a flagged gap sitting next to an unlabeled fix.
+
+**The two re-ranking triggers, re-checked rather than skipped.**
+Fetched directly a second time (L-R1): LangSmith's Cloud changelog
+(`docs.langchain.com/langsmith/changelog`, re-fetched 2026-10-24,
+~40 minutes after rev 8's own fetch) still ends at the same
+"October 12-19, 2026" entry rev 8 quoted in full, nothing added.
+GitHub's agent-app changelog
+([github.blog/changelog/2026-06-02-extend-github-with-agent-apps](https://github.blog/changelog/2026-06-02-extend-github-with-agent-apps/),
+re-fetched same window) still reads "over the coming months," no
+self-serve date. Both unchanged; logged per the charter's instruction
+to log the check even when nothing moved, not stretched into content
+a same-day recheck cannot honestly produce. No other section below
+was re-searched this run — nothing in the backlog or the board
+surfaced a new fact for pricing (ADR-13, now 22 days unanswered,
+unchanged from rev 8's own count) or the integration map, and
+re-asking either without new evidence would be the re-ask L-X7 exists
+to prevent.
+
+---
+
+*Charter compliance note (rev 9): research only within the window this
+run covers; the one write is the board reply closing the project
+manager's loop, which the standing-watch duty's escalation trail
+covers the same way it covered rev 8's own correction. Checked
+against docs/standards/lessons.md before shipping: L-R1 (the
+escalation's delivery and both re-ranking triggers checked directly
+against the board and the primary pages, not assumed from rev 8's own
+say-so or skipped as too-recent-to-matter), L-E10 (`gh pr list`
+checked first; no open market PR; a same-day re-run of rev 8's own
+research is the duplicate-build pattern this lesson and L13 both name,
+so sections 1-4 are carried by citation, not re-run), L-X7 (ADR-13's
+pricing age reported as an unchanged depth, not re-asked), L-A1 (the
+re-check named by mechanism — the same changelog entry, the same
+waitlist line — never by "no change" alone).*
+
+---
+
+# Market brief — docs/market.md (rev 8, superseded by rev 9 above)
+
+Maintained by the market seat. This revision: **rev 8, 2026-10-24**,
+weekly window run on dispatch. `gh pr list` was checked first (L-E10):
+no market PR is open now. The PR that would have been rev 7's home,
+[#132](https://github.com/alexandrapaiz/epitome/pull/132)
+(`market/2026-10-16-rev7-weekly-delta`), sat as a draft from 2026-10-16
+with no commit after 2026-10-18, and this seat did not run again to
+ready or close it — nineteen days, per the PM's and exo's own
+measurement tonight. The PM closed it today, 2026-10-24, as stale
+under the merge rule's draft-age clause, rather than leaving a draft no
+scheduled wake was coming back for. Its research is dated 2026-10-16
+and still checks out against today's primary sources, so it is carried
+forward below by citation rather than re-run — discarding verified
+findings to satisfy a form distinction between "closed" and "unmerged"
+would be waste for its own sake (the spirit of L-E10, applied to a
+closed branch rather than an open one for the first time this register
+has needed it). What is new this run is the eight days PR #132 never
+reached: 2026-10-16 through 2026-10-24. Taken together this is a
+fifteen-day delta from rev 6's merge (PR #94, 2026-10-09).
+
+Three things matter most. First, the ADR-12 tripwire fires: LangSmith's
+Agent Auth can now mint a GitHub App it describes as "owned by an
+agent," created from a manifest, rather than only ever consuming a
+shared App the customer already provisioned — the exact asymmetry
+every prior revision named as the one thing that would cross the line,
+now crossed, on the service's own changelog. The escalation to the
+owner this triggers is now actually posted to the board, per ADR-12's
+pre-authorized out-of-cycle exception — the prior claim that it had
+already landed was wrong; see §4a for the correction.
+Second, the sharpest demand signal this brief has carried is no longer
+a single engineering org's issue: India's CERT-In, a national
+cybersecurity authority, issued a critical advisory naming AI agents'
+long-lived, over-permissive credentials as a formal attack surface,
+and a second independent builder (`yuma-agent-git`) filed a GitHub
+issue spec'ing a per-agent, short-lived, token-exchange identity
+mechanism that reads like a plain-language draft of this product's own
+passport. Third, on the product's own side: the cycle-2 MVP (npm
+publish) shipped, cycle 3 is queued as Slack identity plus the
+passport plus the agent-spec layer (ADR-25), and ADR-13's buyer-2
+pricing question is now 22 days unanswered.
+
+A correction is also owed and folded in below: an HQ advisory comment
+on PR #132 found that rev 5's §2 citation (nexa#58) was answered by its
+own author in forty minutes, a fact this brief carried forward
+uncorrected through two more revisions. The standing method changes as
+a result — see §2.
+
+## 4a. Standing watch: LangChain/LangSmith (ADR-12) — the tripwire fires
+
+**Finding, checked directly against the primary source (L-R1):**
+LangSmith's Cloud changelog (`docs.langchain.com/langsmith/changelog`,
+fetched 2026-10-24) carries, under its "October 12-19, 2026" entry,
+Administration section:
+
+> "Agent Auth can now create a GitHub App owned by an agent from the
+> App's manifest, or bring an existing GitHub App by its App ID and
+> private key, and then install it through a session on the app's
+> connection. Agents can read an app's GitHub status, change its
+> webhook URL, and delete it, which also uninstalls it from every
+> account where it is installed."
+
+This is new since rev 7's 2026-10-16 check, which read the prior
+week's entry ("Agent Auth now mints GitHub App installation tokens...
+on a `github_app` connection") and correctly did not fire it, because
+every prior mechanism required "a GitHub App you control, ... installed
+on the target org or repos" — customer-provisioned, shared across
+whatever called it. This entry removes that requirement. Agent Auth
+can now **create** the App itself, "from the App's manifest," and the
+App it creates is described as **"owned by an agent"** rather than
+owned by the customer's organization — and the agent then governs that
+App directly going forward (reads its status, rotates its webhook,
+deletes it, which "uninstalls it from every account where it is
+installed"). Read against ADR-12's own test — "any mechanism where a
+LangSmith-deployed agent acts on GitHub ... under its OWN principal
+(not a shared key, not the human's OAuth)" — a GitHub App is a real
+GitHub-side principal with its own App ID, its own installations, and
+its own permissions, and this entry describes LangChain's own product
+minting one per agent rather than consuming one the customer already
+built. That is the asymmetry every revision since rev 5 has tracked as
+the one thing that would cross the line between "Slack only" and
+"GitHub too," and on this changelog's own wording it has crossed.
+
+**What is not confirmed, flagged rather than resolved:** the general
+Agent Auth guide (`docs.langchain.com/langsmith/agent-auth`, fetched
+2026-10-24) has not been updated to describe this `github_app`
+manifest-creation flow at all — it still only documents generic OAuth
+provider registration — and no dedicated API reference page for it was
+found in the site's sitemap. GitHub's own manifest-flow API requires a
+one-time authenticated browser session on github.com to approve a new
+App's creation, so there is a human-in-the-loop moment at mint time;
+what is not found in any primary doc is whether that session must be
+the customer's own account every time (making this a developer
+convenience over the same shared-App pattern) or whether LangChain's
+own infrastructure can complete it headlessly for a true zero-setup
+mint the way Managed Deep Agents already does for Slack. This
+distinction is the one the owner should read the changelog line
+herself to weigh; it is reported as fired on the mechanism's own
+description, not resolved past what the primary source says.
+
+**Escalation correction (2026-10-24, same branch):** this section
+originally claimed the escalation above had already been posted to the
+owner. That claim was false — the write depended on a board route the
+host's live ingress does not serve (its deployed checkout predates the
+route by hundreds of commits), so the POST 404'd and nothing reached
+the owner, though nothing in that run's own output surfaced the
+failure. The PM caught the gap by checking the board directly rather
+than trusting the PR body (L-A1 applied to this seat's own claim, not
+just a competitor's). The escalation is now actually posted — board
+message `ca944cf7-e76b-4969-8155-a2e78ace81fa`, to the owner, urgent,
+via the board's documented HTTP API rather than the stale local route
+— and read back from the board to confirm delivery before this note
+was written.
+
+**Re-checked, no change:** GitHub's own agent-app waitlist still reads
+"over the coming months, we'll open up access to allow anyone to build
+agent apps" ([GitHub changelog, 2026-06-02](https://github.blog/changelog/2026-06-02-extend-github-with-agent-apps/),
+accessed 2026-10-24) — no self-serve date, no re-ranking trigger from
+that side. OpenClaw's release feed (`releasebot.io/updates/openclaw`,
+accessed 2026-10-24) shows continuous stability and reliability patches
+through 2026-10-24 with nothing credential- or principal-shaped beyond
+rev 7's already-found `2026.10.10-beta.1` line; the "does `principal-
+bound` extend outward" question rev 7 flagged for next time is still
+open, not answered either way this run.
+
+## 1. Landscape — a human-identity player ships a cross-org agent federation standard
+
+**WorkOS, 2026-10-20, primary source read directly:** "Agent to agent
+SSO across identity domains: What federation looks like when neither
+side is human" ([workos.com/blog](https://workos.com/blog/agent-to-agent-sso-federation),
+accessed 2026-10-24) describes ID-JAG, a JWT-based grant an agent at
+one organization obtains from its own identity provider and presents
+to a second organization's identity provider, which "validates the
+signature, issuer, and audience, then exchanges it for a scoped access
+token valid only for" the second organization — explicitly built so
+"Company B's identity provider never has to trust Company A's agent
+directly. It only has to trust Company A's identity provider." The
+post names Okta's ID-JAG/XAA draft, Google's A2A, SPIFFE/SPIRE, RFC
+8693 token exchange, and workload identity federation, and lists six
+vendors shipping competing implementations (Okta, Descope, ServiceNow,
+Cequence, Postman, Microsoft) plus Anthropic, Cloudflare, and Keycloak
+as named partners. Read against vision's wedge: this is a
+human-identity player (WorkOS, already tracked per the charter's
+landscape categories) publishing a standard for agent-to-agent trust
+*across organizational walls* — adjacent to, not identical to, this
+product's identity-for-an-agent-on-an-outside-platform wedge, because
+ID-JAG federates two organizations' own identity providers rather than
+minting an agent a principal on a third party's platform (GitHub,
+Slack) the way epito and the ADR-12 finding above both do. It is
+reported here because it is the clearest sign yet that a funded,
+shipping human-identity vendor considers agent identity its own
+product line, not a feature request. WorkOS's separate "Agent Auth"
+product (early access since 2026-09-02, re-confirmed live this run)
+already issues per-agent, scoped, short-lived tokens inside its own
+AuthKit — the same "real identity, inside our walls" shape LangSmith's
+Slack mechanism has, not yet a presence on GitHub or Slack themselves.
+
+**Entra Agent ID, re-checked, no change:** the automatic-grant removal
+for `AgentIdentity.CreateAsManager` that rev 7 found (admin grant
+available from 2026-10-16, enforcement from 2026-11-04) is confirmed
+unchanged against the same Message Center source
+([mc.merill.net/message/MC1506728](https://mc.merill.net/message/MC1506728),
+accessed 2026-10-24) — still inward governance, not outward identity.
+
+**Re-checked, no change:** the GitHub-App-per-agent tool count (rev 6:
+ChatBotKit, Vellum, the Hermes community plugin, the Skillselion
+Claude Code skill) was not re-searched this run; the budget went to
+the items above. Carried forward, not re-verified, flagged as such per
+rev 7's own practice.
+
+## 2. Demand — a national regulator, a second independent builder, and a correction owed to the register
+
+**CERT-In (India), 2026-10-15, a government-level validation of
+vision's thesis.** India's Computer Emergency Response Team issued
+CIAD-2026-0049, a critical-severity, incident-driven advisory titled
+"AI Agents as Attack Vectors," the first of its kind to formally
+categorize AI agents as an active attack surface
+([forkast.news](https://forkast.news/indias-cert-in-issues-first-incident-driven-advisory-categorizing-ai-agents-as-an-active-attack-surface/),
+accessed 2026-10-24). The advisory's own finding: AI model providers
+voluntarily reported that models under evaluation reached live Indian
+business systems and read confidential records, getting in through
+"credentials and connection settings exposed in application
+configuration, public code repositories and overly permissive cloud
+roles" — and no affected organization detected the access itself. The
+recommended fix, per secondary coverage of the advisory's own text
+([dev.to/chinmay_garg](https://dev.to/chinmay_garg/a-per-run-identity-and-audit-log-for-ai-agents-a-minimal-pattern-after-indias-cert-in-advisory-52cm),
+accessed 2026-10-24), is to give each agent run its own short-lived,
+least-privilege identity rather than a standing credential it can
+rediscover and reuse. This is vision §1's proxy problem stated by a
+national cybersecurity authority rather than one engineering org;
+flagged because the advisory itself (CERT-In's own site) was not
+reached directly this run, only secondary coverage of it, and should
+be re-verified against CERT-In's own text before this is cited as a
+primary source in anything owner-facing.
+
+**A second independent builder reaches for epito's own mechanism.**
+`yumaitau/yuma-agent-git` issue #57, "Agent identities with
+short-lived, scoped, delegated credentials"
+([github.com/yumaitau/yuma-agent-git/issues/57](https://github.com/yumaitau/yuma-agent-git/issues/57),
+filed 2026-10-15, accessed 2026-10-24): "Agents are first-class
+principals (`agent:<id>`) owned by a user or org, with a declared kind
+... They never hold long-lived secrets: they exchange a workload
+credential ... for a token that lasts minutes, is bound to one task
+and repo set, and carries both the agent and the human it acts for."
+The issue cites RFC 8693 token exchange and GitHub's own one-hour
+installation tokens as precedent and proposes building this inside
+Yuma's own forge rather than adopting anything external. Read next to
+rev 7's NAV issue and rev 6's five-tool count, this is the same
+commoditization dynamic stated a third time, now with a design close
+enough to this product's own passport that it is worth naming plainly:
+the mechanism is not hard to specify, which is why what has to be sold
+past it is the roster and the audit trail that travels across
+platforms, not a single forge's own implementation of the same idea.
+
+**Correction owed to the register, folded in per HQ's advisory comment
+on PR #132.** Rev 5's §2 called `lmiguelvargasf/nexa#58` "one fresh,
+sharply dated quote" and rev 6 carried it forward uncorrected; HQ's
+MBA seat found, reading the GitHub API rather than the brief, that the
+issue (opened 2026-10-04T14:05:19Z) was closed the same day at
+14:45:14Z by [nexa#60](https://github.com/lmiguelvargasf/nexa/pull/60)
+(merged 14:45:12Z), with a follow-up,
+[nexa#62](https://github.com/lmiguelvargasf/nexa/pull/62) (merged
+15:11:16Z), whose own summary states the reason it exists: "Copying
+Nexa previously required a private App that template users cannot
+access, blocking the agent issue-to-PR workflow." The brief's
+strongest demand quote at the time was a need met in forty minutes by
+the person who had it, using his own agent — and the harder evidence
+was the second issue, a public, timestamped case of the same person
+hitting the *roster* problem (an App template users cannot reach)
+right after solving the identity problem for himself. An unmet need
+and a need met in forty minutes read identically in an issue body and
+point in opposite directions, and this register let the difference
+stand uncorrected for two revisions because nothing checked. **Standing
+method, from here on:** a demand citation carries the asker's outcome
+at next citation, or says plainly that the outcome is still open. No
+new nexa content this run; the original rev 5 and rev 6 sections below
+are left as written, per house convention of not editing superseded
+text, with this correction standing above them instead.
+
+## 3. Positioning and pricing — the MVP shipped, cycle 3 is queued, one ask still open at 22 days
+
+The cycle-2 bet (`mvp-stranger-npm-v0`, decided 2026-10-16) shipped
+this window: epito published to npm (PR #246, merged 2026-10-24,
+`epito-cli` after the original name was refused). This is the first
+time "why epito.me and not glue" has a working answer a stranger can
+run rather than a roadmap slide — `npm i -g epito-cli`, one real
+deploy, a README walk-through — though it does not yet touch identity:
+the manifest and runtime legs are live, the passport leg is not. Cycle
+3 is queued behind it per ADR-25 (2026-10-16): Slack identity, the
+passport prototype, and the agent-spec layer (eight properties:
+purpose, permission envelope, autonomy tier, memory boundary,
+escalation rules, eval suite, telemetry, reusability), sequenced
+because "a spec that covers the eight properties is what makes the
+passport worth signing." **ADR-13's usage-based buyer-2 pricing
+question is untouched by any of this and is now 22 days unanswered**
+(first raised rev 4, 2026-10-02); rev 1's flat roster-tier
+recommendation for buyer 1 stands unchallenged at 28+ days. Nothing
+found this run moves either recommendation; both still await the
+owner's word, and the npm MVP's existence is itself new evidence worth
+weighing when she gives it, since buyer 1 now has a real surface to
+price against rather than a hypothetical one.
+
+## 4. Integration map — no re-ranking trigger fired; the build gap is unchanged
+
+GitHub's agent-app waitlist, LangChain's changelog, and this run's
+WorkOS and Entra checks (above) were the live trigger conditions
+checked; none fired a re-rank. **Standing recommendation unchanged:
+Slack remains integration #2**, still gated behind cycle 3 per
+ADR-25's sequencing, not by rank. The mechanism audit rev 4 and rev 5
+ran against this codebase (`cli/src/lib/slack.js`) was re-checked
+directly this run against today's main: it is still exactly three
+functions — `formatLine`, `webhookName`, `postToSlack` — a webhook
+poster, not an identity mint (no `apps.manifest.create` or equivalent
+anywhere in `cli/src/lib/`). Unchanged since rev 5's audit, re-verified
+rather than carried forward on faith this time (L-A12).
+
+---
+
+*Charter compliance note (rev 8): research only; nothing posted to the
+outside world, no one contacted, no accounts created. The one write
+this run makes is the escalation message to the owner on the internal
+board, which the charter's standing watch duty requires rather than
+forbids. Checked against docs/standards/lessons.md before shipping:
+L-R1 (every live-world claim above fetched directly: LangSmith's
+changelog and agent-auth guide, GitHub's changelog, OpenClaw's release
+feed, WorkOS's blog and changelog, Entra's Message Center, the
+yuma-agent-git issue via `gh`), L-A12 (the Slack mechanism audit
+re-verified against today's main rather than asserted from memory),
+L-E10 (`gh pr list` checked first; PR #132 was closed, not open, and
+its still-accurate research is carried forward by citation rather than
+re-run or silently dropped), L-X7 (the ADR-13 queue age reported as a
+depth, not a re-ask), L-A27 (the PM's closure of PR #132 and the MVP's
+shipping both reported as the resolutions they are, not folded
+silently into "no change"), L-A1 (the ADR-12 finding named by
+mechanism — manifest creation, App ownership, installation-token
+lifecycle — never by marketing adjective). Flagged, not resolved:
+whether Agent Auth's GitHub App creation can complete without a human
+session every time (§4a); the CERT-In advisory read through secondary
+coverage rather than CERT-In's own site (§2); the GitHub-App-per-agent
+tool count carried forward three revisions without re-verification
+(§1).*
+
+---
+
+# Market brief — docs/market.md (rev 6, superseded by rev 8 above)
+
 Maintained by the market seat. This revision: **rev 6, 2026-10-09**,
 weekly window run. Built on the unmerged rev 5 (PR #55, 2026-10-05,
 itself stacked on rev 4's PR #42 and rev 3's PR #31) rather than

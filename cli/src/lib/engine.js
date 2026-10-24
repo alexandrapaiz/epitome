@@ -124,7 +124,7 @@ export const PROBE_TIMEOUT_MS = 400;
 //
 // `runtime/temporal/install.sh` used to be the first thing this sentence named,
 // and that file is HQ's (alexandra-systems). It is in neither this repository
-// nor `npm i -g epito`, whose package.json `files` ships src, adapters and
+// nor `npm i -g epito-cli`, whose package.json `files` ships src, adapters and
 // README.md. So the product's most likely first refusal told you to run a
 // script that exists on no machine you have — which is worse than naming no
 // fix at all, because it sends you looking. The bar `epito validate` sets is

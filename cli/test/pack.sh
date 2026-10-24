@@ -18,7 +18,7 @@
 #      README, which `files` claimed for one commit while npm silently
 #      dropped it (README.md lived at the repo root, not in cli/)
 #   2. the MANIFEST COMMANDS WORK WITH NO ENGINE INSTALLED. @temporalio/* are
-#      optional peers so `npm i -g epito` is half a megabyte instead of
+#      optional peers so `npm i -g epito-cli` is half a megabyte instead of
 #      ~300 MB; init, validate, deploy --dry-run, token --dry-run, routes,
 #      board and audit must all run with the engine absent, or that trade is
 #      a lie
@@ -363,7 +363,7 @@ check "epito doctor runs in a prefix with no engine client" "! said 'ERR_MODULE_
 check "...and never claims a real connect it could not make" "! said 'a real connect'"
 check "...saying instead what this box can actually ask"     "said 'engine'"
 # The identity section's offline half: it signs a JWT with node's own crypto
-# and reads no optional package, so a plain `npm i -g epito` must answer it in
+# and reads no optional package, so a plain `npm i -g epito-cli` must answer it in
 # full rather than skip it the way the engine's real connect is skipped.
 check "...and the identity section answers in a bare prefix"  "said 'identity'"
 check "...naming who a seat with no App acts as"              "said 'nobody' && said 'EPITO_APP_ID_<SEAT>'"

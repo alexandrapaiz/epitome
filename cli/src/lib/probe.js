@@ -35,6 +35,7 @@ import { adapterFor, LANGGRAPH_SHIM } from "./adapters.js";
 import { baseRunEnv } from "./runenv.js";
 import { parseExecutorResult } from "./runner.js";
 import { endpointLabel } from "./router.js";
+import { INSTALL } from "./install.js";
 
 export const LOOK_TIMEOUT_MS = 10_000;
 export const DEEP_TIMEOUT_MS = 180_000;
@@ -64,7 +65,7 @@ export const PROBES = {
     deep: false,
     // The shim ships with epito (package.json `files`), so a missing one is a
     // broken install of ours and not a thing the operator did.
-    extra: () => (existsSync(LANGGRAPH_SHIM) ? null : `epito's own LangGraph shim is missing from this install (${LANGGRAPH_SHIM}) — reinstall the CLI (\`npm i -g epito\`)`),
+    extra: () => (existsSync(LANGGRAPH_SHIM) ? null : `epito's own LangGraph shim is missing from this install (${LANGGRAPH_SHIM}) — reinstall the CLI (\`${INSTALL}\`)`),
   },
 };
 

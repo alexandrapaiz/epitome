@@ -1,4 +1,4 @@
-# Pitch: the stranger MVP — `init`, `validate`, `deploy`, `run` from `npm i -g epito`, README only
+# Pitch: the stranger MVP — `init`, `validate`, `deploy`, `run` from `npm i -g epito-cli`, README only
 
 Shaped 2026-10-16 by the PM seat, on the owner's direct override of the
 cycle-2 betting table (relayed by the chair, verbatim: "we need our
@@ -18,7 +18,7 @@ and every manifest command works with no engine present.
 
 None of that is reachable by a stranger. `npm view epito version`
 returns `404` — the package has never been published. Nobody outside
-this repository can run `npm i -g epito`, so nobody outside it can
+this repository can run `npm i -g epito-cli`, so nobody outside it can
 read the README and follow it. The product exists; the door to it does
 not. That is the whole gap this pitch closes, which is why it is cheap:
 it is not new engineering, it is removing the two things that are not
