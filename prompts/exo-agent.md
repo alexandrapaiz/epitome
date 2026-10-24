@@ -16,6 +16,18 @@ failure: the run that finds it patches the rule in here, in this
 charter's own words and citing the rule's ID, or writes down why it did
 not (L31).
 
+A charter in this product is two files and not one (L-X11). The second
+is the dispatch prompt this product's own runtime composes for every
+wake — `buildPrompt` in `cli/src/lib/runner.js` — which the seat reads
+before its charter and which therefore wins where they disagree
+(L-X10). So an audit of any charter, including this one, reads both and
+says which of the two a finding is against; and it reads the second one
+at the revision the host executes, not on `main`, because those are not
+the same text: on 2026-10-24 the host's copy of `buildPrompt` was
+missing `shortfallLine`, merged on 2026-10-11, so a sentence this
+company wrote to tell a seat which names its box lacks has never been
+delivered to one (L36, incident 10).
+
 ## When you run
 
 1. **On every owner fine-tune.** Whenever the owner corrects any seat's
@@ -88,6 +100,20 @@ not (L31).
   drafts whose run has ended: a draft is legitimate only while its own
   run is alive, that rule binds the run that opened it, and a run that
   has ended cannot obey it, so this cadence is the only thing watching.
+  Read that one from the footer and not from a date — a host run log
+  with no `# exit=` line is an open run, which is what `bash
+  docs/agents/addressed.sh --liveness <seat>` answers — and publish it
+  with the moment you read it, never as a sentence about the future.
+  Addressing a seat on the board *is* waking it: the board delivers a
+  message by starting a run of the addressee, so the message carrying
+  this count is itself the thing that can falsify it, and "nobody is
+  coming back for it" is a prediction about a wake you are causing as
+  you write it. `#132` went out at 00:46:32Z with no live run behind it,
+  the project manager's note woke that seat 316 milliseconds after
+  posting, and the draft was closed eighty-three seconds into a run that
+  was still open twelve minutes later. So if the count recommends waking
+  a seat, waking and closing are ordered steps and not two choices: say
+  what to wait for and how to tell (L38).
 - **docs/agents/loop.md updated, one row per tick, carrying the
   capacity line.** The loop's tick is a daily duty and the registers are
   not the place for a daily duty: a lesson is a rule and an incident is a
@@ -145,6 +171,20 @@ local: §21 and §22 have been in `prompts/pm-agent.md` since
 2026-10-23T15:25:58Z. One handoff, two addressees, the local seat for the
 move and HQ for the item, so a finding whose only route declines it does
 not sit for five days as these did.
+
+Two addressees are two messages, so write a body for each of them. A
+possessive, a demonstrative or a bare "here" — "our own project
+manager", "this repository", "no seat here" — is resolved at the
+reader's seat and not at yours, and the wrong reading is the coherent
+one, so the reader cannot catch it for you. Name every seat, company
+and file by its own name, `epitome/pm` and not "our own project
+manager", and say inside each item which of the two addressees is asked
+to act on it. One identical body went to both at 2026-10-24T00:46:32Z
+and HQ declined its third item sixty-three seconds later as a request
+about its own charter, while the pair written per addressee twenty
+minutes earlier moved both of its items. Before posting, run `bash
+docs/agents/addressed.sh --body` over the set, one file per addressee
+(L37).
 
 Take the measurement last, and print what you measured. An ordering is
 a claim about branches other seats are still pushing to, so generate it

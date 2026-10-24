@@ -19,9 +19,12 @@ first: a framework must never consume more than the work it organizes.** 160
 lines, and only one part of it grows: the table takes one row a day, while the
 tick's working and the week's ideas are overwritten each time rather than
 appended, because the detail of a tick belongs in the registers and on the board
-where anybody would look for it anyway. At a row a day the ceiling arrives in
-about a month, and then every row older than fourteen days collapses into its
-verdict. Two kill conditions, both default to cutting: if a daily row ever needs
+where anybody would look for it anyway. That prediction was wrong by five times:
+the ceiling arrived on **2026-10-24** at exactly 160 lines, six days in, because
+what grew was the two sections said to be overwritten and not the table. So the
+collapse triggers on the ceiling and not the calendar — at 160 lines the oldest
+rows collapse into their verdicts until the file fits (L34, the clause beside the
+one it was written for). Two kill conditions, both default to cutting: if a daily row ever needs
 more than one line, and if **seven ticks** pass — not a week (L34) — with no
 decision, handoff or merge **by another seat, a chair or the owner** citing a
 line of this file. Counted from 2026-10-18; a citation by this seat does not
@@ -36,14 +39,12 @@ capacity is one pool and this product shares it with three others. "Dark" is the
 longest stretch of the day with no run of any seat. The row is read at the tick
 and says so; a day's counts keep moving after it.
 
-A refusal is read as a class and never as a word. The first version of this
-command grepped the logs for "session limit", which counts three different
-things as one: a run the provider refused before it took a turn, a run that
-was refused after an hour of real work, and a run that succeeded and happened
-to write a sentence about the outage — on 2026-10-18 the word matched 67 logs
-and only 37 of them were the first kind. Only the first kind is safe to hand
-back to the sender, so the line carries the two numbers separately, and the
-test for "it did nothing" is the footer, not the prose.
+A refusal is read as a class and never as a word. Grepping for "session limit"
+counts three things as one — refused before a turn, refused after an hour of
+real work, and a run that succeeded and wrote a sentence about the outage; on
+2026-10-18 the word matched 67 logs and 37 were the first kind. Only the first
+is safe to hand back to the sender, so the line carries both numbers apart, and
+the test for "it did nothing" is the footer, not the prose.
 
 ```bash
 cd /srv/asc/state/.epito/logs && D=$(date -u +%F)
@@ -60,10 +61,10 @@ echo "runs $(ls */$D*.log | wc -l)" \
 
 | Date | Runs | Turns | Refused | Dark | Weakest attribute | What it moved |
 |---|---|---|---|---|---|---|
-| 2026-10-18 (read 12:06Z) | 253 | 16,079 | 65 (25.7%) — reread 13:30Z by the class test: 37 before a turn (13 seats), 28 mid-run, of 291 runs | 342 min, 121 of them after capacity returned | Dashboards | incident 8, L18, the capacity experiment, three ideas to the owner; reread 14:50Z — incident 12 and L26, and five of this seat's six open pull requests closed as folded into the sixth |
+| 2026-10-18 | 253 | 16,079 | 37 before a turn, 28 mid-run, of 291 | 342 min | Dashboards | **collapsed at the ceiling 2026-10-24.** Verdict: the capacity line earned its place and both its predictions held; incident 8, 12, L18, L26 |
 | 2026-10-19 → 2026-10-22 | 0 | 0 | — | 6,784 min, the whole of four days | not measured: no tick ran | the disk filled on 10-18 and the box ran nothing until 10-23T17:04Z; the brief, the bus and every clock went with it. Four rows this file could not take |
-| 2026-10-23 (read 00:12Z on 10-24) | 92 | 5,527 | 10 before a turn (6 seats), 6 mid-run | 1,024 min to 17:04Z, then 237 min 19:09→23:06Z | Dashboards | HQ's centralizer ran the loop on the outage; this seat's half is the row above and incident 14 |
-| 2026-10-24 (read 00:12Z, 12 min into the day) | 9 so far | — | 0 | — | Dashboards | L34, L35, incident 15, `brief.sh`, the chain fix in `order.sh`, the four engineer charter patches applied, three ideas to the owner |
+| 2026-10-23 | 92 | 5,527 | 10 before a turn (6 seats), 6 mid-run | 1,024 min to 17:04Z | Dashboards | **collapsed at the ceiling 2026-10-24.** Verdict: the host came back at 17:04Z after four days seventeen hours; HQ graded the outage; incident 14 |
+| 2026-10-24 (read 00:12Z, reread 01:00Z) | 9 → **30** | **1,733** | 0, both classes, all day | longest gap 6m42s (00:22:14→00:28:56Z) | Dashboards | 00:12Z: L34, L35, incident 15, `brief.sh`, the chain fix in `order.sh`, the four engineer charter patches applied (on `main` 00:29:49Z), three ideas to the owner. 01:00Z, a message pass and not a tick: L37, L38, incidents 16 and 17, `addressed.sh`, three clauses into this seat's own charter, and this file's ceiling reached and collapsed |
 
 ## Tick of 2026-10-24
 
@@ -113,12 +114,11 @@ Not mine: the brief and the bus are HQ's runtime, handed to the centralizer;
 the 483-commit runtime gap needs a deploy nobody here holds, handed to both
 project managers; the merge of everything above is the owner's and the PMs'.
 
-**Measure — the 2026-10-18 experiment.** Both its predictions held. It said
-the session limit would refuse at least one run again before 2026-10-25:
-16 refusals yesterday, 10 of them before a turn. It said the project-manager
-seats would still be the largest spender of turns at over thirty percent:
-38.1%, up from 36.4%. The kill condition did not hold, and L34 is why — it was
-denominated in days and spent four of its seven on a host that ran nothing, and
+**Measure — the 2026-10-18 experiment.** Both predictions held. The session limit
+would refuse at least one run again before 2026-10-25: 16 refusals yesterday, 10
+before a turn. The project-manager seats would still spend over thirty percent of
+turns: 38.1%, up from 36.4%. The kill condition did not hold and L34 is why — it
+was denominated in days, spent four of its seven on a host that ran nothing, and
 the only party who cites this file is the seat that writes it.
 
 ## The three ideas for the owner, 2026-10-24
@@ -148,13 +148,13 @@ order states what she wants to know first. Smallest test: reorder the brief,
 change nothing else, and count for a week how many Needs-you asks are answered
 within a day against the four standing unanswered tonight.
 
-**Three: charge each product for its share of the box.** The disk that filled
-had no owner because it had no price: four companies share one machine and
-none of them carries a line for it, so no seat had a reason to watch it. A
+**Three: charge each product for its share of the box.** The disk that filled had
+no owner because it had no price: four companies share one machine, none carries a
+line for it, so no seat had a reason to watch it. A
 monthly shared-services line per product, computed from the roster and the run
 log, makes the scarcity somebody's problem instead of nobody's — this product
 spent 21 of yesterday's 92 runs and would see its own number. Hers because it
 is a ledger that crosses her companies. Smallest test: compute one month for
-all four, put it in the finance register as a real line, and watch whether the
-first product to read its own number asks for anything to move off the box.
-(HQ's centralizer reached the same proposal last night from the other end.)
+all four, put it in the finance register as a real line, and watch whether the first
+product to read its own number asks for anything to move off the box. HQ's own
+centralizer reached the same proposal last night from the other end.
