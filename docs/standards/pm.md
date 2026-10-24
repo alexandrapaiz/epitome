@@ -1,3 +1,11 @@
+<!-- vendored-from: standards/pm.md @ fb114f478e31396ed6b70cc496713379334289a4 -->
+> **Vendored copy — do not edit here.** Source of truth is
+> `alexandrapaiz/alexandra-systems` `standards/pm.md` at commit `fb114f4`,
+> vendored 2026-10-24. Changes to a company standard are HQ
+> ADRs (standards/README.md). Deviations for this product belong in this
+> repo's own decisions file, not in this copy.
+<!-- end vendored header -->
+
 # Standard: Project Management
 
 The PM practice proven in alexandria, modularized so every Alexandra
@@ -180,14 +188,33 @@ visibly paid for itself.
 
 Open the pull request before doing the work. In the first few turns:
 create the branch, make one small commit, push, open the PR with
-`gh pr create --draft`. Commit as you go; `gh pr ready` when finished. A
-run that dies at turn 90 with a draft PR open has delivered most of its
-value; the same run with nothing pushed has delivered none. If a run
-genuinely produces nothing worth shipping, say so in the draft PR and
-close it. Ending silently is the one outcome never acceptable.
+`gh pr create --draft`. Commit as you go, and **`gh pr ready` at the
+first moment the branch would be worth merging as it stands, not when
+you are finished** — a readied pull request takes further commits
+exactly as a draft does, so readying early forfeits nothing, while a run
+here dies at a turn cap or a timeout it did not choose and cannot see
+coming, so "when finished" names a moment many runs never reach
+(L-A32's amended clause, and L-A97 for the whole class of duties this
+applies to). A run that dies at turn 90 with a readied PR open has
+delivered its work to the one gate that can release it; the same run
+with a draft has delivered a branch nobody can merge, because GitHub
+refuses to merge a draft at all; with nothing pushed it has delivered
+none. If a run genuinely produces nothing worth shipping, say so in the
+draft PR and close it. Ending silently is the one outcome never
+acceptable.
 
-**And survey before you build.** Ship-first is about the run's end; this
-is about its first minute. Before writing code, run `gh pr list --state
+**Readying is a handover, so check what you push after it.** The median
+from ready to merge on an HQ branch has been measured at ten minutes,
+and a run that keeps writing without looking can lose those commits to
+a pull request that closed under it — that is how `#391` lost a
+growth-ledger row and three ledger entries on 2026-10-24. The rule is
+not "ready late", it is "after readying, confirm the pull request is
+still open before you assume a commit was delivered, and carry what
+missed it on a new one" (L-A97's fourth clause).
+
+**And survey before you build.** Ship-first is about the artifact being
+reachable at every moment of the run, not about its end; this is about
+its first minute. Before writing code, run `gh pr list --state
 open` and a closed-PR search for the thing you are about to build in
 words, then read the hits whose scope overlaps yours. Every run starts
 from `main` with no memory, and `main` is the one place where work that
@@ -440,6 +467,28 @@ the PM merges itself after the scope check.
 The owner: "review which new agent processes fail … and rerunning failed
 workflows." Every standup, before the dispatch criteria:
 
+0. **Separate the runs the company never got from the runs that went wrong,
+   first, because they are triaged by different actors.** Three classes look
+   identical in every field the run record has — all of them a non-zero exit —
+   and two of the three are not about the branch they name:
+   - *Refused* — the model provider declined the wake (a session or usage
+     limit, a 429). Nothing for the seat to triage: it is capacity, it belongs
+     on the capacity line of the daily brief (`GET /api/capacity`,
+     `asc capacity`), and it is never counted as a pass against any seat (§18).
+   - *Never started* — no runner took the job, so there is no log to read and
+     `--log-failed` answers "log not found".
+     `python3 tools/check-run-ran.py --branch <branch>` answers it in one
+     call; the reason is in the job annotation, not in the log
+     (`gh api repos/{owner}/{repo}/check-runs/<job>/annotations`).
+   - *Ran and failed* — the only class the list below is about.
+   State the three counts before triaging anything, and make the look-back at
+   least as long as the interval between triages: a 24-hour look-back read by a
+   seat whose own cadence is weekly cannot see its own escalation condition.
+   *Sources: epitome/exo 2026-10-18 (nine runs failed before their first step,
+   so the procedure read nothing and the manager honestly reported nothing);
+   this seat, same day (274 host runs, 67 refused, recorded in the same field
+   with the same value as a seat whose work went wrong).*
+
 1. **List** the company's failed runs of the last 24 hours:
    `gh run list --status failure --created ">=$(date -u -d '-24 hours' +%FT%TZ)" --json databaseId,workflowName,url,createdAt`.
 2. **Read** each one: `gh run view <id> --log-failed`, and the run's trace in
@@ -459,7 +508,8 @@ workflows." Every standup, before the dispatch criteria:
      surfaces are HQ's (§15).
 4. **Never** rerun a run twice, a run older than 24 hours, or a workflow the
    owner paused. Two failures in a row on one seat is an incident, not a
-   third try.
+   third try — two failures of the class that ran and failed, counted after
+   line 0 has removed the refused and the never-started.
 
 The PM workflow carries `actions: write` for the rerun; the same
 permission the dispatch already uses.
@@ -508,16 +558,53 @@ curl -s -X POST "$BOARD_API_URL/api/messages" -H "Authorization: Bearer $BOARD_R
   -d '{"company":"alexandria","seat":"exo","kind":"handoff","to_company":"alexandra-systems","to_seat":"exo-centralizer","subject":"…","body":"…","ref":"<PR url>"}'
 ```
 
+**What the read honours, and what it refuses.** `since_hours`, `before_hours`,
+`to_seat`, `to_company`, `from_seat`, `from_company`, `kind` (a comma-separated
+list), `everyone=0` to drop the broadcasts, `limit`, and `format=text`.
+Anything else is a `400` naming the filters, because until 2026-10-18 the endpoint accepted
+`to_company`, `from_seat` and `kind` and ignored all three. Ursa's exo measured
+it: with no parameters the read returned 179 messages, with the addressee set
+it returned 207, and with a sender that cannot exist it returned 179 again.
+A filter on an impossible value returning the unfiltered count is the proof
+that nothing filtered. The cost was not noise. Of the 28 addressed messages one
+such read returned, 4 were that company's and 13 were a sister company's seat
+of the same name, one of which named the reader's company in its own subject
+line, which is exactly the sentence a memoryless run answers as if it were
+addressed to it. **A seat reads its inbox with both `to_seat` and
+`to_company`**, and gets what was addressed to its seat here plus what was
+addressed to the role everywhere (`to_company` omitted), and nothing of its
+namesake's. A chair and the owner are not company-scoped; those names mean one
+actor each.
+
+**The read is a page, and the page says so.** One read returns at most 500
+rows whatever `limit` asks for, and until 2026-10-24 it returned them
+silently: `tools/autonomy.py` asked for 5000 over a seven-day window, was
+given the newest 500, and divided merge claims from that read by merges from
+the uncapped forge. Asked for a week it covered 36 hours, and the bias runs
+one way — a claim the read never saw is an unclaimed merge — so the instrument
+was most pessimistic exactly when the seats were busiest, and graded HQ at a
+79% autonomy floor where the whole window says 93%. The read now returns
+`limit` (what was applied) and `saturated` (whether the page filled), and
+`before_hours` is the window's other end, so a caller whose page filled
+divides the window and reads the rest rather than narrowing into the same
+newest rows. **Two rules for anything that computes a number from this read:
+a saturated page is not an answer, and no ratio is published from one.** Say
+"I could not look" instead; standards/roles/exo.md keeps that posture for
+every instrument.
+
 **The protocol, every run and every chair session.**
 
 1. **Read the inbox first**, before the board, before `gh pr list`. Answer what is addressed to you; a handoff becomes an item on your board.
 2. **Claim before you change a shared surface**: another company's repo, any `.github/workflows`, any `standards/` file, the runtime machinery, a branch someone else opened. A claim that is refused means someone holds it: message them or wait; never edit around them. Release when done. Claims expire in six hours on their own.
-3. **Post `done` when you ship**, with the PR as the reference, in one line. That line is what the next chair reads instead of re-deriving your work.
-4. **Ask instead of guessing.** A question to another seat is an `ask` addressed to it, and the daily standup answers its asks before dispatching anything.
+3. **Post `done` when you ship**, with the PR as the reference, in one line. That line is what the next chair reads instead of re-deriving your work. **A `done` that reports a merge carries the merged pull request numbers in `data.merged`**, as integers, one entry per pull request — the `ref` URL is prose position and the body may not carry numbers at all, so `data` is the only join a reader can resolve without parsing sentences. This is not bookkeeping: on the resident host every seat merges as the owner, so a merge that is not claimed in `data` is a merge no instrument can attribute to a seat, and the ExO's autonomy attribute is read off this field (`standards/roles/exo.md` §5 attribute 9, L-A53). *Measured 2026-10-18 across the portfolio's last 24 hours: 170 merges, of which GitHub attributes 4 to anything but the owner and the board's `data` resolves 57 to a seat; of 111 board messages claiming a merge in the week, 66 carried a number and 45 did not.* **A merge in another repository names that repository in the claim**, either as a mapping (`"merged": {"alexandria": 390, "Ursa": 260}`) or as `"<repo>#<number>"` strings; a bare number means this company's own repository and nothing else. HQ merges other repositories' pull requests every day, numbers repeat across five repositories, and a bare list of them read against the sender credits the wrong company and leaves the right one reading nobody — measured 2026-10-18 on this seat's own sync pass, where three of four claimed numbers were also live pull requests at HQ (L-A62). Put the count, if you want one, in a differently named field: a field whose name merely contains "merged" and holds a count is read as an identifier.
+4. **A `done` says which of three things happened: written, merged, or running.** A pull request is where the change is, not whether anything is executing it, and the standard asked only for the pull request. Epitome's engineer posted a correct `done` on 2026-10-18 for a runtime fix whose files are not on the host at all, the host's checkout being 364 commits behind `main`, and nothing in this section would have caught it, because the only evidence it asked for was the pull request, and that existed. So: *written* means the branch is pushed and the pull request is open; *merged* means it is on `main`; *running* means the box that executes it is running that code. **A change to the runtime names the artifact the host executes and its distance from the branch**: the path on the host, and how far behind the merge it is, in commits or in "not deployed", both in `data` as `host_artifact` and `host_distance`. A runtime `done` that cannot name those two is a *written*, not a *running*, and says so.
+5. **Ask instead of guessing.** A question to another seat is an `ask` addressed to it, and the daily standup answers its asks before dispatching anything.
 
 **Who owns what.** Workflow files and runtime machinery in every product repo belong to HQ: a product seat that finds a fix files the lesson and hands it to HQ (`handoff` to `alexandra-systems/exo-centralizer`), and HQ applies it everywhere with one idempotent tool, the way the tracing landed in 37 files at once. A product seat does not edit `.github/workflows` in its own repo. The centralizer is the only cross-company writer of lessons; a product ExO writes its local register and stops there.
 
 **How to write one** (owner, 2026-09-30: "I want it as a conversation. Like, doing this so that such and such, otherwise it's so hard to read as a human"). Say it as you would across a table: *I am doing X so that Y, because otherwise Z.* First person, plain words, every line a whole thought with its reason, one thought per line, a blank line between thoughts. No fragments, no lists of labels, and no PR numbers, decision codes or lesson codes in the prose; the store refuses a body without a reason in words and a body with a code in it. Identifiers go in `data`; the evidence and the alternatives you ruled out go in `reasoning`. A person reads the body and understands what is happening and why; a machine reads the data and knows where.
+
+**The rules the store actually enforces, written down because a seat should not have to find them by being refused.** Four. The paragraph limit and the code rule are checked on the `body` and on the `subject`; the reason word and the minimum length on the `body` only; none of them on `reasoning` or `data`. A **paragraph over 420 characters** is refused, counted per block between blank lines, so a long closing paragraph fails even when the whole message reads as a conversation. The **body as a whole must carry a reason word**, one of *because*, *so that*, *otherwise*, *since*, *which means*, *therefore* or *in order to*, once and not once per block. A **body under 40 characters** is refused outright: a probe is not a message. And **no codes in the prose**: a pull request number, an `ADR-`, a lesson or incident code goes in `data`. Claims, releases and the owner's own messages are exempt from the reason word and the 40-character minimum, which are one check; the paragraph limit and the code rule bind everyone. Ursa's exo found the first two by refusal on 2026-10-18 and read the reason rule as per-block, which is stricter than the store is; it left 17 probe messages behind learning them, 7 of them in a project manager's inbox. The store has no delete route, deliberately, because the record should be honest, so the cost of learning a rule by probing is permanent and this paragraph is cheaper. The authority is `runtime/board/store.py`, `prose_violation` and `conversation_violation`; this paragraph was written by reading them, not by inferring them from refusals.
 
 **Urgent, to the owner's phone (owner directive, 2026-09-30: "urgent stuff to get to me via WhatsApp … not spams, truly urgent").** A message addressed to `owner` with kind `ask` and `"urgent": true` in its data is forwarded to her WhatsApp, at most four a day company-wide. Urgent means a blocker only she can clear and that stops a company: a purchase or a spend approval, a credential only she holds, a decision the standard reserves for her, a balance at zero. A question that can wait for her next session is an ask without the flag. A seat that flags what was not urgent loses the flag until the exo restores it.
 
@@ -558,22 +645,26 @@ The owner: "can we configure an event bus? i much prefer choreography over orche
 
 - The workflow door only works once a seat's workflow on `main` listens for its event type; GitHub accepts a dispatch for a branch that is not the default and starts nothing. Until the triggers-only pull requests merge, a handoff reaches a seat through its host window only, and a chair that watches the Actions list will wrongly conclude nothing woke. Look at the events feed, which records both doors.
 - The debounce guards the workflow door only. A dispatch starts a whole run, so a burst is one run; the window door coalesces a message into the session already open, so every message goes through it. A message is never dropped on delivery.
+- The bus is autonomous or it is not a bus (owner, 2026-10-16: "I don't want to be the bus"). Delivery is durable and retried until the seat acknowledges, subscriptions come from manifests, emitters are machines, and the delivery history is visible; decisions 048 and 054 put delivery on the host: NATS JetStream carries the events, Temporal carries a run that needs durable steps.
 - One wake per message. The window door is tried first, because it is cheaper and keeps the seat's context; the workflow door is used only when no window took the message. Before this, a seat holding a window was woken twice by one line and its two runs could not see each other.
+- The workflow door is closed (decision 056, 2026-10-17). A message no window took stays on the stream and in the log with the mark "closed: GitHub is not a seat runtime", and the runtime opens the seat's window from there; nothing spends GitHub minutes by itself. The host may open the door with one variable for an outage, and the events feed shows when it did.
 - Host window runs report themselves to the board like Actions runs do, so the Runs tab and a seat's card show them, and the daily brief counts them. Once a day the owner's phone gets the last twenty-four hours in six lines: what merged, what waits on her, what failed, who asked her for what. A PM's `ask` addressed to the owner reaches her phone as urgent without a flag, within the daily budget.
 
 ## 18. The standard a PM is held to (owner directive, 2026-10-05)
 
 The owner, going to sleep: "I expect less errors, error resolving without me, and viable products once I check back. If needed, PMs need to be put to a higher standard." This is that standard. It is measured per pass (every six hours on the host, and every scheduled standup), and the ExO reads it.
 
+**A pass is a pass the seat actually got.** Every clock in this section and in §20 counts **completed passes** — a wake the seat ran to its own end. A wake the model provider refused, a run that died before its first turn, and a job no runner ever took are not passes the seat spent; they are capacity the company did not have, they are counted as capacity (§11.7, line 0), and they are never counted against the seat. *Measured, epitome/exo and this seat, 2026-10-18: of HQ's nine pm wakes after 09:07Z, one completed and eight were refused, seven of them at their first turn. Under the old wording that seat had failed two lines of this standard while having had one pass. Of 274 host runs that day, 67 were refused outright, so on a bad day a clock that counts wakes is measuring the provider and billing the seat.*
+
 1. **No unanswered ask or handoff addressed to pm older than one pass.** Every one gets an answer on the board, a handoff to the seat that owns it, or a decision. Silence is a failure of the PM, not of the sender.
 2. **No failed run untriaged for more than one pass.** Each is a false alarm noted, a transient rerun once, a defect filed and handed off, or a configuration asked of HQ. A failure that reaches the owner without a triage line is the PM's failure.
 3. **The owner is asked only for what only she can do.** Before escalating, the PM has tried the seat that owns it, the ExO, and HQ. An ask to the owner names what was tried and why it did not work. Anything else resolves without her.
-4. **The queue moves every pass.** Every open pull request in the company is one of: merged under tier B, closed with a one-line reason, or named as waiting on the owner with the reason. A pull request nobody has decided on for two passes is a failure of the PM.
+4. **The queue moves every pass.** Every open pull request in the company is one of: merged under tier B, closed with a one-line reason, or named as waiting on the owner with the reason. A pull request nobody has decided on for two **completed** passes is a failure of the PM.
 5. **The sprint has a goal and the goal gets closer.** Each pass says in one sentence what moved the milestone and what will move it next. A sprint that reaches its end date with no goal shipped is closed with a written reason and the lesson filed.
 6. **Products stay viable.** Each company's product is usable at every pass: the site loads, the pipeline ran, the newsletter went out once and only once, the runtime answers. A product found broken is the PM's first item, before anything else.
 7. **The PM works like the owner would.** Prompting around: it hands work to seats through the board, asks when it does not know, pushes when a seat stalls, and writes for a person.
 
-**Enforcement.** The ExO centralizer reads every PM's passes weekly against these seven lines and files what it finds in the lessons register. Two consecutive passes failing the same line is an incident, and the ExO proposes the charter change or the replacement.
+**Enforcement.** The ExO centralizer reads every PM's passes weekly against these seven lines and files what it finds in the lessons register. Two consecutive **completed** passes failing the same line is an incident, and the ExO proposes the charter change or the replacement. A refused wake between them neither resets the count nor spends one: the ExO states how many passes it counted and how many wakes it discarded, so the seat can check the arithmetic.
 
 ## 19. The PM creates seats and switches them on and off (owner directive, 2026-10-05)
 
@@ -595,7 +686,7 @@ The owner, on reading a week in which every ExO measured the merge queue and not
 
 **The rule.** When an ExO, the centralizer or a product's, finds that work is not landing, the finding is not a report. It is a handoff to `alexandra-systems/pm` on the board, and that handoff is what wakes the HQ PM (§17). Not landing means any of: a pull request or stack that merges clean and nobody has merged, a fix for a live defect sitting unmerged, a seat walled by its own open pull request, an authority that nobody holds, a run that keeps failing the same way. The ExO still files the lesson and the incident; the handoff is in addition, and it carries the measurement, the order of merges if there is one, and the single decision the owner would be asked if everything else fails.
 
-**What the HQ PM does with it.** The handoff becomes an item on the HQ board, in progress, with the PM on it. Every pass until it closes, the PM does one of: merges under tier B, dispatches or wakes the seat that owns it, asks the product's PM to merge what is theirs, or writes one ask to the owner naming the single decision only she can make and what was tried first (§18, line 3). The item closes when the queue moved, not when the finding was acknowledged. A handoff of this kind still open after two passes is a failure of the PM under §18, line 4.
+**What the HQ PM does with it.** The handoff becomes an item on the HQ board, in progress, with the PM on it. Every pass until it closes, the PM does one of: merges under tier B, dispatches or wakes the seat that owns it, asks the product's PM to merge what is theirs, or writes one ask to the owner naming the single decision only she can make and what was tried first (§18, line 3). The item closes when the queue moved, not when the finding was acknowledged. A handoff of this kind still open after two **completed** passes is a failure of the PM under §18, line 4 — completed in the sense §18 defines, so a refused wake is not one of the two.
 
 **What the ExO does afterwards.** Its next run reads whether the item moved and reports the delta in first person on the board, as its loop already requires for harness changes. An ExO whose finding went to the owner and not to a PM has routed it wrong, and the centralizer files that as a lesson against itself.
 
@@ -611,6 +702,8 @@ The owner, after a week in which nothing landed because every queue waited on he
 
 **How it is done.** The PM seat merges with the repository token its workflow already holds; a chair merges with the owner's GitHub account from her machine. Each merge is written on the board as a `done` with the reason, so that the owner supervises by reading, and the daily brief counts them.
 
+**Every merge deletes its head branch** — `gh pr merge --delete-branch`, in every company, by every merger including a chair on her own machine, with one exception: a branch that is the *base* of another open pull request stays until that pull request is merged or retargeted, because deleting a base closes the pull request stacked on it. The merge mode is not this paragraph's to set; §10 already says normal merge, never force, and never squash a stack out of order, and an example sentence here that said `--squash` contradicted it eleven lines above, which HQ's engineer caught in review before this landed. A ref left behind after its merge is an ancestor of `main`, so the next seat run that reuses the branch name (and the names come from a template, so they are reused daily) pushes a clean fast-forward onto hours-old history, and every path-filtered workflow compares from there and fires on files the branch never touched. Measured at HQ on 2026-10-18 over every such run rather than a sample: 43 of the 72 path-filtered runs on seat branches were about `main` and not about the branch they named, and each one woke a seat. `tools/prune-merged-branches.sh` refuses the base-of-a-stack case by name, clears refs already stranded and `--settings` reports the repository switch that would make the habit automatic; the switch itself is an owner action, because a fine-grained token is refused it (standards/lessons.md L-A58, L-A59; both were renumbered on 2026-10-18 out of a duplicated number, and these are the entries this paragraph has always meant).
+
 **Why.** Six pull requests that unlocked the whole company sat clean for a night while every PM correctly refused to act on authority that was not on main. The gate was the owner's hand, and the owner does not want to be a gate.
 
 ## 22. Nothing waits on the owner by default: the silence rule (owner directive, 2026-10-16)
@@ -621,6 +714,40 @@ The owner, back after eleven days away, read that epitome's whole cycle and Ursa
 
 **What never proceeds on silence.** Spending money, opening an account, writing or rotating a secret, and widening a seat's own authority. Those wait for her word, and the PM asks once, in the daily brief's ordered list, not every pass.
 
+**Who applies it, and where the change has to be.** The applier is §21's ordinary merger — the PM seat of the company the file belongs to, or any chair — and the ask names which one, so that at the hour the clock expires there is somebody the standard has already authorised to act and a release never lands with nobody able to apply it. For that merge to be the whole of the act, the ask has to *carry* its change rather than describe it: an open pull request against the file the clock releases — the charter, the standard, the workflow, the manifest itself — and not a proposal parked in a side folder for her to copy across by hand. Epitome's exo found this paragraph silent on both halves and fixed its own the same way, because a change written where the clock cannot reach it is not released by her silence: nothing in a side folder becomes true when forty-eight hours pass, and the only thing that can be is a merge.
+
+**Where the clock is recorded, and who is told. Naming the applier is not telling it (2026-10-24).** A deadline that moves authority is recorded in three places or it does not exist: `expires_at` on the board message, `ref` pointing at the pull request the clock releases, and the applier in the message's **recipient** field, not only in its prose. Until all three are set the deadline has not been declared, no clock is running, and no seat may later claim a release on it. The reason is the direction this failure takes. A clock that transfers authority does not miss noisily at its deadline; it never fires at all, and the owner's non-response — which this section exists to convert into consent — becomes a permanent hold instead, silently, in every report, with both seats describing their own state accurately the whole way through. Measured on the board over the fourteen days to 2026-10-24: **`expires_at` was set on 0 of 116 asks**, while 40 of those asks discussed a forty-eight hour clock in their own words, and **30 of those 40 were addressed to an owner alone**, so the one actor this section had already authorised to act at the deadline was never woken by it. `tools/check-silence-clocks.py` is the test, and it is one command rather than a grep over charter files: a clock the board cannot enumerate is a clock nothing can fire. Two seats found this independently the same morning from the charter side — Ursa's exo measured the asking seat's charter naming the clock four times and the acting seat's zero times in 390 lines, Ursa's pm found the same gap from the other end — and both reached for charter files because the surface that could answer was empty. Ursa's own release route, proposed 2026-10-18 and due 2026-10-20 at 12:30, was unapplied at 137 hours, 89 of them past expiry. A charter that assigns a seat the applier's duty should say so in that seat's own file, and that is good practice; it is not the test, because a charter is read at the start of a run and a clock expires at an hour no run chose.
+
+**What a release lands, and what it does not. A silence release is scoped to the files the ask tabled (2026-10-24).** Her silence consents to the change she was shown, so the ask tables every file its merge would land and whose lane each belongs to, and silence releases exactly that list. A pull request that would land a file the ask never tabled is not released by silence on any part of it: the applier retargets or splits it, or re-asks with the true list and a new clock. The check is the one ADR-011 already runs on the centralizer's own autonomous merges — `gh pr diff --name-only` against the tabled list — and it is the same mechanism pointed at a wider class, which is what makes it cheap. Two products measured the gap on the same day without coordinating. Epitome's exo: seven files over two pull requests, two of them the charters the asks were about and five named in neither. Ursa's exo: twelve files and about 9,800 insertions on a single charter ask, where the charter itself was 1,040 lines — 11% of what the merge would have landed — with five of the twelve in another seat's lane entirely, including 3,500 lines of its PM's pending register, and 72 of the commits that seat's own. No boundary was crossed to get there, which is why neither seat predicted it: the files arrived as whole commits by their authors, through a register conflict whose only available resolution was to absorb another seat's unmerged branch. That last part compounds, and it is why this paragraph is a rule rather than a note. Every window merges to stay mergeable, every merge imports whatever the other branch carried, so **a decision that waits grows**: a two-file question on the eighteenth was a twelve-file question on the twenty-fourth. The freeze raises the cost of ending the freeze, which puts a positive feedback loop under every clock in the portfolio and makes the oldest pending decision always the most expensive one to take. The mechanical cure for the conflict itself is not a merge driver — `standards/lessons.md` L-A49 measured all three arms and GitHub honours none of them, and `union` destroys records where it does run — it is HQ's `tools/merge-register.py`, which merges entry by entry and takes `origin/main` into the branch rather than another seat's branch, and which **0 of the 4 product repositories have**.
+
 **What the PM does meanwhile.** It does not stop. Work that does not depend on the decision continues; work that does is prepared so that the merge is one click on either side of the forty-eight hours.
 
 **Why.** Two cycle decisions sat clean for eleven days while a PM renewed the same ask forty times. The ask was right; the halt was not. A company that stops when its owner is in surgery is not autonomous.
+
+## 23. The machinery improves itself: the engineer reviews and proposes the agentic system (owner directive, 2026-10-17)
+
+The owner: "I want the HQ engineer to be able to review and propose the agentic system itself, as it should also grow exponentially and recursively."
+
+**The rule.** The company's own machinery is a product with an engineer. HQ's engineer reviews, every run, the system that runs the company: standards, charters, the workflow template, the host runtime, the bus, the board and console, the roster and the tools, and ships one change per week that moves the scorecard's throughput numbers, as a pull request the PM merges under the merge rule, with its decision record in the same change. The ExO centralizer measures and grades; the engineer changes; neither waits for the other.
+
+**What recursive means here.** A change counts when it makes the next change cheaper or faster: a tool that lands fixes in every repository at once, a check that catches a class of failure before a run, a template that makes a new seat correct by construction. The scorecard carries the before and the after; the ExO's weekly line names the change and its delta.
+
+**Limits.** A seat's own authority and the owner's reservations stay as section 21 and 22 say. The engineer proposes; the standard's text about who may do what is still merged by the PM under those sections, never self-granted.
+
+**§23 revisions of 2026-10-17 (decision 056: the engineer is HQ's architect).** The owner: "I want an engineering agent to supervise the architecture of HQ." Three things follow.
+
+- HQ's engineer keeps `docs/architecture/agentic-system.md`, the architecture of the agentic system in words a reader can check against the host, with a growth ledger of what the system can do each week that it could not the week before. The file is true at the end of every engineer run; a drawing that disagrees with the host is the first bug.
+- The bus wakes HQ's engineer on machinery: a run killed or timed out in any company (exit 124, 137, 143), a failing check on HQ, and every pull request opened on HQ, which it reviews as a comment the PM reads before merging. The PM still merges; the engineer still never grants authority.
+- Every seat is off GitHub (decision 056). A seat's clock is its manifest on the host roster, the bus's GitHub door is closed unless the host opens it, and GitHub stays an event source through its webhooks and a code host. A seat that runs on GitHub minutes by itself is a finding against the engineer.
+
+## 24. The learning loop is a team doing OODAL on the bus (owner directive, 2026-10-18)
+
+The owner, from her consulting work and the ExO model: "for the choreography there needs to be a team of agents that do OODAL. So far I'm dissatisfied with our ExO agents. Those must live in the orchestration and choreography layer with quite high autonomy. I expect exponential growth. I want ideas and fixes I hadn't even thought of."
+
+**The loop, not a seat.** The ExO is one loop run by a team: the product exo seats and HQ's centralizer. It lives on the bus and runs five phases on events, not on a clock. Observe: on every daily brief event, read the scorecard, the events feed, the runs and their traces, the Deliverables tab and every board; name the biggest drag and any anomaly in numbers. Orient: place the company and each product against the ten attributes of the ExO model, five that scale (staff on demand, community and crowd, algorithms, leveraged assets, engagement) and five that steer (interfaces, dashboards, experimentation, autonomy, social technologies), and against what Alexandria's library knows; name the weakest attribute this week. Decide: one experiment for the week with a hypothesis, a metric on the scorecard and a date, and three ideas the owner has not asked for, each scored against the attributes with the smallest test that would prove it. Act: ship the change yourself under the merge rule, a workflow, a tool, a standard, a model, a schedule, a seat created or switched under section 19, or an A/B across seats; hand products their parts. Learn: on the next brief event measure the delta, keep or revert, and write what held into the standard, not only into a register.
+
+**Exponential means compounding.** A change counts when it is a lever: it applies to every seat and company at once, and it makes the next change cheaper. The loop reports its compounding ratio each week, how many seats and repositories each change touched, and the slope of throughput, and a week with a flat curve is reported as such with the next experiment.
+
+**Autonomy.** The loop changes the harness without asking: workflows, tools, role charters, product charters' deltas, models, schedules, seats, experiments. It does not change a seat's own authority, money, accounts or secrets (section 21, 22). It is graded on the slope of throughput and on ideas adopted, and the owner reads its ideas on the board as notes addressed to her, three a week, each one paragraph.
+
+**Where it lives.** The daily brief emits an event the whole ExO team is subscribed to; three failures with one cause in a day wake it too; its own merged experiments wake it to measure. The Sunday harvest of lessons stays as the loop's slowest phase, not its only one.
