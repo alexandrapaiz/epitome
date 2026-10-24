@@ -162,7 +162,8 @@ from a shell — `. /usr/local/lib/epito-envfile.sh` then `load_env_file
 ```
 
 Names, byte counts and verdicts, and never a value — the same rule, so the
-output of this one is safe to paste into a report. `docs/deploy/README.md`
+output of this one is safe to paste into a report.
+[`docs/deploy/README.md`](https://github.com/alexandrapaiz/epitome/blob/main/docs/deploy/README.md)
 ("Nothing may `source` that file from a shell") has the reader-by-reader table.
 
 Three other surfaces say the same thing from the same reader, so a box cannot

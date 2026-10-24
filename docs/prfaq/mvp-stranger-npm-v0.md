@@ -16,10 +16,11 @@ work, we need an MVP."
 
 **epito ships to npm: a stranger mints an agent from one file**
 
-*`npm i -g epito`, then `init`, `validate`, `deploy`, `run` — no owner
+*`npm i -g epito-cli`, then `init`, `validate`, `deploy`, `run` — no owner
 in the chain, no code to read first.*
 
-Today epito.me published `epito` to the npm registry. Until now, every
+Today epito.me published `epito-cli` to the npm registry — the package
+name npm would accept; the command it installs is still `epito`. Until now, every
 piece of the agent primitive — a manifest, its own GitHub identity, a
 schedule, a durable runtime — worked, but only inside this repository.
 Nobody outside it could install the CLI, because the package had never
@@ -46,7 +47,7 @@ run.
 A stranger starts today with:
 
 ```bash
-npm i -g epito
+npm i -g epito-cli
 epito init my-agent
 epito validate my-agent
 epito deploy my-agent    # opens a browser, one click, their own account
@@ -61,8 +62,11 @@ because there is not one yet. That sentence is the test: if the first
 real user cannot say something close to it, the release does not
 publish as planned.
 
-Available today at the npm registry, under the name `epito`, at no
-cost to install or run.
+Available today at the npm registry, under the name `epito-cli`, at no
+cost to install or run. The binary it installs is `epito`: npm refused
+the unscoped package name as too close to `exit` and `pino`, so the
+install line and the command are two different words, and only the
+install line changed.
 
 ---
 

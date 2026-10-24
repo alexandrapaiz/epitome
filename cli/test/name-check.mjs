@@ -35,9 +35,9 @@
 // 404. Nothing is created, no version exists, no name is burned. That is what
 // makes this safe to run on a candidate you have not decided on yet.
 import { readFileSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { homedir } from 'node:os'
 
 const CLI = dirname(dirname(fileURLToPath(import.meta.url)))
 const REGISTRY = 'https://registry.npmjs.org'
@@ -50,26 +50,62 @@ const name = process.argv[2] || pkg.name
 // The token comes from the environment or from npm's own config, so this reads
 // the same credential `npm publish` would use and never takes one on argv —
 // a token on a command line lands in shell history and in the process table.
-function token () {
-  if (process.env.NPM_TOKEN) return process.env.NPM_TOKEN.replace(/^'|'$/g, '')
-  try {
-    const v = execFileSync('npm', ['config', 'get', '//registry.npmjs.org/:_authToken'],
-      { cwd: CLI, encoding: 'utf8' }).trim()
-    if (v && v !== 'undefined' && v !== 'null') return v
-  } catch { /* npm absent or no such key: handled by the caller */ }
+//
+// NOT via `npm config get //registry.npmjs.org/:_authToken`, which is what
+// this did first and which cannot work: npm 10 marks the auth token
+// PROTECTED and refuses to hand it back on stdout, answering `npm error The
+// //registry.npmjs.org/:_authToken option is protected, and can not be
+// retrieved in this way` on stderr and exiting 1. Measured on npm 10.9.8
+// against a `--userconfig` that genuinely held a token — `npm config list`
+// shows the key as `(protected)`, so the credential was loaded and still
+// unreadable. The practical effect was that a machine logged in with `npm
+// login` was told it had no credential, by a refusal whose own suggested fix
+// was `npm login`. npm does not export the token to a run-script either, so
+// there is nothing to read from the environment.
+//
+// What it DOES export is the path: `npm_config_userconfig`. So the token is
+// read out of the npmrc files themselves, in npm's own precedence order —
+// project before userconfig before globalconfig — which is where `npm login`
+// writes it and where the publish will read it from. `${VAR}` is expanded
+// because npmrc allows it and CI writes it that way.
+const npmrcToken = () => {
+  const files = [
+    join(CLI, '.npmrc'),
+    process.env.npm_config_userconfig || join(homedir(), '.npmrc'),
+    process.env.npm_config_globalconfig,
+  ].filter(Boolean)
+  for (const f of files) {
+    let text
+    try { text = readFileSync(f, 'utf8') } catch { continue }
+    for (const line of text.split('\n')) {
+      const m = line.match(/^\s*\/\/registry\.npmjs\.org\/:_authToken\s*=\s*(.+?)\s*$/)
+      if (!m) continue
+      const v = m[1].replace(/^["']|["']$/g, '')
+        .replace(/\$\{(\w+)\}/g, (_, k) => process.env[k] ?? '')
+      if (v) return { tok: v, from: f }
+    }
+  }
   return null
 }
 
-const tok = token()
-if (!tok) {
+function token () {
+  if (process.env.NPM_TOKEN) return { tok: process.env.NPM_TOKEN.replace(/^'|'$/g, ''), from: 'NPM_TOKEN' }
+  return npmrcToken()
+}
+
+const found = token()
+if (!found) {
   die(`epito: name-check needs the same npm credential a publish would use, and there is none on this machine.
 
 It asks the registry whether it would accept the name — a question only an authenticated request can ask — and it publishes nothing either way.
+
+Looked in NPM_TOKEN, then for //registry.npmjs.org/:_authToken in ${[join(CLI, '.npmrc'), process.env.npm_config_userconfig || join(homedir(), '.npmrc'), process.env.npm_config_globalconfig].filter(Boolean).join(', ')}.
 
 Fix: put the publish token in NPM_TOKEN for this one command, or log the machine in:
   NPM_TOKEN=... npm run name-check
   npm login`)
 }
+const tok = found.tok
 
 const auth = { Authorization: `Bearer ${tok}` }
 
@@ -80,11 +116,13 @@ let who = null
 {
   const r = await fetch(`${REGISTRY}/-/whoami`, { headers: auth })
   if (r.status === 401) {
-    die(`epito: the npm credential on this machine is not accepted by the registry (401), so name-check cannot ask it anything.
+    die(`epito: the npm credential this machine offers is not accepted by the registry (401), so name-check cannot ask it anything.
 
-A publish token that has expired or been revoked fails exactly like this.
+A publish token that has expired or been revoked fails exactly like this, and \`npm publish\` would fail the same way on the same credential.
 
-Fix: check the token's expiry on npmjs.com (Access Tokens), mint a replacement, and store it wherever this machine reads NPM_TOKEN from.`)
+It came from ${found.from === 'NPM_TOKEN' ? 'the NPM_TOKEN environment variable' : found.from}.
+
+Fix: check the token's expiry on npmjs.com (Access Tokens), mint a replacement, and put it there.`)
   }
   if (!r.ok) die(`epito: the registry answered ${r.status} to \`GET /-/whoami\`, so the credential could not be identified.\n\nFix: retry; if it persists, check https://status.npmjs.org before treating it as a token problem.`)
   who = (await r.json()).username

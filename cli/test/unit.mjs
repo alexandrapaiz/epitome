@@ -31,10 +31,11 @@ import { parse } from "smol-toml";
 import { mkdirSync } from "node:fs";
 import { once } from "node:events";
 import { generateKeyPairSync, createVerify } from "node:crypto";
-import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, chmodSync, realpathSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, chmodSync, realpathSync, statSync } from "node:fs";
 import { seatOfWorkflowId, scheduleId, runId, windowId } from "../src/temporal/env.js";
 import { justCompleted, sendOrRestart, sayShortfall } from "../src/run.js";
 import { ADAPTERS, ADAPTER_NAMES, adapterFor, unknownAdapter, LANGGRAPH_SHIM } from "../src/lib/adapters.js";
+import { PACKAGE, INSTALL } from "../src/lib/install.js";
 import {
   DEFAULT_ADDRESS, connectReason, engineAnswering, engineFix, engineMissing,
   engineUnreachableMessage, splitAddress,
@@ -2547,7 +2548,7 @@ test("spec/manifest.md's field catalogue is the validator's field catalogue", ()
 
 // Same rule, one directory over: the runtime box's engine list and the CLI's
 // declared peers are one list. cli/package.json stopped shipping @temporalio/*
-// with the CLI so `npm i -g epito` is half a megabyte, and the box that exists
+// with the CLI so `npm i -g epito-cli` is half a megabyte, and the box that exists
 // to run `epito run` and `epito worker` therefore has to install them by name
 // in deploy/provision-host.sh. Two places naming the same four packages is
 // drift waiting to happen — and the failure mode is a provisioned host whose
@@ -2560,7 +2561,7 @@ test("the runtime box installs every engine peer the CLI declares", () => {
   for (const p of peers) {
     assert.ok(
       (pkg.peerDependenciesMeta?.[p]?.optional) === true,
-      `${p} is a peer dependency but not an optional one, so \`npm i -g epito\` drags the engine back in`,
+      `${p} is a peer dependency but not an optional one, so \`${INSTALL}\` drags the engine back in`,
     );
   }
 
@@ -2577,6 +2578,122 @@ test("the runtime box installs every engine peer the CLI declares", () => {
   // package where a globally installed `epito` will resolve it.
   assert.match(sh, /npm install -g --silent \$ENGINE_PKGS/,
     "provision-host.sh names the engine packages but does not install them globally");
+});
+
+// The install line, which stopped being the product's own name.
+//
+// npm refused `epito` on 2026-10-23 as a typosquat of `exit` and `pino`, so
+// the package is `epito-cli` and the binary is still `epito`. That split is
+// the whole reason this test exists: the rename moved cli/package.json and
+// the README's front page (test/stranger.sh asserts that one), and left
+// `npm i -g epito` spelled into two refusals — `epito --version` on a copy
+// with no package.json beside it, and the missing LangGraph shim. Both told
+// their reader to install a package the registry does not serve, which is a
+// worse failure than a refusal with no fix at all: the reader does not see a
+// typo, they see a 404 and conclude the product is not real.
+//
+// So the rule is: nothing this package SHIPS may spell a package name on an
+// install line except the one npm serves. A name inside `${...}` is allowed
+// because it is resolved from here or from package.json's peers rather than
+// typed, and a `@scope/...` name is an engine peer the CLI deliberately does
+// not bundle. A spelled bare name is the only thing that drifts, and this is
+// the assertion that the next rename cannot forget.
+test("every install line the package ships names the package npm serves", () => {
+  const root = fileURLToPath(new URL("..", import.meta.url));
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+
+  assert.equal(PACKAGE, pkg.name,
+    `cli/src/lib/install.js installs "${PACKAGE}" and cli/package.json publishes "${pkg.name}" — ` +
+    `every refusal that prints the install line would send its reader to a package npm does not serve. ` +
+    `Fix: set PACKAGE in cli/src/lib/install.js to "${pkg.name}", or rename the package back.`);
+  assert.equal(INSTALL, `npm i -g ${pkg.name}`,
+    `cli/src/lib/install.js's INSTALL is not an install of this package ("${INSTALL}"). ` +
+    "Fix: build it from PACKAGE rather than writing the line out.");
+
+  const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]);
+  const shipped = (pkg.files ?? []).flatMap((f) => {
+    const at = join(root, f);
+    return existsSync(at) ? (statSync(at).isDirectory() ? walk(at) : [at]) : [];
+  }).filter((f) => /\.(js|mjs|md)$/.test(f));
+  assert.ok(shipped.length > 0,
+    "cli/package.json's `files` resolves to nothing readable, so this test asserted nothing about the tarball");
+
+  for (const f of shipped) {
+    // `root` carries a trailing separator, so the slice is already relative.
+    const where = join("cli", f.slice(root.length));
+    for (const [, rest] of readFileSync(f, "utf8").matchAll(/npm i(?:nstall)? -g +([^\n`"']*)/g)) {
+      for (const raw of rest.trim().split(/\s+/)) {
+        // A JS template literal spells its closing backtick as `\``, so a name
+        // at the end of a refusal arrives with the escape still attached;
+        // naming "epito\\" at a reader would be this test failing the same
+        // error-message bar it is here to enforce.
+        const named = raw.replace(/\\+$/, "");
+        if (!named || named.startsWith("${") || named.startsWith("@")) continue;
+        assert.equal(named.replace(/@[\^~]?[\d.].*$/, ""), PACKAGE,
+          `${where} prints an install line for "${named}", and this package is published as "${PACKAGE}" — ` +
+          `a reader who pastes it gets a 404 from the registry, not this CLI. ` +
+          "Fix: import INSTALL from src/lib/install.js and print that, or name an engine peer by its @scope.");
+      }
+    }
+  }
+});
+
+// The other half of the same rule, because the tarball is not where a stranger
+// reads the install line first.
+//
+// The test above walks `package.json`'s `files`, which is everything npm
+// serves. It is blind by construction to every surface in this repository that
+// is not in the tarball, and the rename proved that is where the stale line
+// actually survives: after `epito` → `epito-cli` landed in #246, the PR/FAQ's
+// press release still printed `npm i -g epito` inside a fenced block — the one
+// line in that document a reader copies rather than reads — and said the
+// registry serves it under a name it does not.
+//
+// Only fenced blocks, and that narrowness is the point. Prose quoting the old
+// line is history and often has to stay: the ADR that explains why the engine
+// is an optional peer, this repository's decision log, the cycle file, the
+// pitch. A fenced block is not history, it is an instruction, and an
+// instruction that 404s is the defect. Placeholders (`<chosen>`, `${...}`) and
+// `@scope/...` engine peers are not this package and are skipped.
+test("every install line this repository prints into a code block is one that works", () => {
+  const repoRootDir = fileURLToPath(new URL("../../", import.meta.url));
+  const skip = new Set([".git", "node_modules", ".epito"]);
+  const docs = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory()
+      ? (skip.has(e.name) ? [] : docs(join(dir, e.name)))
+      : (e.name.endsWith(".md") ? [join(dir, e.name)] : []));
+
+  const pages = docs(repoRootDir);
+  assert.ok(pages.length > 10, `only ${pages.length} Markdown pages found under ${repoRootDir}, so this test asserted nothing`);
+
+  let checked = 0;
+  for (const page of pages) {
+    const where = page.slice(repoRootDir.length);
+    let fenced = false;
+    let n = 0;
+    for (const line of readFileSync(page, "utf8").split("\n")) {
+      n += 1;
+      if (/^\s*```/.test(line)) { fenced = !fenced; continue; }
+      if (!fenced) continue;
+      // Only the FIRST word after `-g`, which is the package the line
+      // installs. Reading every word instead made this test fail on the word
+      // "does" in `…so \`npm i -g epito-cli\` does not drag in Temporal's…` —
+      // a sentence that quotes a correct install line and happens to live
+      // inside a block. A line installing several packages at once is an
+      // engine-peer line, and its first word is already `@temporalio/...`.
+      for (const [, rest] of line.matchAll(/npm i(?:nstall)? -g +(.*)$/g)) {
+        const named = rest.trim().split(/\s+/)[0].replace(/[`'"]/g, "");
+        if (!named || named.startsWith("@") || named.startsWith("$") || named.startsWith("<") || named.startsWith("-") || named === ".") continue;
+        checked += 1;
+        assert.equal(named.replace(/@[\^~]?[\d.].*$/, ""), PACKAGE,
+          `${where}:${n} is a block a reader pastes, and it installs "${named}" — this CLI is published as "${PACKAGE}", ` +
+          `so that line answers 404 from the registry. ` +
+          `Fix: write \`${INSTALL}\` there, or, if the line is quoting what the install USED to be, take it out of the code block and say so in prose.`);
+      }
+    }
+  }
+  assert.ok(checked > 0, "no fenced install line was found anywhere in the repository, so this test asserted nothing — the README's front page has one");
 });
 
 // --- readiness: a ✓ that does not overclaim ---------------------------------
@@ -3020,7 +3137,7 @@ test("the unreachable-engine sentence exists once, and both clients use that one
 
 test("the engine fix names nothing the reader does not have", () => {
   // `runtime/temporal/install.sh` is HQ's file (alexandra-systems). It is in
-  // neither this repository nor `npm i -g epito`, whose package.json `files`
+  // neither this repository nor `npm i -g epito-cli`, whose package.json `files`
   // ships src, adapters and README.md — so the product's most likely first
   // refusal told you to run a script that exists on no machine you have,
   // which is worse than naming no fix, because it sends you looking. A path
@@ -3035,7 +3152,7 @@ test("the engine fix names nothing the reader does not have", () => {
   for (const [, p] of fix.matchAll(/\b((?:docs|deploy|spec|prompts|agents)\/[\w./-]+)/g)) {
     assert.ok(existsSync(join(repoRootDir, p)), `the engine fix names ${p}, which is not in this repository`);
     assert.match(fix, /github\.com\/[\w-]+\/[\w-]+/,
-      `the engine fix names the repository path ${p} without naming the repository, and \`npm i -g epito\` ships no docs`);
+      `the engine fix names the repository path ${p} without naming the repository, and \`${INSTALL}\` ships no docs`);
 
     // The path existing is not the same as the reader arriving somewhere. The
     // fix used to name a file that existed and whose named section's third
