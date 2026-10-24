@@ -70,21 +70,113 @@ flag_body() {  # $1 = label, $2 = file holding the body
   return 0
 }
 
-liveness() {  # $1 = seat directory name under the host's log root
-  local root=${EPITO_LOGS:-/srv/asc/state/.epito/logs} seat=$1 newest open=0
-  if [ ! -d "$root/$seat" ]; then
-    echo "$seat: no log directory at $root/$seat — this box cannot answer"; return 2
+# A bare seat name is not an address on a box that runs several companies'
+# seats, which is L37 again with a directory instead of a possessive. This log
+# root holds both `engineer` and `epitome-engineer`, both live, both with
+# different newest runs, and the first reading of this instrument answered
+# about the wrong one without saying so (incident 21). So resolve, and when the
+# name is ambiguous say `unreadable` rather than pick (L41).
+# The company is the repository's name on the remote, not the name of the
+# directory this run happens to be cloned into: the clone is named for the run
+# (`epito-epitome-exo-vWT2x7`) and that resolved every seat to `unreadable` on
+# the first reading of this fix.
+COMPANY=${EPITO_COMPANY:-$(basename -s .git "$(git remote get-url origin 2>/dev/null || echo unknown)")}
+# How long a log may go unwritten and still be called a live run.
+STALE_MINUTES=${STALE_MINUTES:-120}
+
+resolve_seat() {  # $1 = seat as asked for; prints one dir name, or nothing
+  local root=$1 seat=$2 c=() d
+  for d in "$COMPANY-$seat" "$seat"; do
+    [ -d "$root/$d" ] && c+=("$d")
+  done
+  case ${#c[@]} in
+    0) return 2 ;;
+    1) printf '%s\n' "${c[0]}"; return 0 ;;
+    *) # Both exist. The company-qualified one is this product's, and the bare
+       # one belongs to somebody; name both so the caller cannot read one as
+       # the whole answer.
+       printf '%s\n' "${c[0]}"; printf '%s\n' "${c[1]}"; return 1 ;;
+  esac
+}
+
+liveness() {  # $1 = seat name; resolved against the host's log root
+  local root=${EPITO_LOGS:-/srv/asc/state/.epito/logs} seat=$1 dirs rc newest open=0 d
+  dirs=$(resolve_seat "$root" "$seat"); rc=$?
+  if [ "$rc" = 2 ]; then
+    echo "$seat: unreadable — no log directory at $root/$COMPANY-$seat or $root/$seat"
+    return 2
   fi
-  newest=$(ls -t "$root/$seat"/*.log 2>/dev/null | head -1)
-  [ -z "$newest" ] && { echo "$seat: no runs ever recorded"; return 1; }
-  grep -q '^# exit=' "$newest" || open=1
-  printf '%s: newest run %s — %s\n' "$seat" "$(basename "$newest" .log)" \
-    "$([ $open = 1 ] && echo 'OPEN, no # exit= footer: a run of this seat is alive right now' \
-                     || echo 'closed, footer present: no run of this seat is alive')"
+  if [ "$rc" = 1 ]; then
+    printf '%s: AMBIGUOUS — two directories answer to this name, and they are not the same seat:\n' "$seat"
+  fi
+  local age pad; pad=$([ "$rc" = 1 ] && echo '  ')
+  for d in $dirs; do
+    newest=$(ls -t "$root/$d"/*.log 2>/dev/null | head -1)
+    [ -z "$newest" ] && { echo "$pad$d: no runs ever recorded"; continue; }
+    open=0; grep -q '^# exit=' "$newest" || open=1
+    age=$(( ( $(date +%s) - $(stat -c %Y "$newest") ) / 60 ))
+    # A missing footer is not the same claim as a live run. `epitome-okr`'s
+    # newest log has no footer and was last written 2026-10-09, and
+    # `epitome-frontend`'s 2026-10-17: a run that died without writing its
+    # footer reads byte-identical to one that is mid-turn. Only recency can
+    # tell them apart, so the verdict carries it (incident 21, L41).
+    if [ $open = 1 ] && [ "$age" -gt "$STALE_MINUTES" ]; then
+      printf '%s%s: newest run %s — STALE, %sm since its last write and no # exit= footer: a run that died without closing, not a live run\n' \
+        "$pad" "$d" "$(basename "$newest" .log)" "$age"
+      open=0
+    else
+      printf '%s%s: newest run %s — %s (last write %sm ago)\n' "$pad" "$d" \
+        "$(basename "$newest" .log)" \
+        "$([ $open = 1 ] && echo 'OPEN, no # exit= footer: a run of this seat is alive right now' \
+                         || echo 'closed, footer present: no run of this seat is alive')" "$age"
+    fi
+  done
+  [ "$rc" = 1 ] && { echo "  resolve it with EPITO_COMPANY= or ask for the directory by name"; return 2; }
   [ $open = 1 ] && return 1 || return 0
 }
 
+# L42: the branch no input has ever reached is the one that decides the answer
+# on the day it does, and this instrument's liveness half shipped with three
+# such branches. Five constructed log roots, one per verdict. Written under
+# mktemp rather than a named shared path, per L45.
+selftest() {
+  local work rc=0 out
+  work=$(mktemp -d) || { echo "unreadable: mktemp gave this self-test no directory"; return 2; }
+  mkdir -p "$work/acme-alpha" "$work/acme-beta" "$work/gamma" "$work/acme-gamma" "$work/acme-delta"
+  printf 'turn 1\n'            > "$work/acme-alpha/2026-10-24T12-00-00-000Z-message.log"
+  printf 'turn 1\n# exit=0\n'  > "$work/acme-beta/2026-10-24T12-00-00-000Z-message.log"
+  printf 'turn 1\n'            > "$work/gamma/2026-10-24T12-00-00-000Z-message.log"
+  printf 'turn 1\n'            > "$work/acme-gamma/2026-10-24T12-00-00-000Z-message.log"
+  printf 'turn 1\n'            > "$work/acme-delta/2026-10-01T00-00-00-000Z-message.log"
+  touch -d '2026-10-01 00:00' "$work/acme-delta/2026-10-01T00-00-00-000Z-message.log"
+
+  verdict() {  # $1 = seat asked for
+    EPITO_COMPANY=acme EPITO_LOGS="$work" STALE_MINUTES=120 \
+      bash "$0" --liveness "$1" 2>&1 | grep -oE 'alive right now|no run of this seat is alive|AMBIGUOUS|STALE|unreadable' | head -1
+  }
+  local a b c d e
+  a=$(verdict alpha); b=$(verdict beta); c=$(verdict gamma)
+  d=$(verdict delta); e=$(verdict nobody)
+  rm -rf "$work"
+
+  printf 'case 1  footer absent, written now      expect alive right now              got %s\n' "${a:-<nothing>}"
+  printf 'case 2  footer present                  expect no run ... is alive          got %s\n' "${b:-<nothing>}"
+  printf 'case 3  bare and qualified both exist   expect AMBIGUOUS                    got %s\n' "${c:-<nothing>}"
+  printf 'case 4  footer absent, three weeks old  expect STALE                        got %s\n' "${d:-<nothing>}"
+  printf 'case 5  no directory under either name  expect unreadable                   got %s\n' "${e:-<nothing>}"
+  [ "$a" = "alive right now" ]              || { echo "case 1 disagrees"; rc=1; }
+  [ "$b" = "no run of this seat is alive" ] || { echo "case 2 disagrees"; rc=1; }
+  [ "$c" = AMBIGUOUS ]                      || { echo "case 3 disagrees"; rc=1; }
+  [ "$d" = STALE ]                          || { echo "case 4 disagrees"; rc=1; }
+  [ "$e" = unreadable ]                     || { echo "case 5 disagrees"; rc=1; }
+  [ $rc = 0 ] && echo "ok — all five verdicts fired and agreed" \
+              || echo "a branch of this instrument disagrees with its own constructed input"
+  return $rc
+}
+
 case "${1:-}" in
+--self-test) selftest; exit $? ;;
+
 --liveness)
   shift; rc=0; for s in "$@"; do liveness "$s" || rc=1; done; exit $rc ;;
 
