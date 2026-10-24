@@ -1,0 +1,38 @@
+{
+  "_": [
+    "Keys another company's roster actually writes in an epito manifest, copied",
+    "out of that roster's own files — never invented here, never a placeholder.",
+    "test/unit.mjs reads every row and asserts that a key in [agent] or",
+    "[trigger] is warned and not refused, and that one in [identity] or",
+    "[runtime] is still refused.",
+    "",
+    "Why a data file, and why these exact lines: on 2026-10-24 `epito validate`",
+    "was run against alexandrapaiz/alexandra-systems' host roster, 41",
+    "manifests, and refused the whole roster over the two rows below. A roster",
+    "runs whole or not at all, so 39 manifests epito blesses could not be",
+    "validated. A fixture written from what we imagined a foreign roster says",
+    "would not have caught it: `status` and `clock` are both ordinary words",
+    "that look like fields epito might have, which is exactly why their author",
+    "wrote them.",
+    "",
+    "`source` is the repository and path the line was copied from, with the",
+    "line number it sat on at the time. `line` is the row verbatim, trailing",
+    "comment included."
+  ],
+  "keys": [
+    {
+      "table": "agent",
+      "key": "status",
+      "line": "status = \"on\"",
+      "source": "alexandrapaiz/alexandra-systems:runtime/agents/frontend/agent.toml:6",
+      "means": "a seat on/off switch in that company's own runtime standard"
+    },
+    {
+      "table": "trigger",
+      "key": "clock",
+      "line": "clock = \"runtime/board/asc-allhands.timer\"   # the heartbeat that wakes this seat (decision 054)",
+      "source": "alexandrapaiz/alexandra-systems:runtime/agents/pm/agent.toml:18",
+      "means": "the host timer path that wakes the seat, instead of [trigger].cron"
+    }
+  ]
+}

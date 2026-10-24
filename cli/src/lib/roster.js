@@ -107,8 +107,17 @@ export function loadRoster(dirArg) {
   // reported on its own problems rather than as a collision with a non-seat.
   const takenBy = new Map();
   let bad = 0;
+  // Keys the spec does not define, in the two tables where they are a warning
+  // (spec v0.2). Printed by the command that is about to START the roster,
+  // because this is the last moment anybody is looking: `epito run` reads the
+  // directory once at startup and then nothing reads these files again until a
+  // restart, so a key dropped here unsaid is a key nobody hears about until
+  // whatever hour that restart happens. Collected and said once, after the
+  // loop, so a forty-seat roster does not interleave them with its refusals.
+  const warned = [];
   for (const p of paths) {
-    const { manifest, errors } = loadManifest(p);
+    const { manifest, errors, warnings } = loadManifest(p);
+    if (warnings.length) warned.push({ path: p, warnings });
     const errs = [...errors, ...rosterRules(manifest, { path: p, takenBy }).map((r) => r.message)];
     if (errs.length) {
       bad++;
@@ -119,6 +128,16 @@ export function loadRoster(dirArg) {
     }
     agents.set(manifest.agent.name, { path: p, manifest, cron: manifest.trigger.cron ? parseCron(manifest.trigger.cron) : null });
     takenBy.set(manifest.agent.name, p);
+  }
+  // Before the refusal verdict, so the one report an operator gets carries
+  // both. These never add to `bad`: a warning is not a refusal, and nothing
+  // here may change which rosters this function starts.
+  for (const { path, warnings } of warned) {
+    for (const w of warnings) console.error(`${path}: ⚠ ${w}`);
+  }
+  if (warned.length) {
+    const keys = warned.reduce((t, x) => t + x.warnings.length, 0);
+    console.error(`epito: ${keys} key${keys === 1 ? "" : "s"} in ${warned.length} manifest${warned.length === 1 ? "" : "s"} ${keys === 1 ? "is" : "are"} not in the manifest spec and ${keys === 1 ? "is" : "are"} read by nothing; the roster runs anyway — the ⚠ lines say which, and \`epito validate\` says the same thing without starting anything\n`);
   }
   if (bad) {
     console.error(`epito: ${bad} of ${paths.length} manifest${paths.length > 1 ? "s" : ""} refused; fix them and start again — a roster runs whole or not at all`);

@@ -57,6 +57,37 @@ export const FIELDS = {
 
 export const TABLES = Object.keys(FIELDS);
 
+// What a key the catalogue does not define costs the manifest it is in, by
+// table (spec v0.2, "An unknown key refuses two tables and warns the other
+// two"). It is named in all four; it costs the ✓ in two.
+//
+// REFUSES: `[identity]` and `[runtime]` both have behaviour that DEFAULTS when
+// a key is absent — `max_turns`, `adapter`, `ref`, `graph`, the whole of
+// `[[runtime.route]]`, and a scope not asked for is a permission not minted.
+// An unread key beside those changes how a seat runs with nobody told, which is
+// the `max_turn = 50` harm this freeze exists to refuse.
+//
+// WARNS: `[agent]` and `[trigger]` separately require every field whose absence
+// changes behaviour — no `name`, no `description` and a `[trigger]` carrying
+// none of cron/webhook/subscriptions are each their own refusal — so an unknown
+// key in them cannot leave a seat quietly misconfigured. Measured, not argued:
+// on 2026-10-24 these two tables cost alexandra-systems' 41-manifest roster its
+// whole run over two keys in two files, and a roster runs whole or not at all.
+export const UNKNOWN_KEY_REFUSES = ["identity", "runtime"];
+export const UNKNOWN_KEY_WARNS = ["agent", "trigger"];
+
+// Every table is one or the other, checked at import rather than in a test
+// someone has to remember to write: a table missing from both lists would be a
+// table whose unknown keys are silently ignored again, which is the exact
+// pre-freeze behaviour — a ✓ on a manifest nothing read. (src/validate.js does
+// the same for roster-rule severities, for the same reason.)
+for (const t of TABLES) {
+  const n = (UNKNOWN_KEY_REFUSES.includes(t) ? 1 : 0) + (UNKNOWN_KEY_WARNS.includes(t) ? 1 : 0);
+  if (n !== 1) {
+    throw new Error(`src/lib/manifest.js: table [${t}] appears in ${n === 0 ? "neither" : "both"} of UNKNOWN_KEY_REFUSES and UNKNOWN_KEY_WARNS, so an unknown key in it would be ${n === 0 ? "silently ignored — the pre-freeze behaviour" : "both refused and warned"}. Fix: list [${t}] in exactly one.`);
+  }
+}
+
 // Fields the v0.1 DRAFT carried that the freeze retired. A reader who copied
 // one out of an older spec is owed the reason and the replacement, not
 // "unknown field" — that is the difference between a spec that froze and a
@@ -131,8 +162,11 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
     if (TABLES.includes(t)) continue;
     errors.push(`[${t}] is not a table in manifest spec ${SPEC_VERSION} — a manifest has four: [${TABLES.join("], [")}]. Fix: drop it, or move what it carries into one of the four.`);
   }
-  for (const t of TABLES) {
-    if (m[t]) errors.push(...unknownKeys(m[t], FIELDS[t], `[${t}]`, RETIRED[t] ?? {}));
+  // Only the two tables where an unknown key can hide a default. The other two
+  // are reported by `manifestWarnings` below, on the same line shape, at a
+  // severity that does not cost the ✓.
+  for (const t of UNKNOWN_KEY_REFUSES) {
+    if (m[t]) errors.push(...unknownKeys(m[t], FIELDS[t], `[${t}]`, { retired: RETIRED[t] ?? {} }));
   }
 
   const a = m.agent ?? {};
@@ -255,10 +289,26 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
   return errors;
 }
 
-// Load + validate one manifest file. Returns { manifest, errors, raw, dir }.
+// Everything a reader is owed about this manifest that does not cost it its ✓.
+// Separate from `validateManifest` rather than a second return value, because
+// `errors.length` is the verdict in a dozen places and a warning must not be
+// able to reach any of them by accident — a caller that never asks for these
+// still exits 0 on the same manifests it always did. What it may NOT do is
+// leave them unsaid: every surface that prints a manifest's verdict prints
+// these too (`epito validate`, and `loadRoster` for `epito run`/`ps`/`routes`).
+export function manifestWarnings(m) {
+  if (typeof m !== "object" || m === null) return [];
+  const warnings = [];
+  for (const t of UNKNOWN_KEY_WARNS) {
+    if (m[t]) warnings.push(...unknownKeys(m[t], FIELDS[t], `[${t}]`, { retired: RETIRED[t] ?? {}, fatal: false }));
+  }
+  return warnings;
+}
+
+// Load + validate one manifest file. Returns { manifest, errors, warnings, raw, dir }.
 export function loadManifest(path) {
   const raw = readFileSync(path, "utf8");
   const { manifest, parseError } = parseManifest(path);
-  if (parseError) return { manifest: null, errors: [`agent.toml is not valid TOML: ${parseError}`], raw, dir: dirname(path) };
-  return { manifest, errors: validateManifest(manifest, { raw, baseDir: dirname(resolve(path)) }), raw, dir: dirname(resolve(path)) };
+  if (parseError) return { manifest: null, errors: [`agent.toml is not valid TOML: ${parseError}`], warnings: [], raw, dir: dirname(path) };
+  return { manifest, errors: validateManifest(manifest, { raw, baseDir: dirname(resolve(path)) }), warnings: manifestWarnings(manifest), raw, dir: dirname(resolve(path)) };
 }
