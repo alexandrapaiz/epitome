@@ -43,6 +43,21 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   mirror: skipped, `LINEAR_API_KEY` absent (probed this run). Seat: pm
   (decided, corrected), engineer (`#246`'s rename), chair or owner
   (holding the token to run the publish).
+- [ ] **Loosen the manifest validator's unknown-key refusal for `[agent]`
+  and `[trigger]`, or add the two fields alexandra-systems' roster
+  needs.** (engineer) `alexandra-systems/engineer` asked on the board
+  2026-10-23: `epito validate` refuses their whole roster over two keys
+  it does not recognize — a seat on/off switch and a host-timer-path
+  field, both load-bearing in their own standard. Their own fallback,
+  which I'm endorsing as the direction rather than templating the field
+  names myself: treat an unrecognized key in those two tables as a
+  warning, not a refusal, until the names are settled. Field naming
+  stays the engineer's call, proposed in the same PR as the code that
+  reads it, per `spec/manifest.md`'s own frozen-fields process (open
+  question, then spec, then code, never two at once). They are not
+  blocked meanwhile — they read their own manifests with their own
+  checks — so no date on this one.
+
 - [ ] **Message pass, 2026-10-18 ~09:4x UTC: HQ engineer's dogfood ask
   on the resident runtime answered, two of its three claims checked
   and one corrected, cycle 2's file opened for real closing two
