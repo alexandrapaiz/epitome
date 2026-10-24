@@ -1,5 +1,293 @@
 # Market brief — docs/market.md
 
+Maintained by the market seat. This revision: **rev 15, 2026-10-24**,
+a dispatch run that fired on rev 14's own pull request merging
+([#278](https://github.com/alexandrapaiz/epitome/pull/278),
+2026-10-24T17:00:20Z) — the dispatch's own text names no new event
+beyond the merge and asks this seat to continue with the next item in
+its lane on the board, the same instruction rev 14 answered one
+revision ago. `gh pr list` was checked first (L-E10): no market pull
+request is open now, so this revision forks from `main` rather than
+stacking on a branch that no longer exists. This run's own clone
+arrived shallow (`git rev-parse --is-shallow-repository` answered
+`true`, one commit deep) — the exact defect docs/backlog.md's current
+"Now" card describes, where the distance a seat measures answers 1
+where the truth is hundreds — so `git fetch --unshallow` ran before
+anything else this run read from git history; after it, 652 commits.
+Nothing below rests on a shallow read.
+
+The board inbox addressed to this seat was read directly rather than
+assumed empty (`to_seat=market&to_company=epitome&everyone=0`,
+`since_hours=1` and `since_hours=72` both checked): one message is
+newer than rev 14's own last check, the project manager's note at
+2026-10-24T16:47:59Z naming this seat's PR #278 as "an open draft with
+no live run behind it." Checked directly against GitHub rather than
+taken on the note's word (L-A34): `gh pr view 278` reports
+`"state":"MERGED"`, `"mergedAt":"2026-10-24T17:00:20Z"` — thirteen
+minutes after the note was written, and the same merge this run's own
+dispatch names as its trigger. The note was true of the moment it was
+sent and stale by the time this run read it; no action is owed, the
+same shape L-A34 and rev 11's own correction already name, now a
+second instance on this seat's own branch rather than one read about
+another seat's. So the "next item in my lane" is, again, not a new
+addressed duty — it is this seat's one standing lane card,
+docs/backlog.md's "Market seat brief #1: pricing" (ADR-13, buyer-2
+usage-based pricing), open since rev 1 (2026-09-18), unanswered by the
+owner since rev 4 (2026-10-02), still 22 days as of today
+(2026-10-24) — unchanged in duration because today is the same day
+rev 14 reported it, not a re-ask (L-X7). That card cannot be closed by
+this seat — it waits on the owner's word — so continuing with it means
+doing research that bears on her decision, which is what the rest of
+this revision is.
+
+Four hours separate this run's checks from rev 14's own (12:44-12:47Z
+to 17:0xZ) — enough time for new material to exist and be worth a
+fresh pass across landscape and demand, which is what follows.
+
+## 4a. Standing watch: LangChain/LangSmith (ADR-12) — re-checked, unchanged; the Entra-outward flag rev 14 raised, followed up and still unresolved
+
+Re-fetched directly this run (L-R1): LangSmith's Cloud changelog
+(`docs.langchain.com/langsmith/changelog`, fetched 2026-10-24T17:03Z)
+still reports its latest entry as "October 12-19, 2026," the same
+Agent-Auth-mints-a-GitHub-App-owned-by-an-agent finding rev 8 first
+fired and every revision since has re-confirmed. GitHub's agent-app
+changelog (re-fetched same window) still reads verbatim "Over the
+coming months, we'll open up access to allow anyone to build agent
+apps," with a partner waitlist and no self-serve date. Both unmoved
+across a four-hour gap, the longest gap any same-day recheck in this
+brief has had and still nothing moved — logged per the charter's
+instruction to log the check even when nothing moves (L-X7).
+
+Rev 14 flagged, not resolved, whether Entra's own identity has crossed
+outward the way LangSmith's did — this run followed up directly rather
+than letting the flag sit. Microsoft's own reference page
+(`learn.microsoft.com/en-us/entra/fundamentals/whats-new`) was fetched
+and read start to finish rather than sampled: despite a page-metadata
+`updated_at` of 2026-10-08, its newest calendar section is "## June
+2026" — nothing between July and October exists on this specific page,
+which is itself worth naming (a reference page whose own update
+timestamp outruns its content by over three months is not a page this
+brief can treat as current, and is logged here so the next run does
+not re-trust it on the strength of that timestamp alone). The entry
+this page does carry, "General Availability - Microsoft Entra Agent ID
+platform," falls under the April 2026 section — six months old, already
+covered by rev 8's reading of the June oasis.security analysis of the
+same platform, and still describes the Agent ID platform using
+"standard protocols such as OAuth 2.0, MCP, and A2A" without stating
+that an Entra-minted agent identity is usable as a principal on GitHub,
+Slack, or any other outside platform's own identity plane — the same
+gap the oasis.security quote named from Microsoft's own mouth in rev 8.
+A secondary analysis of Microsoft's own October 2026 Entra announcements
+(`msendpoint.com`, published 2026-10-14) was checked for the same
+question and found the same gap from a different angle: it names
+Agent 365 only in passing ("extends identity boundaries... to
+autonomous AI agents") and states plainly that "a deep-dive" on Agent
+365's own identity governance "is scheduled for Microsoft Ignite
+(Nov 17-20)" — a dated, concrete point this brief did not have before
+today, worth watching directly rather than re-checking Microsoft's own
+changelog again before then. Flagged forward: Ignite, Nov 17-20 2026,
+is the next point this question can move, not a re-check of today's
+sources.
+
+## npm-publish correction (rev 10): still open, and the clock is now inside three hours
+
+Re-checked directly: `curl -o /dev/null -w '%{http_code}'
+https://registry.npmjs.org/epito-cli` still returns `404` at
+2026-10-24T17:06:25Z. `NPM_TOKEN` dies 2026-10-24T19:26:26Z — **about
+2h20m from this run**, down from rev 14's 6h39m four hours ago with no
+movement in between. This is the same live clock every revision since
+rev 10 has carried, re-stated as unchanged in substance but closer in
+time than any revision so far (L-X7) — the npm path is mechanically
+ready and dry-run-proven (rev 10's own finding, still true), the one
+remaining step is a secrets/account action this charter does not
+execute, and the window for that action to still matter is now under
+three hours.
+
+## 1. Landscape — two runtime players independently shipped or are shipping credential brokering for sandboxed agents, neither minting the agent an identity of its own
+
+**Cloudflare**, checked from its own blog
+(`blog.cloudflare.com/sandbox-auth/`, published 2026-04-13, a primary
+source rather than a secondary summary — L-R1): "outbound Workers for
+Sandboxes" shipped in that post, available via
+`@cloudflare/containers@0.3.0` / `@cloudflare/sandbox@0.8.9`. The
+mechanism, quoted directly: "The sandboxed agent *never has access* to
+these credentials," and "[a]ny time code running in the sandbox makes a
+request to `github.com`, the request is proxied through the
+handler... we're safely injecting a secret." Identity is read off
+`ctx.containerId` — "[t]he auth key can be looked up based on the
+container's identity rather than using uniform tokens" — so the broker
+can pick which shared credential to inject per sandbox, but the agent
+itself never holds, and GitHub's own side never sees, a credential that
+belongs to that agent. This is a real runtime player in the wedge
+shipping real credential isolation six months ago, and it is the
+opposite shape from the passport vision proposes: the broker protects
+the secret from exfiltration, but the principal GitHub records as the
+actor of a push or a PR is still the shared App or token the broker
+holds, not the agent, so the audit trail still cannot answer "which
+agent did this" from GitHub's own records alone — only "which sandbox,"
+and only if the operator kept its own separate mapping.
+
+**Render** is building the same shape, not yet shipped. A GitHub issue
+from Render's own `render-examples` org,
+[`render-examples/vibe-coding-app#64`](https://github.com/render-examples/vibe-coding-app/issues/64)
+(filed 2026-10-19, open, verified directly — L-R1), tracks adopting
+"Sandbox credential brokering when it ships" and names today's
+workaround precisely: a second, agent-free sandbox clones and pushes
+with the real token through an askpass script so "no agent ever uses
+that sandbox" — a second sandbox and a clone per push, paid specifically
+to keep a shared credential away from the one process that might leak
+it. The task is explicitly blocked on the platform feature ("Blocked on
+the platform featu[re]"), confirming Render Sandboxes' own credential
+brokering is roadmapped, not live, as of this check.
+
+Read together with the demand evidence below, the Cloudflare/Render
+shape is the live competitive answer to "contain the credential," and
+it is a different and smaller promise than "identify the agent": a
+sandbox boundary the secret never crosses, not a principal the agent
+owns. Nothing here changes the integration map or ADR-13; it sharpens
+§3's "why epito.me and not glue" with a dated, named counter-example
+rather than the word "glue" alone.
+
+## 2. Demand — a fourth independent maintainer fixed the identical defect in two days, a fifth is already past it and stuck on securing the App's own key, and a sixth shows the credential wiring failing outright in a mainstream harness
+
+Three more GitHub issues, across three more independent projects,
+checked directly (`gh issue view`, L-R1), none overlapping the four
+already cited in rev 8 and carried since:
+
+- **`jaroslawherod/micold-ai-ide` [#1002](https://github.com/jaroslawherod/micold-ai-ide/issues/1002)**
+  (filed 2026-10-18, **closed** 2026-10-20 as `COMPLETED`): "Starting a
+  sandbox container with a daemon gives it the user's own GitHub token
+  and SSH key... anything running in the sandbox (agent, build scripts,
+  dependencies) can reach every repo and org the user can." Asked for
+  "a fine-grained GitHub token (or GitHub App installation token)...
+  short-lived where possible, with expiry and rotation" — the passport's
+  own shape, independently specified, and fixed by its own maintainer in
+  two days. This is the fifth instance of the identical defect-and-fix
+  pair rev 8's method tracks (§2 above, "a need met by the person who
+  had it").
+- **`domtriola/dotfiles` [#77](https://github.com/domtriola/dotfiles/issues/77)**
+  (filed 2026-10-09, **open**): this builder is past the defect the
+  other four describe — a personal GitHub App already mints
+  `sbx-token`, a scoped-per-sandbox token, for every sandbox — and has
+  hit the next problem instead: "The Keychain item was created by
+  `security`, so any process that runs as me can read the key without a
+  prompt. A process that reads the key can mint tokens for every
+  repository where the App is installed, with every permission that the
+  App holds, from any machine, until I delete the key pair on GitHub."
+  Three options weighed (Keychain as-is, move the App's private key to a
+  YubiKey, or drop the App for per-repo PATs), none fully satisfying,
+  because every one of them still custodies a long-lived signing key on
+  a personal machine. This is sharper evidence than the four defect
+  reports: a builder who already built the exact mechanism this
+  product sells still has an unsolved identity-custody problem one
+  layer down, which a resident, non-personal runtime (the thing this
+  charter's own wedge is identity+trigger+**runtime**, not identity
+  alone) is positioned to answer and a personal laptop's Keychain is
+  not.
+- **`OpenHands/OpenHands` [#18847](https://github.com/OpenHands/OpenHands/issues/18847)**
+  (filed 2026-10-22, **open**): a different failure mode, reported
+  honestly as a different one rather than folded into the other five —
+  not an over-broad credential, but no working credential at all, in
+  one of the field's larger, better-known open-source agent harnesses.
+  The reporter configured both a classic PAT and installed the
+  project's own GitHub App with write access, connected it in-app, and
+  the agent still could not authenticate: "`GITHUB_TOKEN` / `GH_TOKEN` /
+  `GH_ENTERPRISE_TOKEN`: unset... `gh` is installed but not logged into
+  any GitHub hosts... API check (`/user`): 401." Read as its own data
+  point rather than stretched to match the others: this is evidence
+  that credential wiring for agents is hard to get right even with
+  every piece (PAT, App, in-app connection) nominally in place, in a
+  project with real engineering resources behind it — the mechanism gap
+  is not confined to small or indie harnesses.
+
+No landscape or integration-map claim is made from any of the three
+above; they are demand evidence only, read by mechanism and kept to
+what each one actually shows (L1), not merged into one bigger claim
+than any single issue supports.
+
+## 3. Positioning and pricing — the Cloudflare counter-example gives "why epito.me and not glue" its sharpest contrast yet; ADR-13 still unanswered, same day
+
+No fresh pricing fetch this run: §3's rev 14 pricing comparison (Fly,
+Modal, E2B, Trigger.dev, fetched directly that run) is four hours old,
+not a week, and re-fetching it now without reason to expect movement
+would be the same non-finding L-X7 names — it is carried forward by
+citation, unedited. What is new is a sharper answer to "why epito.me
+and not glue," built from §1's Cloudflare finding rather than restated
+from the word "glue" alone: Cloudflare's outbound broker is a genuinely
+good answer to "don't let the secret leak," shipped by a serious
+runtime player six months ago, and it is not an answer to "whose name
+is on this PR" — by its own design the agent "never has access" to the
+credential and GitHub's own records show the broker's shared principal,
+not the agent's. A buyer who adopts Cloudflare's shape still cannot
+answer, from GitHub's own audit trail alone, which of fifty agents
+behind one proxy made a given push; vision's own passport answers
+exactly that question, because the agent is the principal rather than a
+`containerId` a broker maps internally. This is the clearest dated
+example this brief has had of a competitor solving the leak problem and
+still leaving the identity problem on the table — concrete ammunition
+for the owner's deck, not a new recommendation. **ADR-13's buyer-2
+usage-based pricing question is unchanged: still unanswered by the
+owner, still 22 days** (first raised rev 1, 2026-09-18; recommendation
+shipped rev 4, 2026-10-02) — same day as rev 14's count, not a re-ask.
+
+## 4. Integration map — re-verified against today's `main` after the unshallow fetch, unchanged
+
+`cli/src/lib/slack.js` re-read in full this run (not sampled): still
+exactly three exports (`formatLine`, `webhookName`, `postToSlack`),
+still a webhook poster, no `apps.manifest.create` or any per-agent
+Slack-identity mechanism anywhere in `cli/src/lib/`. `docs/cycles/`
+still holds nothing past cycle 2 (`2026-09-21-cycle-1*.md`,
+`2026-10-18-cycle-2.md`), so cycle 3 — Slack identity, the passport, the
+agent-spec layer — is still queued, not started. **Standing
+recommendation unchanged: Slack remains integration #2**, gated behind
+cycle 3's sequencing rather than by rank. No re-ranking trigger fired
+this run: Cloudflare and Render (§1 above) are runtime players, not
+candidates for the integration-#2 slot, and nothing in today's checks
+touches Linear, Vercel, Clerk, Supabase/Neon, Stripe, GitHub, or
+Trigger.dev's own standing.
+
+---
+
+*Charter compliance note (rev 15): research across all four sections
+this run, triggered by the lane-continuation instruction rather than a
+new addressed board duty (the inbox was checked and carries exactly one
+message newer than rev 14's, and it was stale by the time this run read
+it — see above). Checked against docs/agents/lessons.md (the file this
+charter names) before shipping: L1 (every finding above is reported by
+mechanism and quote — a quoted sentence, a filed-and-closed timestamp, a
+package version number — never by adjective, and the OpenHands finding
+is explicitly kept as its own data point rather than merged into a
+bigger claim than it supports); L13/L-E10 (this run does not redo rev
+8 through rev 14's own housekeeping; the four-hour gap since rev 14's
+own landscape/demand pass is treated as enough time to look again, and
+the look found genuinely new material rather than assuming it would
+not); L15 (the demand section's standing method — carry the asker's
+outcome, closed or open, at next citation — applied to all three new
+GitHub issues this run). Also checked, per this seat's own established
+practice, against docs/standards/lessons.md: L-R1 (every claim above
+fetched or queried directly this run: two changelogs, one reference
+page read start to finish rather than sampled, one secondary analysis,
+the npm registry, three GitHub issues via `gh issue view`, one
+competitor blog post); L-A12 (the Slack mechanism re-read in full
+rather than assumed unchanged); L-A34 (the project manager's
+"idle draft" note about this seat's own PR #278 checked against GitHub
+directly and found stale by thirteen minutes, the same shape as rev
+11's correction, now against this seat's own branch); L-X7 (the ADR-12
+recheck and the npm clock reported as unmoved-and-closer, not
+restretched into content; ADR-13's unchanged same-day count reported as
+a depth, not a re-ask); L22 (this run's own clone was unshallowed
+before any history-dependent claim was made, per the backlog's current
+"Now" card naming exactly this defect). Flagged: the npm-publish clock,
+now under 2h20m and the sharpest it has ever been reported; the Entra-
+outward question, with Microsoft Ignite (Nov 17-20) now a named date to
+watch rather than an open-ended flag; and the owner's still-open word on
+ADR-13, now carrying a dated competitor counter-example (Cloudflare) in
+addition to the four runtime/trigger pricing numbers rev 14 gave it.*
+
+---
+
+# Market brief — docs/market.md (rev 14, superseded by rev 15 above)
+
 Maintained by the market seat. This revision: **rev 14, 2026-10-24**,
 a dispatch run that fired on rev 13's own pull request merging
 ([#273](https://github.com/alexandrapaiz/epitome/pull/273),
