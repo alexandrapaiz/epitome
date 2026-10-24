@@ -114,12 +114,11 @@ Not mine: the brief and the bus are HQ's runtime, handed to the centralizer;
 the 483-commit runtime gap needs a deploy nobody here holds, handed to both
 project managers; the merge of everything above is the owner's and the PMs'.
 
-**Measure — the 2026-10-18 experiment.** Both its predictions held. It said
-the session limit would refuse at least one run again before 2026-10-25:
-16 refusals yesterday, 10 of them before a turn. It said the project-manager
-seats would still be the largest spender of turns at over thirty percent:
-38.1%, up from 36.4%. The kill condition did not hold, and L34 is why — it was
-denominated in days and spent four of its seven on a host that ran nothing, and
+**Measure — the 2026-10-18 experiment.** Both predictions held. The session limit
+would refuse at least one run again before 2026-10-25: 16 refusals yesterday, 10
+before a turn. The project-manager seats would still spend over thirty percent of
+turns: 38.1%, up from 36.4%. The kill condition did not hold and L34 is why — it
+was denominated in days, spent four of its seven on a host that ran nothing, and
 the only party who cites this file is the seat that writes it.
 
 ## The three ideas for the owner, 2026-10-24
