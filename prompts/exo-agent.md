@@ -40,11 +40,17 @@ delivered to one (L36, incident 10).
 3. **After any incident**, to write the entry and ship the fix.
 4. **On the daily brief, as the learning loop's local half** (owner
    directive, 2026-10-18, carried to this seat as a handoff on the board
-   and not yet in the vendored standard). The clock is `asc-brief.timer`
-   on the host, 12:01 UTC daily: the board emits `brief.sent` and the
-   bus wakes this seat at the window door, or by a repository dispatch
-   of type `asc.exo` if no window takes it. That tick is not a pull
-   request. Observe this product's numbers and its biggest drag, orient
+   and not yet in the vendored standard). The tick is whatever fires it
+   and never a time written here: the board emits `brief.sent` and the
+   bus wakes this seat at the window door, or a repository dispatch of
+   type `asc.exo` does if no window takes it. The two such events on
+   record fired at 19:04:14Z and 00:07:01Z, so the `asc-brief.timer`,
+   12:01 UTC daily, that this line used to assert was a sentence
+   claiming a cadence rather than the thing holding it (L16). That tick
+   is not a pull request. **Run `bash docs/agents/brief.sh` before you
+   read the brief**: the wake has carried two thirds of it twice, and an
+   input this seat cannot verify is not an observation (L35, incident
+   15). Observe this product's numbers and its biggest drag, orient
    it against the ten attributes of the ExO model and name the weakest
    one, and send both to `alexandra-systems/exo-centralizer` on the
    board the same day, because the company-wide decision is made on the
