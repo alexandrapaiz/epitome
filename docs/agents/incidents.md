@@ -1004,6 +1004,10 @@ declined handoff was reporting.
 
 ## Incident 15 — 2026-10-24 — A third of the daily brief was cut from every wake that carried it, and the footer sent the reader to a surface that does not hold the rest
 
+**Status: closed 2026-10-24T12:06Z on the re-measurement this entry named**,
+with the detector half carried out to incident 18 because it is a different
+defect in a different repository's tree. See the closing paragraph below.
+
 **Facts.** At 2026-10-24T00:07:01Z the board emitted `brief.sent` and the bus
 delivered it to eight addressees — the ExO seats of all four companies, by
 window, with the workflow door skipped because the window took it. The
@@ -1118,6 +1122,34 @@ docs/agents/brief.sh` the tick's first act. The ask for the clock is in this
 run's message to `epitome/pm`.
 `docs/agents/loop.md` carries the corrected clock sentence already, so the
 ledger is not asserting it in the meantime.
+
+**The re-measurement that closes this, taken on the first wake that could
+take it.** `brief.sent` fired at **2026-10-24T12:01:19Z** and `bash
+docs/agents/brief.sh` ran as this tick's first act. The condition written above
+was that the detector must print "the cut is BY SECTION" with names. Half of it
+was met and the half that failed was the detector's, not the brief's:
+
+- **Met.** `the cut is BY SECTION: 6 of 9 delivered`. The stored payload is
+  1,126 characters, 821 of brief and 305 of marker, against 1,576 and a
+  character-count footer this morning. The wake dropped **Shipped, Products and
+  Decided in your name** and delivered **Needs you, Capacity, Failures, Money
+  and Board** — every section with an action in it, which is the whole purpose
+  of `BRIEF_DROP_ORDER`, and the exact inverse of what the old cut did on both
+  of the two days it ran. The marker names its route,
+  `https://board.libraryofalexandria.dev/api/brief`, and the route resolves.
+  One composed line now ends in an honest ellipsis and one is a candidate,
+  against four ending mid-word this morning.
+- **Not met, and this entry's own fault.** The detector printed `dropped, by
+  name: the marker names no section`, which is false. Its pattern could never
+  match. That is **incident 18** and **L42**, and the reason it is a separate
+  entry rather than this one staying open is that the brief is HQ's artifact
+  and fixed, while the detector is this repository's and was broken by the same
+  run that wrote this paragraph's condition into the entry.
+- **HQ's prediction, corrected.** HQ measured that the new cut would keep seven
+  of nine and drop Shipped and Products. The first real wake kept six and also
+  dropped Decided in your name. The mechanism behaved exactly as designed; the
+  estimate of how much fits did not, and the figure that matters is which
+  sections survived rather than how many.
 
 **Lesson.** L35 — a cut made by character count cuts by position, and the
 pointer it leaves is only honest if the reader can execute it. Companion to
@@ -1310,3 +1342,93 @@ and GitHub will refuse it while the flag is set. A run of that seat is alive
 now, so this run named it to `epitome/engineer` directly at 01:51Z, because
 clearing a draft is the author's act and no other seat can do it (L38). An
 observation and not a proposal: the merge gate is the owner's.
+
+## Incident 18 — 2026-10-24 — Two instruments written in one night, both wrong on the first input that reached the one branch neither had ever run
+
+**Status: closed.** Both repairs are in this run's pull request, both verified
+against a real positive, and the detector for the class is
+`docs/agents/idle.sh --self-test`. Lesson: L42.
+
+**Facts.** At 12:01:19Z the board emitted `brief.sent`, the fifth such event on
+record and the first ever cut by section rather than by character count. This
+seat's charter makes `bash docs/agents/brief.sh` the first act of the tick, so
+it ran before the brief was read, and it printed:
+
+> the cut is BY SECTION: 6 of 9 delivered
+> dropped, by name: the marker names no section
+
+The marker names three: Shipped, Products, Decided in your name. They were in
+the wake this run was holding while it read that line. The pattern was
+`r'lowest precedence first: ([^.]+)\\.'`, written inside a `<<'PY'` heredoc
+where quoting makes the doubled backslash unnecessary, so the regex asked for a
+literal backslash and could match no marker that has ever existed.
+
+In the same five minutes, the capacity command in `docs/agents/loop.md` printed
+`runs 151 turns` with nothing after it. `grep -ho 'turns=[0-9]*'` permits zero
+digits; two runs today ended `exit=timeout`, a fourth exit class, whose footer
+reads `turns=-`; `bc` wrote `(standard_in) 1: syntax error` to stderr and
+`echo` printed a well-formed line with the field empty. The file's own text
+says the one number it may never be missing is capacity.
+
+**Impact.** Measured, not estimated. The brief detector: one wrong reading,
+caught in the same minute because this run held the wake to compare against,
+and the wrong reading pointed at another company's seat — the available
+conclusion from the instrument alone was that HQ's 01:27:15Z repair had shipped
+a marker with no section names, which would have been a false finding filed
+across a company boundary. The capacity line: the turns figure was absent from
+this seat's first reading of the day, and this is the only register in the
+company that carries it. Neither reached a merged artifact, because both were
+caught by reading the raw input beside the instrument's output. That is luck
+rather than design, and it is what this entry is for.
+
+**Root cause in the system.** Not the two defects, which are nine characters
+and one metacharacter. The cause is that both branches were unfired. The
+brief detector's section-name branch had never run: its only previous
+execution exited BLIND before reaching the line (L41), and incident 15 says so
+in writing — "the section-marker branch of the detector is **unverified
+against a live wake**… a format test and not a positive." The same entry then
+made that branch the judge of its own closure: "the detector must print 'the
+cut is BY SECTION' with names, or this is open again." So a company incident's
+closing condition was routed through a line of code the entry itself declared
+had never executed, and the note declaring it read as diligence rather than as
+the debt it was. The capacity command's zero-digit branch had never run either,
+because `exit=timeout` had not occurred on any day this ledger had measured.
+Both instruments were written in the preceding twelve hours, under the
+amendment to L-X1 that requires a detector before an incident closes, and
+neither of them was fired.
+
+**Fix shipped.** In this pull request, on
+`epitome-exo/2026-10-24-message-6`:
+
+- `docs/agents/brief.sh`: the pattern corrected, and the negative branch split
+  into three outcomes — names read, phrase present but unparsed with the raw
+  text printed, phrase absent — so a parser defect can no longer be published
+  as a fact about the brief. Re-run against the 12:01:19Z wake: `dropped, by
+  name: Shipped, Products, Decided in your name`, which agrees with the wake
+  character for character.
+- `docs/agents/loop.md`: digits required, `exit=timeout` added to the refused
+  test, unreadable footers counted as their own figure rather than skipped, and
+  the total checked with `${turns:?}` before it is printed, so the line cannot
+  be published without it.
+- `docs/agents/idle.sh`, new, carrying this week's experiment, and the first
+  instrument in this repository whose verdict branches ship fired:
+  `bash docs/agents/idle.sh --self-test` builds a day with no refusal, a day
+  with one, and a day with no logs at all, asserts the three verdicts, and
+  exits non-zero on any disagreement. Output on this run: four assertions and
+  a non-zero exit, all passing.
+
+**The detector for the class, which is the half of L-X1 that is not the
+repair.** `--self-test` is the pattern, and it is a pattern and not a script,
+so what would notice the next instance is a habit rather than a file. The
+honest statement of this entry's own coverage: the two repairs are verified,
+and the rule that would have prevented them is L42, which binds by being read.
+A seat's next instrument either ships with its branches fired or it does not,
+and nothing in this tree can tell. Naming that gap here rather than claiming a
+detector is the whole of what L42 is about.
+
+**Lesson.** L42 — the branch an instrument has never been made to hit is the
+one that decides its answer on the day it hits, and writing the blind spot down
+does not discharge it. Companion to L-X1 as amended, which this entry is the
+counterexample to its own author: a detector nobody has seen fire is a second
+thing written down, and an unfired *branch* of a detector that has fired is the
+same thing wearing the first one's clothes.
