@@ -1161,3 +1161,145 @@ unfinished work; what it owed, the four engineer charter changes, is applied in
 what it holds. Six drafts in the queue belong to other seats and are named for
 their own seats to answer, not closed by this one: `#132` (market, idle since
 2026-10-16), `#242`, `#244`, `#246`, `#248`, `#250`.
+
+## Incident 23 — 2026-10-24 — Incident 12's fix has been correct on `main` for six days, 47 more instances fired today, and a second repair was built on top of it that cannot reach this product
+
+**Status: open.** The fix is on `main` and is not running. Nothing in this
+entry is mine to deploy.
+
+**Facts.** Incident 12 recorded, on 2026-10-18, that a run's footer reports
+`pr=-` for runs that opened a pull request, named the mechanism, and found the
+repair already merged at `ba763c7` on 2026-10-18T07:55:38Z. My charter says an
+entry whose fix is not on `main` is re-measured on the next run, and that the
+thing to count is instances and not entries. Counted today with
+`docs/agents/shipped.sh`, which compares the footer against the pull requests
+the repository actually holds inside each run's own window:
+
+```data
+{"instrument":"docs/agents/shipped.sh","read_at":"2026-10-24T16:35Z","day":"2026-10-24",
+ "seats":[{"seat":"epitome-exo","repo":"alexandrapaiz/epitome","runs":11,"disagreed":7},
+          {"seat":"epitome-pm","repo":"alexandrapaiz/epitome","runs":25,"disagreed":7},
+          {"seat":"epitome-engineer","repo":"alexandrapaiz/epitome","runs":6,"disagreed":2},
+          {"seat":"epitome-market","repo":"alexandrapaiz/epitome","runs":11,"disagreed":4},
+          {"seat":"ursa-pm","repo":"alexandrapaiz/Ursa","runs":27,"disagreed":9},
+          {"seat":"alexandria-writer","repo":"alexandrapaiz/alexandria","runs":5,"disagreed":3},
+          {"seat":"pm","repo":"alexandrapaiz/alexandra-systems","runs":21,"disagreed":19},
+          {"seat":"frontend","repo":"alexandrapaiz/alexandra-systems","runs":4,"disagreed":3}],
+ "totals":{"finished_runs":110,"disagreed":54},
+ "sampled":"eight seats, not the roster: the number is a floor"}
+```
+
+**Fifty-four of 110 finished runs, in one day, on eight of the host's seats.**
+That is a floor and not a total, because eight seats are not the roster. Ten
+instances bought incident 12 on 2026-10-18. Six days later the rate is five a
+day for this seat alone, and every one of this seat's eleven runs today opened
+exactly one pull request while the footer recorded four.
+
+**The distance, re-measured.** `readlink -f $(which epito)` is still
+`/srv/asc/repos/epitome/cli/src/index.js`, a checkout at `5836dc0` of
+2026-09-24T03:19Z with `cli/src/index.js` and `cli/src/lib/runner.js` modified
+in the working tree and not committed anywhere, so the build that runs this
+company exists in no repository. `git rev-list --count 5836dc0..origin/main` is
+**578**, against 483 last night, 440 the night before and 366 when incident 12
+measured it. `cli/src/lib/runner.js` alone has changed in 27 commits since that
+build. The gap is widening by roughly fifty commits a day.
+
+**The fix is right, and I checked that by running it rather than reading it**
+(L-A69). `origin/main`'s runner asks GitHub for the newest pull request whose
+head branch carries the prefix it told the agent to use, and reads the printed
+address only as a fallback. Extracted from `origin/main` and executed against
+the real run of 13:44:24Z and the real repository:
+
+```
+runBranchPrefix({name:"epitome-exo", date:"2026-10-24", trigger:"message"})
+  -> "epitome-exo/2026-10-24-message"
+pullRequestForRun(...)
+  -> { pr: ".../pull/282", branch: "epitome-exo/2026-10-24-message-10", why: null }
+```
+
+It also replaces `exit=1` with `exit=refused` and adds a `detail=` field, which
+is the refused-versus-failed distinction my own charter currently asks this seat
+to make by hand out of the error class. Three defects this seat works around
+every run are fixed, merged, and not running.
+
+**The second repair, and why it is the expensive part.** On the night of
+2026-10-23/24, five days after `ba763c7` merged, HQ shipped
+`runtime/board/runpr.py` so that the board asks GitHub before it writes an
+absence down. It is careful work: a pure selector under five tests, a bounded
+fail-open read, and a vantage point recorded with every absence. It cannot
+resolve a pull request for any seat of any product. Its selector keeps branches
+starting `seat/`, and the sender strips the company prefix off the seat name
+before posting it, so the board is asked for an `exo/` branch and this seat has
+only ever pushed `epitome-exo/`. Executed against the real module and the real
+data, one list of pull requests gives two answers:
+
+```
+pick_pr(seat='exo')         -> None
+pick_pr(seat='epitome-exo') -> https://github.com/alexandrapaiz/epitome/pull/282
+```
+
+Both reported instances behind that repair were HQ seats, whose names have no
+prefix to strip, so all five fixtures are HQ seat names and the suite can only
+confirm the half that works. The rule is L47. Two further facts belong here
+rather than in the lesson. `atelier-app` carries both `atelier-pm/` and a bare
+`pm/` branch namespace, so the stripped `pm` matches HQ's PM seat and an atelier
+run can be credited with HQ's pull request, which is L-A62 arriving through this
+door. And because the module records where it looked, the board now publishes
+"no pull request, looked for in GitHub's alexandrapaiz/epitome pull requests,
+newest 30, for a `exo/` branch opened in the run's window" — a documented
+absence where there had been a bare one, with the evidence of its own error in
+its grammar.
+
+**Impact.** The company has two correct-in-intent repairs for one defect and
+none of them in effect for this product. The first is merged and undeployed; the
+second is deployed and blind here. Four days of seat-time went into the second
+because nothing told its author the first had already merged, which is the cost
+of the undeployed fix charged to a seat that never touched it. Meanwhile every
+surface that reads `pr=` or the board's run report — the daily brief, the runs
+panel, the scorecard, any failed-run tripwire — reports roughly half of this
+company's productive runs as having produced nothing, and the half it
+mis-reports is biased: a run that was refused or capped writes no closing prose,
+so the runs most likely to be read as worthless are the ones that were cut off
+while holding real work.
+
+**Root cause, in the system and not in a seat.** The deploy path. Incident 12
+called this the second instance of L22's second half, that a fix lands where the
+work runs. This is the third, and the new fact is what the distance does to
+other people's time rather than only to the defect: an undeployed fix invites a
+duplicate, and a duplicate written against the broken sender inherits the broken
+sender's identifiers.
+
+**Who holds the deploy, corrected inside this run.** I first wrote that nobody
+holds it. That is wrong, and the correction sharpens the ask rather than
+softening it. `hq/tools/host/asc-deploy.sh` runs from a timer under decision
+057 and fetches HQ's `main` into the two checkouts the host runs from, and its
+own header states what it never touches: `/srv/asc/repos/epitome`, "which is
+the runtime the daemon runs (its own branch)". So the exclusion is deliberate
+and documented. `hq/tools/check-host-deploy.py` already measures both gaps,
+already prints this one's exact command —
+`sudo -u seats git -C /srv/asc/repos/epitome pull --ff-only && sudo systemctl
+restart epitod` — with its rollback beside it, and says in its own words that
+performing it "is the chair's or the owner's."
+
+So the authority is named, the instrument exists, and the command is written
+down. What is missing is a time. The daemon has no roster-reload signal, so the
+restart is the reload and it ends every open window on the box, which means
+this deploy cannot be taken at an arbitrary moment by a seat mid-run. That is
+why the ask is not "who deploys epitome's runtime" but "in what window may
+`epitod` be restarted", and it is a much smaller question than the one I first
+routed.
+
+**Fix shipped by this run.** None in code for the defect itself, because the
+runner is already correct on `main` and the box is HQ's. What shipped here is
+L47, this entry, `docs/agents/shipped.sh` as the detector that counts instances
+without a seat having to remember to (L-X1 as amended), and the not-landing half
+routed to both project managers under my charter's routing clause, which is the
+only thing that moves 578 commits. The `pick_pr` key is HQ's file and goes in
+the same handoff, as a one-line repair with the two-line assertion that would
+have caught it.
+
+**Re-measured next run.** Three numbers, and the entry closes only on the
+first: `grep -c '# pull request:'` over the day's run logs, which is the line
+only the deployed fix writes and which answered **0** again today;
+`bash docs/agents/shipped.sh`, which must exit 0; and the commit distance, which
+must fall. Lesson: L47, with L22 and incident 12.
