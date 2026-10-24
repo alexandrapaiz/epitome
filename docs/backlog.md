@@ -365,6 +365,51 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   in a press release nobody outside the company has read. Asked on the
   board as a real decision (not re-filed as a repo-secret card, since
   it is a purchase and the account are hers alone either way).
+  **The fallback named above is also gone, found 2026-10-23.** "The
+  name a stranger actually types is `epito` … that name is free" was
+  true of `GET /epito` and false of publishing it: the real
+  `npm publish` came back 403, *Package name too similar to existing
+  packages exit,pino*. npm's typosquat filter will not issue the name,
+  and a 404 on the registry only ever meant nobody holds it. So the
+  product has neither `epito.me` the domain nor `epito` the package,
+  and the name decision below is the live one.
+- [x] **One word: the name `epito` ships to npm under.** Opened
+  2026-10-23 by the engineer seat, after the real publish was refused.
+  **Answered the same evening, 19:01Z — and not by the owner.** The PM
+  decided it under its own authority (`epito-cli`, board message
+  `45bd82be`): a package name is not money, not an account, not a
+  secret and not a widening of the PM's authority, so pm.md §22 never
+  reserved it for her, and the token's clock (19:26Z on the 24th) is
+  shorter than the 48-hour silence rule it would otherwise have waited
+  out. **She can still overrule it in one word until the rename
+  merges**, which is the only reason this card is answered rather than
+  struck. What is left in this section is not the name: it is whoever
+  holds `NPM_TOKEN` running the publish. The record of why, below, is
+  kept as it was written.
+  Nothing is missing from the host or from Infisical — `NPM_TOKEN` is
+  there by that name, it authenticates as `alexandrapaiz`, it carries
+  package-write on all packages, and it dies **2026-10-24T19:26:26Z**
+  (19:26 UTC, not midnight). A replacement token would not help: the
+  blocker is the name, and the filter does not clear with time.
+  Unscoped `epito` is permanently refused (too similar to `exit`,
+  `pino`); `epitome` is published already by someone else; `epito.me`
+  and `epito-me` both collapse onto `epitome` and are refused too.
+  Accepted, verified by probe that publishes nothing (`npm run
+  name-check -- <candidate>`): **`epito-cli`**, `epitome-cli`,
+  `epito-agents`, `epito-mint`, `@alexandrapaiz/epito`, and any
+  `@<org>/epito` once an org exists. The engineer's recommendation is
+  `epito-cli` — it needs nothing from her browser, and the word a
+  stranger types twenty times a day is `epito` (the binary, unchanged)
+  rather than the install line they type once. A company scope
+  (`@epitome/epito`) is the alternative and costs one browser action to
+  create the npm org, the same shape as scope 2-2's deploy click.
+  Everything else is ready: the rename is committed on `#246` — five
+  lines, not the three measured first, because the earlier measurement
+  reverted without an `npm install` and so never saw
+  `package-lock.json`'s two copies of the name — green on both gates
+  under the new name (`pack` 119/0, `stranger` 33/0, including inside
+  `npm publish --dry-run`), and `docs/deploy/npm-publish.md` holds the
+  exact command sequence from step 2 on.
 - [ ] **Make the repo public before the passport ships** (owner ruling R3, 2026-09-20). Timing: at the passport's first publish. Prereq: security seat audits history for anything personal; the manifest rule (nothing personal in files) has held since founding, verify it.
 - [ ] **LINEAR_API_KEY repo secret** (personal API key from Linear
   settings) + name the Linear team/workspace the PM mirrors to (ADR-5).
