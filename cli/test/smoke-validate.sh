@@ -300,7 +300,7 @@ check "it names what run would do about it"         "printf '%s' \"\$OUT\" | gre
 check "the fix is the command a laptop can run"     "printf '%s' \"\$OUT\" | grep -q 'temporal server start-dev'"
 # A fix is only a fix if the reader has it. The sentence used to name HQ's
 # runtime/temporal/install.sh, which is in neither this repository nor
-# \`npm i -g epito\`.
+# \`npm i -g epito-cli\`.
 check "the fix names no file the reader lacks"      "! printf '%s' \"\$OUT\" | grep -q 'runtime/temporal/install.sh'"
 
 # b. files good, engine up: the old sentence, now earned

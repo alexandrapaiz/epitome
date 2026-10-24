@@ -5,7 +5,7 @@
 #
 #   bash test/stranger.sh        # from cli/  (also: npm run stranger-check)
 #
-# What a stranger has, exactly: `npm i -g epito` and the README that npm shows
+# What a stranger has, exactly: `npm i -g epito-cli` and the README that npm shows
 # on the package page. No checkout of this repository, no issue tracker, no
 # Slack, no docs/ directory, no decision log. Every other suite here runs from
 # the checkout, which is why none of them can see the three ways that promise
