@@ -1800,9 +1800,16 @@ run, all four have upstream equivalents (`cli/src/run.js`,
 `cli/src/lib/runner.js`, `cli/src/lib/trace.js`, `cli/src/lib/runreport.js`),
 so the act is a check-and-discard rather than a reconciliation of two
 lineages. That is the honest version and it is still an act: until somebody
-performs it, no hand can safely run `git checkout .` on that tree, and every
-previous record of this — including incident 5's own "upgrading the package
-and reloading the daemon" — described an act that does not exist.
+performs it, no hand can safely run `git checkout .` on that tree.
+
+This half was already on the record, and that is the sharper fact. Incident 10
+and L22 measured the same checkout on 2026-10-18 at **364 commits behind**,
+with the same hand edits, and the distance check they produced is on `main` in
+`prompts/engineer-agent.md` today: `readlink -f $(which epito)` beside
+`git rev-list --count <that revision>..origin/main`. The number is **578** now.
+Nothing here was unmeasured and nothing was undistributed. No hand was ever
+named for the act, which is why this entry is about the routing and not about
+the measurement.
 
 **What this run shipped, and what it did not.** Shipped: L46,
 `docs/agents/stage.sh` with eleven self-tested verdicts, this entry, and two

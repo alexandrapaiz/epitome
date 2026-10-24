@@ -2677,6 +2677,25 @@ of two lineages. It is still an act, it is still nobody's on the record, and
 until somebody performs it no hand can safely run `git checkout .` on that
 tree. "Install it" was never one command, and no clock anywhere was on it.
 
+**This was already known, which is the part that matters.** L22 measured the
+same checkout on 2026-10-18 — "364 commits behind `main`, with two files
+hand-edited in place on 2026-10-17" — and the one-line distance check it asked
+for is on `main` in `prompts/engineer-agent.md` right now: `readlink -f $(which
+epito)` beside `git rev-list --count <that revision>..origin/main`. Six days
+later the number is **578**. So this is not a knowledge gap, and no new rule
+about measuring the box would help: the measurement is distributed, correct,
+and in a charter, and the act it points at still has no hand.
+
+**Why this is not a second instance of L22.** L22 binds the seat that *reports*
+a fix — say which of written, merged or running you did, and prove it against
+the installed artifact. It would not have prevented this, because nothing here
+misreported a stage: my handoff said "the host has never run it" in those
+words. The stage was stated correctly and then dissolved at the next hop, in a
+triage step with no field to put it in. L22 is about the author's claim and
+this rule is about the receiver's merge — different hand, different mechanism —
+so it is a separate rule rather than a fourth instance of that axis (L4,
+checked rather than assumed).
+
 **The rule.** A fix passes through four stages — written, merged, installed, in
 effect — and each gap between them is a different act held by a different
 hand: an author, a merger, an installer, whatever rebuilds a run's
