@@ -58,11 +58,29 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# This suite starts its stand-in GitHub twice -- once at step 3 for the create
+# path, once at step 5 after the install -- on one fixed port. The wait below
+# used to read ONE shared file, `$ROOT/github-stub.log`, and look in it for a
+# line naming that fixed port. On the second start that file already held such
+# a line: the one the first stub, killed a moment earlier, had printed. `>`
+# truncates the file in the forked child and the `grep` runs in the parent, so
+# whenever the parent gets there first the wait matches the dead stub's line
+# and returns before the new listener has bound. Nothing after it is testing
+# what it says it is.
+#
+# Naming the file after the START rather than the mode or nothing at all is the
+# whole fix: a file this start created cannot hold a previous start's line, and
+# the stub prints that line from inside its own `listen` callback, so a match
+# in it means a listener is accepting. Same one-line fix as the doctor suite's,
+# where the file was named for the stub's mode and two modes start twice.
+GH_STARTS=0
+GH_STUB_LOG=""
 start_stub() { # mode
-  node "$CLI/test/github-stub.mjs" "$GH_PORT" "$ROOT/app.pub.pem" "$GH_LOG" "$1" "$ROOT/app.pem" > "$ROOT/github-stub.log" 2>&1 &
+  GH_STARTS=$((GH_STARTS+1)); GH_STUB_LOG="$ROOT/github-stub-$GH_STARTS.log"
+  node "$CLI/test/github-stub.mjs" "$GH_PORT" "$ROOT/app.pub.pem" "$GH_LOG" "$1" "$ROOT/app.pem" > "$GH_STUB_LOG" 2>&1 &
   GH_PID=$!
-  for _ in $(seq 1 60); do grep -q "github-stub on $GH_PORT" "$ROOT/github-stub.log" && return 0; sleep 0.2; done
-  echo "the stand-in GitHub API never came up"; cat "$ROOT/github-stub.log"; exit 1
+  for _ in $(seq 1 60); do grep -q "github-stub on $GH_PORT" "$GH_STUB_LOG" && return 0; sleep 0.2; done
+  echo "the stand-in GitHub API never came up"; cat "$GH_STUB_LOG"; exit 1
 }
 stop_stub() { kill "${GH_PID:-}" 2>/dev/null; wait "${GH_PID:-}" 2>/dev/null; GH_PID=""; }
 
@@ -128,7 +146,7 @@ check "a name that is in no manifest refuses and reads out the roster" "[ $rc = 
 
 step "3. the create path: one page, one callback, two files"
 start_stub "not-installed"
-ok "the stand-in GitHub API is up ($(head -1 "$ROOT/github-stub.log"))"
+ok "the stand-in GitHub API is up ($(head -1 "$GH_STUB_LOG"))"
 # An agent.toml can arrive at deploy without ever having been through `epito
 # init` — written by hand, or older than the directory. Deploy is about to put
 # a private key next to it, so this asserts the case where nothing has told the
