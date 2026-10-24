@@ -53,7 +53,7 @@ first `epito run`.
 
 ## Temporal server + UI
 
-The engine is a server, and **epito does not install it.** `npm i -g epito` is
+The engine is a server, and **epito does not install it.** `npm i -g epito-cli` is
 the CLI. `deploy/provision-host.sh` is the runtime: both units, the engine's
 npm *client* packages, Caddy, the `seats` user, the env file. Neither brings up
 the Temporal server those units connect to — so install the engine **first**,
@@ -767,7 +767,7 @@ Four things worth knowing about what it does and does not prove:
   engine section does the real connect and the real namespace check, so a port
   that answers and is not Temporal, or the right server with a namespace nobody
   created, is caught here rather than at the first schedule. Where the client
-  is absent (a plain `npm i -g epito`) it falls back to the cheap look and says
+  is absent (a plain `npm i -g epito-cli`) it falls back to the cheap look and says
   that is what it did.
 
 A LangGraph seat is the one case a preflight cannot finish: its graph is

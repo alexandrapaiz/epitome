@@ -320,7 +320,7 @@ fi
 echo "  $(command -v epito) installed"
 
 # The engine, by name, because the CLI no longer brings it. cli/package.json
-# declares @temporalio/* as OPTIONAL peer dependencies so that `npm i -g epito`
+# declares @temporalio/* as OPTIONAL peer dependencies so that `npm i -g epito-cli`
 # is half a megabyte instead of ~300 MB for the people who only write
 # manifests — which means the `npm ci --omit=dev` above installs everything
 # EXCEPT the one thing this host exists to run. `epito run` and `epito worker`

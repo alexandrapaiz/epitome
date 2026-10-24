@@ -6,6 +6,7 @@ import { ignore } from "./lib/gitignore.js";
 import { engineImport } from "./lib/engine.js";
 import { originRepo } from "./lib/origin.js";
 import { unknownOption } from "./lib/flags.js";
+import { INSTALL } from "./lib/install.js";
 
 const [, , cmdRaw, ...args] = process.argv;
 // `epito me` is `epito init`: mint an epitome of yourself.
@@ -140,7 +141,7 @@ const pkg = () => {
   catch (e) {
     die(`this copy of epito has no package.json beside its source (looked in ${at.pathname}): ${e.message}. ` +
       `A published package always carries one, so this is a checkout running from a moved or partly copied src/ directory. ` +
-      `Fix: reinstall it — \`npm i -g epito\` — or run it from the root of a full checkout.`);
+      `Fix: reinstall it — \`${INSTALL}\` — or run it from the root of a full checkout.`);
   }
 };
 
@@ -156,7 +157,7 @@ if (!cmd || cmd === "help" || cmd === "--help") {
   process.exit(0);
 }
 
-// The first thing anybody types after `npm i -g epito`, to find out whether the
+// The first thing anybody types after `npm i -g epito-cli`, to find out whether the
 // install took — and until now the answer was `unknown command "--version"`,
 // which reads as a broken install rather than a missing flag.
 //

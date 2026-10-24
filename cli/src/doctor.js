@@ -151,7 +151,7 @@ export async function engineLook({ env = process.env, probe = engineAnswering, i
   try { ({ connect } = await importClient()); }
   catch (e) {
     // The engine client not being installed is the normal state of a laptop
-    // and of every `npm i -g epito`. Anything else — our own broken module —
+    // and of every `npm i -g epito-cli`. Anything else — our own broken module —
     // is not ours to swallow.
     if (!missingEnginePackage(e)) throw e;
     return { ...look, address, namespace: cfg.namespace, depth: "tcp", client: false, taskQueue: cfg.taskQueue, pollers: null };

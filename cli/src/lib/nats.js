@@ -1,6 +1,6 @@
 // A NATS client, in one file, over node:net.
 //
-// Why not the official library. `npm i -g epito` is 148 KB and the test suite
+// Why not the official library. `npm i -g epito-cli` is 148 KB and the test suite
 // asserts it (cli/test/pack.sh); Temporal is an optional peer dependency for
 // exactly that reason, and a box that wants the engine installs it. The bus is
 // different in kind: it is how a seat is WOKEN, so a runtime that cannot reach
