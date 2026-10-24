@@ -20,23 +20,40 @@
 # So the assertion "no identity refusal reached the verdict" passed in exactly
 # two cases: no refusal reached it, and the refusals were never read.
 #
-# The haystack below is what a doctor run that died mid-write leaves — a
-# truncated document — because that is the shape the fault itself produces.
-# The helper is copied out of test/smoke-doctor.sh and kept copied: if it
-# changes there, this probe should be re-run against the new one.
+# The input is not written here. It is this product's own `--json`, taken live
+# from the roster in this repository and cut off mid-document, because a
+# producer killed mid-write is what leaves a truncated document and a reader
+# written against invented input proves nothing about the real one. The helper
+# below is copied out of test/smoke-doctor.sh and kept copied: if it changes
+# there, re-run this.
 #
-# This file deliberately carries one occurrence of the shape, because
-# exhibiting it is the subject. test/shapes.sh allows it exactly one.
+# This file deliberately carries the shape, because exhibiting it is the
+# subject. test/shapes.sh allows it exactly what it has — one executed, and one
+# inside the `printf` that labels it for the reader.
 set -uo pipefail
+CLI="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROSTER="$CLI/../agents"
 
 jq_refusals() { printf '%s' "$1" | node -e 'const r=JSON.parse(require("fs").readFileSync(0,"utf8"));console.log(r.refusals.map(x=>x.says).join("\n"))'; }
 said_in() { local hay="$1"; shift; grep -q "$@" <<<"$hay"; }
 
-TRUNC='{"seats":[{"agent":"plain","identity":{"state":"own"}}],"refu'
-
 printf '\n== a negated gate whose reader died, both ways of writing it\n\n'
+
+FULL="$(node "$CLI/src/index.js" doctor "$ROSTER" --json 2>&1)" || true
+if ! printf '%s' "$FULL" | node -e 'const s=require("fs").readFileSync(0,"utf8");JSON.parse(s)' 2>/dev/null; then
+  printf '  SKIPPED -- `epito doctor --json` did not return a document on this box, so there is\n'
+  printf '  nothing real to truncate. Run `npm ci` in %s first.\n' "$CLI"
+  printf '  what it said: %s\n' "$(printf '%s' "$FULL" | head -2 | tr '\n' ' ')"
+  exit 0
+fi
+# Cut it where a write would have been cut: at a round number of bytes, mid-key.
+TRUNC="$(printf '%s' "$FULL" | head -c 512)"
+printf '  the input: %s bytes of real `epito doctor --json` on this repository'"'"'s own\n' "$(printf '%s' "$FULL" | wc -c)"
+printf '  roster, cut to %s — the last line of it, as the reader receives it:\n' "$(printf '%s' "$TRUNC" | wc -c)"
+printf '    %s\n\n' "$(printf '%s' "$TRUNC" | tail -1)"
+
 jq_refusals "$TRUNC" >/dev/null 2>&1
-printf '  the reader, asked directly: jq_refusals on a truncated document exits %d\n\n' $?
+printf '  the reader, asked directly: jq_refusals on that exits %d\n\n' $?
 
 printf '  old shape:  ! jq_refusals "$X" | grep -q %s\n' "'installation\\|mint'"
 if ! jq_refusals "$TRUNC" 2>/dev/null | grep -q 'installation\|mint'; then
