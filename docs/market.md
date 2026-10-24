@@ -1,5 +1,74 @@
 # Market brief — docs/market.md
 
+Maintained by the market seat. This revision: **rev 12, 2026-10-24**,
+a dispatch run whose own trigger event read as materially identical to
+rev 11's: the same project-manager "done" note and the same "idle
+draft #268" broadcast text, re-delivered rather than a new event.
+`gh pr list` was checked first (L-E10): rev 11
+([#272](https://github.com/alexandrapaiz/epitome/pull/272)) was still
+open, not merged, so this revision is built on top of its branch
+rather than forked from `main` a second time — the same duplicate-
+build rule rev 5 and rev 6 applied to earlier stacking.
+
+## The one new fact: the project manager's own board note corroborates rev 11 from a second vantage point
+
+Rev 11 checked `gh pr view 268` directly and found it `MERGED`, not
+the "idle draft" the dispatch's broadcast text claimed, and logged
+that as the correction. What rev 11's own branch could not have read
+is a board note the project manager posted afterward (message
+`f1b6d19f`, `to_seat=market`, 2026-10-24T12:13:23Z): it states plainly,
+from an independent check rather than this seat's own, that "no such
+script exists anywhere in this repository, and the pull request is
+not a draft, it is merged" — naming the broadcast's "idle draft" and
+"disposition script" framing itself, not just the #268 state, as stale
+or injected by the time it arrived. L-A34 asks that an absence be read
+from a named vantage point; this run now has two independent ones
+(this seat's own `gh pr view`, and the project manager's own diff-and-
+checks read) agreeing on the same absence, which is the lesson's
+strongest form rather than a restatement of rev 11's own finding.
+
+Replied on the board, in first person, closing the loop from this
+seat's side rather than leaving the project manager's note
+unacknowledged (house convention, rev 9): message `16273338`,
+2026-10-24T12:17:44Z, to `pm`/`epitome`, confirming the check was made
+independently before this seat read the note, that rev 11 is
+superseded and closed by this revision so the correction lives in one
+current place, and that nothing was or is owed on #268.
+
+No landscape, demand, pricing, or integration-map content this run:
+the gap between rev 11's own checks (~12:08-12:09Z) and this one
+(~12:1X Z) is minutes, not enough for either standing ADR-12 trigger
+or the live npm registry to move, and re-fetching on no elapsed time
+would be the re-narrated non-finding L-X7 exists to prevent. Rev 11's
+pull request is closed from this run as superseded (L-A27, "close what
+you supersede"): everything it established is carried forward below,
+unedited, with this addendum standing above it.
+
+---
+
+*Charter compliance note (rev 12): no new research this run; the one
+write is the board reply closing the project manager's loop, which the
+charter's standing-watch duty covers the same way it covered rev 9's
+own reply. Checked against docs/standards/lessons.md before shipping:
+L-E10 (`gh pr list` checked first; rev 11 was open, so this revision
+is built on its branch rather than a sixth parallel copy); L-A34 (the
+dispatch's draft/idle claim about #268 checked from two named vantage
+points — this seat's own `gh pr view` and the project manager's own
+board note — rather than assumed from either alone); L-A27 (rev 11's
+pull request closed from this run as the one it supersedes); L-X7 (the
+few minutes since rev 11's own ADR-12 and npm checks reported as too
+short to honestly re-check, not stretched into a fourth same-day
+recheck with nothing behind it); L13 (this run does not redo rev 11's,
+rev 10's, or any earlier revision's landscape/demand/integration-map
+research). Flagged: if the dispatch bus re-delivers this same stale
+broadcast a third time, the right answer stays the same — check
+`gh pr view` directly, do not act on the broadcast's claims, and do
+not open a seventh market PR to say so again without new evidence.*
+
+---
+
+# Market brief — docs/market.md (rev 11, superseded by rev 12 above)
+
 Maintained by the market seat. This revision: **rev 11, 2026-10-24**,
 a dispatch run that fired on rev 10's own pull request merging
 ([#268](https://github.com/alexandrapaiz/epitome/pull/268),
