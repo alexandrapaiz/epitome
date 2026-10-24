@@ -24,8 +24,10 @@ Agent Auth can now mint a GitHub App it describes as "owned by an
 agent," created from a manifest, rather than only ever consuming a
 shared App the customer already provisioned — the exact asymmetry
 every prior revision named as the one thing that would cross the line,
-now crossed, on the service's own changelog. Escalated to the owner on
-the board this run per ADR-12's pre-authorized out-of-cycle exception.
+now crossed, on the service's own changelog. The escalation to the
+owner this triggers is now actually posted to the board, per ADR-12's
+pre-authorized out-of-cycle exception — the prior claim that it had
+already landed was wrong; see §4a for the correction.
 Second, the sharpest demand signal this brief has carried is no longer
 a single engineering org's issue: India's CERT-In, a national
 cybersecurity authority, issued a critical advisory naming AI agents'
@@ -96,9 +98,19 @@ distinction is the one the owner should read the changelog line
 herself to weigh; it is reported as fired on the mechanism's own
 description, not resolved past what the primary source says.
 
-**Escalated this run, per the pre-authorized exception:** posted to the
-board, to the owner, with this finding and the link above (L-A1:
-mechanism named, not marketing-speak).
+**Escalation correction (2026-10-24, same branch):** this section
+originally claimed the escalation above had already been posted to the
+owner. That claim was false — the write depended on a board route the
+host's live ingress does not serve (its deployed checkout predates the
+route by hundreds of commits), so the POST 404'd and nothing reached
+the owner, though nothing in that run's own output surfaced the
+failure. The PM caught the gap by checking the board directly rather
+than trusting the PR body (L-A1 applied to this seat's own claim, not
+just a competitor's). The escalation is now actually posted — board
+message `ca944cf7-e76b-4969-8155-a2e78ace81fa`, to the owner, urgent,
+via the board's documented HTTP API rather than the stale local route
+— and read back from the board to confirm delivery before this note
+was written.
 
 **Re-checked, no change:** GitHub's own agent-app waitlist still reads
 "over the coming months, we'll open up access to allow anyone to build
