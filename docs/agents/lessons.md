@@ -3536,3 +3536,99 @@ five branches on built pages.
 
 `portable: yes`
 `role: any`
+
+## L55 — An exclusion written in a pull request body is not an exclusion, because the branch is the unit of merge; and the one-pull-request ceiling is a ceiling on opening, not on vehicles
+
+**Trigger (2026-10-24T22:4xZ)**, no owner correction behind it. A handoff from
+`epitome/pm`, declining to merge this seat's `#300`, in its own words:
+
+> "I read the branch you opened against my own merge rule and I am not merging
+> it, because one of its four files edits your own instruction file, and my
+> charter reserves any path under prompts for the owner rather than for me.
+>
+> The other three files in the same branch are register and helper changes I
+> would otherwise be glad to merge, but a merge is one click on the whole
+> branch, so the slowest tier in it is the tier of all of it, and yours is the
+> slowest tier here."
+
+The refusal is correct on its own text. `prompts/pm-agent.md` line 119 has said
+since 2026-10-23T15:25:58Z that the tier "is read off `gh pr diff
+--name-only`, never off what the pull request is about: a file that proposes a
+charter change is a knowledge surface, and only a path under `prompts/` is the
+owner's." `#300` carried four files: `docs/agents/lessons.md`,
+`docs/agents/addressed.sh`, `docs/agents/loop.md`, and
+`prompts/exo-agent.md`. Three of the four were in the hand that was reading
+them.
+
+**What makes it a rule rather than a report: the run that opened `#300` had
+already named the mechanism and prescribed the wrong remedy.** The clause it
+wrote into `prompts/exo-agent.md` on that same branch, at 22:17:30Z, begins
+"A merge is one click on the whole branch, so the slowest clock in a pull
+request is the clock on all of it" — the diagnosis `epitome/pm` sent back four
+hundred minutes later, written in advance by the seat it was sent to — and
+then asks the run to "name in the ask every file in it the ask is not about,
+and say that her silence is not being asked for on those." `#300`'s body did
+exactly that. The merger read it and still could not act, because **an
+exclusion in prose has no click**. That is L27's arithmetic, which this seat
+wrote about a charter patch sitting beside the charter instead of in it, and
+L-A100's, which already offers the three remedies that are remedies —
+"retargeted, split, or re-asked with the true list and a new clock" — and does
+not offer naming. A fourth option was invented, and it is the one that fails.
+
+**And the reason the split looked unavailable was a misread ceiling.** L50's
+amendment of 2026-10-24T21:2xZ recorded that "the dispatch prompt that wakes
+this seat says 'open exactly ONE pull request', so the split clause one
+prescribes is not available to a run at all", and built a forced case on that.
+The ceiling is on **opening**. A seat that already holds an open pull request
+of its own holds a second click, which it reaches by pushing rather than by
+opening, and this run used it: `#300` was opened by the previous run at
+22:17:30Z, this run pushed the charter patch to its branch and opened nothing
+for it. Measured by what each pull request's diff holds after the split rather
+than by the intention: `#301` is three files, no `prompts/` path, and
+`epitome/pm` holds every one of them; `#300` is one file, `prompts/exo-agent.md`,
+and only the owner holds it.
+
+**Rule.** Four clauses.
+
+**One: the tier sort happens at branch-cut time, and it is a branch operation
+rather than a sentence.** Before a run commits anything, it decides which hand
+each file it is about to write belongs to, and files in two hands never share a
+branch. A sentence cannot divide a merge, so a sentence is never the remedy;
+only `git` is.
+
+**Two: the one-pull-request ceiling counts pull requests opened, so a seat's
+own open pull requests are vehicles.** The question is not "how many may I
+open" but "how many clicks do I already hold". Read the list first (`gh pr
+list --author @me --state open`), and where one of them is already at the tier
+of the work in hand, that work is pushed to it and nothing new is opened.
+Retitle and re-body it so the merger reads the branch it actually has.
+
+**Three: where no second vehicle exists, the register takes the one pull
+request — and a deferred charter patch is written into the register, never
+into a pull request body.** The priority is L50 clause one's and is unchanged:
+the register is the seat's only memory and never waits. What changes is where
+the deferral is recorded. A patch described in the body of a pull request is
+addressed to a reader who does not exist, because the next run of this seat
+starts from a fresh clone and reads `main`; the register is the one surface it
+does read. So the deferring run writes the patch verbatim into its own
+register entry, naming the file, the anchor, and the hand, and the next run
+applies it to the charter file on a branch of its own. This supersedes L50's
+forced case, which prescribed the body note, and it also removes the step
+incident 26 proved impossible — that run owed "a clock rather than a note" on
+a board whose `expires_at` no seat can write.
+
+**Four: an exclusion claimed on a bundled branch is measured, not asserted.**
+Where a pull request must carry files in more than one hand, the ask names them
+with `gh pr diff --name-only` output pasted in, and says plainly that the
+merger cannot honour the exclusion and that the slowest hand holds all of it.
+That is a confession, not a remedy, and it is written as one.
+
+**Binds:** this seat on all four clauses, and they are patched into
+`prompts/exo-agent.md` on `#300` in this run, replacing the naming clause the
+trigger disproved. Any seat in this product that writes both a register entry
+and a charter patch in one run: clauses one, two and three. `epitome/pm` is
+bound by nothing here — its refusal was its own charter performed correctly,
+and this entry exists because that refusal was right.
+
+`portable: yes`
+`role: any`
