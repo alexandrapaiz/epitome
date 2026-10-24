@@ -1081,7 +1081,7 @@ L-A32 (a run is over when its artifact is reachable, not when it is written):
 this is the same claim about a message, and reachability is again the part
 that was asserted rather than tested.
 
-## Open fixes, re-measured 2026-10-24 at 00:45Z
+## Open fixes, re-measured 2026-10-24 at 00:13Z
 
 L20 obliges this seat to re-measure every entry whose fix is not on `main`, on
 every run, and to count instances rather than entries. This section is
@@ -1097,8 +1097,8 @@ is a statement about five days in which nothing on the box could change.
 | 10 — the runtime this company fixes is not the runtime it runs | nothing merged, nothing deployed | **worse by 43 commits and now a month old.** `readlink -f $(which epito)` → `/srv/asc/repos/epitome/cli/src/index.js`; that repository's `HEAD` is `5836dc0` of **2026-09-23**; `git rev-list --count 5836dc0..origin/main` = **483**, against 440 on 10-23 and 366 on 10-18. Three merged fixes — 5, 8 and 12 — are merged-and-not-running behind this one gap. No item on this company's board carries it; it sits in HQ's backlog | 3 |
 | 11 — the merging seat's charter has never said it merges | `prompts/pm-agent.md`, merged by the owner in #234 at 2026-10-23T15:26:22Z | **fixed and holding.** The seat has merged under it since, including #181 and #190 above. It is also the whole evidence for L32 and L31: her hand went straight to the file | 17 days, 1 charter |
 | 12 — ten runs recorded as opening nothing | `ba763c7`, merged in #169 at 2026-10-18T08:17Z | **on `main`** (`git merge-base --is-ancestor ba763c7 origin/main` passes) **and not on the box**, six days on. Same blocker as 10, no second fix needed | 10 runs |
-| 13 — the host filled to zero bytes mid-run | nothing shipped | **the condition fired for real and cost the company four days seventeen hours.** The box is at **25 GB of 45 used, 20 GB free** at 00:45Z, five gigabytes worse than the 20/25 of 17:47Z on 10-23, and `/tmp` holds **20** finished runs' clones against 13. Nothing removes them. The fix belongs in `cli/src/run.js`, the engineer's surface. HQ has derived the off-host threshold this needed — fourteen hours of board silence, zero false positives against 1,365 recorded gaps | 1 fired |
-| 14 — a not-landing finding declined because its prose and its data named different sets | `docs/agents/landed.sh` and a charter patch, on `epitome-exo/2026-10-23-message-5` | **not on `main`, and the thing blocking it was the draft flag, which this run cleared.** #249 was readied at 00:35Z today by the next run of this seat, not by the run that opened it, having sat a draft for four and a half hours carrying its opening body. It is `CLEAN` and `MERGEABLE` behind #243. Blocked now by a merger's hand and nothing else | 1 |
+| 13 — the host filled to zero bytes mid-run | nothing shipped | **the condition fired for real and cost the company four days seventeen hours.** The box is at **25 GB of 45 used, 20 GB free** at 00:13Z, five gigabytes worse than the 20/25 of 17:47Z on 10-23, and `/tmp` holds **20** finished runs' clones against 13. Nothing removes them. The fix belongs in `cli/src/run.js`, the engineer's surface. HQ has derived the off-host threshold this needed — fourteen hours of board silence, zero false positives against 1,365 recorded gaps | 1 fired |
+| 14 — a not-landing finding declined because its prose and its data named different sets | `docs/agents/landed.sh` and a charter patch, on `epitome-exo/2026-10-23-message-5` | **not on `main`, and the thing blocking it was the draft flag, which this run cleared.** #249 was readied at 00:17:17Z today by the next run of this seat, not by the run that opened it, having sat a draft for 5h 09m — opened 2026-10-23T19:08:09Z — carrying its opening body. It is `CLEAN` and `MERGEABLE` behind #243. Blocked now by a merger's hand and nothing else | 1 |
 | 15 — a third of the brief never reaches the seats it wakes | nothing in this tree; the repair is HQ's | **handed to `alexandra-systems/exo-centralizer` this run.** The detector is in this tree and fired on a real positive: `bash docs/agents/brief.sh` recovered the 572 characters the wake dropped. Re-measured next run by running it and reading whether the footer still counts characters instead of naming sections | 2 briefs, 8 addressees each |
 
 **The patch directory, scored the way L32 says to score it.** It held eight
@@ -1112,13 +1112,13 @@ all-time score moves from **0 of 15 landed in 18 days** to 0 of 15 merged and
 **4 of 15 written into the file they change**, which is the step L27 says is
 the one that gives her consent a hand. It is still not a merge.
 
-**The queue, generated rather than typed, at 00:58:14Z against `main`
+**The queue, generated rather than typed, at 00:25:24Z against `main`
 `2d7a0a6` (L24).** **10 open**, 8 land in one sequence with no conflict, 2
 need a hand (`#244` and `#246`, both conflicting in `docs/ideas.md`) —
 
 `#132 · #242 · #243 · #248 · #249 · #250 · #251 · #252`
 
-It was 9 open at 00:18:31Z, forty minutes earlier in this same run: `#252`
+It was 9 open at 00:18:31Z, seven minutes earlier in this same run: `#252`
 re-vendors `docs/standards/lessons.md` from HQ `c2705bc` and opened while this
 entry was being written, which is the whole of L24 in one line.
 
@@ -1136,7 +1136,7 @@ lines above are its output. L-A47's axis — an instrument's scope is part of
 its answer, and a directional test answers only a directional question.
 
 **The second standing count: drafts whose run has ended.** Of this seat's two,
-**#245 is closed** — it carried one commit, the `.exo-run-marker` line that
+**#245 is closed** (00:17:29Z) — it carried one commit, the `.exo-run-marker` line that
 opened it, and nothing else, so by this seat's own charter it was not
 unfinished work; what it owed, the four engineer charter changes, is applied in
 #251 and re-declared on the board. **#249 is readied**, body rewritten to say
