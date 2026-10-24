@@ -12,6 +12,14 @@
 # L30). What is left is four for the engineer and four for the project
 # manager, and each of those leaves the same way.
 #
+# 2026-10-24: the engineer's four are now text in `prompts/engineer-agent.md`
+# and their lines stay in this file on purpose. They are no longer a queue;
+# they are an assertion. `check.sh` reports each as "already in
+# engineer-agent.md on this branch" by finding every added line byte-identical
+# in the charter, so the day somebody edits that text out, this file's own
+# check is what says so. The project manager's four are the queue that is
+# left, and #244 reports carrying three of them.
+#
 # The last line is the one patch the owner's silence does not release: it
 # widens a seat's own authority and waits for her word (L25, routes.md).
 2026-10-05-engineer-check-the-register

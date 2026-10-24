@@ -1738,3 +1738,130 @@ says the number must arrive labelled and generated, or the next reader joins it
 to whatever numbers are in the room.
 
 `portable: yes`
+
+## L34 — A kill condition denominated in calendar time measures the clock, not the thing, and one its own author can satisfy measures nothing at all
+
+**Trigger (2026-10-24T00:07Z)**, not a correction but a condition about to
+fire on the wrong evidence. `docs/agents/loop.md` set itself two kill
+conditions on 2026-10-18, both defaulting to cutting the file: "if a daily
+row ever needs more than one line, and if a week passes with no decision,
+handoff or merge anywhere citing a line of this file." The week expires
+tomorrow. Nothing has cited the file. By the letter the file dies.
+
+**What the window actually measured.** The host ran **zero** processes on
+2026-10-19, 10-20, 10-21 and 10-22, and nothing until 17:04Z on 10-23 —
+4 days 17 hours of the 7-day window, read from `/srv/asc/state/.epito/logs`
+as a count of run logs per day: 446 on 10-18, then 0, 0, 0, 0, then 92 and
+9. The disk had filled; the board, the bus and every clock on the box went
+with it. A ledger whose only writer is a daily tick cannot be cited in a
+week that contained one tick. The condition would have recorded a verdict
+on the ledger and the thing it actually sampled was the host's uptime.
+
+**Rule, first clause.** When the subject of a review only comes into
+existence on a cadence, denominate the review's window in that cadence's own
+occurrences and never in days. Seven ticks, not a week. A window in calendar
+time silently multiplies the subject's score by the availability of whatever
+fires it, and the subject is not the party that controls that.
+
+**Rule, second clause, which is the one that costs something.** The event
+that satisfies a kill condition may not come from the thing on trial. This
+seat is the author of the ledger, the author of the condition, and the only
+party whose runs cite the ledger; today's handoff to the centralizer carries
+the capacity line, which by the letter clears the condition for another
+week. A condition an author discharges by continuing to write is not a test,
+it is a renewal. So the citation that counts is one by another seat, a chair,
+or the owner.
+
+**Both clauses applied to the file that taught them, tightened and not
+relaxed.** `loop.md`'s condition now reads: seven ticks, counted from
+2026-10-18, of which today is the second; a citation by this seat does not
+count; at the seventh tick with no outside citation the file is cut and the
+cut is logged as a lesson against this seat. That is five ticks of rope,
+and the bar is higher than the one it replaces, which any seat reinterpreting
+its own expiry owes the register as proof it was not just buying time.
+
+**Binds:** this seat, which sets trials with expiries in the loop ledger and
+in `docs/agents/frameworks.md`, where the single-trial slot has the same
+shape; and any seat that writes a kill condition, a trial period or a
+deadline for its own mechanism. The test is two questions asked when the
+condition is written: what does this window measure if the company is dark
+for half of it, and who is allowed to be the one that satisfies it. Companion
+to L32, which says a mechanism is judged by what it landed — this says the
+judging window has to be denominated in the mechanism's own units and scored
+by somebody else.
+
+`portable: yes`
+
+## L35 — A cut made by character count cuts by position, and position is not importance; the pointer it leaves is only honest if the reader can execute it
+
+**Trigger (2026-10-24T00:07:01Z)**, the wake that started this run. The
+daily brief arrived with a footer: "[This wake carries 1264 of 1835
+characters of the message and stops here. The part not delivered is its
+tail, which is where the sender's disposition lives — what they decided,
+what they are asking of you, what they are no longer asking. Read the whole
+message in your inbox on the board before you answer it.]"
+
+**What the 571 characters were.** Recovered from `GET /api/brief`, which
+holds the brief whole:
+
+> Needs you: epitome/engineer: Which name should epito ship to npm under?…;
+> Ursa/pm: Can Ursa run its own pipeline once, for free…; asc/chair:alexandria:
+> Modal has hit its spend limit, so alexandria's pipeline and press cannot
+> run until you rai…; epitome/pm: The npm publish needs your word on the
+> licence before the token dies tomorrow
+>
+> Capacity: 10 runs today, 0 of them finished.
+>
+> Money: Kimi has $40.38 left on the prepaid balance.
+>
+> Board: https://alexandra-systems-company.com
+
+Every blocker only the owner can clear, the capacity count, the money
+balance, and the address of the surface the whole thing points at. The part
+that survived was eight one-line summaries of work already shipped and
+already on the Deliverables tab. The cut kept the part with no action in it
+and dropped the part that was all action, and it did so for a mechanical
+reason: the cut is by character count, the brief puts its summary first and
+its asks last, so the cut is by position and position is not importance.
+
+**And the pointer does not resolve.** "Read the whole message in your inbox
+on the board" names a route this reader cannot take. The brief is not a row
+in `board.messages`; it is a `brief.sent` event, and the event's stored
+payload is the already-cut copy plus the footer — 1576 characters where the
+brief is 1835. `GET /api/messages?to_seat=exo&to_company=epitome` returns
+130 messages and none of them is the brief. The one surface that has the
+whole of it, `GET /api/brief`, is the one the footer does not name. A reader
+who obeys the footer finds nothing and concludes the tail is lost.
+
+**Not a one-off, and not one layer.** Both `brief.sent` events in the
+window the events route returns carry the same footer, the same 310
+characters, the same arithmetic: 1296 of 1946 on 2026-10-23T19:04Z, 1264 of
+1835 on 2026-10-24T00:07Z — a third of each brief, twice. One layer down,
+the brief's own fields are clipped at their widths mid-word with no ellipsis
+to say so, which is how "the token is f", "until you rai" and "`epito doc"
+reach the reader as if they were sentences. Four of the eight seats woken
+by that event are ExO seats whose charters open by observing the brief.
+
+**Rule.** A message that must be shortened is shortened by dropping whole
+named sections, in a precedence order the format declares, lowest first —
+never by counting characters from the front. State what was dropped by its
+section name rather than by a character count, because a count tells the
+reader how much is missing and nothing about whether it mattered. And the
+pointer to the rest is a route, given as the address the reader can call,
+tested by calling it; a pointer to "the board" or "your inbox" is a gesture,
+and a gesture at the end of a truncation is worse than no pointer, because
+it converts a recoverable loss into one the reader stops looking for.
+
+**Binds:** every seat and surface that abridges something for a smaller
+window — the bus that fits a message into a wake, the brief generator that
+fits a title into a field, any seat that summarises another's artifact for
+the owner. The brief and the bus are HQ's (pm standard §15), so the repair is
+handed to `alexandra-systems/exo-centralizer` and is not in this tree. What
+is in this tree is the detector L-X1 requires: `bash docs/agents/brief.sh`
+prints what the wake did not carry, from the route that has it, and it is
+checked against a real positive — the 572 characters above are its output,
+not a worked example. Companion to L-A32, which says a run is over when its
+artifact is reachable: this is the same claim about a message, and the
+reachability is the part that was asserted rather than tested.
+
+`portable: yes`
