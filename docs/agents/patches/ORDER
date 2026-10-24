@@ -4,47 +4,41 @@
 # with fuzz they land in positions their own diffs do not name (L28).
 #
 # docs/agents/check.sh applies them in this order, with plain `git apply` and
-# no fuzz, in a scratch worktree. All eight land.
+# no fuzz, in a scratch worktree. All five land.
 #
-# Eight, not fifteen: the seven that change this seat's own charter left on
-# 2026-10-23 for `prompts/exo-agent.md`, the file they change, because that
-# is where the owner's silence of 2026-10-20T18:34Z has a merge to be (L27,
-# L30). What is left is four for the engineer and four for the project
-# manager, and each of those leaves the same way.
+# Five, not eight: the three that change this seat's own charter
+# (`prompts/pm-agent.md`) left on 2026-10-23 the same way the exo seven did —
+# applied with plain `git apply` (one re-cut by hand onto its own moved
+# anchor, content byte-identical) and removed from here. What is left is
+# four for the engineer and the one line below.
 #
 # 2026-10-24: the engineer's four are now text in `prompts/engineer-agent.md`
 # and their lines stay in this file on purpose. They are no longer a queue;
 # they are an assertion. `check.sh` reports each as "already in
 # engineer-agent.md on this branch" by finding every added line byte-identical
 # in the charter, so the day somebody edits that text out, this file's own
-# check is what says so.
-#
-# 2026-10-24, later: three of the project manager's four are now text in
-# `prompts/pm-agent.md` the same way, and the queue this file holds is one
-# line long. `a-deferral-is-a-merge` went in amended by one clause, because
-# the text her silence released told the seat to measure every branch against
-# `main` and that is incident 19's defect, written down six days before the
-# incident; its header carries the amendment and the ask that restarted its
-# clock. The assertion test is why the amendment had to be written here as
-# well as in the charter: an amended patch whose file still holds the old
-# words reads as REFUSES, which is indistinguishable from a broken diff.
+# check is what says so. The project manager's four are the queue that is
+# left, and #244 reports carrying three of them.
 #
 # The last line is the one patch the owner's silence does not release: it
-# widens a seat's own authority and waits for her word (L25, routes.md). The
-# ground under that reservation has moved and the next hand should know it.
-# She wrote the merge authority into `prompts/pm-agent.md` herself at
-# 2026-10-23T15:26:22Z as sections 21 and 22, and the condition-naming half
-# is now in the file as `a-decline-names-its-condition`, so what is left
-# novel in this patch is the instruction to read the whole role standard and
-# the correction that the Linear section names a board this company stopped
-# using. Neither widens anybody's authority. Re-cut to drop the clause she
-# has already granted and her silence releases it like the others; that is an
-# ask on the board and not this seat's to decide.
+# widens a seat's own authority and waits for her word (L25, routes.md).
+#
+# 2026-10-24, from the ExO seat's message pass at 12:2xZ, because this file
+# was read wrongly in that run's own first hour and the reason belongs here.
+# The three project-manager diffs that stood in this list landed and were
+# retired by #244 on `main` at 00:42:40Z, three minutes after the bottom of
+# that seat's chain branched. Every check in `check.sh` reads HEAD, so on that
+# chain they still read as a live queue, and the run began by re-lifting two
+# of them into a charter that already had both. Nothing was lost, because the
+# amendment it was really making is a correction to text already in force
+# rather than a lift, but the framing was wrong for an hour and the cause was
+# an instrument answering against the wrong base — L43, same rule, different
+# instrument. `check.sh` now compares this directory and this file against
+# `main` before it checks anything else, and said so about these three the
+# first time it ran.
+#
 2026-10-05-engineer-check-the-register
 2026-10-05-engineer-landing-has-a-stop
 2026-10-18-engineer-a-defect-is-not-an-idea
-2026-10-18-pm-a-pass-is-not-a-pull-request
 2026-10-18-engineer-the-installed-runtime
-2026-10-18-pm-a-decline-names-its-condition
-2026-10-18-pm-a-deferral-is-a-merge
 2026-10-18-pm-the-standard-is-the-charter

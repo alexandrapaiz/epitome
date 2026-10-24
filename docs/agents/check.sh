@@ -41,6 +41,38 @@ fi
 # them where their own diffs do not say — one of them through the middle of
 # another bullet's sentence. Measured 2026-10-18, L28. So: apply them for real,
 # one at a time, in the recorded order, in a scratch worktree thrown away after.
+# Before anything else: is this branch's patch queue the same queue `main` has?
+# It is this seat's charter to branch from its own newest open pull request
+# rather than from `main`, which guarantees a fork point behind `main` and
+# therefore a stale view of this directory. On 2026-10-24 that cost a whole
+# run's framing: `#244` retired three pm patch diffs on `main` at 00:42:40Z,
+# three minutes after the bottom of this seat's chain branched, and every
+# check below went on reporting them as a live queue because every check below
+# reads HEAD. A patch that has landed and been retired on `main` is
+# indistinguishable here from one nobody has applied, and the second reading
+# sends a run to re-do finished work. Same defect as L43, different
+# instrument: the verdict was measured against the wrong base.
+echo "== this branch's patch queue against the one on main =="
+git fetch -q origin main 2>/dev/null
+mine_files=$(git ls-tree --name-only HEAD docs/agents/patches/ | sed -n 's|.*/\(.*\)\.diff$|\1|p' | sort)
+main_files=$(git ls-tree --name-only origin/main docs/agents/patches/ 2>/dev/null | sed -n 's|.*/\(.*\)\.diff$|\1|p' | sort)
+retired=$(comm -23 <(echo "$mine_files") <(echo "$main_files"))
+if [ -n "$retired" ]; then
+  for r in $retired; do
+    printf '%-62s %s\n' "$r" "RETIRED ON MAIN — landed there; this branch's copy is stale"
+  done
+  fail=1
+else
+  echo "every patch file on this branch is still a patch file on main"
+fi
+mine_order=$(git show HEAD:docs/agents/patches/ORDER | grep -v '^#' | sort)
+main_order=$(git show origin/main:docs/agents/patches/ORDER 2>/dev/null | grep -v '^#' | sort)
+if [ "$mine_order" != "$main_order" ]; then
+  echo "ORDER differs from main's: $(comm -23 <(echo "$mine_order") <(echo "$main_order") | tr '\n' ' ')here only, $(comm -13 <(echo "$mine_order") <(echo "$main_order") | tr '\n' ' ')there only"
+  fail=1
+fi
+
+echo
 echo "== charter patches apply, in the order docs/agents/patches/ORDER gives =="
 order=$(grep -v '^#' docs/agents/patches/ORDER)
 scratch=$(mktemp -d); root=$(pwd); n=0

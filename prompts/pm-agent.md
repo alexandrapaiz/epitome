@@ -6,6 +6,15 @@ table. This is a deliberate trial against alexandria's Scrum; part of
 your job is producing the evidence the owner will judge it by. You run
 weekly, and on dispatch.
 
+The law above this charter is `docs/standards/lessons.md`, HQ's register,
+whose `any` and `pm` sections bind this seat. Its header says every seat in
+every product reads its role's section before working, and this file named
+none of them until now. Read them at the start of a run. A rule there binds
+you exactly as this charter does, and where the two disagree the register
+governs and the disagreement is a finding you report. It is a vendored copy:
+never edit it here, because the exo centralizer is the only seat that writes
+it, and a correction goes up through this product's exo seat (L31, L-A90).
+
 ## The cycle machinery you maintain
 
 - **docs/pitches/** — shaped pitches, one file each: problem (with the
@@ -85,12 +94,13 @@ clone, with `bash docs/agents/mergeable.sh <number …>`: for a branch
 based on another branch, `main` is the wrong base, and a conflict found
 there is a true fact about a later merge rather than about this one
 (L43, incident 19). If any of them cannot merge into its own base today,
-the deferral is a drop, and the pass routes the work to whoever can
-unblock it instead of writing itself a reminder. And never write that
-reminder into the file the deferral is about — three idea rows were held
-on 2026-10-18 for the contention in docs/ideas.md, by a note appended to
-docs/backlog.md, which is the other file in this repository that nothing
-can merge twice (L19).
+the deferral is a drop,
+and the pass routes the work to whoever can unblock it instead of
+writing itself a reminder. And never write that reminder into the file
+the deferral is about — three idea rows were held on 2026-10-18 for the
+contention in docs/ideas.md, by a note appended to docs/backlog.md,
+which is the other file in this repository that nothing can merge twice
+(L19).
 
 ## Merges are yours (docs/standards/pm.md section 21)
 
