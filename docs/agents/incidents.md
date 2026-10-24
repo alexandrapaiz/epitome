@@ -1483,14 +1483,18 @@ it found belonged to the seat that runs the count.
 ## Incident 19 — 2026-10-24 — A pull request's mergeability was decided twice against a base it was never going to merge into, and the branch was handed back to a seat with no run alive
 
 **Status: open, repair written and not on `main`.** The repair is
-`docs/agents/mergeable.sh`, in this run's pull request `#274`, head `d14fe7ce`
-at the time of writing, whose base is `epitome-exo/2026-10-24-message-6` and
-which is the fifth link of a chain whose bottom four are the one thing
-blocking it: `#253`, `#255`, `#258` and `#260` are charter pull requests
-waiting on the owner's forty-eight hours. The detector L-X1 requires exists
-and has fired against a real positive — three of them, below — so what is
-missing is the landing and not the instrument. Re-measured next run. Lesson:
-L43.
+`docs/agents/mergeable.sh`, in this run's pull request `#274`, whose base is
+`epitome-exo/2026-10-24-message-6`. The detector L-X1 requires exists and has
+fired against a real positive — three of them, below — so what is missing is
+the landing and not the instrument. **The one thing blocking it changed during
+this run and the entry says what it is now rather than what it was.** At
+12:30Z it was the owner's forty-eight hours on the four charter links beneath
+it. At 12:39:01Z and 12:40:15Z the merging seat merged `#253` and `#261`, and
+at 12:44 it reverted both, because another pass of the same seat had already
+asked the owner the prior question: whether a charter file can clear on her
+silence at all. So the blocker is now one owner answer, not four clocks, and
+it is a different and larger question than the one this chain was waiting on.
+Re-measured next run. Lessons: L43, and L44 for what the revert left standing.
 
 **Facts, every one of them read off a command rather than recalled.** Pull
 request `#264` was opened 02:01:03Z with base ref
@@ -1520,6 +1524,28 @@ that file away from main's copy, on a branch whose own merge does not touch it
 at all. And the twenty-two portable lessons the centralizer is waiting on,
 whose role markers are the whole content of `#264`, spent those five hours one
 step further from `main` than anybody reading the queue would have thought.
+
+**Corrected 2026-10-24T12:46Z, by this same run, because the first version of
+this entry had the provenance wrong and the truth is worse.** This entry was
+first written saying that a charter patch instructing the defect had sat
+*unapplied* in `docs/agents/patches/` for six days. It had not. `#244` applied
+it to `prompts/pm-agent.md` and retired its diff on `main` at 00:42:40Z this
+morning, three minutes after the bottom of this seat's chain branched, so the
+instruction
+
+> run `git merge-tree --write-tree main origin/<branch>` on every branch the
+> wait names
+
+was **charter law on `main` for the merging seat six hours before that seat
+measured `#264` against `main`**. The reason the run believed otherwise is
+itself this incident's rule arriving a second time: `check.sh` asserts the
+patch queue against `HEAD`, this seat's charter tells it to branch from its own
+newest pull request rather than from `main`, and a stale fork point is
+therefore the default. That is the second-instance clause now under L43, and
+`check.sh` compares the directory against `main` before anything else as of
+this pull request. The practical difference is that the charter change in this
+pull request is a **correction to text already in force**, not the lifting of a
+pending patch, and its ask on the board says so.
 
 **Root cause, in the system and not in the seat.** Three commands in
 `docs/agents/` answer merge questions and none of them answered this one.
@@ -1587,3 +1613,54 @@ own byte-identical copy to `main` ahead of the charter clock; and
 is 47 insertions and 0 deletions, every one of them a later edit by this seat.
 So when the chain reaches `main` the add/add resolves to the chain's copy,
 and no other author's work is in the file to lose.
+
+## Incident 20 — 2026-10-24 — Two charter pull requests were merged and reverted inside five minutes, and the revert does not reach the four branches that will put them back
+
+**Status: closed on the detector, open on the decision.** Nothing in the tree
+needed repairing, because the merging seat's own correction was clean and
+complete on `main`. What was missing was any way to see what the revert did not
+reach, and that now exists and has fired against a real positive:
+`docs/agents/reverted.sh`, in this run's pull request `#274`, with
+`--self-test` over three constructed inputs. The decision the revert was made
+to protect is the owner's and is still open. Lesson: L44.
+
+**Facts.** At 12:39:01Z the merging seat merged `#253`, the bottom link of this
+seat's charter chain, having first re-measured the merge order in a full clone
+and confirmed this seat's published ordering — its own words: "your chain first
+against the centralizer costs one conflict in `prompts/engineer-agent.md`, the
+reverse order costs that same conflict five times over." At 12:38:56Z it had
+claimed the centralizer's branch on the board to resolve that one conflict, and
+at 12:40:15Z it merged `#261` as well. It then read the rest of its inbox,
+found that an earlier pass of the same seat had already sent the owner one
+consolidated question — whether a charter file can clear on her silence at all
+— and reverted both merges at 12:44, declining to pre-empt her answer by having
+acted first. `#276` carries the reverts and merged at 12:45:37Z.
+
+**Impact, measured and not estimated.** On `main`, none: the reverts are clean
+and the five charters stand exactly as they did. Off `main`, four open pull
+requests sit above the reverted link and every one of them still carries every
+line the revert removed. At 12:49:01Z `reverted.sh` reads `#255`, `#258`,
+`#260`, `#271` and this branch as each restoring 15 lines of
+`prompts/engineer-agent.md`, 62 lines of `docs/agents/lessons.md` and one or
+two lines of `docs/agents/incidents.md`. The next of those to merge re-lands
+the charter paragraph while her answer is outstanding, with no conflict and
+with nothing in its own diff to say so.
+
+**Root cause in the system.** A revert is a commit on one branch. Git has no
+notion of propagating it, `order.sh` and `mergeable.sh` both answer "does it
+merge cleanly" and a restoration is clean by construction, and the revert
+commit's message names the pull request it undid and not the four above it.
+Every surface a reviewer would consult reads normal, which is the property that
+made it worth an entry.
+
+**Not a finding against the merging seat.** It re-measured before acting, it
+told this seat in writing that the measurement held, it named its own ordering
+of act-then-reason as the thing it owed a correction on, and it undid its own
+work rather than defend it. The unit of failure here is the absence of an
+instrument, which is now present.
+
+**Re-measurement that closes the decision half.** The next run of this seat
+reads whether the owner answered the silence question, and runs
+`bash docs/agents/reverted.sh` before any link of this chain is proposed for
+merge. If a link merges while her answer is outstanding, that is a second
+instance and belongs where not-landing findings go.

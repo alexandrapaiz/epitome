@@ -2448,5 +2448,70 @@ about branches other seats are still pushing to and so is generated at the
 moment it is published: this is the same rule applied to a single branch
 rather than to a sequence.
 
+**Second instance, in a second instrument, inside the hour this rule was
+written.** `docs/agents/check.sh` asserts that every charter patch in
+`docs/agents/patches/` either applies or has already landed, and it asks that
+question of `HEAD`. This seat's charter tells it to branch from its own newest
+open pull request rather than from `main`, which guarantees a fork point
+behind `main`, so `HEAD` is the wrong base for that question too. `#244`
+retired three project-manager patch diffs on `main` at 00:42:40Z, three
+minutes after the bottom of this chain branched; `check.sh` went on reporting
+them as a live queue, and this run opened by lifting two of them into a
+charter that already held both. **So the rule generalizes past merges: an
+instrument that answers a question about `main` must be told which base it
+read, and a stale base is the default rather than the exception for any seat
+whose charter says to stack.** `check.sh` now compares the patch directory and
+`ORDER` against `main` before it checks anything else, and it named exactly
+those three the first time it ran. Nothing was lost by the hour, because the
+amendment the run was really making is a correction to charter text already in
+force rather than a lift of a pending one, which is the stronger claim; but
+the framing was wrong, and it was wrong for the same reason the incident was.
+
+`portable: yes`
+`role: any`
+
+## L44 — A revert takes text off main and off nothing else, so every branch above the reverted one silently restores it, and no merge check can see that
+
+**Trigger**, measured at 2026-10-24T12:49:01Z in this seat's own chain, within
+ten minutes of the event. The merging seat merged `#253` at 12:39:01Z and
+`#261` at 12:40:15Z, having correctly re-measured the merge order first, then
+read the rest of its inbox, found that an earlier pass of the same seat had
+already put the prior question to the owner — whether a charter file can clear
+on her silence at all — and reverted both merges at 12:44 rather than
+pre-empting her answer by having acted. That judgement was right and the
+revert was clean.
+
+**What the revert did not do.** Four open pull requests sit on top of `#253`,
+and every one of them still carries every line the revert removed. Measured:
+`#255`, `#258`, `#260`, `#271` and this run's own branch each restore 15 lines
+of `prompts/engineer-agent.md`, 62 lines of `docs/agents/lessons.md` and lines
+of `docs/agents/incidents.md` that are no longer on `main`. So the next link
+to merge re-lands the charter paragraph the revert removed, while the question
+it was removed for is still on the owner's desk, and it does it without a
+conflict, because a branch built before a revert is a clean descendant of the
+state the revert undid.
+
+**Why no existing instrument could see it.** `order.sh` and `mergeable.sh`
+both answer "does this merge cleanly", and a restoration is the one hazard
+that is clean by construction. `gh pr diff` shows the branch's own diff
+against its own base, where the paragraph is old work rather than a
+restoration. The revert commit names the pull request it reverted and says
+nothing about the four above it. Every surface a reviewer would consult reads
+normal.
+
+**Rule.** A revert on the default branch is only half an undo while any branch
+above the reverted commit is open, so the hand that reverts, or the next run
+of the seat that owns those branches, measures what they would put back and
+says so where the decision is recorded. `bash docs/agents/reverted.sh` is that
+measurement: it reads every revert in the default branch's history, extracts
+the lines each one removed, reports which of them are present on a given ref,
+and spells could-not-look `unreadable` so it can never be read as clean (L41);
+`--self-test` fires its three verdicts against constructed inputs per L42.
+Where the revert was made to hold a decision open, a branch that restores the
+text is not merged until the decision lands, and that is stated on the branch
+rather than remembered. Companion to L43: both are a verdict taken against a
+base that is not the one the next merge will use, and this is the case where
+the verdict is *clean* and still wrong.
+
 `portable: yes`
 `role: any`
