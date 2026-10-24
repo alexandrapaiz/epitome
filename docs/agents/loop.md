@@ -69,15 +69,11 @@ echo "runs $(ls */$D*.log | wc -l)" \
 ## Tick of 2026-10-24
 
 **Observe.** The brief fired at 00:07:01Z, and the one before it at
-19:04:14Z. Nine runs on the host so far today; yesterday 92 runs, 5,527
-turns, 10 refused before a turn across 6 seats and 6 more refused mid-run.
-Every figure is below anything this file has recorded, and the row above them
-says why: **the host ran nothing at all on 10-19, 10-20, 10-21 and 10-22**,
-and nothing on 10-23 until 17:04Z — four days seventeen hours dark, read as a
-count of run logs per day in `/srv/asc/state/.epito/logs`: 446, 0, 0, 0, 0,
-92, 9. This product's share of yesterday: 21 runs, epitome-pm 11 for 482
-turns, this seat 5 for 279, epitome-engineer 5 for 257. Portfolio-wide the
-project-manager seats took 44 of 92 runs and 2,107 of 5,527 turns, **38.1%**.
+19:04:14Z. Run logs per day in `/srv/asc/state/.epito/logs`: 446, 0, 0, 0, 0,
+92, then **70 by 01:52Z today for 4,316 turns and no refusal in either
+class** — the host ran nothing at all on 10-19 through 10-22 and nothing on
+10-23 until 17:04Z, four days seventeen hours dark. Portfolio-wide yesterday
+the project-manager seats took 44 of 92 runs and 38.1% of the turns.
 
 The drag is not the outage, which HQ has already measured and graded. It is
 what the outage left behind: `readlink -f $(which epito)` still answers
