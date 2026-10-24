@@ -12,9 +12,12 @@ the definition of an agent itself (ADR-2): `[identity]`, `[trigger]`,
 `epito validate` says so in those words.
 
 **What frozen means.** A shipped version's vocabulary is closed. The field
-catalogue below is the whole of the current one, and `epito validate` refuses
-a key that is not in it — including a misspelling of one that is, which it
-answers with the spelling. That refusal is the point of freezing: while fields were
+catalogue below is the whole of the current one, and `epito validate` names
+every key that is not in it — including a misspelling of one that is, which it
+answers with the spelling. In `[identity]` and `[runtime]` that is a refusal;
+in `[agent]` and `[trigger]` it is a warning, for the reason the section
+"An unknown key refuses two tables and warns the other two" gives below.
+The refusal is the point of freezing: while fields were
 still arriving in-band (five did, across six merged PRs), a validator that
 rejected unknown keys would have rejected the manifest introducing each
 one, so it ignored everything it did not recognise, and `max_turn = 50`
@@ -447,6 +450,52 @@ that arrives while the runtime is down is still there when it comes back.
   subscribes — a seat whose only trigger is a subscription would otherwise be a
   seat that silently never fires.
 
+## An unknown key refuses two tables and warns the other two
+
+Added 2026-10-24. The rule above — a key the catalogue does not define is
+named, not ignored — is unchanged. What changes is that being named costs a
+manifest its ✓ in only two of the four tables.
+
+**The harm that earned the refusal needs two things to be true at once.** A
+silently ignored field is the manifest lying to its author, and the case that
+proved it is `max_turn = 50` validating with a ✓ and then running 120 turns.
+That required the field to be unread *and* the table it sat in to have
+behaviour that defaults when a key is absent — `max_turns`, `adapter`, `ref`,
+`graph` and the whole of `[[runtime.route]]` all mean something specific when
+missing, so an unread key beside them changes how a seat runs and nobody is
+told. `[identity]` is the same shape, one step worse: a scope not asked for is
+a permission not minted.
+
+`[agent]` and `[trigger]` have no such hole. Every field in them whose absence
+changes behaviour is separately required and separately refused: `[agent]`
+refuses a manifest with no `name` or no `description`, and `[trigger]` refuses
+a table that carries none of `cron`, `webhook` or `subscriptions` (rule 3 —
+a trigger is explicit and never defaulted). So an unknown key in those two
+tables cannot leave a seat quietly misconfigured. It can only be a word the
+runtime will never act on, which the warning says in those words, with the
+same spelling suggestion the refusal would have offered.
+
+**What refusing them actually cost, measured.** A roster runs whole or not at
+all (rule 4's companion, `loadRoster`'s own sentence), so a refusal is not
+local to its file. On 2026-10-24 `epito validate` was run against this
+product's largest real reader — `alexandrapaiz/alexandra-systems`'s host
+roster, 41 manifests — and refused the roster over two keys in two files:
+`status = "on"` in one `[agent]`, and `clock = "runtime/board/asc-allhands.timer"`
+in one `[trigger]`. Both name a concept in that company's own runtime
+standard, neither is a field epito's runtime reads, and 39 seats epito blesses
+could not be validated as a roster because of them.
+
+**A warning is not the old silence.** The key is printed, by table and name,
+on a line a reader can act on; `epito validate` exits 0 and says how many it
+saw; `epito run` prints the same sentences before it starts the roster. What a
+reader cannot do any more is miss it and get a bare ✓.
+
+**The two field names stay out of the catalogue.** The process is unchanged —
+an open question, then a spec change, then code, never two at once — and an
+on/off switch and a host timer path are both asks for epito's runtime to grow
+a behaviour, not for its vocabulary to grow a word. They are recorded under
+"open questions" below and nothing here reads them.
+
 ## What is deliberately NOT in the manifest
 
 Nothing about the interpreter, the virtualenv, the container image, or where
@@ -486,6 +535,21 @@ better than "unknown field".
 
 ## Open questions (settle before v0.3)
 
+- **A seat on/off switch, and the host timer a seat is woken by (asked by
+  `alexandra-systems/engineer` on the board, 2026-10-23).** Their roster
+  writes `[agent].status = "on"` and `[trigger].clock =
+  "runtime/board/asc-allhands.timer"`; v0.2 defines neither, and v0.2 now
+  warns rather than refuses them (section above), so the roster validates
+  while this question is open. Both are asks for a behaviour before they are
+  asks for a field: a switch is only real if something declines to run the
+  seat that is off, and a timer path is only real if the runtime reads it
+  instead of registering `[trigger].cron` itself. Until epito's runtime does
+  one of those, a field for it would be a word nothing reads — the exact thing
+  the freeze exists to refuse. What v0.3 has to settle: whether epito grows a
+  seat switch of its own (`[agent].status`, read by `epito run` and `epito
+  ps`), and whether a host timer is a manifest fact at all or a property of
+  the box like the interpreter and the image.
+
 - **The eight agent-spec properties (ADR-25, owner 2026-10-16).** Purpose,
   permission envelope and reusability are already here; autonomy tier,
   memory boundary, escalation rules, eval suite and telemetry are not.
@@ -493,7 +557,7 @@ better than "unknown field".
   OpenTelemetry's words. Human owner is struck by the owner and stays out.
 
 
-Five open, one answered by v0.2 and one answered by the dogfood. The two
+Six open, one answered by v0.2 and one answered by the dogfood. The two
 struck-through entries stay struck rather than deleted: the record of what a
 question asked for is how the next one gets judged.
 
