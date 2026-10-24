@@ -48,7 +48,7 @@
 //     and the reason `epito run` would not have started either.
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
-import { parseManifest, validateManifest } from "./lib/manifest.js";
+import { UNKNOWN_KEY_WARNS, manifestWarnings, parseManifest, validateManifest } from "./lib/manifest.js";
 import { blockers, unchecked } from "./lib/readiness.js";
 import { SPEC_VERSION } from "./lib/fields.js";
 import { ROSTER_RULES, findManifests, rosterRules } from "./lib/roster.js";
@@ -103,11 +103,16 @@ export function checkManifest(path, { as = path } = {}) {
   const { manifest, parseError } = parseManifest(path);
   // Named by the path the reader typed, not by the literal "agent.toml": with
   // no argument those are the same string, and with one they are not.
-  if (parseError) return { path, as, parseError, errors: [`${as} is not valid TOML: ${parseError}`], notes: [], blocks: [] };
+  if (parseError) return { path, as, parseError, errors: [`${as} is not valid TOML: ${parseError}`], warnings: [], notes: [], blocks: [] };
   const baseDir = dirname(resolve(path));
   const errors = validateManifest(manifest, { raw, baseDir });
-  if (errors.length) return { path, as, manifest, errors, notes: [], blocks: [] };
-  return { path, as, manifest, errors, notes: unchecked(manifest, { baseDir }), blocks: blockers(manifest, as) };
+  // Warnings are computed for a REFUSED manifest too, unlike readiness. They
+  // are different questions: what a refused file would be ready for is not a
+  // question, but a stray key in it is still a stray key, and a reader fixing
+  // one file wants every line about it in one report rather than one per run.
+  const warnings = manifestWarnings(manifest);
+  if (errors.length) return { path, as, manifest, errors, warnings, notes: [], blocks: [] };
+  return { path, as, manifest, errors, warnings, notes: unchecked(manifest, { baseDir }), blocks: blockers(manifest, as) };
 }
 
 // A roster beside or above the cwd relativises to a ladder of "..", which is
@@ -117,6 +122,15 @@ const rel = (p) => {
   return !r || r.startsWith("..") ? p : r;
 };
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+// The warning count a roster closes with, in one place because both verdicts
+// print it — a refused roster and a blessed one — and the sentence must not be
+// two sentences. Said at all because a roster runs whole or not at all and
+// these keys are the one finding that no longer stops it, and said in the
+// closing lines because `epito validate <dir> | tail` is how an operator reads
+// a forty-seat roster.
+const warnedSummary = (warned, keys) =>
+  `${plural(keys, "key")} in ${plural(warned.length, "manifest")} (${warned.map((s) => s.label).join(", ")}) ${keys === 1 ? "is" : "are"} not in spec ${SPEC_VERSION} — the ⚠ lines say which. In [${UNKNOWN_KEY_WARNS.join("] and [")}] that is a warning, not a refusal: ${SPEC_VERSION} separately refuses every field in those two tables whose absence changes how a seat runs, so a key nothing reads cannot leave one misconfigured.`;
 
 // ONE manifest. Every line here is the line this command printed before the
 // directory form existed; `self` is the only addition, so that the strict-mode
@@ -128,9 +142,20 @@ function one(path, strict, self) {
   if (r.errors.length) {
     console.error(`${path}: ${plural(r.errors.length, "problem")}\n`);
     for (const e of r.errors) console.error(`  ✗ ${e}`);
+    // Same stream as the refusal: one report per file, so an author fixing a
+    // manifest sees every line about it in one pass instead of one per run.
+    for (const w of r.warnings) console.error(`  ⚠ ${w}`);
     process.exit(1);
   }
   console.log(`✓ ${name} is an agent: ${shape(r.manifest)}`);
+  // Before the readiness notes, because a key nothing reads is a fact about
+  // the FILE — the same rank as the ✓ it did not cost — and readiness is a
+  // fact about the box the file would run on.
+  for (const w of r.warnings) console.log(`  ⚠ ${w}`);
+  // The count, said even though every line above is visible: it is what makes
+  // the ✓ and the ⚠ one verdict rather than two, and spec v0.2 asks for it in
+  // those words ("exits 0 and says how many it saw").
+  if (r.warnings.length) console.log(`  ${plural(r.warnings.length, "key")} here ${r.warnings.length === 1 ? "is" : "are"} not in spec ${SPEC_VERSION}, warned above, and ${r.warnings.length === 1 ? "does" : "do"} not cost this manifest its ✓.`);
   for (const u of r.notes) console.log(`  — ${u}`);
   if (r.blocks.length) {
     const say = strict ? console.error : console.log;
@@ -176,6 +201,8 @@ async function roster(dirArg, strict, self) {
 
   const bad = seats.filter((s) => s.errors.length);
   const notReady = seats.filter((s) => !s.errors.length && s.blocks.length);
+  const warned = seats.filter((s) => s.warnings.length);
+  const warnedKeys = warned.reduce((t, s) => t + s.warnings.length, 0);
   // The box, asked only when the files are good enough for the answer to
   // change anything. A roster with a refused manifest is refused whatever the
   // engine is doing, and 400ms is 400ms.
@@ -202,9 +229,11 @@ async function roster(dirArg, strict, self) {
     if (s.errors.length) {
       out(`✗ ${s.label} — ${plural(s.errors.length, "problem")}`);
       for (const e of s.errors) out(`    ✗ ${e}`);
+      for (const wk of s.warnings) out(`    ⚠ ${wk}`);
       continue;
     }
     out(`${s.blocks.length ? "!" : "✓"} ${s.label.padEnd(w)}  ${shape(s.manifest)}${s.blocks.length ? " — valid, not ready to run" : ""}`);
+    for (const wk of s.warnings) out(`    ⚠ ${wk}`);
     for (const u of s.notes) out(`    — ${u}`);
     for (const b of s.blocks) out(`    ! ${b.problem}.\n      Fix: ${b.fix}.`);
   }
@@ -212,6 +241,7 @@ async function roster(dirArg, strict, self) {
 
   if (bad.length) {
     out(`epito: ${bad.length} of ${plural(n, "manifest")} refused; fix them and start again — a roster runs whole or not at all`);
+    if (warned.length) out(`  ⚠ ${warnedSummary(warned, warnedKeys)}`);
     if (notReady.length) out(`  ${plural(notReady.length, "other")} ${notReady.length === 1 ? `is a valid ${SPEC_VERSION} manifest that is` : `are valid ${SPEC_VERSION} manifests that are`} not ready to run either — the ! lines say what and how`);
     process.exit(1);
   }
@@ -242,6 +272,11 @@ async function roster(dirArg, strict, self) {
     `${presence.length} presence-only${presence.length ? ` (${presence.join(", ")})` : ""}`,
   ].filter(Boolean);
   out(`✓ ${n} of ${plural(n, "manifest")} ${n === 1 ? "is an agent" : "are agents"}: ${counts.join(", ")}`);
+  // How many, and in how many files, because a roster runs whole or not at all
+  // and these keys are the one kind of finding that no longer stops it. Said
+  // here rather than only beside each seat so that `epito validate <dir> | tail`
+  // — which is how an operator reads a 41-seat roster — still carries it.
+  if (warned.length) out(`  ⚠ ${warnedSummary(warned, warnedKeys)}`);
   // What the bus half of that sentence does NOT say, said once rather than
   // per seat: whether any of those subjects can actually reach this box. That
   // is `epito bus`'s question — a stream is a fact about the box, like the

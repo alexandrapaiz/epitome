@@ -14,7 +14,7 @@
 // refusal a manifest can earn names the subject and the fix.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateManifest } from "../src/lib/manifest.js";
+import { validateManifest, manifestWarnings } from "../src/lib/manifest.js";
 import { subjectErrors, subjectsOverlap } from "../src/lib/subjects.js";
 import {
   busEnv, durableFor, seatOfDurable, subscribingSeats, consumerConfig, consumerMatches,
@@ -115,9 +115,12 @@ test("the same subject twice is refused as a pair to drop one of", () => {
 });
 
 test("retired [trigger].on now names subscriptions as its replacement", () => {
-  const errs = validateManifest(base({ on: ["issue.opened"] }));
-  const hit = errs.find((e) => e.includes("[trigger].on"));
-  assert.ok(hit, errs.join("\n"));
+  // Warned rather than refused since spec v0.2 split the tables; the sentence
+  // is the same one, and it is still printed by every surface that reads a
+  // manifest. What `on` cost a seat — never being woken — is refused by
+  // `[trigger]`'s own rule, tested above.
+  const hit = manifestWarnings(base({ on: ["issue.opened"] })).find((w) => w.includes("[trigger].on"));
+  assert.ok(hit, "the retirement sentence is not printed at any severity");
   assert.match(hit, /\[trigger\]\.subscriptions/);
   assert.match(hit, /one durable consumer per seat/);
 });

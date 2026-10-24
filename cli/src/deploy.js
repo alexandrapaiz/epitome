@@ -264,12 +264,18 @@ export async function deployCmd(argv = []) {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) die(`--timeout takes seconds, got "${value("--timeout")}"`);
   if (!Number.isInteger(port) || port < 0 || port > 65535) die(`--port takes a port number (0 picks a free one), got "${value("--port")}"`);
 
-  const { path, manifest, errors } = resolveAgent(positional[0], positional[1] ?? ".");
+  const { path, manifest, errors, warnings } = resolveAgent(positional[0], positional[1] ?? ".");
   if (errors.length) {
     console.error(`${path}: ${errors.length} problem${errors.length > 1 ? "s" : ""} — an invalid manifest deploys nothing, because the manifest is what the principal is made of\n`);
     for (const e of errors) console.error(`  ✗ ${e}`);
     process.exit(1);
   }
+  // A key the spec does not define in [agent] or [trigger] does not stop a
+  // deploy, and it is still said here rather than only by `epito validate`:
+  // this command is about to turn the file into a real App under a real
+  // account, which is the moment somebody is actually looking at it. On
+  // stderr, so `epito deploy --json` stays one document.
+  for (const w of warnings) console.error(`  ⚠ ${w}`);
   const name = manifest.agent.name;
 
   // The target decides everything after this point, so it is read before the

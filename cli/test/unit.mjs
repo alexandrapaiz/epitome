@@ -10,7 +10,7 @@
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { reconcilePlan, scheduleShape, listSeatSchedules } from "../src/temporal/schedules.js";
-import { validateManifest, loadManifest, FIELDS, TABLES } from "../src/lib/manifest.js";
+import { validateManifest, manifestWarnings, loadManifest, FIELDS, TABLES, UNKNOWN_KEY_REFUSES, UNKNOWN_KEY_WARNS } from "../src/lib/manifest.js";
 import { blockers, unchecked, REPO_REQUIRED_BY, SCOPE_REQUIRED_BY } from "../src/lib/readiness.js";
 import { parseGitHubRemote, originRepo, repoRoot } from "../src/lib/origin.js";
 import { loadRoster, rosterRules, ROSTER_RULES } from "../src/lib/roster.js";
@@ -2472,15 +2472,106 @@ test("max_turn (the singular typo) is refused rather than silently meaning 100",
 });
 
 test("[trigger].on is retired, and the message says what replaces it", () => {
-  const errs = validateManifest(baseManifest({ trigger: { on: ["issue.opened"] } }));
-  const hit = errs.find((e) => e.includes("[trigger].on"));
-  assert.ok(hit, errs.join("\n"));
+  const m = baseManifest({ trigger: { on: ["issue.opened"] } });
+  const errs = validateManifest(m);
+  // The retirement sentence is a WARNING now, because `[trigger]` is one of
+  // the two tables an unknown key no longer refuses (spec v0.2). It still
+  // says the whole thing: what `on` was, why it went, and what replaced it.
+  const hit = manifestWarnings(m).find((w) => w.includes("[trigger].on"));
+  assert.ok(hit, manifestWarnings(m).join("\n"));
   assert.match(hit, /webhook = true/);
-  // The seat could never have fired, and the triad rule now says so too — in
-  // v0.2 it offers three ways to be woken, and the bus is the one that
-  // replaces what `on` pretended to be.
-  assert.ok(errs.some((e) => /needs at least one of: cron .*webhook .*or subscriptions /.test(e)), errs.join("\n"));
   assert.match(hit, /subscriptions = \[/);
+  // And what actually stops this manifest is the rule that was always the real
+  // one: a seat whose only trigger was `on` could never fire, and `[trigger]`
+  // refuses carrying none of the three ways to be woken. That refusal is why
+  // warning on the key costs nothing — the harm has its own message.
+  assert.ok(errs.some((e) => /needs at least one of: cron .*webhook .*or subscriptions /.test(e)), errs.join("\n"));
+});
+
+// --- an unknown key: which tables it refuses, and which it warns -----------
+//
+// spec/manifest.md, "An unknown key refuses two tables and warns the other
+// two". The rows below are not invented: they are the two keys that cost
+// alexandra-systems' 41-manifest roster its whole run on 2026-10-24, copied
+// out of that roster's own files with the paths they came from
+// (test/fixtures/foreign-keys.json).
+
+const FOREIGN = JSON.parse(readFileSync(new URL("fixtures/foreign-keys.json", import.meta.url), "utf8"));
+
+test("every table is refuse-or-warn, and no table is both or neither", () => {
+  // The module throws at import if this is wrong, so reaching this line is
+  // half the assertion. The other half is that the split still COVERS the
+  // catalogue: a fifth table arriving with no severity is the pre-freeze
+  // silence coming back for whatever it defines.
+  assert.deepEqual([...UNKNOWN_KEY_REFUSES, ...UNKNOWN_KEY_WARNS].sort(), [...TABLES].sort());
+  assert.deepEqual(UNKNOWN_KEY_REFUSES.filter((t) => UNKNOWN_KEY_WARNS.includes(t)), []);
+});
+
+for (const { table, key, line, source, means } of FOREIGN.keys) {
+  test(`a real roster's [${table}].${key} is warned, not refused (${source})`, () => {
+    const m = baseManifest({ [table]: { ...baseManifest()[table], [key]: parse(line)[key] } });
+    assert.deepEqual(validateManifest(m), [], `${means}: this key cost the roster its run`);
+    const hit = manifestWarnings(m).find((w) => w.includes(`[${table}].${key}`));
+    assert.ok(hit, `warned by nothing — the pre-freeze silence, back for ${key}`);
+    // The warning is held to the same bar as a refusal: it names the key, the
+    // table, the spec version the reader should check, and what to do.
+    assert.match(hit, new RegExp(`\\[${table}\\]\\.${key}`));
+    assert.match(hit, /manifest spec v0\.\d/);
+    assert.match(hit, /warning, not a refusal/);
+    assert.ok(carriesAFix(hit), `says what is wrong and not what to do:\n    ${hit}`);
+  });
+}
+
+test("the same key in [identity] or [runtime] is still refused", () => {
+  // The other half of the split, and the reason it is a split rather than a
+  // loosening: `max_turn = 50` validated with a ✓ and then ran 120 turns, so
+  // a table whose fields default when absent cannot afford an unread key.
+  for (const table of UNKNOWN_KEY_REFUSES) {
+    const m = baseManifest({ [table]: { ...baseManifest()[table], status: "on" } });
+    assert.ok(validateManifest(m).some((e) => e.includes(`[${table}].status`)),
+      `[${table}].status validated clean, and nothing reads it`);
+    assert.deepEqual(manifestWarnings(m).filter((w) => w.includes(".status")), [],
+      `[${table}].status was both refused and warned`);
+  }
+});
+
+test("`epito run`'s own loader keeps a seat with a foreign key, and says so", () => {
+  // The measurement, as a test, with the roster shrunk to the shape that
+  // matters: one seat carrying a foreign key, read through the same loader
+  // `epito run` uses. Before the split this exited 1 for the whole directory.
+  const dir = mkdtempSync(join(tmpdir(), "epito-foreign-"));
+  const seatDir = (n) => { const d = join(dir, n); mkdirSync(d, { recursive: true }); return d; };
+  const toml = (name, extra) => [
+    "[agent]", `name = "${name}"`, `description = "A seat of the ${name} roster."`,
+    extra.agent ?? "",
+    "", "[identity]", 'scopes = ["github:contents"]',
+    "", "[trigger]", 'cron = "0 6 * * *"', extra.trigger ?? "",
+    "", "[runtime]", 'model = "claude-sonnet-5"', 'entry = "prompts/x.md"', 'repo = "acme/roster"',
+  ].join("\n");
+  writeFileSync(join(seatDir("clean"), "agent.toml"), toml("clean", {}));
+  writeFileSync(join(seatDir("foreign"), "agent.toml"), toml("foreign", {
+    agent: FOREIGN.keys.find((k) => k.table === "agent").line,
+    trigger: FOREIGN.keys.find((k) => k.table === "trigger").line,
+  }));
+  const quiet = { log: console.log, error: console.error };
+  const said = [];
+  console.log = console.error = (...a) => said.push(a.join(" "));
+  try {
+    const agents = loadRoster(dir);
+    assert.deepEqual([...agents.keys()].sort(), ["clean", "foreign"],
+      "a key nothing reads kept a seat out of the roster");
+  } finally { Object.assign(console, quiet); }
+  // Not silently: loadRoster is what `epito run` calls, and it is the last
+  // moment anybody reads these files before the box runs them for days.
+  // One line per key, named by the file it is in, plus the count — because a
+  // roster this is printed for may be forty seats long and scroll.
+  const warnings = said.filter((l) => /agent\.toml: ⚠ /.test(l));
+  assert.equal(warnings.length, 2, said.join("\n"));
+  assert.ok(warnings.every((l) => l.includes("/foreign/agent.toml")), said.join("\n"));
+  assert.ok(warnings.some((l) => l.includes("[agent].status")), said.join("\n"));
+  assert.ok(warnings.some((l) => l.includes("[trigger].clock")), said.join("\n"));
+  assert.ok(said.some((l) => /^epito: 2 keys in 1 manifest /.test(l)), said.join("\n"));
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test("[runtime].image is retired: an image is a property of the box", () => {

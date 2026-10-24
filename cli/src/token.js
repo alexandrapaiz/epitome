@@ -30,9 +30,9 @@ export function findAgent(name, dirArg = ".") {
   const manifests = findManifests(dir);
   const found = [];
   for (const p of manifests) {
-    const { manifest, errors } = loadManifest(p);
+    const { manifest, errors, warnings } = loadManifest(p);
     if (manifest?.agent?.name !== name) continue;
-    found.push({ path: p, manifest, errors });
+    found.push({ path: p, manifest, errors, warnings });
   }
   if (found.length === 0) {
     const names = manifests.map((p) => loadManifest(p).manifest?.agent?.name).filter(Boolean);
@@ -45,7 +45,11 @@ export function findAgent(name, dirArg = ".") {
 export async function tokenCmd(name, dirArg = ".", { dryRun = false } = {}) {
   if (!name) die("token needs an agent: `epito token <name>` mints a short-lived credential for the agent of that name");
 
-  const { path, manifest, errors } = findAgent(name, dirArg);
+  const { path, manifest, errors, warnings } = findAgent(name, dirArg);
+  // Said before the refusal check, because a mint reads the manifest to decide
+  // what the token may do, and a key nothing reads is worth hearing from the
+  // command whose whole output is a credential's bounds. It never changes them.
+  for (const w of warnings) console.error(`  ⚠ ${w}`);
   if (errors.length) {
     console.error(`${path}: ${errors.length} problem${errors.length > 1 ? "s" : ""} — an invalid manifest mints nothing, because the manifest is what bounds the token\n`);
     for (const e of errors) console.error(`  ✗ ${e}`);
