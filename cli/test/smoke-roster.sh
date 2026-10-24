@@ -118,7 +118,7 @@ for s in $SEATS; do
   [ -f "$AGENTS/$s/agent.toml" ] || { bad "$s has an agent.toml"; continue; }
   out="$(cd "$AGENTS/$s" && $E validate 2>&1)"; rc=$?
   check "$s validates (exit 0)" "[ $rc -eq 0 ]"
-  check "$s is an agent, not a skill" "printf '%s' \"\$(printf '%s' '$out')\" | grep -q '✓ $s is an agent'"
+  check "$s is an agent, not a skill" "said \"\$(printf '%s' '$out')\" '✓ $s is an agent'"
   sout="$(cd "$AGENTS/$s" && $E validate --for-runtime 2>&1)"; src=$?
   check "$s passes the strict gate --for-runtime" "[ $src -eq 0 ]"
   [ -n "$sout" ] || true
@@ -130,7 +130,7 @@ for s in $SEATS; do
   # The bug this replaces: `entry` is a path inside `repo`, the manifest is in
   # agents/<seat>/, and the charter is at the repository root — so the note
   # fired on all five correctly configured seats.
-  check "$s: validate says nothing about committing its charter" "! printf '%s' \"\$out\" | grep -q 'before the first run'"
+  check "$s: validate says nothing about committing its charter" "! said \"\$out\" 'before the first run'"
   entry="$(grep -E '^entry' "$AGENTS/$s/agent.toml" | sed -E 's/.*\"(.*)\".*/\1/')"
   check "$s: and its charter $entry really is in this repository" "[ -f '$ROOT/$entry' ]"
 done
@@ -154,23 +154,23 @@ entry = "prompts/ghost.md"
 repo = "acme/other"
 EOF
 gout="$(cd "$TMP/repo/agents/ghost" && $E validate 2>&1)"
-check "a charter absent from the whole repo is still named" "printf '%s' \"\$gout\" | grep -q 'commit prompts/ghost.md to acme/other'"
+check "a charter absent from the whole repo is still named" "said \"\$gout\" 'commit prompts/ghost.md to acme/other'"
 mkdir -p "$TMP/repo/prompts" && echo charter > "$TMP/repo/prompts/ghost.md"
 gout2="$(cd "$TMP/repo/agents/ghost" && $E validate 2>&1)"
-check "committing it at the repo root silences the note" "! printf '%s' \"\$gout2\" | grep -q 'before the first run'"
+check "committing it at the repo root silences the note" "! said \"\$gout2\" 'before the first run'"
 # `sed -i` with no suffix is GNU-only: BSD sed reads the next argument as the
 # backup suffix and the file as the script, and says `invalid command code f`.
 # Every in-place edit in this harness uses the one form both accept.
 sed -i.bak 's|repo = "acme/other"|repo = "acme/unrelated"|' "$TMP/repo/agents/ghost/agent.toml" \
   && rm -f "$TMP/repo/agents/ghost/agent.toml.bak"
 gout3="$(cd "$TMP/repo/agents/ghost" && $E validate 2>&1)"
-check "a charter in a repo the manifest does NOT name is not evidence" "printf '%s' \"\$gout3\" | grep -q 'commit prompts/ghost.md to acme/unrelated'"
+check "a charter in a repo the manifest does NOT name is not evidence" "said \"\$gout3\" 'commit prompts/ghost.md to acme/unrelated'"
 
 step "3. the roster loads whole, and matches the workflows it came from"
 rout="$($E routes "$AGENTS" 2>&1)"; rrc=$?
 check "epito routes reads the whole roster (exit 0)" "[ $rrc -eq 0 ]"
 for s in $SEATS; do
-  check "routes names $s" "printf '%s' \"\$rout\" | grep -q '^$s '"
+  check "routes names $s" "said \"\$rout\" '^$s '"
 done
 # Translation fidelity: the model and the turn cap in each manifest are the
 # ones its workflow passes to --model / --max-turns. A manifest that drifted
@@ -194,7 +194,7 @@ for s in $SEATS; do
     check "$s names the key, not the key's value" \
       "grep -q 'token_env = \"OPENROUTE_API_KEY\"' '$AGENTS/$s/agent.toml'"
     check "$s injects both names, so both can resolve on a box" \
-      "grep -E '^env =' '$AGENTS/$s/agent.toml' | grep -q 'OPENROUTE_BASE_URL' && grep -E '^env =' '$AGENTS/$s/agent.toml' | grep -q 'OPENROUTE_API_KEY'"
+      "envline=\$(grep -E '^env =' '$AGENTS/$s/agent.toml'); said \"\$envline\" 'OPENROUTE_BASE_URL' && said \"\$envline\" 'OPENROUTE_API_KEY'"
     wfmodel="$(grep -o "OPENROUTE_MODEL || '[^']*'" "$wf" | head -1 | sed "s/.*'\(.*\)'/\1/")"
     if [ -n "$wfmodel" ]; then
       check "$s's open road is the model its workflow defaults to ($wfmodel)" \
@@ -311,7 +311,7 @@ else
   cp -r "$AGENTS" "$TMP/agents"
   dout="$(cd "$TMP" && $E run agents --dry-run 2>&1)"; drc=$?
   check "the dry run exits 0 (it used to exit 1: unknown command \"run\")" "[ $drc -eq 0 ]"
-  check "it does NOT print the unknown-command error" "! printf '%s' \"\$dout\" | grep -q 'unknown command'"
+  check "it does NOT print the unknown-command error" "! said \"\$dout\" 'unknown command'"
   # Every cron'd seat is accounted for, as a create OR as already-registered.
   # This used to demand four "would create" lines, which quietly assumed the
   # engine at TEMPORAL_ADDRESS was empty. It is not empty anywhere this matters:
@@ -322,8 +322,8 @@ else
   planned=$(printf '%s' "$dout" | grep -c 'would create seat:')
   settled=$(printf '%s' "$dout" | grep -oE '[0-9]+ unchanged' | grep -oE '[0-9]+' | tail -1)
   check "it plans a schedule for every seat with a cron (created ${planned:-0} + already registered ${settled:-0} = 4)" "[ \$(( ${planned:-0} + ${settled:-0} )) -eq 4 ]"
-  check "and names the presence-only seat instead of silently skipping it" "printf '%s' \"\$dout\" | grep -q 'presence-only (no \[trigger\].cron, so no schedule): exo'"
-  check "it says in words that it wrote nothing" "printf '%s' \"\$dout\" | grep -q 'dry run: nothing was registered'"
+  check "and names the presence-only seat instead of silently skipping it" "said \"\$dout\" 'presence-only (no \[trigger\].cron, so no schedule): exo'"
+  check "it says in words that it wrote nothing" "said \"\$dout\" 'dry run: nothing was registered'"
   # The bug: four `schedule.create` lines in an append-only ledger, for four
   # schedules that were never created. Nothing can correct that file.
   check "no ledger was written by a dry run" "[ ! -e '$TMP/.epito/audit.jsonl' ]"
@@ -333,13 +333,13 @@ fi
 step "5. token and deploy agree with the manifests, and refuse cleanly"
 tout="$(cd "$TMP" && $E token pm "$AGENTS/pm" --dry-run 2>&1)"; trc=$?
 check "token --dry-run on the real pm manifest exits 0" "[ $trc -eq 0 ]"
-check "it maps the pm seat's three scopes, issues included" "printf '%s' \"\$tout\" | grep -q 'issues: write'"
-check "and says there is no App on this machine rather than inventing one" "printf '%s' \"\$tout\" | grep -q 'no App on this machine yet'"
-check "the other seats do not get issues: write" "! (cd '$TMP' && $E token market '$AGENTS/market' --dry-run 2>&1) | grep -q 'issues: write'"
+check "it maps the pm seat's three scopes, issues included" "said \"\$tout\" 'issues: write'"
+check "and says there is no App on this machine rather than inventing one" "said \"\$tout\" 'no App on this machine yet'"
+check "the other seats do not get issues: write" "! said \"\$(cd '$TMP' && $E token market '$AGENTS/market' --dry-run 2>&1)\" 'issues: write'"
 pout="$(cd "$TMP" && $E deploy pm "$AGENTS/pm" --dry-run 2>&1)"; prc=$?
 check "deploy --dry-run on the real pm manifest exits 0" "[ $prc -eq 0 ]"
-check "it would install on the repository the manifest names" "printf '%s' \"\$pout\" | grep -q 'installed on alexandrapaiz/epitome'"
-check "the App name is derived from the manifest, not invented" "printf '%s' \"\$pout\" | grep -q 'pm-alexandrapaiz'"
+check "it would install on the repository the manifest names" "said \"\$pout\" 'installed on alexandrapaiz/epitome'"
+check "the App name is derived from the manifest, not invented" "said \"\$pout\" 'pm-alexandrapaiz'"
 check "deploy wrote no ledger either, being a dry run" "[ ! -e '$TMP/.epito/audit.jsonl' ]"
 
 step "6. the roster has one command that says yes, and it needs no engine"
@@ -366,36 +366,36 @@ check "it says nothing on stderr when the roster is clean" "[ -z \"\$verr\" ]"
 # run unconditionally.
 check "it answers whether or not this box has an engine" "[ $vrc -eq 0 ]"
 nseats=$(printf '%s ' $SEATS | wc -w | tr -d ' ')
-check "it counts every seat in agents/" "printf '%s' \"\$vout\" | grep -q '$nseats of $nseats manifests are agents'"
+check "it counts every seat in agents/" "said \"\$vout\" '$nseats of $nseats manifests are agents'"
 for s in $SEATS; do
   # `(✓|!)`, not `[✓!]`: a bracket expression holding a multibyte character is
   # matched byte by byte by BSD grep and by any grep in a non-UTF-8 locale, so
   # the three bytes of ✓ could never be the one character the class asks for.
   # Alternation compares the same bytes either way.
-  check "it reports $s by name" "printf '%s\n' \"\$vout\" | grep -qE '^(✓|!) $s +identity'"
+  check "it reports $s by name" "said \"\$vout\" -E '^(✓|!) $s +identity'"
 done
-check "it names the presence-only seat as presence-only" "printf '%s' \"\$vout\" | grep -q 'presence-only (exo)'"
+check "it names the presence-only seat as presence-only" "said \"\$vout\" 'presence-only (exo)'"
 # The claim the strict gate makes: it asks exactly what `epito run <dir>` asks.
 # `epito run` asks about the engine FIRST — before it reads a manifest — so the
 # gate has to, and the verdict differs by box. Both branches are assertions;
 # neither is a skip, because whichever box this is, the command has a right
 # answer for it.
 svout="$($E validate "$AGENTS" --for-runtime 2>&1)"; svrc=$?
-check "...and reports the same seats under --for-runtime" "printf '%s' \"\$svout\" | grep -q '$nseats of $nseats manifests are agents'"
+check "...and reports the same seats under --for-runtime" "said \"\$svout\" '$nseats of $nseats manifests are agents'"
 if engine_answers; then
-  check "with an engine up, it says run would refuse nothing here" "printf '%s' \"\$vout\" | grep -q 'nothing here .epito run'"
-  check "...and names the engine it looked at" "printf '%s' \"\$vout\" | grep -q \"${TEMPORAL_ADDRESS:-127.0.0.1:7233} is answering\""
+  check "with an engine up, it says run would refuse nothing here" "said \"\$vout\" 'nothing here .epito run'"
+  check "...and names the engine it looked at" "said \"\$vout\" \"${TEMPORAL_ADDRESS:-127.0.0.1:7233} is answering\""
   check "...and the strict gate passes on the real roster too" "[ $svrc -eq 0 ]"
 else
   # The case every previous run of this suite was in, and the one the ✓ got
   # wrong: five good manifests, no engine, and a tick that spoke for `epito
   # run` without asking it. Step 4 above skipped for exactly this reason, four
   # steps earlier, in the same run.
-  check "with no engine, it does not claim run would refuse nothing" "! printf '%s' \"\$vout\" | grep -q 'nothing here .epito run .* would refuse'"
-  check "...it says the manifests are ready and the engine is not" "printf '%s' \"\$vout\" | grep -q 'every manifest is ready; the engine is not'"
-  check "...and carries the fix for the half that is missing" "printf '%s' \"\$vout\" | grep -q 'temporal server start-dev'"
+  check "with no engine, it does not claim run would refuse nothing" "! said \"\$vout\" 'nothing here .epito run .* would refuse'"
+  check "...it says the manifests are ready and the engine is not" "said \"\$vout\" 'every manifest is ready; the engine is not'"
+  check "...and carries the fix for the half that is missing" "said \"\$vout\" 'temporal server start-dev'"
   check "...and the strict gate refuses, because \`epito run\` would" "[ $svrc -eq 1 ]"
-  check "...naming the engine and not the files as the problem" "printf '%s' \"\$svout\" | grep -q 'The manifests are not the problem'"
+  check "...naming the engine and not the files as the problem" "said \"\$svout\" 'The manifests are not the problem'"
 fi
 # Each seat reads identically whether asked one at a time or as a roster. The
 # single-manifest wording is the wording that already shipped, so this is the
@@ -409,7 +409,7 @@ check "validate $WROTE_NOTHING" "untouched"
 # agents/README.md is in that directory and is not a seat. findManifests looks
 # for the filename, so it cannot be fooled — but the count above is what would
 # have caught it, and this suite has already been bitten once by `ls`.
-check "the roster count ignores agents/README.md" "[ -f '$AGENTS/README.md' ] && printf '%s' \"\$vout\" | grep -q '$nseats of $nseats manifests'"
+check "the roster count ignores agents/README.md" "[ -f '$AGENTS/README.md' ] && said \"\$vout\" '$nseats of $nseats manifests'"
 
 step "7. what this roster asks of the BOX, and what a box short of a name does"
 # The other side of step 3. `epito routes` says which model each seat gets
@@ -433,13 +433,13 @@ eout="$($BARE node "$CLI/src/index.js" env "$AGENTS" 2>&1)"; erc=$?
 check "epito env reads the whole roster (exit 0 on a box that holds none of it)" "[ $erc -eq 0 ]"
 for n in $NAMES; do
   check "it names $n, and says this box does not have it" \
-    "printf '%s' \"\$eout\" | grep -q '$n .*not set here'"
+    "said \"\$eout\" '$n .*not set here'"
 done
-check "it says who asks for each name" "printf '%s' \"\$eout\" | grep -q 'engineer, exo, market, okr, pm'"
-check "a road's halves are named as a road's halves" "printf '%s' \"\$eout\" | grep -q 'the key for route \"open\"'"
-check "it refuses to guess which are required" "printf '%s' \"\$eout\" | grep -q 'does not guess'"
-check "and points at the command that opens or closes a road" "printf '%s' \"\$eout\" | grep -q 'epito routes'"
-check "every seat short of a name is named, with its count" "printf '%s' \"\$eout\" | grep -q '! pm runs here with 0 of'"
+check "it says who asks for each name" "said \"\$eout\" 'engineer, exo, market, okr, pm'"
+check "a road's halves are named as a road's halves" "said \"\$eout\" 'the key for route \"open\"'"
+check "it refuses to guess which are required" "said \"\$eout\" 'does not guess'"
+check "and points at the command that opens or closes a road" "said \"\$eout\" 'epito routes'"
+check "every seat short of a name is named, with its count" "said \"\$eout\" '! pm runs here with 0 of'"
 
 # --complete is the operator asserting what the manifest cannot say.
 $BARE node "$CLI/src/index.js" env "$AGENTS" --complete >"$TMP/env-complete.txt" 2>&1
@@ -453,9 +453,9 @@ check "...and the refusal lists them and names the template" \
 # provision-host.sh could go away.
 tmpl="$($BARE node "$CLI/src/index.js" env "$AGENTS" --template 2>&1)"
 for n in $NAMES; do
-  check "--template writes a line for $n" "printf '%s' \"\$tmpl\" | grep -q '^$n='"
+  check "--template writes a line for $n" "said \"\$tmpl\" '^$n='"
 done
-check "--template says what it is and where it goes" "printf '%s' \"\$tmpl\" | grep -q 'systemd EnvironmentFile'"
+check "--template says what it is and where it goes" "said \"\$tmpl\" 'systemd EnvironmentFile'"
 
 # A box that holds everything, and a box that holds a name set to nothing.
 FULL="env -i PATH=$PATH HOME=$TMP"
@@ -463,10 +463,10 @@ for n in $NAMES; do FULL="$FULL $n=smoke-value-$$"; done
 fout="$($FULL node "$CLI/src/index.js" env "$AGENTS" 2>&1)"; frc=$?
 check "a box that holds every name is told so (exit 0)" "[ $frc -eq 0 ]"
 check "...in one line, naming the runtime's own names as not counted" \
-  "printf '%s' \"\$fout\" | grep -q 'holds every name' && printf '%s' \"\$fout\" | grep -q 'CLAUDE_CODE_OAUTH_TOKEN'"
-check "...and no value it read is printed back" "! printf '%s' \"\$fout\" | grep -q 'smoke-value-$$'"
+  "said \"\$fout\" 'holds every name' && said \"\$fout\" 'CLAUDE_CODE_OAUTH_TOKEN'"
+check "...and no value it read is printed back" "! said \"\$fout\" 'smoke-value-$$'"
 check "a held name is commented out in the template, so pasting cannot blank it" \
-  "$FULL node '$CLI/src/index.js' env '$AGENTS' --template | grep -q '^# SLACK_WEBHOOK_URL='"
+  "said \"\$($FULL node '$CLI/src/index.js' env '$AGENTS' --template)\" '^# SLACK_WEBHOOK_URL='"
 
 # Set, and set to nothing: the env-file line somebody half filled in. The box
 # HAS this one and has it wrong, so it refuses — the same split `epito routes`
@@ -474,9 +474,9 @@ check "a held name is commented out in the template, so pasting cannot blank it"
 eout2="$($BARE SLACK_WEBHOOK_URL= node "$CLI/src/index.js" env "$AGENTS" 2>&1)"; e2rc=$?
 check "a name set to nothing exits 1 rather than reading as absent" "[ $e2rc -eq 1 ]"
 check "...and a seat's line tells an empty name apart from an absent one" \
-  "printf '%s' \"\$eout2\" | grep -q 'SLACK_WEBHOOK_URL arrives empty'"
+  "said \"\$eout2\" 'SLACK_WEBHOOK_URL arrives empty'"
 check "...named, with both ways to fix it" \
-  "printf '%s' \"\$eout2\" | grep -q 'set and set to nothing (SLACK_WEBHOOK_URL)' && printf '%s' \"\$eout2\" | grep -q 'delete the line entirely'"
+  "said \"\$eout2\" 'set and set to nothing (SLACK_WEBHOOK_URL)' && said \"\$eout2\" 'delete the line entirely'"
 
 ejson="$($BARE node "$CLI/src/index.js" env "$AGENTS" --json 2>&1)"
 check "--json is JSON, with a row per name and a row per seat" \
@@ -492,36 +492,36 @@ FIX="$CLI/test/fixtures/envfile/box.env"
 fout2="$($BARE node "$CLI/src/index.js" env --file "$FIX" 2>&1)"; f2rc=$?
 check "env --file refuses a file whose lines two readers disagree about (exit 1)" "[ $f2rc -eq 1 ]"
 check "...naming every one of them" \
-  "printf '%s' \"\$fout2\" | grep -q 'PASSWORD_HASH, WITH_SPACE, BACKTICK, SUBST'"
+  "said \"\$fout2\" 'PASSWORD_HASH, WITH_SPACE, BACKTICK, SUBST'"
 check "...and what the shell does to the first, with the line it is on" \
-  "printf '%s' \"\$fout2\" | grep -q 'of PASSWORD_HASH, on line 11, a shell expands it'"
+  "said \"\$fout2\" 'of PASSWORD_HASH, on line 11, a shell expands it'"
 check "...with the fix being the reader the box installs, not a rewrite of the file" \
-  "printf '%s' \"\$fout2\" | grep -q 'load_env_file' && printf '%s' \"\$fout2\" | grep -q 'single-quote'"
+  "said \"\$fout2\" 'load_env_file' && said \"\$fout2\" 'single-quote'"
 check "...a name no reader can hold is named with its line" \
-  "printf '%s' \"\$fout2\" | grep -q 'line 22, \"9BAD\"'"
+  "said \"\$fout2\" 'line 22, \"9BAD\"'"
 check "...a line that is neither comment nor assignment is named, not ignored" \
-  "printf '%s' \"\$fout2\" | grep -q 'neither a comment nor a KEY=value assignment (line 21)'"
+  "said \"\$fout2\" 'neither a comment nor a KEY=value assignment (line 21)'"
 check "...a name set to nothing is told apart from a name that is absent" \
-  "printf '%s' \"\$fout2\" | grep -q 'set and set to nothing (EMPTY)'"
+  "said \"\$fout2\" 'set and set to nothing (EMPTY)'"
 check "...and no value from the file is printed back, which is what makes this pasteable" \
-  "! printf '%s' \"\$fout2\" | grep -qE 'hello world|KIXQe1mJ0rZ8wV|notacomment'"
+  "! said \"\$fout2\" -E 'hello world|KIXQe1mJ0rZ8wV|notacomment'"
 check "...single-quoting is reported as the quoting both readers agree on" \
-  "printf '%s' \"\$fout2\" | grep -q 'SQUOTED.*single-quoted'"
+  "said \"\$fout2\" 'SQUOTED.*single-quoted'"
 
 # A file every reader agrees about: the shape provision-host.sh actually writes.
 printf 'EPITO_PORT=4747\n# a note\nTEMPORAL_ADDRESS=127.0.0.1:7233\n' > "$TMP/clean.env"
 fout3="$($BARE node "$CLI/src/index.js" env --file "$TMP/clean.env" 2>&1)"; f3rc=$?
 check "env --file passes a file both readers read alike (exit 0)" "[ $f3rc -eq 0 ]"
-check "...saying so in one line" "printf '%s' \"\$fout3\" | grep -q 'reads the same whether systemd or a shell reads it'"
+check "...saying so in one line" "said \"\$fout3\" 'reads the same whether systemd or a shell reads it'"
 
 fout4="$($BARE node "$CLI/src/index.js" env --file "$TMP/not-a-file.env" 2>&1)"; f4rc=$?
-check "env --file names a path it cannot read, and the reason" "[ $f4rc -eq 1 ] && printf '%s' \"\$fout4\" | grep -q 'ENOENT'"
+check "env --file names a path it cannot read, and the reason" "[ $f4rc -eq 1 ] && said \"\$fout4\" 'ENOENT'"
 fout5="$($BARE node "$CLI/src/index.js" env --file 2>&1)"; f5rc=$?
 check "env --file with no path says which path it wants" \
-  "[ $f5rc -eq 1 ] && printf '%s' \"\$fout5\" | grep -q 'EnvironmentFile='"
+  "[ $f5rc -eq 1 ] && said \"\$fout5\" 'EnvironmentFile='"
 fout6="$($BARE node "$CLI/src/index.js" env --flie "$FIX" 2>&1)"; f6rc=$?
 check "a near-miss on the flag is refused by name, never ignored" \
-  "[ $f6rc -eq 1 ] && printf '%s' \"\$fout6\" | grep -q 'Did you mean --file'"
+  "[ $f6rc -eq 1 ] && said \"\$fout6\" 'Did you mean --file'"
 fjson="$($BARE node "$CLI/src/index.js" env --file "$FIX" --json 2>&1)"
 check "env --file --json carries the verdicts and no values" \
   "printf '%s' \"\$fjson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); const bad=r.names.filter(n=>n.diverges.length).map(n=>n.name).join(\",\"); process.exit(bad===\"PASSWORD_HASH,WITH_SPACE,BACKTICK,SUBST\" && !JSON.stringify(r).includes(\"hello world\") ? 0 : 1)'"
@@ -536,13 +536,13 @@ step '8. would a run of THIS roster start on this box? (epito doctor)'
 # facts under test are that every seat is reported, that a missing NAME is not
 # a refusal, and that nothing is written.
 dout="$($BARE node "$CLI/src/index.js" doctor "$AGENTS" 2>&1)"; drc=$?
-check "epito doctor reads the whole roster"            "printf '%s' \"\$dout\" | grep -q '$nseats seats, checked in the order a run needs them'"
+check "epito doctor reads the whole roster"            "said \"\$dout\" '$nseats seats, checked in the order a run needs them'"
 check "...with a row for each of the five things a run needs" \
-  "printf '%s' \"\$dout\" | grep -q 'manifests' && printf '%s' \"\$dout\" | grep -q 'names' && printf '%s' \"\$dout\" | grep -q 'roads' && printf '%s' \"\$dout\" | grep -q 'executor' && printf '%s' \"\$dout\" | grep -q 'engine'"
-check "...and the manifests of the real roster pass"   "printf '%s' \"\$dout\" | grep -q '✓ manifests'"
-check "...and never a stack, whatever the box lacks"   "! printf '%s' \"\$dout\" | grep -q 'at findManifests\|ERR_MODULE_NOT_FOUND\|node:internal'"
+  "said \"\$dout\" 'manifests' && said \"\$dout\" 'names' && said \"\$dout\" 'roads' && said \"\$dout\" 'executor' && said \"\$dout\" 'engine'"
+check "...and the manifests of the real roster pass"   "said \"\$dout\" '✓ manifests'"
+check "...and never a stack, whatever the box lacks"   "! said \"\$dout\" 'at findManifests\|ERR_MODULE_NOT_FOUND\|node:internal'"
 check "it either says a run would start, or says which piece is missing" \
-  "printf '%s' \"\$dout\" | grep -q 'nothing here would make a run on this box refuse\|a run on this box would refuse'"
+  "said \"\$dout\" 'nothing here would make a run on this box refuse\|a run on this box would refuse'"
 
 djson="$($BARE node "$CLI/src/index.js" doctor "$AGENTS" --json 2>&1)"
 check "--json carries one verdict per seat and a refusals list" \
@@ -567,10 +567,10 @@ check "...and on a bare box that answer is nobody, for every one of them" \
 check "...which is a report, not a reason a run would refuse" \
   "printf '%s' \"\$djson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); process.exit(r.refusals.some(x=>/identity|mint/.test(x.says)) ? 1 : 0)'"
 check "...and no seat's identity row carries a key, only which App" \
-  "! printf '%s' \"\$djson\" | grep -q 'PRIVATE KEY'"
+  "! said \"\$djson\" 'PRIVATE KEY'"
 # The same reader, from `epito env`: the names no manifest declares.
 check "epito env carries the identity block for this roster too" \
-  "printf '%s' \"\$eout\" | grep -q 'the names no manifest declares'"
+  "said \"\$eout\" 'the names no manifest declares'"
 
 
 step "rule 1: nothing personal in the roster"
