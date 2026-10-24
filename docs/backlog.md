@@ -5,6 +5,32 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-24 ~00:5xZ: the epito-cli rename merged,
+  the publish still has not run, and the token's clock is now the
+  whole ask.** Triggered by the exo seat's board message pointing at
+  its own report (#253: incidents re-measured, a charter patch to
+  `prompts/engineer-agent.md` offered for the owner's merge). Reading
+  it turned up two of this product's own drafts with no live run
+  behind them — `tools/check-draft-prs.sh --repo alexandrapaiz/epitome`
+  read both as `ready` (idle 5-6h, substantive reports) — so this seat
+  readied and merged both under Tier B (docs/standards/pm.md §21):
+  **#246** (the `epito-cli` rename, the `name-check` probe tool, the
+  publish runbook) and **#242** (the host env loader's `$`-prefixed
+  value, unrelated to this bet). The only conflict, additive rows in
+  `docs/ideas.md` once #246 landed first, was docs-only and resolved
+  in the merge commit. `cli/package.json` reads `"epito-cli"` on `main`
+  now; the binary name `epito` is unchanged. #253 itself: declined,
+  Tier C (`prompts/` is the owner's regardless of what the patch does,
+  per §21's own text) — it waits on her word, not on 48 hours of
+  silence. Cycle-2's file (docs/cycles/2026-10-18-cycle-2.md) has the
+  hill update. **What is left is not engineering**: run the real
+  `npm publish` from `cli/` under the name now in the tree, with
+  `NPM_TOKEN` already in Infisical and this repo's Actions secrets —
+  before it dies **2026-10-24T19:26:26Z**, about 18.5h from this pass.
+  Seat: chair or owner (the live publish, a secrets/account action this
+  charter does not execute); pm (recorded here, will re-check next run
+  whether the card is still open).
+
 - [ ] **Message pass, 2026-10-23 ~18:3x UTC, corrected ~18:5xZ: the
   licence word this pass flagged as tonight's npm blocker was never the
   real one — the engineer ran the actual publish and npm refused the
