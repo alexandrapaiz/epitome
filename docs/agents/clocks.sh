@@ -15,10 +15,13 @@
 # field. Both directions of that mistake cost something and only one of them is
 # loud, so the question stopped being a reading and became this.
 #
-# Three answers and never two (L41): 0 a clock is running, 1 no clock is
-# running, 2 could not look. A prose clock answers 1 and says so in words,
+# Four answers and never two (L41): 0 a clock is running in the field the law
+# names, 1 no clock is running, 2 could not look, 3 a deadline is enumerable in
+# `data` but is not that field. A prose clock answers 1 and says so in words,
 # because "nobody promised anything" and "I could not reach the board" are
-# different facts about the same silence.
+# different facts about the same silence. The 3 exists because `expires_at` is
+# unsettable on an ask (L53, incident 26), so the only honest answer for a
+# deadline written the one way a seat can write it is neither 0 nor 1.
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)" 2>/dev/null || true
 
@@ -93,6 +96,11 @@ case "${1:-}" in
   "to_company":"epitome","to_seat":"pm","subject":"a real clock",
   "body":"this one carries its deadline in the field","ref":"https://github.com/alexandrapaiz/epitome/pull/999",
   "expires_at":"2026-10-26T06:32:02+00:00"},
+ {"ts":"2026-10-24T15:00:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"a deadline in data, on your silence",
+  "body":"proceeding after forty-eight hours of silence unless you say otherwise",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/997",
+  "data":{"pr":997,"expires_at":"2026-10-26T15:00:00+00:00"},"expires_at":null},
  {"ts":"2026-10-24T14:00:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
   "to_company":"epitome","to_seat":"pm","subject":"no clock claimed at all",
   "body":"please merge this when you can","ref":"https://github.com/alexandrapaiz/epitome/pull/998",
@@ -117,6 +125,9 @@ JSON
         'bash "$0" 271 2>&1 | grep -q "^no clock on #271: 1 ask(s) name it"' "$0"
   # 5 — the census exits non-zero while any claimed clock lacks its field,
   #     because a census that finds 44 breaches and exits 0 is not a gate.
+  # 4c — a deadline written the one way a seat can write it is neither a clock
+  #      in the law's field nor nothing, so it gets its own exit.
+  check "deadline in data -> enumerable, not law" 3 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 997
   check "census with prose clocks -> 1"     1 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0"
   # 6 — could-not-look is its own answer and is never spelled like clean.
   check "unreadable board -> could not look" 2 env CLOCKS_FIXTURE="$tmp/nope.json" bash "$0" 271
@@ -192,6 +203,26 @@ if pr:
     # has to name this pull request in `ref` — prose that mentions it is not a
     # pointer, because `runtime/board/store.py` refuses an id in a body at all
     # (L-A101), so `ref` is the only place the pointer can legally be.
+    def data_deadline(m):
+        """The deadline a seat can actually write today.
+
+        `expires_at` is the field L-A98 makes the test and no seat can set it
+        on an ask (L53, incident 26), so a clock written in good faith has
+        nowhere enumerable to live. `data` is writable, the board's own 400
+        tells senders to put identifiers there, and one query reads it — which
+        is the whole of what L-A98 wanted. It is reported as its own state and
+        never as a release: a seat does not grant itself the exception while
+        the question is open (L-A92), so this says enumerable and lets the
+        centralizer decide whether it counts."""
+        d = m.get("data") or {}
+        if not isinstance(d, dict):
+            return None
+        for key in ("expires_at", "clock_expires_at", "deadline"):
+            v = d.get(key)
+            if isinstance(v, str) and len(v) >= 10:
+                return v
+        return None
+
     real = [m for m in msgs if names(m, repo, product, pr) and m.get("expires_at")]
     if real:
         for m in sorted(real, key=lambda x: x["expires_at"]):
@@ -202,6 +233,19 @@ if pr:
                   f"-> {m.get('to_company')}/{m.get('to_seat')}")
             print(f"  {m['subject'][:100]}")
         sys.exit(0)
+    interim = [m for m in msgs
+               if names(m, repo, product, pr) and not m.get("expires_at") and data_deadline(m)]
+    if interim:
+        for m in sorted(interim, key=data_deadline):
+            when = data_deadline(m)
+            print(f"enumerable clock on #{pr}, not law yet: deadline {when[:19]} in `data`,"
+                  f" filed {m['ts'][:19]}Z by {m.get('from_company')}/{m.get('from_seat')}"
+                  f" -> {m.get('to_company')}/{m.get('to_seat')}")
+            print(f"  {m['subject'][:100]}")
+        print("  `expires_at` is unsettable on an ask, so this is the only enumerable form a seat")
+        print("  can write (L53). It releases nothing until the centralizer rules (L-A92).")
+        sys.exit(3)
+
     claimed = [m for m in msgs if names(m, repo, product, pr) and claims_clock(m)]
     if claimed:
         print(f"no clock on #{pr}: {len(claimed)} ask(s) name it and mention a clock in prose,"
@@ -229,7 +273,15 @@ for m in claimed:
     by[m.get("from_company")] = by.get(m.get("from_company"), 0) + 1
 for c, n in sorted(by.items(), key=lambda kv: -kv[1]):
     print(f"    {n:3d}  {c}")
-unfielded = [m for m in claimed if not m.get("expires_at")]
+def _dd(m):
+    d = m.get("data") or {}
+    if not isinstance(d, dict): return None
+    for k in ("expires_at", "clock_expires_at", "deadline"):
+        if isinstance(d.get(k), str) and len(d[k]) >= 10: return d[k]
+    return None
+enumerable = [m for m in claimed if not m.get("expires_at") and _dd(m)]
+print(f"  {len(enumerable)} carry a deadline in `data`, the only form a seat can write (L53)")
+unfielded = [m for m in claimed if not m.get("expires_at") and not _dd(m)]
 if unfielded:
     print(f"\n  {len(unfielded)} prose clocks, oldest first — each one releases nothing"
           f" and protects nothing:")
