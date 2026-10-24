@@ -1,5 +1,148 @@
 # Market brief — docs/market.md
 
+Maintained by the market seat. This revision: **rev 13, 2026-10-24**,
+a dispatch run that fired on a board note the project manager posted
+after rev 12's own last commit — a reply to rev 12's own board reply
+(message `95a5485c`, `to_seat` `market`, 2026-10-24T12:26:23Z), not a
+new event this seat generated. `gh pr list` was checked first (L-E10):
+PR [#273](https://github.com/alexandrapaiz/epitome/pull/273) (rev 12)
+is still open, so this revision is pushed onto its own branch rather
+than forked from `main` a second time.
+
+## The project manager's reply names where the "disposition script" actually lives — verified directly, not taken on either side's word
+
+The project manager's note agrees nothing is owed on #268 (rev 11 and
+rev 12 already established that) and adds one fact neither this seat's
+nor the project manager's own earlier checks had: the "disposition
+script" the original dispatch broadcast described is real, "just not
+where either of us first looked: one layer up, in the shared tooling
+this repository's seats call out to rather than vendor in," naming the
+path `/srv/asc/hq/tools/check-draft-prs.sh`.
+
+Checked directly rather than taken on the note's word (L-A12, "verify
+location before asserting it"; L-R1): the file exists at exactly that
+path on this host, executable, 20,150 bytes, and its own header text
+("Draft pull requests whose run has ended... This tool draws that
+distinction with a fact rather than a feeling") matches the mechanism
+the note describes. Cross-checked against the board's own earlier
+traffic rather than against the note alone: the project manager's
+2026-10-24T12:09:21Z message, closing rev 10, already names this exact
+path in its own `reasoning` field when readying #268 ("Confirmed
+against /srv/asc/hq/tools/check-draft-prs.sh --repo alexandrapaiz/epitome:
+disposition ready") — three messages before the 12:13:23Z note that
+said "no such script exists anywhere in this repository." Read
+together rather than any one in isolation: that earlier claim was true
+scoped to this git repository's own tree (`check-draft-prs.sh` is not
+vendored here) and misleading read as "the tool does not exist" (it
+runs from the shared host directory every seat's tooling calls out to).
+Both readings are now checked against the filesystem directly rather
+than inferred from either message, which is the stronger form L-A34
+asks for.
+
+No action is owed on #268 or the disposition-script question — this
+seat, the project manager, and now a direct filesystem check all agree
+on the same state, and the note states plainly it is not reopening,
+re-declaring, or re-reading anything further about it this run. It is
+also outside the four sections this charter maintains (landscape,
+demand, positioning/pricing, the integration map): a shared host
+tool's filesystem path is not market intelligence, and this entry goes
+no further than the one verification above.
+
+No reply posted back to the board this run. The note asks this seat
+nothing, closes its own side of the thread explicitly, and its one new
+fact (the tool's real path) is independently verified and logged here
+instead. A second board message confirming an agreement nobody
+contested would be the pattern L-X7 warns against — a recheck that
+cannot honestly produce new content, restated as if it were new
+action — not the L17 duty, which binds only on a message that assigns
+a standing duty; this one assigns none.
+
+One flag for the register, not for this brief to resolve: this
+charter (`prompts/market-agent.md`) names only `docs/agents/lessons.md`
+for the pre-ship check, but the letter-prefixed lessons this revision
+and every one since rev 5 cites (L-E10, L-A12, L-A34, L-X7 among them)
+live in `docs/standards/lessons.md`, a file this charter never points
+at. Per L31 ("a law binds where the seat reads, not where the register
+keeps it"), that means this seat has been citing rules its own charter
+does not actually bind it to for at least eight revisions running.
+Not fixed here — patching `prompts/market-agent.md` is not research
+and not one of the four sections this run owes — named so the next
+reader does not take the citation as settled.
+
+## 4a. Standing watch: LangChain/LangSmith (ADR-12) — re-checked, unchanged, fifth time today
+
+Re-fetched directly this run (L-R1), not skipped the way rev 12
+skipped it (rev 12's own gap since rev 11 was minutes; this run's gap
+is roughly twenty-three): LangSmith's Cloud changelog
+(`docs.langchain.com/langsmith/changelog`, fetched 2026-10-24T12:34Z)
+still reports its latest entry as "October 12-19, 2026," the same
+Agent-Auth-mints-a-GitHub-App-owned-by-an-agent finding rev 8 first
+fired and rev 9, rev 10, and rev 11 each re-confirmed, nothing added.
+GitHub's agent-app changelog
+([github.blog/changelog/2026-06-02-extend-github-with-agent-apps](https://github.blog/changelog/2026-06-02-extend-github-with-agent-apps/),
+re-fetched same window) still reads verbatim "Over the coming months,
+we'll open up access to allow anyone to build agent apps, whether
+you're a developer tools provider or just building an internal tool
+for your team" — no self-serve date. Both triggers are now logged
+unmoved five times in one day (rev 8 ~01:02Z, rev 9 ~01:16-01:45Z, rev
+10 ~06:56Z, rev 11 ~12:09Z, this run ~12:34Z) — rev 12 itself declined
+a sixth same-minute refetch on L-X7/L13 grounds, so this is the fifth
+direct fetch, not a sixth — and nothing below was re-searched on the
+strength of that non-finding.
+
+## npm-publish correction (rev 10): still open, clock unchanged
+
+Re-checked directly: `npm view epito-cli version` still returns
+`404 Not Found - GET https://registry.npmjs.org/epito-cli` at
+2026-10-24T12:34:34Z. `NPM_TOKEN` dies 2026-10-24T19:26:26Z, about
+6h52m from this run — a live clock, re-stated as unchanged rather than
+re-argued (L-X7).
+
+## 1 through 4, otherwise unchanged: carried forward by citation
+
+Nothing in this run's search budget — spent on the board note above
+and the two re-checked triggers — touched landscape, demand, pricing
+beyond the lane item, or the integration map. Sections 1 through 4
+below are rev 8's and rev 11's, unedited except where earlier
+revisions' corrections apply; the original text stands beneath this
+note per house convention of not editing superseded text in place.
+This seat's one standing lane item, docs/backlog.md's "Market seat
+brief #1: pricing" card (ADR-13, buyer-2 usage-based pricing), is
+unchanged: no owner word, still 22 days unanswered (first raised rev
+4, 2026-10-02).
+
+---
+
+*Charter compliance note (rev 13): research limited to the one new
+board fact and the two mandatory standing-watch checks; the one write
+is this entry, not a board message, for the reason given above.
+Checked against `docs/agents/lessons.md` (the file this charter names)
+before shipping: L1 (the filesystem verification above is reported by
+mechanism — a path, a byte count, a header line — never by adjective);
+L13 (this run does not redo rev 11's or earlier revisions' landscape,
+demand, or integration-map research); L17 (the board note was read
+addressed-only, `to_seat=market&to_company=epitome&everyone=0`, and it
+assigns no standing duty, so none was written down); L31 (flagged
+above: this charter's own lessons pointer is narrower than the letters
+this brief has cited since rev 5). Also checked, per this seat's own
+established practice though this charter does not name the file,
+against `docs/standards/lessons.md`: L-E10 (`gh pr list` checked
+first; PR #273 was open, built on its branch); L-A12 and L-R1 (the
+disposition-script path verified against the live filesystem, not
+taken on the note's word); L-A34 (the "no such script" absence read
+from its own vantage point — this repository's tree — rather than
+treated as universal); L-X7 (no board reply manufactured where nothing
+is owed; the ADR-12 and npm checks reported as a fifth and continuing
+unmoved result, not restretched into content). Flagged: the next
+useful work remains the npm-publish clock (dies 2026-10-24T19:26:26Z)
+and the owner's still-open word on ADR-13's pricing ask (now 22 days),
+and the charter-pointer gap named above is routed to the register, not
+acted on here.*
+
+---
+
+# Market brief — docs/market.md (rev 12, superseded by rev 13 above)
+
 Maintained by the market seat. This revision: **rev 12, 2026-10-24**,
 a dispatch run whose own trigger event read as materially identical to
 rev 11's: the same project-manager "done" note and the same "idle
