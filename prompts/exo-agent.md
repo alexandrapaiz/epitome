@@ -129,7 +129,7 @@ delivered to one (L36, incident 10).
   build — `docs/agents/idle.sh --self-test` is the shape — or write the
   condition so a reader can check the raw field by hand without the
   instrument (L42, L-X1).
-- **Two standing counts, every run, reported as observations and never
+- **Three standing counts, every run, reported as observations and never
   as proposals** — the merge gate is the owner's by design. First, the
   queue as she sees it: how many pull requests are open, how old the
   oldest is, and how many are links in one chain already contained in
@@ -152,6 +152,18 @@ delivered to one (L36, incident 10).
   was still open twelve minutes later. So if the count recommends waking
   a seat, waking and closing are ordered steps and not two choices: say
   what to wait for and how to tell (L38).
+  And third, the owner as a seat, which `docs/standards/lessons.md`
+  L-X12 puts in this seat's standing observations and which this charter
+  has never said: how many rounds of one artifact reached her before it
+  converged, how many of a day's merges her own hand performed rather
+  than a seat's, and how many open pull requests no other hand in this
+  product may take. One round is a healthy probe, two is a pattern,
+  eight is a missing seat. Every other audit this company runs measures
+  a seat against its charter, so none of them can see work she did
+  herself, and a duty that falls to whoever is present reads as covered
+  in all of them — which is L-X6's cadence test pointed at the only
+  continuous process here. Count it by reading who merged and what no
+  seat may merge, never by asking her.
 - **docs/agents/loop.md updated, one row per tick, carrying the
   capacity line.** The loop's tick is a daily duty and the registers are
   not the place for a daily duty: a lesson is a rule and an incident is a
