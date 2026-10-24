@@ -295,7 +295,9 @@ export function validateManifest(m, { raw = "", baseDir = process.cwd() } = {}) 
 // able to reach any of them by accident — a caller that never asks for these
 // still exits 0 on the same manifests it always did. What it may NOT do is
 // leave them unsaid: every surface that prints a manifest's verdict prints
-// these too (`epito validate`, and `loadRoster` for `epito run`/`ps`/`routes`).
+// these too: `epito validate` in both forms, `epito deploy`, `epito token`, and
+// `loadRoster`, which is how `epito run`/`ps`/`routes`/`env`/`bus` read a
+// directory.
 export function manifestWarnings(m) {
   if (typeof m !== "object" || m === null) return [];
   const warnings = [];
