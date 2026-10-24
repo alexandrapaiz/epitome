@@ -160,9 +160,16 @@ export EPITO_STUB_DIR="$TMP/stub"
 # no engine is one where `epito run` refuses — which is the right answer and
 # not a test failure. The suite asks once and says so.
 ENGINE_ADDR="${TEMPORAL_ADDRESS:-127.0.0.1:7233}"
-engine_up() {
-  node -e 'const n=require("net"),a=process.argv[1],i=a.lastIndexOf(":"),s=n.connect({host:a.slice(0,i),port:Number(a.slice(i+1))});s.setTimeout(500);s.on("connect",()=>{s.end();process.exit(0)});s.on("timeout",()=>process.exit(1));s.on("error",()=>process.exit(1));' "$ENGINE_ADDR"
+# Does anything accept a connection at host:port. Asked of the box's engine
+# here, and of the stand-in listener this suite starts itself in section 5 --
+# which waited at a fixed `sleep 1` instead until a box at load 18 showed what
+# that guess is worth.
+answers() {
+  node -e 'const n=require("net"),a=process.argv[1],i=a.lastIndexOf(":"),s=n.connect({host:a.slice(0,i),port:Number(a.slice(i+1))});s.setTimeout(500);s.on("connect",()=>{s.end();process.exit(0)});s.on("timeout",()=>process.exit(1));s.on("error",()=>process.exit(1));' "$1"
 }
+engine_up() { answers "$ENGINE_ADDR"; }
+# And waits up to 12s for one to come up, for the listeners that are ours.
+answering() { for _ in $(seq 1 60); do answers "$1" && return 0; sleep 0.2; done; return 1; }
 HAVE_ENGINE=0
 if engine_up; then HAVE_ENGINE=1; fi
 
@@ -297,7 +304,13 @@ if node -e 'import("@temporalio/client").then(()=>process.exit(0),()=>process.ex
   # what tells them apart, and it only exists when the client is installed.
   node -e 'require("net").createServer(()=>{}).listen(17997,"127.0.0.1",()=>{setTimeout(()=>process.exit(0),30000)})' &
   FAKE=$!
-  sleep 1
+  # Wait for the port, do not sleep at it. A fixed second is a guess about how
+  # long node takes to bind, and on a busy box it is the wrong guess: doctor
+  # then finds nothing listening and says "nothing answered at
+  # 127.0.0.1:17997", which is the one sentence the two gates below exist to
+  # rule out -- so they would fail over this suite's own timing and say so in
+  # epito's voice.
+  answering 127.0.0.1:17997 || bad "the stand-in listener for section 5 never bound to 127.0.0.1:17997 -- the four gates below are about epito and this is not"
   TEMPORAL_ADDRESS=127.0.0.1:17997 run "$R"
   check "a port that answers and is not Temporal exits 1"   "[ $rc -eq 1 ]"
   check "in the daemon's own sentence"                      "said 'no Temporal server answering at 127.0.0.1:17997'"
