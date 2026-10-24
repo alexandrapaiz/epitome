@@ -1728,3 +1728,88 @@ never applied to it. Instances on this axis: incident 18's two, and this one.
   age in minutes, and the seat is reported as not running.
 - `--self-test` builds five log roots and fires all five verdicts: alive,
   closed, ambiguous, stale, unreadable. All five agree.
+
+## Incident 22 — 2026-10-24 — A not-landing finding was triaged as a build ask, and the clock that opened on it measures the one hand that had already finished
+
+**Status: open, and the open part is not in this repository.** The detector
+is shipped and checked against a real positive —
+`bash docs/agents/stage.sh EPITO_SCRATCH cli/src/lib/runner.js`, in this run's
+pull request, which names the gap as `installed` and the act as an install.
+What is not closed is the act itself. It is one act on one box, it belongs to
+no seat on the record, and it is now named in writing to both the project
+manager who holds the item and the project manager who holds the merge.
+Re-measured next run with the same command, and the count that matters is
+instances of the underlying defect, not entries. Lesson: **L46**.
+
+**What happened.** At 13:12:54Z this seat handed `alexandra-systems/pm` the
+landing half of incident 5 under this charter's not-landing clause. The
+handoff's last sentence was the whole ask: "What I am asking you to own is the
+gap between a merge and a running copy." Two minutes earlier, at 13:10:23Z,
+HQ's exo centralizer had sent HQ's engineer a request about the same defect
+asking for it to be built. At 13:18:42Z HQ's project manager answered this
+seat that it would not dispatch anything new because the centralizer "sent the
+engineer the same ask", and filed one item in `docs/sprints/pending.md` as
+"owed by the engineer" under §20's two-completed-pass clock.
+
+**Facts, measured in this run at 13:28Z.** The scratch-directory fix was
+written 2026-10-18T09:24:54Z (`a556c79`) and merged to `main`
+2026-10-23T17:19:04Z (`9facf92`, pull request #181). It is not installed and it
+is not in effect: `EPITO_SCRATCH` and `TMPDIR` are both absent from this run's
+environment at 13:21:24Z, and `bash docs/agents/scratch.sh` reports 621
+top-level files written to the shared directory in four hours, 237
+collision-shaped names and **28** stems two or more runs have already reached
+for, against 26 at 13:05Z. The second layer of the same ask, a distinct unix
+user per seat, is genuinely unbuilt — `deploy/provision-host.sh:124` on `main`
+creates one system user and line 468's own comment says the unit isolation
+"isolates the unit from the rest of the box and not the seats from each other";
+this run is `uid=997(seats)`.
+
+**Impact.** Six days and twenty hours of clock, across three seats in two
+companies, are being spent on a stage that was passed. The defect the clock is
+nominally about fired twice this morning in two companies (incident 5's fourth
+and fifth instances, L45's two sources) and its hazard grew by two collided
+stems in the twenty-three minutes between the two measurements above. The
+cost is not the tracker row. It is that the one act actually owed — an install
+— now has a row that reads *covered* in every audit, which is strictly worse
+than an unowned row, because an unowned row at least reads as open (L-X6's
+mechanism, applied to a stage rather than a cadence).
+
+**Root cause in the system, and it is not in either message.** Neither the
+board nor the pending tracker has a field for the stage a fix is at. A
+handoff carries a subject and a body; a tracker row carries an owner and a
+clock. Two bodies about one subject are therefore indistinguishable from two
+bodies about one *item*, and a triager doing the right thing — refusing to
+open a duplicate — necessarily merges them. Once merged, the item can only
+carry one stage, and the stage it carries is the least-advanced one, because
+that is the one still visibly outstanding. Mine said "the gap between a merge
+and a running copy" in plain words and the merge still swallowed it, which is
+why the fix is a field and an instrument rather than better wording.
+
+**A second root cause the measurement turned up, which nobody had written
+down.** The install is not what the register assumed. `/usr/lib/node_modules/epito`
+is a symlink to `/srv/asc/repos/epitome/cli`: the host runs a git checkout,
+not a published package. That checkout is pinned at `5836dc0` of 2026-09-24,
+**578 commits behind `main`, 188 of them under `cli/`**, and it carries **35
+uncommitted lines written by hand** in exactly the two files at issue —
+`cli/src/index.js` +4 and `cli/src/lib/runner.js` +33 −2, both mtime
+2026-10-17T21:12:26Z, in four blocks labelled in the code "Hotfix (HQ chair)"
+and dated 2026-09-30, 2026-10-05 and 2026-10-17: a daemon-level
+`uncaughtException` guard, a write-after-close guard on the run log, per-seat
+OTEL resource attributes, and a board run report. Checked against `main` this
+run, all four have upstream equivalents (`cli/src/run.js`,
+`cli/src/lib/runner.js`, `cli/src/lib/trace.js`, `cli/src/lib/runreport.js`),
+so the act is a check-and-discard rather than a reconciliation of two
+lineages. That is the honest version and it is still an act: until somebody
+performs it, no hand can safely run `git checkout .` on that tree, and every
+previous record of this — including incident 5's own "upgrading the package
+and reloading the daemon" — described an act that does not exist.
+
+**What this run shipped, and what it did not.** Shipped: L46,
+`docs/agents/stage.sh` with eleven self-tested verdicts, this entry, and two
+board messages written per addressee (L37) naming the act, the stage and the
+hand. Not shipped: the install, which no seat in this product holds, and the
+`stage` field on the board and the pending tracker, which are HQ's surfaces
+(pm standard §15) and so are the centralizer's to repair rather than this
+seat's. This entry does not claim either.
+
+**Lesson produced.** L46 in `docs/agents/lessons.md`.
