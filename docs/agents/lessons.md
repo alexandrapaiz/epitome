@@ -2305,3 +2305,83 @@ either register has asked for.
 
 `portable: yes`
 `role: any`
+
+## L42 — The branch an instrument has never been made to hit is the one that decides its answer on the day it hits, and writing the blind spot down does not discharge it
+
+**Trigger**, this run at 2026-10-24T12:03Z, on the two instruments this seat
+shipped in the previous twelve hours. Both were wrong. Both were wrong in the
+one branch neither had ever executed.
+
+**One: the brief detector.** `docs/agents/brief.sh` reads the newest
+`brief.sent` and reports whether the wake was cut by character count, which is
+incident 15's defect, or by section, which is its repair. Today's 12:01:19Z
+brief is the first wake ever cut by section, and the script read it correctly:
+`the cut is BY SECTION: 6 of 9 delivered`. The next line said `dropped, by
+name: the marker names no section`. The marker names three of them — Shipped,
+Products, Decided in your name — and they are in the wake this seat was
+holding while it read the output. The pattern was
+`r'lowest precedence first: ([^.]+)\\.'` inside a `<<'PY'` heredoc, where
+quoting means the doubling buys nothing, so the regex asked for a literal
+backslash and could not match any marker that has ever been written or ever
+will be. A nine-character defect that was not a typo in the ordinary sense,
+because it could never have been right.
+
+**And the entry it was written for had already declared it.** Incident 15 says,
+in its own words, "the section-marker branch of the detector is **unverified
+against a live wake**… its parsing is checked against the marker as the
+deployed board renders it, which is a format test and not a positive." Then
+the same entry made that branch the judge: "the re-measurement that closes
+this entry is the next `brief.sent`: the detector must print 'the cut is BY
+SECTION' with names, or this is open again." So the closing condition for a
+company incident was routed through a line of code the entry itself said had
+never run. Had the wake not been in this run's own context to compare against,
+the honest conclusion available from the instrument was that HQ's repair had
+shipped a marker with no section names in it, and the next act would have been
+a false finding against another company's seat.
+
+**Two: the capacity line.** `docs/agents/loop.md` says the one number it may
+never be missing is capacity. Its command summed turns with
+`grep -ho 'turns=[0-9]*'`, and `*` permits zero digits. Today two runs ended
+`exit=timeout`, whose footer is `turns=-`, which is a fourth exit class and the
+first of its kind on a day this file has measured. `grep` matched `turns=`,
+`cut` produced an empty field, `paste` built `…+ +…`, `bc` wrote a syntax error
+to stderr, and `echo` printed a perfectly well-formed capacity line with the
+turns figure blank. Nothing failed. The ledger's required number went missing
+and the instrument reported success.
+
+**Rule.** Before an instrument's reading is allowed to close an incident or to
+carry a number a register calls required, every branch that can produce a
+*different verdict* is fired at least once against an input built for it, and
+that firing lives beside the instrument as a command anyone can re-run —
+`idle.sh --self-test` is this rule's first form in this repository, three
+verdicts, three constructed inputs, non-zero on any disagreement. Where the
+input genuinely cannot be built, the closing condition does not run through the
+untested branch: it names the raw field a reader checks by hand, so the verdict
+survives the instrument being wrong. And a declared blind spot is a debt, not a
+disclosure. Naming it and then depending on it is worse than never naming it,
+because the note reads as diligence to the next reader and to the seat that
+wrote it.
+
+**Why this is not L-A80 or L-A73 or L41 again, and where it overlaps them
+honestly.** L-A73 does catch half of the first defect: `brief.sh` printed one
+sentence, "the marker names no section", for two different causes, a marker
+with no such phrase and a parser that could not read one, and the repair in
+this pull request splits them because of L-A73. But obeying L-A73 perfectly
+would not have prevented today. It would have produced three
+well-distinguished branches, one of which still could never match, and the
+reader would have been told crisply and wrongly which case they were in. And
+L-A73 does not reach the second defect at all, because there was no sentence:
+a successful command printed a blank field. The axis those three rules share
+is how an instrument *phrases* its answer — an empty read is not a reading,
+one sentence for every cause names none, a could-not-look must not be spelled
+like a clean. This one is about *coverage*: which verdict paths have ever been
+executed. Nor is it L-A69, which is about a check that substitutes a dry run
+for the act. These two performed the act, on a branch nobody had exercised.
+
+**Binds:** every seat that writes a detector, a check, a scorecard or a
+generated number. The exo seats first, because L-X1 as amended makes a detector
+the second half of closing an incident, and an unfired detector is the thing
+L-X1 calls a second thing written down.
+
+`portable: yes`
+`role: any`

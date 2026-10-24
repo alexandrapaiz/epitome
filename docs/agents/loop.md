@@ -46,115 +46,115 @@ real work, and a run that succeeded and wrote a sentence about the outage; on
 is safe to hand back to the sender, so the line carries both numbers apart, and
 the test for "it did nothing" is the footer, not the prose.
 
+The exit field is not always a code. `exit=timeout` is a fourth class, and its
+footer reads `turns=-`, so the first version of this command — `turns=[0-9]*`,
+a pattern that matches zero digits — fed `bc` an empty term the first day a
+timeout existed, and `bc` wrote a syntax error to stderr while `echo` printed a
+well-formed line with the field blank. The one number this file may never be
+missing went missing silently on 2026-10-24, which is L42. So the digits are
+required, the unreadable footers are counted rather than skipped, and the total
+is checked before it is printed.
+
 ```bash
 cd /srv/asc/state/.epito/logs && D=$(date -u +%F)
-# ended non-zero, opened no pull request, never took a second turn
-nothing() { grep -lE '^# exit=[^0].* pr=- .* turns=(-|0|1)$' */$D*.log; }
+# ended non-zero or timed out, opened no pull request, never took a second turn
+nothing() { grep -lE '^# exit=([^0]|timeout).* pr=- .* turns=(-|0|1)$' */$D*.log; }
 said()    { xargs -r grep -lE '"api_error_status":(429|529)|hit your [a-z]+ limit|limit (reached|exceeded)'; }
 refused() { nothing | said; }
+turns=$(grep -ho 'turns=[0-9][0-9]*' */$D*.log | cut -d= -f2 | paste -sd+ | bc)
 echo "runs $(ls */$D*.log | wc -l)" \
-     "turns $(grep -ho 'turns=[0-9]*' */$D*.log | cut -d= -f2 | paste -sd+ | bc)" \
+     "turns ${turns:?empty, and this is the one number this line may not be missing}" \
+     "turns-unreadable $(grep -lE 'turns=[^0-9]' */$D*.log | wc -l)" \
+     "open $(for f in */$D*.log; do grep -q '^# exit=' $f || echo x; done | wc -l)" \
      "refused-before-a-turn $(refused | wc -l)" \
      "seats $(refused | cut -d/ -f1 | sort -u | wc -l)" \
      "refused-mid-run $(($(ls */$D*.log | said | wc -l) - $(refused | wc -l)))"
 ```
+
+And one figure the line never carried, added 2026-10-24 as this week's
+experiment: **dark minutes that fall after the last run a limit touched.** Every
+number above counts what the day's outcomes cost. None counts the capacity the
+company had and did not spend. `bash docs/agents/idle.sh` prints it.
 
 | Date | Runs | Turns | Refused | Dark | Weakest attribute | What it moved |
 |---|---|---|---|---|---|---|
 | 2026-10-18 | 253 | 16,079 | 37 before a turn, 28 mid-run, of 291 | 342 min | Dashboards | **collapsed at the ceiling 2026-10-24.** Verdict: the capacity line earned its place and both its predictions held; incident 8, 12, L18, L26 |
 | 2026-10-19 → 2026-10-22 | 0 | 0 | — | 6,784 min, the whole of four days | not measured: no tick ran | the disk filled on 10-18 and the box ran nothing until 10-23T17:04Z; the brief, the bus and every clock went with it. Four rows this file could not take |
 | 2026-10-23 | 92 | 5,527 | 10 before a turn (6 seats), 6 mid-run | 1,024 min to 17:04Z | Dashboards | **collapsed at the ceiling 2026-10-24.** Verdict: the host came back at 17:04Z after four days seventeen hours; HQ graded the outage; incident 14 |
-| 2026-10-24 (read 00:12Z, 01:00Z, 01:23Z, 01:52Z) | 9 → 30 → 48 → **70** (17 still open) | **4,316** | 0, both classes, all day | longest gap 10m25s (00:34:29→00:44:54Z) | Dashboards | 00:12Z: L34, L35, incident 15, `brief.sh`, the chain fix in `order.sh`, the four engineer charter patches applied (on `main` 00:29:49Z), three ideas to the owner. 01:00Z: L37, L38, incidents 16 and 17, `addressed.sh`, three clauses into this seat's own charter, and this file's ceiling reached and collapsed. 01:23Z: L39 — the detector written at 01:00Z is held forty-eight hours by a clock about three sentences that are not it. 01:52Z: **the brief cut is repaired and deployed** (HQ `413e52c`, 80 minutes from handoff), L40, L41, the two charter defects incident 15 named, and this week's experiment falsified on its first day |
+| 2026-10-24 (read 00:12Z, 01:00Z, 01:23Z, 01:52Z, **12:06Z**) | 9 → 30 → 48 → 70 → **154** (20 open) | **9,898** | 4 before a turn (4 seats), 14 mid-run, all 18 inside 01:31→02:10Z | **494 min of 730 elapsed (68%), 490 of them after the last refusal** | **Autonomy** | 00:12Z: L34, L35, incident 15, `brief.sh`, the chain fix in `order.sh`, the four engineer charter patches applied (on `main` 00:29:49Z), three ideas to the owner. 01:00Z: L37, L38, incidents 16 and 17, `addressed.sh`, three charter clauses, this file collapsed at its ceiling. 01:23Z: L39. 01:52Z: the brief cut repaired and deployed (HQ `413e52c`, 80 minutes), L40, L41, two charter defects patched. **12:06Z: incident 15's brief half closed on a real positive; incident 18 and L42 on the two instruments that were wrong on their first untested branch; `idle.sh`; the capacity line's missing number; #264 readied** |
 
-## Tick of 2026-10-24
+## Tick of 2026-10-24, 12:06Z
 
-**Observe.** The brief fired at 00:07:01Z, and the one before it at
-19:04:14Z. Run logs per day in `/srv/asc/state/.epito/logs`: 446, 0, 0, 0, 0,
-92, then **70 by 01:52Z today for 4,316 turns and no refusal in either
-class** — the host ran nothing at all on 10-19 through 10-22 and nothing on
-10-23 until 17:04Z, four days seventeen hours dark. Portfolio-wide yesterday
-the project-manager seats took 44 of 92 runs and 38.1% of the turns.
+**Observe.** `brief.sent` fired at 12:01:19Z and `bash docs/agents/brief.sh`
+ran before the brief was read, which is this week's experiment, and it paid on
+first use. The cut is **by section for the first time** — 6 of 9 delivered,
+dropping Shipped, Products and Decided in your name, keeping Needs you,
+Capacity, Failures, Money and Board — so HQ's 01:27:15Z deploy works and
+incident 15's brief half closes. The detector could not read the dropped names:
+its pattern was `\\.` for `\.` and could never match anything (incident 18, L42).
 
-The drag is not the outage, which HQ has already measured and graded. It is
-what the outage left behind: `readlink -f $(which epito)` still answers
-`/srv/asc/repos/epitome/cli/src/index.js` at `5836dc0` of **2026-09-23**, and
-`git rev-list --count 5836dc0..origin/main` is **532** at 01:52Z, against 483
-at 00:25Z, 440 last night and 366 on 10-18. Three merged fixes sit behind that
-one gap and the gap is widening faster than this file can report it.
+154 runs for 9,898 turns, 20 open, 18 runs a limit touched, 4 of them before a
+turn, and **all 18 inside the 39 minutes 01:31→02:10Z**. This product took 37
+and 1,692 turns; project-manager seats across four companies took 68 runs and
+3,729 turns, 38.0% of the day against 38.1% yesterday.
 
-**Orient.** Weakest of the ten, third tick running: **dashboards** — with a
-new instance, not a restatement. The brief is the company's one owner-facing
-instrument, HQ shipped "the brief had one reader and she is the owner"
-yesterday, and a third of it does not reach the seats it wakes: the footer
-says so by character count and sends the reader to an inbox that does not hold
-the rest. What it cut, both days, was her open asks, the capacity count and
-the money balance — the whole of the part with an action in it. Incident 15,
-L35, `docs/agents/brief.sh`. Not the runners-up: autonomy and algorithms held
-through a four-day outage and resumed unattended, and experimentation is the
-attribute this file is itself the trial of.
+The drag is not the refusals. It is **494 dark minutes of 730 elapsed, 68% of
+the day, and 490 of them after 02:09:50Z, the last run a limit touched** —
+`bash docs/agents/idle.sh`, written this run. The two long gaps are 250 min
+(02:09→06:20) and 237 min (07:07→11:05), and the first thing to run after the
+longer one was four project-manager seats starting on the same second,
+06:20:00Z. The same signature is on 10-18: 241 min after that day's last
+refusal, gaps broken at 06:20:00Z and 18:20:00Z by the same four seats. Work
+does not resume when the resource returns. It resumes when a twice-daily
+window opens, and the second-order drag is still the runtime gap:
+`readlink -f $(which epito)` is `5836dc0` of 2026-09-23 and
+`git rev-list --count 5836dc0..origin/main` is **550**, against 532 at 01:52Z
+and 366 on 10-18.
 
-**Decide — the week's experiment.** Carry the capacity line forward: it
-earned its keep as the only instrument that priced the outage in this
-product's terms. One addition, because the brief is this loop's input and an
-input this seat cannot verify is not an observation: **every tick runs `bash
-docs/agents/brief.sh` first and the row records whether the brief arrived
-whole.** Prediction, so it can fail: on 2026-10-31 the footer is still
-counting characters, because the repair is HQ's and tonight's handoff is the
-first pass. Repaired sooner, the experiment is wrong and costs nothing.
+**Orient.** The weakest of the ten moves off dashboards for the first time in
+four ticks, and it moves because dashboards was repaired: **Autonomy**. The
+evidence is one sentence — eighteen runs were refused capacity, the capacity
+came back, and nothing in this company noticed. Not one of the eighteen was
+retried; the only mechanism that resumes work is a clock at 06:20Z and 18:20Z,
+and 99% of today's dark time sits behind it. Algorithms is the arguable
+alternative, since what is missing is a rule that reacts to a returning
+resource, and what decides it for autonomy is that no hand was waiting either:
+the work was handed back as L18 requires and then nobody came for it.
 
-**Wrong inside ninety minutes, which is the result worth keeping.** HQ merged
-the section cut at 01:24:32Z and the chair deployed it at 01:27:15Z, eighty
-minutes after the handoff, and the live brief now answers nine named sections
-with *Needs you* last of all to drop. The instrument survives the prediction,
-with one correction earned the same night: the detector could not read the
-wake at 01:41Z, because the events route returns only the newest 200 rows and
-said nothing about it, so a tick that cannot see the brief says BLIND and
-exits non-zero (L41). The next `brief.sent` closes incident 15.
+**Decide — the week's experiment.** The capacity line takes a figure it has
+never carried: **dark minutes after the day's last refusal**, from
+`docs/agents/idle.sh`. Every other number this company keeps counts what the
+day's outcomes cost; this is the first that counts the capacity it had and did
+not spend. Prediction, so it can fail: through 2026-10-31 the figure stays
+above 200 minutes on every tick, and **every gap longer than two hours ends at
+06:20:00Z or 18:20:00Z**. One long gap broken by a retry of a refused run
+falsifies it, and then autonomy was not the drag.
 
-**Act, under the merge rule.** Mine across the night's four runs: six lessons,
-three incidents, three detectors, and the charter patches themselves, each in
-the charter file where her consent has a hand (L27). Not mine: the brief and
-the bus, handed to the centralizer and now fixed; the runtime gap, 532
-commits, which needs a deploy nobody here holds; every merge.
+**Act, under the merge rule.** Mine, in this run's pull request: L42, incident
+18, incident 15's closing status, the two instrument repairs, `idle.sh` with
+its branches fired against built input, and the charter patch L-X1 earns.
+Readying `#264`, which the bus reported orphaned, was this run's first act. Not
+mine, and all three in one handoff to two addressees: the retry and the window
+doing the resuming are HQ's runtime, the 550-commit deploy is nobody's here,
+and every merge is hers or a project manager's.
 
-**Measure — the 2026-10-18 experiment.** Both predictions held. The session limit
-would refuse at least one run again before 2026-10-25: 16 refusals yesterday, 10
-before a turn. The project-manager seats would still spend over thirty percent of
-turns: 38.1%, up from 36.4%. The kill condition did not hold and L34 is why — it
-was denominated in days, spent four of its seven on a host that ran nothing, and
-the only party who cites this file is the seat that writes it.
+**Measure — the experiment declared at 01:52Z.** It made every tick run
+`brief.sh` first and predicted the footer would still be counting characters on
+10-31. **The prediction was wrong inside ninety minutes and the instrument was
+right**: running it first is the only reason this run knew the section cut had
+gone live, that the wake carried six sections and not the seven HQ predicted,
+and that the detector was broken. Keep the instrument, retire the prediction,
+and note what being wrong cost: nothing. The 10-18 experiment's two predictions
+held again today — a limit refused runs (18), and the project-manager seats
+spent over thirty percent of turns (38.0%).
 
-## The three ideas for the owner, 2026-10-24
+## The ideas for the owner
 
-Sent to her on the board under the subject Ideas. Each is one paragraph and
-the smallest test that would prove it wrong.
-
-**One: sell the off-host watcher, built with our own tool.** We just spent
-four days seventeen hours dark on a box carrying the board, the bus, the
-database and every clock, and what eventually noticed was a person looking at
-a disk. Every agent company being built this year has that same box. HQ has
-already derived the threshold — fourteen hours, zero false positives against
-1,365 recorded gaps — and `epito` already mints the identity and the trigger
-such a watcher needs, so this is not a new product, it is the first thing
-`epito` would be used to build in public. Her decision, because it changes
-what the MVP is for. Smallest test: stand one up against our own host on
-somebody else's clock for a week, publish its readings at a public address,
-and count whether one outside operator asks for their own.
-
-**Two: give the brief a declared order, so a cut drops a section. Shipped the
-same night, by HQ, and no longer an idea.** `BRIEF_DROP_ORDER` is live on the
-host as of 01:27:15Z with *Needs you* last of all to drop. Its test stands and
-is now a measurement rather than a proposal: count for a week how many
-Needs-you asks are answered within a day, against the four standing
-unanswered when this was written.
-
-**Three: charge each product for its share of the box.** The disk that filled had
-no owner because it had no price: four companies share one machine, none carries a
-line for it, so no seat had a reason to watch it. A
-monthly shared-services line per product, computed from the roster and the run
-log, makes the scarcity somebody's problem instead of nobody's — this product
-spent 21 of yesterday's 92 runs and would see its own number. Hers because it
-is a ledger that crosses her companies. Smallest test: compute one month for
-all four, put it in the finance register as a real line, and watch whether the first
-product to read its own number asks for anything to move off the box. HQ's own
-centralizer reached the same proposal last night from the other end.
+The week's three went to her at 00:4xZ today and are not re-sent: re-sending an
+unanswered idea adds to her queue and not to her information. One of them,
+giving the brief a declared order, **shipped the same night**, so it is a
+measurement now rather than a proposal — count for a week how many Needs-you
+asks are answered within a day, against the four standing unanswered when it
+was written. The other two stand. No fourth is added, because the one thing
+this tick learned that she would want is a number and not a proposal:
+**this company paid for 730 minutes of capacity today and used 236.**
