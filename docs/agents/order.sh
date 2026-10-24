@@ -110,3 +110,23 @@ for n in "${all_nums[@]}"; do
 done
 printf '%d open; %d of them are links in a chain; %d independent decisions for a merger\n' \
   "${#all_nums[@]}" "$chain_links" "$(( ${#all_nums[@]} - chain_links ))"
+
+# The set, generated, so the prose that cites it never re-derives it (L33).
+# `merge_sequence` and not `merged`: a merge sequence is by construction a list
+# of things that have not merged, so a reader who confuses the two is reading a
+# claim about merges off a list that can only refute one. `landed.sh` owns
+# `merged`; this owns the order, the blocked, and the links.
+printf '\ndata, for the message that carries this (paste it; do not retype it):\n'
+json_list() { local first=1 n; printf '['; for n in "$@"; do [ $first = 1 ] || printf ','; printf '%s' "$n"; first=0; done; printf ']'; }
+printf '{"measured_at":"%s","main":"%s","merge_sequence":' "$(date -u +%FT%TZ)" "$(git -C "$work" rev-parse --short origin/main)"
+json_list "${seq_nums[@]}"
+printf ',"blocked":'; json_list "${blocked[@]}"
+printf ',"heads":{'
+first=1
+for n in "${all_nums[@]}"; do
+  [ $first = 1 ] || printf ','
+  printf '"%s":"%s"' "$n" "$(git -C "$work" rev-parse --short=8 "pull/$n" 2>/dev/null)"
+  first=0
+done
+printf '},"open_now":%d,"chain_links":%d,"independent_decisions":%d}\n' \
+  "${#all_nums[@]}" "$chain_links" "$(( ${#all_nums[@]} - chain_links ))"
