@@ -1,5 +1,154 @@
 # Market brief — docs/market.md
 
+Maintained by the market seat. This revision: **rev 17, 2026-10-24**, a
+dispatch run that fired on rev 16's own pull request merging
+([#296](https://github.com/alexandrapaiz/epitome/pull/296),
+**2026-10-24T21:49:40Z**, confirmed directly with `gh pr view 296`
+rather than taken from the event text — L-A34). `gh pr list` was
+checked first (L-E10): no market pull request is open now, so this
+revision forks from `main` at `534d3ee`, which is rev 16's own merge
+commit — nothing has landed on `main` since, so there is nothing for
+an integration-map or Slack-mechanism re-read to find different from
+rev 16's own look (§4 below).
+
+The board inbox addressed to this seat was read directly
+(`to_seat=market&to_company=epitome&everyone=0&since_hours=24`): the
+newest message addressed to this seat by name is still the project
+manager's 16:47:59Z note about PR #278 — the same stale note rev 15 and
+rev 16 both already read and closed, thirteen minutes before rev 15's
+own trigger merge, five hours before this run. Two newer board entries
+exist in the window (21:35:09Z, 21:38:45Z) but both are broadcast notes
+(`to_seat: null`) confirming the project manager's own merge of this
+seat's rev 16 pull request and an unrelated engineer draft — nothing
+addressed to market, nothing this seat owes a reply to. So, a fifth
+time running, the "next item in my lane" is not a new addressed duty —
+it is this seat's one standing lane card, docs/backlog.md's "Market
+seat brief #1: pricing" (ADR-13, buyer-2 usage-based pricing), open
+since rev 1 (2026-09-18) and unanswered by the owner since rev 4
+(2026-10-02), **still 22 days** as of today (2026-10-24) — unchanged in
+duration because today is the same day every revision since rev 13 has
+reported it, not a re-ask (L-X7).
+
+**Eighteen minutes, not hours, separate this run's own checks
+(~21:5xZ) from rev 16's own (~21:33Z–21:49Z).** This brief has a
+standing precedent for exactly this shape: rev 14 found a ten-minute
+gap since rev 13's own LangSmith/GitHub check "not enough time for
+either vendor's release cadence to move" and logged the recheck without
+stretching it into content (L-X7). Eighteen minutes is the same shape,
+one order of magnitude short of the four-to-four-and-a-half-hour gaps
+that have actually produced new landscape or demand material in this
+brief's history (rev 15, rev 16). So this revision does not re-run
+rev 16's own landscape search, demand search, or pricing fetch: doing
+so now and reporting "unchanged" would be indistinguishable from not
+having checked at all, and doing so and reporting something "new" from
+sources fetched eighteen minutes apart would be the non-finding L-X7
+names, dressed up as research. What follows is the one check this
+brief's own practice treats as cheap enough to run every time
+regardless of gap (§4a), a mechanical confirmation that nothing landed
+on `main` to move the integration map, and the standing card's
+unchanged status — not a redo of §1 through §3.
+
+## 4a. Standing watch: LangChain/LangSmith (ADR-12) — re-checked directly, unmoved eighteen minutes on
+
+Re-fetched directly this run (L-R1), not carried forward on rev 16's
+word: LangSmith's own Cloud changelog
+(`docs.langchain.com/langsmith/changelog`) still reports its latest
+entry as **"October 12-19, 2026"**, the same entry rev 8 through
+rev 16 have all read, carrying the same Agent-Auth-mints-a-GitHub-App
+and `connections.get` installation-token language rev 16 quoted in
+full. GitHub's agent-app changelog
+(`github.blog/changelog/2026-06-02-extend-github-with-agent-apps/`,
+the primary source this brief has tracked since rev 4) was re-fetched
+rather than assumed unchanged and still states verbatim "[o]ver the
+coming months, we'll open up access to allow anyone to build agent
+apps," directing interested parties to a waitlist — no self-serve date,
+no change from every prior check. Both checks are logged per the
+charter's own instruction to log even when nothing moved (L-X7), and
+eighteen minutes is honestly reported as eighteen minutes rather than
+rounded up into a "fresh pass."
+
+Entra and Clerk not re-checked this run: rev 14/15 named Microsoft
+Ignite (Nov 17-20, 2026) as the next point the Entra question can move,
+24 days out, and Clerk was checked fresh in rev 16 with three dated
+entries newer than rev 14's own check — re-checking either again
+eighteen minutes later would be the same non-finding this section just
+named for LangSmith and GitHub.
+
+## npm-publish correction (rev 10 through rev 16): stays closed
+
+Rev 16 closed this clock: the token died, the package was never
+published, and the project manager's own PR #295 caught and routed it
+independently first. Nothing below changes that, and restating it a
+second time with no new information would be exactly the repeated-close
+L-X7 warns against — logged here only to say explicitly that this
+revision carries it closed, not open.
+
+## 4. Integration map — unchanged, and provably so rather than assumed
+
+No commits separate this run's own base (`534d3ee`) from rev 16's own
+last look at `cli/src/lib/slack.js` and `docs/cycles/`: `git log
+534d3ee..HEAD --oneline` is empty, because `534d3ee` is rev 16's own
+merge commit and this revision forks from it directly. A file that has
+not changed does not need re-reading to know its exports have not
+changed either — this is the one section where "nothing moved" is a
+fact about the git graph rather than an inference from a short gap, and
+checking the graph costs one command rather than a full re-read
+(L-A12's own test, satisfied by a cheaper instrument than the one
+rev 4 through rev 16 used, because this run's distance to the last read
+is zero rather than hours). **Standing recommendation unchanged: Slack
+remains integration #2**, gated behind cycle 3's sequencing. No
+re-ranking trigger fired: nothing in this window touches Linear,
+Vercel, Clerk, Supabase/Neon, Stripe, GitHub, or Trigger.dev's own
+standing.
+
+## 1-3. Landscape, demand, positioning and pricing — no fresh pass this run; ADR-13 still unanswered, same day
+
+Explicitly not redone, for the reason given above: eighteen minutes
+since rev 16's own WorkOS/Clerk landscape check, demand search, and
+pricing citation is not enough time for any of the three to have
+genuinely moved, and this brief's own history treats a sub-twenty-minute
+gap as the same shape as rev 14's ten-minute one — logged as a decision
+not to look again, not as an absence of looking. Rev 16's findings
+stand uncontradicted and uncarried-forward-as-new: WorkOS's own
+four-day-old federation post remains this brief's sharpest identity-side
+articulation of the walled-garden gap, the ten-plus-repository demand
+breadth measurement from rev 16 stands, and rev 14's four runtime/trigger
+pricing numbers are still the most recent fetched comparison. **ADR-13's
+buyer-2 usage-based pricing question is unchanged: still unanswered by
+the owner, still 22 days** (first raised rev 1, 2026-09-18;
+recommendation shipped rev 4, 2026-10-02) — same day as rev 16's count,
+not a re-ask.
+
+---
+
+*Charter compliance note (rev 17): this run's own contribution is
+narrower than rev 8 through rev 16's full four-section passes, by
+choice rather than by gap in coverage — checked against
+docs/agents/lessons.md before shipping: L-X7 (the governing lesson this
+revision applies throughout: a check logged as unmoved is compliant, a
+non-finding stretched into invented content is not, and an
+eighteen-minute gap is named as eighteen minutes rather than rounded
+into a "fresh pass" it cannot honestly be); L1 (every claim above is a
+command's output or a quoted sentence — a merge timestamp, a changelog
+quote, a `git log` range — never an adjective); L13/L-E10 (no redo of
+rev 13 through rev 16's own housekeeping; `gh pr list` checked before
+assuming a fork point). Also checked against docs/standards/lessons.md:
+L-R1 (both 4a sources fetched directly this run rather than carried on
+rev 16's word, which is what makes "unmoved" a measurement and not an
+assumption); L-A12 (the integration-map section re-grounded in a
+cheaper, equally valid instrument — a zero-length commit range — rather
+than skipped outright or re-read on faith); L-A34 (the trigger PR's
+merge timestamp checked directly against GitHub rather than taken from
+the event payload's own words, which matched but were not assumed to).
+Flagged: the owner's still-open word on ADR-13, now logged across
+seventeen revisions; Microsoft Ignite (Nov 17-20) still the next point
+the Entra question can move; nothing new on the npm clock, closed once
+in rev 16 and not reopened by this one.*
+
+---
+
+# Market brief — docs/market.md (rev 16, superseded by rev 17 above)
+
 Maintained by the market seat. This revision: **rev 16, 2026-10-24**,
 a dispatch run that fired on rev 15's own pull request merging
 ([#286](https://github.com/alexandrapaiz/epitome/pull/286),
