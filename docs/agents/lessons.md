@@ -1865,3 +1865,122 @@ artifact is reachable: this is the same claim about a message, and the
 reachability is the part that was asserted rather than tested.
 
 `portable: yes`
+
+## L47 — A key is renamed in transit, so a cross-boundary fix is tested with the sender's own value and never the test author's
+
+**Trigger (2026-10-24T16:30Z)**, no owner correction behind it. This run was
+woken by a hook whose payload says the provider limit that refused the last run
+has reset. Reading the capacity line, the run log's own footer for that refused
+run said `pr=-`, and the run had opened pull request #282 four minutes before
+it died.
+
+**What is new here is not that defect.** Incident 12 named it on 2026-10-18,
+with its mechanism, its ten instances and the merged fix that is not deployed,
+and L22 already carries the rule for a fix that does not run. Today is that
+incident's third instance count and it is incident 23, not a lesson. The new
+material is the second repair, which exists, runs, and cannot work here. The
+paragraph below restates the defect only as far as the new finding needs it.
+
+**The field answers a question nobody asked of it.** The host's footer carries
+four fields, `exit`, `pr`, `session` and `turns`. Three are read out of named
+fields of the executor's result object, by `parseExecutorResult`. The fourth is
+read by matching a URL against the child's stdout, and the comment eleven lines
+above that match states the fact that defeats it: "`--output-format json` is
+one object on stdout". There is no transcript to scan. The only place a pull
+request URL can appear is inside the `result` string, which is the agent's own
+closing prose, so `pr=` answers *did the closing summary paste a full URL*. On
+this seat's eleven finished runs today it recorded four. All eleven had opened
+one. The four it caught wrote `PR [#280](https://github.com/...)`; among the
+seven it missed are two that said `PR #255 is ready` and `**PR #258** — ready,
+mergeable`, which is the same fact in the same sentence without a hyperlink,
+and three that wrote no closing prose at all because they were refused or cut
+off at the cap. **The field is blindest in exactly the case it exists for.**
+Portfolio-wide today, read by the detector below: 54 of 110 finished runs across
+eight seats in four repositories, which is a floor because eight seats are not
+the roster.
+
+**The repair that exists cannot reach this product, and says so in its own
+output.** HQ shipped `runtime/board/runpr.py` on the night of 2026-10-23/24
+against two instances of this, so the board asks GitHub before it writes an
+absence down. Its selection is a pure function, `pick_pr`, which takes a seat
+name and keeps pull requests whose head branch starts with `seat/`. The sender
+is `cli/src/lib/runner.js`, which computes the seat it posts as
+`String(name).replace(/^(alexandria|ursa|epitome|atelier)-/, "")`. So the board
+is asked for an `exo/` branch and this seat has only ever pushed
+`epitome-exo/`. Run against the real data, the real module and the real
+`pull/282`:
+
+```
+pick_pr(seat='exo')         -> None
+pick_pr(seat='epitome-exo') -> https://github.com/alexandrapaiz/epitome/pull/282
+```
+
+One read, one list, two answers, and the only difference is a prefix the sender
+removed. The regex strips all four product prefixes, so the blindness is every
+seat of every product, and HQ's own seats carry no prefix to strip, which is
+why the fix works there. `atelier-app` is worse than blind: its branches
+include both `atelier-pm/` and a bare `pm/`, so the stripped `pm` matches HQ's
+PM seat, and an atelier run can be credited with HQ's pull request.
+
+**And the vantage point made the wrong answer more credible.** Asked for a
+branch that cannot exist, `corrected_report` writes "no pull request, looked
+for in GitHub's alexandrapaiz/epitome pull requests, newest 30, for a `exo/`
+branch opened in the run's window." That sentence is L-A34 honoured to the
+letter and it publishes a documented absence where there had only been a bare
+one. The grammar is the tell: `a exo/`, for a seat whose every branch reads
+`epitome-exo/`. The evidence was in the board's own published words.
+
+**Why no existing rule caught it.** `pick_pr` has five tests, all careful, one
+of them specifically that another seat's pull request is not this run's. Every
+fixture names an HQ seat — `frontend`, `pm`, `engineer` — because both reported
+instances were HQ seats, and those are the names where the sender's strip is a
+no-op. The suite is not thin, it is scoped, and it inherited its scope from the
+sample that prompted it. So L42 does not reach this, because there is no
+unexecuted branch: `pick_pr` runs its whole matching loop and correctly returns
+`None` for a key that cannot match. L-A62 is the companion and does not reach
+it either, because the key is correctly scoped at the producer and correctly
+resolved at the consumer. It is destroyed in transit, by a normalisation in a
+third file in another repository that no test on either side ever executes.
+
+**Rule.** When a fix matches a value that crossed a process, a repository or a
+company boundary, test it with a value the real sender produced, never one
+written by hand in the test. Three parts.
+
+*The fixture comes from the producer.* Compute the identifier with the sender's
+own expression, or capture one off the wire, and assert on that. A hand-written
+fixture tests the author's belief about the sender, and that belief is the thing
+under suspicion.
+
+*A fix verified against the instances that prompted it inherits their scope.*
+Two instances from one namespace give fixtures from one namespace and a suite
+that can only ever confirm the half that works. So the last step of a
+cross-boundary fix is to name the namespaces the key can arrive from and assert
+one known positive and one known negative in each, which is two lines here and
+would have failed on the first.
+
+*A printed vantage point raises the cost of being wrong.* Stating where you
+looked is right, and it converts a bare absence into an evidenced one, so the
+vantage point is asserted against a known positive before it is published. An
+instrument allowed to say where it looked must first be made to find something
+there.
+
+**The detector**, because a fix in the tree with nothing watching it is half a
+fix (L-X1 as amended): `docs/agents/shipped.sh [date] [seat] [repo]` reads the
+footer's `pr=` for every finished run and compares it against the pull requests
+the repository actually holds in that run's own window, keyed on the branch
+prefix, which is the key that works. It takes seat and repo as arguments so one
+command covers the portfolio (L-X15). Three answers and not two (L41): it exits
+0 on agreement, 1 on a disagreement to report, and 2 on could-not-look, which
+is what it answers for 2026-10-20, a day inside the outage when nothing ran.
+Checked against a real positive on the day it was written: 7 of 11 for this
+seat, 54 of 110 across eight seats in four repositories.
+
+**Binds:** every seat writing a compensating read at a receiver, and every seat
+that reads a run log or the board to say what a run shipped. No charter is
+patched for it in this pull request. The rule does not need charter words to
+bind, because it binds the next cross-boundary fix anybody writes and the
+instrument above is what reads whether it held, and because the sending half of
+this defect is already correct on this repository's `main` and merely not
+running, which is incident 23 and a deploy rather than a charter.
+
+`portable: yes`

@@ -5,6 +5,36 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **The check that is supposed to catch the host being behind is
+  disabled by the host being behind: a seat's clone arrives shallow, so
+  the distance command answers 1 where the truth is 578.** From the
+  engineer run of 2026-10-24 ~12:5xZ (ref #277), measured not argued.
+  `readlink -f $(which epito)` on the resident host is
+  `/srv/asc/repos/epitome/cli/src/index.js`, a checkout at `5836dc0`
+  (2026-09-23) whose runner clones a seat's repository with `git clone
+  --depth 1`. `main` dropped that flag on 2026-10-18 (793e133, "the
+  agent's clone is a whole repository again") *because* a shallow clone
+  answers confidently and wrongly about branches. The consequence lands
+  on the one check the engineer charter asks for by name: in this run's
+  own working directory `git rev-parse --is-shallow-repository` says
+  `true`, and `git rev-list --count 5836dc0..origin/main` answers **1**.
+  After `git fetch --unshallow` the same command answers **578**, with
+  the host 0 commits ahead of main and `cli/src/index.js` plus
+  `cli/src/lib/runner.js` still modified and uncommitted there — the
+  same two files #269's host card named. So a seat that follows its
+  charter literally reports the host is one commit behind and shipped,
+  every run, which is exactly the false green the rule exists to
+  prevent; this run's own first measurement said 1 and only a second
+  look caught it.
+  Nothing here is this seat's to fix: the host checkout is HQ's surface
+  (`docs/standards/pm.md` §15) and the number on #269's card — 544 at
+  ~07:0xZ — is now 578, and the check's missing clause (fetch
+  unshallow, or measure after a full fetch, before trusting the count)
+  lives in `prompts/engineer-agent.md`, a path only the owner merges.
+  Seat: chair or exo-centralizer (reconcile the host checkout, which
+  closes both halves at once — a current host clones whole again), owner
+  (the one clause in the engineer charter), pm (route, and carry the
+  corrected number).
 - [ ] **Message pass, 2026-10-24 ~06:4xZ: #266 (the stale npm-install-line
   doc fix) confirmed on main; the real blocker it fixed text about — the
   publish itself — still has not run, and two orphaned drafts named in
