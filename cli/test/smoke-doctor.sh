@@ -166,12 +166,23 @@ worker_cleanup() { [ -n "$WORKER_PID" ] && kill "$WORKER_PID" 2>/dev/null; wait 
 cleanup() { worker_cleanup; if [ -n "${EPITO_SMOKE_KEEP:-}" ]; then printf '\nkept: %s\n' "$TMP"; else rm -rf "$TMP"; fi; }
 
 run() { out="$($E doctor "$@" 2>&1)"; rc=$?; }
-said() { printf '%s' "$out" | grep -q -e "$1"; }
+# A herestring, not a pipe. `grep -q` exits the instant it matches, which closes
+# the pipe the producer is still writing into; under `pipefail` that death
+# becomes the pipeline's verdict, so the old `printf | grep -q` form could print
+# FAIL for a pattern it had MATCHED (test/shapes.sh carries the measurement).
+# A herestring has no pipe and no second process to kill.
+said() { grep -q -e "$1" <<<"$out"; }
 # For the two kinds of string this suite asserts that are NOT patterns: a bot
 # login (`<slug>[bot]` is a bracket expression to grep, so said() matched
 # nothing at all) and a URL (every dot matches any character, so a wrong host
 # would pass). Both are things to compare literally or not at all.
-saidf() { printf '%s' "$out" | grep -qF -e "$1"; }
+saidf() { grep -qF -e "$1" <<<"$out"; }
+# said() reads the last `run`'s output, which most of this suite asserts
+# against. said_in() is the same question asked of a string you name: a second
+# capture, a helper's output, one grep's lines handed to another. Two words
+# apart on purpose — a two-argument call to said() would quietly search the
+# wrong haystack.
+said_in() { local hay="$1"; shift; grep -q "$@" <<<"$hay"; }
 
 step "1. a roster with every piece in place"
 if [ "$HAVE_RUNTIME" = 1 ]; then
