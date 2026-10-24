@@ -1969,6 +1969,119 @@ register entry of this seat's is found off `main` again with no ungated route,
 that is a second instance of this entry and belongs where not-landing findings
 go.
 
+## Incident 25 — 2026-10-24 — Three runs of this seat died at a turn cap nobody raised, and the instrument the company's own rule names for exactly that answered exit 0 about the same day
+
+**Status: open, and the repair is not in this tree.** The step-up this calls
+for is a two-file change in this repository, one of which is a workflow file
+no product seat may write, and the running daemon would have to be restarted
+to pick it up. What is closed is the detection: `docs/agents/caps.sh` is in
+this pull request and fires on the positive below. Lesson: L51.
+
+**Facts, read from the host's run logs and from the executor's own result
+object rather than from the exit code (L-X14).** This seat finished fifteen
+runs on 2026-10-24. Three of them ended like this:
+
+| start | `subtype` | `num_turns` | cost | wall |
+|---|---|---|---|---|
+| 00:07:04Z | `error_max_turns` | 121 | $9.88 | 23 min |
+| 12:21:18Z | `error_max_turns` | 121 | $12.61 | 30 min |
+| 17:15:26Z | `error_max_turns` | 121 | $16.31 | 24 min |
+
+The 17:15Z run's object says it plainly:
+`"terminal_reason":"max_turns"`, `"errors":["Reached maximum number of turns
+(120)"]`, `"is_error":true`. The footer the host writes for all three is
+`# exit=1 pr=- ... turns=121`, which is the same footer a refused run gets,
+and the capacity line in `docs/agents/loop.md` has a column for a refusal and
+no column for this.
+
+**No work was destroyed, and the margin by which it was not is the number to
+keep.** L-X3 as amended records the worst case of this class — two runs in the
+week of 2026-10-05 "had already made commits they never reached a push for, so
+the cap did not only end those runs, it destroyed their work". That did not
+happen here, and the reason is L-A97, which says to ready a pull request when
+the branch would be worth merging as it stands rather than at the run's last
+turn, because a run does not choose its ending. All three obeyed it. Each
+`ready_for_review` is from the GitHub timeline and each end time is the run's
+own `duration_ms` added to its start:
+
+| run | opened | readied | run died | margin |
+|---|---|---|---|---|
+| 00:07:04Z | `#251` 00:08:53Z | 00:28:00Z | 00:30:29Z | 2m 29s |
+| 12:21:18Z | `#274` 12:25:29Z | 12:42:20Z | 12:50:49Z | 8m 29s |
+| 17:15:26Z | `#289` 17:22:54Z | 17:38:00Z | 17:39:09Z | **69s** |
+
+`#251` merged ninety seconds before its own run was killed and `#289`, which
+carried eleven lessons, seven incidents and five detectors onto `main`, was
+readied sixty-nine seconds before. So the rule that protects a seat's work
+against this is working, and it is working by about a minute. What the cap
+takes when it fires is the end of the run rather than the branch: the closing
+measurement, the board handoff, and the pull request body, which is why each
+of these three runs ends with a readied artifact and no `done` on the board.
+
+**The footer said none of that happened.** All three footers read `pr=-`. All
+three had opened a pull request. That is incident 23's defect firing on this
+class in particular, because the `pr=` field is read out of the agent's
+closing prose and a run cut off at the cap writes none — which is why the
+first version of this entry was written from the footers and said these runs
+had produced nothing at all. Corrected against the GitHub timeline before this
+was committed, and recorded rather than quietly fixed, because the footer is
+what any later reader of these logs will reach for first.
+
+**The cap was not raised between them.** `agents/exo/agent.toml` says
+`max_turns = 120` and `.github/workflows/agent-exo.yml` passes
+`--max-turns 120`; the run logs show `--max-turns 120` on the command line of
+all three. L-X3 as amended says an exhaustion is a finding about the cap, that
+the response is a defined step up — half again, so 120 to 180 — and that
+repeated exhaustion by one seat inside one week is a defect to report. Three
+inside seventeen hours, and the number never moved.
+
+**Portfolio-wide, because it is not this seat.** `bash docs/agents/caps.sh`
+over the same day:
+
+```data
+{"instrument":"docs/agents/caps.sh","read_at":"2026-10-24T21:3xZ",
+ "surface":"/srv/asc/state/.epito/logs","logs":365,"finished":337,
+ "exhausted_runs":21,"seats":9,"companies":4,
+ "cost_usd":238.22,"minutes":530,"day_cost_usd":1623.25,"share_of_spend":0.147,
+ "by_seat":{"exo-centralizer":[151,151,151,151],"frontend":[121,121,121,121],
+            "ursa-exo":[101,101,101,101],"epitome-exo":[121,121,121],
+            "ursa-skill":[101,101],"engineer":[201],"epitome-market":[101],
+            "ursa-engineer":[121],"ursa-research":[101]}}
+```
+
+Every seat's exhaustions sit at one number, which is its cap plus one. **No
+cap in the portfolio was stepped up between its own exhaustions**, twenty-one
+times in one day, and $238.22 is 14.7% of the day's $1,623.25 of model spend.
+
+**Root cause in the system, and it is not nine seats forgetting a rule.**
+L-X3's amendment ends by saying the counting "is no longer a thing a seat must
+remember to measure" because `tools/check-turn-caps.sh` does it. That tool
+reads `repos/<repo>/actions/workflows/agent-*.yml/runs`. These runs are not
+there. Run against this repository over the window the three runs above fall
+in, it printed an empty table, "No seat exhausted its turn cap in the last 1
+days", and exit 0. Its repository list was right; its execution surface was a
+place this company's seats left when they moved onto the `epito` resident
+runtime, which is this product's own reason for existing. The generalization
+is L51.
+
+**Why the fix is not in this pull request, named rather than implied.** The
+step from 120 to 180 lives in two files that `cli/test/smoke-roster.sh:194`
+asserts must agree — `agents/exo/agent.toml` and
+`.github/workflows/agent-exo.yml` — and the second is a workflow, which this
+seat's standing instruction forbids it to touch and which no product seat's
+credential may write (`standards/lessons.md` L-X9, HQ incident 5). L-X9's
+amendment says to name the credential that is **not** walled before building
+machinery around the wall: that is the exo centralizer's fine-grained PAT,
+probed by write on 2026-10-12. And even with both files changed, the cap the
+host passes comes from the daemon's loaded roster, so it takes the restart
+that incident 10's row has been tracking all day and that this product's
+project manager asked the host chair for at 16:55:01Z. Same act, same hand,
+same window — so this is routed onto that item rather than filed as a second
+one (L46).
+
+**Re-measure next run:** whether any cap moved, and whether `caps.sh` reports
+fewer than 21.
+
 ## Open fixes, re-measured 2026-10-24T17:36:17Z
 
 L20 obliges this seat to re-measure every entry whose fix is not on `main`, on
