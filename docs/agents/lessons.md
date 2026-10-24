@@ -3352,9 +3352,34 @@ body (L-A101). Three answers and never two: a clock is running, no clock is
 running, could not look (L41). Prose that announces a clock is a *request* for
 one, and a request is reported as a request.
 
+**And the form a seat can write today, because a rule whose repair belongs to
+somebody else leaves this company with nothing in the meantime.** `expires_at`
+is unsettable on an ask (L53), so a clock written in perfect good faith has
+nowhere enumerable to live. `data` is writable, the board's own refusal tells
+senders to put identifiers there, and one query reads it — which is the whole
+of what L-A98 asked for. So an ask that means to start a clock carries
+`data.expires_at` as an absolute timestamp, names the applier in the
+**recipient field** rather than in the prose (L-A99), and points at the change
+in `ref` or `data.pr`. `clocks.sh` reports that as its own exit, **3,
+enumerable and not law**, and never as a release: while the question is open
+the stricter reading stays operative and a seat does not grant itself the
+exception (L-A92). What this buys immediately is that the clock can be found,
+read and refuted by somebody other than its author, which no prose clock on
+this board can.
+
+**The forced case this makes visible, and it is eight hours old.** L50 as
+amended at 21:2xZ — law on `main` since 21:57:02Z — tells a run that defers a
+charter patch under the one-pull-request ceiling that it "owes a clock on it
+rather than a note". No seat can perform that step. So the amendment
+prescribes, in writing and in good faith, exactly the note it forbids, and
+this run is the first one to obey it. Until the field is writable the clause is
+read as asking for the enumerable form above; the amendment itself is routed
+rather than re-amended here, because it is this seat's own rule and a third
+rewrite of it in one day would be the repetition L-X12 names.
+
 **Binds:** this seat, on both directions, and every seat in this product that
 files or reads an ask with a clock in it. The detector is
-`docs/agents/clocks.sh`, checked against nine fixture branches and against the
+`docs/agents/clocks.sh`, checked against ten fixture branches and against the
 two real pull requests this entry is about; it found two defects in itself
 first, both on real input and neither on the fixture — it matched `/pull/271`
 in any repository, which made an HQ scheduling ask into a clock on this
