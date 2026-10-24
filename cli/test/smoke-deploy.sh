@@ -86,17 +86,17 @@ p = sys.argv[1]
 s = open(p).read().replace('[runtime]\n', '[runtime]\nrepo = "acme/roster"\n')
 open(p, "w").write(s)
 PY
-check "the fixture manifest validates" "(cd '$WORK' && $E validate) | grep -q '✓ acme-bot is an agent'"
+check "the fixture manifest validates" "cap=\$(cd '$WORK' && $E validate) && said \"\$cap\" '✓ acme-bot is an agent'"
 
 step "1. --dry-run: what it would create, without a browser and without a network"
 DRY="$(cd "$WORK" && EPITO_GITHUB_API="http://127.0.0.1:1" $E deploy --dry-run 2>&1)"; rc=$?
 printf '%s\n' "$DRY" | sed 's/^/     | /'
 check "dry run exits 0 with nothing listening anywhere" "[ $rc = 0 ]"
-check "it names the App it would create (name + owner, GitHub's 34-char cap)" "printf '%s' \"\$DRY\" | grep -q 'App name:    acme-bot-acme'"
-check "the permissions come from the scopes, not from a form" "printf '%s' \"\$DRY\" | grep -q 'permissions: contents:write, pull_requests:write'"
-check "it says where the key would land, and that it would be 0600" "printf '%s' \"\$DRY\" | grep -q '.epito/keys/acme-bot.pem (0600)'"
-check "it prints the exact manifest it would hand GitHub" "printf '%s' \"\$DRY\" | grep -q '\"default_permissions\"'"
-check "an App with no principal yet says so" "printf '%s' \"\$DRY\" | grep -q 'no principal for \"acme-bot\" on this machine yet'"
+check "it names the App it would create (name + owner, GitHub's 34-char cap)" "said \"\$DRY\" 'App name:    acme-bot-acme'"
+check "the permissions come from the scopes, not from a form" "said \"\$DRY\" 'permissions: contents:write, pull_requests:write'"
+check "it says where the key would land, and that it would be 0600" "said \"\$DRY\" '.epito/keys/acme-bot.pem (0600)'"
+check "it prints the exact manifest it would hand GitHub" "said \"\$DRY\" '\"default_permissions\"'"
+check "an App with no principal yet says so" "said \"\$DRY\" 'no principal for \"acme-bot\" on this machine yet'"
 check "and it wrote no key" "[ ! -e '$WORK/.epito/keys/acme-bot.pem' ]"
 
 step "2. the refusals that happen before a human is sent to a browser"
@@ -105,26 +105,26 @@ sed 's/"github:pull_requests"/"github:packages"/' "$ROOT/agent.toml.good" > "$WO
 OUT="$(cd "$WORK" && $E deploy 2>&1)"; rc=$?
 printf '%s\n' "$OUT" | sed 's/^/     | /'
 check "a scope with no mapping refuses, exit 1" "[ $rc = 1 ]"
-check "  and names the scope, the mapped set, and the fix" "printf '%s' \"\$OUT\" | grep -q '\"github:packages\"' && printf '%s' \"\$OUT\" | grep -q 'Fix: remove the scope'"
+check "  and names the scope, the mapped set, and the fix" "said \"\$OUT\" '\"github:packages\"' && said \"\$OUT\" 'Fix: remove the scope'"
 
 sed '/^model = /d' "$ROOT/agent.toml.good" > "$WORK/agent.toml"
 OUT="$(cd "$WORK" && $E deploy 2>&1)"; rc=$?
 check "a manifest that does not validate deploys nothing, exit 1" "[ $rc = 1 ]"
-check "  and says why a broken manifest cannot make a principal" "printf '%s' \"\$OUT\" | grep -q 'an invalid manifest deploys nothing'"
+check "  and says why a broken manifest cannot make a principal" "said \"\$OUT\" 'an invalid manifest deploys nothing'"
 
 sed '/^repo = /d' "$ROOT/agent.toml.good" > "$WORK/agent.toml"
 OUT="$(cd "$WORK" && $E deploy 2>&1)"; rc=$?
-check "no [runtime].repo refuses: an App is installed on a repository" "[ $rc = 1 ] && printf '%s' \"\$OUT\" | grep -q '\\[runtime\\].repo is required to deploy'"
+check "no [runtime].repo refuses: an App is installed on a repository" "[ $rc = 1 ] && said \"\$OUT\" '\\[runtime\\].repo is required to deploy'"
 
 cp "$ROOT/agent.toml.good" "$WORK/agent.toml"
 mkdir -p "$ALT/one" "$ALT/two"
 sed 's/^name = "acme-bot"/name = "one"/' "$ROOT/agent.toml.good" > "$ALT/one/agent.toml"
 sed 's/^name = "acme-bot"/name = "two"/' "$ROOT/agent.toml.good" > "$ALT/two/agent.toml"
 OUT="$(cd "$WORK" && $E deploy "" "$ALT" 2>&1)"; rc=$?
-check "two manifests and no name refuses rather than guessing" "[ $rc = 1 ] && printf '%s' \"\$OUT\" | grep -q 'one manifest, one principal'"
-check "  and names both, and the command that disambiguates" "printf '%s' \"\$OUT\" | grep -q 'one, two' && printf '%s' \"\$OUT\" | grep -q 'epito deploy <name>'"
+check "two manifests and no name refuses rather than guessing" "[ $rc = 1 ] && said \"\$OUT\" 'one manifest, one principal'"
+check "  and names both, and the command that disambiguates" "said \"\$OUT\" 'one, two' && said \"\$OUT\" 'epito deploy <name>'"
 OUT="$(cd "$WORK" && $E deploy nobody "$ALT" 2>&1)"; rc=$?
-check "a name that is in no manifest refuses and reads out the roster" "[ $rc = 1 ] && printf '%s' \"\$OUT\" | grep -q 'the roster there is: one, two'"
+check "a name that is in no manifest refuses and reads out the roster" "[ $rc = 1 ] && said \"\$OUT\" 'the roster there is: one, two'"
 
 step "3. the create path: one page, one callback, two files"
 start_stub "not-installed"
@@ -180,8 +180,8 @@ start_stub "ok"   # the human has now installed it, so the lookup answers
 OUT="$(cd "$WORK" && EPITO_GITHUB_API="http://127.0.0.1:$GH_PORT" $E deploy 2>&1)"; rc=$?
 printf '%s\n' "$OUT" | sed 's/^/     | /'
 check "the second deploy exits 0" "[ $rc = 0 ]"
-check "  and says plainly that it is updating, not creating" "printf '%s' \"\$OUT\" | grep -q 'it does not create a second'"
-check "  it never opened a listener or asked for a browser" "! printf '%s' \"\$OUT\" | grep -q 'click Create'"
+check "  and says plainly that it is updating, not creating" "said \"\$OUT\" 'it does not create a second'"
+check "  it never opened a listener or asked for a browser" "! said \"\$OUT\" 'click Create'"
 check "  exactly ONE App was ever converted, across both deploys" "[ \"\$(grep -c 'conversions' '$GH_LOG')\" = 1 ]"
 check "  still one principal on this machine" "[ \"\$(node -e 'console.log(JSON.parse(require(\"fs\").readFileSync(\"$WORK/.epito/principals.json\")).principals.length)')\" = 1 ]"
 check "  and it now records the installation, against the repo it is for" "grep -q '\"installationId\": \"4242\"' '$WORK/.epito/principals.json' && grep -q '\"repo\": \"acme/roster\"' '$WORK/.epito/principals.json'"
@@ -205,28 +205,28 @@ step "7. \`epito audit\`: the ledger those two commands just wrote, read back"
 LEDGER="$(cd "$WORK" && $E audit 2>&1)"; rc=$?
 printf '%s\n' "$LEDGER" | sed 's/^/     | /'
 check "it reads the real ledger, exit 0" "[ $rc = 0 ]"
-check "  the seat has a row" "printf '%s' \"\$LEDGER\" | grep -q '^acme-bot'"
-check "  2 deploys and 1 mint, counted" "printf '%s' \"\$LEDGER\" | grep -qE '^acme-bot +1 +2 '"
-check "  the App id deploy created" "printf '%s' \"\$LEDGER\" | grep -q '707070'"
-check "  the repo the manifest named" "printf '%s' \"\$LEDGER\" | grep -q 'acme/roster'"
-check "  what the token was actually allowed to do" "printf '%s' \"\$LEDGER\" | grep -q 'contents:write, pull_requests:write'"
-check "  the mint sentence says until when" "printf '%s' \"\$LEDGER\" | grep -qE 'mint .*installation 4242, expires [0-9]{2}:[0-9]{2}Z'"
-check "  and the deploy that was not a second App" "printf '%s' \"\$LEDGER\" | grep -q 'recorded App 707070'"
+check "  the seat has a row" "said \"\$LEDGER\" '^acme-bot'"
+check "  2 deploys and 1 mint, counted" "said \"\$LEDGER\" -E '^acme-bot +1 +2 '"
+check "  the App id deploy created" "said \"\$LEDGER\" '707070'"
+check "  the repo the manifest named" "said \"\$LEDGER\" 'acme/roster'"
+check "  what the token was actually allowed to do" "said \"\$LEDGER\" 'contents:write, pull_requests:write'"
+check "  the mint sentence says until when" "said \"\$LEDGER\" -E 'mint .*installation 4242, expires [0-9]{2}:[0-9]{2}Z'"
+check "  and the deploy that was not a second App" "said \"\$LEDGER\" 'recorded App 707070'"
 # The assertion this command exists to be trusted on. The mint above returned a
 # real (stub) token on stdout one step ago; the ledger it wrote must not contain
 # it, and the reader must not print it. If this ever fails, `epito audit` is a
 # credential leak with columns.
-check "NO TOKEN in the ledger's output — not the one just minted" "! printf '%s' \"\$LEDGER\" | grep -q '$STUB_TOKEN'"
-check "  nor any private key material" "! printf '%s' \"\$LEDGER\" | grep -qi 'PRIVATE KEY'"
+check "NO TOKEN in the ledger's output — not the one just minted" "! said \"\$LEDGER\" '$STUB_TOKEN'"
+check "  nor any private key material" "! said \"\$LEDGER\" -i 'PRIVATE KEY'"
 check "  and the file itself never held the token either" "! grep -q '$STUB_TOKEN' '$WORK/.epito/audit.jsonl'"
 
 check "--action mint shows the mint and says what it left out" \
-  "(cd '$WORK' && $E audit --action mint) | grep -qE '1 of [0-9]+ lines'"
+  "cap=\$(cd '$WORK' && $E audit --action mint) && said \"\$cap\" -E '1 of [0-9]+ lines'"
 check "--action deploy counts both deploys" \
   "[ \"\$(cd '$WORK' && $E audit --action deploy --limit 0 | grep -c 'App 707070')\" = 2 ]"
 check "--agent on a seat that is not in the ledger says so, exit 0" \
-  "(cd '$WORK' && $E audit --agent nobody) | grep -q 'none of them this'"
-check "--since 1h still has today's lines" "(cd '$WORK' && $E audit --since 1h) | grep -q 'acme-bot'"
+  "cap=\$(cd '$WORK' && $E audit --agent nobody) && said \"\$cap\" 'none of them this'"
+check "--since 1h still has today's lines" "cap=\$(cd '$WORK' && $E audit --since 1h) && said \"\$cap\" 'acme-bot'"
 check "--since 1970-01-01 has all of them" \
   "[ \"\$(cd '$WORK' && $E audit --since 1970-01-01 --limit 0 --json | node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>console.log(JSON.parse(s).matched))')\" = \"\$(grep -c . '$WORK/.epito/audit.jsonl')\" ]"
 check "--json is machine-readable and names the path it read" \
@@ -239,18 +239,18 @@ printf '%s\n' '{"ts":"2026-10-02T23:59:00.000Z","agent":"acme-bot","action":"quo
 printf '%s\n' '{"ts":"2026-10-02T23:59:01.000Z","agent":"acme-bot","action":"trunca' >> "$WORK/.epito/audit.jsonl"
 FUTURE="$(cd "$WORK" && $E audit 2>&1)"
 check "an action this epito never heard of still prints, with its fields" \
-  "printf '%s' \"\$FUTURE\" | grep -q 'quota.exhausted  window=5h'"
+  "said \"\$FUTURE\" 'quota.exhausted  window=5h'"
 check "a half-written line is counted, not fatal and not silent" \
-  "printf '%s' \"\$FUTURE\" | grep -q '1 line in .epito/audit.jsonl could not be read as JSON and was skipped'"
+  "said \"\$FUTURE\" '1 line in .epito/audit.jsonl could not be read as JSON and was skipped'"
 
 check "a misspelled option is refused, not dropped" \
-  "(cd '$WORK' && $E audit --agnet acme-bot 2>&1; [ \$? = 1 ]) | grep -q 'Did you mean --agent'"
+  "cap=\$(cd '$WORK' && $E audit --agnet acme-bot 2>&1; [ \$? = 1 ]) && said \"\$cap\" 'Did you mean --agent'"
 check "an action nothing ever writes is refused with the list" \
-  "(cd '$WORK' && $E audit --action mintt 2>&1; [ \$? = 1 ]) | grep -q 'nothing in the ledger is a \"mintt\"'"
+  "cap=\$(cd '$WORK' && $E audit --action mintt 2>&1; [ \$? = 1 ]) && said \"\$cap\" 'nothing in the ledger is a \"mintt\"'"
 check "a --since it cannot parse is refused with the forms" \
-  "(cd '$WORK' && $E audit --since yesterday 2>&1; [ \$? = 1 ]) | grep -q 'It takes a window'"
+  "cap=\$(cd '$WORK' && $E audit --since yesterday 2>&1; [ \$? = 1 ]) && said \"\$cap\" 'It takes a window'"
 check "no ledger in this directory is not an error — it says where one is written" \
-  "(cd '$ALT' && $E audit) | grep -q 'it is written where the work happens'"
+  "cap=\$(cd '$ALT' && $E audit) && said \"\$cap\" 'it is written where the work happens'"
 
 printf '\nsmoke: %d ok, %d failed\n' "$pass" "$fail"
 [ "$fail" = 0 ] || exit 1
