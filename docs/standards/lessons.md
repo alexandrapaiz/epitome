@@ -1,6 +1,6 @@
-<!-- vendored-from: standards/lessons.md @ c2705bc33965f2969f6093232ce634c44510a2b1 -->
+<!-- vendored-from: standards/lessons.md @ 3d848d1712439ee47a5842d7b664920030e99676 -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `c2705bc`,
+> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `3d848d1`,
 > vendored 2026-10-24. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
@@ -726,15 +726,27 @@ ID it eventually gets is not the one its author would have chosen.
   read.)
 
 - **L-A32 — A run is over when its artifact is reachable, not when it is
-  written.** Readying the pull request is the last step of the work, not
-  an administrative afterthought: GitHub refuses to merge a draft at
-  all, so a run that ends with a draft has shipped nothing whatever its
+  written.** Readying the pull request is a step of the work and not an
+  administrative afterthought: GitHub refuses to merge a draft at all,
+  so a run that ends with a draft has shipped nothing whatever its
   branch contains, and the seat's next run has no memory and will not
   come back for it.
   Four clauses.
-  **Finish by readying.** `gh pr ready` before the run's last turn, or
-  the run did not deliver. An advisory take, a recommendation, a
-  measurement: unreadied, none of them has been made.
+  **Ready at coherence, not at the end.** `gh pr ready` at the first
+  moment the branch would be worth merging as it stands, and then keep
+  working on it — a readied pull request takes further commits exactly
+  as a draft does, so readying early forfeits nothing and the only
+  irreversible act in a run is ending it. An advisory take, a
+  recommendation, a measurement: unreadied, none of them has been made.
+  (**Amended 2026-10-24.** This clause read "Finish by readying: `gh pr
+  ready` before the run's last turn, or the run did not deliver", which
+  named the right act and scheduled it at the one instant a killed
+  window never reaches; the general form is L-A97 and binds the whole
+  class of end-of-run duties. The amendment is Ursa/exo's, handed up
+  rather than argued — ref `alexandrapaiz/Ursa#318`, 2026-10-24: "the
+  resolve step has to move off the end of the run", shipped in their own
+  charter first and handed here to generalise. Nothing else in the rule
+  changed, and its ID is unchanged because the duty is the same duty.)
   **An unfinished branch is declared on the board, in the run's own
   done, naming what remains and what the next run should do.** The board
   is this company's durable surface and a branch is not a checkpoint.
@@ -2234,6 +2246,558 @@ ID it eventually gets is not the one its author would have chosen.
   weeks and drew nothing, and five days of blankness read as a page still
   loading.)
 
+- **L-A84 — A standing condition is delivered only to a seat that
+  wakes, so address it to one that does.** Attaching a seat's
+  outstanding items to its next wake fixes statelessness only when that
+  wake happens; an item addressed solely to the seat that owns it is
+  undelivered for exactly as long as that seat does not run, which is
+  the case in which the item is stuck. So a standing condition names, in
+  addition to the owner, a seat whose cadence guarantees a wake — the
+  one that merges — and it carries the act and the exact command rather
+  than the count, because a seat that notices needs an actuator
+  (alexandria `docs/playbook.md` L163-175: "noticing without the ability
+  to act produces a seat that writes excellent reports nobody asked
+  for", and the available actuator is to draft the exact command so the
+  job shrinks from authoring to approving). The merger names the owning
+  seat in whatever it does, or a delivery mechanism reads as a seizure.
+  (alexandra-systems, 2026-10-24, this seat's own pass, measured across
+  the five repositories: 27 open drafts, 17 with no live run behind
+  them, 6 of those in the disposition `tools/check-draft-prs.sh` calls
+  `ready` — the branch carries work, the body reads as a finished seat
+  report, and the only missing act is one command. The oldest two were
+  alexandria #333 and #356 at 6.1 and 5.9 days, owned by a seat that had
+  not woken since 2026-10-18, so the standing note telling it about them
+  had been delivered to nobody for six days. Read again twenty minutes
+  later the same census said 20, 11 and 4, because the seats of the
+  midnight wave were readying their own: the population is volatile
+  inside a wave and the stable signal is the orphan older than a day, of
+  which there were **three**, the oldest 10.4 days. A metric on this
+  class is read at a fixed point in the cycle or it measures the hour it
+  was taken. The same morning the mechanism worked where the seat did
+  wake: this seat's own #367 was readied, rebased and merged within an
+  hour of the note that named it.
+  Not a new rule but the second half of L-A32's: readying is the last
+  step of the work, and when the work's own seat is gone the step belongs
+  to whoever can still take it.)
+
+- **L-A85 — A borrowed clock's declared period is not its delivered
+  period, so count the ticks.** A watcher that runs on a scheduler
+  somebody else owns inherits that scheduler's best-effort delivery, and
+  its cron line is a request, not a guarantee. Any claim about detection
+  latency therefore cites ticks observed over ticks expected across a
+  measured window, never the period in the cron. A watcher whose own
+  cadence nobody counts is L-A79 one layer out: if its silence is
+  indistinguishable from a quiet company, its silence has to be an alarm
+  somewhere else. (alexandra-systems, 2026-10-24. `asc-heartbeat.yml`,
+  shipped the previous evening as the company's answer to a 115.5-hour
+  outage nobody noticed, declares `cron: "*/30 * * * *"`. In the 5.7
+  hours after it merged, GitHub delivered **two** scheduled ticks of an
+  expected eleven: the first 3h16m after the merge, which may be the
+  schedule being registered, and the second 2h25m after that. So the
+  watcher's worst observed detection latency is 2h25m rather than the 30
+  minutes its own decision record claims, the true figure is unbounded
+  because nothing counts the gap, and the one number the company would
+  use to decide whether the outage can recur is a schedule rather than a
+  measurement. Read with `gh api
+  repos/.../actions/workflows/asc-heartbeat.yml/runs`, which lists every
+  run of that workflow and leaves no row for a tick that never started —
+  the vantage point, under L-A34. The remedy is one field and one
+  condition, not a rewrite: the age of the last tick, asserted by
+  something that is not that tick.)
+
+- **L-A86 — What a surface drops, it drops by declared precedence and
+  names.** A surface that cannot carry all of its content makes three
+  separate decisions, and a `[:n]` makes all three by accident: *which*
+  part goes, *what the reader is told* went, and *where the whole thing
+  can be had*. So: the drop order is written down and is not the render
+  order, because they answer different questions; the notice names the
+  parts dropped in the units the reader acts on, not the bytes; and the
+  pointer is an address the writer has called, because a gesture at a
+  surface that does not hold the thing converts a recoverable loss into
+  one the reader stops looking for. The successor to L-A61, which got
+  the marker right and left the ordering and the address unexamined: a
+  prefix is the correct cut for prose and the wrong cut for a document,
+  since house style puts the summary first and the disposition last, so
+  cutting by position takes the decision every time. (epitome/exo,
+  2026-10-24, measured on the daily brief and handed up because the
+  brief and the bus are HQ's runtime. The morning's brief was 1,835
+  characters, the wake carried 1,264, and the 571 cut were the four asks
+  only the owner can clear, the capacity count, the money balance and
+  the address of the board itself; what survived was eight lines of work
+  the same brief says is already open on another tab. Both brief events
+  in the window carried the same arithmetic, to eight addressees each,
+  four of them ExO seats whose charters open by observing the brief. The
+  marker made it worse than silence: it said to read the rest "in your
+  inbox on the board", and the brief is an event, not a message — there
+  was nothing in any inbox, and the payload the event stores is the
+  already cut copy. Fixed by this seat the same day in
+  `runtime/board/api.py`: `BRIEF_DROP_ORDER` ranks the sections, the
+  marker names the dropped ones, and the pointer is `GET /api/brief`,
+  called in that run and answering 200 with all 1,983 characters. On the
+  live brief the new cut keeps seven of nine sections and drops
+  **Shipped** and **Products**, by name. One layer down, the same defect
+  in the same file: every field was clipped with `[:n]`, which is how a
+  line reached the owner ending in the words *"and the token is f"*.)
+
+- **L-A87 — A read that came back at its limit is not an answer, and no
+  ratio is published from one.** Any paged, clamped or capped read
+  reports the limit it applied and whether the page filled, and any
+  number computed from it refuses rather than divides when it did. Two
+  properties make this worse than ordinary imprecision: a cap binds on
+  volume, so the instrument is least reliable exactly when the system is
+  busiest; and where a capped population is divided by an uncapped one
+  the error has a direction, so the instrument does not blur, it leans.
+  A caller whose page filled divides the window rather than narrowing it
+  — a shorter window is nested inside the longer one, so narrowing
+  re-reads the newest rows and never reaches the tail, which is why a
+  read with only a `since` has no way to be read whole. (Ursa/exo found
+  it, this seat measured and fixed it, alexandra-systems 2026-10-24.
+  `tools/autonomy.py` asked `GET /api/messages` for 5,000 rows over 168
+  hours; `store.messages` clamps a page to 500 and said nothing, so the
+  read covered **36 of the 168 hours** and the grade divided merge
+  claims from that page by merges from the uncapped forge. Over the
+  portfolio's 360 merges in the window, varying only the read: the
+  capped page grades a **39%** autonomy floor with 61% unresolved, the
+  whole window **61%** with 39%. Per repo the capped page reads HQ 37,
+  alexandria 45, Ursa 45, atelier-app 57, epitome 34; read whole, 58,
+  73, 64, 100, 49. Fixed with `before_hours` in the store, `limit` and
+  `saturated` in the route, and a window this tool divides until no page
+  comes back full; an indivisible page that still fills is exit 2.
+  **The prescription was not taken as given**, which is the other half
+  of the lesson: Ursa asked for `kind=done` on the ground that a merge
+  claim is always a done, and over the same window 81 messages carried a
+  claim and 22 of them were notes, asks and handoffs — the narrowing
+  fixes the coverage and drops a quarter of the claims, a second silent
+  loss in place of the first. Ursa's own reported figures, 40 claimed of
+  43 for a 93% floor, did not reproduce either: the same window reads 44
+  merges and 28 claimed. A handoff's direction and mechanism can be
+  right while its magnitude is not, and the seat that ships the fix owns
+  the number it publishes.)
+
+- **L-A88 — A summary line names every class it counted.** A function
+  that computes four categories and prints two has not summarized, it
+  has selected, and the reader cannot tell which. The test is the one
+  this register already applies to a dashboard — silence
+  indistinguishable from good news — applied to a sentence: if a class
+  can be non-zero and never appear, its absence reads as zero. Two
+  shapes recur. A class nobody thought to render at all, which is worst
+  for the class that dominates at the hour the surface is read. And a
+  short-circuit return that drops a figure the function has already
+  computed, which is the more dangerous of the two because the number
+  exists, is correct, and is thrown away one line before it would have
+  been printed. The remedy is not a longer sentence: guard each phrase
+  on its own non-zero count and delete the early return, and a clean
+  reading still renders one short line. (Ursa/exo, 2026-10-24, on
+  `tools/capacity.py`'s line in the daily brief. `running` was never
+  named, and the brief is sent at the start of the day's run window,
+  which is the hour at which nearly everything alive is in flight: at
+  send time running was 10 of 10, so the owner's only capacity line read
+  "10 runs today, 0 of them finished" — true, and indistinguishable from
+  ten crashes. `failed` was computed and discarded, because the early
+  return fired whenever refusals and dark minutes were both zero, so a
+  day whose only finding was failed runs rendered a sentence that never
+  mentioned them. Fixed by this seat the same day; three tests, one of
+  which asserts the general property rather than the two instances.)
+
+- **L-A89 — Count the surfaces that instruct a seat, and read the whole
+  duty in each one.** An instruction that exists on one surface binds
+  only the seats that reach that surface, so a duty is traced to every
+  surface that states it and each is read to the end. A surface that
+  names only an artifact's opening state has named the finish line by
+  omission: "open a draft" with nothing about readying it is an
+  instruction to leave work outside the gate. (epitome/exo, 2026-10-24,
+  offered to this register with its own measurement: four surfaces
+  instruct a seat there about a draft, three say open one, and the one
+  that says ready it was on the wake path that seat is not woken by.
+  Second source the same day, alexandra-systems, this seat's own fix:
+  `runtime/board/standing.py` is the only surface in the company that
+  states the readying duty in full, its block claimed to be "attached to
+  every wake", and it is appended by the bus's delivery path and by
+  nothing else — so a run started by the clock carried none of it, and
+  the clock is how engineer seats are woken, the seat that by charter
+  opens one draft per run. Thirteen wakes alive at one minute, three
+  carried the block, all three over the bus; both clock-woken runs at
+  that minute were engineer seats each already holding two drafts older
+  than the liveness window. The sentence now names the wakes it covers
+  and `GET /api/standing` is what a clock-woken launcher calls, because
+  a detector that overstates its own coverage is worse than one that is
+  plainly partial.)
+- **L-A90 — A law binds where the seat reads, not where the register
+  keeps it.** A rule above your charter is a rule you do not have. So a
+  standard distributed into a repository is not distributed until the
+  file each seat is actually handed names it by path and says which
+  sections bind that seat, and a charter that points at the product's
+  own lessons file has not pointed at the company's: the sentence reads
+  the same and the file is a different one. Minting a seat includes the
+  pointer; a harvest that distributes a register also checks that every
+  charter receiving it names it. (epitome L31, 2026-10-23, offered up by
+  that product's exo seat after it found its own instruction file never
+  named the vendored register and patched one charter, stopping there on
+  purpose because the rest is a centralizing job. Second source and the
+  measurement, alexandra-systems, 2026-10-24: of 33 seat charters in the
+  four portfolio repositories, 26 name `docs/standards/lessons.md` and 7
+  do not — 6 of the 7 in one product, and 3 of those 6 name that
+  product's own `docs/agents/lessons.md` instead, which is why nobody
+  had noticed. HQ's own 10 charters all carry it. The register's header
+  has asked since it was written that "every seat in every product reads
+  its role's section before working", which is an instruction addressed
+  to readers it had no way to reach. Routed to this register by HQ's pm,
+  2026-10-24: "handing every product's seats that same pointer in one
+  pass is a centralizing job and not a local edit.")
+- **L-A91 — A queue is only as wide as its parser, so the parser counts
+  what it could not read.** An instrument that reads a convention names
+  the conventions it accepts and reports, as a number on the same page,
+  every marker it found and could not attach to a record. Zero parsed
+  and a non-zero skipped count is a finding about the instrument; zero
+  parsed and zero skipped is a finding about the thing measured, and no
+  surface may state the second while the first is true. A generated
+  queue that cannot do this is not evidence of an empty queue.
+  (alexandra-systems, 2026-10-24, this seat's own instrument and its own
+  first read. `docs/company/lessons-portable.md` is the file this seat's
+  charter names as the harvest's first read — "it already holds every
+  `portable: yes` lesson in the portfolio" — and it said in its own
+  header "**0 awaiting harvest**, of 3 portable lesson(s) in the
+  portfolio." The portfolio had 26 marked portable. `portable_lessons()`
+  in `tools/sync-company.sh` split blocks on `^(?=###\s)` and matched a
+  marker at the start of a line, which is exactly one product's
+  convention: epitome writes `## L13 — ...` with a backticked
+  `` `portable: yes` ``, so 23 of its marked lessons were read as zero
+  and 22 of them are cited by no rule here. The fix is the count and not
+  only the wider pattern, because a wider pattern has the same failure
+  one convention later. Same disease as L-A86, L-A87 and L-A88, which
+  this seat shipped on the same day against four instruments the owner
+  reads daily: an instrument that silently drops part of its input and
+  presents the remainder, in the reader's own units, as the whole.
+  Related: L-A43, a generated surface says what it stopped carrying, and
+  L-A80, a read that succeeds with nothing in it is not a reading.)
+- **L-A92 — A tier is computed, not remembered.** A seat that would
+  defer work because it believes a section of a standard is reserved to
+  the owner runs `tools/check-tier.sh` over the patch it would write and
+  quotes the verdict, rather than reasoning from the section number. The
+  rule is about what gets quoted and not about who decides: cite the
+  verdict, let the merger re-run it, and when the mechanism and the
+  plain reading of the section disagree, that disagreement is itself the
+  finding and it goes to whoever owns the section's text. The stricter
+  reading of an ambiguous criterion stays operative while the
+  disagreement is open (L-A66: a seat does not argue its own
+  exception). What the belief costs is not the belief: work read as the
+  owner's waits for a hand that was never required, and whatever was
+  bundled with it waits too. (HQ yc seat, appended to this register's
+  inbox 2026-10-23, generalized here. Measured: a patch adding one
+  paragraph inside `standards/pm.md` §22 returns Tier B, exit 10, with
+  the tool's own note that "every changed line falls by position outside
+  §10, §11.4, §19 and §21"; `AUTHORITY_HEADING` at `check-tier.sh:312`
+  names those four and §22 is in neither that list nor §21's own, while
+  a seat had deferred the paragraph on the stated ground that §22
+  "reserves itself to the owner in its own text.")
+- **L-A93 — A consent clock counts only the hours its channel was
+  accepting writes.** Silence is consent across a window only if the
+  surface the rule names was reachable for that window. An ask whose
+  silence window overlaps a period in which that channel took no writes
+  is re-asked, never deemed, and a decision a silence rule releases
+  names the hand that performs it, because a clock that cannot tell an
+  absent answer from an unreachable channel is measuring the outage.
+  (HQ yc seat, appended to this register's inbox 2026-10-23, generalized
+  here. Measured: HQ's pm posted a licence decision as an `ask` on the
+  board at 2026-10-18T19:13:27Z; the board's message table took its last
+  write 41 minutes later and its next one 2026-10-23T15:26:44Z, a
+  115.5-hour gap, Incident 19 — so the 48-hour window held 41.2 minutes
+  of live board and 47.3 hours of 503, the ask carried `urgent: false`
+  so it never reached her phone, and the rule deemed the question
+  settled. Seventy-one hours after that expiry the decision had produced
+  no `LICENSE` in any of the four public repositories, `"license":
+  "UNLICENSED"` still in `cli/package.json`, and a 404 from
+  `registry.npmjs.org/epito`. Reported independently the same afternoon
+  by epitome's exo about fourteen charter changes whose silence had run
+  out three days earlier and none of which happened. Kin to L-A83, a
+  rolling window with a hole in it is not a window, and L-A85, count the
+  ticks rather than trusting a borrowed clock's declared period; this one
+  is about a window that grants authority rather than one that measures.)
+- **L-A98 — A consent clock is a field or it is not a clock. A deadline
+  that lives only in prose cannot be enumerated, so nothing can fire
+  it.** Where a rule converts silence into authority, the deadline is
+  written in the structured field the surface already has for it, with
+  a pointer to the change it releases; until it is, no clock is running
+  and no seat may later claim a release on it. The test is one command
+  over the whole company rather than a grep per file:
+  `tools/check-silence-clocks.py`. (HQ centralizer, 2026-10-24.
+  Measured on the board over fourteen days: `expires_at` — a column
+  `runtime/board/schema.sql` has carried the whole time — was set on
+  **0 of 116 asks**, while 40 of those asks discussed a forty-eight
+  hour clock in their own words, and `ref` was set on 20 of the 40. The
+  consequence is not untidiness: an expired clock and a live one are
+  indistinguishable without reading English, so §22's releasing
+  direction fails everywhere at once and silently. Two Ursa seats
+  derived the same defect independently that morning and both reached
+  for a grep over charter files — the wrong surface, chosen because the
+  right one was empty. This is the enforcement half of L-A93, which
+  already required that a decision a silence rule releases name the
+  hand that performs it; naming it in a file read at the start of a run
+  does not reach an hour no run chose. **Issued as L-A94, renumbered
+  to L-A97 the same afternoon, and renumbered again to L-A98**, with
+  L-A99 to L-A101, because this seat's other pass that day took 94 to 96
+  on `main` first, and a second pass of the same seat took L-A97 for a
+  different rule before this one merged — the same tail read twice with
+  no memory between the reads, L-A18 exactly, and this register cannot
+  be machine-merged to prevent it because it holds entries as list items
+  rather than one per heading.)
+- **L-A99 — Naming an actor in prose is not telling it. The recipient
+  field is the telling.** A message has one address, and a duty
+  assigned inside the body of a message sent to somebody else has not
+  been delivered. Where a rule authorises a seat to act at a deadline,
+  that seat is a recipient of the thing that starts the clock, not a
+  mention inside it. (HQ centralizer, 2026-10-24. **30 of the 40
+  clock-bearing asks on the board over fourteen days were addressed to
+  an owner alone** — the one actor whose non-response is the trigger —
+  so the applier `standards/pm.md` §22 had already authorised was never
+  woken by the clock it was authorised for. Ursa's release route,
+  proposed 2026-10-18 and due 2026-10-20 at 12:30, stood unapplied at
+  137 hours with every seat reporting its own state accurately and
+  nobody defying anything. epitome is the counter-example that makes
+  this a rule rather than a complaint: 9 of its clock-bearing asks went
+  to `epitome/pm`, a seat that can apply, so the practice was already
+  achievable and merely not uniform. Kin to L-A98: that one is about
+  the clock being readable, this one about the reader being addressed.
+  Issued as L-A95, renumbered to L-A98 then L-A99; see L-A98.)
+- **L-A100 — A release on silence is scoped to the files the ask tabled.
+  Consent covers what was shown, and a merge carries whatever the
+  branch carries.** An ask that a clock releases tables every file its
+  merge would land and whose lane each belongs to; a pull request that
+  would land a file the ask never tabled is not released by silence on
+  any part of it, and is retargeted, split, or re-asked with the true
+  list and a new clock. Verified the way ADR-011 already verifies the
+  centralizer's own autonomous merges: `gh pr diff --name-only` against
+  the tabled list. (Two products, 2026-10-24, measured the same day
+  without coordinating. epitome's exo: seven files over two pull
+  requests, two of them the charters the asks were about and five named
+  in neither. Ursa's exo: twelve files and ~9,800 insertions on a
+  single charter ask, the charter itself 1,040 lines — 11% of what the
+  merge would land — five of the twelve in another seat's lane,
+  including 3,500 lines of its PM's pending register, and 72 of the
+  commits that seat's own. **No boundary was crossed to produce this**,
+  which is why neither seat predicted it: those files arrived as whole
+  commits by their own authors. And it compounds, which is the half
+  neither sender had named when they wrote: every window merges to stay
+  mergeable, every merge imports what the other branch carried, so a
+  decision that waits grows — a two-file question on the eighteenth was
+  a twelve-file question on the twenty-fourth. The freeze raises the
+  cost of ending the freeze, so the oldest pending decision is always
+  the most expensive one to take. Issued as L-A96, renumbered to L-A99
+  then L-A100; see L-A98.)
+- **L-A101 — A finding that is 100% of its population is nearly always
+  the instrument, not the company. Check the clean case is reachable
+  before reporting the dirty one.** Any measurement whose defect rate
+  comes out at exactly the whole population deserves one test against a
+  case that should pass; if nothing can pass, the check is measuring
+  its own assumption. (HQ centralizer, 2026-10-24, against itself. The
+  first draft of `tools/check-silence-clocks.py` looked for the pull
+  request an ask carries as `#\d+` in the body and reported **116 of
+  116 asks carrying no change**. Not one message on the board contains
+  `#` followed by a digit — and the cause is not that seats happen to
+  write house voice, it is that `runtime/board/store.py` **refuses**
+  a PR number, an ADR code, an incident number or a lesson id anywhere
+  in a message body, with a 400 telling the sender to put ids in the
+  data field. The body is the one place a pointer cannot legally be, so
+  the check was measuring the house-voice guard and reporting it as a
+  breach of §22. The real rate, read off the `ref` field the schema
+  provides for exactly this, is 20 of 40. Had the number been plausible
+  it would have shipped — and the weaker explanation ("seats write
+  prose") was the one this seat wrote down first and had to correct
+  after the API refused its own reply, which is the same error one
+  layer up: a cause that fits the evidence is not yet the cause. Kin to L-A49, where a fix that the local test
+  agreed with was wrong in production and the agreement is what made it
+  expensive, and to L-A53, where an instrument graded the company and
+  the number graded the instrument. Issued as L-A97, renumbered to
+  L-A100 then L-A101; the rule now holding this entry's first number,
+  L-A97, is a different one, about a duty scheduled at the end of a run
+  (merged first, in `#403`).)
+
+- **L-A94 — A path that measures a cost tells the party who can pay
+  it, and the bearer of a cost is rarely the one who can lift it.** When
+  a surface clips, drops, delays or rejects part of what one seat hands
+  another, it is the *author* who can shorten the thing, reorder it, or
+  split it in two — so the measurement goes back on the author's own
+  receipt, at the moment of authorship, and not only onto the reader's
+  copy. Three clauses. **The receipt is prose beside the fields**,
+  because the writer is a seat reading a response body and not an
+  instrument reading JSON; a bare flag is read by nobody and a sentence
+  that names what was lost and what to do instead is read once and acted
+  on. **Count what arrived, measured off the payload the reader gets**,
+  never an estimate re-derived from the same limit, or the number drifts
+  from the cut it describes. **A receipt is not a gate**: the write still
+  succeeds, because a surface that refuses the oversized thing loses the
+  thing, and the author was already finished writing. The alternative —
+  a discipline written into every charter that could ever author one —
+  is what L-A46 refuses by name: a rule a stateless run must obey has to
+  arrive with the work, and five registers reach nobody.
+  (Ursa/exo handed this up on 2026-10-24 as two lines of HQ's own
+  runtime, with the census that makes it a population rather than an
+  anecdote: on a bare read of the board's store, floored at its 500-row
+  server cap, **161 of 500 message bodies exceed the 1500-character
+  delivery limit — 32.2% of traffic, 17 of 25 author identities, 5
+  companies, longest 7883 characters — and 57 of those are handoffs and
+  asks**, the two kinds that carry a decision somebody must act on.
+  Corroborated independently the same day by Ursa/research at 105 of
+  355, 29.6%. The reader's half of this had been law since 2026-10-18:
+  `wake_body` marks the cut and the bus event carries `body_chars` and
+  `body_truncated`. The author's half did not exist — the same two
+  numbers were computed in the write path, put on the event, and dropped
+  from the 201 the author's own POST returned — so for six days every
+  seat whose disposition was cut was told, and no seat that cut one ever
+  was. Shipped as `wake_receipt()` in `runtime/board/api.py`. The seat
+  that found it also named why it belongs here and not in its own
+  charter, and that reasoning is the rule's second half.)
+
+- **L-A95 — One payload, one marker, and it belongs to the surface
+  that actually holds the whole.** A helper that narrates its own
+  truncation must let its caller own the narration, because a composed
+  payload otherwise ends in two notices written by two layers that know
+  different things about where the rest of it lives. The inner one is
+  always the wrong one: it names the layer's own default surface, and
+  the caller's whole reason for composing was that the thing is
+  somewhere else. **A gesture at a surface that does not hold the thing
+  converts a recoverable loss into one the reader stops looking for** —
+  worse than no marker, which at least leaves the reader searching. So
+  the narration is a parameter with the layer's own marker as its
+  default, no existing caller changes, and the one caller that speaks
+  for itself passes an empty one.
+  (Ursa/exo, 2026-10-24, in the same handoff as L-A94.
+  `brief_wake_payload`'s last-resort branch called the prose helper and
+  appended the document's marker to the helper's output, so an over-long
+  brief ended with "read the whole message in your inbox on the board"
+  — a brief is an event and is in nobody's inbox — followed immediately
+  by its own marker naming the route that does hold it. HQ's own comment
+  on that branch called it unreachable at today's sizes, and it is; the
+  census under L-A94 is what makes it reachable, which is the general
+  point: **"unreachable at today's sizes" is a measurement with a date
+  on it, and a comment that says it is a claim about traffic that nobody
+  is watching.** Where the branch cannot be reached today, pin it with a
+  test that constructs the size rather than with a sentence that
+  predicts it won't happen.)
+
+
+- **L-A96 — Unreachable is a state, not a flag: a ready pull request
+  held on a review comment is as unmergeable as a draft, and the
+  company's instruments only look for the flag.** A seat's run is over
+  when its artifact is reachable (L-A32), and `draft` is one of several
+  ways an artifact is not. A pull request that is open, ready and
+  carrying an unanswered review comment is held by the same arithmetic —
+  nobody merges it, its author has ended, and nothing counts it — with
+  one difference that makes it worse: the draft at least looks wrong to
+  a reader, while the ready one looks finished. So the question an
+  instrument asks is "could this merge right now, and if not, whose act
+  unblocks it", never "is this a draft". **The seat that holds the
+  answer to a review comment is the seat that must be woken by it**, and
+  a review left on a stateless seat's pull request reaches nobody unless
+  the wake carries it (L-A46). Until an instrument covers it, a seat
+  whose lane is merging reads the review state of every open pull
+  request in its company by hand and names what it found.
+  (HQ, 2026-10-24. Measured rather than reasoned: `#336` in this
+  repository was opened 2026-10-18T19:05:13Z, ready and mergeable, and
+  merged 2026-10-24T06:52:27Z — **131.8 hours held**, on a review
+  comment whose fix was one line, while three drafts of the same seat in
+  the same window were each surfaced by name within hours by the
+  tripwire and the wake footer. The gap is exact and was verified across
+  the whole repository: `tools/check-draft-prs.sh` skips anything whose
+  `draft` is false and `runtime/board/standing.py:_orphans` does the
+  same at its line 205, and the strings `reviewDecision`,
+  `CHANGES_REQUESTED` and `requested_reviewers` appear in no instrument,
+  standard or charter in this company — so the portfolio's entire
+  unreachability detection is draft-shaped, and the state that held a
+  pull request for five and a half days is one nothing can see. Found by
+  the pass of 2026-10-18 that wrote L-A32, deferred by it, deferred
+  again on 2026-10-24 by a run that declared it and ended, and written
+  here on the third pass because a finding re-derived three times is the
+  pathology L-A45 names.)
+
+- **L-A97 — A duty scheduled at the end of a run is scheduled for the
+  one instant the run may never reach, so trigger it on the state of
+  the work instead.** Every artifact-hygiene duty in these charters
+  shares a single deadline and it is the wrong one: ready your draft
+  before you end, broadcast your live tip before you end, resolve a
+  sibling's unreachable artifact before you stop, write your run note
+  and your register entry before you stop. A seat here does not choose
+  its ending — the run dies at a turn cap or a timeout it did not pick
+  and cannot see coming — so "before you end" names a moment only the
+  runs that happen to finish politely ever occupy, and every other run
+  leaves finished work outside the gate. Three clauses.
+  **The trigger is the state of the work, not the position in the
+  run.** Ready the pull request when the branch would be worth merging
+  as it stands; broadcast the tip when there is a tip; resolve a
+  sibling's artifact the moment you have read enough of it to name its
+  disposition; write the register entry when the thing it records is
+  true. Each of these has a first moment, and that moment is always
+  earlier than the end.
+  **Doing it early forfeits nothing, because every one of these acts is
+  revisable and ending is not.** A readied pull request takes further
+  commits, a broadcast is superseded by the next one, a resolution can
+  be re-resolved, a register entry can be amended — this very rule
+  amends L-A32. Weigh a premature artifact against an unreachable one:
+  the first costs a reader one confusing minute, the second costs the
+  whole run.
+  **With one exception, and it is the whole of the other side's case:
+  readying transfers the artifact to a hand that can land it, so after
+  readying, a commit is delivered only if the pull request is still
+  open.** This is not an argument against readying early; it is the
+  second half of what readying means. Where a merger is fast, check
+  before you assume a late commit landed, and when it did not, carry it
+  on a new pull request rather than re-pushing into a closed one. The
+  seat that keeps writing for twenty minutes after readying and never
+  looks has not been harmed by the rule — it has been harmed by
+  treating `gh pr ready` as a formality rather than as the handover it
+  is.
+  **The end-of-run sweep survives as a check that the act already
+  happened, never as the first attempt at it** — and so does the
+  detector, with the limit a detector has. A tripwire that names an
+  idle draft is doing its job and is still downstream of the deadline:
+  by the time it fires the gate has already idled, and nothing goes
+  back. Scheduling is the fix; detection is the backstop.
+  (Ursa/exo, 2026-10-24, handoff to this seat, ref
+  `alexandrapaiz/Ursa#318`, shipped in their own charter before it was
+  handed up: "the resolve step has to move off the end of the run… ready
+  it the moment the work is coherent rather than the moment you are
+  finished". Their measurement, from their own register: **four windows
+  of one seat in two days left finished work no gate could reach**, and
+  in the clean case nothing was careless — a window opened at 06:42:50
+  UTC, worked twenty-four minutes, pushed across six registers, and
+  ended with its title still saying no work had been done yet. That
+  title was written at the one moment it was true and nothing goes
+  back, so the work sat unreachable for four and a half hours. The
+  clause about the detector is the handoff's own tail, about this
+  company's own tool: "your draft-liveness tool is the right detector
+  and our project manager used it correctly on me this morning, which is
+  how this was found. A detector firing four and a half hours late has
+  still let the gate idle that long." HQ's reading of itself the same
+  day, with `tools/check-draft-prs.sh` on a 90-minute derived window: of
+  four open drafts three were inside a live run's window and the fourth,
+  `#387`, had been idle **ten hours** — one seat's finished branch
+  outside the gate for seven times the longest period any run here is
+  allowed to live. Generalises L-A32, whose own scheduling clause this
+  rule amends, and L-A84, where the duty passes to whoever can still
+  take it once the owning seat is gone: all three are the same
+  arithmetic, which is that a stateless run's last turn is not a place
+  to put anything.
+  **Second source, and it argued the opposite way, which is why the
+  fourth clause exists.** HQ's engineer seat, 2026-10-24, in
+  `docs/ideas.md`: its own pull request `#391` measured a **ten-minute
+  median from ready to merge** on its branch, and it then kept writing
+  and **lost a growth-ledger row and three ledger entries to a pull
+  request that had already closed under it**. From that it proposed the
+  inverse of this rule for `standards/pm.md` §8 — readying is the signal
+  that the branch is final, anything still to write belongs on the
+  branch before `gh pr ready`, anything learned after is a new pull
+  request. That proposal and Ursa's amendment cannot both be §8. They
+  are not merged here as a compromise and they are not sent to the owner
+  as a conflict of taste, because they are not in conflict: one measured
+  the cost of readying late and the other the cost of not looking after
+  readying early, and a rule that says "ready at coherence, then check
+  that your later commits landed" pays both. The engineer's own
+  prescription is kept whole in the fourth clause, minus the part that
+  would have moved the deadline back to the end of the run. Its §10
+  half, the stale Tier C paragraph, is untouched by this and is still
+  owed.)
+
+
 ## engineer
 
 - **L-E0 — The bar is Omarchy or higher.** Owner, 2026-09-20: "high
@@ -3441,6 +4005,38 @@ sentences. **No `L-` identifier.** See the preamble and L-A18 for why
 a second author picking IDs is a collision generator rather than a
 convenience.
 
+### A fix is checked where its effect would be, not where its code is
+
+2026-10-24. Binds `any`, and `engineer` in particular.
+
+A merged fix, a true register row and a broken box are three states that
+look identical from inside the repository. On 2026-10-24 HQ held all
+three at one minute: the runtime fix giving every run a private scratch
+directory was merged and staged, the architecture register said so
+truthfully, and a seat run on the host had no `TMPDIR` at all and wrote
+its temp files into a world-writable directory holding twenty-three
+other companies' live checkouts. Nothing in the company could tell those
+states apart, because the only instrument was a commit distance, and a
+distance is the same number whether the one line that matters is inside
+it or not.
+
+So a change that is only useful once it is *running* is not finished
+when it merges. It is finished when something reads its effect in the
+place the effect would appear, and that reading says which of merged,
+deployed and working it got. Two corollaries, both earned the same day.
+A variable is a claim and the artefact is the evidence: Python's
+`tempfile` does not fail when `TMPDIR` names a directory it cannot
+write, it silently falls back to the shared one at exit 0 with the
+variable still reading correct, so a check that greps for the variable
+calls that state green. And a check that cannot tell must not answer ok:
+it reports that it could not tell, because the next seat believes it.
+
+The pattern to copy is the pair: the promise written down where a reader
+can cite it, and a check whose own table of clauses is compared against
+that document by a test, so the two cannot drift. See
+`standards/runtime.md` "The environment a run is handed",
+`tools/check-seat-env.py`, and the ADR of the same date.
+
 *Empty as of 2026-10-12, and empty on arrival for the second harvest
 running: nothing was appended here between 2026-09-28 and this run. The five entries that
 were here once (presence is a cadence, open routing is best-effort,
@@ -3450,3 +4046,130 @@ L-E8 in their own sections. Empty again as of 2026-10-18: the
 one entry appended since, "a run that never started is not a run that failed",
 is now L-A68 under `any` rather than under the two roles its author named,
 because the rule it states binds every reader of a check.*
+
+---
+
+*The renumber of 2026-10-24: this seat's two passes that day both read
+the same tail and both allocated from L-A94. The morning pass landed
+first, so L-A94 to L-A96 on `main` are its (a cost is told to the party
+who can pay it; one payload one marker; unreachable is a state) and the
+afternoon pass's four became **L-A97 to L-A100**, each recording the
+number it was issued under. This is L-A18's collision with both authors
+being the same seat in different sessions, which the register's own
+"only the centralizer issues an ID" rule does not prevent, because the
+centralizer has no memory between runs and the tail is the only counter.
+The durable fix is the unnumbered inbox the preamble already provides,
+and the next harvest should ask why this seat does not use it for its own
+entries.*
+
+*Empty again as of 2026-10-24. The one entry appended since the
+2026-10-18 harvest — HQ's yc seat on 2026-10-23, "a tier is computed, not
+remembered" and "a silence clock counts only the hours its channel was up" —
+is now **L-A92** and **L-A93** under `any`, split in two because its author
+wrote two rules under one title and each binds on its own. Its second half
+also names an unmerged half of the fix (`alexandra-systems#340`: a ratified
+decision names the hand that performs it), which is carried forward in that
+harvest's report rather than lost with the inbox entry.*
+
+---
+
+### This harvest allocated no rule ID, on purpose (2026-10-24, the hook pass)
+
+*Binds: `exo`, and anyone who writes this file.*
+
+The renumber note above says the durable fix for two sessions of one seat
+allocating from the same tail "is the unnumbered inbox the preamble already
+provides, and the next harvest should ask why this seat does not use it for
+its own entries." This is that harvest, and the answer is that the collision
+is not historical. It is live and unmerged right now: `alexandra-systems#408`
+and `#413` are both this seat's, both open, and both allocate **L-A102** and
+**L-A105** for different rules. Whichever merges second carries two IDs that
+mean one thing on `main` and another in five vendored copies, which is L-A18
+exactly.
+
+A third session allocating from `main`'s tail while two unmerged PRs hold
+numbers past it would make that three. So the four entries below take no
+identifier. They are law when a harvest issues them an ID, after the two open
+PRs land and the true tail is readable from one place.
+
+The rule this is an instance of, for whoever issues these: **a counter read
+from the tail of a file is not an allocator when the authors cannot see each
+other's drafts.** A seat with no memory between runs cannot hold a reservation,
+and two sessions of the same seat are two authors. The inbox exists so an
+author who cannot see the tail safely does not have to.
+
+### A rollback is not an omission (2026-10-24)
+
+*Binds: `any`.*
+
+Two rules, and each binds on its own.
+
+**When you revert, the reason goes in the revert.** A revert whose message is
+git's generated three lines records that something was undone and destroys why.
+epitome's PM reverted two merges at 2026-10-24T12:44Z for a reason that was
+careful and correct — whether a product charter file may clear on silence was
+on the owner's desk from a parallel pass, and it declined to settle that by
+merging first — and wrote it as a comment on one of the two reverted pull
+requests four minutes later. That is the one surface no instrument in this
+company reads. The next run of the check over those files printed the same
+findings it printed before the work was done, and what it implied was: open
+the same pull request again.
+
+**A check that reads only current state cannot tell "nobody did this" from
+"somebody deliberately undid this", and the two have opposite next moves.** The
+first says do the work; the second says go and ask the hand that undid it.
+Where the history is already in the forge, a check reads it rather than asking
+any repository to adopt a convention: `tools/check-register-pointer.py` now
+reports `BACK` with the commit, the date, the hand, and whether the revert gave
+a reason. It is still a finding — the seat still lacks the law — and only the
+addressee changes.
+
+### The destination is not one of its own sources (2026-10-24)
+
+*Binds: `any`, `exo`.*
+
+A path declared once and read for two purposes will be read wrongly for one of
+them. HQ's manifest declares `surfaces.lessons: standards/lessons.md`, which is
+true: it is where HQ's lessons live, and the harvest reads it to answer "has
+this product's lesson been promoted yet". It is also this harvest's
+destination, and scanning it for portable-lesson candidates reported two of the
+register's own sentences — prose beginning with a backticked `portable: yes`
+while talking about the marker — as markers that could not be parsed, every run.
+
+So a tool that reads a declared surface says which of its purposes it is
+reading it for, and a tool that reads a surface it cannot be a source of skips
+it and says so on the page. A skip stated is not a zero: a product missing from
+a queue and a product that cannot be in one read the same from the count alone.
+
+Note what this is not. The rule that produced the false positive — report what
+you could not parse instead of counting it zero — is right, and keeping it is
+why the real 21-lesson queue became visible the same morning. A correct rule
+pointed at a file with nothing to parse is a scoping defect, not a reason to
+stop reporting.
+
+### Instruments do not follow a runtime when it moves; they have to be carried (2026-10-24)
+
+*Binds: `any`.*
+
+Decision 054 took every HQ seat off GitHub Actions and onto the host, on the
+owner's instruction not to spend on GitHub. The seats moved. The things that
+watch the seats did not: `company-sync`, which regenerates the view this
+seat's charter says to read first, `daily-brief`, which is the event that is
+supposed to wake it, and every test suite that gates a merge are all still
+`.github/workflows` jobs in the one repository in the portfolio that is still
+private, and have therefore not started once since 2026-10-13 (Incident 16).
+
+Measured on day twelve: `tools-tests` was triggered **519** times and started
+**zero**; **191** commits touching `tools/` reached `main` with no suite able
+to run; the view was stamped six days old when this pass opened it, and said
+nothing about being stale. The suite was run by hand in this pass and passed,
+1175 tests, so nothing was broken — but that was luck observed late, not a
+gate.
+
+The rule: **when a runtime moves, the move is not done until the instruments
+that watch it have moved too, and the migration plan names them one by one.**
+A plan that lists what runs and not what watches leaves a company flying on
+surfaces that cannot fail loudly, because the thing that would have reported
+the silence is itself silent. Name every scheduled job, every check and every
+renderer in the plan, and for each one say whether it moved, is retired, or is
+knowingly left behind — the third being a decision, with a date.
