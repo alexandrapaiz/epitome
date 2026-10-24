@@ -166,6 +166,24 @@ The token is never written into this repository, never passed on a
 command line, and the temporary `.npmrc` is 0600 and deleted. `epito`
 has no npm-login step of its own; this is the whole credential path.
 
+**Where `name-check` finds a credential, and one npm behaviour that
+matters here.** It reads `NPM_TOKEN` first, and otherwise reads
+`//registry.npmjs.org/:_authToken` straight out of the npmrc files, in
+npm's own precedence order: `cli/.npmrc`, then the userconfig (npm
+exports its path as `npm_config_userconfig`, so `npm --userconfig`
+works), then the globalconfig. It does **not** ask `npm config get` for
+the token, which is what it did first and which cannot work: npm 10
+marks that key PROTECTED and refuses to return it, answering `npm error
+The //registry.npmjs.org/:_authToken option is protected, and can not
+be retrieved in this way` and exiting 1. Measured on npm 10.9.8 against
+a `--userconfig` that genuinely held a token — `npm config list` shows
+the key as `(protected)`, so the credential was loaded and still
+unreadable, and npm does not export it to a run-script either. The
+practical effect, before the fix, was that a machine logged in with
+`npm login` was told it had no credential at all, by a refusal whose own
+suggested fix was `npm login`. Reading the file is what makes that line
+true.
+
 One detail from this run: the value in `/srv/asc/env.infisical` is
 single-quoted, so `cut -d= -f2-` yields `'npm_…'` with the quotes. npm's
 ini parser strips them, and `name-check` strips them too, but anything
