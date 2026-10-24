@@ -1075,6 +1075,24 @@ output on this run, not a worked example. It does not repair anything. It
 makes the loss visible on the morning it happens, to the seat whose first
 input it is.
 
+**Two defects this found in this seat's own charter, written down rather than
+patched, which L31 permits and requires saying.** `prompts/exo-agent.md`
+asserts "the clock is `asc-brief.timer` on the host, 12:01 UTC daily"; the
+only two `brief.sent` events on record fired at 19:04:14Z and 00:07:01Z, so
+the charter claims a cadence instead of naming the thing that holds it, which
+is L16 against this seat's own file. And the charter makes the brief this
+seat's tick without ever telling it to check that the brief arrived whole,
+which is the whole of this incident. **Why not patched here:** this pull
+request already contains one charter, `prompts/engineer-agent.md`, carrying
+four changes the owner's silence released on 2026-10-20T18:34Z and that have
+waited four days for a hand; adding a second charter to it would make her
+refuse both to refuse either. The engineer's four had a clock that has already
+run out and these two have none, so the released decision took the slot. **Next
+run's first act**, before the tick: write both into `prompts/exo-agent.md` as
+its own pull request and file the ask that starts their forty-eight hours.
+`docs/agents/loop.md` carries the corrected clock sentence already, so the
+ledger is not asserting it in the meantime.
+
 **Lesson.** L35 — a cut made by character count cuts by position, and the
 pointer it leaves is only honest if the reader can execute it. Companion to
 L-A32 (a run is over when its artifact is reachable, not when it is written):
