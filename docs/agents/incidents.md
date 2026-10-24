@@ -1056,15 +1056,37 @@ the footer's recovery instruction is a sentence rather than an address, so it
 was never tested by executing it; had it named a route, the route's absence
 would have been visible the first time anyone followed it.
 
-**Where the fix is, and the one thing blocking it.** Not in this tree and not
-this seat's to write: the brief generator and the bus are HQ's runtime
-(`runtime/board/`, pm standard §15 — "Workflow files and runtime machinery in
-every product repo belong to HQ"). Handed to `alexandra-systems/exo-centralizer`
-this run with the measurement, the recovered tail, and the two shapes the
-repair needs: cut by section against a declared precedence, and name the route
-by its address. The one thing blocking it is that no seat outside HQ may write
-it. Re-measured next run by running the detector below and reading whether the
-footer still claims a count rather than naming sections.
+**Where the fix is: on `main`, deployed, eighty minutes after the handoff.**
+Not in this tree and not this seat's to write — the brief generator and the bus
+are HQ's runtime (`runtime/board/`, pm standard §15). Handed to
+`alexandra-systems/exo-centralizer` at 00:24:47Z with the measurement, the
+recovered tail, and the two shapes the repair needed: cut by section against a
+declared precedence, and name the route by its address. Both shipped, neither
+as a bigger character limit, which that seat says in writing it declined to
+take because "a bigger number is still a cut nobody can see". HQ `#379`
+merged at **01:24:32Z** as `413e52c`, and the chair deployed `413e52c` to the
+host at **01:27:15Z**. `runtime/board/api.py` now carries
+`compose_brief_sections`, a `BRIEF_DROP_ORDER` that nothing else reads — render
+order stays the owner's and lives in the composer — with *Needs you* ranked
+last of all to drop, a `BRIEF_MARKER` that names the dropped sections, and
+`clip()` for the mid-word half, whose docstring cites this seat's measurement.
+
+**What is verified from here and what is not.** `bash docs/agents/brief.sh` at
+01:45Z against the live host: `GET /api/brief` answers **nine named
+sections** — Header, Shipped, Products, Decided in your name, Needs you,
+Capacity, Failures, Money, Board — where this morning it answered text only,
+and **two composed lines now end in an ellipsis** where four ended mid-word.
+The section-marker branch of the detector is **unverified against a live
+wake**, because no `brief.sent` has fired since 00:07:01Z and the one that
+did is outside the only window the events route will return (L41). Its parsing
+is checked against the marker as the deployed board renders it, which is a
+format test and not a positive. **The re-measurement that closes this entry is
+the next `brief.sent`:** the detector must print "the cut is BY SECTION" with
+names, or this is open again. Per HQ's own measurement on this morning's
+brief, the old cut carried 1,370 characters and lost Needs you, Capacity,
+Failures, Money and Board; the new one carries 1,444, keeps seven of nine, and
+drops Shipped and Products by name — the two the brief itself says are already
+open on another tab.
 
 **The detector, which is the half of L-X1 that is in this tree.**
 `bash docs/agents/brief.sh` reads the newest `brief.sent` and the live brief,
@@ -1090,6 +1112,10 @@ refuse both to refuse either. The engineer's four had a clock that has already
 run out and these two have none, so the released decision took the slot. **Next
 run's first act**, before the tick: write both into `prompts/exo-agent.md` as
 its own pull request and file the ask that starts their forty-eight hours.
+**Done 2026-10-24T01:40Z**, first commit of `#260`: the charter now names the
+thing that fires the tick instead of asserting 12:01 UTC, and makes `bash
+docs/agents/brief.sh` the tick's first act. The ask for the clock is in this
+run's message to `epitome/pm`.
 `docs/agents/loop.md` carries the corrected clock sentence already, so the
 ledger is not asserting it in the meantime.
 
