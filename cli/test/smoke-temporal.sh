@@ -97,16 +97,29 @@ check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 # it.
 #
 # Every check below used to read `<producer> | grep -q '<pattern>'`, and that
-# shape reports FAILURE on a pattern it MATCHED. `grep -q` exits the instant it
-# matches; the producer whose pipe it just closed dies writing to it; and
+# shape CAN report FAILURE on a pattern it MATCHED. `grep -q` exits the instant
+# it matches; the producer whose pipe it just closed dies writing to it; and
 # `set -o pipefail`, above, makes the pipeline's status that death rather than
-# grep's own 0. The producers here are worse than smoke-validate.sh's `printf`,
-# because what they die of differs by language: `temporal` is Go, which takes
-# the default SIGPIPE on stdout and exits 141; `node` raises EPIPE; `curl`
-# exits 23. All three read as a failing assertion. PR #265 measured the
-# `printf` form at 8 false failures in 3000 invocations under load with
-# `PIPESTATUS=[0]` every time — grep had matched — and this suite carried 39
-# pipes of the same family. A herestring has no pipe and no writer to kill.
+# grep's own 0. The producers here differ in kind from smoke-validate.sh's
+# `printf`, because what they die of is the language's: `node` raises EPIPE and
+# exits 1, `curl` exits 23. All of them read as a failing assertion.
+#
+# When, measured rather than asserted. The first version of this comment quoted
+# "8 false failures in 3000 invocations under load with PIPESTATUS=[0] every
+# time — grep had matched", and that evidence cannot carry the claim: `st=$?` is
+# itself a simple command, so it overwrites PIPESTATUS with its own `[0]`, and
+# prints that same `[0]` for a real failure as for a false one. Reading
+# PIPESTATUS first, with the real binaries, at load 22: the shape fires when and
+# only when the producer's output outruns the 64 KiB pipe buffer. At 1 KiB,
+# 16 KiB and 64 KiB — 0 false failures in 20 invocations each. At 256 KiB and
+# 1 MiB — 20 of 20, curl exiting 23 and node exiting 1. Below the buffer the
+# producer's write lands and it exits before grep can close anything: 3,000
+# invocations over real `epito validate` output, 544 bytes, gave 0.
+#
+# This suite's producers write hundreds of bytes, so its 39 sites were latent
+# and not firing. They are converted anyway: a gate one output-size away from
+# lying about its own result is not a gate, and output only grows. A herestring
+# has no pipe and no writer to kill.
 said() { local hay="$1"; shift; grep -q "$@" <<<"$hay"; }
 # The two-stage case: pick the line, then match inside it. `grep clock | grep
 # -q paused` has the same fault one step earlier — the selecting grep is the
