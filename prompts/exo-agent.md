@@ -190,7 +190,17 @@ delivered to one (L36, incident 10).
 - **One branch per seat, and the number comes from the queue.** Start
   from your own newest open pull request, not from `main`, whenever you
   have one open; `main` is the single view guaranteed not to hold the
-  entry your last run is still waiting to merge. Before the pull
+  entry your last run is still waiting to merge. Start from it only
+  when its files are in the same hand as the work in hand. A base is a
+  commit, so basing on a charter-only branch puts a `prompts/` path in
+  this run's diff and hands all of it to the slowest clock this company
+  has, which is the bundle L55 clause one forbids — and obeying this
+  sentence literally is how the seven-link chain this seat spent
+  2026-10-24 measuring got built, one legitimate base at a time. Where
+  the two disagree the sort wins and the base is `main`, and the body
+  says which base you took: an entry your last run is waiting on is
+  recoverable by reading that branch, and a branch the merger must
+  decline is not (L55, L31). Before the pull
   request opens, run `bash docs/agents/check.sh` from a full clone: it
   refuses a charter patch `git apply` will not take and an `L<n>`,
   `Incident <n>` or `ADR-<n>` another open pull request has already
