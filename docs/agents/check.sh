@@ -84,8 +84,16 @@ done
 echo
 echo "== identifiers free across main and every open pull request =="
 git fetch -q origin main 'refs/pull/*/head:refs/remotes/pull/*' 2>/dev/null
-taken() {  # taken <ref> <path> <regex> -> one identifier per line
-  git show "$1:$2" 2>/dev/null | sed -nE "s/$3/\1/p"
+# A pre-flight check answers about the state you are about to push, and this
+# one asked `HEAD`. On 2026-10-24 at 17:3xZ it printed thirteen identifiers as
+# free and said nothing whatever about the two the run had written minutes
+# earlier and not yet committed, which reads exactly like a clean answer about
+# them (L41: a could-not-look must never be spelled like a clean). So `WORK`
+# reads the working tree, which is what the next commit will contain and is
+# identical to `HEAD` once it is committed.
+taken() {  # taken <ref|WORK> <path> <regex> -> one identifier per line
+  if [ "$1" = WORK ]; then cat "$2" 2>/dev/null
+  else git show "$1:$2" 2>/dev/null; fi | sed -nE "s/$3/\1/p"
 }
 for spec in \
   'docs/agents/lessons.md|^## (L[0-9]+) .*$' \
@@ -93,7 +101,7 @@ for spec in \
   'docs/decisions.md|^## (ADR-[0-9]+).*$'
 do
   path=${spec%%|*}; rx=${spec#*|}
-  mine=$(comm -13 <(taken origin/main "$path" "$rx" | sort -u) <(taken HEAD "$path" "$rx" | sort -u))
+  mine=$(comm -13 <(taken origin/main "$path" "$rx" | sort -u) <(taken WORK "$path" "$rx" | sort -u))
   [ -z "$mine" ] && continue
   for id in $(echo "$mine" | tr ' ' '~'); do
     id=${id//\~/ }
@@ -101,7 +109,7 @@ do
     for pr in $(gh pr list --state open --limit 100 --json number --jq '.[].number' 2>/dev/null); do
       git merge-base --is-ancestor "pull/$pr" HEAD 2>/dev/null && continue   # already mine
       if taken "pull/$pr" "$path" "$rx" | grep -qxF "$id"; then
-        this=$(git show "HEAD:$path"      | grep -F "## $id " | head -1)
+        this=$(grep -F "## $id " "$path"          | head -1)
         that=$(git show "pull/$pr:$path"  | grep -F "## $id " | head -1)
         [ "$this" = "$that" ] && continue   # same entry, carried by a sibling branch
         clash="$clash #$pr"
