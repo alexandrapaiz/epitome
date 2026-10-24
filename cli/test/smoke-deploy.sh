@@ -41,6 +41,14 @@ pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
 bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
 check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# A gate that pipes into `grep -q` can print FAIL for a pattern it MATCHED:
+# quiet grep exits the instant it matches, the producer whose pipe it just
+# closed dies writing into it, and `pipefail` hands that death back as the
+# pipeline's verdict. A herestring has no pipe and no second process to kill,
+# so every assertion below matches against captured output, never across a
+# pipe (cli/test/shapes.sh scans for the shape; cli/test/probe-pipefail.sh
+# measures it).
+said() { local hay="$1"; shift; grep -q "$@" <<<"$hay"; }
 audit(){ label="$1"; shift; if (cd "$WORK" && node "$CLI/test/audit-has.mjs" "$@") >/dev/null 2>&1; then ok "$label"; else bad "$label"; (cd "$WORK" && node "$CLI/test/audit-has.mjs" "$@") 2>&1 | sed 's/^/       /'; fi; }
 step() { printf '\n== %s\n' "$1"; }
 
