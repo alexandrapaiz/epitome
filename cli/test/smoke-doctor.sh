@@ -661,18 +661,33 @@ gh_stop() { [ -n "${GH_PID:-}" ] || return 0; kill "$GH_PID" 2>/dev/null; wait "
 # Reaped on the way out as well as between modes: a suite that leaves a
 # listener behind is a suite the next one blames.
 trap 'gh_stop; cleanup' EXIT
+GH_STARTS=0
 gh_start() {
   gh_stop
   : > "$GH_LOG"
-  node "$CLI/test/github-stub.mjs" 0 "$TMP/app.pub.pem" "$GH_LOG" "$1" > "$TMP/gh-$1.log" 2>&1 &
+  # The file this start's port is read out of is named for the START, not for
+  # the mode. Two of the seven modes are started twice -- `ok` at 12a and 12d,
+  # `thin-perms` at 12e and 12e' -- and under a per-mode name the second start
+  # reads its port out of a file that already holds the FIRST start's line, for
+  # a listener this function has just killed. The `>` truncation happens in the
+  # forked child and the `sed` below happens in the parent; when the parent
+  # wins that race it takes the dead port, leaves the wait loop at once, and
+  # every gate in the section is then made against a GitHub that is not
+  # listening -- which is how 12d printed six FAILs at load 18 while 12a, the
+  # first start of the same mode, passed. test/probe-stub-restart.sh is that
+  # race, measured. A per-start name makes the stale read impossible rather
+  # than unlikely: nothing but this start ever writes this file.
+  GH_STARTS=$((GH_STARTS+1))
+  local log="$TMP/gh-$GH_STARTS-$1.log"
+  node "$CLI/test/github-stub.mjs" 0 "$TMP/app.pub.pem" "$GH_LOG" "$1" > "$log" 2>&1 &
   GH_PID=$!
   GH_PORT=""
   for _ in $(seq 1 60); do
-    GH_PORT="$(sed -n 's/github-stub on \([0-9]*\).*/\1/p' "$TMP/gh-$1.log")"
+    GH_PORT="$(sed -n 's/github-stub on \([0-9]*\).*/\1/p' "$log" 2>/dev/null)"
     [ -n "$GH_PORT" ] && break
     sleep 0.2
   done
-  if [ -z "$GH_PORT" ]; then echo "  the stand-in GitHub API never came up"; cat "$TMP/gh-$1.log"; return 1; fi
+  if [ -z "$GH_PORT" ]; then echo "  the stand-in GitHub API never came up"; cat "$log"; return 1; fi
   GH_API="http://127.0.0.1:$GH_PORT"
 }
 # Two seats on ONE App, both on acme/box; `graph` has no App at all and is on a
