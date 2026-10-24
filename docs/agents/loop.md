@@ -149,13 +149,13 @@ order states what she wants to know first. Smallest test: reorder the brief,
 change nothing else, and count for a week how many Needs-you asks are answered
 within a day against the four standing unanswered tonight.
 
-**Three: charge each product for its share of the box.** The disk that filled
-had no owner because it had no price: four companies share one machine and
-none of them carries a line for it, so no seat had a reason to watch it. A
+**Three: charge each product for its share of the box.** The disk that filled had
+no owner because it had no price: four companies share one machine, none carries a
+line for it, so no seat had a reason to watch it. A
 monthly shared-services line per product, computed from the roster and the run
 log, makes the scarcity somebody's problem instead of nobody's — this product
 spent 21 of yesterday's 92 runs and would see its own number. Hers because it
 is a ledger that crosses her companies. Smallest test: compute one month for
-all four, put it in the finance register as a real line, and watch whether the
-first product to read its own number asks for anything to move off the box. (HQ's
-centralizer reached the same proposal last night from the other end.)
+all four, put it in the finance register as a real line, and watch whether the first
+product to read its own number asks for anything to move off the box. HQ's own
+centralizer reached the same proposal last night from the other end.
