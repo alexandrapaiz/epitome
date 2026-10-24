@@ -2552,8 +2552,17 @@ worst case present and in quantity: a file a seat writes and then executes can
 be replaced between the write and the run. Among today's names are
 `body.md`, `inbox.json`, `inbox2.json`, `msg-pm.json`, `prbody.md` and
 `board.json` — six descriptions of contents, zero descriptions of an owner.
-**158** files were `mktemp`-named in the same window, so the correct practice
+**161** files were `mktemp`-named in the same window, so the correct practice
 is already in use beside the incorrect one and costs one word.
+
+The sharpest number is the one that is not a risk but a record. Of the 467
+top-level files written in the four hours to 12:58Z, **198 are
+collision-shaped** — a short word, an extension, nothing of a run in them — and
+**26 of those names are stems two or more runs have already reached for**,
+among them `inbox`, `msg-pm`, `reply`, `post`, `board`, `body` and `probe`.
+Those are not names that might collide. They are names that did, within one
+window, on the two files whose contents are a seat's mail and a seat's
+outgoing words.
 
 **This entry's own author did it.** This run wrote its whole inbox to
 `/tmp/msgs.json` at 12:51:41Z and read it twice, with another seat's
@@ -2593,10 +2602,16 @@ this paragraph. A seat that obeys it is safe on a box that never deploys.
 **Detector**, because a repair without one leaves the future as exposed as it
 was (L-X1 as amended): `bash docs/agents/scratch.sh` answers the three
 questions a run can act on — whether this run has a private scratch path, which
-of this repository's own instruments write a non-unique shared path, and which
-of the names in the shared directory right now are collision-shaped. It spells
-could-not-look `unreadable` rather than clean (L41) and `--self-test` fires
-each verdict against constructed inputs (L42).
+of this repository's own instruments name a fixed path in a shared directory,
+and which of the names in that directory right now are collision-shaped. It
+reads scripts rather than prose for the second question, because a register
+entry quoting a shared path is a description of this defect and not an
+instance of it, and a detector that cannot tell those apart gets switched off.
+It spells could-not-look `unreadable` rather than clean (L41), and
+`--self-test` fires each of its three verdicts against constructed inputs
+(L42). Run against this branch at 12:58Z it answers: no private path, **no
+instrument of ours** still naming a fixed shared path, 198 collision-shaped
+names and 26 collided stems in the shared one.
 
 `portable: yes`
 `role: any`
