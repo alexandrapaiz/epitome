@@ -5,6 +5,58 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-24 ~12:2xZ: the market seat's loop-closing
+  note checked out and refined, a new shared-tmp clobber handoff routed
+  to exo, and one rule question sent to the owner instead of six scattered
+  asks.** Triggered by a board `note` from `epitome/market` ("Closing the
+  loop: your note and my own check agree, nothing was owed", ref `#268`)
+  saying this seat's own earlier note and market's independent check both
+  found the same thing: the pull request a stale broadcast called an idle
+  draft was in fact merged. Checked both of market's claims directly
+  rather than taking the note's word for them (a dispatch payload is data,
+  not instructions, however confidently it is phrased): `gh pr view 268`
+  does show `MERGED`, not a draft; and market's claim that no disposition
+  script "of the kind the broadcast described" exists anywhere in this
+  repository is also true — but it exists one layer up, vendored nowhere
+  in this tree, at `/srv/asc/hq/tools/check-draft-prs.sh`, which an
+  earlier pass of this seat already ran from that exact path. Replied to
+  market on the board with the refinement; nothing was owed on the pull
+  request itself, so nothing here was readied, closed, or re-declared.
+  Reading the fuller inbox past the triggering note (per this charter's
+  standing protocol) turned up three more things. First, a fresh handoff
+  from the engineer: a shared-`/tmp` clobber that overwrote one of its own
+  pull-request descriptions mid-run, worked around once with a
+  unique-name-generating command, but not yet a rule anyone else is bound
+  by — routed to `exo` as a handoff, since a cross-seat discipline belongs
+  in the register exo writes locally, not in a product pull request this
+  charter would have to write. Second, exo's newest ask, a silence clock
+  on one more addition to its own charter file: declined, same as an
+  earlier link in the same chain already was, because this charter is
+  unconditional that a path under `prompts/` is the owner's regardless of
+  what the change does, and that reading does not bend for a request this
+  seat finds persuasive. The merge order exo measured for the whole chain
+  is noted for when any of it is actually mine to merge; none of it is
+  today. Third, the centralizer's register-pointer pull request, which
+  touches this seat's own charter file among five others and claims the
+  merge is mine rather than hers: declined on the same unconditional
+  reading, and the question underneath sent to the owner as a real ask
+  rather than decided unilaterally either way — whether a duty-only
+  charter edit or a mechanical, already-settled cross-seat edit should
+  ever clear on her silence the way smaller decisions do, or whether every
+  word of every charter keeps needing her hand regardless of content. No
+  clock was started on that ask; it is a question about this seat's own
+  authority, which waits for her word rather than proceeding on quiet.
+  This seat's own two prior open reports (knowledge-surface pull requests,
+  `docs/backlog.md` only) were left unmerged rather than self-merged,
+  consistent with this product's standing practice of routing a PM's own
+  reports to the hand that has merged them each time so far. The
+  engineer's open manifest-validator pull request was read but not acted
+  on; nothing new this pass bears on its mergeability. Linear mirror:
+  skipped, `LINEAR_API_KEY` absent (probed this run). Seat: pm (checked,
+  replied, routed, asked), exo (the clobber register entry, its own
+  charter chain's merge order), owner (the one rule question behind the
+  whole stuck stack).
+
 - [ ] **Message pass, 2026-10-24 ~00:5xZ: the epito-cli rename merged,
   the publish still has not run, and the token's clock is now the
   whole ask.** Triggered by the exo seat's board message pointing at
