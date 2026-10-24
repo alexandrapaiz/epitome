@@ -17,11 +17,29 @@
 # they are an assertion. `check.sh` reports each as "already in
 # engineer-agent.md on this branch" by finding every added line byte-identical
 # in the charter, so the day somebody edits that text out, this file's own
-# check is what says so. The project manager's four are the queue that is
-# left, and #244 reports carrying three of them.
+# check is what says so.
+#
+# 2026-10-24, later: three of the project manager's four are now text in
+# `prompts/pm-agent.md` the same way, and the queue this file holds is one
+# line long. `a-deferral-is-a-merge` went in amended by one clause, because
+# the text her silence released told the seat to measure every branch against
+# `main` and that is incident 19's defect, written down six days before the
+# incident; its header carries the amendment and the ask that restarted its
+# clock. The assertion test is why the amendment had to be written here as
+# well as in the charter: an amended patch whose file still holds the old
+# words reads as REFUSES, which is indistinguishable from a broken diff.
 #
 # The last line is the one patch the owner's silence does not release: it
-# widens a seat's own authority and waits for her word (L25, routes.md).
+# widens a seat's own authority and waits for her word (L25, routes.md). The
+# ground under that reservation has moved and the next hand should know it.
+# She wrote the merge authority into `prompts/pm-agent.md` herself at
+# 2026-10-23T15:26:22Z as sections 21 and 22, and the condition-naming half
+# is now in the file as `a-decline-names-its-condition`, so what is left
+# novel in this patch is the instruction to read the whole role standard and
+# the correction that the Linear section names a board this company stopped
+# using. Neither widens anybody's authority. Re-cut to drop the clause she
+# has already granted and her silence releases it like the others; that is an
+# ask on the board and not this seat's to decide.
 2026-10-05-engineer-check-the-register
 2026-10-05-engineer-landing-has-a-stop
 2026-10-18-engineer-a-defect-is-not-an-idea
