@@ -48,8 +48,12 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # The allowance: what each file still carries, and the ceiling it may not pass.
 # A file absent from this list is allowed none. Lower a number when you convert
 # a suite; there is no reason for one to rise, and a rise is what this fails on.
-# Counts read 2026-10-24 on `main` after #270 and #284 merged: 93 sites in six
-# files, less the 31 in smoke-doctor.sh that this branch converts. smoke-validate.sh and
+# Counts read 2026-10-24 on `main` after #270, #284 and #290 merged: 59 sites in
+# five files, less the 31 in smoke-doctor.sh that this branch converts. What is
+# left after this branch is smoke-langgraph.sh (19), smoke-bus.sh (2), pack.sh
+# (2) and the two deploy scripts (5), which the board card asks to land last and
+# separately — a false failure in the middle of provisioning a box is worse
+# than a false failure in a test. smoke-validate.sh and
 # smoke-temporal.sh are converted and absent, so allowed none.
 #
 # Two lines here are not allowances but exemptions, and they are named rather
@@ -60,16 +64,17 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # comment convention to hide the second would make the count a matter of
 # formatting. Both are counted so that neither file can quietly grow one more.
 # Converted and therefore absent, allowed none: smoke-validate.sh (#265),
-# smoke-temporal.sh (#277), smoke-roster.sh (#270, which merged after the list
-# above was written and left its own number stale for one pass), all.sh and
-# smoke-doctor.sh. smoke-deploy.sh keeps 34 until #290 merges: this gate asks a
-# stale number to come down, so a number that is too HIGH costs one advisory
-# line, and a number lowered for a conversion that then does not land fails the
-# gate on main. That asymmetry is why the stale direction is the safe one.
+# smoke-temporal.sh (#277), smoke-roster.sh (#270), all.sh (#284),
+# smoke-deploy.sh (#290) and smoke-doctor.sh, here. Three of those merged
+# while this list said otherwise, because the number may only be lowered by a
+# branch that can see the conversion land — a number that is too HIGH costs one
+# advisory line, and a number lowered for a conversion that does not land fails
+# this gate on main. The stale direction is the safe one, so this file will
+# always trail a merge by a pass; what follows is that whoever converts the
+# next suite lowers its predecessor's too.
 ALLOWED="
 cli/test/probe-pipefail.sh 5
 cli/test/probe-negated.sh 2
-cli/test/smoke-deploy.sh 34
 cli/test/smoke-langgraph.sh 19
 deploy/test-provision.sh 4
 cli/test/smoke-bus.sh 2
