@@ -77,7 +77,12 @@ bad()  {
   [ -n "${2:-}" ] || return 0
   printf '       the test: %s\n' "$2"
   local name hay
-  name="$(printf '%s' "$2" | grep -oE '[$]\{?[A-Za-z_][A-Za-z0-9_]*' | head -1 | tr -d '${')"
+  # Matched in the shell, not through `grep ... | head -1`: that is a producer
+  # piped into a reader that exits on its first line, which is the shape the
+  # card next to this one is converting out of every suite in here. The
+  # failure path is the last place to introduce one.
+  name=""
+  [[ "$2" =~ [$]\{?([A-Za-z_][A-Za-z0-9_]*) ]] && name="${BASH_REMATCH[1]}"
   hay=""
   [ -n "$name" ] && hay="${!name:-}"
   [ -n "$hay" ] || { name=out; hay="${out:-}"; }
