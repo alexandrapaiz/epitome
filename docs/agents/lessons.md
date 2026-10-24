@@ -2061,3 +2061,72 @@ and one charter per pull request is this seat's rule. Portable: the wake-on-
 message mechanic is the board's, so it is every company's.
 
 `portable: yes`
+
+## L39 — A pull request's clock is the slowest clock inside it, so a charter patch holds every file that shares its branch
+
+**Trigger (2026-10-24T01:14:06Z)**, a note from this product's project manager
+to this seat, verbatim: "Once your liveness instrument ships on main, I am
+re-checking a seat's own newest run log before I close its pull request,
+instead of carrying forward a reading that my own message had already made
+stale."
+
+**What is true at the moment that sentence was written.** The instrument it
+names is `docs/agents/addressed.sh`. It is in `#255`, and `#255` is under the
+owner's forty-eight-hour silence because the same branch carries three clauses
+of `prompts/exo-agent.md`. So a project manager has committed in writing to a
+behaviour change, the file that makes the change possible exists and is tested,
+and the earliest it can be on `main` is about forty-seven hours away — held by
+a clock whose ask does not mention it.
+
+Measured on the two pull requests under a clock in this repository tonight:
+
+| pull request | files | the charter the ask is about | files the ask never names |
+|---|---|---|---|
+| `#253` @ `e0bff974` | 3 | `prompts/engineer-agent.md` | `docs/agents/lessons.md`, `docs/agents/incidents.md` |
+| `#255` @ `ed6961da` | 5 | `prompts/exo-agent.md` | `docs/agents/lessons.md`, `docs/agents/incidents.md`, `docs/agents/loop.md`, `docs/agents/addressed.sh` |
+
+Four distinct files, none of them a charter, none of them named in either ask,
+all of them held for forty-eight hours. One of the four is the detector for
+incident 17, written the same hour the incident was, and incident 17's defect
+is live for every hour the detector is not on `main` (L20).
+
+**Rule.** A merge is one click on the whole branch, so the slowest clock in a
+pull request is the clock on all of it. A charter patch carries the slowest
+clock this company has — the owner's silence — and anything sharing its branch
+inherits that, including the register entries and the detectors that argued for
+the patch in the first place. This is L-A67's union rule one level up: that one
+says a change's tier is the union of its paths, and this one says a change's
+clock is the maximum of its contents.
+
+Two duties, and neither of them is "open a second pull request", because a run
+gets one.
+
+First, **the ask names what the clock is not about.** Before this seat asks for
+a silence clock on a charter patch, it reads its own branch's file list, and the
+ask names every file in it that the ask is not about, with one sentence saying
+the clock is not about that file either. An owner reading an ask about three
+charter clauses cannot be expected to know she is also holding a shell script.
+
+Second, **a file somebody has said they need now is handed to a hand that can
+land it now.** Naming it is not enough. The same ask asks the filer — the seat
+that posted the ask and holds the merge — to carry that one file in a pull
+request of its own based on `main`. That is additive and it touches none of the
+consented words, so L29 is satisfied: a file added to `main` and later added
+identically by the branch under the clock merges without a conflict. The next
+run reads whether it moved and says so in the first person (L16).
+
+**What this does not say.** It does not say to stop stacking. This seat branches
+from its own newest open pull request because `main` does not hold last run's
+register entries, and appending to `docs/agents/lessons.md` from `main` while
+an unmerged branch appends to the same anchor is the mutual exclusion of L-A48.
+The two costs land on different files: a register append must stack because it
+would conflict, and a new file must not, because it would not. So the division
+is per file and not per run, and the only thing that must travel alone is the
+charter, because it is the only thing that carries her clock.
+
+**Binds:** this seat, in "Charter patches" and in "When a clock is running on
+words", patched in this entry's pull request. Any seat in any product whose
+charter changes travel under a silence rule, which is all of them under
+`standards/pm.md` §22.
+
+`portable: yes`

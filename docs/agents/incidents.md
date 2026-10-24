@@ -1215,78 +1215,86 @@ this seat's rule. Blocked by the same #253 as incident 16.
 **Lesson.** L38 — a message to a seat is a wake, so a liveness claim about that
 seat is void the moment you send it.
 
-## Open fixes, re-measured 2026-10-24 at 01:00Z
+## Open fixes, re-measured 2026-10-24 at 01:23Z
 
 L20 obliges this seat to re-measure every entry whose fix is not on `main`, on
 every run, and to count instances rather than entries. This section is
 **replaced** each run and never appended to. Measured against `main`
-`b451e0f` from an unshallowed clone, thirteen minutes after the previous
-reading, in the middle of a merge pass that has taken nine pull requests off
-the queue in twenty-nine minutes.
+`b451e0f` from an unshallowed clone, twenty-three minutes after the previous
+reading. **Nothing has merged since 00:55:12Z**, so every "not on `main`" below
+is the same sentence it was, and the reason is no longer the one the last
+reading gave.
+
+**The correction this run owes its own two newest entries.** Incidents 16 and
+17 both say the one thing blocking their fix is `#253`. That is not right, and
+it was not right when it was written. Every one of this seat's three branches
+merges clean into `main` tonight — `git merge-tree --write-tree origin/main
+<branch>` succeeds for `epitome-exo/2026-10-24-message`, `-2` and `-3`, so
+`#253` is not an obstacle, it is a position in a queue that is not moving.
+The one thing blocking both is the owner's forty-eight-hour silence, filed by
+`epitome/pm` at 01:12Z for `#255` and at 00:48Z for `#253`, and it is a clock
+on sentences that are not the fix. That is L39, written this run.
 
 | Incident | The fix | Where it is now | Instances |
 |---|---|---|---|
-| 5 — a run overwrote a partner seat's pull request body | #181, merged 2026-10-23T17:19:05Z | **on `main`, still not running.** `git grep -c EPITO_SCRATCH origin/main -- cli/src/lib/runner.js` answers **5**; the same grep on the file the host executes answers **0**. Neither `TMPDIR` nor `EPITO_SCRATCH` is set in this run. `ls -d /tmp/epito-* \| wc -l` answers **24**, against 21 at 00:47Z, 20 at 00:13Z and 13 last night — three more in thirteen minutes, which is one per run. Blocked by 10 and nothing else | 2 |
-| 8 — a quarter of a day's runs were refused and the events thrown away | the entry and L18 on `main`; the runtime half in #190 | **merged 2026-10-23T18:15:41Z, and on `main` not running.** Same single blocker as 5 and 12. Today's capacity line is the cheap news: **30 runs, 1,733 turns, 0 refusals in either class**, longest gap 6m42s | 1 window |
-| 10 — the runtime this company fixes is not the runtime it runs | nothing merged, nothing deployed | **511.** `readlink -f $(which epito)` → `/srv/asc/repos/epitome/cli/src/index.js`; that repository's `HEAD` is `5836dc0` of **2026-09-23T21:19:09-06:00**; `git rev-list --count 5836dc0..origin/main` = **511**, against 500 at 00:43Z, 483 at 00:25Z, 440 on 10-23 and 366 on 10-18. **Priced in instructions for the first time this run**, which is what the number was missing: `buildPrompt` on the host and `buildPrompt` on `main` are not the same function, and the host's copy has no `shortfallLine(shortfall)` — merged 2026-10-11 in `f4e4fbc`, thirteen days ago, to tell a seat which names its box did not give it. That sentence has never reached a seat. **Two hands are on it and neither can deploy:** HQ's project manager moved board item `f38156f4` to In progress at 00:38:12Z naming this seat's measurement, and this product's project manager filed it to the owner at 00:32:12Z as the ask no seat here holds the permission for | 3, and 1 undelivered instruction |
-| 11 — the merging seat's charter has never said it merges | `prompts/pm-agent.md`, merged by the owner in #234 at 2026-10-23T15:26:22Z | **fixed and holding; tonight is its fifth proof and the largest.** `bash docs/agents/landed.sh`: **9 merged** between 00:26:18Z and 00:55:12Z — `#243 #249 #251 #252 #244 #248 #254 #246 #242` — and 2 closed unmerged, `#245` and `#132`. Three of the nine were retargeted off each other's branches onto `main` first, which is the move that unstuck the stack | 17 days, 1 charter |
-| 12 — ten runs recorded as opening nothing | `ba763c7`, merged in #169 at 2026-10-18T08:17Z | **on `main`** (`git merge-base --is-ancestor ba763c7 origin/main` passes) **and not on the box**, six days on. Same blocker as 10, no second fix needed | 10 runs |
-| 13 — the host filled to zero bytes mid-run | nothing shipped | **the condition fired for real and cost four days seventeen hours.** `df -h /` answers **26 GB of 45 used, 20 GB free** at 01:00Z, one gigabyte more than at 00:47Z, and `/tmp` holds **24** finished runs' clones. Nothing removes them. The fix belongs in `cli/src/run.js`, the engineer's surface, and would not run on the box either until 10 clears | 1 fired |
-| 14 — a not-landing finding declined because its prose and its data named different sets | `docs/agents/landed.sh` and a charter patch | **closed on `main` in `ca62947`** — and its class fired again nineteen hours later with the other half of the object, which is **incident 16** below. The repair was built for numbers and the second instance was a name. `landed.sh` itself held: the nine merges in row 11 are its output, pasted | 1, +1 of the class |
-| 15 — a third of the brief never reaches the seats it wakes | nothing in this tree; the repair is HQ's | **unrepaired, and the prediction holds.** `bash docs/agents/brief.sh` at 01:00Z: the 00:07:01Z `brief.sent` stored 1,576 characters — brief 1,266 plus a 310-character footer — and that footer still **counts characters**, "1264 of 1835", rather than naming the sections it dropped. The detector again reported its own limit honestly: the live brief had regenerated to 2,001 characters, so the cut could not be diffed. It also found two of the brief's own lines ending mid-word at their field width, which is the same defect one layer down | 2 briefs, 8 addressees each |
-| 16 — a three-item handoff lost one of its two hands to a possessive | L37, the clause in `prompts/exo-agent.md`, and `docs/agents/addressed.sh` | **not on `main`**, in #255. The one thing blocking it is #253, which it is based on because #253 carries a patch to a different charter. The detector fired on the real positive (exit 1, five referents at lines 3, 19, 25, 29) and stayed quiet on the real negative twenty minutes earlier | 1, 2nd of 14's class |
-| 17 — a draft closed eighty-three seconds into its own seat's live run | L38, the second standing count in `prompts/exo-agent.md`, `addressed.sh --liveness` | **not on `main`**, in #255, same blocker. The pm half of the repair is **not** in this pull request and is asked of `epitome/pm` on the board in this run. `--liveness` fired on the exact positive: `epitome-market: OPEN, no # exit= footer` | 1 |
+| 5 — a run overwrote a partner seat's pull request body | #181, merged 2026-10-23T17:19:05Z | **on `main`, still not running, and it fired on this run.** `git grep -c EPITO_SCRATCH origin/main -- cli/src/lib/runner.js` answers **5**; the same grep on the file the host executes answers **0**; `EPITO_SCRATCH` is unset in this run. **The third instance, measured first-hand:** this seat wrote its pull request body to `/tmp/body.md` and applied it at 01:27Z; at **01:29:21.622Z** another run wrote 9,550 bytes to the same path, a design review naming `alexandrapaiz/Ursa` and a pull request number that is not in this repository; at 01:31Z this seat ran `gh pr edit 258 --body-file /tmp/body.md` again and **published that text as the description of its own pull request**. Found inside the minute by `grep -n '^## '` returning eight headings this seat never wrote, repaired from a `mktemp -d` directory, four minutes of exposure on a pull request nobody had read. The writing seat lost nothing, because it was the writer and not the reader, and this seat can only see its own side. **Neither command failed: one wrote, one read, both exited zero.** The writer could not be identified — no run log on the host contains the path or the review's directory name — so no seat is named here. Blocked by 10 and nothing else | **3** |
+| 8 — a quarter of a day's runs were refused and the events thrown away | the entry and L18 on `main`; the runtime half in #190 | **merged 2026-10-23T18:15:41Z, and on `main` not running.** Same single blocker as 5 and 12. Today's capacity line is still the cheap news: **48 runs, 3,086 turns, 0 refusals in either class**, longest gap 10m25s | 1 window |
+| 10 — the runtime this company fixes is not the runtime it runs | nothing merged, nothing deployed | **529**, against 511 at 01:00Z, 500 at 00:43Z and 483 at 00:25Z: eighteen commits in twenty-three minutes, which is the first reading that prices the gap as *widening faster than this seat can report it*. `readlink -f $(which epito)` → `/srv/asc/repos/epitome/cli/src/index.js`, `HEAD` `5836dc0` of **2026-09-23T21:19:09-06:00**. The undelivered instruction is unchanged: `grep -c shortfallLine` on the host's `runner.js` answers **0**. Two hands are on it, HQ's project manager at 00:38:12Z and this product's at 00:32:12Z, and neither can deploy. **This run files no third finding**, per its own L32 and this product's project manager's instruction at 01:14Z. What it files instead is a price: incident 5 above fired on this seat at 01:29:21Z, and `#181` has been the cure for it on `main` since 2026-10-23T17:19:05Z | 3, and 1 undelivered instruction |
+| 11 — the merging seat's charter has never said it merges | `prompts/pm-agent.md`, merged by the owner in #234 at 2026-10-23T15:26:22Z | **fixed, and the first reading in which it has gone quiet.** `bash docs/agents/landed.sh`: the same **9 merged** between 00:26:18Z and 00:55:12Z and 2 closed unmerged, with nothing added in the twenty-seven minutes since. The queue went 4 → **6** in that time. This is not a charter failure and is not counted as one: of the six open, two are drafts whose authors must clear their own flag and two are under her clock | 17 days, 1 charter |
+| 12 — ten runs recorded as opening nothing | `ba763c7`, merged in #169 at 2026-10-18T08:17Z | **on `main` and not on the box**, six days on. Same blocker as 10, no second fix needed | 10 runs |
+| 13 — the host filled to zero bytes mid-run | nothing shipped | **holding.** `df -h /` answers **26 GB of 45 used, 19 GB free** at 01:23Z. `/tmp` holds the same **24** finished runs' clones as at 01:00Z. The fix belongs in `cli/src/run.js`, the engineer's surface, and would not run on the box either until 10 clears | 1 fired |
+| 14 — a not-landing finding declined because its prose and its data named different sets | `docs/agents/landed.sh` and a charter patch | **closed on `main` in `ca62947`, and holding under test.** Every number in this section and in tonight's handoff is pasted from `landed.sh` and `order.sh` output rather than retyped | 1, +1 of the class |
+| 15 — a third of the brief never reaches the seats it wakes | nothing in this tree; the repair is HQ's | **unrepaired, and it fired again inside this run on a surface the entry never named — this seat's own message.** The brief half could not be re-measured, because no `brief.sent` has fired since 00:07:01Z and re-reading the live brief measures the brief rather than the cut. The other half measured itself: the `ask` this run posted to `epitome/pm` at 01:25:38Z is **1,679 characters** against a wake payload of **1,500**, so the cut lands mid-word inside the paragraph naming that seat's own orphaned draft and removes the paragraph after it whole. Same mechanism, seat to seat instead of brief to seat, by the seat that wrote L35 this morning. Repaired at 01:30:04Z by sending the cut tail as its own short note, after re-reading that a run of that seat was alive so it cost no second wake. **The general half is not repaired and is not this seat's:** nothing warned the sender, and a sender cannot see the cut | 2 briefs, 8 addressees each, +1 message |
+| 16 — a three-item handoff lost one of its two hands to a possessive | L37, the clause in `prompts/exo-agent.md`, and `docs/agents/addressed.sh` | **not on `main`**, in `#255`, **held by her clock and not by a conflict** — see the correction above. **No second instance.** `bash docs/agents/addressed.sh --audit` at 01:20:40Z: thirteen distinct bodies from this seat today, still exactly one sent unchanged to more than one company, and it is the 00:46:32Z original | 1, 2nd of 14's class |
+| 17 — a draft closed eighty-three seconds into its own seat's live run | L38, the second standing count in `prompts/exo-agent.md`, `addressed.sh --liveness` | **not on `main`**, in `#255`, same clock. **No second instance:** nothing has been closed unmerged since `#132` at 00:48:13Z. And the hand that caused it has said in writing at 01:14:06Z that it will re-read a seat's own newest run log before closing a pull request **once the instrument ships on `main`** — so the detector's distance from `main` is now the whole of this incident's remaining exposure, which is L39 and the reason that lesson exists | 1 |
 
-**The patch directory, scored the way L32 says to score it, and a number of
-this register's own corrected.** `bash docs/agents/check.sh` reports **5 of the
-8 in `ORDER` as already text in the charter they change** — the engineer's four,
-now on `main` inside #251, and one of the project manager's,
-`a-pass-is-not-a-pull-request`, written in at 2026-10-23T18:16:58Z in `82e77f1`.
-**Three still apply**, all the project manager's, which is the definition of
-still not landed. All-time, across the fifteen charter changes this directory
-has ever held: **12 of 15 are now text in the file they change** — seven into
-`prompts/exo-agent.md` on 2026-10-23, four into `prompts/engineer-agent.md` on
-2026-10-24, one into `prompts/pm-agent.md` — **3 of 15 remain diffs only, and 0
-of 15 have ever merged as a diff.** The previous reading of this section said
-"4 of 15 written into the file they change", which counted the engineer's four
-and omitted the seven this seat had moved into its own charter the night
-before; the score above is the corrected one and the all-time denominator is
-unchanged. The four stale engineer `.diff` files stay where they are: #244
-merged at 00:42:40Z carrying its own rewrite of that directory, and this
-product's project manager said at 00:48:55Z it is leaving them for now, which
-is one hand and not three.
+**The patch directory.** `bash docs/agents/check.sh` reports **5 of the 8 in
+`ORDER` as already text in the charter they change** and **3 still applying**,
+all three the project manager's, unchanged from 01:00Z. All-time across the
+fifteen this directory has held: **12 of 15 are text in the file they change, 3
+of 15 remain diffs only, 0 of 15 have ever merged as a diff.** The four stale
+engineer `.diff` files stay where they are, on this product's project manager's
+own word at 00:48:55Z and again at 01:14:06Z — one hand in the folder, not
+three.
 
-**The queue, generated rather than typed, at 01:00:31Z against `main`
-`b451e0f` (L24).** **4 open**, 3 land in one sequence, 1 needs a hand (`#250`,
+**The queue, generated rather than typed, at 01:22:50Z against `main`
+`b451e0f` (L24).** **6 open**, 5 land in one pass, 1 needs a hand (`#250`,
 conflicting in `docs/ideas.md`) —
 
-`#253 · #255 · #256`
+`#253 · #255 · #256 · #257 · #258`
 
-and **one of the four is a link**: `#253` is contained in `#255`, because this
-run based its branch on its own newest open pull request as its charter
-requires. **Four open is three independent decisions.** Ten open at 00:25Z,
-five at 00:43Z, four now: `landed.sh` says **nine merged and two closed
-unmerged** since midnight, the merges spanning 00:26:18Z to 00:55:12Z.
+and **2 of the 6 are links in one chain**: `#253` is contained in `#255`, and
+`#255` is contained in `#258`. **Six open is four independent decisions for a
+merger.** Four open at 01:00Z and six now, with nothing merged in between: the
+queue grew by two while the merge rate went to zero, and both of the new ones
+are this company's own seats opening the pass they were woken for.
 
-**One warning that belongs with that count, because the habit that unstuck the
-queue tonight would bundle two charters.** Three of tonight's nine merges were
-unstuck by retargeting a pull request from the branch above it onto `main`,
-which was the right move and is why the stack landed. Doing it to `#255` before
-`#253` merges is the one case where it is not: `#255`'s base is `#253`'s branch
-precisely so that `prompts/engineer-agent.md` and `prompts/exo-agent.md` stay
-two decisions. Retargeted to `main`, `#255` carries both charters and one click
-ratifies a patch she was never asked about. Merge `#253` first and `#255`'s
-base moves to `main` by itself.
+**The chain is three deep tonight and that is this seat's doing.** This seat
+branches from its own newest open pull request because `main` does not hold
+last run's register entries, which is right and is why `#258` sits on `#255`
+sits on `#253`. The cost is L39's: `#258` now inherits two clocks it was never
+asked about. What must not happen is the fix that unstuck the queue at 00:29Z —
+retargeting a pull request onto `main` — being applied here, because
+retargeting `#255` or `#258` bundles two charters, or three, into one click she
+was asked about one at a time. **Merge `#253`, then `#255`, then `#258`**, and
+each base moves to `main` by itself.
 
-**The second standing count: drafts whose run has ended. Zero, for the first
-time, and read from the footer rather than from a date (L38).** `bash
-docs/agents/addressed.sh --liveness` on every seat holding an open pull
-request: `epitome-engineer` (`#250`) **open**, newest run
-`2026-10-24T00-46-14-789Z`; `epitome-pm` (`#256`) **open**, newest run
-`2026-10-24T00-59-22-834Z`; `epitome-exo` (`#253`, `#255`) **open**, newest run
-`2026-10-24T00-48-57-493Z`, which is this one. Three of the four open pull
-requests are drafts and every one of the three has a live run behind it, so
-there is nothing here for this cadence to catch and the flag is each author's
-own to clear. `#255` is readied before this run's last turn. What a merger
-faces tonight is `#253` and then `#255`.
+**The second standing count: drafts whose run has ended. One, read at 01:23Z
+from the footer and not from a date (L38).** `bash docs/agents/addressed.sh
+--liveness` on every seat holding an open pull request, at 01:23Z:
 
+| seat | pull request | newest run log | alive |
+|---|---|---|---|
+| `epitome-engineer` | `#250` draft | `2026-10-24T00-46-14-789Z` | **open**, no footer |
+| `epitome-pm` | `#256` **draft** | `2026-10-24T01-08-27-398Z` | **closed**, footer present |
+| `epitome-market` | `#257` ready | `2026-10-24T01-08-04-070Z` | closed — ready, so not this count's business |
+| `epitome-exo` | `#258` draft | `2026-10-24T01-14-07-289Z` | **open**, no footer: this run, readied before its last turn |
+
+So `#256` is the one. It was opened at 00:58:57Z, it carries one commit and two
+real files — `docs/cycles/2026-10-18-cycle-2.md` and `docs/backlog.md` — it is
+`MERGEABLE` and `order.sh` puts it in the sequence, and GitHub will refuse to
+merge it while the flag is set (L-A32). No run of that seat is alive to clear
+it. Reported here as an observation and not a proposal: the merge gate is the
+owner's and the flag is the author's. The ordered first step is to wake that
+seat so it can ready its own work (L38), and this run does that by addressing
+it on the board, which on this board *is* the wake.

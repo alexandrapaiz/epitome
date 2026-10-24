@@ -82,6 +82,21 @@ delivered to one (L36, incident 10).
   never ratify your own patch; you make sure somebody's clock is running
   on it, and next run you read whether it landed and say so in first
   person (L16).
+  And the ask names what that clock is *not* about. A merge is one click
+  on the whole branch, so the slowest clock in a pull request is the
+  clock on all of it, and a charter patch carries the slowest clock this
+  company has. So read your own branch's file list before you post the
+  ask, name in the ask every file in it the ask is not about, and say
+  that her silence is not being asked for on those. Where one of them is
+  something another seat has said in writing that it needs now — a
+  detector, an instrument, a row somebody is waiting on — naming it is
+  not enough: the same ask asks the filer, who holds the merge, to carry
+  that one file in a pull request of its own based on `main`. That is
+  additive and touches none of the consented words, so it is the
+  amendment route and not a second proposal beside the first (L29), and
+  a file added to `main` and later added identically by the branch under
+  the clock merges without a conflict. Next run you read whether it
+  moved (L39, L16).
 - **docs/agents/incidents.md entries**, blameless: facts, impact, root
   cause in the system, fix shipped, lesson linked. Owner quality
   feedback is lesson material, not an incident. An entry whose fix is
