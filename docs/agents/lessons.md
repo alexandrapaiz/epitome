@@ -3041,3 +3041,79 @@ those are cited here rather than relied on is the 40,642 bytes.
 
 `portable: yes`
 `role: exo, pm`
+
+## L50 — A register is the only memory a stateless seat has, so it ships on its own branch off `main`: a rule inside the quarantine cannot end the quarantine, and only a count can
+
+**Trigger (2026-10-24T17:2xZ)**, no owner correction behind it. This run was
+woken by the merge of `#283` and told to take the next item in its lane. The
+item it found was its own register: `docs/agents/lessons.md` on `main` read
+L1 to L35 and then jumped to L47, and `docs/agents/incidents.md` read 15 and
+then 23.
+
+**The measurement, from `bash docs/agents/offmain.sh` at 17:27:42Z against
+`main` `973411c`.** Eleven lessons (L36 to L46), seven incidents (16 to 22)
+and five detector commands — `idle.sh`, `mergeable.sh`, `reverted.sh`,
+`scratch.sh`, `stage.sh` — existed on a branch and on no `main`. For
+twenty-one of those the instrument reports no ungated branch carrying them at
+all, which is the finding: the thing they were waiting for was not a merger,
+it was the owner's answer to a question about two paragraphs of the
+engineer's instruction file.
+
+**How the one that did reach `main` left it.** L36 merged inside `#253` at
+12:39:01Z and the revert of `#253` reached `main` at 12:45:36Z, so it was
+readable for **six minutes thirty-five seconds** and then was not. The revert
+was correct and this is not a finding against it: this product's project
+manager had merged a charter chain, read in the rest of its inbox that a
+parallel pass of its own seat had put the prior question to the owner, and
+undid its own merge rather than pre-empt her answer. What the revert was
+aimed at was one charter paragraph. What it took was that paragraph, a
+lesson, and an incident-register re-measurement thirty-four minutes newer
+than the one it restored, because all three were one commit.
+
+**The part that makes this a rule and not a report.** L39 already says this.
+*A pull request's clock is the slowest clock inside it, so a charter patch
+holds every file that shares its branch* — written at **01:20:20Z**, eleven
+hours and eighteen minutes before the merge that lost L36, by this seat, in
+full knowledge of the mechanism. It could not act, and no amount of better
+wording would have helped, because **L39 was itself in the quarantine it
+describes.** Every run of every seat here starts from a fresh clone and reads
+this file cold off `main`. An entry on a branch is not a rule that is late.
+It is a rule that does not exist for the only reader it was written for, and
+the reader it fails first is the next run of its own author.
+
+**Rule.** The register is the seat's memory and therefore the one artifact
+that never sits downstream of a decision. Three clauses.
+
+**One: the register ships on its own branch off `main`, every run.** Not
+stacked on the previous run's branch, not sharing a pull request with a
+charter patch, not sharing one with anything whose merge is somebody's
+judgment call rather than a mechanical check. If a run produces both, that is
+two pull requests and the register's is the one that does not wait.
+
+**Two: a free route is the question, not a blocked one.** An entry carried by
+one gated branch and one ungated branch is not stuck, and this is worth
+checking before anything is escalated: L36 had an ungated route all day in
+this product's project manager's `#269` and nobody read it, including the
+seat that wrote L36. `offmain.sh` answers it per identifier rather than per
+branch, which is the difference between twenty-one stuck things and
+twenty-five.
+
+**Three: the proof is a count on `main`, published with the other standing
+counts.** A seat cannot report that it has learned something by pointing at
+the branch where it wrote it. The number is how many of its own identifiers
+are readable on `main`, and a seat whose register entries are counted as
+output while they sit on branches is measuring intention, which is L-A32's
+arithmetic applied to a register rather than to a draft.
+
+**What binds whom.** This seat, on both the branch rule and the count; the
+two are added to its charter's standing observations, which it owes and has
+not written, for the reason named in incident 24 and in this run's pull
+request. Any seat in this product that keeps a register: the branch rule is
+the whole of it, and `bash docs/agents/offmain.sh` is one command. Companion
+to L19, which says durable means on `main`, and to L39, which named the
+mechanism and is the evidence that naming it was not enough. The repair with
+a detector behind it is L-X1 as amended; the detector is `offmain.sh` and the
+real positive it was checked against is the measurement above.
+
+`portable: yes`
+`role: any`
