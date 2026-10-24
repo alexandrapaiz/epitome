@@ -1969,6 +1969,83 @@ register entry of this seat's is found off `main` again with no ungated route,
 that is a second instance of this entry and belongs where not-landing findings
 go.
 
+## Incident 26 — 2026-10-24 — The silence rule has been switched off company-wide for as long as the board has existed, and the only record of it is a rule that reads as a discipline
+
+**Status: open.** The local half is shipped — `docs/agents/clocks.sh`, in this
+run's pull request, which answers from the field and reads the deployed writer.
+The half that matters is a change to `runtime/board/store.py`, which is HQ's
+runtime and no seat here may write, and it is routed rather than claimed.
+Lessons: L52 and L53.
+
+**Facts, read rather than recalled.** `docs/standards/lessons.md` L-A98 makes a
+structured field the test of whether a consent clock exists: *until it is, no
+clock is running and no seat may later claim a release on it.* It reached this
+product's `main` in `#287` at **2026-10-24T18:21:59Z**.
+
+`bash docs/agents/clocks.sh` over the board's last 336 hours, at 22:0xZ:
+**146 asks, 36 announcing a clock in their own prose, 0 carrying `expires_at`**
+— epitome 20 of the 36, alexandra-systems 10, Ursa 4, alexandria 2.
+
+`bash docs/agents/clocks.sh --writable`, reading the copy the service executes
+at HQ `fd81418`, deployed to this host at 21:54:05Z: **`post_message` has no
+`expires_at` parameter at all**, `api.py:743` passes ten keys of which it is
+not one, and `store.py:518` writes the column as
+`case when %s = 'claim' then now() + make_interval(hours => %s) end`. The field
+is settable for a claim, for six hours, and for nothing else.
+
+**Impact, in this product's own terms and not as a portfolio estimate.**
+
+Three things that were believed and are not true. **One**, the four engineer
+charter patches this seat applied on 2026-10-20T18:34Z on the stated ground
+that the owner's silence had released them were released by nothing; the
+project manager's revert of `#253` at 12:44:16Z happens to have undone the part
+of that which was still in flight, on a narrower ground than this one.
+**Two**, `#294` withheld three clauses owed to `prompts/exo-agent.md` because
+"a clock is already running on that file" — there was no clock on `#260` or on
+`#271`, and the rule it obeyed did not apply. **Three**, every project manager
+in the portfolio is still instructed by `docs/standards/pm.md` §22 that a
+decision reserved to the owner "proceeds after forty-eight hours of her
+silence", and by L-A98 not one of them may, and nothing anywhere says the
+mechanism is off.
+
+The queue cost is the one to report (L-X7). Three clauses owed to this seat's
+own charter have now been withheld by two consecutive runs, the second time for
+a reason that did not exist. Seven open pull requests of this seat carry one
+charter file between them. **Twenty of this product's asks announce a clock and
+none is one**, the oldest on 2026-10-16T18:28:34Z, so the oldest thing waiting
+on a clock here has been waiting eight days on a clock that was never started.
+
+**Root cause, in the system.** Two, at two levels, and neither is a seat.
+
+The platform level: a column exists, a rule was built on it, and the writer was
+never given a parameter for it. This is L-A16's shape — configured is not in
+effect — with the twist that nothing was even configured: the rule arrived
+first and the field arrived never.
+
+The reading level, and this is the one inside this product's reach: **this
+charter tells its seat to read the `any` and `exo` sections of the law above it
+"at the start of a run", which is prose, and the one run that needed L-A98 did
+not read it.** An earlier run the same day did read L-A84 through L-A101 out of
+`#287` and said so. The runs have no memory of each other (L-A46), so a duty
+discharged by one is not discharged, and a sentence in a charter is enforced at
+the reliability of a model reading a file (L-A22).
+
+**Fix shipped, and where it is.** `docs/agents/clocks.sh` is in this run's
+pull request, based on `main`, with no `prompts/` path in it. It answers the
+reading question in one command with three exits, and its `--writable` mode is
+the real positive for the platform half. The `store.py` change and the
+company-wide statement of what is void are HQ's and are routed to
+`alexandra-systems/exo-centralizer` and to both project managers this run.
+
+**Re-measurement this entry owes, and the test that would close it (L20).** The
+next run of this seat runs `bash docs/agents/clocks.sh --writable`. If the field
+has become settable, this entry closes on the platform half and the count of
+prose clocks becomes the measure of whether anyone adopted it. If it has not,
+the instances are re-counted: the number to watch is **asks announcing a clock
+that carry no field**, 36 board-wide and 20 of this product's at 22:0xZ today,
+and a rise in it while the writer is unchanged is a second instance of the
+whole class rather than new entries.
+
 ## Open fixes, re-measured 2026-10-24T17:36:17Z
 
 L20 obliges this seat to re-measure every entry whose fix is not on `main`, on
