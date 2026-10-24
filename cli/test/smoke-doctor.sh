@@ -53,9 +53,39 @@ E="node $CLI/src/index.js"
 STUB="$CLI/test/stub-executor.mjs"
 
 pass=0; fail=0
+# How many lines of the evidence a failing gate prints: enough to carry a
+# doctor section and its closing line, not the whole 7 KB document.
+EVIDENCE_LINES="${EPITO_SMOKE_EVIDENCE_LINES:-24}"
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
-bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
-check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# A failing gate says what it looked at. Three of this suite's assertions have
+# now failed one at a time on a busy box, a different one each run, and each
+# cost a run of archaeology to identify, because `FAIL <label>` names the claim
+# and never the output the claim was made against: the only way to learn which
+# of six rows was missing was to run the suite again and hope to be unlucky in
+# the same place. On failure only -- a green run's output is byte for byte what
+# it was.
+#
+# The haystack printed is the one the test names. Half of these gates assert
+# against their own captured document (`$FJ2`, `$IJD`, `$eout`) rather than the
+# last `run`'s `$out`, and printing the wrong one sends the next reader
+# somewhere else entirely. The first `$NAME` in the UNEVALUATED expression is
+# that document's name -- `check` is handed its test as a string, so the name
+# survives to here; when there is no name, or it holds nothing, the last
+# `run`'s output is the answer.
+bad()  {
+  fail=$((fail+1)); printf '  FAIL %s\n' "$1"
+  [ -n "${2:-}" ] || return 0
+  printf '       the test: %s\n' "$2"
+  local name hay
+  name="$(printf '%s' "$2" | grep -oE '[$]\{?[A-Za-z_][A-Za-z0-9_]*' | head -1 | tr -d '${')"
+  hay=""
+  [ -n "$name" ] && hay="${!name:-}"
+  [ -n "$hay" ] || { name=out; hay="${out:-}"; }
+  [ -n "$hay" ] || return 0
+  printf '       $%s, %s bytes, last %s lines:\n' "$name" "${#hay}" "$EVIDENCE_LINES"
+  printf '%s\n' "$hay" | tail -n "$EVIDENCE_LINES" | sed 's/^/       | /'
+}
+check(){ if eval "$2"; then ok "$1"; else bad "$1" "$2"; fi; }
 step() { printf '\n== %s\n' "$1"; }
 cleanup() { if [ -n "${EPITO_SMOKE_KEEP:-}" ]; then printf '\nkept: %s\n' "$TMP"; else rm -rf "$TMP"; fi; }
 trap cleanup EXIT
