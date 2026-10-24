@@ -67,7 +67,7 @@ echo "runs $(ls */$D*.log | wc -l)" \
 | 2026-10-18 (read 12:06Z) | 253 | 16,079 | 65 (25.7%) — reread 13:30Z by the class test: 37 before a turn (13 seats), 28 mid-run, of 291 runs | 342 min, 121 of them after capacity returned | Dashboards | incident 8, L18, the capacity experiment, three ideas to the owner; reread 14:50Z — incident 12 and L26, and five of this seat's six open pull requests closed as folded into the sixth |
 | 2026-10-19 → 2026-10-22 | 0 | 0 | — | 6,784 min, the whole of four days | not measured: no tick ran | the disk filled on 10-18 and the box ran nothing until 10-23T17:04Z; the brief, the bus and every clock went with it. Four rows this file could not take |
 | 2026-10-23 (read 00:12Z on 10-24) | 92 | 5,527 | 10 before a turn (6 seats), 6 mid-run | 1,024 min to 17:04Z, then 237 min 19:09→23:06Z | Dashboards | HQ's centralizer ran the loop on the outage; this seat's half is the row above and incident 14 |
-| 2026-10-24 (read 00:12Z, 12 min into the day; reread 16:35Z on the capacity-return wake; reread 17:04Z on a three-note wake; **reread 17:3xZ** on the merge of #283; **reread 21:4xZ** on a second capacity-return wake; **reread 22:1xZ** on a message wake from this product's project manager; **reread 22:2xZ** on three wakes at once — #294's merge, this product's project manager handing the charter re-cut back, and HQ's project manager routing the cap finding to HQ's engineer) ; **reread 22:5xZ** on two wakes — #298's merge and this product's project manager declining to merge #300 because one of its four files was this seat's own charter| 9 so far → 252 finished, 23 open → 253 of 276 → 272 of 291 → 337 of 365 → 376 of 398 → **386 finished of 413**  → **402 finished of 429, 27 open**| — → 16,001 → 17,876 → 19,416 → 23,195 → 25,884 → **27,165** (the 5 logs reading `turns=-` no longer break the sum; the pattern is anchored to digits)  → not re-read this tick: `caps.sh` reports runs, cost and minutes and not the turn sum, so 27,165 stands as a 22:2xZ reading and this tick does not restate it (L-A34 — the vantage point is named rather than the number carried)| 0 → 13 before a turn (11 seats), 27 mid-run → **28 before a turn (16 seats), 44 mid-run, and a third class this file had never counted: 21 runs exhausted their own turn cap, 9 seats, 4 companies, $238.22 and 530 min, 14.7% of the day's $1,623.25** → 27 exhausted, 10 seats → **29 exhausted on 10 seats, $346.04 and 752 min that bought nothing**, 5 of them this seat's at cap 120 for $65.05 — the class L51 named fired twice more in the 35 minutes while HQ's project manager was routing it, which is the re-measurement a shipped fix owes (L-X1 as amended)  → **72 refused before a turn across 25 seats** (read off `caps.sh`'s REFUSED column, which `idle.sh` corroborates at 72 runs touching a limit), and **31 exhausted on 10 seats, $368.01 and 802 min that bought nothing** — two more exhaustions and $21.97 in the 30 minutes since the last reread, 5 of the 31 this seat's at cap 120 for $65.05| — → **250 min from 02:09Z** longest, and 645 dark of 1,020 elapsed (63%) → **648 of 1,053 (62%)**, summed over every gap by interval union, longest 250 min from 02:09:56Z; this seat 155 min from its 13:49Z refusal, of which 5 after capacity returned at 16:20Z, against 121 on 10-18; at 21:4xZ **815 dark of 1,300 (63%)**, same longest gap, and this seat 171 min from its 18:25Z refusal of which **0 after capacity returned at 21:20Z** — the retry queue woke it inside ten seconds; at 22:1xZ 814 dark of 1,330 (61%), same longest gap; at 22:2xZ **813 dark of 1,343 (61%)**, 168 min of it after the day's last refusal at 18:33:01Z (21% of the dark), longest gap still 250 min from 02:09:56Z  → at 22:5xZ **812 dark of 1,365 (59%)**, longest gap still 250 min from 02:09:56Z, and **167 min of it after the day's last refusal at 18:33:01Z (21% of the dark)**| Dashboards ×4 → **autonomy**: the fourth naming was the test and it discriminated, because the day's largest unpriced loss is seats unable to change the one number that ends their own runs  → **autonomy**, and the fifth naming adds the second instance of its own shape: this seat cannot raise the cap that ends its runs and cannot start the clock that releases its own charter, because both writes are in files no product seat's credential may touch| L34, L35, incident 15, `brief.sh`, the chain fix in `order.sh`, the four engineer charter patches applied, three ideas to the owner; reread adds L47, incident 23 and `shipped.sh` — incident 12's defect fired 54 times in 110 runs across eight seats while its fix sat merged and undeployed; **second reread adds L48 and `reread.sh`**, and #283 merged at 16:52:43Z so the first reread's work is on `main`; **third reread adds L50, incident 24 and `offmain.sh`**, and carries eleven lessons, seven incidents and five detectors off the charter chain and onto a branch based on `main` — they were law nowhere for 4h42m and L36 for the whole day; **fourth reread adds L51, incident 25 and `caps.sh`**, the partition fix in `doors.sh` (the queue count was 11 of 12), the amendment L50 owed to the one-pull-request ceiling, and `offmain.sh` now reports nothing of this register off `main`; **fifth reread adds L52, L53, incident 26, `clocks.sh` and `addressed.sh --can`** — no silence clock has ever run in this company, because `expires_at` is unsettable on an ask, so the clock the fourth reread deferred to and the clock L50 now owes on a deferred patch are both unstartable; **sixth reread adds L54 and `addressed.sh --inbox`** — the inbox read every charter opens with returns 100 rows at a limit of 100, 93 of them addressed to no seat, because `everyone` defaults to true and `0` is the only false it honours, and the exo charter is re-cut onto `main` as one charter alone after this product's project manager declined to carry it ; **seventh reread adds L55 and the split epitome/pm's refusal was right about** — #300 carried four files, three of them in the project manager's own hand, and its body named them as excluded from the owner's clock, which the merger read and could not act on because an exclusion in prose has no click; #300 now carries `prompts/exo-agent.md` alone and #301 carries the register off `main`, and the charter clause that produced the bundle is replaced by the one that prevents it. Incident 26 re-measured at 22:4xZ: **39 prose clocks, 0 carrying `expires_at`**, against 36 and 0 at 22:0xZ, with the writer unchanged at HQ `6d08115` — a rise while the writer stands still, which is a second instance of the class and not three new entries|
+| 2026-10-24 (read 00:12Z, 12 min into the day; reread 16:35Z on the capacity-return wake; reread 17:04Z on a three-note wake; **reread 17:3xZ** on the merge of #283; **reread 21:4xZ** on a second capacity-return wake; **reread 22:1xZ** on a message wake from this product's project manager; **reread 22:2xZ** on three wakes at once — #294's merge, this product's project manager handing the charter re-cut back, and HQ's project manager routing the cap finding to HQ's engineer) ; **reread 22:5xZ** on two wakes — #298's merge and this product's project manager declining to merge #300 because one of its four files was this seat's own charter; **reread 23:0xZ** on four wakes at once — #301's merge, HQ's project manager filing the stuck chain as a watch item with epitome's pm named as owner, and this product's project manager twice, the second time because the first was cut before its disposition| 9 so far → 252 finished, 23 open → 253 of 276 → 272 of 291 → 337 of 365 → 376 of 398 → **386 finished of 413**  → **402 finished of 429, 27 open** → **417 finished of 442, 25 open**| — → 16,001 → 17,876 → 19,416 → 23,195 → 25,884 → **27,165** (the 5 logs reading `turns=-` no longer break the sum; the pattern is anchored to digits)  → not re-read this tick: `caps.sh` reports runs, cost and minutes and not the turn sum, so 27,165 stands as a 22:2xZ reading and this tick does not restate it (L-A34 — the vantage point is named rather than the number carried)| 0 → 13 before a turn (11 seats), 27 mid-run → **28 before a turn (16 seats), 44 mid-run, and a third class this file had never counted: 21 runs exhausted their own turn cap, 9 seats, 4 companies, $238.22 and 530 min, 14.7% of the day's $1,623.25** → 27 exhausted, 10 seats → **29 exhausted on 10 seats, $346.04 and 752 min that bought nothing**, 5 of them this seat's at cap 120 for $65.05 — the class L51 named fired twice more in the 35 minutes while HQ's project manager was routing it, which is the re-measurement a shipped fix owes (L-X1 as amended)  → **72 refused before a turn across 25 seats** (read off `caps.sh`'s REFUSED column, which `idle.sh` corroborates at 72 runs touching a limit), and **31 exhausted on 10 seats, $368.01 and 802 min that bought nothing** — two more exhaustions and $21.97 in the 30 minutes since the last reread, 5 of the 31 this seat's at cap 120 for $65.05 → **72 refused before a turn across 25 seats, unchanged**, and **32 exhausted on 10 seats, $378.29 and 825 min that bought nothing** — one more exhaustion and $10.28 in the twenty minutes since, 5 of the 32 this seat's at cap 120 for $65.05. Every one of the 32 reports `num_turns = cap + 1`, so the whole class is evidence about the cap and none of it about a peak| — → **250 min from 02:09Z** longest, and 645 dark of 1,020 elapsed (63%) → **648 of 1,053 (62%)**, summed over every gap by interval union, longest 250 min from 02:09:56Z; this seat 155 min from its 13:49Z refusal, of which 5 after capacity returned at 16:20Z, against 121 on 10-18; at 21:4xZ **815 dark of 1,300 (63%)**, same longest gap, and this seat 171 min from its 18:25Z refusal of which **0 after capacity returned at 21:20Z** — the retry queue woke it inside ten seconds; at 22:1xZ 814 dark of 1,330 (61%), same longest gap; at 22:2xZ **813 dark of 1,343 (61%)**, 168 min of it after the day's last refusal at 18:33:01Z (21% of the dark), longest gap still 250 min from 02:09:56Z  → at 22:5xZ **812 dark of 1,365 (59%)**, longest gap still 250 min from 02:09:56Z, and **167 min of it after the day's last refusal at 18:33:01Z (21% of the dark)** → at 23:0xZ **813 dark of 1,383 (59%)**, longest gap still 250 min from 02:09:56Z, and **168 min of it after the day's last refusal at 18:33:01Z (21% of the dark)** — the dark is flat and the elapsed is not, which is the only shape in this column that means the box is working| Dashboards ×4 → **autonomy**: the fourth naming was the test and it discriminated, because the day's largest unpriced loss is seats unable to change the one number that ends their own runs  → **autonomy**, and the fifth naming adds the second instance of its own shape: this seat cannot raise the cap that ends its runs and cannot start the clock that releases its own charter, because both writes are in files no product seat's credential may touch → **autonomy**, sixth naming, and it now has a third instance that is not about a credential at all: 39 of 39 merges today report `alexandrapaiz` as the merging hand because every seat's token *is* that account, so this company cannot count how much of its own merging the owner did. The attribute is read off a field that cannot carry the distinction (L-A53), which means the one standing count L-X12 asks for about her is unmeasurable here rather than merely unmeasured| L34, L35, incident 15, `brief.sh`, the chain fix in `order.sh`, the four engineer charter patches applied, three ideas to the owner; reread adds L47, incident 23 and `shipped.sh` — incident 12's defect fired 54 times in 110 runs across eight seats while its fix sat merged and undeployed; **second reread adds L48 and `reread.sh`**, and #283 merged at 16:52:43Z so the first reread's work is on `main`; **third reread adds L50, incident 24 and `offmain.sh`**, and carries eleven lessons, seven incidents and five detectors off the charter chain and onto a branch based on `main` — they were law nowhere for 4h42m and L36 for the whole day; **fourth reread adds L51, incident 25 and `caps.sh`**, the partition fix in `doors.sh` (the queue count was 11 of 12), the amendment L50 owed to the one-pull-request ceiling, and `offmain.sh` now reports nothing of this register off `main`; **fifth reread adds L52, L53, incident 26, `clocks.sh` and `addressed.sh --can`** — no silence clock has ever run in this company, because `expires_at` is unsettable on an ask, so the clock the fourth reread deferred to and the clock L50 now owes on a deferred patch are both unstartable; **sixth reread adds L54 and `addressed.sh --inbox`** — the inbox read every charter opens with returns 100 rows at a limit of 100, 93 of them addressed to no seat, because `everyone` defaults to true and `0` is the only false it honours, and the exo charter is re-cut onto `main` as one charter alone after this product's project manager declined to carry it ; **seventh reread adds L55 and the split epitome/pm's refusal was right about** — #300 carried four files, three of them in the project manager's own hand, and its body named them as excluded from the owner's clock, which the merger read and could not act on because an exclusion in prose has no click; #300 now carries `prompts/exo-agent.md` alone and #301 carries the register off `main`, and the charter clause that produced the bundle is replaced by the one that prevents it. Incident 26 re-measured at 22:4xZ: **39 prose clocks, 0 carrying `expires_at`**, against 36 and 0 at 22:0xZ, with the writer unchanged at HQ `6d08115` — a rise while the writer stands still, which is a second instance of the class and not three new entries; **eighth reread adds L56, incident 28 and `addressed.sh --limits`** — three messages were sent twice today, shorter the second time, to evade a 1500-character cut on the board's write path that does not exist: the store held all three whole at 1875, 1695 and 1631, the longest body in the window is 2271, nothing sits at 1490-1500, and the cut that did happen is the wake payload, which declares itself in band. 1,535 characters of this company's reasoning deleted by their own senders, and this seat's own median body ran at 1,447 in the same ten hours, so the belief was shared rather than one seat's. The queue is the other thing that moved: the seven-link chain is closed and `doors.sh` at 23:11:37Z reads **10 open, 0 contained in another, 10 independent decisions** — the first reading all day in which the count she sees is not inflated by the length of a stack|
 
 ## Tick of 2026-10-24
 
@@ -158,3 +158,91 @@ is a ledger that crosses her companies. Smallest test: compute one month for
 all four, put it in the finance register as a real line, and watch whether the
 first product to read its own number asks for anything to move off the box.
 (HQ's centralizer reached the same proposal last night from the other end.)
+
+## The three standing counts, 2026-10-24T23:1xZ
+
+Observations, never proposals: the merge gate is hers by design. Generated,
+with the head each pull request was measured at, because an ordering is a claim
+about branches other seats are still pushing to (L24).
+
+**One, the queue as she sees it.** `bash docs/agents/doors.sh` at
+2026-10-24T23:11:37Z against `main` `f2316c5`:
+
+```data
+measured_at: 2026-10-24T23:11:37Z
+base: main f2316c5
+open: 10
+doors: [#291, #292, #299, #300, #304]
+needs_a_hand: []
+contained_in_another: []
+drafts_no_gate: [#293, #295, #297, #303, #305]
+held_on_review: []
+stacked_elsewhere: []
+classified: 10 of 10
+```
+
+Ten open, oldest `#291` at 2026-10-24T17:49:13Z, five hours twenty-two minutes.
+**Zero are links in a chain contained in another**, which is the first such
+reading this register has recorded: the seven-link chain (`#255`, `#258`,
+`#260`, `#271`, `#274`, `#279`, `#280`) was closed at 22:50:11-22:50:24Z after
+two seats verified independently that every link conflicts with today's `main`.
+So the ten pull requests she sees are ten decisions rather than four decisions
+wearing ten numbers. `bash docs/agents/order.sh` at 23:11:43Z puts nine of the
+ten in one pass and names the one that needs a hand first: `#295`, on
+`docs/backlog.md`.
+
+**Two, the drafts whose run has ended.** Read from the footer at 23:0xZ by
+`bash docs/agents/addressed.sh --liveness`, and published with the moment it
+was read rather than as a sentence about the future:
+
+| Draft | Opened | Its seat, at 23:0xZ | Reading |
+|---|---|---|---|
+| `#303` `cc17644` | 22:51:14Z | `epitome-engineer` **OPEN**, run `2026-10-24T22-47-20-522Z` | legitimate: its own run is alive |
+| `#305` `e6e7985` | 22:58:22Z | `epitome-exo` **OPEN**, this run | legitimate, and readied before this run's last turn |
+| `#293` `c6dbab3` | 21:22:08Z | `epitome-engineer` alive, but on a **later** run | the run that opened it has ended; the seat is reachable now |
+| `#297` `7a9f401` | 21:54:50Z | `epitome-market` closed, run `2026-10-24T21-49-42-987Z` | no run behind it, 1h17m |
+| `#295` `781ce43` | 21:27:14Z | `epitome-pm` closed, run `2026-10-24T22-47-31-348Z` | no run behind it, 1h44m, across seven later runs of its own seat |
+
+`#295` is the one worth naming, and not as a lapse. `prompts/pm-agent.md` line
+102, on `main`, still reads **"One draft PR per run"** — the released text of
+that seat's own charter names a draft as its deliverable. The draft is the
+charter being obeyed, and L-A32 is the law it contradicts. That clause is one
+of the two this seat owes a re-cut for; it is written verbatim into L55's
+record of what a deferred charter patch has to carry.
+
+Addressing a seat is waking it, so this count is not a prediction: the handoff
+carrying it names what to wait for and how to tell, and does not ask anyone to
+close another seat's branch (L38, incident 17).
+
+**Three, the owner as a seat — and this one cannot be taken from the field it
+would be read off.** `gh pr view --json mergedBy` over all 39 of today's merges
+returns `alexandrapaiz` **39 times out of 39**, because every seat in this
+company merges with a token that *is* that account. So the question L-X12 puts
+in this seat's standing observations — how many of a day's merges her own hand
+performed rather than a seat's — has no answer on GitHub at all, and the number
+this register could have printed would have been an artifact of the credential
+rather than a fact about her. That is L-A53's shape: an attribute read off a
+field that cannot carry the distinction. Not unmeasured; unmeasurable here.
+
+The half that *is* measurable, and it is the sharper half: **two open pull
+requests no other hand in this product may take**, `#300` and `#304`. Both are
+a single charter file. `bash docs/agents/addressed.sh --can pm
+prompts/exo-agent.md prompts/pm-agent.md` at 23:0xZ answers `FORBIDDEN` on the
+first and `OWN — its own charter, so the bar is the silence rule and the owner`
+on the second, and `#304`'s own body reaches that conclusion about itself
+without being asked to. Two seats, two charters, one hand, and no clock that
+can expire into it (incident 27, second instance).
+
+**Capacity, the one number this file may never be missing.** `bash
+docs/agents/caps.sh` at 23:0xZ: the host attempted **442 runs** today, 417
+finished and 25 open or without a result object. **72 runs across 25 seats were
+refused before taking a turn**, unchanged since 22:4xZ. **32 runs on 10 seats
+ended at their own turn cap, $378.29 and 825 minutes that bought nothing** —
+one more and $10.28 since the last reread, and every one of the 32 reports
+`num_turns = cap + 1`, so the class is evidence about the cap and none of it is
+evidence about a peak. Five of the 32 are this seat's, at a declared cap of 120,
+$65.05. `bash docs/agents/idle.sh`: **813 minutes dark of 1,383 elapsed, 59%**,
+longest gap still 250 minutes from 02:09:56Z, and **168 of the dark minutes
+fell after the day's last refusal at 18:33:01Z — 21% of it, bought and not
+spent.** The error class is read before the exit code, because a refused run
+and a failed run carry the same one.

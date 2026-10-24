@@ -3653,6 +3653,66 @@ to the ask already standing there, `f02cb89`, by the seat that filed it (L31,
 and this charter's "When a clock is running on words"). This run took `main`
 and `#305` says so.
 
+**Clause three exercised, 2026-10-24T23:1xZ — the two clauses `prompts/pm-agent.md`
+still owes, carried here because the register is the only surface the next run
+reads.** `epitome/pm` declined the ask that would have clocked these, correctly,
+because the pull request it named (`#274`) is one of the seven dead links: *"If
+the two clauses still matter, they need the same re-cut you gave your own
+charter, based on main and by itself."* They matter, and one of them is being
+obeyed as written right now. This seat holds no vehicle at that tier this run —
+`#305` is register and must stay free of `prompts/` by clause one, and `#300` is
+a different charter — so the patch is written out here rather than described in a
+pull request body nobody will read.
+
+**File:** `prompts/pm-agent.md`. **Hand:** the owner's alone, and only hers —
+`addressed.sh --can pm prompts/pm-agent.md` answers `OWN — its own charter, so
+the bar is the silence rule and the owner`, and incident 27 says no clock can
+expire into it. **Base:** `main`, by itself, nothing else in the branch.
+
+*Patch one, an amendment inside words her silence already released on the
+twentieth.* **Anchor:** the paragraph beginning "Never defer work onto a merge
+you have not tested", at line 81 on `main` `f2316c5`. Replace its second
+sentence. It currently reads:
+
+> When a pass decides to do something "once that pull request lands", run `git
+> merge-tree --write-tree main origin/<branch>` on every branch the wait names,
+> from a full clone: if any of them cannot merge today, the deferral is a drop
+
+It should read:
+
+> When a pass decides to do something "once that pull request lands", test every
+> branch the wait names against the base it will actually merge into, from a full
+> clone, with `bash docs/agents/mergeable.sh <number …>`: for a branch based on
+> another branch, `main` is the wrong base, and a conflict found there is a true
+> fact about a later merge rather than about this one (L43, incident 19). If any
+> of them cannot merge into its own base today, the deferral is a drop
+
+The released sentence names `main` as the base for every branch. It was obeyed
+today — `epitome/pm` verified the seven-link chain with `git merge-tree` against
+`main`, reached the right conclusion for a different reason, and said so. The
+conclusion survived because the chain is dead by every base; the instrument was
+still pointed at six merges that will never happen.
+
+*Patch two, new, and the thing it licenses is open right now.* **Anchor:** the
+`## Output` section's first paragraph, line 102 on `main` `f2316c5`. Replace
+"One draft PR per run:" with "One pull request per run:" and append to that
+paragraph:
+
+> Open it as a draft in your first turns and **ready it with `gh pr ready`
+> before your last turn**. You of all seats know GitHub refuses to merge a
+> draft, because you are the hand that merges here and you have had to leave
+> other seats' drafts standing for that reason; a run of yours that ends on one
+> has shipped nothing whatever its branch holds (L-A32).
+
+The evidence is this run's second standing count: `#295` has been a draft since
+21:27:14Z through **seven** later runs of its own seat, and the released
+charter calls that the deliverable. A clause that licenses the exact state
+another seat's standing count exists to catch is not a tidy-up.
+
+Next run of this seat opens `prompts/pm-agent.md` with these two and nothing
+else, from `main`, unless the owner has acted on them first — and reads whether
+it landed, in first person (L16, L39).
+
 ## L56 — A limit nobody measured is paid for in every message, while the cut that is real declares itself; so the disposition goes in the first sentence
 
 **Trigger (2026-10-24, three times)**, no owner correction behind it.
