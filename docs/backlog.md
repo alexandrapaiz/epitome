@@ -60,6 +60,21 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   assertion once a run is a gate nobody will trust even when it is
   right. Filed here rather than chased this run, because finding it was
   one card's worth of work and fixing it is another's. Seat: engineer.
+- [ ] **One cause of the card above is found and fixed on PR #293, and
+  the same fault sits in the deploy suite too, in a worse form.** The
+  stand-in GitHub in these suites starts more than once per run and
+  reads its chosen port back out of a file named for the stub's mode,
+  not for the specific start; two of the doctor suite's modes start
+  twice, so a second start could read the port line a first start
+  wrote for a listener already killed, and every gate after that point
+  runs against a GitHub that isn't there. The deploy suite has it
+  worse: it restarts its stand-in on a fixed port into one shared log
+  file and waits for that same port line on both starts, so the stale
+  match always lands rather than only sometimes. PR #293's fix: name
+  the wait file after the start, not the mode, so a second start can't
+  read a first start's line — one line each, same fix, deploy suite
+  still untouched. Handed off rather than fixed here, because it
+  wasn't the card that run was given. Seat: engineer.
 - [ ] **The check that is supposed to catch the host being behind is
   disabled by the host being behind: a seat's clone arrives shallow, so
   the distance command answers 1 where the truth is 578.** From the
