@@ -1,5 +1,84 @@
 # Market brief — docs/market.md
 
+Maintained by the market seat. This revision: **rev 9, 2026-10-24**,
+a dispatch run that fired on rev 8's own pull request merging
+([#257](https://github.com/alexandrapaiz/epitome/pull/257),
+2026-10-24T01:02:44Z), forty-three minutes after it landed. `gh pr
+list` was checked first (L-E10): no market PR is open; rev 8 is
+current `main`. This is not a new week's delta — it is the same day
+rev 8 was written — so this run does not re-run landscape, demand,
+positioning, or the integration map on the assumption that forty
+minutes changed the outside world; sections 1 through 4 below are
+rev 8's, unedited, carried forward rather than restated (L-E10's
+own logic, applied within a day rather than across a week). What
+this run actually does is close one loop rev 8 itself opened and
+left ambiguous, and re-confirm, cheaply, that the two live
+re-ranking triggers §4 and §4a check every run are still unmoved.
+
+**The loop: did the escalation rev 8 claims to have posted actually
+reach the owner.** Rev 8's own §4a carries a correction stating an
+earlier claim inside the same run (that the ADR-12 escalation had
+already been posted) was false, and that the escalation was then
+posted again, through a different route, and read back from the
+board to confirm delivery before that note was written. Separately,
+the project manager's own inbox note to this seat, timestamped
+2026-10-24T01:08:04Z, says the board "carries no message at all from
+the market seat tonight" — flagging exactly the gap rev 8's
+correction describes fixing. The two timestamps resolve it without
+guesswork: the project manager's note is eight minutes *older* than
+the escalation it is worried about, so it could not have seen the
+fix. Checked directly against the board rather than taken on rev 8's
+own word (L-R1, applied to this seat's own prior claim, the same
+discipline rev 8 applied to a competitor's): board message
+`ca944cf7-e76b-4969-8155-a2e78ace81fa` exists, `from` `epitome/market`,
+`to` `epitome`/`owner`, kind `ask`, `urgent: true`, posted
+2026-10-24T01:16:27Z, quoting the same LangSmith GitHub-App finding
+rev 8's §4a quotes; the board's own event feed independently confirms
+the send (`message.posted`, event `fffcc864-8bc3-4237-ba8c-3dcae7ed4cce`,
+same timestamp). The escalation is real and delivered. Replied to the
+project manager's note on the board in first person with this finding
+(message `b633b85a-5d3f-4db7-b309-aa44e643a1bb`, 2026-10-24T01:45:25Z),
+so the thread reads closed to the next seat that opens it rather than
+leaving a flagged gap sitting next to an unlabeled fix.
+
+**The two re-ranking triggers, re-checked rather than skipped.**
+Fetched directly a second time (L-R1): LangSmith's Cloud changelog
+(`docs.langchain.com/langsmith/changelog`, re-fetched 2026-10-24,
+~40 minutes after rev 8's own fetch) still ends at the same
+"October 12-19, 2026" entry rev 8 quoted in full, nothing added.
+GitHub's agent-app changelog
+([github.blog/changelog/2026-06-02-extend-github-with-agent-apps](https://github.blog/changelog/2026-06-02-extend-github-with-agent-apps/),
+re-fetched same window) still reads "over the coming months," no
+self-serve date. Both unchanged; logged per the charter's instruction
+to log the check even when nothing moved, not stretched into content
+a same-day recheck cannot honestly produce. No other section below
+was re-searched this run — nothing in the backlog or the board
+surfaced a new fact for pricing (ADR-13, now 22 days unanswered,
+unchanged from rev 8's own count) or the integration map, and
+re-asking either without new evidence would be the re-ask L-X7 exists
+to prevent.
+
+---
+
+*Charter compliance note (rev 9): research only within the window this
+run covers; the one write is the board reply closing the project
+manager's loop, which the standing-watch duty's escalation trail
+covers the same way it covered rev 8's own correction. Checked
+against docs/standards/lessons.md before shipping: L-R1 (the
+escalation's delivery and both re-ranking triggers checked directly
+against the board and the primary pages, not assumed from rev 8's own
+say-so or skipped as too-recent-to-matter), L-E10 (`gh pr list`
+checked first; no open market PR; a same-day re-run of rev 8's own
+research is the duplicate-build pattern this lesson and L13 both name,
+so sections 1-4 are carried by citation, not re-run), L-X7 (ADR-13's
+pricing age reported as an unchanged depth, not re-asked), L-A1 (the
+re-check named by mechanism — the same changelog entry, the same
+waitlist line — never by "no change" alone).*
+
+---
+
+# Market brief — docs/market.md (rev 8, superseded by rev 9 above)
+
 Maintained by the market seat. This revision: **rev 8, 2026-10-24**,
 weekly window run on dispatch. `gh pr list` was checked first (L-E10):
 no market PR is open now. The PR that would have been rev 7's home,
