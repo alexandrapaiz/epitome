@@ -1081,80 +1081,61 @@ L-A32 (a run is over when its artifact is reachable, not when it is written):
 this is the same claim about a message, and reachability is again the part
 that was asserted rather than tested.
 
-## Open fixes, re-measured 2026-10-23 at 18:10Z
+## Open fixes, re-measured 2026-10-24 at 00:45Z
 
 L20 obliges this seat to re-measure every entry whose fix is not on `main`, on
 every run, and to count instances rather than entries. This section is
-**replaced** each run and never appended to. Measured against `main` `3f12c27`
-from an unshallowed clone. Incident 13 is in this table for the first time
-because it is on this branch now rather than on #232, which this run closed.
+**replaced** each run and never appended to. Measured against `main` `2d7a0a6`
+from an unshallowed clone, on the first tick after the host was dark from
+2026-10-19T00:00Z to 2026-10-23T17:04Z — so "unchanged since last run" below
+is a statement about five days in which nothing on the box could change.
 
 | Incident | The fix | Where it is now | Instances |
 |---|---|---|---|
-| 5 — a run overwrote a partner seat's pull request body | #181, merged 2026-10-23T17:19:05Z | **on `main`, and not running**, unchanged since 17:30Z. `grep -c EPITO_SCRATCH` on the file the host actually executes, `/srv/asc/repos/epitome/cli/src/lib/runner.js`, still answers **0**; neither `TMPDIR` nor `EPITO_SCRATCH` is set in this run; `ls -d /tmp/epito-* \| wc -l` answers **13**. Blocked by 10 and nothing else | 2 |
-| 8 — a quarter of a day's runs were refused and the events thrown away | the entry and L18 on `main`; the runtime half on #190 `37fa45de` | **the draft flag that hid it is gone and #190 is now mergeable on its own.** #186 closed at 2026-10-23T17:57:03Z, so `order.sh` at 18:10Z no longer prints `#190 covered already in #186` — #190 is `ready`, `37fa45de`, and sits in the sequence. Blocked by nothing but a merger's hand | 1 window |
-| 10 — the runtime this company fixes is not the runtime it runs | nothing merged, nothing deployed | **worse by twelve more commits in seventeen minutes, and still the single blocker on two landed fixes.** `readlink -f $(which epito)` → `/srv/asc/repos/epitome/cli/src/index.js` at `5836dc0` of 2026-09-23; `git rev-list --count 5836dc0..origin/main` = **440**, against 428 at 17:30Z and 366 on 2026-10-18. Both 5 and 12 are merged-and-not-running behind it. Its board item has not left Backlog since 2026-10-17T20:59Z | 2 |
-| 11 — the merging seat's charter has never said it merges | **`prompts/pm-agent.md`, two sections, merged by the owner in #234 at 2026-10-23T15:26:22Z** | **fixed, and the before-and-after is now this register's most expensive single measurement.** §21 reached this repository on 2026-10-05T23:32:08Z in `f095f20` and the seat declined every merge for seventeen days. One hour and fifty minutes after the charter said it, the seat merged **thirteen pull requests between 17:16:26Z and 17:23:23Z**. Nothing about the authority changed; the file the seat reads changed (L31), and the route was the one L27 prescribed — the edit written into the charter file, merged. It is also the whole evidence for L32: her hand went straight to the file | 17 days, 1 charter |
-| 12 — ten runs recorded as opening nothing | `ba763c7`, merged in #169 at 2026-10-18T08:17Z | **on `main` and not on the box**, five days on. Same blocker as 10, no second fix needed | 10 runs |
-| 13 — the host filled to zero bytes mid-run | nothing shipped; the entry and two sweeps that were measurements | **the capacity half is still unwritten anywhere.** The box is at **20 GB of 45 used, 25 GB free** at 17:47Z, so the condition is not live — but nothing on it removes a finished run's clone, and `/tmp` holds 13 of them now. The fix belongs where the clone is made (`cli/src/run.js`), the engineer's surface, and part of the space is behind a permission this seat does not hold | 1 |
+| 5 — a run overwrote a partner seat's pull request body | #181, merged 2026-10-23T17:19:05Z | **on `main`, still not running.** `git grep -c EPITO_SCRATCH origin/main -- cli/src/lib/runner.js` answers **5**; the same grep on the file the host executes, `/srv/asc/repos/epitome/cli/src/lib/runner.js`, answers **0**. Neither `TMPDIR` nor `EPITO_SCRATCH` is set in this run. `ls -d /tmp/epito-* \| wc -l` answers **20**, against 13 last night. Blocked by 10 and nothing else | 2 |
+| 8 — a quarter of a day's runs were refused and the events thrown away | the entry and L18 on `main`; the runtime half in #190 | **merged 2026-10-23T18:15:41Z, and on `main` not running.** Same single blocker as 5 and 12. The brief now carries a capacity line of its own — and it is in the third of the brief that incident 15 says never arrives | 1 window |
+| 10 — the runtime this company fixes is not the runtime it runs | nothing merged, nothing deployed | **worse by 43 commits and now a month old.** `readlink -f $(which epito)` → `/srv/asc/repos/epitome/cli/src/index.js`; that repository's `HEAD` is `5836dc0` of **2026-09-23**; `git rev-list --count 5836dc0..origin/main` = **483**, against 440 on 10-23 and 366 on 10-18. Three merged fixes — 5, 8 and 12 — are merged-and-not-running behind this one gap. No item on this company's board carries it; it sits in HQ's backlog | 3 |
+| 11 — the merging seat's charter has never said it merges | `prompts/pm-agent.md`, merged by the owner in #234 at 2026-10-23T15:26:22Z | **fixed and holding.** The seat has merged under it since, including #181 and #190 above. It is also the whole evidence for L32 and L31: her hand went straight to the file | 17 days, 1 charter |
+| 12 — ten runs recorded as opening nothing | `ba763c7`, merged in #169 at 2026-10-18T08:17Z | **on `main`** (`git merge-base --is-ancestor ba763c7 origin/main` passes) **and not on the box**, six days on. Same blocker as 10, no second fix needed | 10 runs |
+| 13 — the host filled to zero bytes mid-run | nothing shipped | **the condition fired for real and cost the company four days seventeen hours.** The box is at **25 GB of 45 used, 20 GB free** at 00:45Z, five gigabytes worse than the 20/25 of 17:47Z on 10-23, and `/tmp` holds **20** finished runs' clones against 13. Nothing removes them. The fix belongs in `cli/src/run.js`, the engineer's surface. HQ has derived the off-host threshold this needed — fourteen hours of board silence, zero false positives against 1,365 recorded gaps | 1 fired |
+| 14 — a not-landing finding declined because its prose and its data named different sets | `docs/agents/landed.sh` and a charter patch, on `epitome-exo/2026-10-23-message-5` | **not on `main`, and the thing blocking it was the draft flag, which this run cleared.** #249 was readied at 00:35Z today by the next run of this seat, not by the run that opened it, having sat a draft for four and a half hours carrying its opening body. It is `CLEAN` and `MERGEABLE` behind #243. Blocked now by a merger's hand and nothing else | 1 |
+| 15 — a third of the brief never reaches the seats it wakes | nothing in this tree; the repair is HQ's | **handed to `alexandra-systems/exo-centralizer` this run.** The detector is in this tree and fired on a real positive: `bash docs/agents/brief.sh` recovered the 572 characters the wake dropped. Re-measured next run by running it and reading whether the footer still counts characters instead of naming sections | 2 briefs, 8 addressees each |
 
-**The clock expired three days ago and this run discharged one eighth of it.**
-The owner's ask of 2026-10-18T18:34Z ran out at **2026-10-20T18:34Z** and
-released fourteen charter changes; at 17:30Z today `git apply --check
---reverse` said **zero of fifteen** were on `main`. The seven that change this
-seat's own charter are now text in `prompts/exo-agent.md` on this branch,
-applied from the diffs with plain `git apply` and verified as seventy added
-lines present byte-identical. **Eight are left** — four for the engineer, four
-for the project manager — and `docs/agents/check.sh` confirms all eight still
-apply in `ORDER`'s sequence. Each leaves the same way, in its own pull request,
-and that is asked of `epitome/pm` and `alexandra-systems/pm` on the board
-rather than decided here.
+**The patch directory, scored the way L32 says to score it.** It held eight
+diffs this morning and holds four tonight: **the engineer's four are applied**
+to `prompts/engineer-agent.md` on this branch, verified by
+`bash docs/agents/check.sh`, which reports all eight still applying in
+`ORDER`'s sequence before they were lifted. The project manager's four are
+left, and #244 says it carries three of them; that is this seat's reading of
+another seat's branch and the seat itself should confirm it. The directory's
+all-time score moves from **0 of 15 landed in 18 days** to 0 of 15 merged and
+**4 of 15 written into the file they change**, which is the step L27 says is
+the one that gives her consent a hand. It is still not a merge.
 
-**The directory's own score, which is what L32 is.** Nine charter edits have
-ever landed in this repository, read from `git log` over `prompts/`; all nine
-were text committed into the charter file, by the owner six times and by this
-seat three. The patch directory has landed **none of fifteen in eighteen
-days**, having acquired a route table, a sequence file, a review document, a
-verifying command and four lessons in that time. The table is in
-`docs/agents/patches/routes.md`.
+**The queue, generated rather than typed, at 00:18:31Z against `main`
+`2d7a0a6` (L24).** **9 open**, 7 land in one sequence with no conflict, 2 need
+a hand (`#244` and `#246`, both conflicting in `docs/ideas.md`) —
 
-**#232 is closed, and that is how its conflict with #237 was resolved.**
-Measured at 17:46Z in a throwaway worktree: #232 CLEAN onto `main`, #237 CLEAN
-onto `main`, #237 onto `main` + #232 **CONFLICTS** in this file and in
-`docs/agents/lessons.md`. They were mutually exclusive, and `check.sh` read
-their shared identifiers as free because the entries were byte-identical
-siblings — so a both-sides resolution would have kept two copies of L30 with no
-marker to warn the merger. L30 and Incident 13 are carried here instead, and
-closing #232 moved **#237 and #240 from blocked into the merge sequence**: 10
-of 34 land in one pass now, against 9 of 35 before it closed.
+`#132 · #242 · #243 · #248 · #249 · #250 · #251`
 
-**The queue, generated rather than typed, at 18:10:09Z against `main`
-`3f12c27` (L24).** **17 open**, 10 land in one sequence with no conflict, none
-covered by one above, 7 needing a hand —
+**And four of the nine are links, which this instrument could not see until
+tonight.** `#242` and `#246` are contained in `#250`; `#243` is contained in
+`#249` and `#249` in `#251`. **Nine open is five independent decisions**, and
+the count the owner reads has been high by four. `order.sh`'s coverage test
+only fired when something already merged into the running composite contained
+a later row — the chain written oldest-last — and every chain in this
+repository runs the other way, because a seat starts today's branch from
+yesterday's and the container is therefore the newer number. The first of this
+seat's two standing counts is exactly this figure, so the instrument built for
+it answering **0** was the defect. Fixed on this branch and re-run: the chain
+lines above are its output. L-A47's axis — an instrument's scope is part of
+its answer, and a directional test answers only a directional question.
 
-`#132 · #187 · #190 · #230 · #235 · #237 · #238 · #240 · #242 · #243`
-
-**The queue halved in twenty-three minutes, and only thirteen of that was
-merging.** At 17:47Z it was 34 open; at 18:10Z it is 17. Measured with
-`docs/agents/landed.sh`: **fourteen merged today** and **twenty-two closed
-unmerged**, of which seventeen are the project manager's own branches closed
-between 18:03:14Z and 18:03:57Z, their content recovered into #241, and three
-are the engineer's at 17:57Z. A seat with no merge authority over its own pull
-requests drained its backlog by closing it, which is the correct move available
-to it and not the one anybody wanted; incident 11's fix reached
-`prompts/pm-agent.md` and no other charter.
-
-**Four of the ten in the sequence are drafts** — #132, #235, #242, #243 — which
-no merger but their author can clear, so clearing four flags is still the
-largest single act available to this queue (L-A32). Of the seven that need a
-hand, **five conflict in `docs/backlog.md` and nothing else** (#160, #164,
-#174, #222, and #176 which also touches `docs/ideas.md`) — L16 still true five
-days later and still nobody's — and two, #239 and #241, conflict in
-`docs/ideas.md` alone.
-
-**One line of that sequence is measured against the wrong base, and this is the
-instrument's limit rather than a defect in it.** `order.sh` test-merges every
-open pull request onto `main`, so it reads #243 as taking cleanly onto `main`;
-#243 targets #240's branch and is merged into that branch, not into `main`
-(PM standard §10). The sequence is still the right order to walk — #237, #240,
-#243 — but a merger reading the line alone would target the wrong base.
+**The second standing count: drafts whose run has ended.** Of this seat's two,
+**#245 is closed** — it carried one commit, the `.exo-run-marker` line that
+opened it, and nothing else, so by this seat's own charter it was not
+unfinished work; what it owed, the four engineer charter changes, is applied in
+#251 and re-declared on the board. **#249 is readied**, body rewritten to say
+what it holds. Six drafts in the queue belong to other seats and are named for
+their own seats to answer, not closed by this one: `#132` (market, idle since
+2026-10-16), `#242`, `#244`, `#246`, `#248`, `#250`.
