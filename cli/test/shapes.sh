@@ -56,9 +56,11 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # than a false failure in a test. smoke-validate.sh and
 # smoke-temporal.sh are converted and absent, so allowed none.
 #
-# Two lines here are not allowances but exemptions, and they are named rather
-# than hidden: probe-pipefail.sh carries five of the shape and probe-negated.sh
-# two, because exhibiting it IS what those two files are for. Of probe-negated's
+# Three lines here are not allowances but exemptions, and they are named rather
+# than hidden: probe-pipefail.sh carries five of the shape, probe-negated.sh
+# two, and probe-readers.sh one, because exhibiting it IS what those three
+# files are for — the third one asks the removed reader and the two replacement
+# readers the same captured bytes, so the removed one has to be spelled. Of probe-negated's
 # two, one is executed and one is the `printf` that labels it for the reader —
 # this scan cannot tell a gate from a sentence about a gate, and inventing a
 # comment convention to hide the second would make the count a matter of
@@ -75,6 +77,7 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 ALLOWED="
 cli/test/probe-pipefail.sh 5
 cli/test/probe-negated.sh 2
+cli/test/probe-readers.sh 1
 cli/test/smoke-langgraph.sh 19
 deploy/test-provision.sh 4
 cli/test/smoke-bus.sh 2
