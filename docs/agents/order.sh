@@ -47,9 +47,10 @@ mapfile -t rows < <(gh pr list --state open --limit 200 \
 work=$(mktemp -d); trap 'git worktree remove -f "$work" >/dev/null 2>&1; rm -rf "$work"' EXIT
 git worktree add -q --detach "$work" "$BASE" || { echo "no worktree"; exit 2; }
 
-seq_nums=(); blocked=(); covered=()
+seq_nums=(); blocked=(); covered=(); all_nums=()
 for row in "${rows[@]}"; do
   IFS=$'\t' read -r n draft sha title <<<"$row"
+  all_nums+=("$n")
   # Already contained by something merged above it — say so rather than
   # skipping the line. A silently dropped row makes the printed count differ
   # from `gh pr list` with nothing to explain it, and a reader cannot tell a
@@ -81,3 +82,31 @@ printf '#%s ' "${seq_nums[@]}"; printf '\n%d of %d land in one pass; %d need a h
   "${#seq_nums[@]}" "$((${#seq_nums[@]} + ${#blocked[@]} + ${#covered[@]}))" \
   "${#blocked[@]}" "${#covered[@]}"
 printf 'drafts in the sequence cannot be merged by anyone but their author — clear the flag first\n'
+
+# The chains, which the walk above cannot see. `covered` only fires when
+# something ALREADY MERGED into the running composite contains a later row,
+# so it catches a chain written oldest-last and misses the one every seat
+# here actually writes: today's branch started from yesterday's, so the
+# container is the NEWER number and the walk meets the contained one first,
+# merges it clean, and prints it as an independent decision. On 2026-10-24
+# this script reported "0 already covered by one above" for a queue in which
+# #250 contained #242 and #246 and #251 contained #243 and #249 — four of
+# nine rows were links, and the count the owner reads was high by four.
+# That is the exact figure this seat's charter requires it to report, so the
+# instrument answering 0 for it was the whole defect (L34's companion case).
+# Containment is symmetric to look up and cheap: ask it both ways, once.
+printf '\n'
+chain_links=0
+for n in "${all_nums[@]}"; do
+  inside=$(for m in "${all_nums[@]}"; do
+             [ "$m" = "$n" ] && continue
+             git -C "$work" merge-base --is-ancestor "pull/$n" "pull/$m" >/dev/null 2>&1 \
+               && { echo "$m"; break; }
+           done)
+  if [ -n "$inside" ]; then
+    chain_links=$((chain_links + 1))
+    printf '#%-5s is already contained in #%s — merging #%s merges it too\n' "$n" "$inside" "$inside"
+  fi
+done
+printf '%d open; %d of them are links in a chain; %d independent decisions for a merger\n' \
+  "${#all_nums[@]}" "$chain_links" "$(( ${#all_nums[@]} - chain_links ))"

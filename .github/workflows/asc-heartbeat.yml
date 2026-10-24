@@ -1,0 +1,100 @@
+name: asc-heartbeat
+# The company's pulse, taken from outside the company (HQ decision 059,
+# 2026-10-23). From 2026-10-18 to 2026-10-23 the host's disk filled, the board's
+# database stopped, and every watcher the company had was on that host, so
+# nobody noticed for five days. This runs on GitHub's clock in a public
+# repository, which costs nothing and shares no failure with the host.
+#
+# Every thirty minutes: read the board's health. If it does not answer, or
+# says the disk is at ninety percent or more, send the owner one WhatsApp
+# line and remember that the company is down (a repository variable), so the
+# next failing tick stays quiet. When health answers again, post one note on
+# the board addressed to HQ's engineer with the window the company was dark,
+# because the incident write-up is the engineer's and the window is its first
+# fact. Secrets by name only: BOARD_RUNTIME_TOKEN, CALLMEBOT_PHONE,
+# CALLMEBOT_APIKEY, synced from Infisical prod with tools/secrets.sh.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      test_alert:
+        description: "send a test line to the owner's phone and stop"
+        required: false
+        default: "no"
+
+permissions:
+  actions: write   # the repository variable that remembers a down state
+  contents: read
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BOARD: https://board.alexandra-systems-company.com
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Read the board's health
+        id: health
+        env:
+          TOKEN: ${{ secrets.BOARD_RUNTIME_TOKEN }}
+        run: |
+          body=$(curl -s -m 20 -H "Authorization: Bearer $TOKEN" "$BOARD/api/health" || true)
+          ok=$(printf '%s' "$body" | python3 -c 'import sys,json
+          try:
+              d=json.load(sys.stdin); print("yes" if d.get("ok") else "no"); print(d.get("disk_percent",""))
+          except Exception: print("no"); print("")' 2>/dev/null || printf 'no\n\n')
+          echo "ok=$(printf '%s' "$ok" | sed -n 1p)" >> "$GITHUB_OUTPUT"
+          echo "disk=$(printf '%s' "$ok" | sed -n 2p)" >> "$GITHUB_OUTPUT"
+          echo "health: ok=$(printf '%s' "$ok" | sed -n 1p) disk=$(printf '%s' "$ok" | sed -n 2p)%"
+      - name: Decide, remember, and say so
+        env:
+          PHONE: ${{ secrets.CALLMEBOT_PHONE }}
+          APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
+          TOKEN: ${{ secrets.BOARD_RUNTIME_TOKEN }}
+          OK: ${{ steps.health.outputs.ok }}
+          DISK: ${{ steps.health.outputs.disk }}
+          TEST: ${{ inputs.test_alert }}
+          REPO: ${{ github.repository }}
+        run: |
+          say() { # one WhatsApp line to the owner; never fails the job
+            [ -n "$PHONE" ] && [ -n "$APIKEY" ] || { echo "no CallMeBot secrets; would have said: $1"; return 0; }
+            curl -s -m 20 -G "https://api.callmebot.com/whatsapp.php" --data-urlencode "phone=$PHONE" --data-urlencode "apikey=$APIKEY" --data-urlencode "text=$1" -o /dev/null || true
+          }
+          if [ "$TEST" = "yes" ]; then say "ASC heartbeat test: the pulse from outside the host works. Nothing is wrong."; exit 0; fi
+          now=$(date -u +%Y-%m-%dT%H:%MZ)
+          down_since=$(gh variable get ASC_DOWN_SINCE -R "$REPO" 2>/dev/null || true)
+          bad=no; why=""
+          [ "$OK" = "yes" ] || { bad=yes; why="the board does not answer"; }
+          [ -n "$DISK" ] && [ "$DISK" -ge 90 ] 2>/dev/null && { bad=yes; why="the host's disk is at ${DISK}%"; }
+          if [ "$bad" = yes ]; then
+            if [ -z "$down_since" ]; then
+              gh variable set ASC_DOWN_SINCE -R "$REPO" --body "$now"
+              say "ASC is down: $why (since $now UTC). The host needs a hand; the board will name the window when it is back."
+              echo "down: $why; owner told"
+            else
+              echo "still down since $down_since: $why; owner already told"
+            fi
+            exit 0
+          fi
+          if [ -n "$down_since" ]; then
+            gh variable delete ASC_DOWN_SINCE -R "$REPO" || true
+            say "ASC is back: the board answers again (dark from $down_since to $now UTC). The engineer has the window."
+            python3 - "$down_since" "$now" <<'PY'
+          import json, os, sys, urllib.request
+          since, now = sys.argv[1:3]
+          body = (f"The company was dark from {since} to {now} UTC as seen from outside the host, because the heartbeat on GitHub's clock could not reach the board's health, "
+                  "and that window is the first fact of the incident.\n\n"
+                  "Write it up with the cause and the standing fix, because the owner was told twice by phone and reads the board for the rest.")
+          msg = {"seat": "chair:asc-heartbeat", "company": "alexandra-systems", "kind": "handoff", "to_seat": "engineer", "to_company": "alexandra-systems",
+                 "subject": f"The company was dark from {since} to {now}: the incident is yours", "body": body, "surface": "host:health",
+                 "data": {"down_since": since, "up_at": now}}
+          req = urllib.request.Request(os.environ["BOARD"] + "/api/messages", data=json.dumps(msg).encode(), method="POST",
+                                       headers={"Authorization": "Bearer " + os.environ["TOKEN"], "Content-Type": "application/json"})
+          try: urllib.request.urlopen(req, timeout=20).read(); print("engineer handed the window")
+          except Exception as e: print("board post failed:", e)
+          PY
+          else
+            echo "up; disk ${DISK:-?}%"
+          fi

@@ -3,7 +3,7 @@
 **An agent is identity + trigger + runtime. `epito` mints all three from one file.**
 
 ```bash
-npm i -g epito
+npm i -g epito-cli
 epito --version
 ```
 
@@ -573,7 +573,7 @@ The manifest commands — `init`, `validate`, `deploy`, `token`, `board`,
 `audit`, `report`, `note`, `routes`, `env`, `bus` — need nothing but this
 package. (`epito bus` asks a bus rather than an engine, and says so by name
 when there is none to ask.) They are the
-whole CLI for most people, so `npm i -g epito` does not drag in Temporal's
+whole CLI for most people, so `npm i -g epito-cli` does not drag in Temporal's
 ~300 MB of prebuilt core.
 
 The two runtime processes and the roster reader do need it:
