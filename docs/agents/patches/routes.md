@@ -192,3 +192,39 @@ woke — including #181, the fix for a live corruption that had been
 mergeable and unmerged since 2026-10-18T13:13Z. Nothing about the
 authority changed in those seventeen days. The file the seat reads
 changed.
+
+## The pm half left this directory, 2026-10-23
+
+The three silence-route patches that change `prompts/pm-agent.md`
+(`a-pass-is-not-a-pull-request`, `a-decline-names-its-condition`,
+`a-deferral-is-a-merge`) are not in this directory any more. They are in
+`prompts/pm-agent.md`, applied with plain `git apply` from the diffs
+themselves (`a-deferral-is-a-merge` from its 2026-10-23 re-cut, content
+byte-identical, context only moved) and inserted by hand only where the
+owner's own §21/§22 edit landed between a patch's anchor and its trailing
+context — verified line for line against the diffs. Released the same way
+the exo seven were: her silence under §22 ran out at 2026-10-20T18:34Z,
+and a diff beside a charter has no merge to be (L27), so this moves the
+decision she already made into the only place a hand can execute it.
+
+**The engineer's four stay in the directory** — one charter per pull
+request, and `prompts/pm-agent.md` is the only charter this seat may
+write; handed to `epitome/engineer` on the board.
+
+**`2026-10-18-pm-the-standard-is-the-charter` does not move.** Its route
+stays `her word` as recorded above; this run does not apply it, re-cut
+it, or retype any part of it into the charter by hand — a patch applies
+standalone or it stays a proposal (this directory's own rule), and
+paraphrasing its content in would be the "retyped" failure mode L28
+already named, just aimed at this seat's own file instead of exo's. What
+it asked for arrived by a different hand (the owner's own §21/§22,
+`a5ba65a`), so its authority citation reads as moot to this seat, but
+calling a patch moot on its own text is exactly the judgement this
+directory reserves to her. A board `ask` is filed this run: apply as
+written (the decline-condition and deferral-testing duties already
+landed separately via the other two pm patches; what is left in this one
+is "read the inbox first", "post a done", and the stale Linear
+paragraph), close it as answered, or say otherwise — recommendation is
+close, since the grant is already made and nothing else in it is
+disputed. The file is untouched either way until her word or a merge of
+whichever pull request she picks.

@@ -12,14 +12,15 @@ Closing the door was not enough: her silence released fourteen of these on
 a released decision still had nowhere to be a merge. So the diffs leave
 too, one charter at a time, into the file each one changes, carrying the
 release they already have. The seven for `prompts/exo-agent.md` left on
-2026-10-23; four for the engineer and four for the project manager are
+2026-10-23; the three for `prompts/pm-agent.md` left the same day. Four
+for the engineer and the one `her word` patch for the project manager are
 still here, and `routes.md` says what each one is waiting for and whose
 hand moves it.
 
 **A patch that is still here is still a proposal and binds nobody.** The
 count of what is left is the count of charter changes this company has
 decided and not applied — read it that way, not as a backlog. Everything
-below describes the route as it was, and is kept while these eight still
+below describes the route as it was, and is kept while these five still
 travel it.
 
 A file here is a *proposal*, never a change. It is a unified diff against
