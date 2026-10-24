@@ -131,7 +131,7 @@ liveness() {  # $1 = seat name; resolved against the host's log root
                          || echo 'closed, footer present: no run of this seat is alive')" "$age"
     fi
   done
-  [ "$rc" = 1 ] && { echo "  resolve it with EPITO_COMPANY= or ask for the directory by name"; return 2; }
+  [ "$rc" = 1 ] && { echo "  ask for the directory by its own name to get one verdict, e.g. '--liveness epitome-pm'"; return 2; }
   [ $open = 1 ] && return 1 || return 0
 }
 
