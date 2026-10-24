@@ -470,6 +470,50 @@ check "--json is JSON, with a row per name and a row per seat" \
   "printf '%s' \"\$ejson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); process.exit(r.names.length>0 && r.seats.length===$nseats && r.missing.length===r.names.length ? 0 : 1)'"
 check "epito env $WROTE_NOTHING" "untouched"
 
+# --file is the other half of this command, and the reason it exists is an
+# outage: the file `epito env --template` writes is a systemd EnvironmentFile,
+# this box's own units read it literally, and every SHELL that sourced the same
+# bytes read something else. The fixture carries every shape that broke the
+# resident host; no value in it is real.
+FIX="$CLI/test/fixtures/envfile/box.env"
+fout2="$($BARE node "$CLI/src/index.js" env --file "$FIX" 2>&1)"; f2rc=$?
+check "env --file refuses a file whose lines two readers disagree about (exit 1)" "[ $f2rc -eq 1 ]"
+check "...naming every one of them" \
+  "printf '%s' \"\$fout2\" | grep -q 'PASSWORD_HASH, WITH_SPACE, BACKTICK, SUBST'"
+check "...and what the shell does to the first, with the line it is on" \
+  "printf '%s' \"\$fout2\" | grep -q 'of PASSWORD_HASH, on line 11, a shell expands it'"
+check "...with the fix being the reader the box installs, not a rewrite of the file" \
+  "printf '%s' \"\$fout2\" | grep -q 'load_env_file' && printf '%s' \"\$fout2\" | grep -q 'single-quote'"
+check "...a name no reader can hold is named with its line" \
+  "printf '%s' \"\$fout2\" | grep -q 'line 22, \"9BAD\"'"
+check "...a line that is neither comment nor assignment is named, not ignored" \
+  "printf '%s' \"\$fout2\" | grep -q 'neither a comment nor a KEY=value assignment (line 21)'"
+check "...a name set to nothing is told apart from a name that is absent" \
+  "printf '%s' \"\$fout2\" | grep -q 'set and set to nothing (EMPTY)'"
+check "...and no value from the file is printed back, which is what makes this pasteable" \
+  "! printf '%s' \"\$fout2\" | grep -qE 'hello world|KIXQe1mJ0rZ8wV|notacomment'"
+check "...single-quoting is reported as the quoting both readers agree on" \
+  "printf '%s' \"\$fout2\" | grep -q 'SQUOTED.*single-quoted'"
+
+# A file every reader agrees about: the shape provision-host.sh actually writes.
+printf 'EPITO_PORT=4747\n# a note\nTEMPORAL_ADDRESS=127.0.0.1:7233\n' > "$TMP/clean.env"
+fout3="$($BARE node "$CLI/src/index.js" env --file "$TMP/clean.env" 2>&1)"; f3rc=$?
+check "env --file passes a file both readers read alike (exit 0)" "[ $f3rc -eq 0 ]"
+check "...saying so in one line" "printf '%s' \"\$fout3\" | grep -q 'reads the same whether systemd or a shell reads it'"
+
+fout4="$($BARE node "$CLI/src/index.js" env --file "$TMP/not-a-file.env" 2>&1)"; f4rc=$?
+check "env --file names a path it cannot read, and the reason" "[ $f4rc -eq 1 ] && printf '%s' \"\$fout4\" | grep -q 'ENOENT'"
+fout5="$($BARE node "$CLI/src/index.js" env --file 2>&1)"; f5rc=$?
+check "env --file with no path says which path it wants" \
+  "[ $f5rc -eq 1 ] && printf '%s' \"\$fout5\" | grep -q 'EnvironmentFile='"
+fout6="$($BARE node "$CLI/src/index.js" env --flie "$FIX" 2>&1)"; f6rc=$?
+check "a near-miss on the flag is refused by name, never ignored" \
+  "[ $f6rc -eq 1 ] && printf '%s' \"\$fout6\" | grep -q 'Did you mean --file'"
+fjson="$($BARE node "$CLI/src/index.js" env --file "$FIX" --json 2>&1)"
+check "env --file --json carries the verdicts and no values" \
+  "printf '%s' \"\$fjson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); const bad=r.names.filter(n=>n.diverges.length).map(n=>n.name).join(\",\"); process.exit(bad===\"PASSWORD_HASH,WITH_SPACE,BACKTICK,SUBST\" && !JSON.stringify(r).includes(\"hello world\") ? 0 : 1)'"
+check "env --file $WROTE_NOTHING" "untouched"
+
 step '8. would a run of THIS roster start on this box? (epito doctor)' 
 # The dogfood question, asked by the product about the product's own seats.
 # Run bare for the same reason step 7 is: this is a CI runner that holds some

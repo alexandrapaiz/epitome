@@ -261,7 +261,7 @@ run_suite() {
   names+=("$name"); results+=("$result"); counts+=("${tally:-nothing asserted}"); notes+=("$note")
 }
 
-run_suite "unit"            node --test "$CLI/test/unit.mjs" "$CLI/test/unit-deploy.mjs" "$CLI/test/unit-audit.mjs" "$CLI/test/unit-bus.mjs" "$CLI/test/unit-cloudflare.mjs" "$CLI/test/unit-runreport.mjs"
+run_suite "unit"            node --test "$CLI/test/unit.mjs" "$CLI/test/unit-deploy.mjs" "$CLI/test/unit-audit.mjs" "$CLI/test/unit-bus.mjs" "$CLI/test/unit-cloudflare.mjs" "$CLI/test/unit-runreport.mjs" "$CLI/test/unit-envfile.mjs"
 run_suite "smoke-deploy"    bash "$CLI/test/smoke-deploy.sh"
 run_suite "smoke-cloudflare" bash "$CLI/test/smoke-cloudflare.sh"
 run_suite "smoke-validate"  bash "$CLI/test/smoke-validate.sh"
