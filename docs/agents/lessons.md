@@ -2385,3 +2385,133 @@ L-X1 calls a second thing written down.
 
 `portable: yes`
 `role: any`
+
+## L43 — A mergeability verdict is a statement about a base, so it names the base, and the base is the one the merge will actually use
+
+**Trigger**, a `done` from `epitome/pm` to this seat at 2026-10-24T12:09:13Z,
+quoted in full because it is the correction and it is not this seat's to
+paraphrase:
+
+> I merged your draft after it was readied, because its diff was only the
+> role-marker addition to the lessons file and git merge-tree came back clean
+> against its actual base, which is the branch underneath it rather than main.
+>
+> The earlier pass that left it a draft had run merge-tree against main instead
+> of against that real base, so the add/add conflict it found in addressed.sh
+> was never a conflict for the merge I actually made; that file only collides
+> once the whole chain you are building reaches main, which is a later step
+> still waiting on the charter links beneath it.
+
+**What the numbers say, measured rather than taken on the word of the
+message.** Pull request #264's base ref is
+`epitome-exo/2026-10-24-message-4`. Against that base
+`git merge-tree --write-tree` exits 0. Against `origin/main` it exits 1 with
+an add/add conflict in `docs/agents/addressed.sh`, main's side blob
+`41da5652` and the branch's side `e14a8468`. Both answers are correct; they
+answer different questions. The branch was declined at 06:53:01Z on the
+second answer, re-measured at 07:04Z against main again and declined again,
+and merged clean at 12:06:31Z once somebody measured the first. Five hours
+and thirteen minutes, two passes of the merging seat, and a hand-back.
+
+**Why re-measurement did not catch it, which is the part worth a rule.** A
+conflict found against the wrong base is usually a *true fact about a
+different merge*. That file genuinely does collide when the whole chain
+reaches main. So the wrong answer reproduces exactly, survives a second
+pass, and reads as confirmation rather than as a question nobody asked. The
+instruction it produced was worse than idle: the branch comment asked this
+seat to "resolve the `addressed.sh` conflict" on a branch whose merge does
+not touch `addressed.sh`, and obeying it would have meant editing the file
+away from main's copy rather than toward it.
+
+**And the knowledge existed, in the wrong place.** The same seat reasoned
+correctly about bases at 01:37:23Z the same night — "it is also built on a
+branch that is itself built on a branch, so even a clean charter would land
+in the one under it and not in the main branch" — and then measured against
+main five hours later. Nothing regressed. A fresh-context run cannot inherit
+a board message's reasoning, so a thing a seat has to get right every time it
+merges cannot live in a message. That is why this entry ships a command and
+not only a paragraph.
+
+**Rule.** A mergeability verdict is never published, quoted, commented on a
+branch or carried in a handoff without the base it was measured against and
+that base's head. Where the pull request does not target the default branch,
+the verdict that decides whether it can merge is the one against its own base
+ref; the verdict against the default branch is a true statement about a later
+step and is labelled as one, never as this step's blocker. A branch is handed
+back to its owning seat for a conflict only on the first of those two
+verdicts. And the verdict is generated, never typed: `bash
+docs/agents/mergeable.sh [number …]` prints both columns for every open pull
+request, refuses to answer in a shallow clone, spells could-not-look so it
+cannot be read as clean (L41), and carries `--self-test` with four
+constructed inputs per L42. Companion to L24, where an ordering is a claim
+about branches other seats are still pushing to and so is generated at the
+moment it is published: this is the same rule applied to a single branch
+rather than to a sequence.
+
+**Second instance, in a second instrument, inside the hour this rule was
+written.** `docs/agents/check.sh` asserts that every charter patch in
+`docs/agents/patches/` either applies or has already landed, and it asks that
+question of `HEAD`. This seat's charter tells it to branch from its own newest
+open pull request rather than from `main`, which guarantees a fork point
+behind `main`, so `HEAD` is the wrong base for that question too. `#244`
+retired three project-manager patch diffs on `main` at 00:42:40Z, three
+minutes after the bottom of this chain branched; `check.sh` went on reporting
+them as a live queue, and this run opened by lifting two of them into a
+charter that already held both. **So the rule generalizes past merges: an
+instrument that answers a question about `main` must be told which base it
+read, and a stale base is the default rather than the exception for any seat
+whose charter says to stack.** `check.sh` now compares the patch directory and
+`ORDER` against `main` before it checks anything else, and it named exactly
+those three the first time it ran. Nothing was lost by the hour, because the
+amendment the run was really making is a correction to charter text already in
+force rather than a lift of a pending one, which is the stronger claim; but
+the framing was wrong, and it was wrong for the same reason the incident was.
+
+`portable: yes`
+`role: any`
+
+## L44 — A revert takes text off main and off nothing else, so every branch above the reverted one silently restores it, and no merge check can see that
+
+**Trigger**, measured at 2026-10-24T12:49:01Z in this seat's own chain, within
+ten minutes of the event. The merging seat merged `#253` at 12:39:01Z and
+`#261` at 12:40:15Z, having correctly re-measured the merge order first, then
+read the rest of its inbox, found that an earlier pass of the same seat had
+already put the prior question to the owner — whether a charter file can clear
+on her silence at all — and reverted both merges at 12:44 rather than
+pre-empting her answer by having acted. That judgement was right and the
+revert was clean.
+
+**What the revert did not do.** Four open pull requests sit on top of `#253`,
+and every one of them still carries every line the revert removed. Measured:
+`#255`, `#258`, `#260`, `#271` and this run's own branch each restore 15 lines
+of `prompts/engineer-agent.md`, 62 lines of `docs/agents/lessons.md` and lines
+of `docs/agents/incidents.md` that are no longer on `main`. So the next link
+to merge re-lands the charter paragraph the revert removed, while the question
+it was removed for is still on the owner's desk, and it does it without a
+conflict, because a branch built before a revert is a clean descendant of the
+state the revert undid.
+
+**Why no existing instrument could see it.** `order.sh` and `mergeable.sh`
+both answer "does this merge cleanly", and a restoration is the one hazard
+that is clean by construction. `gh pr diff` shows the branch's own diff
+against its own base, where the paragraph is old work rather than a
+restoration. The revert commit names the pull request it reverted and says
+nothing about the four above it. Every surface a reviewer would consult reads
+normal.
+
+**Rule.** A revert on the default branch is only half an undo while any branch
+above the reverted commit is open, so the hand that reverts, or the next run
+of the seat that owns those branches, measures what they would put back and
+says so where the decision is recorded. `bash docs/agents/reverted.sh` is that
+measurement: it reads every revert in the default branch's history, extracts
+the lines each one removed, reports which of them are present on a given ref,
+and spells could-not-look `unreadable` so it can never be read as clean (L41);
+`--self-test` fires its three verdicts against constructed inputs per L42.
+Where the revert was made to hold a decision open, a branch that restores the
+text is not merged until the decision lands, and that is stated on the branch
+rather than remembered. Companion to L43: both are a verdict taken against a
+base that is not the one the next merge will use, and this is the case where
+the verdict is *clean* and still wrong.
+
+`portable: yes`
+`role: any`

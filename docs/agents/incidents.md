@@ -1479,3 +1479,188 @@ and what it did not, merged by another hand at 12:06:31Z** — three and a half
 minutes. The count is the only mechanism watching for this, and it is the
 second time in twelve hours that it has moved something; both times the thing
 it found belonged to the seat that runs the count.
+
+## Incident 19 — 2026-10-24 — A pull request's mergeability was decided twice against a base it was never going to merge into, and the branch was handed back to a seat with no run alive
+
+**Status: open, repair written and not on `main`.** The repair is
+`docs/agents/mergeable.sh`, in this run's pull request `#274`, whose base is
+`epitome-exo/2026-10-24-message-6`. The detector L-X1 requires exists and has
+fired against a real positive — three of them, below — so what is missing is
+the landing and not the instrument. **The one thing blocking it changed during
+this run and the entry says what it is now rather than what it was.** At
+12:30Z it was the owner's forty-eight hours on the four charter links beneath
+it. At 12:39:01Z and 12:40:15Z the merging seat merged `#253` and `#261`, and
+at 12:44 it reverted both, because another pass of the same seat had already
+asked the owner the prior question: whether a charter file can clear on her
+silence at all. So the blocker is now one owner answer, not four clocks, and
+it is a different and larger question than the one this chain was waiting on.
+Re-measured next run. Lessons: L43, and L44 for what the revert left standing.
+
+**Facts, every one of them read off a command rather than recalled.** Pull
+request `#264` was opened 02:01:03Z with base ref
+`epitome-exo/2026-10-24-message-4`. At 06:53:01Z the merging seat commented
+two clauses on it and left it a draft. The second clause reads, verbatim from
+the branch:
+
+> `git merge-tree --write-tree origin/main origin/epitome-exo/2026-10-24-message-5`
+> finds a real add/add conflict in `docs/agents/addressed.sh`
+
+That command names `origin/main`. The pull request's base is
+`epitome-exo/2026-10-24-message-4`. Against the base, `git merge-tree
+--write-tree` exits 0 with no conflict. Against main it exits 1, main's side
+blob `41da5652`, the branch's side `e14a8468`. At 07:04:49Z a second pass
+re-ran the check "against the current main", got the same answer, and recorded
+that nothing had moved. At 12:03:20Z the owning seat's next run readied the
+branch. At 12:06:31Z the merging seat measured it against its actual base,
+found it clean, and merged it.
+
+**Impact.** Five hours, thirteen minutes and thirty seconds between the first
+decline and the merge, on a branch that was mergeable for every second of it.
+Two passes of the merging seat spent on a clause that was not about the merge
+in front of it. One instruction issued that would have done damage if
+obeyed — the branch comment asked the owning seat to "resolve the
+`addressed.sh` conflict", and the resolution that satisfies main is to move
+that file away from main's copy, on a branch whose own merge does not touch it
+at all. And the twenty-two portable lessons the centralizer is waiting on,
+whose role markers are the whole content of `#264`, spent those five hours one
+step further from `main` than anybody reading the queue would have thought.
+
+**Corrected 2026-10-24T12:46Z, by this same run, because the first version of
+this entry had the provenance wrong and the truth is worse.** This entry was
+first written saying that a charter patch instructing the defect had sat
+*unapplied* in `docs/agents/patches/` for six days. It had not. `#244` applied
+it to `prompts/pm-agent.md` and retired its diff on `main` at 00:42:40Z this
+morning, three minutes after the bottom of this seat's chain branched, so the
+instruction
+
+> run `git merge-tree --write-tree main origin/<branch>` on every branch the
+> wait names
+
+was **charter law on `main` for the merging seat six hours before that seat
+measured `#264` against `main`**. The reason the run believed otherwise is
+itself this incident's rule arriving a second time: `check.sh` asserts the
+patch queue against `HEAD`, this seat's charter tells it to branch from its own
+newest pull request rather than from `main`, and a stale fork point is
+therefore the default. That is the second-instance clause now under L43, and
+`check.sh` compares the directory against `main` before anything else as of
+this pull request. The practical difference is that the charter change in this
+pull request is a **correction to text already in force**, not the lifting of a
+pending patch, and its ask on the board says so.
+
+**Root cause, in the system and not in the seat.** Three commands in
+`docs/agents/` answer merge questions and none of them answered this one.
+`order.sh` answers what a merger can take to `main` and in what order, which
+is deliberately a question about `main`. `landed.sh` answers what left the
+queue. `check.sh` answers whether a patch applies and an identifier is free.
+Nothing answered the question GitHub asks when a hand clicks merge on one
+pull request, which is whether that head applies to *its own base ref* — and
+five of the eleven pull requests open in this repository at 12:27:49Z do not
+target `main`, so for five of eleven `main` is the wrong base.
+
+Two aggravating properties of this class, both of which are why it is an
+incident rather than a slip. **It survives re-measurement**, because a
+conflict against the wrong base is usually a true fact about a different
+merge: `addressed.sh` does collide when the whole chain reaches `main`, so the
+wrong answer reproduces exactly and reads as confirmation. **And the knowledge
+existed in a surface that cannot carry it.** The same seat reasoned correctly
+about stacked bases at 01:37:23Z on the board — "it is also built on a branch
+that is itself built on a branch, so even a clean charter would land in the one
+under it and not in the main branch" — and then measured against `main` five
+hours later in a fresh run. Nothing regressed; a board message is not
+inheritable context. A thing a seat must get right on every merge has to be a
+command.
+
+**Fix shipped, and the positive it was checked against.**
+`docs/agents/mergeable.sh` prints, for every open pull request, the base ref it
+will actually merge into with that base's head, the verdict against it, and —
+when the base is not `main` — the verdict against `main` as well, labelled a
+later step's question rather than this step's blocker. `--self-test` builds
+four inputs and fires all four branches: clean onto its own base, clean onto
+its base but conflicting with the trunk which is this incident's exact shape,
+conflicting onto its own base, and a base ref that is not there, which is
+spelled `unreadable` so it can never be read as `clean` (L41, L42). The first
+draft of that self-test disagreed with a correct instrument, because the base
+in case 3 had not moved after the branch left it and the merge was therefore a
+fast-forward; the construction was fixed and the reason written beside it,
+which is the cheapest possible demonstration of why L42 asks for the firing
+rather than the assertion.
+
+Run against the live queue at 12:27:49Z it reproduced this incident's shape
+three times standing: `#260`, `#271` and `#274` are each clean onto their own
+base and conflicted against `main` on `docs/agents/addressed.sh`. It also
+found the one pull request in the queue that is genuinely blocked by its own
+base, `#269`, on `docs/backlog.md`.
+
+**Instances, counted rather than entries.** Two measurements of one item by
+one seat, 06:53:01Z and 07:04:49Z. Three branches standing in the queue right
+now that will produce the same disagreement for the next hand that reads them
+without the base column. Zero instances since the command existed, which is a
+statement about the clock and not about the fix.
+
+**Not blameless-adjacent, blameless.** The merging seat's first clause was
+correct and was this seat's defect, not its own: `#264`'s body said more work
+was coming when the run that wrote it had already ended, which is exactly the
+draft-that-outlives-its-run failure this seat's own standing count exists to
+catch. It declined to ready another seat's draft, which its charter tells it
+not to do, and it named both clauses in writing on the branch, which is the
+only reason this entry can be measured at all.
+
+**The `addressed.sh` resolution, so the later step is not a judgement call.**
+Generated, not asserted: `git log origin/main -- docs/agents/addressed.sh`
+returns exactly one commit, `d5f3abc`, the merging seat carrying this seat's
+own byte-identical copy to `main` ahead of the charter clock; and
+`git diff origin/main:docs/agents/addressed.sh HEAD:docs/agents/addressed.sh`
+is 47 insertions and 0 deletions, every one of them a later edit by this seat.
+So when the chain reaches `main` the add/add resolves to the chain's copy,
+and no other author's work is in the file to lose.
+
+## Incident 20 — 2026-10-24 — Two charter pull requests were merged and reverted inside five minutes, and the revert does not reach the four branches that will put them back
+
+**Status: closed on the detector, open on the decision.** Nothing in the tree
+needed repairing, because the merging seat's own correction was clean and
+complete on `main`. What was missing was any way to see what the revert did not
+reach, and that now exists and has fired against a real positive:
+`docs/agents/reverted.sh`, in this run's pull request `#274`, with
+`--self-test` over three constructed inputs. The decision the revert was made
+to protect is the owner's and is still open. Lesson: L44.
+
+**Facts.** At 12:39:01Z the merging seat merged `#253`, the bottom link of this
+seat's charter chain, having first re-measured the merge order in a full clone
+and confirmed this seat's published ordering — its own words: "your chain first
+against the centralizer costs one conflict in `prompts/engineer-agent.md`, the
+reverse order costs that same conflict five times over." At 12:38:56Z it had
+claimed the centralizer's branch on the board to resolve that one conflict, and
+at 12:40:15Z it merged `#261` as well. It then read the rest of its inbox,
+found that an earlier pass of the same seat had already sent the owner one
+consolidated question — whether a charter file can clear on her silence at all
+— and reverted both merges at 12:44, declining to pre-empt her answer by having
+acted first. `#276` carries the reverts and merged at 12:45:37Z.
+
+**Impact, measured and not estimated.** On `main`, none: the reverts are clean
+and the five charters stand exactly as they did. Off `main`, four open pull
+requests sit above the reverted link and every one of them still carries every
+line the revert removed. At 12:49:01Z `reverted.sh` reads `#255`, `#258`,
+`#260`, `#271` and this branch as each restoring 15 lines of
+`prompts/engineer-agent.md`, 62 lines of `docs/agents/lessons.md` and one or
+two lines of `docs/agents/incidents.md`. The next of those to merge re-lands
+the charter paragraph while her answer is outstanding, with no conflict and
+with nothing in its own diff to say so.
+
+**Root cause in the system.** A revert is a commit on one branch. Git has no
+notion of propagating it, `order.sh` and `mergeable.sh` both answer "does it
+merge cleanly" and a restoration is clean by construction, and the revert
+commit's message names the pull request it undid and not the four above it.
+Every surface a reviewer would consult reads normal, which is the property that
+made it worth an entry.
+
+**Not a finding against the merging seat.** It re-measured before acting, it
+told this seat in writing that the measurement held, it named its own ordering
+of act-then-reason as the thing it owed a correction on, and it undid its own
+work rather than defend it. The unit of failure here is the absence of an
+instrument, which is now present.
+
+**Re-measurement that closes the decision half.** The next run of this seat
+reads whether the owner answered the silence question, and runs
+`bash docs/agents/reverted.sh` before any link of this chain is proposed for
+merge. If a link merges while her answer is outstanding, that is a second
+instance and belongs where not-landing findings go.
