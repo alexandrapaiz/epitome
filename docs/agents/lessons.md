@@ -1943,3 +1943,67 @@ block's wake-path gap is HQ's runtime, handed to
 named above and asked for.
 
 `portable: yes`
+
+## L37 — A possessive resolves at the reader, so one body sent to two companies says two different things: in a multi-addressee message, name every seat, file and repository by its own name
+
+**Trigger (2026-10-24T00:47:35Z)**, not words from the owner but a reply from
+HQ's project manager to a handoff this seat had sent sixty-three seconds
+earlier, verbatim: "The charter wording for our own project manager's
+instruction file is a decision I would make for my own file, not yours to ask
+on my behalf, so I am waiting to see that separate message rather than acting
+on a description of it."
+
+There is no such message and there never was one. The third item of that
+handoff was about `cli/src/lib/runner.js` in this repository and was addressed,
+in the same sentence, to this product's project manager: "Third, and this one
+is for our own project manager, because it is code in this repository." Read
+from HQ, "our own project manager" is HQ's project manager — itself — and the
+reading is the better one, because that seat is the only project manager in the
+company it reads from. So a correct finding about this product's runtime was
+received by one addressee as a request to edit its own charter, declined on
+that ground, and left a seat holding a wait on a message that was not coming.
+
+**The controlled comparison is inside the same hour, from this seat to the same
+two addressees.** This seat's charter requires a not-landing finding to go to
+two project managers in two companies ("Where a not-landing finding goes"), so
+every such finding is this hazard by construction. Two pairs went out on the
+night of 2026-10-24:
+
+| sent | bodies | the disambiguating line | outcome |
+|---|---|---|---|
+| 00:26:26Z to `epitome/pm` and 00:26:33Z to `alexandra-systems/pm` | different — 3,233 and 3,450 characters, written per addressee | present in the HQ copy, first paragraph: "the first and third items below are for our own project manager and the second one is the reason you are on this message" | both items moved: HQ moved the host-runtime item to In progress at 00:38Z, this product's project manager merged three pull requests at 00:32Z |
+| 00:46:32Z to both | **byte-identical**, same subject, `our own` three times in the body and once in the subject | absent | items one and two read correctly by both; item three declined by HQ at 00:47:35Z as a request about its own file |
+
+The difference between the pairs is not care and not length. It is whether the
+body was composed for the seat that would read it.
+
+**Rule.** A message with more than one addressee is more than one message, and
+a possessive, a demonstrative or a bare "here" is resolved at the reader's
+seat, not the writer's. So in anything addressed to more than one company:
+every seat, company, file and repository is named by its own name —
+`epitome/pm`, not "our own project manager"; `alexandrapaiz/epitome`, not
+"this repository" — and each item says which addressee is asked to act on it.
+When the item is genuinely for one of the two, say so in the item, in its own
+sentence, the way the 00:26:33Z copy did. A sentence that is true from where
+you sit and false from where it lands has not been sent, and the reader cannot
+detect the error, because the wrong reading is coherent.
+
+**This is the second instance of one class, so the fix is structural.** The
+first was incident 14: a correct not-landing finding declined because its prose
+counted one set of pull requests and its `data` named another, which earned L33
+— a number travels as a labelled identifier or it does not travel. A name is
+the same object as a number here: both are identifiers, and both were left for
+the reader to re-derive. L33 put the numbers in `data`, generated. This entry
+says the names are the same kind of thing, and the second instance is why the
+repair is in `prompts/exo-agent.md` in this entry's pull request rather than in
+this file alone (L4, L-A4).
+
+**Binds:** this seat first, in the charter section that mandates the two
+addressees, patched in this run's pull request and hers to merge. Every seat
+that writes a handoff across companies: the board's own message standard
+already forbids codes in a body and sends identifiers to `data` (company PM
+standard §15); this is that rule's other half, because a seat name spelled as a
+possessive is an identifier written in prose. Portable, because the surface is
+the board and the board is every company's.
+
+`portable: yes`
