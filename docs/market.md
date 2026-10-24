@@ -1,5 +1,114 @@
 # Market brief — docs/market.md
 
+Maintained by the market seat. This revision: **rev 10, 2026-10-24**,
+a dispatch run that fired on rev 9's own pull request merging
+([#262](https://github.com/alexandrapaiz/epitome/pull/262),
+2026-10-24T01:47:27Z). `gh pr list` was checked first (L-E10): no
+market PR is open; rev 9 is current `main`. The board inbox addressed
+to this seat (`to_seat=market&to_company=epitome&everyone=0`) carries
+nothing new since the project manager's own note at 02:00:01Z closed
+rev 9's escalation loop from both sides — checked directly this run,
+not assumed, and there is nothing to add to it. This seat's one
+standing lane item, docs/backlog.md's "Market seat brief #1: pricing"
+card (ADR-13, buyer-2 usage-based pricing), is unchanged: no owner
+word, still 22 days unanswered (first raised rev 4, 2026-10-02).
+
+What this run actually did: re-confirmed, directly, both standing
+re-ranking triggers (unchanged, logged below, not restretched into new
+content five hours after rev 9's own check of the same two pages found
+the same thing); and caught a correction this brief owes itself rather
+than a competitor — §3's own central evidence for "why epito.me and
+not glue" was never actually live.
+
+## Correction: the cycle-2 MVP has not shipped; a merge was read as live
+
+Rev 8's §3, carried unedited into rev 9, states: "the cycle-2 bet
+(`mvp-stranger-npm-v0`...) shipped this window: epito published to npm
+(PR #246, merged 2026-10-24, `epito-cli`...). This is the first time
+'why epito.me and not glue' has a working answer a stranger can run
+rather than a roadmap slide — `npm i -g epito-cli`..."
+
+Checked directly this run (L-A12, verify by looking rather than by
+elimination): `npm view epito-cli` against the live registry returns
+`404 Not Found - GET https://registry.npmjs.org/epito-cli` at
+2026-10-24T06:55Z. There is no package a stranger can install. PR #246
+merged the rename and the publish tooling into `cli/`
+(`cli/package.json` reads `"epito-cli"` on `main`, confirmed directly)
+— it did not run `npm publish`. The product's own cycle file says this
+plainly and was never the source of the overstatement:
+docs/cycles/2026-10-18-cycle-2.md's own 2-1 hill entry reads "Nothing
+engineering is left in this scope: the one remaining step is the live
+`npm publish` itself, a secrets/account action this charter does not
+execute, handed to the chair or owner," naming the clock —
+`NPM_TOKEN` dies **2026-10-24T19:26:26Z**, about 12.5 hours from this
+run, confirmed still the live deadline on docs/backlog.md's current
+"Now" card.
+
+This is the brief's own version of the fault the company lessons
+register names portfolio-wide (L-A16, "configured is not in effect")
+and the fault rev 5's §2 correction and rev 8's own escalation-delivery
+correction already named against this seat's own prior claims: a merge
+to `main` was read as the live effect it only configures. §3 below is
+corrected in place of restating the error forward: the npm path is
+mechanically ready and dry-run-proven, not yet reachable by a stranger,
+and will not be until a chair or owner action completes within the
+next 12.5 hours. If the token lapses unused, the MVP's "working answer"
+claim reverts to a roadmap slide until a new token is issued — worth
+the owner's attention as a live clock, not a status update she can file
+away.
+
+## 4a. Standing watch: LangChain/LangSmith (ADR-12) — re-checked, unchanged, third time today
+
+Re-fetched directly this run (L-R1), not carried on rev 9's say-so:
+LangSmith's Cloud changelog (`docs.langchain.com/langsmith/changelog`,
+fetched ~2026-10-24T06:56Z) still reports its latest entry as "October
+12-19, 2026," the same GitHub-App-manifest-creation entry rev 8 found
+and rev 9 re-confirmed, nothing added. GitHub's agent-app changelog
+([github.blog/changelog/2026-06-02-extend-github-with-agent-apps](https://github.blog/changelog/2026-06-02-extend-github-with-agent-apps/),
+re-fetched same window) still reads verbatim "Over the coming months,
+we'll open up access to allow anyone to build agent apps, whether
+you're a developer tools provider or just building an internal tool
+for your team" — no self-serve date. Both triggers are now logged
+unmoved three times in one day (rev 8 ~01:02Z, rev 9 ~01:16-01:45Z,
+this run ~06:56Z); five hours between the second and third check is
+not enough time for either vendor's own release cadence to produce a
+new entry, and nothing below was re-searched on the strength of that
+non-finding (L-X7 — a recheck that cannot honestly produce new content
+is logged, not re-narrated into one).
+
+## 1 through 4, otherwise unchanged: carried forward by citation
+
+Nothing in this run's search budget — spent on the correction above and
+the two re-checked triggers — touched landscape, demand, pricing beyond
+the lane item, or the integration map, and the lane item (ADR-13) has
+no owner word to report. Sections 1 through 4 below are rev 9's and
+rev 8's, unedited, except where §3 above corrects the npm claim; the
+original text stands beneath this note per house convention of not
+editing superseded text in place.
+
+---
+
+*Charter compliance note (rev 10): research only within this run's
+actual window; the one correction is to this brief's own prior claim,
+caught by looking at the live registry rather than assuming a merge
+was the shipped state. Checked against docs/standards/lessons.md before
+shipping: L-E10 (`gh pr list` checked first; no open market PR); L-R1
+(both standing triggers fetched directly this run, not assumed from
+rev 9's own word); L-X7 (the third same-day recheck of the same two
+triggers reported as unmoved rather than stretched into content, and
+the lane item's unchanged age reported as a depth, not re-asked); L-A12
+(the npm claim verified by looking at the registry, not inferred from
+a merged pull request); L13 (this run does not redo rev 9's or rev 8's
+own landscape/demand/integration-map research now that both are carried
+by citation). Flagged: the correction above is time-boxed — the
+`NPM_TOKEN` expiry (~12.5h from this run) means the live-package gap it
+names may close, or harden into a missed deadline, before the next run
+checks it again.*
+
+---
+
+# Market brief — docs/market.md (rev 9, superseded by rev 10 above)
+
 Maintained by the market seat. This revision: **rev 9, 2026-10-24**,
 a dispatch run that fired on rev 8's own pull request merging
 ([#257](https://github.com/alexandrapaiz/epitome/pull/257),
