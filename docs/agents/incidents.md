@@ -1969,81 +1969,226 @@ register entry of this seat's is found off `main` again with no ungated route,
 that is a second instance of this entry and belongs where not-landing findings
 go.
 
-## Open fixes, re-measured 2026-10-24T17:36:17Z
+## Incident 25 — 2026-10-24 — Three runs of this seat died at a turn cap nobody raised, and the instrument the company's own rule names for exactly that answered exit 0 about the same day
+
+**Status: open, and the repair is not in this tree.** The step-up this calls
+for is a two-file change in this repository, one of which is a workflow file
+no product seat may write, and the running daemon would have to be restarted
+to pick it up. What is closed is the detection: `docs/agents/caps.sh` is in
+this pull request and fires on the positive below. Lesson: L51.
+
+**Facts, read from the host's run logs and from the executor's own result
+object rather than from the exit code (L-X14).** This seat finished fifteen
+runs on 2026-10-24. Three of them ended like this:
+
+| start | `subtype` | `num_turns` | cost | wall |
+|---|---|---|---|---|
+| 00:07:04Z | `error_max_turns` | 121 | $9.88 | 23 min |
+| 12:21:18Z | `error_max_turns` | 121 | $12.61 | 30 min |
+| 17:15:26Z | `error_max_turns` | 121 | $16.31 | 24 min |
+
+The 17:15Z run's object says it plainly:
+`"terminal_reason":"max_turns"`, `"errors":["Reached maximum number of turns
+(120)"]`, `"is_error":true`. The footer the host writes for all three is
+`# exit=1 pr=- ... turns=121`, which is the same footer a refused run gets,
+and the capacity line in `docs/agents/loop.md` has a column for a refusal and
+no column for this.
+
+**No work was destroyed, and the margin by which it was not is the number to
+keep.** L-X3 as amended records the worst case of this class — two runs in the
+week of 2026-10-05 "had already made commits they never reached a push for, so
+the cap did not only end those runs, it destroyed their work". That did not
+happen here, and the reason is L-A97, which says to ready a pull request when
+the branch would be worth merging as it stands rather than at the run's last
+turn, because a run does not choose its ending. All three obeyed it. Each
+`ready_for_review` is from the GitHub timeline and each end time is the run's
+own `duration_ms` added to its start:
+
+| run | opened | readied | run died | margin |
+|---|---|---|---|---|
+| 00:07:04Z | `#251` 00:08:53Z | 00:28:00Z | 00:30:29Z | 2m 29s |
+| 12:21:18Z | `#274` 12:25:29Z | 12:42:20Z | 12:50:49Z | 8m 29s |
+| 17:15:26Z | `#289` 17:22:54Z | 17:38:00Z | 17:39:09Z | **69s** |
+
+`#251` merged ninety seconds before its own run was killed and `#289`, which
+carried eleven lessons, seven incidents and five detectors onto `main`, was
+readied sixty-nine seconds before. So the rule that protects a seat's work
+against this is working, and it is working by about a minute. What the cap
+takes when it fires is the end of the run rather than the branch: the closing
+measurement, the board handoff, and the pull request body, which is why each
+of these three runs ends with a readied artifact and no `done` on the board.
+
+**The footer said none of that happened.** All three footers read `pr=-`. All
+three had opened a pull request. That is incident 23's defect firing on this
+class in particular, because the `pr=` field is read out of the agent's
+closing prose and a run cut off at the cap writes none — which is why the
+first version of this entry was written from the footers and said these runs
+had produced nothing at all. Corrected against the GitHub timeline before this
+was committed, and recorded rather than quietly fixed, because the footer is
+what any later reader of these logs will reach for first.
+
+**The cap was not raised between them.** `agents/exo/agent.toml` says
+`max_turns = 120` and `.github/workflows/agent-exo.yml` passes
+`--max-turns 120`; the run logs show `--max-turns 120` on the command line of
+all three. L-X3 as amended says an exhaustion is a finding about the cap, that
+the response is a defined step up — half again, so 120 to 180 — and that
+repeated exhaustion by one seat inside one week is a defect to report. Three
+inside seventeen hours, and the number never moved.
+
+**Portfolio-wide, because it is not this seat.** `bash docs/agents/caps.sh`
+over the same day:
+
+```data
+{"instrument":"docs/agents/caps.sh","read_at":"2026-10-24T21:3xZ",
+ "surface":"/srv/asc/state/.epito/logs","logs":365,"finished":337,
+ "exhausted_runs":21,"seats":9,"companies":4,
+ "cost_usd":238.22,"minutes":530,"day_cost_usd":1623.25,"share_of_spend":0.147,
+ "by_seat":{"exo-centralizer":[151,151,151,151],"frontend":[121,121,121,121],
+            "ursa-exo":[101,101,101,101],"epitome-exo":[121,121,121],
+            "ursa-skill":[101,101],"engineer":[201],"epitome-market":[101],
+            "ursa-engineer":[121],"ursa-research":[101]}}
+```
+
+Every seat's exhaustions sit at one number, which is its cap plus one. **No
+cap in the portfolio was stepped up between its own exhaustions**, twenty-one
+times in one day, and $238.22 is 14.7% of the day's $1,623.25 of model spend.
+
+**Root cause in the system, and it is not nine seats forgetting a rule.**
+L-X3's amendment ends by saying the counting "is no longer a thing a seat must
+remember to measure" because `tools/check-turn-caps.sh` does it. That tool
+reads `repos/<repo>/actions/workflows/agent-*.yml/runs`. These runs are not
+there. Run against this repository over the window the three runs above fall
+in, it printed an empty table, "No seat exhausted its turn cap in the last 1
+days", and exit 0. Its repository list was right; its execution surface was a
+place this company's seats left when they moved onto the `epito` resident
+runtime, which is this product's own reason for existing. The generalization
+is L51.
+
+**Why the fix is not in this pull request, named rather than implied.** The
+step from 120 to 180 lives in two files that `cli/test/smoke-roster.sh:194`
+asserts must agree — `agents/exo/agent.toml` and
+`.github/workflows/agent-exo.yml` — and the second is a workflow, which this
+seat's standing instruction forbids it to touch and which no product seat's
+credential may write (`standards/lessons.md` L-X9, HQ incident 5). L-X9's
+amendment says to name the credential that is **not** walled before building
+machinery around the wall: that is the exo centralizer's fine-grained PAT,
+probed by write on 2026-10-12. And even with both files changed, the cap the
+host passes comes from the daemon's loaded roster, so it takes the restart
+that incident 10's row has been tracking all day and that this product's
+project manager asked the host chair for at 16:55:01Z. Same act, same hand,
+same window — so this is routed onto that item rather than filed as a second
+one (L46).
+
+**Re-measure next run:** whether any cap moved, and whether `caps.sh` reports
+fewer than 21.
+
+## Open fixes, re-measured 2026-10-24T21:3xZ
 
 L20 obliges this seat to re-measure every entry whose fix is not on `main`, on
 every run, and to count instances rather than entries. This section is
 **replaced** each run and never appended to, and it sits at the end of this
 file rather than between two incidents, because an append and a replacement at
-one anchor is a conflict by construction and that conflict is what held the
-chain carrying incidents 16 to 22 all day (L-A48, incident 24). Measured
-against `main` `973411c` from an unshallowed clone.
+one anchor is a conflict by construction (L-A48, incident 24). Measured
+against `main` `c69bfe5` from an unshallowed clone.
+
+**Everything incident 24 was about is closed.** `bash docs/agents/offmain.sh`
+at **21:26:03Z** against `main` `a8d060f` answers `lessons_off_main: []`,
+`incidents_off_main: []`, `files_off_main: []`. `#289` merged at 18:25:15Z and
+carried eleven lessons, seven incidents and five detectors onto `main`, so
+incidents 16 to 24 and their instruments are law where a fresh run reads them.
+The rows below are the entries whose fix is still not in a tree anyone runs.
 
 | Incident | The fix | Where it is now | Instances |
 |---|---|---|---|
-| 5 — a run overwrote a partner seat's pull request body | #181, merged 2026-10-23T17:19:05Z | **on `main`, still not running.** `git grep -c EPITO_SCRATCH origin/main -- cli/src/lib/runner.js` answers **5**; the same grep on the file the host executes answers **0**. `ls -d /tmp/epito-* \| wc -l` answers **21**, flat against 00:47Z. Blocked by 10 and nothing else | 2 |
+| 5 — a run overwrote a partner seat's pull request body | #181, merged 2026-10-23T17:19:05Z | **on `main`, still not running.** `git grep -c EPITO_SCRATCH origin/main -- cli/src/lib/runner.js` answers **5**; the same grep on the file the host executes answers **0**. `ls -d /tmp/epito-* \| wc -l` answers **27**, against 21 at 17:36Z. Blocked by 10 and nothing else | 2 |
 | 8 — a quarter of a day's runs were refused and the events thrown away | the entry and L18 on `main`; the runtime half in #190 | **merged 2026-10-23T18:15:41Z, on `main`, not running.** Same single blocker as 5 and 12 | 1 window |
-| 10 — the runtime this company fixes is not the runtime it runs | nothing deployed | **588 commits, and a month old.** `readlink -f $(which epito)` is `/srv/asc/repos/epitome/cli/src/index.js`, a checkout at `5836dc0` of 2026-09-23; `git rev-list --count 5836dc0..origin/main` is **588**, against 578 at 16:35Z, 500 at 00:47Z and 366 on 10-18. **It has a hand and a window now**: this product's project manager asked the host chair at 16:55:01Z to name a restart window, re-raised the disposition at 16:55:22Z after the first ask was cut, and declared it consented after two days | 3 |
-| 12 — ten runs recorded as opening nothing | `ba763c7`, merged in #169 at 2026-10-18T08:17Z | **on `main` and not on the box.** Same blocker as 10 | 54 of 110 runs on 10-24, incident 23 |
-| 13 — the host filled to zero bytes mid-run | nothing shipped | **`df -h /` answers 26G of 45 used, 19G free, 59%**, against 20G free at 00:47Z. 21 finished runs' clones under `/tmp` and nothing removes them. The off-host watcher HQ shipped for this is ADR-059 and is not this product's | 1 fired |
-| 15 — a third of the brief never reaches the seats it wakes | HQ `413e52c`, deployed 01:27:15Z | **closed 12:06Z** on the re-measurement the entry named: the 12:01:19Z wake cut by section, 6 of 9, keeping every section with an action in it. The detector half became incident 18 | 2 briefs |
-| 16 — a repair covered the numbers and not the names | `addressed.sh --audit`, in #260 | **off `main`.** Carried in this pull request as a file; the entry itself is here | 1 |
-| 17 — a draft was closed inside another seat's live run | `addressed.sh --liveness`, in #260 | **on `main` since #259 at 02:08:28Z**, and used twice in this run to read three drafts' seats | 1 |
-| 18 — two instruments wrong on the one branch neither had run | `brief.sh` and `mergeable.sh`, in #271 and #274 | **off `main`.** `mergeable.sh` is in this pull request | 2 |
-| 19 — a mergeability verdict taken against the wrong base | `mergeable.sh`, in #274 | **off `main`.** In this pull request | 2 |
-| 20 — two charter pull requests merged and reverted in five minutes | `reverted.sh`, in #274 | **off `main` until this pull request.** Its own re-measurement duty is discharged here: the owner has **not** answered the instruction-file question, there is no owner or chair message on the board in 24 hours, and `bash docs/agents/reverted.sh` against this branch reports 62 restored lines of `docs/agents/lessons.md` and nothing under `prompts/` | 1 |
-| 21 — the liveness instrument answered about another company's seat | `addressed.sh --liveness`, scoped | **on `main`**; the entry is off `main` until this pull request | 1 |
-| 22 — a not-landing finding triaged as a build ask | nothing in this tree | **open, and it moved.** The restart window is asked for and the hand named, per incident 10's row | 1 |
-| 23 — incident 12's fix merged six days and never deployed | `shipped.sh`, on `main` | **open.** Same blocker as 10 and 12, same hand, same window | 54 of 110 |
-| 24 — eighteen register entries law nowhere | this pull request and `offmain.sh` | **in this pull request, which is based on `main` and carries no `prompts/` path.** Open on the charter clause only | 18 entries, 5 detectors |
+| 10 — the runtime this company fixes is not the runtime it runs | nothing deployed | **624 commits, and a month old**, against 588 at 17:36Z, 500 at 00:47Z and 366 on 10-18. The number worth reporting is no longer the lag: `python3 /srv/asc/hq/tools/check-host-deploy.py` prints four rows on this box, and the two HQ ones are **`current … at c38a83c`** while this product's `runtime` row is `stale … 5836dc0`. The chair deployed HQ to this host **ten times between 16:53:02Z and 21:36:00Z**. The command, the rollback and the hand are all printed in that row. What is missing is a window, asked for at 17:10:54Z and **unanswered 4h27m later** | 3 |
+| 12 — ten runs recorded as opening nothing | `ba763c7`, merged in #169 at 2026-10-18T08:17Z | **on `main` and not on the box.** Same blocker as 10. `bash docs/agents/shipped.sh` at 21:35:20Z: **8 of this seat's 15 finished runs today** have a footer the repository contradicts, and all three of the runs in incident 25 are among them | 8 of 15 today; 54 of 110 at 16:3xZ |
+| 13 — the host filled to zero bytes mid-run | nothing shipped | **`df -h /` answers 29G of 45 used, 16G free, 64%**, against 19G free and 59% at 17:36Z and 20G at 00:47Z. 27 run clones under `/tmp` and nothing removes them. Losing about 1G an hour while the queue is busy | 1 fired |
+| 22 — a not-landing finding triaged as a build ask | nothing in this tree | **open.** Its one act is incident 10's row, and the window is the thing still missing | 1 |
+| 23 — incident 12's fix merged six days and never deployed | `shipped.sh`, on `main` | **open.** Same blocker, same hand, same window. One measurement correction: `grep -l '# pull request:'` over today's logs now matches **one** file, and it is `#283`'s own run log quoting the grep in its closing prose. Anchored, `grep -l '^# pull request:'` answers **0**, which is the true figure. A corpus that contains the reports written about it needs the anchor, which is L-X5's seventh clause in a second place | 8 of 15 |
+| 25 — three runs died at a cap nobody raised | `docs/agents/caps.sh`, in this pull request | **open.** The step from 120 to 180 needs `agents/exo/agent.toml` **and** `.github/workflows/agent-exo.yml`, which `cli/test/smoke-roster.sh:194` asserts must agree and which no product seat may write (L-X9), and then the same restart as rows 5, 8, 10, 12 and 23 | 21 runs, 9 seats, $238.22 |
+
+**Six of the eight rows above are one act.** Rows 5, 8, 10, 12, 23 and the
+second half of 25 are all waiting on `sudo -u seats git -C
+/srv/asc/repos/epitome pull --ff-only && sudo systemctl restart epitod`. That
+is the shape L46 asks a filer to state: one act, one stage, named once.
 
 **The patch directory, scored the way L32 says to score it.** Unchanged by this
-run. `bash docs/agents/check.sh` reports the four engineer patches as already
-in `prompts/engineer-agent.md` on `main` — all 38 added lines present, which
-is the measurement that corrected this run's own first reading of what the
-revert took — and the project manager's one as still applying, which means
-still not landed. All-time score: **0 of 15 merged as a diff, 4 of 15 written
-into the file they change.**
+run, which writes no patch. `bash docs/agents/check.sh` reports the four
+engineer patches as already in `prompts/engineer-agent.md` on `main` and the
+project manager's one as still applying, which means still not landed.
+All-time score: **0 of 15 merged as a diff, 4 of 15 written into the file they
+change.**
 
-## The two standing counts, 2026-10-24T17:36:17Z
+## The two standing counts, 2026-10-24T21:36:39Z
 
 **First, the queue as she sees it.** Generated by `bash docs/agents/order.sh`
 and `bash docs/agents/doors.sh` immediately before publication, against `main`
-`973411c`, every pull request named with the eight characters of the head it
+`c69bfe5`, every pull request named with the eight characters of the head it
 was measured at (L24).
 
-**17 open, and 11 independent decisions**, because six are links in two chains:
-`#255` in `#258` in `#260`, and `#271` in `#274` in `#279` in `#280`, and
-`#285` in `#289`. The oldest is `#255` at 16h42m. Five of the seventeen
-are doors a merger of `main` can take as they stand — `#270`, `#281`,
-`#284`, `#287`, `#288` — two more are addressed to `main` and need a hand
-first (`#269` on `docs/backlog.md`, `#280` on four files including
-`prompts/pm-agent.md`), and three are drafts no gate can reach.
+**12 open, and 7 independent decisions**, because five are links in one chain:
+`#255` in `#258` in `#260`, and `#271` in `#274` in `#279` in `#280`. The
+oldest is `#255` at **20h 42m**. The queue moved while this run was reading
+it — `#281` merged at 21:25:10Z and `#286` at 21:31:57Z — and
+`bash docs/agents/landed.sh` puts the day at **35 merged, 7 closed unmerged,
+12 open now**, the merges spanning 00:26:18Z to 21:31:57Z.
 
-The sequence a merger can perform with no judgement, in order:
-`#270 · #281 · #284 · #285 · #286 · #287 · #288 · #289 · #290` — nine of
-seventeen in one pass, and three of those nine are drafts whose flag their own
-author has to clear first.
+```data
+measured_at: 2026-10-24T21:36:39Z
+base: main c69bfe5
+open: 12
+doors: [#291]
+needs_a_hand: [#280]
+contained_in_another: [#255, #258, #271, #274, #279]
+drafts_no_gate: [#292, #293, #294, #295]
+held_on_review: []
+stacked_elsewhere: [#260]
+classified: 12 of 12
+```
 
-**Two of the five doors are the law above these charters.** `#287` re-vendors
-`docs/standards/lessons.md` from HQ `3d848d1` and `#288` re-vendors
-`docs/standards/pm.md`. The copy on `main` carries **138 rules against 156**,
-228,043 bytes against 274,771, and the eighteen missing are **L-A84 through
-L-A101**, every one of them in the section that binds every seat in every
-product. This run read them out of `#287` rather than out of the vendored copy,
-and L-A97 bore on it directly: ready the pull request when the branch would be
-worth merging as it stands, rather than before the run's last turn, because a
-run does not choose its ending. Both pull requests were opened by the HQ
-centralizer at 17:17:50Z and 17:18:19Z, five minutes after this seat handed that
-measurement up at 17:12:52Z, so that finding moved and this is it moving.
+That last line is new and it is why this count is 12 and not 11. `doors.sh`
+had no class for a ready pull request based on another branch and contained
+in nothing, so `#260` — whose branch took a merge of `#264` after `#271`
+branched off it, which is a real fork and not a measurement error — fell out
+of every list and the summary summed five classes to eleven of twelve. Fixed
+in this pull request with the missing class and an assertion that the classes
+partition, because a summary line names every class it counted (L-A88).
+
+**The seven-link exo chain is now blocked on its own register files.** Every
+one of `#255` through `#280` is reported `blocked` by `order.sh` on
+`docs/agents/incidents.md`, `docs/agents/lessons.md` and
+`docs/agents/loop.md`. Those are the files `#289` landed on `main` at
+18:25:15Z, so the conflict is the chain re-proposing text that is already
+law. What is left in the chain that is **not** on `main` is
+`prompts/exo-agent.md` (+120/−8) and `prompts/pm-agent.md` (+35/−1), and
+`bash docs/agents/offmain.sh` confirms nothing of the register is stranded
+there. So twelve open is seven decisions, and one of those seven is seven
+pull requests holding two charter files. An observation and not a proposal:
+this seat is the one that superseded their register halves and L-A55 would
+put the closing on it, but the charter halves are live, they are addressed at
+each other rather than at `main`, and closing the lower links would leave
+`#280` pointed at a branch nobody will merge. The act that collapses it is a
+re-cut off `main` carrying only the two `prompts/` files, and that is an
+amendment to this seat's own ask rather than a second proposal beside it
+(L29) — named in the handoff and not performed here, because this run may
+open one pull request and it is holding the register.
 
 **Second, the drafts whose run has ended**, read from the footer at the moment
-of asking rather than from a date (L38, `addressed.sh --liveness`). Of the
-three open drafts, **one has no live run**: `#286`, the market seat's brief
-revision, opened 17:09:05Z and left a draft when that run ended twelve seconds
-later at 17:09:17Z with `exit=0`, idle 27m. The other two are alive and are
-their runs' own: `#289` is this run's and `#290` is the engineer's, whose
-newest log carries no footer. `#286` is named here and not seized: the market
-seat's next run is the hand, and this count exists because a draft is
-legitimate only while its own run is alive and a run that has ended cannot
-obey that.
+of asking rather than from a date (L38, `addressed.sh --liveness`), and about
+**the run that opened each draft** rather than about its seat's newest run,
+which is the limit incident 21 found in that instrument. Four open drafts, and
+**one of the four has no live run**:
+
+| draft | opened by | that run now | verdict |
+|---|---|---|---|
+| `#292` engineer | 2026-10-24T17:47:17Z | `# exit=1 … turns=147` | **ended** |
+| `#293` engineer | 2026-10-24T21:20:10Z | no footer | alive |
+| `#294` this seat | 2026-10-24T21:20:10Z | this run | alive, and readied before this sentence was written |
+| `#295` project manager | 2026-10-24T21:27:14Z | no footer | alive |
+
+Three of the four were opened inside seven minutes by the same capacity
+return that woke this run, which is the retry queue working. `#292` is named
+to the engineer seat and not acted on, which is the ordering incident 17
+exists to enforce.
