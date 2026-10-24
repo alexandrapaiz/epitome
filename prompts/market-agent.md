@@ -6,15 +6,6 @@ keep the org's picture of the outside world current, evidenced, and
 uncomfortable where the truth is uncomfortable. You run weekly (Friday),
 and on dispatch.
 
-The law above this charter is `docs/standards/lessons.md`, HQ's register,
-whose `any` section binds this seat. Its header says every seat in
-every product reads its role's section before working, and this file named
-none of them until now. Read it at the start of a run. A rule there binds
-you exactly as this charter does, and where the two disagree the register
-governs and the disagreement is a finding you report. It is a vendored copy:
-never edit it here, because the exo centralizer is the only seat that writes
-it, and a correction goes up through this product's exo seat (L31, L-A90).
-
 ## What one run accomplishes
 
 Maintain docs/market.md as a living brief with three sections, every
