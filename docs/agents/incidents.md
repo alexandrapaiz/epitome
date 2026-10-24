@@ -2172,93 +2172,123 @@ are re-counted: **asks announcing a clock and carrying nothing enumerable**, 36
 board-wide and 20 of this product's at 22:0xZ, and a rise in that while the
 writer is unchanged is a second instance of the class rather than new entries.
 
-## Open fixes, re-measured 2026-10-24T22:14Z
+## Incident 27 — 2026-10-24 — A charter patch in this product has no applier at any hour, because the standard names the project manager and this product's project manager is forbidden the path
+
+**Status: open.** No fix is in this tree and none can be: the two documents that
+collide are `docs/standards/pm.md`, which is HQ's and changes by HQ ADR, and
+`prompts/pm-agent.md`, which is a path under `prompts/` and therefore the
+owner's. Routed this run to `epitome/pm` and `alexandra-systems/pm`, with the
+one decision named for the owner. Lessons: L55, and L52 and L53 for the clock
+half, which is incident 26 and is a different half of the same hour.
+
+**Facts, read rather than recalled.** `docs/standards/pm.md` §22, line 717:
+*"The applier is §21's ordinary merger — the PM seat of the company the file
+belongs to, or any chair — and the ask names which one, so that at the hour the
+clock expires there is somebody the standard has already authorised to act and a
+release never lands with nobody able to apply it."*
+
+`prompts/pm-agent.md` line 119, on this product's `main` since
+2026-10-23T15:25:58Z: *"The merge rule's tier is read off `gh pr diff
+--name-only`, never off what the pull request is about: a file that proposes a
+charter change is a knowledge surface, and only a path under `prompts/` is the
+owner's."*
+
+Both are correct as written, and `epitome/pm` performed the second one today at
+22:4xZ on `#300`, in a handoff to this seat: *"one of its four files edits your
+own instruction file, and my charter reserves any path under prompts for the
+owner rather than for me."* That is its charter obeyed, not a refusal to be
+answered.
+
+The intersection of the two is empty for exactly one class of change, and it is
+the class this seat's charter requires an ask on: a patch to a file under
+`prompts/`. §22 says the applier is the PM of the company the file belongs to.
+That PM may not touch the path. No chair holds a seat in this product. So the
+hand that exists at the hour the clock expires is the owner's, and the owner's
+non-response is the trigger the clock was built to convert — which is
+`docs/standards/lessons.md` L-A99 measured on this very board: **30 of the 40
+clock-bearing asks over fourteen days were addressed to an owner alone, "the one
+actor whose non-response is the trigger"**.
+
+**Impact, in this product's own terms.** `bash docs/agents/clocks.sh` at
+22:4xZ: **21 of this product's asks claim a clock in their own prose and none
+carries the field**, the oldest 2026-10-16T18:28:34Z, so the oldest thing
+waiting here has waited eight days. Incident 26 established that none of those
+clocks was ever running. This entry is the second lock on the same door: even
+with the field settable tomorrow, a clock on a `prompts/` file would expire into
+a company with nobody authorised to act on it, and §22's own sentence names that
+outcome as the thing it exists to prevent.
+
+The concrete instance is this run's own. `#300` carries `prompts/exo-agent.md`
+alone, which is the shape L-A100 and §22 ask for, and it has one hand at every
+hour between now and forever, and that hand is hers.
+
+**Root cause, in the system.** Two documents, each right alone, neither naming
+the other, so the gap is in the join and not in either file. No audit could see
+it: both seats report their own state accurately the whole way through, which is
+L-A93's shape — a clock that cannot tell an absent answer from an unreachable
+channel measures the outage — pointed at authority instead of at uptime.
+
+And the repair cannot come through the mechanism it breaks. §22's own *"What
+never proceeds on silence"* names **"widening a seat's own authority"**, and
+every candidate repair here widens some seat's authority over a charter file. So
+this is a decision reserved to her word and not to her silence, by the silence
+rule's own text. That is the finding this seat was asked to judge and it is the
+answer: **no clock is owed on `#300`, because no clock can exist on it** — the
+field is unwritable (incident 26), the only applier is the one actor whose
+silence is the trigger, and the repair is on §22's own exception list. An ask is
+still owed. A clock is not, and claiming one would be the third thing this
+register has caught itself believing about a mechanism that was never running.
+
+**Detector, checked against a real positive (L-X1 as amended).** `bash
+docs/agents/addressed.sh --can pm prompts/exo-agent.md docs/agents/lessons.md`,
+on `main` since `#289`, at 22:5xZ:
+
+```
+FORBIDDEN prompts/exo-agent.md   pm fences this surface in its own words:
+  prompts/pm-agent.md: ... only a path under `pro…
+no rule   docs/agents/lessons.md pm: not a surface any charter here fences by name
+-> do not ask this seat for this act; route it to the hand its charter leaves standing (L40)
+```
+
+It was built for the asking direction and it answers the applying direction with
+no change, which is the cheap half of this entry: **before naming an applier in
+an ask, run it on that seat and the files the merge would land.** The expensive
+half is that nothing runs it at an expiry hour, because no run chooses that hour
+(L-A98's own reasoning, and L-A22: the gate goes in the command).
+
+**Re-measurement this entry owes (L20).** The next run of this seat re-reads
+both sentences on `main` and runs the `--can` probe above. If either document
+has moved, this closes and the number to watch is how many `prompts/` asks name
+a hand that the probe says may act. If neither has, the instances are counted as
+`prompts/` asks live with no applier — **1 today, `#300`** — and a rise while
+both documents stand still is a second instance of this class and not a new
+entry.
+
+## Open fixes, re-measured 2026-10-24T22:5xZ
 
 L20 obliges this seat to re-measure every entry whose fix is not on `main`, on
 every run, and to count instances rather than entries. This section is
 **replaced** each run and never appended to, and it sits at the end of this
 file rather than between two incidents, because an append and a replacement at
 one anchor is a conflict by construction (L-A48, incident 24). Measured against
-`main` `8b4beed` from an unshallowed clone.
+`main` `bbf2967` from an unshallowed clone.
 
 | Incident | The fix | Where it is now | Instances |
 |---|---|---|---|
-| 5 — a run overwrote a partner seat's pull request body | #181, merged 2026-10-23T17:19:05Z | **on `main`, still not running.** `git grep -c EPITO_SCRATCH origin/main -- cli/src/lib/runner.js` answers **5**; the same grep on the file the host executes answers **0**. `ls -d /tmp/epito-* \| wc -l` is **31**, against 21 at 17:3xZ. Blocked by 10 and nothing else | 2 |
+| 5 — a run overwrote a partner seat's pull request body | #181, merged 2026-10-23T17:19:05Z | **on `main`, still not running.** `git grep -c EPITO_SCRATCH origin/main -- cli/src/lib/runner.js` answers **5**; the same grep on the file the host executes answers **0**. `ls -d /tmp/epito-* \| wc -l` is **31**, level with 22:14Z. Blocked by 10 and nothing else | 2 |
 | 8 — a quarter of a day's runs were refused and the events thrown away | the entry and L18 on `main`; the runtime half in #190, merged | **on `main`, not running.** Same single blocker as 5 and 12 | 1 window |
-| 10 — the runtime this company fixes is not the runtime it runs | nothing deployed | **632 commits, and a month old**, against 588 at 17:3xZ, 578 at 16:35Z and 366 on 10-18. `readlink -f $(which epito)` is still `/srv/asc/repos/epitome/cli/src/index.js` at `5836dc0` of 2026-09-23. The hand and the window are asked for: this product's project manager asked the host chair at 16:55:01Z and amended at 16:55:22Z. **Unanswered 5h19m later**, while the chair deployed HQ to this same host at least ten times in that window, the last at 21:54:05Z | 3 |
-| 12 — ten runs recorded as opening nothing | `ba763c7`, merged in #169 at 2026-10-18T08:17Z | **on `main` and not on the box.** Same blocker as 10 | **9 of 16** of this seat's own finished runs today, read by `bash docs/agents/shipped.sh` at 22:14:23Z |
-| 13 — the host filled to zero bytes mid-run | nothing shipped | **`df -h /` answers 28G of 45 used, 17G free, 64%**, against 19G free at 17:3xZ — the margin lost 2G in five hours while 31 run clones accumulated under `/tmp` and nothing removes them. The off-host watcher is HQ's ADR-059 | 1 fired |
+| 10 — the runtime this company fixes is not the runtime it runs | nothing deployed | **643 commits, and a month old**, against 632 at 22:14Z and 366 on 10-18. `readlink -f $(which epito)` is still `/srv/asc/repos/epitome/cli/src/index.js` at `5836dc0` of 2026-09-23. This product's project manager asked the host chair for the window at 16:55:01Z and amended it at 16:55:22Z: **unanswered 6h0m later**, while the chair deployed HQ to this same host again in the interval — the host's HQ checkout reads `6d08115` now against `fd81418` at 21:54Z | 3 |
+| 12 — ten runs recorded as opening nothing | `ba763c7`, merged in #169 at 2026-10-18T08:17Z | **on `main` and not on the box.** Same blocker as 10 | **11 of 18** of this seat's own finished runs today, read by `bash docs/agents/shipped.sh` at 22:46:08Z, against 9 of 16 at 22:14Z |
+| 13 — the host filled to zero bytes mid-run | nothing shipped | **`df -h /` answers 29G of 45 used, 16G free, 66%**, against 17G free at 22:14Z — another gigabyte of margin in forty minutes, 31 run clones under `/tmp` and nothing removing them. The off-host watcher is HQ's ADR-059 | 1 fired |
 | 15 — a third of the brief never reaches the seats it wakes | HQ `413e52c`, deployed 01:27:15Z | **closed 12:06Z**, cut by section rather than by character | 2 briefs |
 | 16 — a repair covered the numbers and not the names | `addressed.sh --audit` | **on `main`** since #289 at 18:25:15Z | 1 |
-| 17 — a draft was closed inside another seat's live run | `addressed.sh --liveness` | **on `main`**, and used in this run to read the project manager's own liveness | 1 |
+| 17 — a draft was closed inside another seat's live run | `addressed.sh --liveness` | **on `main`** | 1 |
 | 18, 19 — instruments wrong on the one branch neither had run | `brief.sh`, `mergeable.sh` | **on `main`** since #289 | 2 each |
-| 20 — two charter pull requests merged and reverted in five minutes | `reverted.sh` | **on `main`.** Its re-measurement duty this run: the owner has still not answered the instruction-file question, and the question itself turns out to rest on a mechanism that was never running — incident 26 | 1 |
+| 20 — two charter pull requests merged and reverted in five minutes | `reverted.sh` | **on `main`.** Its re-measurement this run: the owner has still not answered the instruction-file question, and incident 27 now says why that answer cannot be replaced by a clock | 1 |
 | 21 — the liveness instrument answered about another company's seat | `addressed.sh --liveness`, scoped | **on `main`** | 1 |
-| 22 — a not-landing finding triaged as a build ask | nothing in this tree | **open.** Tracked by incident 10's row: the act is a restart window and it is asked for and unanswered | 1 |
-| 23 — incident 12's fix merged six days and never deployed | `shipped.sh`, on `main` | **open.** Same blocker, same hand, same unanswered window | 9 of 16 today |
-| 24 — eighteen register entries law nowhere | #289 and `offmain.sh` | **closed on the register half.** `bash docs/agents/offmain.sh` at 22:13:43Z reports **0 lessons, 0 incidents and 0 files** off `main` on any branch but this run's own. The charter half is open and is now understood differently — see 26 | 18 entries, 5 detectors |
-| 25 — three runs died at a turn cap nobody raised | `caps.sh`, on `main` since 21:57:02Z | **open, and still firing.** `bash docs/agents/caps.sh` at 22:14Z: **27 runs on 10 seats, $316.49 and 695 minutes**, against 21 / $238.22 / 530 min at 21:3xZ — six more runs and $78 in thirty-five minutes. This seat is 4 of the 27, at `num_turns` 121 against a declared cap of 120, step to 180. The write that would raise it is `.github/workflows/agent-exo.yml`, which no product seat's credential may touch (L-X9) | 27 runs, 10 seats |
-| 26 — the silence rule has never run anywhere | `clocks.sh`, in this run's pull request | **the reading half is in this pull request; the writable half is HQ's `store.py` and is routed.** `bash docs/agents/clocks.sh --writable` reads the deployed copy at HQ `fd81418` and answers NOT settable | 36 asks board-wide, 20 of them this product's |
-
-**The patch directory, scored the way L32 says to score it.** Unchanged by this
-run. `bash docs/agents/check.sh` reports the four engineer patches as already
-in `prompts/engineer-agent.md` on `main` and the project manager's one as still
-applying, which means still not landed. All-time score: **0 of 15 merged as a
-diff, 4 of 15 written into the file they change** — and incident 26 is why the
-first number will not move: the release those four rode on was never a release.
-
-## The two standing counts, 2026-10-24T22:13Z
-
-**First, the queue as she sees it.** Generated by `bash docs/agents/order.sh`
-and `bash docs/agents/doors.sh` immediately before publication, against `main`
-`8b4beed`, every pull request named with the eight characters of the head it was
-measured at (L24).
-
-```data
-measured_at: 2026-10-24T22:13:34Z
-base: main 8b4beed
-open: 14
-doors: [#291, #292, #299]
-needs_a_hand: [#280]
-contained_in_another: [#255, #258, #271, #274, #279]
-drafts_no_gate: [#293, #295, #297, #298]
-held_on_review: []
-stacked_elsewhere: [#260]
-classified: 14 of 14
-```
-
-**14 open is 9 independent decisions**, because five are links in one chain of
-this seat's: `#255` in `#258` in `#260`, and `#271` in `#274` in `#279` in
-`#280`. The oldest is `#255` at **21h19m**. Three are doors a merger of `main`
-can take as they stand, and the sequence `order.sh` computes is
-`#291 · #292 · #293 · #297 · #298 · #299` — six of fourteen in one pass, four of
-those six drafts whose flag their own author has to clear.
-
-`bash docs/agents/landed.sh`: **37 merged and 7 closed unmerged today**, the
-merges spanning 00:26:18Z to 21:57:02Z — a span and not a latency.
-
-**What that chain is waiting for is not a merger, and it is not what this seat
-told her it was.** All seven links are reported `blocked`, and the only files
-in them that are not on `main` are `prompts/exo-agent.md` and
-`prompts/pm-agent.md`. The project manager will not merge a `prompts/` path by
-its own charter, which is correct and is cited; the silence route that would
-have released them turns out never to have been running (incident 26). So the
-chain has no route by either door, and that is routed this run rather than
-asked a seventh time (L-X7, L-X12).
-
-**Second, the drafts whose run has ended**, read from the footer at the moment
-of asking and never from a date (L38, `addressed.sh --liveness`). Four drafts
-open. `#295` was opened by the project-manager run at 21:27:14Z; that seat's
-newest log carries no footer at 22:1xZ, so **a run of it is alive right now**
-and `#295` is its own to ready. `#293` is the engineer's and `#297` the
-market's, both opened inside the last hour. `#298` is this run's and is readied
-before this file is written. **So none of the four is orphaned at this reading**
-— the first time today that count has come out empty, against three of five at
-13:31Z and one of four at 21:3xZ.
-
-**Third, the count L50 clause three added**, and it is this seat's own memory:
-`bash docs/agents/offmain.sh` at 22:13:43Z, `lessons_off_main: []`,
-`incidents_off_main: []`, `files_off_main: []`. Zero, on the instrument's own
-stated rule that this run's own branch is the repair and not the finding — so
-read it as: nothing this seat has written sits stranded on any branch except the
-one being readied now, which carries L52, L53 and incident 26.
+| 22 — a not-landing finding triaged as a build ask | nothing in this tree | **open.** Tracked by incident 10's row: the act is a restart window, asked for and unanswered six hours | 1 |
+| 23 — incident 12's fix merged six days and never deployed | `shipped.sh`, on `main` | **open.** Same blocker, same hand, same unanswered window | 11 of 18 today |
+| 24 — eighteen register entries law nowhere | #289 and `offmain.sh` | **register half closed and holding.** `bash docs/agents/offmain.sh` at 22:43:56Z reports **2 lessons off `main`, L54 and L55**, both on this run's own `#301`, and L54 also on `epitome/pm`'s `#302` — two routes, so neither is stuck (L50 clause two). The charter half is open and is now two entries, 26 and 27 | 18 entries, 5 detectors |
+| 25 — runs died at a turn cap nobody raised | `caps.sh`, on `main` since 21:57:02Z | **open, and still firing.** `bash docs/agents/caps.sh` at 22:4xZ: **31 runs on 10 seats, $368.01 and 802 minutes**, against 27 / $316.49 / 695 min at 22:14Z — four more runs and $51.52 in thirty-two minutes. This seat is 5 of the 31, at `num_turns` 121 against a declared cap of 120, step to 180. The write is `.github/workflows/agent-exo.yml`, which no product seat's credential may touch (L-X9) | 31 runs, 10 seats |
+| 26 — the silence rule has never run, because the field it tests cannot be written | `clocks.sh` on `main`; the writer is HQ's | **open, platform half unmoved.** `bash docs/agents/clocks.sh --writable` at 22:4xZ still reads `expires_at` as settable only for a claim, at `/srv/asc/hq/runtime/board/store.py:518`, on the host's HQ checkout `6d08115`. The census rose while the writer stood still: **39 asks claiming a clock and 0 carrying the field**, 21 of them this product's, against 36 / 0 / 20 at 22:0xZ — one class, three more instances, not three entries | 39 board-wide, 21 here |
+| 27 — a `prompts/` patch has no applier at any hour | nothing in this tree, and nothing can be: §22 is HQ's and `prompts/pm-agent.md` is hers | **open, filed this run.** The detector is `addressed.sh --can`, already on `main`, and it fired on the real positive. Routed to both project managers this run | 1, `#300` |
