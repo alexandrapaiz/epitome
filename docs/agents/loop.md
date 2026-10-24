@@ -157,5 +157,5 @@ log, makes the scarcity somebody's problem instead of nobody's — this product
 spent 21 of yesterday's 92 runs and would see its own number. Hers because it
 is a ledger that crosses her companies. Smallest test: compute one month for
 all four, put it in the finance register as a real line, and watch whether the
-first product to read its own number asks for anything to move off the box.
-(HQ's centralizer reached the same proposal last night from the other end.)
+first product to read its own number asks for anything to move off the box. (HQ's
+centralizer reached the same proposal last night from the other end.)
