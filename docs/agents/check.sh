@@ -51,7 +51,28 @@ for name in $order; do
     if git apply --check "docs/agents/patches/$name.diff" 2>/dev/null
       then echo "applies"; else echo "applies (needs its predecessors)"; fi
   else
-    echo "REFUSES"; fail=1
+    # A patch refuses for two reasons that are not the same reason, and until
+    # 2026-10-24 this printed one word for both. The run that does what the
+    # charter asks — lift a released patch out of this directory and into the
+    # charter file it changes (L27) — makes every one of those patches refuse
+    # against its own branch from that moment on, and a reader seeing REFUSES
+    # concludes the diff is broken and leaves the duty unapplied. So say which.
+    # The test is not `git apply --reverse`: a neighbouring patch that moved
+    # the context makes a landed patch refuse in reverse too, which is how
+    # `2026-10-05-engineer-check-the-register` read as refusing with all five
+    # of its added lines present. The test is the added lines themselves,
+    # byte-identical, in the file the diff names (L-A50).
+    target=$(sed -n 's|^+++ b/||p' "docs/agents/patches/$name.diff" | head -1)
+    landed=yes
+    while IFS= read -r line; do
+      [ -z "$line" ] && continue
+      grep -qxF -- "${line#+}" "$target" 2>/dev/null || { landed=no; break; }
+    done < <(grep '^+' "docs/agents/patches/$name.diff" | grep -v '^+++')
+    if [ "$landed" = yes ]; then
+      echo "already in ${target##*/} on this branch — nothing left to apply"
+    else
+      echo "REFUSES"; fail=1
+    fi
   fi
 done
 git worktree remove --force "$scratch" 2>/dev/null

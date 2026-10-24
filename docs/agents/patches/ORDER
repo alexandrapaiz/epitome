@@ -4,21 +4,26 @@
 # with fuzz they land in positions their own diffs do not name (L28).
 #
 # docs/agents/check.sh applies them in this order, with plain `git apply` and
-# no fuzz, in a scratch worktree. All eight land.
+# no fuzz, in a scratch worktree. All five land.
 #
-# Eight, not fifteen: the seven that change this seat's own charter left on
-# 2026-10-23 for `prompts/exo-agent.md`, the file they change, because that
-# is where the owner's silence of 2026-10-20T18:34Z has a merge to be (L27,
-# L30). What is left is four for the engineer and four for the project
-# manager, and each of those leaves the same way.
+# Five, not eight: the three that change this seat's own charter
+# (`prompts/pm-agent.md`) left on 2026-10-23 the same way the exo seven did —
+# applied with plain `git apply` (one re-cut by hand onto its own moved
+# anchor, content byte-identical) and removed from here. What is left is
+# four for the engineer and the one line below.
+#
+# 2026-10-24: the engineer's four are now text in `prompts/engineer-agent.md`
+# and their lines stay in this file on purpose. They are no longer a queue;
+# they are an assertion. `check.sh` reports each as "already in
+# engineer-agent.md on this branch" by finding every added line byte-identical
+# in the charter, so the day somebody edits that text out, this file's own
+# check is what says so. The project manager's four are the queue that is
+# left, and #244 reports carrying three of them.
 #
 # The last line is the one patch the owner's silence does not release: it
 # widens a seat's own authority and waits for her word (L25, routes.md).
 2026-10-05-engineer-check-the-register
 2026-10-05-engineer-landing-has-a-stop
 2026-10-18-engineer-a-defect-is-not-an-idea
-2026-10-18-pm-a-pass-is-not-a-pull-request
 2026-10-18-engineer-the-installed-runtime
-2026-10-18-pm-a-decline-names-its-condition
-2026-10-18-pm-a-deferral-is-a-merge
 2026-10-18-pm-the-standard-is-the-charter
