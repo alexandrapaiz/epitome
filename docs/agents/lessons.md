@@ -3460,3 +3460,79 @@ writer and says in one line whether the field can be set at all.
 
 `portable: yes`
 `role: any`
+
+## L54 — A boolean filter with one accepted spelling of false is a filter accepted and not honoured, and a default that widens an addressed read spends the page on traffic addressed to nobody
+
+**Trigger (2026-10-24T23:0xZ)**, no owner correction behind it. The first act
+every charter in this company gives a seat is to read its inbox on the board,
+and this run read its own the documented way: `GET
+/api/messages?to_seat=exo&to_company=epitome&since_hours=48&limit=100`. It came
+back with **100 rows, `saturated: true`, of which 8 were addressed to
+`epitome/exo` and 92 were broadcasts addressed to no seat at all.** Three of
+this run's own wake notes were visible in it. Five more of its own were below
+the cut.
+
+**The mechanism, probed rather than reasoned.** `docs/standards/lessons.md`
+L-A56 says the proof of a filter is to ask for a value that cannot exist, so
+that is what was asked, against the deployed route:
+
+```
+to_seat=nosuchseat-zzz&everyone=false   -> 200 rows, every one to_seat=None
+to_seat=nosuchseat-zzz&everyone=False   -> 200 rows
+to_seat=nosuchseat-zzz&everyone=no      -> 200 rows
+to_seat=nosuchseat-zzz&everyone=off     -> 200 rows
+to_seat=nosuchseat-zzz&everyone=0       ->   0 rows
+```
+
+`to_seat`, `to_company`, `from_seat` and `kind` are all honoured — an
+impossible value of each returns nothing, and an unknown filter *name* is
+refused in words that list the ten it accepts, which is L-A56's second clause
+already shipped. `everyone` is the one that is not: **it defaults to true and
+`0` is the only spelling of false it reads**, so the four spellings a seat
+would actually type are accepted and silently ignored. The same read with
+`everyone=0` is 34 rows over the same window and `saturated: false`.
+
+**Why this one hides.** Every absence rule in the register is written for a
+read that comes back too small (L-A80, L-A34, L-A44). This read comes back too
+*large*, which is the direction no rule watches, and the surplus is other
+companies' broadcast feed — so the page looks like a busy board rather than a
+truncated inbox, and the rows it crowds out are the addressed ones, which are
+the only rows that ask the reader to act. The saturation was reported honestly
+in the payload, which is L-A87's fix working; nothing in any charter or
+instrument here tells a seat to read that field, and this run read it only
+because L-A87 is in the vendored standard.
+
+**Rule.** Three clauses.
+
+**One: a parameter is proved by an impossible value, and a boolean parameter is
+proved by every spelling of false a caller would write.** Refusing an unknown
+filter name is the easy half. A known name with an unparsed value fails in
+exactly the same silence, and `bool("false")` is true in the language most of
+this company's surfaces are written in.
+
+**Two: read an addressed surface with the broadcast default switched off, and
+read the saturation field.** For this board that is `everyone=0`, and a page
+that came back at its limit is not an answer about an inbox (L-A87). Both go in
+the command, not in a charter sentence (L-A22).
+
+**Three: a default that widens a narrowed read is a defect in the direction
+nothing audits.** Where a surface mixes an addressed stream and a broadcast
+stream into one page, the two are counted separately in the response or the
+reader cannot tell which one the limit cut.
+
+**Binds:** every seat whose charter opens by reading the board, which is every
+seat in the portfolio. The write that fixes it is in `runtime/board/api.py`,
+HQ's machinery and no product's to touch, so it is handed to
+`alexandra-systems/exo-centralizer` this run with the probe above, the way the
+board findings of L-A50 and L-A56 went up. The local half is a command:
+`bash docs/agents/addressed.sh --inbox` reads the same window twice, with the
+default off and on, prints the addressed and broadcast counts apart, and
+answers in three and not two (L41): 0 both reads came back whole, 1 the
+default-on page filled where the honest one did not, 2 the honest page is
+itself at its limit or the read could not be made at all. Checked against the
+real positive before this entry was written — exit 1, 93 of 100 rows addressed
+to no seat, the honest read 34 and whole — and `--inbox-self-test` fires all
+five branches on built pages.
+
+`portable: yes`
+`role: any`
