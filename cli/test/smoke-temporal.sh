@@ -88,6 +88,15 @@ SPANS="$ROOT/spans.jsonl"
 # The credential the box has today, and which an agent's own must beat.
 SHARED_TOKEN="shared-operator-token-not-a-real-one"
 STUB_TOKEN="ghs_STUBTOKEN0000000000000000000000000000"
+# Three services this suite starts into a log file it then greps for the line
+# that says they are up. Each log is named for the START rather than for the
+# service, because `>` truncates in the forked child while the grep runs in the
+# parent: under one fixed name, a second start of the same service reads the
+# first one's line and leaves the wait before anything new has bound. All three
+# start once today -- these counters are what makes a second start safe instead
+# of a note asking whoever adds it to remember. test/shapes.sh's second scan is
+# the gate; test/probe-stub-restart.sh is the race, measured.
+GH_STARTS=0; OTLP_STARTS=0; WORKER_STARTS=0
 pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
 bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
@@ -399,9 +408,10 @@ writeFileSync(process.argv[1], privateKey.export({ type: "pkcs1", format: "pem" 
 writeFileSync(process.argv[2], publicKey.export({ type: "spki", format: "pem" }));
 ' "$ROOT/pm-app.pem" "$ROOT/pm-app.pub.pem"
 chmod 600 "$ROOT/pm-app.pem"
-node "$CLI/test/github-stub.mjs" "$GH_PORT" "$ROOT/pm-app.pub.pem" "$GH_LOG" ok > "$ROOT/github-stub.log" 2>&1 & GH_PID=$!
-for _ in $(seq 1 60); do grep -q 'github-stub on' "$ROOT/github-stub.log" && break; sleep 0.2; done
-check "the stand-in GitHub API is up" "grep -q 'github-stub on $GH_PORT (ok)' '$ROOT/github-stub.log'"
+GH_STARTS=$((GH_STARTS+1)); GH_STUB_LOG="$ROOT/github-stub-$GH_STARTS.log"
+node "$CLI/test/github-stub.mjs" "$GH_PORT" "$ROOT/pm-app.pub.pem" "$GH_LOG" ok > "$GH_STUB_LOG" 2>&1 & GH_PID=$!
+for _ in $(seq 1 60); do grep -q 'github-stub on' "$GH_STUB_LOG" 2>/dev/null && break; sleep 0.2; done
+check "the stand-in GitHub API is up" "grep -q 'github-stub on $GH_PORT (ok)' '$GH_STUB_LOG'"
 echo "  pm: App 1234, key $ROOT/pm-app.pem (2048-bit, thrown away with this run)"
 echo "  badkey: App 99, and a key that is not a PEM — the refusal path"
 
@@ -411,8 +421,9 @@ node "$CLI/test/slack-sink.mjs" "$SLACK_PRODUCT_PORT" "$SLACK_PRODUCT" > "$ROOT/
 # Phoenix, Jaeger and Tempo all take OTLP over HTTP; this takes the same thing
 # and writes one line per span, so the test asserts against the protocol rather
 # than against a product (ADR-18).
-node "$CLI/test/otlp-sink.mjs" "$OTLP_PORT" "$SPANS" > "$ROOT/otlp.log" 2>&1 & OTLP_PID=$!
-for _ in $(seq 1 60); do grep -q 'otlp sink on' "$ROOT/otlp.log" && break; sleep 0.2; done
+OTLP_STARTS=$((OTLP_STARTS+1)); OTLP_LOG="$ROOT/otlp-$OTLP_STARTS.log"
+node "$CLI/test/otlp-sink.mjs" "$OTLP_PORT" "$SPANS" > "$OTLP_LOG" 2>&1 & OTLP_PID=$!
+for _ in $(seq 1 60); do grep -q 'otlp sink on' "$OTLP_LOG" 2>/dev/null && break; sleep 0.2; done
 cd "$STATE"
 export TEMPORAL_ADDRESS="127.0.0.1:$GRPC_PORT" TEMPORAL_NAMESPACE="$NS" \
        EPITO_HOOK_SECRET="$SECRET" EPITO_PORT="$PORT" EPITO_STUB_DIR="$STUB" \
@@ -439,9 +450,10 @@ check "...on the worker row, with the engine's row still ✓" "said \"\$docout\"
 check "...naming the queue a run here would use" "said \"\$docout\" 'nothing is polling seats'"
 check "...and the two commands that start one" "said \"\$docout\" 'epito worker' && said \"\$docout\" 'systemctl start epitod-worker'"
 
-node "$CLI/src/index.js" worker > "$ROOT/worker.log" 2>&1 & WORKER_PID=$!
-for _ in $(seq 1 100); do grep -q 'state: .RUNNING' "$ROOT/worker.log" && break; sleep 0.3; done
-check "the worker is polling the seats queue" "grep -q 'epito worker: 127.0.0.1:$GRPC_PORT namespace=$NS queue=seats' '$ROOT/worker.log'"
+WORKER_STARTS=$((WORKER_STARTS+1)); WORKER_LOG="$ROOT/worker-$WORKER_STARTS.log"
+node "$CLI/src/index.js" worker > "$WORKER_LOG" 2>&1 & WORKER_PID=$!
+for _ in $(seq 1 100); do grep -q 'state: .RUNNING' "$WORKER_LOG" 2>/dev/null && break; sleep 0.3; done
+check "the worker is polling the seats queue" "grep -q 'epito worker: 127.0.0.1:$GRPC_PORT namespace=$NS queue=seats' '$WORKER_LOG'"
 # And the engine says so too, which is the half the log cannot prove: a worker
 # process that printed RUNNING and a queue the engine has seen a poll on are
 # two different facts, and the second is the one a run needs.
@@ -493,7 +505,7 @@ code=$(post /window/open '{"scope":"nope"}'); echo "  $(body)"
 check "bad scope -> 400 listing the roster" "[ '$code' = 400 ] && grep -q 'scope names no agent' '$ROOT/body.json'"
 
 step "1 (the point): the SCHEDULE fires a run on its own clock — waiting for the minute to turn"
-node "$CLI/test/wait-for.mjs" runs clock 1 95000 || { echo "no scheduled run inside 95s"; tail -40 "$ROOT/worker.log"; }
+node "$CLI/test/wait-for.mjs" runs clock 1 95000 || { echo "no scheduled run inside 95s"; tail -40 "$WORKER_LOG"; }
 audit "the scheduled run ended, on trigger cron" '{"agent":"clock","action":"run.end","trigger":"cron","exit":0}'
 audit "it recorded its model, its turns, and the PR it opened" '{"agent":"clock","action":"run.end","model":"claude-sonnet-5","turns":1,"pr":"https://github.com/alexandrapaiz/epitome/pull/999"}'
 # clock has no App of its own, so the identity slice must be invisible to it.
@@ -814,7 +826,7 @@ step "6: A SEAT THAT IS NOT A CLAUDE SESSION — a LangGraph app, hosted unmodif
 # Owner priority 3. graphs is a langgraph seat: same ingress, same mint, same
 # board, same audit log, and a completely different agent inside (ADR-17).
 code=$(post /hooks/graphs '{"event":"smoke","payload":{"why":"the langgraph adapter"}}'); echo "  $code $(body)"
-node "$CLI/test/wait-for.mjs" runs graphs 1 120000 || { echo "the langgraph seat never ran"; tail -30 "$ROOT/worker.log"; }
+node "$CLI/test/wait-for.mjs" runs graphs 1 120000 || { echo "the langgraph seat never ran"; tail -30 "$WORKER_LOG"; }
 sed 's/^/  /' .epito/logs/graphs/*.log
 audit "it ran, and the audit line names the adapter that ran it" '{"agent":"graphs","action":"run.end","adapter":"langgraph","exit":0}'
 audit "the graph's steps came back as the run's turns" '{"agent":"graphs","action":"run.end","turns":2}'
@@ -845,7 +857,7 @@ node "$CLI/test/wait-for.mjs" closed graphs 60000
 gone "the window closed and took the clone with it" "${TMPDIR:-/tmp}/epito-graphs-*"
 
 step "7: A RUN IS ONE TRACE — run -> clone / mint / execute -> the agent's own steps"
-check "the worker says on its first lines where its spans go" "grep -q 'epito worker: traces -> http://127.0.0.1:$OTLP_PORT/v1/traces' '$ROOT/worker.log'"
+check "the worker says on its first lines where its spans go" "grep -q 'epito worker: traces -> http://127.0.0.1:$OTLP_PORT/v1/traces' '$WORKER_LOG'"
 # The tree is the evidence, so it is printed once and then asserted on.
 tree() { node "$CLI/test/trace-shape.mjs" "$SPANS" "$@" > "$ROOT/trace.txt" 2> "$ROOT/trace.err"; rc=$?; sed 's/^/  /' "$ROOT/trace.txt"; [ $rc = 0 ] || sed 's/^/       /' "$ROOT/trace.err"; return $rc; }
 check "the scheduled run is a trace: a root, its clone, its execute" "tree clock"
@@ -951,14 +963,14 @@ eventually "the ingress re-read the roster, so the next run of pm carries the ne
 sleep 1
 code=$(post /hooks/pm '{"why":"a run on a box that is short of two names"}'); echo "  $code $(body)"
 node "$CLI/test/wait-for.mjs" runs pm 1 120000 >/dev/null 2>&1 || true
-eventually "the run happened" "ls .epito/logs/pm/*.log >/dev/null 2>&1 && grep -lq 'env missing' .epito/logs/pm/*.log" 120 "tail -5 '$ROOT/worker.log'"
+eventually "the run happened" "ls .epito/logs/pm/*.log >/dev/null 2>&1 && grep -lq 'env missing' .epito/logs/pm/*.log" 120 "tail -5 '$WORKER_LOG'"
 SHORTLOG="$(grep -l 'env missing' .epito/logs/pm/*.log | tail -1)"
 sed 's/^/  /' "$SHORTLOG" | head -6
 check "the run's own log says both, in one sentence" \
   "grep -qF '# env missing: SMOKE_NOT_HERE is not available to this run; SMOKE_HALF_FILLED arrives empty' '$SHORTLOG'"
 check "a name the run MINTED for itself is not a name the box is short of" "! said \"\$(grep 'env missing' '$SHORTLOG')\" 'GH_TOKEN'"
 check "the operator watching journalctl hears it too" \
-  "grep -qF 'pm: 2 names from [runtime].env are not what this box holds (SMOKE_NOT_HERE, SMOKE_HALF_FILLED)' '$ROOT/worker.log'"
+  "grep -qF 'pm: 2 names from [runtime].env are not what this box holds (SMOKE_NOT_HERE, SMOKE_HALF_FILLED)' '$WORKER_LOG'"
 check "the agent itself was told, in the prompt the child really received" "node -e '
 const fs=require(\"fs\");
 const turns=fs.readdirSync(\"$STUB\").filter(f=>f.endsWith(\".jsonl\"))

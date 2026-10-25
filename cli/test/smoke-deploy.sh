@@ -74,12 +74,13 @@ trap cleanup EXIT
 # in it means a listener is accepting. Same one-line fix as the doctor suite's,
 # where the file was named for the stub's mode and two modes start twice.
 GH_STARTS=0
+DEPLOY_STARTS=0
 GH_STUB_LOG=""
 start_stub() { # mode
   GH_STARTS=$((GH_STARTS+1)); GH_STUB_LOG="$ROOT/github-stub-$GH_STARTS.log"
   node "$CLI/test/github-stub.mjs" "$GH_PORT" "$ROOT/app.pub.pem" "$GH_LOG" "$1" "$ROOT/app.pem" > "$GH_STUB_LOG" 2>&1 &
   GH_PID=$!
-  for _ in $(seq 1 60); do grep -q "github-stub on $GH_PORT" "$GH_STUB_LOG" && return 0; sleep 0.2; done
+  for _ in $(seq 1 60); do grep -q "github-stub on $GH_PORT" "$GH_STUB_LOG" 2>/dev/null && return 0; sleep 0.2; done
   echo "the stand-in GitHub API never came up"; cat "$GH_STUB_LOG"; exit 1
 }
 stop_stub() { kill "${GH_PID:-}" 2>/dev/null; wait "${GH_PID:-}" 2>/dev/null; GH_PID=""; }
@@ -152,11 +153,17 @@ ok "the stand-in GitHub API is up ($(head -1 "$GH_STUB_LOG"))"
 # a private key next to it, so this asserts the case where nothing has told the
 # repo about .epito/ yet.
 rm -f "$WORK/.gitignore"
-(cd "$WORK" && EPITO_GITHUB_API="http://127.0.0.1:$GH_PORT" $E deploy --no-open --port "$DPORT" > "$ROOT/deploy1.log" 2>&1) &
+# Named for the start, same reason as the stub above and by the same rule:
+# the wait on the next line greps this file for `waiting up to`, so a fixed
+# name would let a second deploy read the first one's wait line. `deploy1`
+# was that number written by hand, which holds until somebody copies the
+# block; the counter holds because it cannot repeat.
+DEPLOY_STARTS=$((DEPLOY_STARTS+1)); DEPLOY_LOG="$ROOT/deploy-$DEPLOY_STARTS.log"
+(cd "$WORK" && EPITO_GITHUB_API="http://127.0.0.1:$GH_PORT" $E deploy --no-open --port "$DPORT" > "$DEPLOY_LOG" 2>&1) &
 DEPLOY_PID=$!
-for _ in $(seq 1 100); do grep -q "waiting up to" "$ROOT/deploy1.log" && break; sleep 0.1; done
-check "deploy is waiting, and said so with the URL to open" "grep -q 'http://127.0.0.1:$DPORT/' '$ROOT/deploy1.log'"
-check "  it named the App and the permissions before sending anyone anywhere" "grep -q 'permissions: contents:write, pull_requests:write' '$ROOT/deploy1.log'"
+for _ in $(seq 1 100); do grep -q "waiting up to" "$DEPLOY_LOG" 2>/dev/null && break; sleep 0.1; done
+check "deploy is waiting, and said so with the URL to open" "grep -q 'http://127.0.0.1:$DPORT/' '$DEPLOY_LOG'"
+check "  it named the App and the permissions before sending anyone anywhere" "grep -q 'permissions: contents:write, pull_requests:write' '$DEPLOY_LOG'"
 
 curl -sS "http://127.0.0.1:$DPORT/" > "$ROOT/page.html"
 STATE="$(sed -n 's/.*settings\/apps\/new?state=\([0-9a-f]*\)".*/\1/p' "$ROOT/page.html" | head -1)"
@@ -175,7 +182,7 @@ curl -sS "http://127.0.0.1:$DPORT/callback?code=abc123&state=$STATE" > "$ROOT/do
 for _ in $(seq 1 100); do kill -0 $DEPLOY_PID 2>/dev/null || break; sleep 0.1; done
 wait $DEPLOY_PID; rc=$?
 DEPLOY_PID=""
-sed 's/^/     | /' "$ROOT/deploy1.log"
+sed 's/^/     | /' "$DEPLOY_LOG"
 check "the real callback completes the deploy, exit 0" "[ $rc = 0 ]"
 check "the browser is told the App exists and where its key is" "grep -q 'Its key is on your machine' '$ROOT/done.html'"
 check "the key landed at .epito/keys/acme-bot.pem" "[ -f '$WORK/.epito/keys/acme-bot.pem' ]"
@@ -183,13 +190,13 @@ check "  0600, because it IS the agent's identity" "[ \"\$(ls -l '$WORK/.epito/k
 check "  and it is byte-for-byte the key GitHub handed back" "diff -q '$ROOT/app.pem' '$WORK/.epito/keys/acme-bot.pem' >/dev/null"
 check "the record names the App and holds no secret" "grep -q '\"externalId\": \"707070\"' '$WORK/.epito/principals.json' && ! grep -q 'PRIVATE KEY' '$WORK/.epito/principals.json'"
 check "deploy taught .gitignore about .epito/ — a key just landed in this repo" "grep -q '^.epito/$' '$WORK/.gitignore'"
-check "no token or key is anywhere in what deploy printed" "! grep -qi 'PRIVATE KEY\|client_secret' '$ROOT/deploy1.log'"
+check "no token or key is anywhere in what deploy printed" "! grep -qi 'PRIVATE KEY\|client_secret' '$DEPLOY_LOG'"
 audit "the deploy is in the ledger: created, with its scopes and permissions" '{"agent":"acme-bot","action":"deploy","created":true,"appId":"707070","permissions":{"contents":"write","pull_requests":"write"}}'
 
 step "4. an App installed nowhere says so, and says where to install it"
-check "it does not pretend the agent can act yet" "grep -q 'has an identity but nowhere to act yet' '$ROOT/deploy1.log'"
-check "  and gives the install URL for the repo the MANIFEST names" "grep -q 'install it on acme/roster:  https://github.com/apps/epito-seat-707070/installations/new' '$ROOT/deploy1.log'"
-check "  and the next command, which is this same one" "grep -q 'epito deploy acme-bot.* again' '$ROOT/deploy1.log'"
+check "it does not pretend the agent can act yet" "grep -q 'has an identity but nowhere to act yet' '$DEPLOY_LOG'"
+check "  and gives the install URL for the repo the MANIFEST names" "grep -q 'install it on acme/roster:  https://github.com/apps/epito-seat-707070/installations/new' '$DEPLOY_LOG'"
+check "  and the next command, which is this same one" "grep -q 'epito deploy acme-bot.* again' '$DEPLOY_LOG'"
 check "  the ledger records the installation as absent, not as a guess" "(cd '$WORK' && node '$CLI/test/audit-has.mjs' '{\"action\":\"deploy\",\"installation\":null}')"
 
 step "5. deploy twice updates one principal — spec rule 4, and the bug that would be a second App"

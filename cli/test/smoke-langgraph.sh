@@ -28,6 +28,12 @@ SHIM="$CLI/adapters/langgraph_run.py"
 ROOT="${TMPDIR:-/tmp}/epito-langgraph-$$"
 SINK_PORT="${EPITO_TEST_OTLP_PORT:-47475}"
 SPANS="$ROOT/spans.jsonl"
+# The sink's log is named for the START, because the wait below greps it for
+# the line that says it is listening: `>` truncates in the forked child and the
+# grep runs in the parent, so under one fixed name a second start reads the
+# first one's line and leaves the wait before the new sink has bound. One start
+# today -- test/shapes.sh's second scan is what keeps it that way.
+SINK_STARTS=0
 TRACE_ID="1234567890abcdef1234567890abcdef"
 EXECUTE_SPAN="fedcba0987654321"
 pass=0; fail=0
@@ -52,9 +58,10 @@ result() { grep -E '^\{"session_id"' "$OUT" | tail -1; }
 detail() { result | python3 -c 'import json,sys; print(json.loads(sys.stdin.read()).get("detail") or "")'; }
 
 step "sink: a stand-in trace backend on 127.0.0.1:$SINK_PORT (Phoenix takes the same OTLP)"
-node "$CLI/test/otlp-sink.mjs" "$SINK_PORT" "$SPANS" > "$ROOT/sink.log" 2>&1 & SINK_PID=$!
-for _ in $(seq 1 60); do grep -q 'otlp sink on' "$ROOT/sink.log" && break; sleep 0.2; done
-check "the sink is up" "grep -q 'otlp sink on $SINK_PORT' '$ROOT/sink.log'"
+SINK_STARTS=$((SINK_STARTS+1)); SINK_LOG="$ROOT/sink-$SINK_STARTS.log"
+node "$CLI/test/otlp-sink.mjs" "$SINK_PORT" "$SPANS" > "$SINK_LOG" 2>&1 & SINK_PID=$!
+for _ in $(seq 1 60); do grep -q 'otlp sink on' "$SINK_LOG" 2>/dev/null && break; sleep 0.2; done
+check "the sink is up" "grep -q 'otlp sink on $SINK_PORT' '$SINK_LOG'"
 
 TRACED=(OTEL_EXPORTER_OTLP_ENDPOINT="http://127.0.0.1:$SINK_PORT" TRACEPARENT="00-$TRACE_ID-$EXECUTE_SPAN-01")
 FACTS=(EPITO_AGENT=graphs EPITO_RUN_ID=run-graphs-1 EPITO_TRIGGER=cron EPITO_MODEL=claude-sonnet-5
