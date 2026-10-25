@@ -1,5 +1,126 @@
 # Market brief — docs/market.md
 
+Maintained by the market seat. This revision: **rev 19, 2026-10-25**, a
+dispatch run that fired on rev 18's own pull request merging
+([#307](https://github.com/alexandrapaiz/epitome/pull/307),
+2026-10-25T02:57:11Z) and asking this seat to continue with the next item
+in its lane on the board, and say what it took. `gh pr list` was checked
+first (L-E10): no market pull request is open now, so this revision forks
+from `main`. This run's own clone arrived complete, not shallow
+(`git rev-parse --is-shallow-repository` answered `false`) — unlike two of
+the last three runs' own clones, checked fresh rather than assumed from
+either prior instance (L22).
+
+The board inbox addressed to this seat was read directly
+(`to_seat=market&to_company=epitome&everyone=0&since_hours=48`): fifteen
+messages, the newest still the project manager's 2026-10-25T02:34:07Z note,
+"A draft pull request is yours alone to ready," naming PR #297 — the exact
+handoff rev 18 itself answered, by closing #297 and shipping #307 below
+that note's own timestamp (rev 18 merged 02:57:11Z, 23 minutes after the
+note was written). Nothing newer exists in the window. So, again, the
+"next item in my lane" is this seat's one standing lane card,
+docs/backlog.md's "Market seat brief #1: pricing" (ADR-13, buyer-2
+usage-based pricing), open since rev 1 (2026-09-18) and unanswered by the
+owner since rev 4 (2026-10-02) — still **23 days** as of today, unchanged
+in duration because today is the same day rev 18 reported it, not a
+re-ask (L-X7).
+
+Between this run's own first check and rev 18's own merge, **88 seconds**
+separate the clocks (rev 18 merged 02:57:11Z; this run's first check ran
+02:58:39Z) — nowhere near the four-plus-hour gap this brief has used since
+rev 15 as enough to owe a fresh landscape and demand pass, and the exact
+shape of the thing rev 18 itself closed #297 for: a run minutes old
+restating the position of the run before it, rather than a genuinely new
+pass (L-X7, and the mistake #297's own body was honest about making). So
+this revision does not open new ground on §1 (landscape) or §2 (demand):
+a search run eighty-eight seconds after the last one returns the same
+results rev 18 already has, and reporting them again as fresh would be the
+non-finding L-X7 names, stretched into content for a second time inside
+three minutes of wall-clock history.
+
+What this run does do: the two cheap, mechanical re-checks the charter
+asks every run to log rather than schedule by elapsed time — the standing
+watch and the integration map's own git/fetch check — because each costs
+one fetch and does not depend on a time gap to be worth running.
+
+## 4a. Standing watch: LangChain/LangSmith (ADR-12) — re-checked directly, unchanged
+
+Re-fetched directly this run (L-R1): LangSmith's Cloud changelog
+(`docs.langchain.com/langsmith/changelog`) still reports its latest entry
+as "October 12-19, 2026," the same Agent-Auth-mints-a-GitHub-App-owned-by-
+an-agent finding rev 8 first fired and every revision since has
+re-confirmed, 88 seconds after rev 18's own identical check found the same
+thing. GitHub's own agent-apps changelog entry
+(`github.blog/changelog/2026-06-02-extend-github-with-agent-apps/`,
+re-fetched directly) still reads verbatim "Over the coming months, we'll
+open up access to allow anyone to build agent apps," with the same partner
+waitlist and no self-serve date. The general changelog feed
+(`github.blog/changelog/`) was also re-checked: newest entries still
+2026-10-22 and 2026-10-23, the same two days rev 18 already read and ruled
+irrelevant to the agent-identity question by mechanism rather than title.
+No new tripwire instance; logged per the charter's own instruction to log
+the check even when nothing moves.
+
+## 4. Integration map — re-verified against today's `main`, unchanged
+
+`cli/src/lib/slack.js` re-read in full this run: still exactly three
+exports (`formatLine`, `webhookName`, `postToSlack`), still a webhook
+poster, no `apps.manifest.create` or any per-agent Slack-identity
+mechanism anywhere in `cli/src/lib/`. `docs/cycles/` still holds nothing
+past cycle 2 (`2026-09-21-cycle-1*.md`, `2026-10-18-cycle-2.md`).
+**Standing recommendation unchanged: Slack remains integration #2**,
+gated behind cycle 3's sequencing. No re-ranking trigger fired this run:
+nothing in the 88 seconds since rev 18 touched Linear, Vercel, Clerk,
+Supabase/Neon, Stripe, GitHub, or Trigger.dev's own standing.
+
+## 1. Landscape and 2. Demand — not re-run this revision
+
+Not stretched into content: the last landscape and demand passes are
+rev 18's own, 88 seconds old, and this brief's own standing measure (first
+stated rev 15, applied every revision since) treats anything short of a
+multi-hour gap as not owing a fresh search. Carried forward by citation,
+unedited: §1's WorkOS/Entra bundling finding and the Clerk correction,
+§2's three newest GitHub issue citations (`tartale/claude-sandbox#9`,
+`sjsreehari/zerra#45`, `cekinmezyucel/ai-hub#9`), both from rev 18 above.
+
+## 3. Positioning and pricing — no fresh fetch owed; ADR-13 still unanswered, same day as rev 18
+
+No fresh pricing fetch this run, for the same reason §1 and §2 are not
+re-run this revision. **ADR-13's buyer-2 usage-based pricing question is
+unchanged: still unanswered by the owner, still 23 days** (first raised
+rev 1, 2026-09-18; recommendation shipped rev 4, 2026-10-02) — same day as
+rev 18's own count, not a re-ask.
+
+---
+
+*Charter compliance note (rev 19): this run's own duty, read honestly
+against the gap since the last one, is smaller than a full four-section
+pass — the standing watch and the integration map's cheap git/fetch
+checks, both logged and both unchanged, plus the lane card's count carried
+forward unedited. Checked against docs/agents/lessons.md before shipping:
+L-X7 (the whole shape of this revision is declining to restate rev 18's
+landscape and demand findings as new, eighty-eight seconds after rev 18
+made them — the exact mistake #297's own body confessed to and rev 18
+closed it for); L13 (a run whose charter asks it to continue a cadence
+names its own stopping point when the elapsed time cannot support new
+work, rather than quietly becoming busywork); L22 (this run's own clone
+checked fresh for shallowness rather than assumed from either of the last
+two runs' own instances — it answered `false` this time). Also checked
+against docs/standards/lessons.md: L-R1 (the two standing-watch fetches
+and the one GitHub changelog re-fetch were all direct, not taken from a
+prior run's summary); L-A34 (the project manager's 02:34:07Z note read and
+confirmed stale against rev 18's own 02:57:11Z merge, the same shape rev
+15's and rev 18's own corrections already named, now a third instance);
+L-A12 (`cli/src/lib/slack.js` and `docs/cycles/` both re-read in full
+rather than assumed unchanged, even though unchanged is what they turned
+out to be). Flagged: the owner's still-open word on ADR-13, now 23 days;
+Microsoft Ignite (Nov 17-20) still the next point the Entra question can
+move; nothing escalated under ADR-12 this run.*
+
+---
+
+# Market brief — docs/market.md (rev 18, superseded by rev 19 above)
+
 Maintained by the market seat. This revision: **rev 18, 2026-10-25**, a
 dispatch run that fired on the project manager's handoff naming PR
 [#297](https://github.com/alexandrapaiz/epitome/pull/297) — "an open draft
