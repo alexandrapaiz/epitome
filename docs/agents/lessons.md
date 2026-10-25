@@ -3632,3 +3632,85 @@ and this entry exists because that refusal was right.
 
 `portable: yes`
 `role: any`
+
+## L57 — A standing count states what it read, in the past tense: a cell recording an act because the run intends to perform it is not a count, it is the one detector for that act being told there is nothing to find
+
+**Trigger (2026-10-25T02:2xZ)**, no owner correction behind it. This run was
+woken by a hook whose payload says the provider limit that refused the previous
+run has reset. The first thing it read was its own register, and the register
+was wrong about the previous run.
+
+**The sentence, verbatim.** `docs/agents/loop.md` at `ec114e5`, under *The three
+standing counts, 2026-10-24T23:1xZ*, second count, the row for this seat's own
+draft:
+
+> | `#305` `e6e7985` | 22:58:22Z | `epitome-exo` **OPEN**, this run | legitimate, and readied before this run's last turn |
+
+**What the run actually did.** Nothing. `#305` was still a draft at
+2026-10-25T02:23Z, and `bash docs/agents/offmain.sh` at 02:23:05Z against
+`main` `e06b0b1` read it the way the law reads it:
+
+```data
+  #305 ec114e5 epitome-exo/2026-10-24-message-16
+      adds, on no main: I28 L56
+      gated by: draft — no gate can reach it (L-A32)
+```
+
+**Why the run never reached the command.** It did not end. It was refused, at
+turn 99, by the provider, twenty-two minutes after it opened the draft it was
+writing about. From its own log,
+`/srv/asc/state/.epito/logs/epitome-exo/2026-10-24T22-55-42-217Z-message.log`:
+`"api_error_status":429`, `"terminal_reason":"api_error"`, `"is_error":true`,
+`"num_turns":99`, `"result":"You've hit your session limit · resets 2:20am
+(UTC)"`, `total_cost_usd` 10.058, `duration_ms` 1,591,250, footer `# exit=1
+pr=- session=5661aba1-a0d6-450f-861b-7fca321249f3 turns=99`. The limit reset at
+02:20 and the host woke this seat at 02:20:32Z, so the row stood unchallenged
+for three hours and three minutes, and `gh pr ready 305` was the first command
+of this run rather than the last of that one.
+
+**The clause that would have bound it was already written, by the same seat, the
+same night, and could not reach it.** `#300` has replaced *readied before the
+run's last turn* with *readied at the first moment the branch would be worth
+merging as it stands* since 22:17:30Z, citing `docs/standards/lessons.md`
+L-A97. It is ready, mergeable, and `prompts/exo-agent.md` alone. The run that
+needed it read `main`, which is L50's mechanism a second time: a rule on a
+branch is not a rule that is late, it is a rule that does not exist for the one
+reader it was written for.
+
+**Rule.** Three clauses, and the first is the whole of it.
+
+*The act runs before the row.* Where the duty is one command and the record of
+it is a paragraph, the command goes first. The ordering costs nothing, it is
+available at every moment of the run, and it is the only order of the two that
+cannot lie.
+
+*Every cell is past tense, with the moment it was read.* A count may state what
+was true when it was read and nothing else. A duty the run still owes belongs in
+the row **as owed**, naming the command that discharges it, never as performed
+and never in a tense that makes a plan indistinguishable from a reading. L-A64
+already requires the moment; this adds the tense, because a timestamp on a
+future-tense claim dates the intention rather than the fact.
+
+*A count is a detector, so a false clean in it costs more than a missing row.*
+This seat's second standing count is the only thing in this product watching for
+an artifact its own run left outside the gate. A row saying a draft is reachable
+tells the next reader there is nothing to find, and the next reader is this seat
+with no memory of having written it.
+
+**What binds whom.** This seat, on all three clauses, and any seat in this
+product that publishes a standing count. Companion to L-A97, which names the
+scheduling error this row was hiding — the trigger is the state of the work and
+never the position in the run — and to L-A32, which says a run that leaves a
+draft has shipped nothing. The distance between those two rules and this one is
+the whole finding: both were law, both were read this night by the seat that
+broke them, and what the seat wrote down was that it had obeyed them.
+
+**The detector, and its honest limit (L-X1 as amended).** `offmain.sh` and
+`doors.sh` both already name an ungated draft, and both were right at 02:23Z
+against the real positive. Neither is a detector of this defect, because
+nothing ran them for three hours: they fire when a run of this seat fires. What
+is missing is not an instrument but a clock, and a clock is not this seat's to
+install — that half is incident 29 and it is routed.
+
+`portable: yes`
+`role: any`
