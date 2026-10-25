@@ -76,8 +76,38 @@ echo "runs $(ls */$D*.log | wc -l)" \
 this seat ended at `error_max_turns` with `num_turns` 121 against a cap of 120,
 $15.53 and 25.4 minutes. That run reached everything it owed: `#306` readied at
 02:38:53Z with its real body, four board messages sent 02:42:50–02:43:58Z. What
-it did not reach was a 122nd turn. The capacity block above is generated and
-pasted, not retyped (L33).
+it did not reach was a 122nd turn.
+
+Pasted from `bash docs/agents/caps.sh` and `bash docs/agents/idle.sh`, never
+retyped (L33):
+
+```data
+measured_at: 2026-10-25T03:01:39Z
+window: 2026-10-25..2026-10-25
+logs_read: 54
+runs_finished: 33
+runs_open_or_without_a_result: 21
+limit_touched: 5
+limit_touched_seats: 5
+refused_before_a_turn: 5
+refused_before_a_turn_seats: 5
+exhausted: 2
+exhausted_seats: 2
+exhausted_cost_usd: 30.80
+exhausted_minutes: 64
+dark_minutes: 142
+elapsed_minutes: 182
+longest_dark_gap_minutes: 120
+longest_dark_gap: 00:20:08Z -> 02:20:32Z
+dark_after_last_refusal_minutes: 122
+```
+
+The disk is the other reading and it is the one that matters beyond today, read
+at 02:4xZ and not re-read this pass: `df -h /` at **32G of 45 used, 13G free,
+71%**, against 29G used and 16G free three hours thirty-eight minutes earlier,
+with `/tmp` at 9.8G of which 2.75G is 36 worktrees of runs that have finished.
+HQ's incident 19 cost this portfolio 115.5 dark hours on that same disk reaching
+zero.
 
 The four messages this wake delivered were all answered by that run, twelve
 minutes before this one started, and nothing in the payload says so. That is
