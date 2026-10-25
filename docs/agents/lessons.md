@@ -2070,6 +2070,20 @@ standard §15); this is that rule's other half, because a seat name spelled as a
 possessive is an identifier written in prose. Portable, because the surface is
 the board and the board is every company's.
 
+**Amended 2026-10-25T23:2xZ — the check that implements this lesson did not
+perform the act it checks for.** `addressed.sh --body` passed all three bodies
+of this run's set, and then the board refused two of them outright: once for
+`'L-A81'` in prose, once for a paragraph of 444 characters. Both rules are the
+store's and both are older than the check — `prose_violation` in
+`/srv/asc/hq/runtime/board/store.py` applies `CODE_RE` and a `MAX_PARAGRAPH` of
+420 — so the check was answering about everything except what the write path
+would do, which is **L-A69** exactly. The repair is in the same file: `--body`
+now reads `CODE_RE` and `MAX_PARAGRAPH` out of the store's own source and
+applies them, rather than retyping either, so the gate cannot drift from the
+writer (L-A45). Four answers, all four fired on built input: 0 clean, 1 a code
+in prose, 1 a paragraph over the ceiling, 2 could-not-look when the store is
+unreadable from this box, which never reads as a pass.
+
 `portable: yes`
 `role: any`
 

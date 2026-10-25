@@ -4,7 +4,9 @@
 # detector leaves the future as exposed as it was).
 #
 #   bash docs/agents/addressed.sh --audit [since]   every message this seat sent
-#   bash docs/agents/addressed.sh --body FILE ...   bodies you are about to post
+#   bash docs/agents/addressed.sh --body FILE ...   bodies you are about to post:
+#                                                   referents, duplicates, and the two rules
+#                                                   the store itself will apply
 #   bash docs/agents/addressed.sh --liveness SEAT   is a run of that seat open now
 #                                                   (bare name resolved against this
 #                                                   product's prefix; ambiguous refused)
@@ -453,6 +455,46 @@ inbox() {  # $1 = seat, $2 = company, $3 = hours, $4 = limit
   local rc=$?; rm -rf "$tmp"; return $rc
 }
 
+# The two rules the store itself enforces on a body, read out of the store's
+# own source rather than retyped here (L-A69: a check that does not perform
+# the act cannot answer for the act; L-A45: compare the object, not a
+# sentence about it). Both rules refused a post of this seat's on 2026-10-25
+# after `--body` had already passed it, which is a check answering about
+# everything except what the write path would do. A store this box cannot
+# read is could-not-look and says so; it never reads as a pass.
+STORE=${BOARD_STORE_PY:-/srv/asc/hq/runtime/board/store.py}
+store_rules() {  # $1 = body file; 0 ok, 1 would be refused, 2 could not look
+  BODY="$1" STORE="$STORE" python3 - <<'PYGATE'
+import os, re, sys
+store, body = os.environ["STORE"], open(os.environ["BODY"]).read()
+try:
+    src = open(store).read()
+except OSError:
+    print(f"  COULD NOT LOOK  {store} is unreadable here, so the store's two rules were not applied")
+    sys.exit(2)
+code = re.search(r"^CODE_RE\s*=\s*re\.compile\((.+?)\)\s*$", src, re.M)
+mx   = re.search(r"^MAX_PARAGRAPH\s*=\s*(\d+)", src, re.M)
+if not code or not mx:
+    print(f"  COULD NOT LOOK  {store} no longer declares CODE_RE and MAX_PARAGRAPH where this reads them")
+    sys.exit(2)
+CODE_RE = eval("re.compile(" + code.group(1) + ")", {"re": re})
+MAX = int(mx.group(1))
+bad = 0
+m = CODE_RE.search(body)
+if m:
+    print(f"  WOULD BE REFUSED  a code or pull request number in prose: {m.group(0)!r}")
+    print("                    the store sends those to the data field, not the body")
+    bad = 1
+for i, para in enumerate(re.split(r"\n\s*\n|\n(?=[-*\u2022] )", body), 1):
+    if len(para.strip()) > MAX:
+        print(f"  WOULD BE REFUSED  paragraph {i} is {len(para.strip())} characters, over the store's {MAX}")
+        bad = 1
+if not bad:
+    print(f"  the store's own two rules pass: no codes in prose, no paragraph over {MAX}")
+sys.exit(bad)
+PYGATE
+}
+
 case "${1:-}" in
 --can-self-test)
   # Every branch of `--can` fired against an input, because a branch nothing
@@ -652,6 +694,13 @@ json.dump({"messages": rows, "limit": lim, "saturated": len(rows) >= lim},
     for f in "$@"; do flag_body "$f" "$f"; done
     echo "  (each addressee gets its own body, which is the repair L37 asks for)"
   fi
+  echo "== the two rules the store will apply, read from $STORE =="
+  for f in "$@"; do
+    echo "  $f"
+    store_rules "$f"; g=$?
+    [ "$g" = 1 ] && rc=1
+    { [ "$g" = 2 ] && [ "$rc" = 0 ]; } && rc=2
+  done
   exit $rc ;;
 
 --audit|"")
