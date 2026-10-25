@@ -53,9 +53,53 @@ E="node $CLI/src/index.js"
 STUB="$CLI/test/stub-executor.mjs"
 
 pass=0; fail=0
+# How many lines of the evidence a failing gate prints: enough to carry a
+# doctor section and its closing line, not the whole 7 KB document.
+EVIDENCE_LINES="${EPITO_SMOKE_EVIDENCE_LINES:-24}"
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
-bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
-check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# A failing gate says what it looked at. Three of this suite's assertions have
+# now failed one at a time on a busy box, a different one each run, and each
+# cost a run of archaeology to identify, because `FAIL <label>` names the claim
+# and never the output the claim was made against: the only way to learn which
+# of six rows was missing was to run the suite again and hope to be unlucky in
+# the same place. On failure only -- a green run's output is byte for byte what
+# it was.
+#
+# The haystack printed is the one the test names. Half of these gates assert
+# against their own captured document (`$FJ2`, `$IJD`, `$eout`) rather than the
+# last `run`'s `$out`, and printing the wrong one sends the next reader
+# somewhere else entirely. The first `$NAME` in the UNEVALUATED expression is
+# that document's name -- `check` is handed its test as a string, so the name
+# survives to here; when there is no name, or it holds nothing, the last
+# `run`'s output is the answer.
+bad()  {
+  fail=$((fail+1)); printf '  FAIL %s\n' "$1"
+  [ -n "${2:-}" ] || return 0
+  printf '       the test: %s\n' "$2"
+  local name hay
+  # Matched in the shell, not through `grep ... | head -1`: that is a producer
+  # piped into a reader that exits on its first line, which is the shape the
+  # card next to this one is converting out of every suite in here. The
+  # failure path is the last place to introduce one.
+  name=""
+  [[ "$2" =~ [$]\{?([A-Za-z_][A-Za-z0-9_]*) ]] && name="${BASH_REMATCH[1]}"
+  hay=""
+  [ -n "$name" ] && hay="${!name:-}"
+  # A value with no newline in it is a path, a port or a queue name and not a
+  # document: three of these gates grep a FILE that `$TMP` only locates, and
+  # printing that directory as though it were the haystack would be a wrong
+  # answer confidently given. It is printed as the note it is, and the last
+  # `run`'s output goes underneath as the document.
+  if [ -n "$hay" ] && [ "${hay#*$'\n'}" = "$hay" ]; then
+    printf '       $%s is %s\n' "$name" "$hay"
+    hay=""
+  fi
+  [ -n "$hay" ] || { name=out; hay="${out:-}"; }
+  [ -n "$hay" ] || return 0
+  printf '       $%s, %s bytes, last %s lines:\n' "$name" "${#hay}" "$EVIDENCE_LINES"
+  printf '%s\n' "$hay" | tail -n "$EVIDENCE_LINES" | sed 's/^/       | /'
+}
+check(){ if eval "$2"; then ok "$1"; else bad "$1" "$2"; fi; }
 step() { printf '\n== %s\n' "$1"; }
 cleanup() { if [ -n "${EPITO_SMOKE_KEEP:-}" ]; then printf '\nkept: %s\n' "$TMP"; else rm -rf "$TMP"; fi; }
 trap cleanup EXIT
@@ -130,9 +174,16 @@ export EPITO_STUB_DIR="$TMP/stub"
 # no engine is one where `epito run` refuses — which is the right answer and
 # not a test failure. The suite asks once and says so.
 ENGINE_ADDR="${TEMPORAL_ADDRESS:-127.0.0.1:7233}"
-engine_up() {
-  node -e 'const n=require("net"),a=process.argv[1],i=a.lastIndexOf(":"),s=n.connect({host:a.slice(0,i),port:Number(a.slice(i+1))});s.setTimeout(500);s.on("connect",()=>{s.end();process.exit(0)});s.on("timeout",()=>process.exit(1));s.on("error",()=>process.exit(1));' "$ENGINE_ADDR"
+# Does anything accept a connection at host:port. Asked of the box's engine
+# here, and of the stand-in listener this suite starts itself in section 5 --
+# which waited at a fixed `sleep 1` instead until a box at load 18 showed what
+# that guess is worth.
+answers() {
+  node -e 'const n=require("net"),a=process.argv[1],i=a.lastIndexOf(":"),s=n.connect({host:a.slice(0,i),port:Number(a.slice(i+1))});s.setTimeout(500);s.on("connect",()=>{s.end();process.exit(0)});s.on("timeout",()=>process.exit(1));s.on("error",()=>process.exit(1));' "$1"
 }
+engine_up() { answers "$ENGINE_ADDR"; }
+# And waits up to 12s for one to come up, for the listeners that are ours.
+answering() { for _ in $(seq 1 60); do answers "$1" && return 0; sleep 0.2; done; return 1; }
 HAVE_ENGINE=0
 if engine_up; then HAVE_ENGINE=1; fi
 
@@ -279,7 +330,13 @@ if node -e 'import("@temporalio/client").then(()=>process.exit(0),()=>process.ex
   # what tells them apart, and it only exists when the client is installed.
   node -e 'require("net").createServer(()=>{}).listen(17997,"127.0.0.1",()=>{setTimeout(()=>process.exit(0),30000)})' &
   FAKE=$!
-  sleep 1
+  # Wait for the port, do not sleep at it. A fixed second is a guess about how
+  # long node takes to bind, and on a busy box it is the wrong guess: doctor
+  # then finds nothing listening and says "nothing answered at
+  # 127.0.0.1:17997", which is the one sentence the two gates below exist to
+  # rule out -- so they would fail over this suite's own timing and say so in
+  # epito's voice.
+  answering 127.0.0.1:17997 || bad "the stand-in listener for section 5 never bound to 127.0.0.1:17997 -- the four gates below are about epito and this is not"
   TEMPORAL_ADDRESS=127.0.0.1:17997 run "$R"
   check "a port that answers and is not Temporal exits 1"   "[ $rc -eq 1 ]"
   check "in the daemon's own sentence"                      "said 'no Temporal server answering at 127.0.0.1:17997'"
@@ -438,6 +495,43 @@ out="$($E doctor "$R" --dep 2>&1)"; rc=$?
 check "a misspelled flag is refused, not ignored"             "[ $rc -eq 1 ] && said 'Did you mean --deep'"
 out="$($E doctor "$R" --json --wat 2>&1)"; rc=$?
 check "and an unknown one lists the flags doctor takes"       "[ $rc -eq 1 ] && said '[-][-]deep'"
+
+# 7b. The document a reader gets is the whole document, through a pipe as well
+# as into a file. `console.log` to a pipe is asynchronous in node and
+# `process.exit` discards what has not reached the kernel, so until the fix
+# that lands with this section, a roster whose report crosses one pipe buffer
+# printed 94,600 bytes into a file and 65,536 of them into `| jq`, exit code
+# unchanged, the JSON cut mid-token. The amount that survived was whatever the
+# box's pipe buffer happened to be — 65,536 and 131,072 in two measurements on
+# the same box — which is why it reads as a parse error that comes and goes.
+#
+# Three seats is 5 KB and never crossed it, so the gate builds a roster that
+# does. Nothing here is slow: without --deep no seat is probed, and the extra
+# seats are copies of one manifest already in this roster.
+step "7b. a report bigger than one pipe buffer survives the pipe"
+BIG="$TMP/bigroster"; mkdir -p "$BIG"
+cp -r "$R/plain" "$BIG/plain"
+for n in $(seq 2 80); do
+  mkdir -p "$BIG/plain$n"
+  sed "s/^name = \"plain\"/name = \"plain$n\"/" "$R/plain/agent.toml" > "$BIG/plain$n/agent.toml"
+done
+# Completeness is the claim, and it is asked of one invocation. Two
+# invocations are not comparable byte for byte: the worker row carries the age
+# of its evidence ("last polled 2s ago"), so a `cmp` between two runs of this
+# command would be a gate that fails for being right.
+$E doctor "$BIG" --json 2>&1 | cat > "$TMP/big-pipe.json" || true
+$E doctor "$BIG" 2>&1 | cat > "$TMP/big-human.txt" || true
+SEATS=$(ls -d "$BIG"/*/ | wc -l)
+check "the piped report is over one pipe buffer, so this gate asks something" \
+  "[ \$(wc -c < '$TMP/big-pipe.json') -gt 65536 ]"
+check "and through the pipe it is valid JSON"                 \
+  "node -e 'JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\"))' '$TMP/big-pipe.json' 2>/dev/null"
+check "with every seat of the roster still in it"             \
+  "node -e 'const r=JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\"));process.exit(r.seats.length===Number(process.argv[2])?0:1)' '$TMP/big-pipe.json' $SEATS"
+# The human report leaves by the other two exits and loses its closing line
+# the same way — and that line is the whole verdict.
+check "the human report, piped, still ends with its own verdict" \
+  "grep -q 'Nothing was started' <<< \"\$(tail -1 '$TMP/big-human.txt')\""
 
 step "8. it writes nothing"
 run "$R"
@@ -631,18 +725,33 @@ gh_stop() { [ -n "${GH_PID:-}" ] || return 0; kill "$GH_PID" 2>/dev/null; wait "
 # Reaped on the way out as well as between modes: a suite that leaves a
 # listener behind is a suite the next one blames.
 trap 'gh_stop; cleanup' EXIT
+GH_STARTS=0
 gh_start() {
   gh_stop
   : > "$GH_LOG"
-  node "$CLI/test/github-stub.mjs" 0 "$TMP/app.pub.pem" "$GH_LOG" "$1" > "$TMP/gh-$1.log" 2>&1 &
+  # The file this start's port is read out of is named for the START, not for
+  # the mode. Two of the seven modes are started twice -- `ok` at 12a and 12d,
+  # `thin-perms` at 12e and 12e' -- and under a per-mode name the second start
+  # reads its port out of a file that already holds the FIRST start's line, for
+  # a listener this function has just killed. The `>` truncation happens in the
+  # forked child and the `sed` below happens in the parent; when the parent
+  # wins that race it takes the dead port, leaves the wait loop at once, and
+  # every gate in the section is then made against a GitHub that is not
+  # listening -- which is how 12d printed six FAILs at load 18 while 12a, the
+  # first start of the same mode, passed. test/probe-stub-restart.sh is that
+  # race, measured. A per-start name makes the stale read impossible rather
+  # than unlikely: nothing but this start ever writes this file.
+  GH_STARTS=$((GH_STARTS+1))
+  local log="$TMP/gh-$GH_STARTS-$1.log"
+  node "$CLI/test/github-stub.mjs" 0 "$TMP/app.pub.pem" "$GH_LOG" "$1" > "$log" 2>&1 &
   GH_PID=$!
   GH_PORT=""
   for _ in $(seq 1 60); do
-    GH_PORT="$(sed -n 's/github-stub on \([0-9]*\).*/\1/p' "$TMP/gh-$1.log")"
+    GH_PORT="$(sed -n 's/github-stub on \([0-9]*\).*/\1/p' "$log" 2>/dev/null)"
     [ -n "$GH_PORT" ] && break
     sleep 0.2
   done
-  if [ -z "$GH_PORT" ]; then echo "  the stand-in GitHub API never came up"; cat "$TMP/gh-$1.log"; return 1; fi
+  if [ -z "$GH_PORT" ]; then echo "  the stand-in GitHub API never came up"; cat "$log"; return 1; fi
   GH_API="http://127.0.0.1:$GH_PORT"
 }
 # Two seats on ONE App, both on acme/box; `graph` has no App at all and is on a

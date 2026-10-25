@@ -131,6 +131,29 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const roadLabel = (name) => (name === DEFAULT_ROUTE ? "[runtime].model" : `"${name}"`);
 const MARK = { ok: "✓", note: "!", bad: "✗" };
 
+// Leave only once the bytes are gone. `console.log` to a pipe is asynchronous
+// in node, and `process.exit` throws away whatever has not reached the kernel
+// yet: on an 82-seat roster this command wrote 94,600 bytes of `--json` into a
+// file and put 65,536 of them through a pipe, exit 0, with the document cut
+// mid-token — so `epito doctor --json | jq .` hands a reader a JSON syntax
+// error for a roster that is fine, and the cut lands wherever the flush
+// happened to be, which is why two runs of the same roster disagree.
+//
+// The exits themselves stay. This command opens an engine client and may open
+// a bus connection, and dropping the exit leaves the process sitting on their
+// handles after the report is printed. What changes is that nothing exits
+// until an empty write's callback says the stream ahead of it has drained;
+// both streams, because the refusal report goes to stderr.
+// It is awaited and never resolves on purpose: the one thing after
+// `doctorCmd` in src/index.js is a `process.exit(0)` of its own, and it would
+// land in the same place this helper exists to move away from.
+const leave = (code) => new Promise(() => {
+  let pending = 2;
+  const gone = () => { if (--pending === 0) process.exit(code); };
+  process.stdout.write("", gone);
+  process.stderr.write("", gone);
+});
+
 // The engine, as far as this box can honestly be asked.
 //
 // The cheap look first, because it is the one answer every box can give: a bare
@@ -496,7 +519,7 @@ export async function doctorCmd(args = []) {
   };
   if (json) {
     console.log(JSON.stringify(report, null, 2));
-    process.exit(refusals.length ? 1 : 0);
+    return leave(refusals.length ? 1 : 0);
   }
 
   // --- the report: one row per section, then the detail --------------------
@@ -756,7 +779,7 @@ export async function doctorCmd(args = []) {
     for (const r of refusals) out(`  ✗ ${r.says}${r.agents.length ? ` — ${r.agents.join(", ")}` : ""}`);
     for (const a of asides) out(`  — ${a}`);
     out(`\nThe ✗ lines above each name a fix. Nothing was started, nothing was registered on the engine, and nothing in ${dirArg} was changed.`);
-    process.exit(1);
+    return leave(1);
   }
 
   // What the look did not look at, once per kind of executor in this roster: a
@@ -778,5 +801,5 @@ export async function doctorCmd(args = []) {
     out(`  Not proven: ${gaps.join("; and ")}. \`epito doctor ${dirArg} --deep\` asks both: ONE turn per road ("${DEEP_PROMPT}"), which costs a model call and is the only thing that proves the executor's credentials from here${ownSeats.length ? `, and one free GET at GitHub per App, which is the only thing that proves an installation` : ""}.`);
   }
   for (const a of asides) out(`  ${a}`);
-  process.exit(0);
+  return leave(0);
 }
