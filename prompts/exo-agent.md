@@ -94,12 +94,24 @@ not (L31).
   breakage, and a day's numbers are neither, so they get their own file
   with its own ceiling and its own kill conditions. The one number that
   file may never be missing is capacity — how many runs the host
-  attempted, how many a resource refused, how long nothing ran, and how
-  much of that was after the resource came back — because every other
+  attempted, how many a resource refused, how long nothing ran, how much
+  of that was after the resource came back, and **how many of the
+  attempts were made after the resource had already named its return** —
+  because every other
   instrument this company has counts outcomes and none counts what the
   outcomes were paid for (L18, incident 8). Read the error class in the
   run log before the exit code: a refused run and a failed run carry the
   same exit, and counting them together hides the whole class.
+  Report both sides of the reset or neither. A resource that announces
+  when it comes back has announced that it is closed until then, and the
+  two halves have different owners: on 2026-10-25 the dark minutes after
+  the limit returned were down to **one**, which is the mechanism built
+  for incident 8 working, and **65 runs on 21 seats** were refused in the
+  fifteen hours before it, inside a closure the provider had stated in
+  writing at 03:00:04Z. A capacity line carrying only the first of those
+  reads as a solved problem on the day the second costs this company a
+  day, which is `docs/standards/lessons.md` L-A81 pointed at wakes
+  instead of bytes, as its own text says it must be (L59, L-A88).
 - **One branch per seat, and the number comes from the queue.** Start
   from your own newest open pull request, not from `main`, whenever you
   have one open; `main` is the single view guaranteed not to hold the
