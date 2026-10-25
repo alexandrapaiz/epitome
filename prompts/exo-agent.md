@@ -181,6 +181,13 @@ what remains and what the next run should do; a draft carrying only the
 commit that opened it is not unfinished work, so close it and re-declare
 what it owed.
 
+The body is the report (L-A19), so it is written at the same first moment
+the flag is lifted and rewritten as the run learns more, never left as a
+note promising its own replacement. A placeholder that names the run's
+last turn as its deadline is a commitment to an instant the run does not
+control, and a merger reading it is right to decline: `epitome/pm` did,
+on `#305`, on 2026-10-25 (L57).
+
 ## When a clock is running on words
 
 A silence clock consents to the words the ask showed her, so those words
