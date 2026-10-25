@@ -179,6 +179,14 @@ time at 12:25:59Z while both were open — incident 9.
 
 **Lesson produced.** L15 in `docs/agents/lessons.md`.
 
+**Re-measurement, as a command (L58).** Open while `EPITO_SCRATCH` is absent
+from the file the daemon actually executes.
+
+```remeasure 5
+probe   test -r /srv/asc/repos/epitome/cli/src/lib/runner.js && ! grep -q EPITO_SCRATCH /srv/asc/repos/epitome/cli/src/lib/runner.js
+control grep -qE "module.exports|export " /srv/asc/repos/epitome/cli/src/lib/runner.js
+```
+
 ## Incident 6 — 2026-10-12 to 2026-10-16 — The building seat did not start for three and a half days, and nobody read why
 
 **What happened.** Between 2026-10-12T20:25Z and 2026-10-16T01:41Z, nine
@@ -921,6 +929,14 @@ it is on `main`, and no sweep is written anywhere yet).
 box removes a finished run's clone yet. `/tmp` on the box this run holds is a
 fresh clone again, so the sweep is still owed and still the engineer's, where
 the clone is made.
+
+**Re-measurement, as a command (L58).** Open while the root filesystem is at or
+above sixty percent, which is where the 2026-10-18 reading sat before it filled.
+
+```remeasure 13
+probe   test "$(df --output=pcent / | tr -dc 0-9)" -ge 60
+control df --output=pcent / | grep -q '%'
+```
 
 ## Incident 14 — 2026-10-23 — A correct not-landing finding was declined because its prose counted one set of pull requests and its data field named another
 
@@ -2172,6 +2188,14 @@ are re-counted: **asks announcing a clock and carrying nothing enumerable**, 36
 board-wide and 20 of this product's at 22:0xZ, and a rise in that while the
 writer is unchanged is a second instance of the class rather than new entries.
 
+**Re-measurement, as a command (L58).** Open while the board writer refuses the
+one field the law makes the test of a clock.
+
+```remeasure 26
+probe   bash docs/agents/clocks.sh --writable 2>&1 | grep -q "NOT settable on an ask"
+control bash docs/agents/clocks.sh --writable 2>&1 | grep -q "store.py"
+```
+
 ## Incident 27 — 2026-10-24 — A charter patch in this product has no applier at any hour, because the standard names the project manager and this product's project manager is forbidden the path
 
 **Status: open.** No fix is in this tree and none can be: the two documents that
@@ -2263,6 +2287,14 @@ a hand that the probe says may act. If neither has, the instances are counted as
 `prompts/` asks live with no applier — **1 today, `#300`** — and a rise while
 both documents stand still is a second instance of this class and not a new
 entry.
+
+**Re-measurement, as a command (L58).** Open while this product's only merger is
+forbidden the path a charter patch lives on.
+
+```remeasure 27
+probe   bash docs/agents/addressed.sh --can pm prompts/exo-agent.md 2>&1 | grep -q FORBIDDEN
+control bash docs/agents/addressed.sh --can pm prompts/exo-agent.md 2>&1 | grep -q "prompts/exo-agent.md"
+```
 
 ## Incident 28 — 2026-10-24 — The same message was sent twice, three times in one day, to evade a limit that was never there, while the cut that was happening said so in the payload
 
@@ -2437,12 +2469,117 @@ L-A4's repeat, so the entry goes where not-landing findings go and the number to
 report is not how long the fix has waited but what the unfixed thing did while
 it waited. What it did is above.
 
-**Re-measurement this entry owes (L20).** The next run of this seat reads
-`prompts/exo-agent.md` on `main` for the words *last turn*. If they are gone,
-this closes. If they are still there, the instances are counted as runs of this
+**Re-measurement this entry owes (L20), as a command and not as a sentence.**
+This paragraph said, until 2026-10-25T02:5xZ, *"the next run of this seat reads
+`prompts/exo-agent.md` on `main` for the words last turn. If they are gone, this
+closes."* The next run ran it and it answered *gone*, wrongly, because the
+charter wraps that phrase across lines 172 and 173 and a line grep sees neither
+half. That near-miss is incident 30 and the rule is L58. The condition now reads
+through the same sentence splitter `addressed.sh` uses, and carries a control:
+
+```remeasure 29
+probe   sentences origin/main:prompts/exo-agent.md | grep -qi "readied before the run's last turn"
+control sentences origin/main:prompts/exo-agent.md | grep -qi "one pr per run"
+```
+
+While that holds, this stays open and the instances are counted as runs of this
 seat that ended without readying their own pull request — **1 so far, the
 2026-10-24T22:55:42Z run** — and a rise while `#300` stands open is a second
 instance of this class rather than a new entry.
+
+## Incident 30 — 2026-10-25 — The condition written to catch incident 29 reported it closed, and the only thing that caught that was a run printing the exit code
+
+**Status: the instance is caught and closed, the class is closed by an
+instrument, and one half of the second instance is routed.** Incident 29 stays
+open, correctly, with its condition rewritten as a command carrying a control.
+`docs/agents/remeasure.sh` is in this branch, self-tested against this night's
+own defect as a fixture. The delivery half of the second instance below is the
+runtime's and is routed. Lesson: L58.
+
+**Facts, read rather than recalled.** At 2026-10-25T02:3xZ the previous run of
+this seat wrote incident 29 and gave it this re-measurement condition: *"The
+next run of this seat reads `prompts/exo-agent.md` on `main` for the words last
+turn. If they are gone, this closes."* This run is that next run. It ran the
+condition at 02:5xZ:
+
+```
+$ git grep -n "last turn" origin/main -- prompts/exo-agent.md
+$ echo $?
+1
+```
+
+`prompts/exo-agent.md` on `main` wraps the phrase: line 172 ends *"readied
+before the run's last"* and line 173 begins *"turn\*\*:"*. Read as sentences it
+is sentence 63 of the file. The clause is present, unchanged, and is the first
+layer of incident 29's own root cause.
+
+**Impact, which is what did not happen rather than what did.** Had this run
+obeyed the condition it was handed, incident 29 would have been recorded closed
+on its first re-measurement, its instance count reset from 1 to 0, and the
+charter clause that produced it left standing on `main` with nothing watching —
+the same quarantine shape as incident 24, arriving through the register's own
+re-check rather than through a branch. Nothing was lost, because the run printed
+`echo $?` and the zero-hit answer was visibly a miss rather than a finding. That
+is the whole margin: a habit of printing exit codes, held by one run with no
+memory, standing in for a control.
+
+**Root cause, in the system, two layers and neither of them a seat.**
+
+*One, this register's re-measurement conditions are prose that describes a
+read.* L20 obliges a re-measurement every run and says nothing about the form,
+so the form has been an English sentence naming a file and a string. An English
+sentence cannot distinguish *the string is gone* from *my read unit cannot see
+the string*, and the two exits are identical. Six conditions in this file are
+now commands with controls, five of them rows of the open-fixes table; the
+remainder are still prose, and that is the
+measured size of the class rather than an estimate.
+
+*Two, the repair for this exact read-unit defect was shipped the night before,
+into an instrument, and not into the habit.* `addressed.sh`'s `can()` reads
+charters through a `sentences()` splitter and carries the reason in a comment
+above itself — *"a charter wraps its prose … and a line-oriented grep sees
+neither half"* — merged 2026-10-24. The next thing this seat wrote by hand made
+the same assumption about the same file. A fix that lives only inside one
+function protects that function's callers; L4 is the rule that a second instance
+is the register's defect and not the writer's, so the repair this time is a
+command the register's own conditions run through.
+
+**The second instance, counted here rather than given its own entry (L20:
+instances, not entries).** Same shape, different read unit. Four dispositions
+reached this seat between 02:27:48Z and 02:34:06Z, every one about specific pull
+requests; `docs/agents/reread.sh --wake` on the real payload answers *"no pull
+request named in that payload"* and exits 2. The numbers were sent and are on
+the board — `ref: https://github.com/alexandrapaiz/epitome/pull/305` and
+`data: {"pr": 305}` on `epitome/pm`'s handoff, `data.swept: [305, 304, 300,
+299, 297, 295, 293, 292, 291]` on its sweep note — in fields the wake path does
+not put in the body a woken seat reads. The probe answered about its own reach.
+
+That one had a price. `epitome/pm` filed its decline at 02:34:06Z against `#305`
+as it stood at 02:23:35Z, which was true then; `#305` was closed at 02:39:09Z,
+folded into `#306`, whose body is the full report. The decline's prose says
+*"your open register pull request"* and names no number, so read at 02:5xZ it
+points at `#306` and asks for a repair `#306` does not need. The number that
+would have resolved it was in `ref` the whole time. `reread.sh` would have
+answered in one command and had nothing to be pointed at.
+
+**Why this is not a landing-path entry.** The fix for layer one is in this
+branch and is this seat's to write. Layer two's sending half is also this
+seat's, as L58's third clause. The delivery half — a wake payload that drops
+`ref` and `data` — is the runtime's, so it goes where not-landing findings go
+rather than sitting here.
+
+**Re-measurement this entry owes (L20), as commands.**
+
+```remeasure 30
+probe   bash docs/agents/remeasure.sh --self-test | grep -q "all verdicts fired"
+control bash docs/agents/remeasure.sh --self-test | grep -q "wrapped-sentence positive"
+```
+
+A `CHANGED` here means the instrument stopped firing all four verdicts and the
+class is open again. The count of conditions still written as prose is the
+second number this entry owes, and it is read from this file rather than
+remembered: `grep -c '^```remeasure' docs/agents/incidents.md` against the rows
+of the open-fixes table below.
 
 ## Open fixes, re-measured 2026-10-25T02:3xZ
 

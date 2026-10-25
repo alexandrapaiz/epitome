@@ -3987,3 +3987,118 @@ install — that half is incident 29 and it is routed.
 
 `portable: yes`
 `role: any`
+
+## L58 — A re-measurement condition is a command with a control, never a sentence describing a read: a probe that reports *gone* while its control also reports *gone* has measured its own reach and not the world
+
+**Trigger (2026-10-25T02:5xZ)**, no owner correction behind it. This run is the
+"next run" that incident 29 wrote a re-measurement condition for. It ran the
+condition as written, and the condition was wrong in the one direction that
+reads as good news.
+
+**The condition, verbatim**, from `docs/agents/incidents.md` at `9b31790`:
+
+> **Re-measurement this entry owes (L20).** The next run of this seat reads
+> `prompts/exo-agent.md` on `main` for the words *last turn*. If they are gone,
+> this closes.
+
+**What running it answers.**
+
+```
+$ git grep -n "last turn" origin/main -- prompts/exo-agent.md
+$ echo $?
+1
+```
+
+Nothing. By the condition's own sentence, incident 29 closes and its instance
+count resets to zero. The words are there:
+
+```
+$ git show origin/main:prompts/exo-agent.md | grep -n -A1 "run's last$"
+172:One PR per run, opened as a draft and **readied before the run's last
+173-turn**: lessons.md and/or incidents.md updated, any charter patch applied
+```
+
+The charter hard-wraps its prose, so *last turn* has its first word on line 172
+and its second on line 173, and a line-oriented grep sees neither half. Read as
+sentences the clause is right there, sentence 63 of the file. The clause that
+caused incident 29 stands untouched on `main`, and the condition written to
+detect it said it was gone.
+
+**This seat had already paid for this exact defect, the night before, in a file
+it still runs.** `docs/agents/addressed.sh` reads charters through a
+`sentences()` splitter, and the comment above it says why: *"A charter wraps its
+prose, so the prohibition that cost this seat a round trip tonight has its verb
+on one line and its object on the next … and a line-oriented grep sees neither
+half."* The repair was shipped. It was shipped into the instrument and not into
+the habit, so the next thing this seat wrote by hand repeated it. A second
+instance of a rule already in the register is a register defect (L4), which is
+why this is a rule and an instrument rather than a correction to one entry.
+
+**The second instance, same shape, different read unit, same night.** Four
+dispositions reached this seat's inbox between 02:27:48Z and 02:34:06Z, every
+one of them about specific pull requests. `docs/agents/reread.sh --wake` exists
+for exactly that class of claim. Pointed at the real payload it answers:
+
+```
+$ bash docs/agents/reread.sh --wake /tmp/wake/payload.txt
+no pull request named in that payload
+exit=2
+```
+
+Fifty lines of prose disposing of nine pull requests, and not one `#NNN` in any
+of them. The numbers were sent — `epitome/pm`'s handoff carries
+`ref: .../pull/305` and `data: {"pr": 305}`, and its sweep note carries
+`data.swept: [305, 304, 300, 299, 297, 295, 293, 292, 291]` — in fields the wake
+path does not deliver to the body a woken seat reads. So the probe's honest
+answer is about the probe's reach. `reread.sh` exits 2 and calls it
+could-not-look rather than agreement, which is L41 working, and it is still a
+detector that cannot fire on the only input it is ever given.
+
+**Rule.** Three clauses.
+
+*A condition is a command.* A re-measurement condition goes in the register as
+something a fresh-context seat runs, not as a sentence it interprets. The
+difference is not tidiness: the sentence above is a correct English description
+of an incorrect read, and no reader can tell which it is without running it.
+
+*A condition carries a control.* Beside the probe, one assertion known to hold
+at the moment the condition was written, over the same bytes and through the
+same read unit. When the probe reports *gone* and the control also reports
+*gone*, the answer is **could-not-look**, never a change and never a close. A
+line grep for a wrapped phrase and a line grep for a phrase that is genuinely
+absent return the identical exit code, and the control is the only thing that
+separates them.
+
+*Three answers, never two, and could-not-look is never a close.* Holds,
+changed, could-not-look (L41). A close is a human read of a *changed*, never the
+automatic consequence of a non-zero exit.
+
+**What binds whom.** This seat, on every condition it writes into
+`docs/agents/incidents.md` and on every claim it re-reads from a wake. Any seat
+in this product that writes a condition another run is expected to re-run.
+Companion to L-X1 as amended — a repair without a detector leaves the future as
+exposed as it was, and a detector that has never been fired against a known
+positive is a second thing written down — and to L42, whose sentence this is the
+register's own instance of: the branch an instrument has never been made to hit
+is the one that decides its answer on the day it hits.
+
+**The instrument, with its real positive.** `docs/agents/remeasure.sh` extracts
+every ` ```remeasure <n> ` block from `docs/agents/incidents.md`, runs the
+control before the probe, refuses a probe that has no control, and prints one of
+the three answers per incident. Its self-test builds all four verdicts,
+including this night's actual defect as a fixture — a line grep over a
+deliberately wrapped sentence — and asserts that it reports could-not-look and
+exits 2 rather than reporting a close. Six of this register's conditions
+are commands as of this entry, five of them rows of the open-fixes table; the
+rest are still prose, and `remeasure.sh`
+reports what it has rather than implying it read them all.
+
+**Half of the second instance is not this seat's.** The `ref` and `data` fields
+exist on the board and are stripped from the wake, which is a property of the
+runtime's delivery path and not of any seat's prose. What is in this seat's hand
+is the sending half, and it is the same rule: a disposition about a pull request
+names the number in the sentence a person reads, because `data` is a second copy
+for machines and never the only copy. The delivery half is routed.
+
+`portable: yes`
+`role: any, pm, engineer`
