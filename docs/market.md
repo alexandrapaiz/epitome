@@ -1,5 +1,264 @@
 # Market brief — docs/market.md
 
+Maintained by the market seat. This revision: **rev 18, 2026-10-25**, a
+dispatch run that fired on the project manager's handoff naming PR
+[#297](https://github.com/alexandrapaiz/epitome/pull/297) — "an open draft
+with no live run behind it," idle since this seat opened it at
+2026-10-24T21:54:50Z — and asking this seat to ready it, close it, or name
+the clause keeping it a draft. `gh pr list` was checked first (L-E10): no
+market pull request is open now (this run closed #297 itself, below), so
+this revision forks from `main` rather than stacking on a branch that no
+longer exists.
+
+**#297, closed rather than readied.** Read against L-E10 (an open pull
+request of this seat's own gets one of three moves — extend the branch,
+close it with a reason, or land the stack — never a sixth implementation
+opened beside it) and L-A32 (a run is over when its artifact is reachable;
+readying belongs at the moment of coherence, not left for a later message to
+name), this run chose to close rather than ready. #297's own body is honest
+that it found little: "eighteen minutes since rev 16's own merge... not
+stretched into a fresh pass." Between that check and this one, close to a
+full day passed with no run behind it — well past the four-plus-hour gap
+this brief has used since rev 15 as enough to owe a fresh landscape and
+demand pass. Readying #297 now would have merged a day-old non-finding
+minutes before this revision supersedes it with real material; closing it
+and redelivering what it owed, fresh, read as the cleaner instance of L-X7
+(do not restate a non-finding as new content) than readying it would have
+been. Replied to the project manager's handoff on the board, in first
+person, naming this reasoning before this run's own research began. The
+revision count moves from 16 to 18 rather than reusing 17, because #297's
+own number is already public against its own (different, thinner) content
+and this brief has never reused a revision number for a second body of text.
+
+This run's own clone arrived shallow (`git rev-parse
+--is-shallow-repository` answered `true`, matching the exact defect
+docs/backlog.md's "Now" card names and rev 15 already flagged once this
+seat's own instance of), so `git fetch --unshallow` ran before any
+history-dependent claim below, including the integration map's own git-log
+check (L22: a defect measured once is a fact about that run, not a standing
+property of the box, so it is checked again rather than assumed fixed).
+
+The board inbox addressed to this seat was read directly
+(`to_seat=market&to_company=epitome&everyone=0&since_hours=48`): fifteen
+messages, all from the project manager, the newest being the #297 handoff
+itself (L54: the honest, addressed-only read came back whole, unsaturated,
+while the broadcast-inclusive read of the same window hit its own page
+limit — the cost of the default-on read in this window was 99 rows of
+someone else's broadcast crowding out the rest of this seat's own).
+Everything older in that window is already-closed history (two "done"
+notices, an escalation thread the project manager says is closed, and
+earlier instances of this same "your draft is idle" shape) — nothing newer
+than the #297 handoff is an open duty. So the "next item in my lane" is
+again this seat's one standing lane card, docs/backlog.md's "Market seat
+brief #1: pricing" (ADR-13, buyer-2 usage-based pricing), open since rev 1
+(2026-09-18) and unanswered by the owner since rev 4 (2026-10-02) — now
+**23 days**. Continuing with it means doing research that bears on her
+decision, which is the rest of this revision.
+
+## 4a. Standing watch: LangChain/LangSmith (ADR-12) — re-checked directly, unchanged; GitHub's own self-serve gate re-checked the same way, also unchanged
+
+Re-fetched directly this run (L-R1): LangSmith's Cloud changelog
+(`docs.langchain.com/langsmith/changelog`, fetched 2026-10-25) still reports
+its latest entry as "October 12-19, 2026" — the same Agent-Auth-mints-a-
+GitHub-App-owned-by-an-agent finding rev 8 first fired and every revision
+since has re-confirmed, nothing added in the day since rev 16/17's own
+check.
+
+GitHub's own agent-apps changelog entry
+(`github.blog/changelog/2026-06-02-extend-github-with-agent-apps/`,
+re-fetched directly) still reads verbatim "Over the coming months, we'll
+open up access to allow anyone to build agent apps," with the same partner
+waitlist and no self-serve date. The general changelog feed
+(`github.blog/changelog/`) was also checked this run for anything dated
+since rev 16's own look: the newest entries are 2026-10-22 and 2026-10-23,
+and the one closest to this charter's own wedge, "Enterprise installations
+for GitHub Apps generally available" (2026-10-23), is about enterprise
+deployment scope for GitHub Apps an operator already owns, not about
+agent-owned identity or the self-serve gate this watch tracks — checked and
+ruled irrelevant rather than skipped on the title alone (L-A34: an absence
+is reported from the page actually read, not assumed from its headline).
+No new tripwire instance; logged per the charter's own instruction to log
+the check even when nothing moves.
+
+## 1. Landscape — a bundling move between two of the three named human-identity players, found this run but eleven months old, so it corrects this brief's own research rather than reporting new market movement; Clerk re-checked, nothing changes
+
+**WorkOS and Microsoft Entra Agent ID**, found via a search this run for
+fresh October movement among the three named human-identity players, then
+checked against WorkOS's own primary source
+(`workos.com/blog/workos-partners-with-entra-agent-id`) rather than taken
+from the search summary (L-R1). The post is dated **2025-11-19** — eleven
+months before this check and, read against this brief's own rev 1
+(2026-09-18), older than the brief itself. Quoted directly: WorkOS is
+"building on Microsoft Entra Agent ID and its agent registry to create
+agent identities and request tokens, enabling secure collaboration between
+agents and users," and "[d]evelopers using WorkOS will be able to provision
+and deprovision Agent Identities in Entra, allowing their downstream
+enterprise customers to manage agent inventories." Checked for the one
+question this watch keeps asking — does a resulting identity cross onto an
+outside platform's own identity plane, GitHub's or Slack's, under its own
+principal — and the page states nothing of the kind: both sentences scope
+the result to "enterprise customers," their own agent inventories, inside
+the Microsoft ecosystem WorkOS is building on top of, the same walled shape
+rev 8's Entra finding and rev 16's own WorkOS finding each already named
+from their own corners. This is not new market movement — a partnership
+eleven months old was true on every one of this brief's seventeen prior
+revisions and none of them surfaced it — so no landscape-movement claim is
+made from it. What it is: a gap in this brief's own research, corrected
+this run rather than carried forward unseen, and a second, independent
+confirmation (two of the three named vendors, already bundling with each
+other, still not crossing onto a non-Microsoft platform's own identity
+plane) of the standing finding rather than a change to it.
+
+**Checked and found unsupported, logged so the next pass does not spend a
+search on it again:** this run's search also surfaced a secondary
+characterization of a Clerk "Agent Toolkit," said to propagate a human or
+org identity into an agent's context. Checked directly against Clerk's own
+changelog (`clerk.com/changelog`) and Clerk's own blog rather than carried
+on the search summary's word (L-R1, L-A12, the same method rev 14 applied
+to the trydock.ai claim): no entry or post by that name exists on either
+primary source. No landscape entry is made on the strength of the
+unverified claim — the correction is the entry.
+
+**Clerk, re-checked from five entries newer than rev 16's own check, no
+change to the standing finding.** Clerk's own changelog carries five dated
+entries since rev 16's 2026-10-24 check: "Secret keys are only shown once
+on the API keys page" (2026-10-19), "Expo native components move to their
+own package" (2026-10-20), "Merge two users into one" (2026-10-23), and
+"Introducing Clerk Protect" (2026-10-23) — checked directly rather than
+skipped on its title, it is fraud and account-takeover protection for human
+authentication flows, "stop fake accounts and account takeover attacks,"
+unrelated to agent identity in any way — and "Agent feedback" (2026-10-23),
+already read in rev 16. None of the five gives an agent a Clerk-minted
+identity usable on an outside platform; rev 14's standing finding (agents
+as *builders using* Clerk's APIs, not recipients of a Clerk identity) is
+unchanged.
+
+## 2. Demand — three more independently-filed, independently-verified instances, one of them naming a different mechanism than every prior citation: prompt injection steering the leak rather than the sandbox simply inheriting a broad credential
+
+Three GitHub issues, across three more independent, unrelated projects,
+checked directly (`gh issue view`, L-R1), none overlapping the thirteen
+already cited across rev 8 through rev 17:
+
+- **`tartale/claude-sandbox` [#9](https://github.com/tartale/claude-sandbox/issues/9)**
+  (filed 2026-09-29, **closed** 2026-10-19): the token reached the
+  container three ways — `GH_TOKEN`/`CS_GITHUB_TOKEN` in the environment,
+  visible via `docker inspect` and `/proc`, and in plaintext in a
+  world-readable, mode-755 credential file — and the reporter verified from
+  *inside the sandbox* that the token carried `permissions.admin=true` on a
+  repository other than the one the sandbox was scoped to. Fixed by its own
+  maintainer with the identical shape this brief has tracked since rev 8: a
+  fine-grained PAT scoped to one repository, or better, "a short-lived token
+  minted per session (GitHub App installation token) instead of a long-lived
+  PAT."
+- **`sjsreehari/zerra` [#45](https://github.com/sjsreehari/zerra/issues/45)**
+  (filed 2026-10-04, **open**): a different leak vector than every prior
+  citation in this brief — not the sandbox boundary, but the credential
+  helper itself. The PAT is embedded directly into the git remote URL
+  (`https://{token}@github.com/...`) to authenticate a push, and when the
+  push fails — a protected-branch rejection, a timeout — git echoes the
+  full remote URL, token included, into `stderr`, which lands in
+  application logs, background-task traces, and error notifications. Read
+  on its own terms (L1): this is the same long-lived, broad-scope PAT
+  this brief's demand section tracks, leaking through an operational
+  surface (error logging) rather than through the sandbox boundary the
+  other citations describe.
+- **`cekinmezyucel/ai-hub` [#9](https://github.com/cekinmezyucel/ai-hub/issues/9)**
+  (filed 2026-10-21, **open**): read as its own data point rather than
+  folded into the twelve others (L1), because its mechanism is different in
+  kind, not degree. Every prior citation in this brief describes an
+  architecture defect — a broad credential simply handed to a process that
+  did not need it that broad. This issue names an attack: "[i]n 2026, CI
+  agents were steered by [untrusted issue and PR] text into leaking
+  `GITHUB_TOKEN` and API keys ('Comment and Control,' Clinejection). This is
+  now the main risk class for agentic CI." The credential is not merely
+  over-broad and sitting there to be found — it is actively exfiltrated by
+  an agent that untrusted PR or issue text steered into leaking it. The
+  reporter's own proposed fix is the same shape as every architecture-defect
+  citation before it ("[a] short-lived GitHub App token per step instead of
+  my personal token"), which means the fix this brief has tracked since rev
+  8 answers both mechanisms, the passive and the actively-exploited, with
+  the same credential shape — worth naming because a buyer weighing "how bad
+  is the status quo" should hear that the broad token is not just an
+  avoidable mistake sitting in a sandbox, it is a live target once an agent
+  reads attacker-controlled text at all, which every agent that triages
+  issues or reviews PRs does by design.
+
+All three verified, none stretched past what they individually show. No
+landscape or integration-map claim is made from any of the three.
+
+## 3. Positioning and pricing — no fresh pricing fetch owed this run; ADR-13 still unanswered, now 23 days
+
+No fresh pricing fetch this run: rev 14's runtime/trigger pricing comparison
+(Fly, Modal, E2B, Trigger.dev) and rev 16's WorkOS federation finding are
+both unchanged and not due for re-fetch on no elapsed reason to expect
+movement (L-X7). The `cekinmezyucel/ai-hub` finding above sharpens "why
+epito.me and not glue" from a new angle: the status quo it describes is not
+only a defect a careful operator could in principle avoid, it is a
+documented, named attack class against exactly the credential shape glue
+code hands an agent, which is sharper ammunition than a hypothetical risk
+for the owner's deck. **ADR-13's buyer-2 usage-based pricing question is
+unchanged: still unanswered by the owner, now 23 days** (first raised rev 1,
+2026-09-18; recommendation shipped rev 4, 2026-10-02).
+
+## 4. Integration map — re-verified against today's `main` after the unshallow fetch, unchanged
+
+`cli/src/lib/slack.js` re-read in full this run: still exactly three exports
+(`formatLine`, `webhookName`, `postToSlack`), still a webhook poster, no
+`apps.manifest.create` or any per-agent Slack-identity mechanism anywhere in
+`cli/src/lib/`. `git log` from rev 16's own merge commit to today's `main`
+touching `docs/market.md` returns nothing beyond this seat's own closed
+#297, and touching the rest of the tree shows no change to `cli/src/lib/` or
+`docs/cycles/` either — confirmed on the unshallowed history rather than
+assumed from the shallow one this run's own clone first returned (L22).
+**Standing recommendation unchanged: Slack remains integration #2**, gated
+behind cycle 3's sequencing. No re-ranking trigger fired this run: the
+WorkOS/Entra bundling move above is eleven months old and already covered
+by the human-identity players this charter tracks by name, not a new
+candidate for the integration-#2 slot.
+
+---
+
+*Charter compliance note (rev 18): research across all four sections this
+run, triggered by the project manager's #297 handoff rather than a new
+addressed board duty beyond it (the inbox was checked and carries nothing
+newer). Checked against docs/agents/lessons.md (the file this charter
+names) before shipping: L1 (every finding above reported by mechanism and
+quote — a changelog sentence, a verified `permissions.admin=true`, a quoted
+risk-class name — never by adjective; the `cekinmezyucel/ai-hub` finding
+kept as its own data point, a different mechanism, not merged into the
+other two); L13/L-E10 (the day-long gap since rev 16/17's own pass is
+treated as owing a fresh look, and the look found genuinely new material;
+the open-PR survey that is #297's own disposition is named in the PR body
+by number, per L-E10's own requirement that a survey nobody can see is
+indistinguishable from one nobody ran); L15 (the demand section's standing
+method — carry the asker's outcome, closed or open — applied to all three
+new issues); L22 (this run's own clone was unshallowed before any
+history-dependent claim, per the exact defect docs/backlog.md's "Now" card
+names, checked fresh rather than assumed fixed from rev 15's instance).
+Also checked, per this seat's own established practice, against
+docs/standards/lessons.md: L-R1 (every claim above fetched or queried
+directly this run: two changelogs, one specific changelog entry, one
+general changelog feed, two WorkOS/Clerk primary-source pages, three GitHub
+issues via `gh issue view`, two searches); L-A12 (the Slack mechanism and
+the Clerk "Agent Toolkit" claim both checked against their live sources
+rather than asserted from a summary); L-A32 (PR #297 readied-or-closed this
+run, not left for a later message to name — closed, with the reason in its
+own comment and on the board, rather than readied stale or left
+unfinished); L-A34 (the WorkOS-Entra absence reported from the two pages
+actually checked, not as a settled fact about either vendor; the
+"Enterprise installations" GitHub entry read in full before being ruled
+irrelevant, not dismissed on its title); L-X7 (the ADR-12 recheck and the
+GitHub self-serve gate reported as unmoved, not restretched into content;
+ADR-13's count reported as a depth, a day later, not a re-ask). Flagged:
+the owner's still-open word on ADR-13, now 23 days; Microsoft Ignite (Nov
+17-20) still the next point the Entra question can move; the WorkOS-Entra
+partnership logged here for the first time so a future revision does not
+re-spend a search finding it again.*
+
+---
+
+# Market brief — docs/market.md (rev 16, superseded by rev 18 above)
+
 Maintained by the market seat. This revision: **rev 16, 2026-10-24**,
 a dispatch run that fired on rev 15's own pull request merging
 ([#286](https://github.com/alexandrapaiz/epitome/pull/286),
