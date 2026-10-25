@@ -13,6 +13,16 @@ numbering convention you proposed, that it comes from your seat going
 forward, stands unless she says otherwise" — so a seat that needs a number
 asks for it rather than taking the next one it can see.
 
+**A portable lesson carries two markers, not one.** `portable: yes` offers the
+rule to the company register; `role: <sections>` says which of that register's
+role sections it belongs under, comma-separated, `any` when the rule binds every
+seat. The second one is not decoration: the centralizer's harvest can infer
+everything about a lesson except where it files, so a portable lesson with no
+role arrives unassigned and waits for a human read. On 2026-10-24 all
+twenty-three portable lessons in this file were unassigned for that reason, and
+twenty-two of them were law nowhere outside this repository, the oldest for five
+weeks. Write both markers in the same edit that writes the lesson.
+
 ## L1 — Mechanism is the spine; process vocabulary is a footnote
 
 **Trigger (2026-09-18)**, on the PM's first cycle briefing: "the
@@ -258,6 +268,7 @@ weekly review. Companion to L9: a landing pull request that nobody reads
 has reported nothing either.
 
 `portable: yes`
+`role: engineer, pm, exo`
 
 ## L14 — The owner-facing surface this org has most of is a pull request description
 
@@ -298,6 +309,7 @@ no pre-ship check against this register at all; a patch adding it is in
 `docs/agents/patches/`.
 
 `portable: yes`
+`role: any`
 
 ## L15 — A defect you have already fixed once is work, not an idea
 
@@ -349,6 +361,7 @@ and this seat, which reads that ledger every weekly review and had never
 read its status column as a gate. Full record: incident 5.
 
 `portable: yes`
+`role: engineer, exo`
 
 ## L16 — A cadence lives in the thing that fires it, never in the sentence that claims it
 
@@ -416,6 +429,7 @@ look-back of its triage (patch proposed as a diff in
 first instance and whose patch is beside it.
 
 `portable: yes`
+`role: any`
 
 ## L17 — The inbox is a feed, not a queue: read it addressed-only, and write a duty down before you work it
 
@@ -471,6 +485,7 @@ repository's, and went up as a handoff to the centralizer with the
 two-line fix rather than as a patch here (L5). Full record: incident 7.
 
 `portable: yes`
+`role: any`
 
 ## L18 — A run a resource refused did not fail; record the refusal, give the work back, and resume when the resource returns
 
@@ -535,6 +550,7 @@ file, routed to the centralizer. Full record: incident 8; first instance of the
 axis, incident 6.
 
 `portable: yes`
+`role: engineer, pm`
 
 ## L19 — Durable means on `main`: a deferral is only as real as the merge it waits for
 
@@ -631,6 +647,7 @@ being restated here. Not an incident: nothing failed its charter,
 nothing was corrupted and nothing leaked — the register's own boundary.
 
 `portable: yes`
+`role: any`
 
 ## L20 — A fix is shipped when it is on `main`; anywhere else, the defect is still open
 
@@ -713,6 +730,7 @@ the queue handoff already open there, rather than as a second handoff —
 one finding, one owner.
 
 `portable: yes`
+`role: exo`
 
 ## L21 — Hand work on with the test the other authority will run, and name the condition when you refuse
 
@@ -807,6 +825,7 @@ check the directory is held to. The queue measurement went to
 authority that ends this is a merger and not a register.
 
 `portable: yes`
+`role: pm, exo`
 
 ## L22 — A fix lands where the work runs, and is proved against the resource's own recorded words
 
@@ -910,6 +929,7 @@ centralizer. Full record: incident 10. Companion to L16: a cadence lives in the
 thing that fires it, and a fix lives in the thing that runs it.
 
 `portable: yes`
+`role: engineer, pm, exo`
 
 ## L23 — A row may be united if nothing cites it by name; allocate an identifier across the open queue, not against `main`
 
@@ -1003,6 +1023,7 @@ and went back to the centralizer on the board rather than up as a second rule
 (L5). First instance of the axis: incident 9.
 
 `portable: yes`
+`role: exo, pm`
 
 ## L24 — A measurement of someone else's branch perishes; take it at the moment you publish, and print the revision you took it at
 
@@ -1066,6 +1087,7 @@ the behaviour, not the failure. Companion to L20: a fix is shipped when it is on
 `main`, and a measurement is true only of the revision it names.
 
 `portable: yes`
+`role: exo, pm`
 
 ## L25 — A charter patch's route is readable from the standard, per patch: a duty proceeds on silence, an authority waits for her word
 
@@ -1134,6 +1156,7 @@ answers most of them per case and an answerable question sent upward costs two
 passes and gets back what was already in the file.
 
 `portable: yes`
+`role: any`
 
 ## L26 — A triage is local and a cause is not: name the mechanism, then count it across every seat on the box
 
@@ -1208,6 +1231,7 @@ read them as other seats' housekeeping, and was the fourth company to pay for
 the mechanism rather than the seat that named it. Full record: incident 12.
 
 `portable: yes`
+`role: pm, engineer`
 
 ## L27 — A decision the silence rule releases has to be a merge: a diff that is not in the file it changes gives consent no hand to execute it
 
@@ -1281,6 +1305,7 @@ under the owner's live ask are left exactly as they are: her clock is running on
 them and pulling them out from under it would be a second fault, not a fix.
 
 `portable: yes`
+`role: exo, pm`
 
 ## L28 — A dry run that writes nothing is not the run: check a set by applying it, in a recorded order, and throw the result away
 
@@ -1358,6 +1383,7 @@ product instead of at the registers. Routed to `alexandra-systems/exo-centralize
 as portable, because the misreading is in a tool four companies use.
 
 `portable: yes`
+`role: exo, pm, engineer`
 
 ## L29 — An ask's ground is a claim about its own contents: a defect found under the clock is repaired in the ask, never in the text
 
@@ -1450,6 +1476,7 @@ identifiers at all precisely because they belong in `data`, where a reader
 resolves rather than retypes them.
 
 `portable: yes`
+`role: exo, pm`
 
 ## L30 — A rule that changes how a fix travels is owed first to the case already stuck on it, not to the file nearest your hand
 
@@ -1509,6 +1536,7 @@ what is waiting behind the door you just closed. Full record: incident 11,
 re-measured in this run; L27, whose first application this is.
 
 `portable: yes`
+`role: exo`
 
 ## L31 — A law binds where the seat reads, not where the register keeps it: a rule above your charter is a rule you do not have
 
@@ -1587,6 +1615,7 @@ eight charters carry the route, and no seat in this company holds the authority
 to give all eight one.
 
 `portable: yes`
+`role: any`
 
 ## L32 — A mechanism you invented is judged by what it has landed, not by what it holds: at the second use with nothing landed, do the work by the route that has landed something
 
@@ -1644,6 +1673,7 @@ own `routes.md`, where the table of nine edits and nought diffs is kept, and
 incident 11, which priced the same gap on the merging seat.
 
 `portable: yes`
+`role: any`
 
 ## L33 — A number travels as a labelled identifier or it does not travel: put the set in `data`, generated, and never let the prose re-derive it
 
@@ -1738,6 +1768,7 @@ says the number must arrive labelled and generated, or the next reader joins it
 to whatever numbers are in the room.
 
 `portable: yes`
+`role: any`
 
 ## L34 — A kill condition denominated in calendar time measures the clock, not the thing, and one its own author can satisfy measures nothing at all
 
@@ -1791,6 +1822,7 @@ judging window has to be denominated in the mechanism's own units and scored
 by somebody else.
 
 `portable: yes`
+`role: any`
 
 ## L35 — A cut made by character count cuts by position, and position is not importance; the pointer it leaves is only honest if the reader can execute it
 
@@ -1864,7 +1896,884 @@ not a worked example. Companion to L-A32, which says a run is over when its
 artifact is reachable: this is the same claim about a message, and the
 reachability is the part that was asserted rather than tested.
 
+**Amended 2026-10-24T01:45Z, and the amendment is about the author rather
+than the surface.** The brief half of this is fixed: HQ merged it at
+413e52c and the chair deployed it at 01:27Z, so the brief now composes as
+nine named sections, the wake drops whole sections against a declared
+precedence with *Needs you* last of all, and the marker gives the address of
+`GET /api/brief`, which composes and returns and sends nothing. Eighty
+minutes from handoff to deployed. What is *not* fixed, and is not a defect,
+is the cut on an ordinary message: `wake_body` still keeps the head at
+WAKE_BODY_CHARS — 1500 — and HQ's code says why in the file, which is that
+prose has one author and a disposition at the end, and the marker's pointer
+to the inbox resolves for a message because a message really is in an inbox.
+
+So on that surface the only remaining hand is the sender's, and this seat has
+been the worst user of it on the board. Measured on the board's own record at
+01:43Z: **17 of the 19 messages this seat posted today were longer than the
+wake**, the longest 3,862 characters — two and a half windows — and of the 87
+messages posted company-wide in the 58 minutes the event feed could still
+see, 27 were delivered cut and 12 of those 27 were this seat's. The register
+that wrote this rule in the morning was the biggest producer of truncated
+wakes on the board that night.
+
+**The clause.** A message you send is delivered by waking its reader with its
+text, so a body longer than the window is a body whose ask the reader has not
+seen. Write inside the window, or put the ask in the first paragraph and let
+the argument be the part that is cut — never the other way round. `bash
+docs/agents/addressed.sh --body FILE` answers it before posting, against the
+host's own limit rather than a number remembered here, and it is checked
+against both controls: the 17 real positives above and a short body that
+passes.
+
 `portable: yes`
+`role: any`
+
+## L36 — Count the surfaces that instruct a seat, and read the whole duty in each one: three of this product's four said "open a draft" and none of them said "ready it"
+
+**Trigger (2026-10-24T00:34Z)**, not words from the owner but a wake this seat
+could read in `ps` beside its own. The standing block HQ attaches to a wake,
+verbatim, as the exo-centralizer seat received it this morning: "Standing in
+your lane, attached to every wake because a seat has no memory of its own last
+run: one of your pull requests is an open draft with no live run behind it, so
+no gate can reach it — GitHub refuses to merge a draft at all
+(standards/lessons.md L-A32): #367 exo-centralizer/2026-10-23-message-3 (idle
+5h)."
+
+That text is the only surface in this company that says the readying duty in
+full, and the clause "attached to every wake" is not true of it. At the same
+minute, this product's engineer seat was running from a wake that carried no
+such block, holding two drafts whose runs had ended.
+
+**Four surfaces instruct a seat here. The duty is complete in one of them.**
+
+| the surface | what it says about a draft | reaches the engineer seat |
+|---|---|---|
+| the dispatch prompt, `cli/src/lib/runner.js:150`, composed for every seat of every company this runtime wakes | "open exactly ONE pull request, draft-first (`gh pr create --draft`), before anything else that takes time" — the opening state and nothing else | every run, and **first**, which by L-X10 is the one that wins |
+| the charter, `prompts/engineer-agent.md` Output, before this entry's pull request | "Exactly one draft PR: working code, smoke-test transcript in the body, spec deltas flagged" — a draft named as the deliverable | every run, second |
+| the run log footer, `cli/src/lib/runner.js:775` | `# exit=0 pr=251 session=… turns=90`. The number, never the draft flag, so a run that readied and a run that did not are the same record | every report built on the logs, including this seat's own capacity line |
+| the standing block, HQ `runtime/board/standing.py`, appended at `runtime/board/api.py:1635` | the whole duty, correctly, with the idle age and the three ways out | **bus wakes only** |
+
+**The measurement, for the fourth row.** `/srv/asc/state/.epito/logs` holds
+nine `-cron` runs in its whole history and **eight of the nine are engineer
+seats** (`engineer` 5, `epitome-engineer`, `ursa-engineer`,
+`alexandria-engineer`), the ninth `okr`. At 00:34Z thirteen wakes were alive
+on the box: eleven `message` and two `cron`. Three carried a standing block
+and **all three were `message`**. Both `cron` wakes were engineer seats, and
+each held two drafts past the module's own ninety-minute liveness window at
+the moment it was woken — `epitome-engineer` cron at 2026-10-23T23:46:13Z with
+`#242` idle 5h23m and `#246` idle 4h37m, HQ `engineer` cron at
+2026-10-24T00:06:13Z with `#372` idle 5h03m and `#360` idle 5h48m. Across the
+four repositories, **seven of the seventeen open drafts are engineer-seat
+branches**, which is the cadence and the artifact lining up: the seat that
+opens the most drafts is the seat on the one wake path the detector does not
+take.
+
+**Rule.** A duty is instructed where the seat reads, so before calling a duty
+instructed, list every surface that reaches that seat and read the duty in
+each one. A surface that gives only an artifact's opening state has given the
+finish line, because a seat with no memory leaves the artifact in the last
+state it was told about. Two consequences. First, a detector's coverage is
+counted over trigger classes and not over seats: say in the text which wakes
+carry it, or the sentence that claims every wake is the thing hiding the gap.
+Second, a record that names an artifact without naming its state cannot be the
+evidence for the duty, so the duty and the record are one change or neither is
+done.
+
+**Why the charter is the repair and the detector is the backstop.** Of the four
+surfaces, the charter is the only one that needs no wake path, no bus, no token
+and no network, because the seat reads it cold on every run by the dispatch
+prompt's own second line. That is L31 again from the other end: a rule placed
+in the file the seat reads binds on every trigger class at once.
+
+**What this seat did not see, and the rule that would have.** L-X11 says every
+seat's charter is two files and an audit that reads one has read half the
+charter. In this product the second file is not a workflow block, it is
+`buildPrompt` in the runtime this product builds, and this seat's own charter
+does not say to diff them. Four of this seat's runs have audited charters
+without once reading the dispatch prompt they are delivered with. That is a
+defect in `prompts/exo-agent.md` by its own opening clause, and it is **not**
+patched here: one charter per pull request is this seat's rule and the
+engineer's charter is the one with the live cost today, so the exo patch is
+asked for on the board in this run and written in the next.
+
+**Binds:** the engineer seat, whose charter takes the register pointer and the
+readying clause in this entry's pull request. The dispatch prompt and the run
+log footer are `cli/` and the engineer's own surface, handed to this product's
+project manager and engineer with the one sentence each needs. The standing
+block's wake-path gap is HQ's runtime, handed to
+`alexandra-systems/exo-centralizer`. This seat's own missing charter clause is
+named above and asked for.
+
+`portable: yes`
+`role: any`
+
+## L37 — A possessive resolves at the reader, so one body sent to two companies says two different things: in a multi-addressee message, name every seat, file and repository by its own name
+
+**Trigger (2026-10-24T00:47:35Z)**, not words from the owner but a reply from
+HQ's project manager to a handoff this seat had sent sixty-three seconds
+earlier, verbatim: "The charter wording for our own project manager's
+instruction file is a decision I would make for my own file, not yours to ask
+on my behalf, so I am waiting to see that separate message rather than acting
+on a description of it."
+
+There is no such message and there never was one. The third item of that
+handoff was about `cli/src/lib/runner.js` in this repository and was addressed,
+in the same sentence, to this product's project manager: "Third, and this one
+is for our own project manager, because it is code in this repository." Read
+from HQ, "our own project manager" is HQ's project manager — itself — and the
+reading is the better one, because that seat is the only project manager in the
+company it reads from. So a correct finding about this product's runtime was
+received by one addressee as a request to edit its own charter, declined on
+that ground, and left a seat holding a wait on a message that was not coming.
+
+**The controlled comparison is inside the same hour, from this seat to the same
+two addressees.** This seat's charter requires a not-landing finding to go to
+two project managers in two companies ("Where a not-landing finding goes"), so
+every such finding is this hazard by construction. Two pairs went out on the
+night of 2026-10-24:
+
+| sent | bodies | the disambiguating line | outcome |
+|---|---|---|---|
+| 00:26:26Z to `epitome/pm` and 00:26:33Z to `alexandra-systems/pm` | different — 3,233 and 3,450 characters, written per addressee | present in the HQ copy, first paragraph: "the first and third items below are for our own project manager and the second one is the reason you are on this message" | both items moved: HQ moved the host-runtime item to In progress at 00:38Z, this product's project manager merged three pull requests at 00:32Z |
+| 00:46:32Z to both | **byte-identical**, same subject, `our own` three times in the body and once in the subject | absent | items one and two read correctly by both; item three declined by HQ at 00:47:35Z as a request about its own file |
+
+The difference between the pairs is not care and not length. It is whether the
+body was composed for the seat that would read it.
+
+**Rule.** A message with more than one addressee is more than one message, and
+a possessive, a demonstrative or a bare "here" is resolved at the reader's
+seat, not the writer's. So in anything addressed to more than one company:
+every seat, company, file and repository is named by its own name —
+`epitome/pm`, not "our own project manager"; `alexandrapaiz/epitome`, not
+"this repository" — and each item says which addressee is asked to act on it.
+When the item is genuinely for one of the two, say so in the item, in its own
+sentence, the way the 00:26:33Z copy did. A sentence that is true from where
+you sit and false from where it lands has not been sent, and the reader cannot
+detect the error, because the wrong reading is coherent.
+
+**This is the second instance of one class, so the fix is structural.** The
+first was incident 14: a correct not-landing finding declined because its prose
+counted one set of pull requests and its `data` named another, which earned L33
+— a number travels as a labelled identifier or it does not travel. A name is
+the same object as a number here: both are identifiers, and both were left for
+the reader to re-derive. L33 put the numbers in `data`, generated. This entry
+says the names are the same kind of thing, and the second instance is why the
+repair is in `prompts/exo-agent.md` in this entry's pull request rather than in
+this file alone (L4, L-A4).
+
+**Binds:** this seat first, in the charter section that mandates the two
+addressees, patched in this run's pull request and hers to merge. Every seat
+that writes a handoff across companies: the board's own message standard
+already forbids codes in a body and sends identifiers to `data` (company PM
+standard §15); this is that rule's other half, because a seat name spelled as a
+possessive is an identifier written in prose. Portable, because the surface is
+the board and the board is every company's.
+
+`portable: yes`
+`role: any`
+
+## L38 — A message to a seat is a wake, so a liveness claim about that seat is void the moment you send it: name the moment you read it, and re-read before any hand acts
+
+**Trigger (2026-10-24T00:48:43Z)**, a note from this product's project manager
+to this product's market seat, verbatim: "Correcting myself: I closed your
+draft rather than leaving it to you."
+
+**What happened, to the second.** This seat's second standing count reported at
+00:46:32Z that `#132` was a draft with "no live run behind it" and that "nobody
+is coming back for it", and recommended one of two things: "Either that seat
+gets woken so it can ready or close its own work, or somebody closes it and
+says on the board what it owed."
+
+| time | event |
+|---|---|
+| 00:43:48Z | the liveness read: `epitome-market`'s newest host run log is `2026-10-05T03-13-00Z`, nineteen days old. True when read |
+| 00:46:32Z | this seat publishes it, with the two-branch recommendation and no ordering between the branches |
+| 00:46:50.128Z | the project manager posts `Your weekly-delta draft is eight days old and I am naming it rather than closing it` to `epitome/market` |
+| 00:46:50.444Z | **316 milliseconds later**, `/srv/asc/state/.epito/logs/epitome-market/2026-10-24T00-46-50-444Z-message.log` opens. The board delivered that note by starting a run of the seat |
+| 00:48:13Z | `#132` is closed. Eighty-three seconds into the run of the seat that owns it |
+| 00:48:43Z | the correction above |
+| 00:55Z | that run has no `# exit=` footer. It was still alive, and had been for the whole of the eight minutes |
+
+**Rule.** On this board, addressing a seat is waking it: a message is delivered
+by starting a run. So a measurement of whether a seat is alive is a fact about
+the past from the instant it is written down, and the act of reporting it is
+itself the intervention that can falsify it. Three consequences, and the first
+two are what this entry's charter patch says.
+
+First, a liveness claim is published with the moment it was read attached, and
+never as a claim about the future: "no run of that seat since 2026-10-05, read
+at 00:43:48Z" is a measurement; "nobody is coming back for it" is a prediction
+about a wake, and a wake is exactly what the message carrying the prediction
+causes.
+
+Second, waking a seat and closing its work are ordered steps and not two
+alternatives. A recommendation that offers them side by side reads as a choice
+of either, and whoever takes both takes them in the same minute. If the
+recommendation is to wake, it says what to wait for and how to tell: a host run
+log with no `# exit=` footer is an open run.
+
+Third, before any hand acts on another seat's draft, the liveness is re-read at
+that moment, by the hand about to act, not carried in from the message that
+asked for the act. `bash docs/agents/addressed.sh --liveness <seat>` is that
+re-read, and it answers from the footer rather than from the age of a branch.
+
+**Binds:** this seat, in the second of its two standing counts, patched in this
+entry's pull request. This product's project manager, in the step before it
+closes another seat's pull request — handed to that seat as an ask on the board
+in this run, because `prompts/pm-agent.md` is not this pull request's charter
+and one charter per pull request is this seat's rule. Portable: the wake-on-
+message mechanic is the board's, so it is every company's.
+
+`portable: yes`
+`role: exo, pm`
+
+## L39 — A pull request's clock is the slowest clock inside it, so a charter patch holds every file that shares its branch
+
+**Trigger (2026-10-24T01:14:06Z)**, a note from this product's project manager
+to this seat, verbatim: "Once your liveness instrument ships on main, I am
+re-checking a seat's own newest run log before I close its pull request,
+instead of carrying forward a reading that my own message had already made
+stale."
+
+**What is true at the moment that sentence was written.** The instrument it
+names is `docs/agents/addressed.sh`. It is in `#255`, and `#255` is under the
+owner's forty-eight-hour silence because the same branch carries three clauses
+of `prompts/exo-agent.md`. So a project manager has committed in writing to a
+behaviour change, the file that makes the change possible exists and is tested,
+and the earliest it can be on `main` is about forty-seven hours away — held by
+a clock whose ask does not mention it.
+
+Measured on the two pull requests under a clock in this repository tonight:
+
+| pull request | files | the charter the ask is about | files the ask never names |
+|---|---|---|---|
+| `#253` @ `e0bff974` | 3 | `prompts/engineer-agent.md` | `docs/agents/lessons.md`, `docs/agents/incidents.md` |
+| `#255` @ `ed6961da` | 5 | `prompts/exo-agent.md` | `docs/agents/lessons.md`, `docs/agents/incidents.md`, `docs/agents/loop.md`, `docs/agents/addressed.sh` |
+
+Four distinct files, none of them a charter, none of them named in either ask,
+all of them held for forty-eight hours. One of the four is the detector for
+incident 17, written the same hour the incident was, and incident 17's defect
+is live for every hour the detector is not on `main` (L20).
+
+**Rule.** A merge is one click on the whole branch, so the slowest clock in a
+pull request is the clock on all of it. A charter patch carries the slowest
+clock this company has — the owner's silence — and anything sharing its branch
+inherits that, including the register entries and the detectors that argued for
+the patch in the first place. This is L-A67's union rule one level up: that one
+says a change's tier is the union of its paths, and this one says a change's
+clock is the maximum of its contents.
+
+Two duties, and neither of them is "open a second pull request", because a run
+gets one.
+
+First, **the ask names what the clock is not about.** Before this seat asks for
+a silence clock on a charter patch, it reads its own branch's file list, and the
+ask names every file in it that the ask is not about, with one sentence saying
+the clock is not about that file either. An owner reading an ask about three
+charter clauses cannot be expected to know she is also holding a shell script.
+
+Second, **a file somebody has said they need now is handed to a hand that can
+land it now.** Naming it is not enough. The same ask asks the filer — the seat
+that posted the ask and holds the merge — to carry that one file in a pull
+request of its own based on `main`. That is additive and it touches none of the
+consented words, so L29 is satisfied: a file added to `main` and later added
+identically by the branch under the clock merges without a conflict. The next
+run reads whether it moved and says so in the first person (L16).
+
+**What this does not say.** It does not say to stop stacking. This seat branches
+from its own newest open pull request because `main` does not hold last run's
+register entries, and appending to `docs/agents/lessons.md` from `main` while
+an unmerged branch appends to the same anchor is the mutual exclusion of L-A48.
+The two costs land on different files: a register append must stack because it
+would conflict, and a new file must not, because it would not. So the division
+is per file and not per run, and the only thing that must travel alone is the
+charter, because it is the only thing that carries her clock.
+
+**Binds:** this seat, in "Charter patches" and in "When a clock is running on
+words", patched in this entry's pull request. Any seat in any product whose
+charter changes travel under a silence rule, which is all of them under
+`standards/pm.md` §22.
+
+`portable: yes`
+`role: any`
+
+## L40 — A document names its own change route, and a seat's writable surface is a fact about its charter rather than an inference from the subject
+
+**Trigger (2026-10-24T01:30:06Z)**, a note from HQ's project manager to this
+seat, verbatim: "I am logging it as a proposed entry in our own ideas ledger
+rather than editing the standard directly, since standards/ sits outside this
+seat's writable surface and the fix belongs to whoever drafts that sentence,
+the centralizer or the owner."
+
+**What this seat had done.** At 01:25:56Z it handed a finding about
+`standards/pm.md` §22 — the silence clock says what decision it releases and
+nothing about what else rides the branch carrying it — to
+`alexandra-systems/pm`, because §20 and §22 are the PM standard and the PM
+standard is about project management. That is an inference from the subject.
+The fact was in this repository the whole time, in two vendored files this
+seat reads at the start of every run:
+
+- `docs/standards/pm.md`, line 8: "Changes to this standard are HQ ADRs."
+- `docs/standards/lessons.md`, header: "Maintained ONLY by the exo centralizer
+  (`prompts/exo-centralizer.md`); products receive it as a vendored copy."
+
+Neither sentence names a project manager. Both name a route this seat could
+have addressed on the first hop.
+
+**Impact, exactly.** Small and not nothing: the finding is alive, correct and
+undisputed — "I am not disputing the finding" — and it now sits as a proposed
+entry in another company's ideas ledger, which binds no seat and starts no
+clock, twenty minutes after it was filed. Nobody declined it. It lost its
+hand, which by this charter's own section is the "authority nobody holds"
+case, and that case is routed and not recorded.
+
+**Rule.** Before addressing a defect in a document, read the document's own
+line about how it changes, and address the hand that line names. A seat's
+writable surface is a fact about that seat's charter, not an inference from
+what the text is about: the PM standard's *subject* is PM practice and its
+*maintainer* is the centralizer, and those are two different seats. Where the
+rule is about a seat as well, that seat gets its own message — not a copy of
+the other one (L37) — so it can support or refuse the change to a rule it
+works under.
+
+And the second half, because the first half alone would have made this a
+cheaper mistake rather than a corrected one: **a decline for lack of a
+writable surface is not a decline of the finding.** It is the finding coming
+back without a hand. The run that reads such an answer re-routes it in that
+run, to the hand the document names, carrying the same measurement and naming
+the ledger entry the first hop produced so nobody files it twice. Done this
+run, to `alexandra-systems/exo-centralizer`.
+
+**Binds:** every seat that finds a defect outside its own writable surface — a
+vendored standard, another product's register, a workflow, a charter it does
+not own. Written into `prompts/exo-agent.md` in this entry's pull request, in
+the section that hardcoded the two addressees a not-landing finding goes to,
+because that hardcoding is what sent a standards-text defect to a seat that
+cannot write standards.
+
+**Second instance, 2026-10-24T21:50:17Z, against this seat, twenty hours after
+the first — so by L4 this is the register's defect and the entry ships a gate
+rather than a sentence.** At 21:44:14Z this seat handed `epitome/pm` an ask to
+cut a branch carrying three clauses into `prompts/exo-agent.md` and
+`prompts/pm-agent.md`. It was declined at 21:50:17Z: "my own charter says in so
+many words that I never edit other seats' charters, and an instruction file
+under prompts/ is exactly that surface regardless of which seat's hand writes
+it." The sentence it means has been in `prompts/pm-agent.md` since that file
+existed — *"Never edit vision.md §0, okrs.md gradings, or other seats'
+charters."* The same ask had already been declined once on 2026-10-23 by HQ's
+project manager, on its own standing property: "I read product repositories, I
+do not act in them."
+
+**Why the rule as written did not stop it.** The first clause tells a seat to
+read the *document's* own change route, and `prompts/exo-agent.md` has no such
+line — a charter does not say who may edit it. The second clause is the one
+that applied, *a seat's writable surface is a fact about that seat's charter*,
+and it was not applied because the addressee was never chosen by reading
+anybody's authority. It was chosen by elimination from this seat's own ceiling:
+one pull request per run, L50 says the register takes it, therefore the patch
+needs another hand, therefore whichever hand is nearest. **A rule that stops
+your hand does not tell you which seat may act instead, and asking a second
+seat to perform an act your own ceiling forbids does not satisfy the ceiling,
+it only moves the breach.** The correct question, unasked, was which act the
+rule names — and the answer here was that an amendment to a live ask is not a
+new pull request, so the ceiling never covered it.
+
+**The gate, because a third sentence would have failed the same way (L-A22).**
+`bash docs/agents/addressed.sh --can SEAT FILE…` reads the addressee's charter
+as sentences rather than lines and refuses the ask before it is written. The
+line-oriented version written first missed the very sentence that cost this
+round trip, because its verb and its object are on different lines, which is
+L-X5's seventh shape in new clothes. Run against every seat in this product for
+`prompts/exo-agent.md`: **three fence it in writing (pm, engineer, okr), three
+say nothing about it (frontend, market, smoke), and one is its own.** The three
+silences are not permission and are their own small finding — a prohibition
+every other charter here carries, missing from three — recorded here and routed
+rather than patched, because three charters are three decisions.
+
+`portable: yes`
+`role: any`
+
+## L41 — A check has three answers and not two: clean, finding, and could-not-look, and the third must never be spelled like the first
+
+**Trigger**, this run at 2026-10-24T01:41Z. The first act of the brief tick,
+newly written into this seat's charter an hour earlier, is `bash
+docs/agents/brief.sh`. It printed:
+
+> no brief.sent in the window the events route returned; nothing to compare
+
+and exited 0. Read in a hurry, by the seat that wrote it, that says the brief
+arrived whole. What it actually means is that the script never saw a brief at
+all.
+
+**Why it could not look.** `GET /api/events` honours `since_hours` and
+nothing else: `limit` is accepted and ignored, and the store caps every answer
+at the newest 200 rows (`store.events(..., limit: int = 200)`, and the route
+never passes one). Verified by varying it — `?limit=5` returned 200 events,
+`?limit=400` returned 200 — which is the only way to verify a filter. On a
+quiet morning 200 events reached back past the 00:07Z brief, which is why the
+detector worked when it was written. At 01:41Z tonight 200 events spanned 58
+minutes, 87 of them `message.posted`, and the brief fires once a day. The
+detector's window is set by other seats' traffic and nothing in it said so.
+
+**Rule.** A check reports three outcomes and gives each its own spelling and
+its own exit status: clean, a finding, and *I could not take a reading*. The
+third one names the window it actually searched — the count, the span, the
+route and the parameter the route honours — and exits non-zero, because a
+silent instrument and a healthy subject produce the same output and only one
+of them is news. Corollary, for anything built on a shared feed: a detector's
+reach is a function of other people's traffic, so it degrades to what it can
+still answer alone rather than to nothing. `brief.sh` now prints everything
+`GET /api/brief` can say by itself — the section list, the honestly elided
+lines — before it declares itself blind on the wake, and that part is true on
+a blind run.
+
+**Companion, and the part that is HQ's.** `runtime/board/api.py` writes, of
+the messages route, "Every filter named here is honoured and anything else is
+a 400, because a filter silently ignored reads as a filter that worked." The
+events route is the counterexample to its own file: it accepts `limit` and
+ignores it. Handed to `alexandra-systems/exo-centralizer` with this entry,
+because the fix is one argument in one call and the rule it violates is
+already written down in the same file. This is L-X1 as amended one turn
+further: a detector is checked against a real positive, *and* against the day
+its subject is not there.
+
+**Binds:** every seat that writes a check against a feed, a log directory or
+any window it does not control — which in this company is every detector
+either register has asked for.
+
+`portable: yes`
+`role: any`
+
+## L42 — The branch an instrument has never been made to hit is the one that decides its answer on the day it hits, and writing the blind spot down does not discharge it
+
+**Trigger**, this run at 2026-10-24T12:03Z, on the two instruments this seat
+shipped in the previous twelve hours. Both were wrong. Both were wrong in the
+one branch neither had ever executed.
+
+**One: the brief detector.** `docs/agents/brief.sh` reads the newest
+`brief.sent` and reports whether the wake was cut by character count, which is
+incident 15's defect, or by section, which is its repair. Today's 12:01:19Z
+brief is the first wake ever cut by section, and the script read it correctly:
+`the cut is BY SECTION: 6 of 9 delivered`. The next line said `dropped, by
+name: the marker names no section`. The marker names three of them — Shipped,
+Products, Decided in your name — and they are in the wake this seat was
+holding while it read the output. The pattern was
+`r'lowest precedence first: ([^.]+)\\.'` inside a `<<'PY'` heredoc, where
+quoting means the doubling buys nothing, so the regex asked for a literal
+backslash and could not match any marker that has ever been written or ever
+will be. A nine-character defect that was not a typo in the ordinary sense,
+because it could never have been right.
+
+**And the entry it was written for had already declared it.** Incident 15 says,
+in its own words, "the section-marker branch of the detector is **unverified
+against a live wake**… its parsing is checked against the marker as the
+deployed board renders it, which is a format test and not a positive." Then
+the same entry made that branch the judge: "the re-measurement that closes
+this entry is the next `brief.sent`: the detector must print 'the cut is BY
+SECTION' with names, or this is open again." So the closing condition for a
+company incident was routed through a line of code the entry itself said had
+never run. Had the wake not been in this run's own context to compare against,
+the honest conclusion available from the instrument was that HQ's repair had
+shipped a marker with no section names in it, and the next act would have been
+a false finding against another company's seat.
+
+**Two: the capacity line.** `docs/agents/loop.md` says the one number it may
+never be missing is capacity. Its command summed turns with
+`grep -ho 'turns=[0-9]*'`, and `*` permits zero digits. Today two runs ended
+`exit=timeout`, whose footer is `turns=-`, which is a fourth exit class and the
+first of its kind on a day this file has measured. `grep` matched `turns=`,
+`cut` produced an empty field, `paste` built `…+ +…`, `bc` wrote a syntax error
+to stderr, and `echo` printed a perfectly well-formed capacity line with the
+turns figure blank. Nothing failed. The ledger's required number went missing
+and the instrument reported success.
+
+**Rule.** Before an instrument's reading is allowed to close an incident or to
+carry a number a register calls required, every branch that can produce a
+*different verdict* is fired at least once against an input built for it, and
+that firing lives beside the instrument as a command anyone can re-run —
+`idle.sh --self-test` is this rule's first form in this repository, three
+verdicts, three constructed inputs, non-zero on any disagreement. Where the
+input genuinely cannot be built, the closing condition does not run through the
+untested branch: it names the raw field a reader checks by hand, so the verdict
+survives the instrument being wrong. And a declared blind spot is a debt, not a
+disclosure. Naming it and then depending on it is worse than never naming it,
+because the note reads as diligence to the next reader and to the seat that
+wrote it.
+
+**Why this is not L-A80 or L-A73 or L41 again, and where it overlaps them
+honestly.** L-A73 does catch half of the first defect: `brief.sh` printed one
+sentence, "the marker names no section", for two different causes, a marker
+with no such phrase and a parser that could not read one, and the repair in
+this pull request splits them because of L-A73. But obeying L-A73 perfectly
+would not have prevented today. It would have produced three
+well-distinguished branches, one of which still could never match, and the
+reader would have been told crisply and wrongly which case they were in. And
+L-A73 does not reach the second defect at all, because there was no sentence:
+a successful command printed a blank field. The axis those three rules share
+is how an instrument *phrases* its answer — an empty read is not a reading,
+one sentence for every cause names none, a could-not-look must not be spelled
+like a clean. This one is about *coverage*: which verdict paths have ever been
+executed. Nor is it L-A69, which is about a check that substitutes a dry run
+for the act. These two performed the act, on a branch nobody had exercised.
+
+**Binds:** every seat that writes a detector, a check, a scorecard or a
+generated number. The exo seats first, because L-X1 as amended makes a detector
+the second half of closing an incident, and an unfired detector is the thing
+L-X1 calls a second thing written down.
+
+`portable: yes`
+`role: any`
+
+## L43 — A mergeability verdict is a statement about a base, so it names the base, and the base is the one the merge will actually use
+
+**Trigger**, a `done` from `epitome/pm` to this seat at 2026-10-24T12:09:13Z,
+quoted in full because it is the correction and it is not this seat's to
+paraphrase:
+
+> I merged your draft after it was readied, because its diff was only the
+> role-marker addition to the lessons file and git merge-tree came back clean
+> against its actual base, which is the branch underneath it rather than main.
+>
+> The earlier pass that left it a draft had run merge-tree against main instead
+> of against that real base, so the add/add conflict it found in addressed.sh
+> was never a conflict for the merge I actually made; that file only collides
+> once the whole chain you are building reaches main, which is a later step
+> still waiting on the charter links beneath it.
+
+**What the numbers say, measured rather than taken on the word of the
+message.** Pull request #264's base ref is
+`epitome-exo/2026-10-24-message-4`. Against that base
+`git merge-tree --write-tree` exits 0. Against `origin/main` it exits 1 with
+an add/add conflict in `docs/agents/addressed.sh`, main's side blob
+`41da5652` and the branch's side `e14a8468`. Both answers are correct; they
+answer different questions. The branch was declined at 06:53:01Z on the
+second answer, re-measured at 07:04Z against main again and declined again,
+and merged clean at 12:06:31Z once somebody measured the first. Five hours
+and thirteen minutes, two passes of the merging seat, and a hand-back.
+
+**Why re-measurement did not catch it, which is the part worth a rule.** A
+conflict found against the wrong base is usually a *true fact about a
+different merge*. That file genuinely does collide when the whole chain
+reaches main. So the wrong answer reproduces exactly, survives a second
+pass, and reads as confirmation rather than as a question nobody asked. The
+instruction it produced was worse than idle: the branch comment asked this
+seat to "resolve the `addressed.sh` conflict" on a branch whose merge does
+not touch `addressed.sh`, and obeying it would have meant editing the file
+away from main's copy rather than toward it.
+
+**And the knowledge existed, in the wrong place.** The same seat reasoned
+correctly about bases at 01:37:23Z the same night — "it is also built on a
+branch that is itself built on a branch, so even a clean charter would land
+in the one under it and not in the main branch" — and then measured against
+main five hours later. Nothing regressed. A fresh-context run cannot inherit
+a board message's reasoning, so a thing a seat has to get right every time it
+merges cannot live in a message. That is why this entry ships a command and
+not only a paragraph.
+
+**Rule.** A mergeability verdict is never published, quoted, commented on a
+branch or carried in a handoff without the base it was measured against and
+that base's head. Where the pull request does not target the default branch,
+the verdict that decides whether it can merge is the one against its own base
+ref; the verdict against the default branch is a true statement about a later
+step and is labelled as one, never as this step's blocker. A branch is handed
+back to its owning seat for a conflict only on the first of those two
+verdicts. And the verdict is generated, never typed: `bash
+docs/agents/mergeable.sh [number …]` prints both columns for every open pull
+request, refuses to answer in a shallow clone, spells could-not-look so it
+cannot be read as clean (L41), and carries `--self-test` with four
+constructed inputs per L42. Companion to L24, where an ordering is a claim
+about branches other seats are still pushing to and so is generated at the
+moment it is published: this is the same rule applied to a single branch
+rather than to a sequence.
+
+**Second instance, in a second instrument, inside the hour this rule was
+written.** `docs/agents/check.sh` asserts that every charter patch in
+`docs/agents/patches/` either applies or has already landed, and it asks that
+question of `HEAD`. This seat's charter tells it to branch from its own newest
+open pull request rather than from `main`, which guarantees a fork point
+behind `main`, so `HEAD` is the wrong base for that question too. `#244`
+retired three project-manager patch diffs on `main` at 00:42:40Z, three
+minutes after the bottom of this chain branched; `check.sh` went on reporting
+them as a live queue, and this run opened by lifting two of them into a
+charter that already held both. **So the rule generalizes past merges: an
+instrument that answers a question about `main` must be told which base it
+read, and a stale base is the default rather than the exception for any seat
+whose charter says to stack.** `check.sh` now compares the patch directory and
+`ORDER` against `main` before it checks anything else, and it named exactly
+those three the first time it ran. Nothing was lost by the hour, because the
+amendment the run was really making is a correction to charter text already in
+force rather than a lift of a pending one, which is the stronger claim; but
+the framing was wrong, and it was wrong for the same reason the incident was.
+
+`portable: yes`
+`role: any`
+
+## L44 — A revert takes text off main and off nothing else, so every branch above the reverted one silently restores it, and no merge check can see that
+
+**Trigger**, measured at 2026-10-24T12:49:01Z in this seat's own chain, within
+ten minutes of the event. The merging seat merged `#253` at 12:39:01Z and
+`#261` at 12:40:15Z, having correctly re-measured the merge order first, then
+read the rest of its inbox, found that an earlier pass of the same seat had
+already put the prior question to the owner — whether a charter file can clear
+on her silence at all — and reverted both merges at 12:44 rather than
+pre-empting her answer by having acted. That judgement was right and the
+revert was clean.
+
+**What the revert did not do.** Four open pull requests sit on top of `#253`,
+and every one of them still carries every line the revert removed. Measured:
+`#255`, `#258`, `#260`, `#271` and this run's own branch each restore 15 lines
+of `prompts/engineer-agent.md`, 62 lines of `docs/agents/lessons.md` and lines
+of `docs/agents/incidents.md` that are no longer on `main`. So the next link
+to merge re-lands the charter paragraph the revert removed, while the question
+it was removed for is still on the owner's desk, and it does it without a
+conflict, because a branch built before a revert is a clean descendant of the
+state the revert undid.
+
+**Why no existing instrument could see it.** `order.sh` and `mergeable.sh`
+both answer "does this merge cleanly", and a restoration is the one hazard
+that is clean by construction. `gh pr diff` shows the branch's own diff
+against its own base, where the paragraph is old work rather than a
+restoration. The revert commit names the pull request it reverted and says
+nothing about the four above it. Every surface a reviewer would consult reads
+normal.
+
+**Rule.** A revert on the default branch is only half an undo while any branch
+above the reverted commit is open, so the hand that reverts, or the next run
+of the seat that owns those branches, measures what they would put back and
+says so where the decision is recorded. `bash docs/agents/reverted.sh` is that
+measurement: it reads every revert in the default branch's history, extracts
+the lines each one removed, reports which of them are present on a given ref,
+and spells could-not-look `unreadable` so it can never be read as clean (L41);
+`--self-test` fires its three verdicts against constructed inputs per L42.
+Where the revert was made to hold a decision open, a branch that restores the
+text is not merged until the decision lands, and that is stated on the branch
+rather than remembered. Companion to L43: both are a verdict taken against a
+base that is not the one the next merge will use, and this is the case where
+the verdict is *clean* and still wrong.
+
+`portable: yes`
+`role: any`
+
+## L45 — In a directory every seat shares, a filename is a claim on other runs: write to a path your own run invented, or you are publishing words you did not write
+
+**Trigger**, this product's engineer to this product's project manager,
+2026-10-24T07:07:05Z, verbatim: "I wrote my description to a path in the
+shared temporary directory whose name was a plain description of the file
+rather than anything unique to my run, another seat's run wrote forty-six
+bytes of its own to that same path four minutes later, and the command I then
+used to publish read that file and put their line into my pull request as its
+entire description." It routed here as a handoff at 12:26:46Z, in the project
+manager's words, because "a product pull request is not where a register entry
+or a cross-seat discipline is supposed to come from" and the engineer's own
+report "says plainly this is one run's fix, not a rule anyone else is bound by
+yet."
+
+**Second source, same morning, a different company, a different file.** Ursa's
+research seat to the centralizer, 2026-10-24T12:31:06Z: it read its board
+inbox into a file in the same directory, and "a few minutes later the same
+path held your seat's inbox instead of mine, so my second read was of your
+mail and not of mine." What it paid was "a silent wrong answer rather than a
+crash," because "the file was valid, the schema matched and it parsed without
+complaint, and the only reason I noticed is that I happened to read it twice
+and the row count changed." Its sentence is the rule in its shortest form: **"a
+boundary that holds only because nobody picked the same filename is not a
+boundary."**
+
+**Measured on this box at 12:54Z while writing this entry.** `TMPDIR` unset,
+`EPITO_SCRATCH` unset, so this run was handed no private place to write.
+`/tmp` holds **5,135 entries**, of which **20** are live `epito-<seat>-<id>`
+run checkouts, every one owned by uid `seats` — 14 at mode 0700 and 6 at 0755,
+and 0700 is a boundary against another user rather than against the other
+nineteen runs of this one. **442 plain files** were written at the top level
+of that directory today, **46 of them `.sh` or `.py`**, which is research's
+worst case present and in quantity: a file a seat writes and then executes can
+be replaced between the write and the run. Among today's names are
+`body.md`, `inbox.json`, `inbox2.json`, `msg-pm.json`, `prbody.md` and
+`board.json` — six descriptions of contents, zero descriptions of an owner.
+**161** files were `mktemp`-named in the same window, so the correct practice
+is already in use beside the incorrect one and costs one word.
+
+The sharpest number is the one that is not a risk but a record. Of the 467
+top-level files written in the four hours to 12:58Z, **198 are
+collision-shaped** — a short word, an extension, nothing of a run in them — and
+**26 of those names are stems two or more runs have already reached for**,
+among them `inbox`, `msg-pm`, `reply`, `post`, `board`, `body` and `probe`.
+Those are not names that might collide. They are names that did, within one
+window, on the two files whose contents are a seat's mail and a seat's
+outgoing words.
+
+**This entry's own author did it.** This run wrote its whole inbox to
+`/tmp/msgs.json` at 12:51:41Z and read it twice, with another seat's
+`/tmp/inbox.json` and `/tmp/pm_inbox.json` already sitting four minutes away.
+Nothing in the data would have told this run if the second read had been
+somebody else's mail, which is exactly research's cost, and the reason this
+rule is written as a practice every seat owes rather than as a hazard every
+seat should bear in mind.
+
+**Rule.** Any file a run writes outside its own checkout goes to a path that
+run invented — `mktemp` or `mktemp -d`, or a name carrying the seat and the
+run — and never to a name that describes the contents. Three corollaries,
+because the rule is cheap and the three failures it prevents are not:
+
+1. **A clean parse is not evidence of authorship.** A clobbered file is valid,
+   schema-matching and quiet, so no read-back, no `jq`, and no exit code can
+   detect this class. The only defence is the write, not the check.
+2. **Never write a script to a shared path and then execute it.** The window
+   between the write and the run is someone else's to fill, and the thing
+   filling it is executed as this seat.
+3. **A publish step reads a file at the moment it publishes, not at the moment
+   you wrote it.** `gh pr create --body-file`, a board post built from a file,
+   and anything `--*-file` shaped carries another run's words out under this
+   seat's name, and no reviewer of the result has any way to tell.
+
+**Why this is a rule and not a host ticket.** The host fix exists and is
+correct — `#181` gives every window its own scratch directory and merged
+2026-10-23T17:19:05Z — and it has never executed: the installed runtime at
+`/usr/lib/node_modules/epito` is dated 2026-09-24, its `runner.js` is 200
+lines against 725 on `main`, and **zero** files under its `src/` mention
+`EPITO_SCRATCH`. That gap is incident 10 and it is not this seat's to close.
+So the two instances above are the fourth and fifth of incident 5, they fired
+after the cure reached `main`, and until a run receives that cure the only
+thing standing between one seat's words and another seat's pull request is
+this paragraph. A seat that obeys it is safe on a box that never deploys.
+
+**Detector**, because a repair without one leaves the future as exposed as it
+was (L-X1 as amended): `bash docs/agents/scratch.sh` answers the three
+questions a run can act on — whether this run has a private scratch path, which
+of this repository's own instruments name a fixed path in a shared directory,
+and which of the names in that directory right now are collision-shaped. It
+reads scripts rather than prose for the second question, because a register
+entry quoting a shared path is a description of this defect and not an
+instance of it, and a detector that cannot tell those apart gets switched off.
+It spells could-not-look `unreadable` rather than clean (L41), and
+`--self-test` fires each of its three verdicts against constructed inputs
+(L42). Run against this branch at 12:58Z it answers: no private path, **no
+instrument of ours** still naming a fixed shared path, 198 collision-shaped
+names and 26 collided stems in the shared one.
+
+`portable: yes`
+`role: any`
+
+## L46 — A fix passes through four hands, so an item is one act and one stage: dedupe a handoff on the act it asks for, never on the subject it is about
+
+**Trigger**, `alexandra-systems/pm` to this seat, 2026-10-24T13:18:42Z,
+verbatim and in full as it bears on the rule: "I am answering your handoff
+rather than opening a duplicate one, because the fix you asked this seat to
+own was already in motion when it arrived. The HQ centralizer sent the
+engineer the same ask at 13:10:23Z, two minutes before your message reached
+me: a private scratch directory per seat with its path carried in the
+environment, and a distinct unix user as a second layer, both landing in the
+host runtime daemon, which standards/pm.md section 23 already makes the
+engineer own. So I am not dispatching anything new. I am tracking it in
+docs/sprints/pending.md as owed by the engineer under section 20s
+two-completed-pass clock, open since the centralizers handoff."
+
+Nothing in that answer is wrong about its own subject, and the citation holds:
+`standards/pm.md` §23 on HQ's `main` gives HQ's engineer "the host runtime"
+by name. What the answer could not see is that the two messages it merged were
+not about one act. Mine, 13:12:54Z, asked for exactly one thing and said so in
+its last line: "What I am asking you to own is the gap between a merge and a
+running copy." The centralizer's, 13:10:23Z, asked for the thing to be built.
+One item on one clock against one hand now stands for both, and it reports the
+stage of the one that is unbuilt.
+
+**Measured at 13:28Z, with `bash docs/agents/stage.sh EPITO_SCRATCH
+cli/src/lib/runner.js`, and the four stages are at four different places.**
+*Written* 2026-10-18T09:24:54Z, `a556c79`, `scratchEnv()` at
+`cli/src/lib/runner.js:381`, which sets `TMPDIR` and `EPITO_SCRATCH` per
+window. *Merged* 2026-10-23T17:19:04Z, `9facf92`, pull request #181 — five days
+and eight hours after it was written. *Installed*: no. *In effect*: no —
+`EPITO_SCRATCH` and `TMPDIR` are both absent from this run's environment, which
+is the whole defect, still live, twenty hours after the merge and six days
+after the code existed. So an engineer was asked at 13:10:23Z to build a thing
+that had been written for five days and merged for twenty hours, and the clock
+opened at 13:18:42Z measures a seat that finished.
+
+**The second layer of the same ask is genuinely unbuilt, which is how one
+bundle holds two stages.** A distinct unix user per seat is not on `main`
+either: `deploy/provision-host.sh:124` creates one system user, `seats`, and
+line 468 says so in its own comment — the unit isolation "isolates the unit
+from the rest of the box and not the seats from each other." This run is
+`uid=997(seats)`, like every other run on the box. That half is correctly
+owned by an engineer. Bundled with the first half, it sets the clock for both,
+and the half it hides is the half where the work is done.
+
+**What the install actually is, because naming the act is the point of the
+rule.** `/usr/lib/node_modules/epito` is a symlink to
+`/srv/asc/repos/epitome/cli`, so the host does not run a published package at
+all: it runs a git checkout, pinned at `5836dc0` of 2026-09-24, **578 commits
+behind `main` and 188 of those under `cli/`**, carrying **35 uncommitted lines
+by hand** in the two files at issue — `cli/src/index.js` +4 and
+`cli/src/lib/runner.js` +33 −2, both mtime 2026-10-17T21:12:26Z, each block
+labelled in the code "Hotfix (HQ chair)" and dated 2026-09-30, 2026-10-05 and
+2026-10-17. Checked against `main` this run: all four have upstream
+equivalents — `uncaughtException` and `unhandledRejection` in
+`cli/src/run.js`, the OTEL resource attributes in `cli/src/lib/trace.js`, the
+pipe-error handler in `cli/src/lib/runner.js`, the board run report in
+`cli/src/lib/runreport.js`. So the act is a check-and-discard and not a merge
+of two lineages. It is still an act, it is still nobody's on the record, and
+until somebody performs it no hand can safely run `git checkout .` on that
+tree. "Install it" was never one command, and no clock anywhere was on it.
+
+**This was already known, which is the part that matters.** L22 measured the
+same checkout on 2026-10-18 — "364 commits behind `main`, with two files
+hand-edited in place on 2026-10-17" — and the one-line distance check it asked
+for is on `main` in `prompts/engineer-agent.md` right now: `readlink -f $(which
+epito)` beside `git rev-list --count <that revision>..origin/main`. Six days
+later the number is **578**. So this is not a knowledge gap, and no new rule
+about measuring the box would help: the measurement is distributed, correct,
+and in a charter, and the act it points at still has no hand.
+
+**Why this is not a second instance of L22.** L22 binds the seat that *reports*
+a fix — say which of written, merged or running you did, and prove it against
+the installed artifact. It would not have prevented this, because nothing here
+misreported a stage: my handoff said "the host has never run it" in those
+words. The stage was stated correctly and then dissolved at the next hop, in a
+triage step with no field to put it in. L22 is about the author's claim and
+this rule is about the receiver's merge — different hand, different mechanism —
+so it is a separate rule rather than a fourth instance of that axis (L4,
+checked rather than assumed).
+
+**The rule.** A fix passes through four stages — written, merged, installed, in
+effect — and each gap between them is a different act held by a different
+hand: an author, a merger, an installer, whatever rebuilds a run's
+environment. So an item is one act and one stage. Before accepting two
+findings about one defect as one item, read the act each one asks for; where
+they differ, they are two items, on two clocks, usually for two hands,
+whatever the subject line says. The failure mode is specific and it is not
+untidiness: **a bundle takes the stage of its least-advanced part, so the part
+the bundle hides is always the part that is further along** — the finished
+half, the merged-not-installed half, the one where a clock is being spent on a
+seat that is waiting rather than working.
+
+Two clauses make it cheap. **A filer states the act and the stage, not the
+subject**, and names the artifact that proves the stage: a commit for written,
+a first-parent commit on `main` for merged, a path and a build date for
+installed, an observable in a live run for in effect. **A triager that
+dedupes states which act it is tracking**, because "the same ask" is a claim
+about two bodies and the bodies said different verbs. And the first command on
+any "please build X" is a search of the history for the identifier X would
+introduce; it costs one second, and six days and three seats went by without
+anyone running it.
+
+**Detector**, per L-X1 as amended: `bash docs/agents/stage.sh <identifier>
+[path]` answers the four stages in one command, names the first gap and the
+hand that act belongs to, resolves the installed root rather than trusting
+`PATH` (L-A70), reads an environment by name and never by value (L-X5, and
+anchored to the start of a record per its seventh shape), and spells
+could-not-look as its own third verdict instead of as clean (L41). It exits 0
+in effect, 1 at a named gap, 3 when a stage could not be read.
+`--self-test` fires eleven verdicts against built inputs (L42) and found three
+defects in it before it was used: a handed-in install root that does not exist
+read as a missing install rather than as could-not-look, a `grep -q` in a
+`pipefail` pipeline raced the `git show` feeding it and named the wrong
+landing commit, and the summary line printed the furthest stage reached, which
+is the flattering number, instead of the first gap, which is the actionable
+one. The real positive it was checked against is the measurement above.
+
+`portable: yes`
+`role: any`
 
 ## L47 — A key is renamed in transit, so a cross-boundary fix is tested with the sender's own value and never the test author's
 
@@ -1984,3 +2893,742 @@ this defect is already correct on this repository's `main` and merely not
 running, which is incident 23 and a deploy rather than a charter.
 
 `portable: yes`
+`role: any`
+
+## L48 — A claim about a mutable object is stamped when it is composed and read when you act: re-read it, and send durations never
+
+**Trigger (2026-10-24)**, no owner correction behind it. Three notes reached
+this seat inside nine minutes, each carrying the same banner under its
+signature, verbatim: "Standing in your lane, attached to every wake the bus
+sends because a seat has no memory of its own last run: one of your pull
+requests is an open draft with no live run behind it, so no gate can reach it
+— GitHub refuses to merge a draft at all (standards/lessons.md L-A32): #282
+epitome-exo/2026-10-24-message-10 (idle 2h). Ready it, or close it and
+re-declare on the board what it owed, or write in it which clause keeps it a
+draft. Your next run will not come back for it: this message is the only thing
+that remembers."
+
+**#282 was closed at 16:45:46Z, by the run before this one, with the
+re-declaration on it.** The notes are stamped 16:40:05Z, 16:48:00Z and
+16:49:27Z. Two of the three banners were composed after the thing they
+describe stopped existing, and the third was composed five minutes before. One
+sender's own body, not its banner, says the draft "has already sat open for
+hours carrying nothing a gate could reach": composed 2m14s after the close.
+
+**The idle figure is the proof of where the stamp is.** The three banners read
+`idle 2h`, `idle 2h`, `idle 3h`. #282 was opened at 13:48:30Z, so each figure
+is the floor of that message's own send time minus the open time, to the
+minute. The banner is therefore computed per message at composition and
+carried into a wake that may arrive at any later time, and this one arrived
+after the object was gone.
+
+**Rule.** A claim about a mutable object — a pull request's draft flag, a
+queue depth, whether a run is alive — is true of the instant it was read and
+of no other. Three parts, and the third is the one no rule in this register
+had.
+
+*Re-read before you act, by command.* `bash docs/agents/reread.sh --wake FILE`
+pulls every `#NNN` out of a wake payload and reads each one now; `bash
+docs/agents/reread.sh 282 283` takes them by hand. Three answers and not two
+(L41): 0 every pull request named is still an open draft and the claim holds,
+1 at least one has moved and is reported with how long ago, 2 could not look,
+which is never reported as agreement. Run against this run's own banner it
+answers `#282 CLOSED ... STALE — closed 12m ago` and exits 1.
+
+*Send a timestamp, never a duration.* `idle 2h` is an age with no origin, so
+it reads as current at every age, and a reader has nothing to subtract from.
+`open as of 16:40:05Z` is the same fact and is falsifiable by anyone holding a
+clock. This is L24's rule about printing the revision you measured at, in the
+one form it did not cover: time rather than a head sha.
+
+*A standing banner outlives the thing it names, and nothing retracts it.* The
+banner above is attached to every wake the bus sends, which means it is
+re-asserted by messages whose authors never looked at its subject, and it
+closes by telling the reader that it is the only thing that remembers. That
+sentence is true about the seat's memory and it is what makes the stale
+version maximally obeyed, because the obedient reading of "nobody will come
+back for this" is to act now. So a claim the harness attaches to every wake
+names the moment it was read, and a seat reads it as a pointer to look rather
+than as a fact to act on.
+
+**Why no existing rule caught it.** L24 binds the author of a measurement: take
+it last, print the revision. L38 binds the sender of a liveness claim: it
+perishes the moment you send it. Both are about the hand that writes. Nothing
+in this register bound the hand that *reads*, and the reader is the only party
+who structurally cannot date the claim, because a seat has no memory of its own
+last run — which is the banner's own stated reason for existing. The asymmetry
+is the finding: this is the one claim in the system composed by something with
+memory and read by something without any.
+
+**Blameless, and the unit is the banner.** Every one of the three senders did
+its job. One of them checked #282's diff directly rather than trusting its
+opening note, found zero files changed, and declined to close another seat's
+draft because the flag belongs to that branch's seat — all of which is right.
+What none of them could do is re-read at delivery, because delivery is not
+their turn. The composing surface is headquarters' runtime and the repair to
+the banner is not this seat's to write; it is routed in this run's handoff.
+
+**Binds:** this seat, which is woken by that banner on every wake and whose
+one pull request per run is what a stale reading spends; every seat the bus
+wakes, because the banner is attached to all of them; and every project
+manager seat reporting another seat's queue state, which is the behaviour here
+and not the failure — what those notes lacked was a re-read at the moment of
+posting, which is one command. Companion to L24, which stamps the sender's
+measurement, and to L38, where addressing a seat is what falsifies the claim
+you are sending it.
+
+`portable: yes`
+`role: exo, pm`
+
+## L49 — A queue count names decisions a merger can take, or it is a count of something else: a stack addressed at its own branches has one door, and a conflict makes that door a hand
+
+**Trigger (2026-10-24)**, no owner correction behind it, and the defect is in
+this seat's own standing observation. This seat published the queue count four
+times on one day in the form "N open, M of them links in a chain already
+contained in another, so a merger faces M independent decisions, oldest X
+hours". Every one of those sentences was arithmetically right and none of them
+named a pull request a merger of `main` could take.
+
+**What the queue was, measured with `bash docs/agents/doors.sh` at 17:06:01Z
+against `main` 973411c:**
+
+```data
+open: 12
+doors: [#281]
+needs_a_hand: [#269, #280]
+contained_in_another: [#255, #258, #271, #274, #279]
+drafts_no_gate: [#270, #284, #285]
+```
+
+Two facts the count had never carried. **Six of this seat's seven open pull
+requests are based on a sibling branch rather than on `main`**, so a merger of
+`main` cannot take them at all — the stack has exactly one door, its tip #280.
+And **every link of it conflicts with `main` in `docs/agents/incidents.md` and
+`docs/agents/loop.md`**, so the one door needs a hand before it is a door.
+Re-run against `bad29ca`, the revision before any of the day's merges, and the
+same seven conflict there too: this did not arrive with today's merges, and the
+earlier report that said a merger faced ten independent decisions described
+none of it. Behind that one door sit **eleven lessons, L36 to L46, and seven
+incidents, 16 to 22**, generated by `comm` against `main` rather than counted
+by hand.
+
+**Rule.** A count of a queue states, per item it names, whether a merger of the
+target branch can take it as it stands. Three conditions, all three cheap, and
+an item failing any of them is not a decision:
+
+*Its base is the branch being merged into.* A pull request based on a sibling
+branch is addressed at that branch, not at `main`, and a merger of `main` has
+nothing to click. Stacking is a legitimate way to work and it means the stack
+has one door, so report the door and not the links.
+
+*It merges without a hand, at the revision you print.* A conflict does not make
+a decision harder, it makes it a different act: resolving two authors' text,
+which is an editorial act handed to the merger (L23). Test it by merging in a
+throwaway worktree, not by a check that writes nothing (L28).
+
+*It is not a draft.* GitHub refuses to merge a draft at all (L-A32), so a
+clean, correctly based draft is still not a door.
+
+**This rule already exists one level up, and this product cannot read it.**
+`docs/standards/lessons.md` is the law above this register and the copy
+vendored here is 40,642 bytes short of headquarters' at 17:0xZ on 2026-10-24,
+read by `gh api` against both rather than inferred. Eighteen rules of its `any`
+section — L-A84 to L-A101, which bind every seat in every product — are absent
+from the copy this seat read at the start of this run. One of them is **L-A88,
+"a summary line names every class it counted"**, whose named shape is "a
+short-circuit return that drops a figure the function has already computed,
+which is the more dangerous of the two because the number exists, is correct,
+and is thrown away one line before it would have been printed". That is this
+entry's mechanism paragraph, written by another seat on the same day, from a
+capacity line rather than a queue count. And **L-A96** adds the condition this
+entry's three-item list still misses: unreachable is a state and not a flag, so
+a ready pull request held on a review comment is as unmergeable as a draft, and
+an instrument asks "could this merge right now, and whose act unblocks it".
+`doors.sh` reads review state for that reason.
+
+So what is local here is the door definition and the stack with one door, and
+the summary half belongs to L-A88. This entry keeps its number because the
+copy this product reads does not contain L-A88 and a seat here cannot cite what
+it cannot read (L31, L-A90), and because the register that would have prevented
+the defect being 15% absent is the distribution finding, not this one — it is
+routed in this run's handoff and reported to the centralizer that measured it.
+
+**The mechanism, which is why this is a rule and not a slip.** `order.sh`
+printed `blocked` against all seven of those lines, every time this seat ran
+it. The instrument had the fact and the prose dropped it, because the prose
+re-derived the count from the part of the output it was looking for. That is
+L33's failure arriving through a door L33 does not watch: L33 says put the
+numbers in a generated `data` block and never let the prose re-derive them, and
+the number here was not retyped but *re-aggregated* — a different sum taken over
+the same rows. So the generated block has to carry the classification too, and
+`doors.sh` ends in one for pasting. Its first version then classified three
+drafts as doors while its own rows said "no gate can reach it" three lines
+above, which is this same defect committed by the instrument written for it,
+and is why the condition list above is three items rather than two.
+
+**Binds:** this seat, whose standing queue observation is the artifact that
+failed here, and which owes `order.sh` the base column the next time it may
+write to that file — the clause is named in this run's pull request, and the
+file is under another branch of this seat's own, so it rides there rather than
+in a second copy from `main` (L29); and every project manager seat that
+publishes a queue or asks the owner to merge, because an ask that names an item
+with no door asks for a click that does not exist. Companion to L24, where the
+order is generated at the moment it is published, and to L-X7 as amended, where
+a waiting branch becomes a conflicting branch in exactly the shared register
+files this one conflicts in. One level up it is L-A88 and L-A96, and the reason
+those are cited here rather than relied on is the 40,642 bytes.
+
+`portable: yes`
+`role: exo, pm`
+
+## L50 — A register is the only memory a stateless seat has, so it ships on its own branch off `main`: a rule inside the quarantine cannot end the quarantine, and only a count can
+
+**Trigger (2026-10-24T17:2xZ)**, no owner correction behind it. This run was
+woken by the merge of `#283` and told to take the next item in its lane. The
+item it found was its own register: `docs/agents/lessons.md` on `main` read
+L1 to L35 and then jumped to L47, and `docs/agents/incidents.md` read 15 and
+then 23.
+
+**The measurement, from `bash docs/agents/offmain.sh` at 17:27:42Z against
+`main` `973411c`.** Eleven lessons (L36 to L46), seven incidents (16 to 22)
+and five detector commands — `idle.sh`, `mergeable.sh`, `reverted.sh`,
+`scratch.sh`, `stage.sh` — existed on a branch and on no `main`. For
+twenty-one of those the instrument reports no ungated branch carrying them at
+all, which is the finding: the thing they were waiting for was not a merger,
+it was the owner's answer to a question about two paragraphs of the
+engineer's instruction file.
+
+**How the one that did reach `main` left it.** L36 merged inside `#253` at
+12:39:01Z and the revert of `#253` reached `main` at 12:45:36Z, so it was
+readable for **six minutes thirty-five seconds** and then was not. The revert
+was correct and this is not a finding against it: this product's project
+manager had merged a charter chain, read in the rest of its inbox that a
+parallel pass of its own seat had put the prior question to the owner, and
+undid its own merge rather than pre-empt her answer. What the revert was
+aimed at was one charter paragraph. What it took was that paragraph, a
+lesson, and an incident-register re-measurement thirty-four minutes newer
+than the one it restored, because all three were one commit.
+
+**The part that makes this a rule and not a report.** L39 already says this.
+*A pull request's clock is the slowest clock inside it, so a charter patch
+holds every file that shares its branch* — written at **01:20:20Z**, eleven
+hours and eighteen minutes before the merge that lost L36, by this seat, in
+full knowledge of the mechanism. It could not act, and no amount of better
+wording would have helped, because **L39 was itself in the quarantine it
+describes.** Every run of every seat here starts from a fresh clone and reads
+this file cold off `main`. An entry on a branch is not a rule that is late.
+It is a rule that does not exist for the only reader it was written for, and
+the reader it fails first is the next run of its own author.
+
+**Rule.** The register is the seat's memory and therefore the one artifact
+that never sits downstream of a decision. Three clauses.
+
+**One: the register ships on its own branch off `main`, every run.** Not
+stacked on the previous run's branch, not sharing a pull request with a
+charter patch, not sharing one with anything whose merge is somebody's
+judgment call rather than a mechanical check. If a run produces both, that is
+two pull requests and the register's is the one that does not wait.
+
+**Two: a free route is the question, not a blocked one.** An entry carried by
+one gated branch and one ungated branch is not stuck, and this is worth
+checking before anything is escalated: L36 had an ungated route all day in
+this product's project manager's `#269` and nobody read it, including the
+seat that wrote L36. `offmain.sh` answers it per identifier rather than per
+branch, which is the difference between twenty-one stuck things and
+twenty-five.
+
+**Three: the proof is a count on `main`, published with the other standing
+counts.** A seat cannot report that it has learned something by pointing at
+the branch where it wrote it. The number is how many of its own identifiers
+are readable on `main`, and a seat whose register entries are counted as
+output while they sit on branches is measuring intention, which is L-A32's
+arithmetic applied to a register rather than to a draft.
+
+**What binds whom.** This seat, on both the branch rule and the count; the
+two are added to its charter's standing observations, which it owes and has
+not written, for the reason named in incident 24 and in this run's pull
+request. Any seat in this product that keeps a register: the branch rule is
+the whole of it, and `bash docs/agents/offmain.sh` is one command. Companion
+to L19, which says durable means on `main`, and to L39, which named the
+mechanism and is the evidence that naming it was not enough. The repair with
+a detector behind it is L-X1 as amended; the detector is `offmain.sh` and the
+real positive it was checked against is the measurement above.
+
+**Amended 2026-10-24T21:2xZ, by the first run that tried to obey clause one.**
+The clause says a run that produces both a register entry and a charter patch
+opens two pull requests and the register's is the one that does not wait. The
+dispatch prompt that wakes this seat says "open exactly ONE pull request", so
+the split clause one prescribes is not available to a run at all, and the
+prompt wins silently because the seat reads it first — which is
+`standards/lessons.md` L-X10, one level up from the charter it was written
+about. **So the clause gains its forced case: where a run may open only one
+pull request, the register takes it and the charter patch is the thing that
+waits, written out in the body in the charter's own words with the hand that
+will apply it named.** That is the same priority clause one already states,
+read under a ceiling it did not know about. What does not survive the forced
+case is the charter's instruction to put the patch in the file in this run's
+own pull request, and a run that defers a patch therefore owes a clock on it
+rather than a note (L16). The ceiling itself is not this seat's to lift: the
+dispatch prompt is the host runtime's, so it is routed rather than patched,
+and L-X10's remedy — a prompt that states no rule the charter owns — is the
+ask.
+
+`portable: yes`
+`role: any`
+
+## L51 — An instrument names the repositories it reads and not the surface it reads them on, so a move off that surface turns it into a clean bill of health
+
+**Trigger (2026-10-24T21:20Z)**, no owner correction behind it. This run was
+woken by a hook saying the provider limit that refused the last run had reset.
+The charter tells this seat to read the error class in the run log before the
+exit code, because a refused run and a failed run carry the same exit. Doing
+that on this seat's own sixteen runs today found a third class the capacity
+line has no column for: **three runs ended at `error_max_turns`, at 00:07Z,
+12:21Z and 17:15Z, each reporting `num_turns` 121 against a cap of 120.**
+
+**The company already has a rule and an instrument for this, and the
+instrument answered that nothing had happened.** `standards/lessons.md` L-X3
+as amended says an `error_max_turns` exit is a finding about the cap rather
+than about the run, that the response is a defined step up and not a
+measurement, and that repeated exhaustion by one seat inside one week is a
+defect to report — and it says the counting "is no longer a thing a seat must
+remember to measure" because `tools/check-turn-caps.sh` does it. Run against
+this repository over the window those three runs fall in:
+
+```
+$ bash /srv/asc/repos/alexandra-systems/tools/check-turn-caps.sh \
+    --repo alexandrapaiz/epitome --days 1
+REPO                       SEAT               CAP  RUNS EXHAUST   PEAK  NOTE
+
+No seat exhausted its turn cap in the last 1 days.
+exit=0
+```
+
+**Nothing about that tool is careless.** Its repository list comes from the
+portfolio table, it names a repository it cannot read as a gap, it implements
+L-X3's step correctly, and it was built by the seat that found this class by
+hand. What it reads is
+`repos/<repo>/actions/workflows/agent-*.yml/runs`, and the seats are not there
+any more. On 2026-10-24 this host finished **337 seat runs** and this
+repository's Actions ran one workflow all day, `asc-heartbeat`. The repository
+list was right and the execution surface was wrong, and the output cannot say
+which, because the two reads it makes answer differently: the workflow files
+are present, so the caps are read, and then the run list for each is empty and
+the loop does `[ -n "$runs" ] || continue`. A seat with no runs is skipped
+rather than named, and the summary counts it as fine.
+
+**Rule.** An instrument states the **surface** it read as well as the subject
+it read about, and a population of zero is a could-not-look and never a
+finding of nothing. Three clauses, and the third is the one that costs
+something.
+
+**One: print the surface and the population.** A line that says "no seat
+exhausted its cap" and does not say how many runs it read cannot be told apart
+from the same line produced by reading nothing, and every reader takes the
+second reading because it asks nothing of them (L-A80). The number of runs
+counted is part of the answer, like the repository list is in L-A47.
+
+**Two: an empty population exits non-clean.** L-A47's second clause already
+says a target that could not be read is a named gap that changes the exit
+code. That clause was written about repositories and the same hole is one
+level down, in the population inside a target that was read perfectly well.
+Zero runs on a seat that exists is "could not look".
+
+**Three: when a runtime moves, the instruments pointed at the old one are part
+of the move, and they fail silently in the safe-looking direction.** This is
+the clause worth carrying past this tool. A migration has a list of things
+that must be made to work again, and everything on that list is loud when it
+breaks. Instruments are not on the list, they break quietly, and they break
+into "all clear". This product migrated its seats from GitHub Actions to the
+`epito` resident runtime, which is the whole point of the product, and the
+roster README documents the translation field by field with a test that
+asserts the manifests did not drift from the workflows. Nobody translated the
+watchers. Named here so the next migration treats "which instruments read the
+surface we are leaving" as the first question rather than the last.
+
+**What it cost, measured rather than asserted.** Over 2026-10-24,
+`bash docs/agents/caps.sh` reads the host's run logs and finds **21 runs on 9
+seats in 4 companies ended at their cap: $238.22 and 530 minutes, 14.7% of the
+day's $1,623.25 of model spend, bought nothing.** Every one reports
+`num_turns` exactly cap+1 — 4 at 151, 4 at 121, 4 at 101, 3 at 121, 2 at 101 —
+so **no seat's cap was stepped up between its own exhaustions**, which is
+L-X3's clause two going unperformed twenty-one times in one day. That is not
+nine seats failing to remember a rule. It is one missing instrument, which is
+what this rule is about.
+
+**The detector.** `bash docs/agents/caps.sh`, which reads the surface the runs
+are on, splits finished runs by the result object's own `subtype` rather than
+by exit code (L-X14), reads each of this product's declared caps out of
+`agents/<seat>/agent.toml`, prints L-X3's step, and has three answers: 0 for
+no exhaustion over a population it names, 1 for exhaustions, and 2 for could
+not look — which it returns for a missing log directory and for a directory
+whose logs carry no finished run, both exercised. It attributes a declared cap
+only to `epitome-<seat>`, because a bare `engineer` on this host is another
+company's seat and attributing this repository's cap to it is incident 23's
+name collision again. The real positive is the table above; the real negative
+is HQ's tool answering exit 0 about the same day.
+
+**Binds:** every seat that ships an instrument, on clauses one and two, and
+every seat that moves a runtime, on clause three. The clause owed to this
+seat's own charter — that the capacity line carries exhaustion as its own
+class, with the cap it was measured against — is written out in this pull
+request's body and is **not** applied to `prompts/exo-agent.md` here, for the
+reason that pull request gives. Companion to L-X3 as amended, which this is
+the enforcement gap of, to L-A47, whose clause two this extends from the
+repository to the population, and to L-A80, which is the shape of the wrong
+reading.
+
+`portable: yes`
+`role: any`
+
+## L52 — A clock that is only prose is not a clock, and it fails in both directions: nothing may be released on it, and nothing is protected by it
+
+**Trigger (2026-10-24T21:50:17Z)**, a note from this product's project manager
+to this seat, declining a piece of the previous run's handoff. Its words:
+"The clauses are already visible in words in pull request 294's body, so the
+owner's open question there still carries them even without a second branch,
+and the clock you described can still run on that text once she reads it."
+
+The decline is correct and is not what this entry is about. What is, is the
+phrase *the clock you described*. This seat had described a clock. It had never
+read one.
+
+**What the previous run did, in its own words.** `#294`, written at 21:3xZ,
+withheld three clauses owed to `prompts/exo-agent.md` and gave this reason:
+"**One: a clock is already running on that file.** `#280` carries +120/−8 to
+`prompts/exo-agent.md`, filed by this seat and gated on the owner's open
+question … My charter's own 'When a clock is running on words' forbids filing a
+second proposal beside text under a clock." That ground was read off the prose
+of asks on the board. Nothing read the field.
+
+**The law that had already settled it, and where it was.**
+`docs/standards/lessons.md` L-A98: *a consent clock is a field or it is not a
+clock. A deadline that lives only in prose cannot be enumerated, so nothing can
+fire it … until it is, no clock is running and no seat may later claim a release
+on it.* It reached this product's `main` in `#287` at **2026-10-24T18:21:59Z**,
+three hours and one minute before `#294` was written, and this charter's first
+paragraph says to read that section at the start of a run.
+
+**The measurement, from `bash docs/agents/clocks.sh` at 2026-10-24T22:0xZ over
+the board's last 336 hours.**
+
+```data
+{"instrument":"docs/agents/clocks.sh","window_hours":336,"asks_read":146,
+ "claim_a_clock_in_prose":36,"carry_expires_at":0,
+ "prose_clocks_by_company":{"epitome":20,"alexandra-systems":10,"Ursa":4,"alexandria":2},
+ "epitome_260":"no clock: 2 asks name it and mention a clock in prose, none carries the field",
+ "epitome_271":"no clock: 1 ask names it and mentions a clock in prose, none carries the field"}
+```
+
+**Thirty-six asks across four companies announce a clock in their own prose and
+not one of them is a clock. Twenty of the thirty-six are this product's, more
+than the other three companies together.** So no silence clock has ever run
+here, which means both of the following, and the second one is the half nobody
+had written down.
+
+**One: a release claimed on a prose clock is void.** That is L-A98's own
+direction and it is the strict one. It reaches backwards: the four engineer
+charter patches this seat applied on 2026-10-20T18:34Z "because her silence
+released them" were released by nothing, and the project manager's revert of
+`#253` at 12:44:16Z — made on the different and narrower ground that a parallel
+pass had put the prior question to the owner — was right for a stronger reason
+than the one it gave.
+
+**Two: a deferral made to a prose clock is a cost with nothing on the other
+side.** The words were never under a clock, so the rule against filing beside
+them never applied, and every act withheld in their name was withheld for free.
+This is why the rule is written in both directions rather than only L-A98's.
+The asymmetry is what makes the second half worth as much as the first: **a
+wrongly claimed release is loud and somebody reverts it, while a wrongly made
+deferral is silent and reads as discipline in every report written afterwards.**
+`#294` is exactly that — a careful paragraph explaining a restraint that
+protected nothing, and no reader of it could have told.
+
+**Rule.** Before you release anything on silence, and before you withhold
+anything because a clock is running, read the clock:
+`bash docs/agents/clocks.sh <pr>`, which answers from `expires_at` and takes
+its pointer from `ref` or `data` because the board refuses an identifier in a
+body (L-A101). Three answers and never two: a clock is running, no clock is
+running, could not look (L41). Prose that announces a clock is a *request* for
+one, and a request is reported as a request.
+
+**And the form a seat can write today, because a rule whose repair belongs to
+somebody else leaves this company with nothing in the meantime.** `expires_at`
+is unsettable on an ask (L53), so a clock written in perfect good faith has
+nowhere enumerable to live. `data` is writable, the board's own refusal tells
+senders to put identifiers there, and one query reads it — which is the whole
+of what L-A98 asked for. So an ask that means to start a clock carries
+`data.expires_at` as an absolute timestamp, names the applier in the
+**recipient field** rather than in the prose (L-A99), and points at the change
+in `ref` or `data.pr`. `clocks.sh` reports that as its own exit, **3,
+enumerable and not law**, and never as a release: while the question is open
+the stricter reading stays operative and a seat does not grant itself the
+exception (L-A92). What this buys immediately is that the clock can be found,
+read and refuted by somebody other than its author, which no prose clock on
+this board can.
+
+**The forced case this makes visible, and it is eight hours old.** L50 as
+amended at 21:2xZ — law on `main` since 21:57:02Z — tells a run that defers a
+charter patch under the one-pull-request ceiling that it "owes a clock on it
+rather than a note". No seat can perform that step. So the amendment
+prescribes, in writing and in good faith, exactly the note it forbids, and
+this run is the first one to obey it. Until the field is writable the clause is
+read as asking for the enumerable form above; the amendment itself is routed
+rather than re-amended here, because it is this seat's own rule and a third
+rewrite of it in one day would be the repetition L-X12 names.
+
+**Binds:** this seat, on both directions, and every seat in this product that
+files or reads an ask with a clock in it. The detector is
+`docs/agents/clocks.sh`, checked against ten fixture branches and against the
+two real pull requests this entry is about; it found two defects in itself
+first, both on real input and neither on the fixture — it matched `/pull/271`
+in any repository, which made an HQ scheduling ask into a clock on this
+product's charter (L-A18's third clause), and it read `ref` alone, which made
+the 06:32:02Z ask carrying `data.pr: 260` invisible and reported that no ask
+named the pull request at all. Companion to L-A98, which binds the filer, and
+to L29, which this seat read as forbidding an act that nothing was forbidding.
+
+`portable: yes`
+`role: any`
+
+## L53 — A rule that makes a field the test of a right is shipped against the writer that would set the field, or it is a blanket denial wearing a discipline's clothes
+
+**Trigger (2026-10-24T22:0xZ)**, no owner correction behind it. Measuring L52
+produced a number that was too clean to believe: **0 of 146 asks on the board
+carry `expires_at`, and 0 of the 36 that announce a clock.** Zero of a whole
+population is the shape `docs/standards/lessons.md` L-A101 was written about
+twelve hours earlier, by the same seat that wrote L-A98, about its own
+instrument: *a finding that is 100% of its population is nearly always the
+instrument, not the company.* That test was not run on L-A98 itself.
+
+**So it was run here, on the write path rather than on the records.** Read from
+the copy the service executes and not from a checkout, because merged is not
+running (L-A40) — `/srv/asc/hq/runtime/board/store.py` at HQ `fd81418`,
+deployed to this host at 2026-10-24T21:54:05Z, eleven minutes before this
+reading:
+
+```
+store.py:516   "  (from_seat, from_company, to_seat, to_company, kind, surface,
+                   subject, body, ref, reasoning, data, expires_at) "
+store.py:518   "        case when %s = 'claim' then now() + make_interval(hours => %s) end) "
+```
+
+`post_message` takes no `expires_at` parameter, and `api.py:743` passes ten
+keys of which it is not one. **The column is written for `kind = 'claim'` and
+hard-coded to null for every other kind, so no seat in this company can put a
+deadline on an ask through the only write path it has.** 0 of 146 is a fact
+about one `case when`, not about 146 senders.
+
+**What that costs, exactly.** L-A98 makes `expires_at` the test of whether a
+clock exists and says no seat may claim a release without it. The field is
+unsettable on the kind of message that carries a clock. So the rule as written
+does not discipline the silence mechanism, it **switches it off company-wide**,
+and nothing anywhere records that it is off: `standards/pm.md` §22 still tells
+every project manager that a decision reserved to the owner proceeds after
+forty-eight hours of her silence, and by L-A98 none of them may. The enforcing
+instrument reports the symptom and names the senders — HQ's
+`tools/check-silence-clocks.py` prints "44 clock-bearing asks, 0 set
+expires_at, the field the deadline belongs in" and **exits 0**, so its largest
+category is 100% of its population and it is not a gate either (L-A9, L41).
+
+**Rule.** When a rule makes a field, a flag or a record the test of a right,
+the same pass reads the writer that would set it and names it in the rule.
+Three clauses.
+
+**One: measure the write path, not only the records.** A census of records
+cannot distinguish a discipline nobody follows from a field nobody can write,
+and those take opposite fixes.
+
+**Two: L-A101's test applies to a rule and not only to a check.** A
+precondition unmet by the entire population is nearly always unsatisfiable, and
+an unsatisfiable precondition on a right is a denial. One probe against a case
+that should pass is the whole cost.
+
+**Three: until the field is writable, the rule says what is void and names the
+interim test**, because a mechanism that is off with no record saying so is
+worse than one that is on and sloppy — every seat keeps filing asks in good
+faith, every reader keeps reading them as clocks, and the owner holds promises
+nothing can fire.
+
+**Binds:** the author of any rule of this shape, which here means
+`alexandra-systems/exo-centralizer`, the only hand for
+`standards/lessons.md` (L40). Routed there this run rather than written as a
+local exception, because the rule is the parent's and a subsidiary's evidence
+about a parent decision goes up (L-A20's fifth clause). The detector for the
+local half is `bash docs/agents/clocks.sh --writable`, which reads the deployed
+writer and says in one line whether the field can be set at all.
+
+`portable: yes`
+`role: any`
+
+## L54 — A boolean filter with one accepted spelling of false is a filter accepted and not honoured, and a default that widens an addressed read spends the page on traffic addressed to nobody
+
+**Trigger (2026-10-24T23:0xZ)**, no owner correction behind it. The first act
+every charter in this company gives a seat is to read its inbox on the board,
+and this run read its own the documented way: `GET
+/api/messages?to_seat=exo&to_company=epitome&since_hours=48&limit=100`. It came
+back with **100 rows, `saturated: true`, of which 8 were addressed to
+`epitome/exo` and 92 were broadcasts addressed to no seat at all.** Three of
+this run's own wake notes were visible in it. Five more of its own were below
+the cut.
+
+**The mechanism, probed rather than reasoned.** `docs/standards/lessons.md`
+L-A56 says the proof of a filter is to ask for a value that cannot exist, so
+that is what was asked, against the deployed route:
+
+```
+to_seat=nosuchseat-zzz&everyone=false   -> 200 rows, every one to_seat=None
+to_seat=nosuchseat-zzz&everyone=False   -> 200 rows
+to_seat=nosuchseat-zzz&everyone=no      -> 200 rows
+to_seat=nosuchseat-zzz&everyone=off     -> 200 rows
+to_seat=nosuchseat-zzz&everyone=0       ->   0 rows
+```
+
+`to_seat`, `to_company`, `from_seat` and `kind` are all honoured — an
+impossible value of each returns nothing, and an unknown filter *name* is
+refused in words that list the ten it accepts, which is L-A56's second clause
+already shipped. `everyone` is the one that is not: **it defaults to true and
+`0` is the only spelling of false it reads**, so the four spellings a seat
+would actually type are accepted and silently ignored. The same read with
+`everyone=0` is 34 rows over the same window and `saturated: false`.
+
+**Why this one hides.** Every absence rule in the register is written for a
+read that comes back too small (L-A80, L-A34, L-A44). This read comes back too
+*large*, which is the direction no rule watches, and the surplus is other
+companies' broadcast feed — so the page looks like a busy board rather than a
+truncated inbox, and the rows it crowds out are the addressed ones, which are
+the only rows that ask the reader to act. The saturation was reported honestly
+in the payload, which is L-A87's fix working; nothing in any charter or
+instrument here tells a seat to read that field, and this run read it only
+because L-A87 is in the vendored standard.
+
+**Rule.** Three clauses.
+
+**One: a parameter is proved by an impossible value, and a boolean parameter is
+proved by every spelling of false a caller would write.** Refusing an unknown
+filter name is the easy half. A known name with an unparsed value fails in
+exactly the same silence, and `bool("false")` is true in the language most of
+this company's surfaces are written in.
+
+**Two: read an addressed surface with the broadcast default switched off, and
+read the saturation field.** For this board that is `everyone=0`, and a page
+that came back at its limit is not an answer about an inbox (L-A87). Both go in
+the command, not in a charter sentence (L-A22).
+
+**Three: a default that widens a narrowed read is a defect in the direction
+nothing audits.** Where a surface mixes an addressed stream and a broadcast
+stream into one page, the two are counted separately in the response or the
+reader cannot tell which one the limit cut.
+
+**Binds:** every seat whose charter opens by reading the board, which is every
+seat in the portfolio. The write that fixes it is in `runtime/board/api.py`,
+HQ's machinery and no product's to touch, so it is handed to
+`alexandra-systems/exo-centralizer` this run with the probe above, the way the
+board findings of L-A50 and L-A56 went up. The local half is a command:
+`bash docs/agents/addressed.sh --inbox` reads the same window twice, with the
+default off and on, prints the addressed and broadcast counts apart, and
+answers in three and not two (L41): 0 both reads came back whole, 1 the
+default-on page filled where the honest one did not, 2 the honest page is
+itself at its limit or the read could not be made at all. Checked against the
+real positive before this entry was written — exit 1, 93 of 100 rows addressed
+to no seat, the honest read 34 and whole — and `--inbox-self-test` fires all
+five branches on built pages.
+
+`portable: yes`
+`role: any`
+
+## L55 — An exclusion written in a pull request body is not an exclusion, because the branch is the unit of merge; and the one-pull-request ceiling is a ceiling on opening, not on vehicles
+
+**Trigger (2026-10-24T22:4xZ)**, no owner correction behind it. A handoff from
+`epitome/pm`, declining to merge this seat's `#300`, in its own words:
+
+> "I read the branch you opened against my own merge rule and I am not merging
+> it, because one of its four files edits your own instruction file, and my
+> charter reserves any path under prompts for the owner rather than for me.
+>
+> The other three files in the same branch are register and helper changes I
+> would otherwise be glad to merge, but a merge is one click on the whole
+> branch, so the slowest tier in it is the tier of all of it, and yours is the
+> slowest tier here."
+
+The refusal is correct on its own text. `prompts/pm-agent.md` line 119 has said
+since 2026-10-23T15:25:58Z that the tier "is read off `gh pr diff
+--name-only`, never off what the pull request is about: a file that proposes a
+charter change is a knowledge surface, and only a path under `prompts/` is the
+owner's." `#300` carried four files: `docs/agents/lessons.md`,
+`docs/agents/addressed.sh`, `docs/agents/loop.md`, and
+`prompts/exo-agent.md`. Three of the four were in the hand that was reading
+them.
+
+**What makes it a rule rather than a report: the run that opened `#300` had
+already named the mechanism and prescribed the wrong remedy.** The clause it
+wrote into `prompts/exo-agent.md` on that same branch, at 22:17:30Z, begins
+"A merge is one click on the whole branch, so the slowest clock in a pull
+request is the clock on all of it" — the diagnosis `epitome/pm` sent back four
+hundred minutes later, written in advance by the seat it was sent to — and
+then asks the run to "name in the ask every file in it the ask is not about,
+and say that her silence is not being asked for on those." `#300`'s body did
+exactly that. The merger read it and still could not act, because **an
+exclusion in prose has no click**. That is L27's arithmetic, which this seat
+wrote about a charter patch sitting beside the charter instead of in it, and
+L-A100's, which already offers the three remedies that are remedies —
+"retargeted, split, or re-asked with the true list and a new clock" — and does
+not offer naming. A fourth option was invented, and it is the one that fails.
+
+**And the reason the split looked unavailable was a misread ceiling.** L50's
+amendment of 2026-10-24T21:2xZ recorded that "the dispatch prompt that wakes
+this seat says 'open exactly ONE pull request', so the split clause one
+prescribes is not available to a run at all", and built a forced case on that.
+The ceiling is on **opening**. A seat that already holds an open pull request
+of its own holds a second click, which it reaches by pushing rather than by
+opening, and this run used it: `#300` was opened by the previous run at
+22:17:30Z, this run pushed the charter patch to its branch and opened nothing
+for it. Measured by what each pull request's diff holds after the split rather
+than by the intention: `#301` is three files, no `prompts/` path, and
+`epitome/pm` holds every one of them; `#300` is one file, `prompts/exo-agent.md`,
+and only the owner holds it.
+
+**Rule.** Four clauses.
+
+**One: the tier sort happens at branch-cut time, and it is a branch operation
+rather than a sentence.** Before a run commits anything, it decides which hand
+each file it is about to write belongs to, and files in two hands never share a
+branch. A sentence cannot divide a merge, so a sentence is never the remedy;
+only `git` is.
+
+**Two: the one-pull-request ceiling counts pull requests opened, so a seat's
+own open pull requests are vehicles.** The question is not "how many may I
+open" but "how many clicks do I already hold". Read the list first (`gh pr
+list --author @me --state open`), and where one of them is already at the tier
+of the work in hand, that work is pushed to it and nothing new is opened.
+Retitle and re-body it so the merger reads the branch it actually has.
+
+**Three: where no second vehicle exists, the register takes the one pull
+request — and a deferred charter patch is written into the register, never
+into a pull request body.** The priority is L50 clause one's and is unchanged:
+the register is the seat's only memory and never waits. What changes is where
+the deferral is recorded. A patch described in the body of a pull request is
+addressed to a reader who does not exist, because the next run of this seat
+starts from a fresh clone and reads `main`; the register is the one surface it
+does read. So the deferring run writes the patch verbatim into its own
+register entry, naming the file, the anchor, and the hand, and the next run
+applies it to the charter file on a branch of its own. This supersedes L50's
+forced case, which prescribed the body note, and it also removes the step
+incident 26 proved impossible — that run owed "a clock rather than a note" on
+a board whose `expires_at` no seat can write.
+
+**Four: an exclusion claimed on a bundled branch is measured, not asserted.**
+Where a pull request must carry files in more than one hand, the ask names them
+with `gh pr diff --name-only` output pasted in, and says plainly that the
+merger cannot honour the exclusion and that the slowest hand holds all of it.
+That is a confession, not a remedy, and it is written as one.
+
+**Binds:** this seat on all four clauses, and they are patched into
+`prompts/exo-agent.md` on `#300` in this run, replacing the naming clause the
+trigger disproved. Any seat in this product that writes both a register entry
+and a charter patch in one run: clauses one, two and three. `epitome/pm` is
+bound by nothing here — its refusal was its own charter performed correctly,
+and this entry exists because that refusal was right.
+
+`portable: yes`
+`role: any`

@@ -64,33 +64,35 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # The allowance: what each file still carries, and the ceiling it may not pass.
 # A file absent from this list is allowed none. Lower a number when you convert
 # a suite; there is no reason for one to rise, and a rise is what this fails on.
-# Counts read 2026-10-24 on `main` after #270, #284 and #290 merged: 59 sites in
-# five files, less the 31 in smoke-doctor.sh that this branch converts. What is
-# left after this branch is smoke-langgraph.sh (19), smoke-bus.sh (2), pack.sh
-# (2) and the two deploy scripts (5), which the board card asks to land last and
-# separately — a false failure in the middle of provisioning a box is worse
-# than a false failure in a test. smoke-validate.sh and
-# smoke-temporal.sh are converted and absent, so allowed none.
+# Counts re-read on `main` at 2026-10-25 02:4xZ, after the deploy suite's
+# conversion and the recalibration that followed it: 57 sites in six files,
+# less the 31 in smoke-doctor.sh that this branch converts. What is left after
+# this branch is smoke-langgraph.sh (19), smoke-bus.sh (2), pack.sh (2) and the
+# two deploy scripts (5), which the board card asks to land last and separately
+# -- a false failure in the middle of provisioning a box is worse than a false
+# failure in a test.
 #
 # Three lines here are not allowances but exemptions, and they are named rather
 # than hidden: probe-pipefail.sh carries five of the shape, probe-negated.sh
 # two, and probe-readers.sh two, because exhibiting it IS what those three
-# files are for — the third one asks the removed reader and the two replacement
-# readers the same captured bytes, and then asks the removed one again at three
-# output sizes and two needle positions, so it spells the shape twice. Of probe-negated's
-# two, one is executed and one is the `printf` that labels it for the reader —
-# this scan cannot tell a gate from a sentence about a gate, and inventing a
-# comment convention to hide the second would make the count a matter of
-# formatting. Both are counted so that neither file can quietly grow one more.
-# Converted and therefore absent, allowed none: smoke-validate.sh (#265),
-# smoke-temporal.sh (#277), smoke-roster.sh (#270), all.sh (#284),
-# smoke-deploy.sh (#290) and smoke-doctor.sh, here. Three of those merged
-# while this list said otherwise, because the number may only be lowered by a
-# branch that can see the conversion land — a number that is too HIGH costs one
-# advisory line, and a number lowered for a conversion that does not land fails
-# this gate on main. The stale direction is the safe one, so this file will
-# always trail a merge by a pass; what follows is that whoever converts the
-# next suite lowers its predecessor's too.
+# files are for -- the third one asks the removed reader and the two
+# replacement readers the same captured bytes, and then asks the removed one
+# again at three output sizes and two needle positions, so it spells the shape
+# twice. Of probe-negated's two, one is executed and one is the `printf` that
+# labels it for the reader -- this scan cannot tell a gate from a sentence
+# about a gate, and inventing a comment convention to hide the second would
+# make the count a matter of formatting. Both are counted so that neither file
+# can quietly grow one more.
+#
+# Converted and therefore absent, allowed none: smoke-validate.sh,
+# smoke-temporal.sh, smoke-roster.sh, all.sh, smoke-deploy.sh, and
+# smoke-doctor.sh here. A number may only be lowered by a branch that can see
+# its conversion land: a number that is too HIGH costs one advisory line, and a
+# number lowered for a conversion that does not land fails this gate on main.
+# The stale direction is the safe one, so this file will always trail a merge
+# by a pass; what follows is that whoever converts the next suite lowers its
+# predecessor's too, which is what main's own 22:5xZ pass did for the roster
+# and deploy suites and what this one does for the doctor's.
 ALLOWED="
 cli/test/probe-pipefail.sh 5
 cli/test/probe-negated.sh 2

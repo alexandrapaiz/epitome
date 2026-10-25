@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+# Which seats died at their own turn cap, on the surface the seats actually
+# run on (L51, incident 25).
+#
+#   bash docs/agents/caps.sh              today, every seat on this host
+#   bash docs/agents/caps.sh --days 7     a window
+#   bash docs/agents/caps.sh --seat exo   one seat of this product
+#
+# WHY THIS EXISTS, AND WHY IT IS NOT A SECOND COPY OF HQ's TOOL. The company
+# already has `tools/check-turn-caps.sh` in alexandra-systems, and
+# `standards/lessons.md` L-X3 as amended says it is the reason exhaustion is
+# "no longer a thing a seat must remember to measure". It reads
+# `repos/<repo>/actions/workflows/agent-*.yml/runs`. The seats left Actions:
+# on 2026-10-24 this host finished 336 seat runs and this repository's Actions
+# ran one workflow, `asc-heartbeat`. Run against this repository over the day
+# this seat hit the cap three times, it printed an empty table and
+# "No seat exhausted its turn cap in the last 1 days", exit 0 — the real
+# negative this script was checked against. The repository list was right. The
+# execution surface was not, and nothing in the output said which it had read.
+#
+# So this reads the host's own run logs, which is where this company's runs
+# are. Three things it does that the exit code of a run cannot.
+#
+# 1. **A cause, not an outcome** (L-X14). A refused run, an exhausted run and
+#    a crashed run all carry `exit=1`. This splits them by the result object's
+#    own `subtype` and `terminal_reason`, which are the only fields that say
+#    which happened.
+# 2. **A zero is not a clean bill** (L-A80, L-A47 clause two applied to runs
+#    rather than to repositories). Reading no runs exits 2 and says so. HQ's
+#    tool does `[ -n "$runs" ] || continue`, so a seat whose runs moved
+#    elsewhere is skipped silently and the summary line counts it as fine.
+# 3. **The step, per L-X3 as amended.** A cap that binds censors the very
+#    measurement that would correct it: the run reports cap+1, so there is no
+#    peak to double. The response is a defined step up — half again — and the
+#    cap for this product's seats is read out of `agents/<seat>/agent.toml`
+#    rather than remembered.
+#
+# Reads only. No credential, no network.
+set -uo pipefail
+
+LOGS=${EPITO_LOGS:-/srv/asc/state/.epito/logs}
+DAYS=1
+SEAT=
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --days) DAYS=${2:?--days needs a number}; shift 2 ;;
+    --seat) SEAT=${2:?--seat needs a name}; shift 2 ;;
+    --logs) LOGS=${2:?--logs needs a path}; shift 2 ;;
+    --help|-h) sed -n '2,/^[^#]/p' "${BASH_SOURCE[0]}" | sed -n 's/^# \{0,1\}//p'; exit 0 ;;
+    *) echo "caps.sh: unknown argument $1" >&2; exit 2 ;;
+  esac
+done
+
+if [ ! -d "$LOGS" ]; then
+  echo "caps.sh: no run logs at $LOGS — this runs where the host's logs are; could not look" >&2
+  exit 2
+fi
+
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo .)
+
+DAYS="$DAYS" SEAT="$SEAT" LOGS="$LOGS" ROOT="$ROOT" python3 - <<'PY'
+import glob, json, os, re, sys, datetime, collections
+
+logs = os.environ["LOGS"]; days = int(os.environ["DAYS"])
+seat_filter = os.environ["SEAT"] or None; root = os.environ["ROOT"]
+
+today = datetime.datetime.now(datetime.timezone.utc).date()
+window = [(today - datetime.timedelta(days=i)).isoformat() for i in range(days)]
+
+# The cap this product declares for each of its own seats. Two files carry it
+# and smoke-roster.sh asserts they agree, so reading either is reading both;
+# the manifest is the one a product seat may write (L-X9).
+caps = {}
+for f in glob.glob(os.path.join(root, "agents", "*", "agent.toml")):
+    name = os.path.basename(os.path.dirname(f))
+    m = re.search(r"^max_turns\s*=\s*(\d+)", open(f).read(), re.M)
+    if m:
+        # Keyed by the host's seat name, which carries the product prefix.
+        # A bare `engineer` or `pm` on this host is another company's seat,
+        # and attributing this repository's cap to it is the same name
+        # collision that made the board's resolver answer for the wrong
+        # product (incident 23). Those seats report their cap as `-` and the
+        # step is read off the censored num_turns instead.
+        caps["epitome-" + name] = int(m.group(1))
+
+RESULT = re.compile(r'\{"duration_api_ms".*?"type":"result".*?\}', re.S)
+LIMIT  = re.compile(r'hit your [a-z]+ limit|"api_error_status":(?:429|529)|limit (?:reached|exceeded)')
+
+seats = collections.defaultdict(lambda: collections.defaultdict(list))
+files = unparsed = 0
+for day in window:
+    for path in glob.glob(os.path.join(logs, "*", day + "*.log")):
+        s = os.path.basename(os.path.dirname(path))
+        if seat_filter and s != seat_filter and s != "epitome-" + seat_filter:
+            continue
+        files += 1
+        text = open(path, errors="replace").read()
+        m = RESULT.search(text)
+        if not m:
+            # No result object: the run is still open, or it died before the
+            # executor returned one. Either way it is not a finished run and
+            # it is counted as unparsed rather than as a success.
+            unparsed += 1
+            continue
+        try:
+            r = json.loads(m.group(0))
+        except ValueError:
+            unparsed += 1
+            continue
+        sub = r.get("subtype") or "?"
+        if sub == "success" and LIMIT.search(text):
+            sub = "refused"
+        seats[s][sub].append((os.path.basename(path), r.get("num_turns"),
+                              r.get("total_cost_usd") or 0.0, (r.get("duration_ms") or 0) / 60000.0))
+
+finished = sum(len(v) for d in seats.values() for v in d.values())
+if files == 0:
+    print(f"caps.sh: no run logs under {logs} for {window[-1]}..{window[0]} — could not look, not a clean bill")
+    sys.exit(2)
+if finished == 0:
+    print(f"caps.sh: {files} log(s) read and none carried a finished run — could not look, not a clean bill")
+    sys.exit(2)
+
+print(f"read {files} log(s) over {window[-1]}..{window[0]} from {logs}: "
+      f"{finished} finished, {unparsed} still open or without a result object")
+print()
+print(f"{'SEAT':<22}{'CAP':>5}{'RUNS':>6}{'EXHAUST':>9}{'REFUSED':>9}{'$ BURNT':>9}{'MIN':>6}  NOTE")
+
+findings = 0
+tot_c = tot_m = 0.0
+tot_e = 0
+for s in sorted(seats):
+    d = seats[s]
+    ex = d.get("error_max_turns", [])
+    rf = d.get("refused", [])
+    runs = sum(len(v) for v in d.values())
+    cost = sum(x[2] for x in ex); mins = sum(x[3] for x in ex)
+    cap = caps.get(s)
+    note = ""
+    if ex:
+        findings += 1
+        tot_e += len(ex); tot_c += cost; tot_m += mins
+        turns = sorted({x[1] for x in ex})
+        seen = cap if cap is not None else (turns[0] - 1 if turns and turns[0] else None)
+        step = int(seen * 3 / 2) if seen else None
+        note = (f"EXHAUSTED {len(ex)}x at num_turns {','.join(str(t) for t in turns)} — "
+                f"peak censored; step {seen} -> {step} (L-X3)")
+        if cap is None:
+            note += "; cap not declared in this repo's agents/"
+    print(f"{s:<22}{(cap if cap is not None else '-')!s:>5}{runs:>6}{len(ex):>9}{len(rf):>9}"
+          f"{cost:>9.2f}{mins:>6.0f}  {note}")
+
+print()
+if findings:
+    print(f"{tot_e} run(s) on {findings} seat(s) ended at their cap: ${tot_c:.2f} and {tot_m:.0f} minutes "
+          f"bought nothing. Every one of them reports num_turns = cap + 1, so none of them is evidence "
+          f"of a peak and all of them are evidence about the cap (L-X3 as amended).")
+else:
+    print(f"No seat exhausted its cap over {window[-1]}..{window[0]}, read from {finished} finished runs.")
+sys.exit(1 if findings else 0)
+PY
