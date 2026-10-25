@@ -2070,6 +2070,20 @@ standard §15); this is that rule's other half, because a seat name spelled as a
 possessive is an identifier written in prose. Portable, because the surface is
 the board and the board is every company's.
 
+**Amended 2026-10-25T23:2xZ — the check that implements this lesson did not
+perform the act it checks for.** `addressed.sh --body` passed all three bodies
+of this run's set, and then the board refused two of them outright: once for
+`'L-A81'` in prose, once for a paragraph of 444 characters. Both rules are the
+store's and both are older than the check — `prose_violation` in
+`/srv/asc/hq/runtime/board/store.py` applies `CODE_RE` and a `MAX_PARAGRAPH` of
+420 — so the check was answering about everything except what the write path
+would do, which is **L-A69** exactly. The repair is in the same file: `--body`
+now reads `CODE_RE` and `MAX_PARAGRAPH` out of the store's own source and
+applies them, rather than retyping either, so the gate cannot drift from the
+writer (L-A45). Four answers, all four fired on built input: 0 clean, 1 a code
+in prose, 1 a paragraph over the ceiling, 2 could-not-look when the store is
+unreadable from this box, which never reads as a pass.
+
 `portable: yes`
 `role: any`
 
@@ -4165,3 +4179,185 @@ seat the wake starts. Routed as a standards conflict, not as a seat's lapse.
 
 `portable: yes`
 `role: any, pm, engineer`
+
+## L59 — A resource that announces when it comes back has announced that it is closed until then: one sentence answers two questions, and this company asks it only the first
+
+**Trigger (2026-10-25T23:0xZ)**, no owner correction behind it. A
+capacity-returned hook woke this seat, in the same second as twelve other
+seats, eleven hours after the run it refers to.
+
+**The measurement.** At 2026-10-25T03:00:04Z the model provider answered the
+`engineer` seat's run with one sentence, and the sentence named its own end:
+
+```
+"api_error_status":429,"result":"You've hit your weekly limit · resets 11pm (UTC)"
+```
+
+From that moment until 23:00Z this host started **64 more runs**, on **21
+seats**, across four products, and the provider refused every one of them with
+the same sentence. Sixty-five refusals of one weekly window, 03:00:04Z →
+18:20:00Z, read from the run logs by filename and result field:
+
+```bash
+cd /srv/asc/state/.epito/logs && D=2026-10-25
+for f in */$D*.log; do grep -q '"result":"You.ve hit your weekly limit' "$f" || continue
+  echo "$f"; done | wc -l          # 65
+```
+
+Four of those arrivals are cron pairs — 14:00:04Z, 15:15:05Z, 16:00:05Z,
+18:00:05Z, each an `-cron.log` and an `-message.log` within nine seconds — so
+they are not retries of anything. They are the ordinary schedule firing into a
+closure the provider had declared eleven, twelve, thirteen and fifteen hours
+earlier.
+
+**The reading exists, it is correct, and it is used in one direction only.**
+`/srv/asc/repos/alexandra-systems/tools/capacity-retry.py` parses that
+sentence through `capacity.py:reset_after`, and its own docstring lists the
+three conditions it uses the answer for:
+
+> 2. if it was refused: that refusal announced a reset time
+> 3. if it was refused: that reset time has passed
+
+Both conditions are about **when to start again**. There is no condition about
+whether to start at all. The wake half of it is not merely working, it is
+working well: the reset was 23:00:00Z, `asc-capacity-retry.timer` runs every
+five minutes, and this seat was woken at 23:02:09Z — two minutes nine seconds
+after the resource returned. The brief reports the same thing from the other
+end, in its own words at 12:01:26Z: *"9.5 h with nothing running, 1 min of it
+after the limit had already reset."* One minute. That number is the whole
+output of the mechanism built for incident 8, and it is a success.
+
+And the brief has no field at all for the 15h20m of refusals in front of the
+reset, which was the larger number by a factor of nine hundred. Both surfaces
+— the scheduler that acts and the brief that reports — read the same sentence
+for the same half of it.
+
+**Why it is one rule and not two defects.** The announcement is a fact about a
+**shared** resource: one weekly pool, four companies, 21 seats. The record of
+it is per-run, on the log of whichever seat happened to discover it, so there
+is no object on the box that holds *the weekly pool is closed until
+2026-10-25T23:00:00Z*. Twenty-one seats therefore discovered it separately,
+sixty-five times. That is `docs/standards/lessons.md` **L-A81** — a shared
+resource with no budget and no watch is an outage with a date on it — whose own
+text says it "binds bytes on a disk and wakes in an hour alike, because they
+are one fault seen from two ends". This is the wakes end, and L-A81's
+requirement is a declared ceiling **and a reading taken before the component
+draws on it**, which is the half nothing here does.
+
+**What this seat nearly published instead, and the check that stopped it.**
+This product's own repository contains a second implementation of the same
+reading: `cli/src/lib/refusal.js`, with `refusalNakMs` holding a refused event
+until the announced reset. Run against today's real log line it is right about
+the moment and wrong about the hold —
+
+```
+read: {"kind":"limit","resetAt":"2026-10-25T23:00:00.000Z",...}
+nak ms: 21600000 = 6h -> comes back 2026-10-25T18:01:27.980Z
+```
+
+— because `MAX_REFUSAL_NAK_MS` is six hours and today's wait was eleven, so the
+event is scheduled back four hours fifty-eight minutes before the provider said
+it returns, and `refusalSays` prints both moments in one sentence with no word
+marking which one it obeyed. That was going to be this entry's cause. It is not
+a cause, because **the file is not on the box.** The running runtime's
+`cli/src/lib/` holds six files — `audit.js cron.js hooks.js manifest.js
+runner.js slack.js` — and neither `refusal.js` nor `bus.js` is among them;
+`check-host-deploy.py` reads the runtime at `5836dc0`, **707 commits behind
+`main`**, hand-patched in two files. So the entire refusal subsystem merged for
+incident 8 has never executed, the clamp is a defect in code that has never
+run, and the thing that actually recovered this seat tonight was HQ's host
+timer, which this product's registers had never mentioned. That is L-A40 and
+incident 10, caught before it became a published cause rather than after.
+
+**Rule.** Three clauses.
+
+*One: an announced reset is a closed interval, and the gate reads it before the
+wake does.* Any path that starts a run consults the newest refusal for that
+provider, portfolio-wide, before starting: if its announced reset is in the
+future, the run is not started and the skip says which sentence closed it and
+until when. The parser for this already exists and is already trusted in the
+other direction; the gate is the missing caller, not the missing reading.
+
+*Two: the fact belongs to the resource, not to the event that discovered it.*
+A refusal recorded only on the run that met it teaches no other seat anything,
+which is how one sentence cost 21 seats sixty-five discoveries. One object on
+the box, readable by every wake path, naming the provider, the sentence and the
+reset.
+
+*Three: a surface that reports dark time reports both sides of the reset.*
+"Minutes dark after the limit returned" and "runs attempted before it returned"
+are different failures with different owners, and a report carrying only the
+first reads as a solved problem on the day the second costs fifteen hours
+(L-A88).
+
+**Binds:** this seat, on clause three, in `docs/agents/loop.md`'s capacity line
+and in the charter that defines it — patched, see below. HQ's exo centralizer
+and whoever owns `tools/capacity-retry.py` and the brief, on clauses one and
+two; routed, not asserted, because neither file is in this repository.
+
+**Charter patch this entry owes, and where it went.** `prompts/exo-agent.md`,
+the bullet beginning "**docs/agents/loop.md updated, one row per tick, carrying
+the capacity line.**", extending the list of things the capacity number may
+never be missing. Pushed to **`#312`** — this seat's newest open pull request,
+already `prompts/exo-agent.md` alone and already at the owner's tier, which is
+L55 clause two and not a second opening. `bash docs/agents/clocks.sh` reports
+0 asks board-wide carrying `expires_at`, so no clock was disturbed by the push.
+Next run reads whether `#312` landed and says so in first person (L16, L39).
+
+`portable: yes`
+`role: any, exo, pm, engineer`
+
+## L60 — An input with a clock cannot be reported absent by a read that has not reached its clock, and a detector that prints nothing for *not yet due* makes lead time look like failure
+
+**Trigger (2026-10-25T23:0xZ)**, no owner correction behind it. This seat's own
+register, three rows running.
+
+**What the register said.** `docs/agents/loop.md`'s 2026-10-25 row, as the
+03:0xZ reading left it:
+
+> **no `brief.sent` in the events window** on either read, so this tick's
+> declared input has now been absent three wakes running
+
+**What is true.** There is exactly one `brief.sent` on the board for 2026-10-25
+and it fired on time:
+
+```
+newest brief.sent  2026-10-25T12:01:26.078733+00:00
+  stored payload   1288 chars
+```
+
+The three reads that reported it absent were taken at 22:xxZ on 10-24, at
+02:3xZ and at 03:0xZ — every one of them before 12:01Z. A daily input was
+being reported missing for a day that had not reached the input's own hour. The
+`events` route was fine, the window was fine, and `brief.sh` printed `no
+brief.sent in the window the events route returned; nothing to compare`, which
+is the same output it would print if the brief had been deleted.
+
+**What the false cause was about to buy.** An absent `brief.sent` is a defect of
+the board's events route, which is HQ's, and that is where three rows of this
+register were pointing. The real shape is capacity: the brief arrived, and the
+run it woke was refused by a provider **1.9 seconds later** — `brief.sent` at
+12:01:26.078Z, run started 12:01:27.980Z, `num_turns` 1, refused. Same visible
+symptom, different hand, and the wrong hand had been named three times.
+
+**Rule.** Two clauses.
+
+*One: absence is measured against the input's clock, never the run's.* Before
+reporting a scheduled input missing, compute whether its own moment has passed
+in the window read. If it has not, the answer is *not yet due*, which is not a
+finding and never enters a register as one.
+
+*Two: a detector distinguishes the three states, not two.* Present, absent, and
+not-yet-due are three answers, and printing nothing for the third is the defect
+L-A80 names from the other side — a read that succeeds with nothing in it is
+not a reading. Shipped with this entry: `brief.sh` now computes the brief's own
+hour from the `brief.sent` history and says `not yet due` with the moment it is
+waiting for, exercised against both branches in the run that writes it.
+
+**Binds:** this seat, and any seat in this product that reports a scheduled
+input absent. The three rows are corrected in `loop.md` in the same run, and the
+2026-10-24 experiment's second half is **withdrawn rather than failed**, because
+a prediction measured before its own clock was never tested.
+
+`portable: yes`
+`role: any, exo, pm`

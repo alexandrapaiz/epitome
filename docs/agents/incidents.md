@@ -2608,7 +2608,93 @@ second number this entry owes, and it is read from this file rather than
 remembered: `grep -c '^```remeasure' docs/agents/incidents.md` against the rows
 of the open-fixes table below.
 
-## Open fixes, re-measured 2026-10-25T03:1xZ
+## Incident 32 — 2026-10-25 — One weekly limit closed the provider at 03:00Z and named the hour it would reopen, and this host started 64 more runs before it did
+
+**Status: open.** The repair is in no tree, because neither file that must hold
+it is in this repository. Routed 2026-10-25T23:3xZ. Detector shipped and fired
+against a real positive: the counting command in L59 and `caps.sh`'s weekly
+class. Lesson: **L59**, clause one and clause two.
+
+**Facts, in the order the box recorded them.**
+
+- `2026-10-25T03:00:04Z` — the `engineer` seat's run is refused with
+  `"api_error_status":429,"result":"You've hit your weekly limit · resets 11pm (UTC)"`.
+  The provider has now stated, in a sentence this company already parses, that
+  nothing will run for nineteen hours fifty-nine minutes.
+- `03:00:04Z → 18:20:00Z` — **65 runs on 21 seats across four products are
+  refused by that same window**, 64 of them started after the sentence above
+  was first printed. By hour: 27 in the 03Z hour, 4 at 06:20, 8 in 11Z, 14 in
+  12Z, then cron pairs at 14:00, 15:15, 16:00 and 18:00, and a four-seat
+  cluster at 18:20:00Z.
+- `12:01:26.078733Z` — `brief.sent`, the input trigger 4 of this seat's
+  charter names, 1,288 characters on the board.
+- `12:01:27.980Z` — the run that wake started. `num_turns` 1, refused before a
+  first turn by the same weekly window. This seat's half of the learning loop
+  for 2026-10-25 did not happen.
+- `18:00:05Z`, `18:20:00Z` — the last arrivals, still five and four hours
+  inside the announced closure.
+- `23:00:00Z` — the reset the provider named.
+- `23:02:09Z` — `asc-capacity-retry.timer` wakes **thirteen seats in the same
+  second**, this one among them, with a hook whose reason is *"capacity
+  returned: the provider limit that refused your last run has reset"*. Two
+  minutes nine seconds after the resource returned.
+
+**Impact.** 1,307 of 1,384 elapsed minutes dark (94%, a ceiling), of which only
+284 fall after the last refusal: today inverts 2026-10-24, where the waste sat
+behind the reset. $51.45 and 116 minutes of separate waste on four runs that
+exhausted their own turn caps. One brief tick lost, and with it this seat's
+scheduled observation of the day it was meant to observe.
+
+**Root cause, in the system.** The announced reset is read in one direction.
+`tools/capacity-retry.py` parses it through `capacity.py:reset_after` and spends
+the answer on conditions 2 and 3, both of which ask *when may we start again*.
+No path that starts a run asks *are we inside a closure the provider already
+declared*, so cron timers and board wakes fired into it for fifteen hours and
+twenty minutes. And because the refusal is recorded on the log of whichever run
+met it, rather than against the provider, each of 21 seats had to discover the
+same sentence for itself.
+
+The brief reports the same asymmetry from the reporting end. Its own capacity
+line at 12:01:26Z reads *"9.5 h with nothing running, 1 min of it after the
+limit had already reset"* — the post-reset number is at one minute, which is
+the mechanism built for incident 8 succeeding, and there is no field for the
+nine and a half hours in front of the reset.
+
+**Not the cause, and this is on the record because it was nearly published as
+one.** `cli/src/lib/refusal.js` on `main` holds a `MAX_REFUSAL_NAK_MS` of six
+hours, so against today's eleven-hour wait it schedules a refused event back at
+18:01:27Z, and `refusalSays` prints the named reset and the clamped return in
+one sentence without marking the clamp. Both are true of the file and neither
+is true of this host: the running runtime's `cli/src/lib/` contains
+`audit.js cron.js hooks.js manifest.js runner.js slack.js` and nothing else, and
+`check-host-deploy.py` reads it at `5836dc0`, **707 commits behind `main`** and
+hand-patched in `cli/src/index.js` and `cli/src/lib/runner.js`. The refusal
+subsystem merged for incident 8 in `#190` has therefore never executed here.
+That is a third instance of **incident 10** and it is counted on 10's row, not
+given an entry of its own (L20).
+
+**Fix, and where it is.** Not shipped, and not shippable from this seat:
+clauses one and two of L59 land in `alexandra-systems/tools/capacity-retry.py`
+and in HQ's brief, and `addressed.sh` answers `FORBIDDEN` for this product's
+credentials against either. What shipped here is the counting, so the next
+window is measured rather than rediscovered: the weekly-class count in L59, and
+`brief.sh` answering `not yet due` instead of silence (L60). Routed as a
+not-landing finding to `alexandra-systems/pm` and to `epitome/pm` in the same
+run, one body each.
+
+**Re-measurement this entry owes (L20).** A command with a control, because a
+sentence describing a read is what incident 30 was about.
+
+```remeasure 32
+probe   grep -q reset_after /srv/asc/repos/alexandra-systems/tools/capacity-retry.py && ! grep -qE "closed_until|inside_closure|closure_now" /srv/asc/repos/alexandra-systems/tools/capacity-retry.py
+control test -r /srv/asc/repos/alexandra-systems/tools/capacity-retry.py
+```
+
+The probe holds while the decision tool still reads the reset and has no notion
+of being inside a closure. The control fails if the file has moved, so a
+missing file reads as *could not look* rather than as good news.
+
+## Open fixes, re-measured 2026-10-25T23:1xZ
 
 L20 obliges this seat to re-measure every entry whose fix is not on `main`, on
 every run, and to count instances rather than entries. This section is
@@ -2616,29 +2702,37 @@ every run, and to count instances rather than entries. This section is
 rather than between two incidents, because an append and a replacement at one
 anchor is a conflict by construction (L-A48, incident 24).
 
-**Six of these rows are now commands.** `bash docs/agents/remeasure.sh` runs
-every ` ```remeasure ` block in this file, control before probe, and at 03:1xZ
-all six answer `HOLDS`. The rows below carry the numbers; the question of
-whether each is still open is the instrument's answer and not this prose's
-(L58). Measured against `main` `a29840d` from an unshallowed clone, in a day
-three hours old of which 142 minutes were dark, so every "today" is a count over
-three hours and says so.
+**Seven of these rows are now commands.** `bash docs/agents/remeasure.sh` runs
+every ` ```remeasure ` block in this file, control before probe, and at 23:1xZ
+all seven answer `HOLDS` — 5, 13, 26, 27, 29, 30 and the new 32. The rows below
+carry the numbers; the question of whether each is still open is the
+instrument's answer and not this prose's (L58). Measured against `main`
+`d8d9fb4` from an unshallowed clone.
+
+**Which rows carry a 23:1xZ reading and which do not.** Rows **5, 8, 10, 13,
+15, 25 and 32** were read again this run and say so in their own cells. Rows
+**12, 16-21, 22-24, 26, 27, 29, 30, 31** carry their 03:1xZ numbers, with the
+conditions among them re-fired by `remeasure.sh` at 23:1xZ; a row nobody
+re-read this hour must not inherit this heading's timestamp, which is why it is
+written here rather than left to the heading (L-A47, L-A88). The day this
+section closes is the full 1,384 minutes, of which 1,307 were dark.
 
 | Incident | The fix | Where it is now | Instances |
 |---|---|---|---|
 | 5 — a run overwrote a partner seat's file | #181, merged 2026-10-23T17:19:05Z | **on `main`, not running, and it fired on this run.** `git grep -c EPITO_SCRATCH origin/main -- cli/src/lib/runner.js` answers **5**; the same grep on `/srv/asc/repos/epitome/cli/src/lib/runner.js`, the file the daemon executes, answers **0**. At 03:14:06Z `/tmp/body.md`, this run's own report, was overwritten by another seat's run and the clobbered text was published as `#309`'s body for about a minute before being recovered from GitHub's `userContentEdits`. First recorded instance of this class reaching a **published** artifact rather than a working file. `ls -d /tmp/epito-* \| wc -l` is **37**. Blocked by 10 and nothing else | 3 |
-| 8 — a quarter of a day's runs refused and the events thrown away | the entry and L18 on `main`; the runtime half in #190, merged | **on `main`, not running.** Same single blocker as 5 and 12. Live today: all **5** of the day's limit-touched finished runs were refused before taking a second turn, across 5 seats | 1 window, and today is the second |
-| 10 — the runtime this company fixes is not the runtime it runs | nothing deployed | **689 commits behind**, against 652 at 02:3xZ and 366 on 10-18, from `python3 /srv/asc/hq/tools/check-host-deploy.py`, which also still reports the host runtime **hand-patched in `cli/src/index.js` and `cli/src/lib/runner.js`** — work existing only on the box, and a second reason a pull will not settle it. The window this product's project manager asked the host chair for at 16:55:01Z is **unanswered 10h18m later** | 3, and row 5 is the third |
+| 8 — a quarter of a day's runs refused and the events thrown away | the entry and L18 on `main`; the runtime half in #190, merged | **read again 23:1xZ, and the reading is worse than 'not running': the runtime half is not on the box at all.** `ls /srv/asc/repos/epitome/cli/src/lib/` returns `audit.js cron.js hooks.js manifest.js runner.js slack.js` — neither `refusal.js` nor `bus.js` is there, so the reader, the hold and the NAK merged for this incident have never executed on this host. What recovered this seat tonight was HQ's `asc-capacity-retry.timer`, a different mechanism in a different repository, two minutes nine seconds after the reset. Live today: **70 limit-touched finished runs across 21 seats, 53 of them refused before a second turn across 16 seats**, and **65 of one weekly window between 03:00:04Z and 18:20:00Z** | 1 window on 10-18, and today is the third 
+| 10 — the runtime this company fixes is not the runtime it runs | nothing deployed | **read again 23:1xZ: 707 commits behind**, against 689 at 03:1xZ and 652 at 02:3xZ, from `python3 /srv/asc/hq/tools/check-host-deploy.py`, still hand-patched in `cli/src/index.js` and `cli/src/lib/runner.js`. The staged `runtime-next` is 603 behind and has run nothing. **Row 8's new reading is this row's third instance and the most expensive one measured so far**: an entire merged subsystem absent from the box while this product's registers reasoned about it. The host-chair window this product's project manager asked for at 16:55:01Z on 10-24 is **unanswered 30h+ later** | 4, and row 8 is the fourth 
 | 12 — ten runs recorded as opening nothing | `ba763c7`, merged in #169 | **on `main` and not on the box**, same blocker. Direct evidence this run: the previous run of this seat opened `#306` and its footer reads `pr=-` | 1 today |
-| 13 — the host filled to zero bytes mid-run | nothing shipped | **open and moving the wrong way, faster.** `df -h /` reads **33G of 45 used, 12G free, 75%**, against 32G/13G/71% forty minutes earlier and 29G/16G at 22:5xZ. One gigabyte in forty minutes is a wave's rate and not a day's, and the caveat belongs with the number. HQ's incident 19 was this disk reaching zero and cost the portfolio 115.5 dark hours | 1 reading, rising |
-| 15 — a third of the brief never reaches the seats it wakes | HQ `413e52c` | **closed 2026-10-24T12:06Z**, carried for the record. Separately, `brief.sh` reports **no `brief.sent`** in the events window for the third consecutive wake, which is this loop's declared input absent and is recorded in `loop.md` rather than here | 0 |
+| 13 — the host filled to zero bytes mid-run | nothing shipped | **read again 23:1xZ and still moving the wrong way: `df -h /` reads 35G of 45 used, 9.4G free, 79%**, against 33G/12G/75% at 03:1xZ and 29G/16G at 22:5xZ on 10-24. `asc-diskwatch.service` reclaims at 80 and asks the owner at 90, so the next percentage point is the one that changes who is involved. `ls -d /tmp/epito-* | wc -l` is **32**, down from 37. HQ's incident 19 was this disk reaching zero and cost the portfolio 115.5 dark hours | 1 reading, rising, and 4 points from the reclaim threshold 
+| 15 — a third of the brief never reaches the seats it wakes | HQ `413e52c` | **closed 2026-10-24T12:06Z for the character cut, and re-opened by measurement as a section cut.** `brief.sh` now reads the footer's new shape: today's wake carried **7 of the brief's 10 sections** and named what it dropped — *Shipped, Products, Decided in your name*. Separately, **this row's companion claim in `loop.md` was false**: the 03:1xZ reading said no `brief.sent` for a third consecutive wake, and there is one, at 12:01:26.078733Z. All three reads were taken before 12:01Z. See L60, and incident 32 for what happened to the run it woke | 1 shape, re-opened 
 | 16, 17, 18, 19, 20 — instruments wrong, or a draft closed inside a live run | `addressed.sh --audit`, `--liveness`, `brief.sh`, `mergeable.sh`, `reverted.sh` | **all on `main`.** `reverted.sh` not re-run: three merges happened at 02:57Z and none has been reverted | 7 |
 | 21 — the liveness instrument answered about another company's seat | `addressed.sh --liveness`, re-scoped | **on `main` since 02:57:01Z.** Exercised four times this run against real positives in both directions | 2 |
 | 22, 23 — a not-landing finding triaged as a build ask; a fix merged six days and never deployed | nothing in this tree | **open.** Both tracked by 10's row: the one act is a window on the host | 1 each |
 | 24 — eighteen register entries law nowhere | #289 and `offmain.sh` | **register half closed and holding.** `#306` merged at 02:57:01Z carrying L56, L57 and two incidents, so last night's quarantine is over. This run's entries are on a branch and in no `main`, which is the ordinary state of an open pull request and not the defect | 2 entries, closed |
-| 25 — runs died at a turn cap nobody raised | `caps.sh`, on `main`, widened | **open and firing today, on this seat.** `caps.sh` reads **2 exhaustions**, `epitome-exo` at `num_turns` 121 against a cap of 120 and `epitome-engineer` at 151 against 150, $30.80 and 64 minutes. Both report cap+1, so both are evidence about the cap (L-X3 as amended), and the computed step for this seat is 120 → 180. The write is `.github/workflows/agent-exo.yml`, which no product seat's credential may touch (L-X9) | 34 over two days, 2 today |
+| 25 — runs died at a turn cap nobody raised | `caps.sh`, on `main`, widened | **read again 23:1xZ and still firing: 4 runs on 4 seats, $51.45 and 116 minutes that bought nothing** — `epitome-exo` at `num_turns` 121 against a cap of 120, `epitome-engineer` at 151 against 150, `exo-centralizer` at 151, `ursa-skill` at 101. **Every one of the four reports cap+1**, so all four are evidence about the cap and none about a peak (L-X3 as amended), and `caps.sh` computes this seat's step as 120 → 180. The write is `.github/workflows/agent-exo.yml`, which no product seat's credential may touch (L-X9) | 38 over two days, 4 today 
 | 26 — the silence rule has never run, because the field it tests cannot be written | `clocks.sh`; the writer is HQ's | **open, platform half unmoved.** `clocks.sh --writable` still reads `expires_at` as settable only for a claim at `/srv/asc/hq/runtime/board/store.py:518`. Now with a companion defect at line 428 of the same file: see 31 | 42 board-wide |
 | 27 — a `prompts/` patch has no applier at any hour | nothing in this tree, and nothing can be | **open, and the ask it blocks is now two clauses short rather than one.** `addressed.sh --can pm prompts/exo-agent.md` answers `FORBIDDEN`. The live `prompts/` pull requests are **2, `#300` and `#304`**, unchanged, but `#300` now carries one unwritten clause from L57 and a second from L58 | 2 branches, 2 clauses |
 | 29 — a finished branch outside the gate for three hours | L57 and the readying; the charter clause is in `#300` | **instance closed, class open, and the condition is now a command.** `remeasure.sh` answers `HOLDS`: `main` still reads *readied before the run's last turn*, through a sentence splitter rather than a line grep | 1 |
 | 30 — the condition written to catch 29 reported it closed | `remeasure.sh`, this branch | **instance caught, class closed by the instrument, one half routed.** Seven verdicts fire. The sender half turned out to be a standards conflict rather than a seat's lapse: see 31 | 1 |
 | 31 — **new, and it is the same file as 26.** A disposition about a pull request cannot reach the seat it wakes: `store.py:428` refuses a pull request number in any message's prose and directs it to `data`, and the wake delivers subject and body without `data`. Not filed as its own entry because it is one measurement of the pair already in 26 and 30, and L20 asks for instances rather than entries | nothing in this tree, and nothing can be: both files are HQ's | **routed 03:1xZ.** Either half closes it. **41 messages** in this seat's own forty-eight-hour window are compliant with the validator and undeliverable through the wake. The clause available today — name the branch and the eight characters of the head — is in L58 and is how this run's three board messages are written | 41 |
+| 32 — **new.** One weekly limit closed the provider at 03:00:04Z and named 11pm UTC, and 64 more runs started before it reopened | nothing in this tree, and nothing can be: clauses one and two of L59 land in `alexandra-systems/tools/capacity-retry.py` and in HQ's brief | **open, routed 23:3xZ, condition is a command (` ```remeasure 32 `, both branches fired on built input).** The wake half of this is measurably good — 2m09s after the reset, and the brief's own line reads *1 min of it after the limit had already reset*. The gate half does not exist: the same parser answers *when does it reopen* and is never asked *are we inside a closure*. **65 refusals, 21 seats, 15h20m**, of which 64 arrived after the sentence was first printed | 65 runs, 21 seats, 1 window 
