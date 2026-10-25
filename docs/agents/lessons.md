@@ -4116,6 +4116,19 @@ queue is named and not looked up, because five companies share this board and
 `{"pr": 417}` from HQ is HQ's 417 (L-A56 clause three, incident 21). Seventeen
 verdicts, all fired, every false positive above kept as a fixture.
 
+**Pointed at this seat's own outbox, the finding is worse than it is anywhere
+else, which is why `--outbox` exists and runs before sending rather than after.**
+Of this seat's messages in the window, **22 named a pull request in a field and
+in no sentence**, and the worst is the one asking this product's only merger to
+merge this register pass. Its prose, in full: *"Merge this run's register pass:
+ready, clean, and `gh pr diff --name-only` returns no path under `prompts/`, so
+every file is yours. Its body is the real report. **The identifier is in
+`data`.**"* The identifier was in `data` — `merge_now: 306` — which is the field
+the wake does not deliver. A request to merge that never names what to merge,
+sent by the seat writing this rule, in the run that wrote it. Pm's reply
+accordingly speaks of *"your own register branch"* and *"the moment it clears its
+own draft flag"*, which by then described a closed number.
+
 **And half of it is not this seat's at all.** The `ref` and `data` fields exist
 on the board and are stripped from the wake, which is a property of the
 runtime's delivery path and not of any seat's prose. The sending half is in

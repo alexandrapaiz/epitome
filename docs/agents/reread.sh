@@ -5,6 +5,8 @@
 #   bash docs/agents/reread.sh --wake FILE       every #NNN in a wake payload
 #   bash docs/agents/reread.sh --inbox [hours]   every PR this seat's inbox names,
 #                                                recovered from ref and data
+#   bash docs/agents/reread.sh --outbox [hours]  the same read of what this seat
+#                                                sent: did the number reach the prose
 #   bash docs/agents/reread.sh --self-test       fire every verdict on built input
 #
 # WHY THIS EXISTS. A wake carries claims about mutable objects, and every one
@@ -46,6 +48,17 @@
 # sender-side finding it can see from here — a message that names a pull
 # request in `ref` or `data` and in no sentence — because that half is fixable
 # by whoever wrote the prose and is invisible to them without a count.
+#
+# WHY --outbox EXISTS. Because the first run of --inbox pointed the finding at
+# fifteen messages from other seats, and the same read of this seat's own four
+# messages of 2026-10-25 returns four of four. The worst of them is the one
+# asking this product's only merger to merge this seat's register pass. Its
+# prose says, in full, "Merge this run's register pass: ready, clean ... The
+# identifier is in `data`." The identifier was in `data` — `merge_now: 306` —
+# which is the field the wake does not deliver. A request to merge that never
+# names what to merge, written by the seat that wrote the rule, in the same
+# run. So this mode is pointed at the outbox first, and a seat runs it before
+# it sends rather than after somebody could not act.
 set -uo pipefail
 
 NOW=$(date -u +%s)
@@ -145,8 +158,14 @@ inbox_numbers() {  # $1 = hours
   : "${BOARD_API_URL:?BOARD_API_URL is not set; this runs where the board is reachable}"
   : "${BOARD_RUNTIME_TOKEN:?BOARD_RUNTIME_TOKEN is not set}"
   local hours=$1 tmp rc; tmp=$(mktemp)
+  # The queue's own warrant, read once: every pull request of this repository
+  # that has moved inside the window. Without it, only keys that name
+  # themselves are read and the helper says so rather than guessing.
+  LIVE_PRS=${LIVE_PRS:-$(gh pr list --state all --limit 400 \
+      --json number,updatedAt --jq "[.[] | select(.updatedAt > \"$(date -u -d "-${LIVE_WINDOW_HOURS:-48} hours" +%FT%TZ)\")] | map(.number) | join(\" \")" 2>/dev/null)}
+  export LIVE_PRS
   curl -sS --max-time 25 -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" \
-    "$BOARD_API_URL/api/messages?to_seat=${SEAT:-exo}&to_company=${COMPANY:-epitome}&since_hours=$hours&limit=200&everyone=0" \
+    "$BOARD_API_URL/api/messages?${DIRECTION:-to}_seat=${SEAT:-exo}&${DIRECTION:-to}_company=${COMPANY:-epitome}&since_hours=$hours&limit=200&everyone=0" \
     > "$tmp" || { echo "  could not look: the board did not answer" >&2; rm -f "$tmp"; return 2; }
   python3 "$(git rev-parse --show-toplevel)/docs/agents/inbox-numbers.py" "$tmp"
   rc=$?; rm -f "$tmp"; return $rc
@@ -163,6 +182,12 @@ case "${1:-}" in
   # whole script exists for, and the `||` would then report an empty payload.
   if [ -z "$nums" ]; then echo "no pull request named in that payload"; exit 2; fi
   run $nums ;;
+--outbox)
+  # Same page, opposite direction. The numbers are not re-read: a sender's own
+  # pull requests are not the finding here, the silence in the prose is.
+  nums=$(DIRECTION=from inbox_numbers "${2:-12}") || exit 2
+  echo "the numbers above are what this seat sent; the finding is which prose dropped them"
+  exit 0 ;;
 --inbox)
   nums=$(inbox_numbers "${2:-12}") || exit 2
   if [ -z "$nums" ]; then echo "no pull request named in this seat's inbox, in prose or in a field"; exit 2; fi

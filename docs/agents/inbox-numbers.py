@@ -20,9 +20,38 @@
 # its own reach. A number is a pull request here only when the key carrying it
 # claims to carry one — either because its name contains `pr` or `pull`, or
 # because it is on the short list below of keys this board has actually been
-# observed using for pull requests. An unclaimed key is never guessed, and the
-# count of numbers refused for that reason is printed, so an allowlist going
-# stale is a visible number rather than a silent miss (L41's third answer).
+# observed using for pull requests, or because the number is one the queue
+# itself vouches for. The allowlist alone was not enough and said so by name:
+# pointed at this seat's own outbox it refused 341 values under 70 keys,
+# including `merge_now: 306` and `heads: {"306": "16bd56a4"}` — so it missed the
+# single worst case in the window, which is this seat asking its merger to merge
+# `#306` in prose that never says 306. An allowlist is a guess about other
+# seats' vocabulary. The queue is not: a number is vouched for when it is a pull
+# request of this repository that has moved inside LIVE_WINDOW_HOURS, which is
+# the only range in which a disposition still asks anyone to act. That filter
+# also drops what the allowlist could never have known to drop — `#518` from
+# `board_store_line`, `#368` from a dollar figure, `#4240` from a message id,
+# and `#5`, `#14`, `#16`, `#39` from keys counting rows and paragraphs. The
+# count refused for want of either warrant is printed, so the gap stays a
+# visible number rather than a silent miss (L41's third answer).
+#
+# ONE RESIDUAL, NAMED RATHER THAN HIDDEN. The queue's warrant cannot tell a
+# pull request number from a metric that happens to equal one: with a 72-hour
+# window `{"interval_minutes": 218}` was vouched for, because `#218` had moved
+# inside it. The window is 48 hours by default, which is the range in which a
+# disposition still asks anyone to act, and the collision is a false positive
+# in the direction of naming one message too many rather than missing one. A
+# reader who checks a flagged number against the message and finds a metric has
+# lost a second; the other direction cost a merge.
+#
+# AND ONE LIMIT, IN THE SAME DIRECTION. A bare number under a claiming key is
+# attributed to the sender's own company, because that is the only thing the
+# page says. When HQ's project manager writes about this product's queue, its
+# bare numbers are therefore reported as another queue and not read here. That
+# is a refusal rather than a wrong answer, and it is the side to err on: the
+# page gives no field that distinguishes "my 291" from "your 291", and a dict
+# keyed by company is the form that does, which is why that form is honoured
+# above and a bare number is not.
 #
 # AND A NUMBER IS NOT AN ADDRESS ACROSS REPOSITORIES. Five companies share
 # this board and each has its own queue, so `{"pr": 417}` from
@@ -38,12 +67,15 @@ import json, re, sys
 
 MINE = "epitome"  # set from read_page; the queue this checkout can read
 
-KEY = re.compile(r"(^|_)(pr|prs|pull|pulls|pull_request|pull_requests)(_|$)|pr$|^pr")
+# Underscore-delimited tokens only. The looser `^pr` this started with matched
+# `prev_free_gb` and turned a disk reading of 16 gigabytes into "#16".
+KEY = re.compile(r"(?:^|_)(?:pr|prs|pull|pulls|pull_request|pull_requests)(?:_|$)")
 # Observed on this board, 2026-10-24 and 2026-10-25, carrying pull requests
 # under a name that does not say "pr". Add by observation, never by guess.
 NAMED = {"swept", "declined", "merged", "closed_unmerged", "merge_sequence",
          "folded", "links_in_a_chain", "doors_by_base", "needs_a_hand",
          "drafts_no_gate", "held_on_review"}
+LIVE = set()    # pull requests of this repository that have moved recently
 REFUSED = []    # (key, numbers) a key nothing claimed; printed, never counted in
 ELSEWHERE = []  # (company, numbers) another company's queue; printed, never looked up
 
@@ -51,6 +83,11 @@ ELSEWHERE = []  # (company, numbers) another company's queue; printed, never loo
 def claims(key):
     k = key.lower()
     return bool(KEY.search(k)) or k in NAMED
+
+
+def vouched(n):
+    """The queue's own warrant, used where no key gives one."""
+    return n in LIVE
 
 
 def _ints(v):
@@ -100,9 +137,16 @@ def from_data(obj, company):
                     (found.__ior__(ns) if company == MINE else
                      ELSEWHERE.append((company, sorted(ns))))
             else:
-                loose = [n for n in _ints(v) if 100 <= n <= 9999]
-                if loose and isinstance(k, str):
-                    REFUSED.append((k, sorted(set(loose))))
+                loose = {n for n in _ints(v)}
+                take = {n for n in loose if vouched(n)}
+                if take:
+                    if company == MINE:
+                        found |= take
+                    else:
+                        ELSEWHERE.append((company, sorted(take)))
+                rest = sorted(loose - take)
+                if rest and isinstance(k, str):
+                    REFUSED.append((k, rest))
             found |= from_data(v, company)
     elif isinstance(obj, list):
         for x in obj:
@@ -121,9 +165,12 @@ def from_ref(ref, repo):
     return found
 
 
-def read_page(path, company=None, repo=None):
+def read_page(path, company=None, repo=None, live=None):
     global MINE
     MINE = company if company is not None else MINE
+    if live is not None:
+        LIVE.clear()
+        LIVE.update(live)
     doc = json.load(open(path))
     if "messages" not in doc:
         raise KeyError("the route answered without a messages key")
@@ -158,6 +205,8 @@ def selftest():
 
     global MINE
     MINE = "epitome"
+    LIVE.clear()
+    LIVE.update({291, 305, 306})   # a built queue, so this test reads no network
     me, them = "epitome", "alexandra-systems"
     check("a ref names the pull request and its repository",
           from_ref("https://github.com/alexandrapaiz/epitome/pull/305", "epitome"), {305})
@@ -176,9 +225,17 @@ def selftest():
           from_data({"swept": [305, 304, 300], "linear": "skipped_no_key"}, me), {305, 304, 300})
     check("declined, whose keys are the numbers, is a named carrier",
           from_data({"declined": {"291": "x", "292": "y"}}, me), {291, 292})
-    check("a key nothing claims yields nothing, and is recorded as refused",
+    check("a key nothing claims, with a number no queue vouches for, is refused",
           (from_data({"board_store_line": 518}, me),
            [k for k, _ in REFUSED if k == "board_store_line"]), (set(), ["board_store_line"]))
+    check("a key nothing claims, with a number the queue vouches for, is taken",
+          from_data({"merge_now": 306}, me), {306})
+    check("the same under a dict of heads to shas",
+          from_data({"heads": {"306": "16bd56a4", "291": "0b32896f"}}, me), {306, 291})
+    del ELSEWHERE[:]   # scoped: the checks above have been appending to it
+    check("a vouched number from another company's seat is still another queue",
+          (from_data({"merge_now": 306}, them),
+           [n for c, ns in ELSEWHERE if c == them for n in ns]), (set(), [306]))
     check("charter_pr and register_pr", from_data({"charter_pr": 304, "register_pr": 305}, me), {304, 305})
     check("backlog_card_added_on_pr", from_data({"backlog_card_added_on_pr": 295}, me), {295})
     check("a store line and a dollar figure are not pull requests",
@@ -199,7 +256,7 @@ def selftest():
     fd, p = tempfile.mkstemp(suffix=".json")
     os.write(fd, json.dumps(page).encode())
     os.close(fd)
-    nums, silent = read_page(p, "epitome", "epitome")
+    nums, silent = read_page(p, "epitome", "epitome", {291, 305, 306})
     os.unlink(p)
     check("both messages' numbers recovered", nums, {305, 291})
     check("only the one whose prose dropped the number is flagged",
@@ -213,9 +270,14 @@ if __name__ == "__main__":
         sys.exit(selftest())
     try:
         import os
+        live = {int(x) for x in (os.environ.get("LIVE_PRS") or "").split() if x.isdigit()}
+        if not live:
+            print("  could not look: LIVE_PRS is empty, so no number has the queue's"
+                  " warrant and only keys that name themselves would be read", file=sys.stderr)
+            sys.exit(2)
         nums, silent = read_page(sys.argv[1],
                                  os.environ.get("COMPANY", "epitome"),
-                                 os.environ.get("REPO", "epitome"))
+                                 os.environ.get("REPO", "epitome"), live)
     except Exception as e:
         print("  could not look: the board's answer did not read: %s" % e, file=sys.stderr)
         sys.exit(2)
