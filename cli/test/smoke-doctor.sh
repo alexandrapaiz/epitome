@@ -483,6 +483,43 @@ check "a misspelled flag is refused, not ignored"             "[ $rc -eq 1 ] && 
 out="$($E doctor "$R" --json --wat 2>&1)"; rc=$?
 check "and an unknown one lists the flags doctor takes"       "[ $rc -eq 1 ] && said '[-][-]deep'"
 
+# 7b. The document a reader gets is the whole document, through a pipe as well
+# as into a file. `console.log` to a pipe is asynchronous in node and
+# `process.exit` discards what has not reached the kernel, so until the fix
+# that lands with this section, a roster whose report crosses one pipe buffer
+# printed 94,600 bytes into a file and 65,536 of them into `| jq`, exit code
+# unchanged, the JSON cut mid-token. The amount that survived was whatever the
+# box's pipe buffer happened to be — 65,536 and 131,072 in two measurements on
+# the same box — which is why it reads as a parse error that comes and goes.
+#
+# Three seats is 5 KB and never crossed it, so the gate builds a roster that
+# does. Nothing here is slow: without --deep no seat is probed, and the extra
+# seats are copies of one manifest already in this roster.
+step "7b. a report bigger than one pipe buffer survives the pipe"
+BIG="$TMP/bigroster"; mkdir -p "$BIG"
+cp -r "$R/plain" "$BIG/plain"
+for n in $(seq 2 80); do
+  mkdir -p "$BIG/plain$n"
+  sed "s/^name = \"plain\"/name = \"plain$n\"/" "$R/plain/agent.toml" > "$BIG/plain$n/agent.toml"
+done
+# Completeness is the claim, and it is asked of one invocation. Two
+# invocations are not comparable byte for byte: the worker row carries the age
+# of its evidence ("last polled 2s ago"), so a `cmp` between two runs of this
+# command would be a gate that fails for being right.
+$E doctor "$BIG" --json 2>&1 | cat > "$TMP/big-pipe.json" || true
+$E doctor "$BIG" 2>&1 | cat > "$TMP/big-human.txt" || true
+SEATS=$(ls -d "$BIG"/*/ | wc -l)
+check "the piped report is over one pipe buffer, so this gate asks something" \
+  "[ \$(wc -c < '$TMP/big-pipe.json') -gt 65536 ]"
+check "and through the pipe it is valid JSON"                 \
+  "node -e 'JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\"))' '$TMP/big-pipe.json' 2>/dev/null"
+check "with every seat of the roster still in it"             \
+  "node -e 'const r=JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\"));process.exit(r.seats.length===Number(process.argv[2])?0:1)' '$TMP/big-pipe.json' $SEATS"
+# The human report leaves by the other two exits and loses its closing line
+# the same way — and that line is the whole verdict.
+check "the human report, piped, still ends with its own verdict" \
+  "grep -q 'Nothing was started' <<< \"\$(tail -1 '$TMP/big-human.txt')\""
+
 step "8. it writes nothing"
 run "$R"
 check "no .epito/ in the roster it was pointed at"            "[ ! -d '$R/.epito' ]"
