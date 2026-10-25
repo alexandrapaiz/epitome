@@ -68,81 +68,82 @@ echo "runs $(ls */$D*.log | wc -l)" \
 | 2026-10-19 → 2026-10-22 | 0 | 0 | — | 6,784 min, the whole of four days | not measured: no tick ran | the disk filled on 10-18 and the box ran nothing until 10-23T17:04Z; the brief, the bus and every clock went with it. Four rows this file could not take |
 | 2026-10-23 (read 00:12Z on 10-24) | 92 | 5,527 | 10 before a turn (6 seats), 6 mid-run | 1,024 min to 17:04Z, then 237 min 19:09→23:06Z | Dashboards | HQ's centralizer ran the loop on the outage; this seat's half is the row above and incident 14 |
 | 2026-10-24 (**final, read 2026-10-25T02:3xZ**, after eight rereads through the day; the per-reread trail is in `#305` and is not carried here, because this file's ceiling is 160 lines and a closed day is one reading) | 469 logs, **457 finished**, 12 without a result object | 27,165 as a 22:2xZ reading, not restated: `caps.sh` reports runs, cost and minutes and not the turn sum (L-A34) | **105 runs a limit touched across 23 seats, of which 47 never took a second turn across 18 seats**, and **32 runs exhausted their own cap on 10 seats, $378.29 and 825 min that bought nothing**. Last night's cell said *72 refused before a turn across 25 seats*: 72 was `caps.sh`'s REFUSED column at 23:0xZ, which counts every finished run a limit touched and never reads turns, so the number was the wrong class under the wrong label and both halves were wrong. `caps.sh` now prints REFUSED and BEFORE as separate columns (L33) | 813 dark of 1,383 at 23:0xZ, the last reading taken; longest gap 250 min from 02:09:56Z | **autonomy**, sixth and final naming | L34-L56, incidents 15-28, nine detectors, three ideas to her. The last of it, L56 and incident 28, reached no `main` that day: see the row below |
-| 2026-10-25 (read 02:3xZ on a hook wake whose payload says the limit that refused the last run has reset; **no `brief.sent` in the events window**, so this tick's declared input was again absent and the row says so) | 27 logs, **10 finished, 17 open** — 17 of them started inside 891 ms of each other at 02:20:32Z, when the limit reset | not read: `caps.sh` does not sum turns and nothing else on this box does | **5 of the 5 finished runs a limit touched were refused before taking a turn**, 5 seats, 0 exhaustions. The data block is below and is generated, not narrated | **142 of 149 elapsed minutes dark (95%, a ceiling)**, 120 of them one unbroken gap 00:20:08Z -> 02:20:32Z. The five refusals are 00:06Z and 00:20Z, so every refusal today preceded the reset and none followed it | **autonomy**, seventh naming, and this time against this seat itself | `gh pr ready 305` as the run's first command, L57, incident 29, the name-resolution fix in `addressed.sh` and the class split in `caps.sh` |
+| 2026-10-25 (**reread 03:0xZ** on a message wake; the 02:3xZ reading of this row is superseded in every cell it touches, and **no `brief.sent` in the events window** on either read, so this tick's declared input has now been absent three wakes running) | 54 logs, **33 finished, 21 open** — 17 of the day's runs started inside 891 ms of each other at 02:20:32Z when the limit reset, and 23 more have finished since | not read: `caps.sh` does not sum turns and nothing else on this box does | **5 of 5 limit-touched runs refused before a turn** across 5 seats, unchanged, and **2 runs exhausted their own cap, $30.80 and 64 min**, against 0 at 02:3xZ. One of the two is **this seat** at `num_turns` 121 against a cap of 120; the other is `epitome-engineer` at 151 against 150. Both report cap+1, so both are evidence about the cap and neither about a peak (L-X3 as amended) | **142 dark of 182 elapsed (78%)**, 122 of the dark after the day's last refusal at 00:20:00Z; longest gap 120 min 00:20:08Z → 02:20:32Z. Every refusal today still precedes the reset | **autonomy**, eighth naming | L58, incident 30, `remeasure.sh`, `reread.sh --inbox` and `--outbox`, and five of this register's open conditions turned from prose into commands |
 
-## Tick of 2026-10-25
+## Tick of 2026-10-25, second pass
 
-**Observe.** A hook woke this seat at 02:20:32Z with the payload *"capacity
-returned: the provider limit that refused your last run has reset"*. It was
-right about the refusal and about nothing else being due. The previous run had
-been refused at turn 99 at 23:20:56Z — `"api_error_status":429`,
-`"result":"You've hit your session limit · resets 2:20am (UTC)"`, $10.06 and
-26.5 minutes — and it had left `#305` a draft after writing in this file that
-it had readied it. That is L57 and incident 29, and it is the whole of what
-this tick found.
+**Observe.** A message wake at 02:46:06Z, 25 minutes after the previous run of
+this seat ended at `error_max_turns` with `num_turns` 121 against a cap of 120,
+$15.53 and 25.4 minutes. That run reached everything it owed: `#306` readied at
+02:38:53Z with its real body, four board messages sent 02:42:50–02:43:58Z. What
+it did not reach was a 122nd turn.
+
+Pasted from `bash docs/agents/caps.sh` and `bash docs/agents/idle.sh`, never
+retyped (L33):
 
 ```data
-measured_at: 2026-10-25T02:29:25Z
+measured_at: 2026-10-25T03:01:39Z
 window: 2026-10-25..2026-10-25
-logs_read: 24
-runs_finished: 6
-runs_open_or_without_a_result: 18
+logs_read: 54
+runs_finished: 33
+runs_open_or_without_a_result: 21
 limit_touched: 5
 limit_touched_seats: 5
 refused_before_a_turn: 5
 refused_before_a_turn_seats: 5
-exhausted: 0
-exhausted_seats: 0
+exhausted: 2
+exhausted_seats: 2
+exhausted_cost_usd: 30.80
+exhausted_minutes: 64
 dark_minutes: 142
-elapsed_minutes: 149
+elapsed_minutes: 182
 longest_dark_gap_minutes: 120
 longest_dark_gap: 00:20:08Z -> 02:20:32Z
+dark_after_last_refusal_minutes: 122
 ```
 
-Pasted from `bash docs/agents/caps.sh` and `bash docs/agents/idle.sh`, not
-retyped (L33). The disk is the other reading and it is the one that matters
-beyond today: `df -h /` is **32G of 45 used, 13G free, 71%**, against 29G and
-16G free three hours thirty-eight minutes earlier, with `/tmp` at 9.8G of which
-2.75G is 36 worktrees of runs that have finished. HQ's incident 19 cost this
-portfolio 115.5 dark hours on that same disk reaching zero.
+The disk is the other reading and it is the one that matters beyond today, read
+at 02:4xZ and not re-read this pass: `df -h /` at **32G of 45 used, 13G free,
+71%**, against 29G used and 16G free three hours thirty-eight minutes earlier,
+with `/tmp` at 9.8G of which 2.75G is 36 worktrees of runs that have finished.
+HQ's incident 19 cost this portfolio 115.5 dark hours on that same disk reaching
+zero.
 
-**Orient.** Weakest of the ten, and the attribute does not change from
-yesterday: **autonomy**. Yesterday it was named against credentials — a seat
-that cannot raise the cap that ends its own runs. Tonight it is sharper and it
-is not about a credential at all. The clause that would have prevented
-tonight's loss was written by this seat, correctly, sixty-three minutes before
-the loss, into a pull request that is ready, mergeable, one file, and that no
-hand in this product may touch. A company whose seats can diagnose themselves
-and cannot bind themselves is not short of insight.
+The four messages this wake delivered were all answered by that run, twelve
+minutes before this one started, and nothing in the payload says so. That is
+not a complaint about the payload: it is the measurement that
+`bash docs/agents/reread.sh --outbox` exists for, and a seat with no memory of
+its own last run has no other way to know.
 
-**Decide — the week's experiment.** Unchanged, and now with a second clause:
-every tick runs `bash docs/agents/caps.sh` and the row carries exhaustions
-beside refusals, **and quotes the instrument's own column names rather than a
-phrase of its own**. Prediction, so it can fail: on 2026-10-31 the portfolio
-still shows exhaustions at exactly cap+1 on at least three seats.
+**Orient.** Weakest of the ten, eighth consecutive naming: **autonomy**, and
+tonight the evidence is a cap. This seat ended its own run at a limit written in
+`.github/workflows/agent-exo.yml`, which no product seat's credential may touch
+(L-X9), and `caps.sh` computes the step it cannot take: 120 → 180. The clause
+that would have prevented last night's loss is still in `#300` with no hand.
+Both facts are the same fact: this company's seats can measure what binds them
+and cannot change it.
 
-**Act, under the merge rule.** Mine this run and in this pull request: L57,
-incident 29, the name resolution in `addressed.sh`, the class split in
-`caps.sh`, and this file. `gh pr diff --name-only` returns no path under
-`prompts/`, so `epitome/pm` holds every file in it. **No charter patch**: the
-one this run would have written is already in `#300`, word for word, and a
-second copy beside it would substitute words the ask did not show her (L55,
-L-A100).
+**Decide — the week's experiment.** Unchanged, and now with a third clause:
+**a re-measurement condition is a command with a control, and `remeasure.sh`
+runs them.** Prediction, so it can fail: on 2026-10-31 at least one of this
+register's conditions answers `COULD NOT LOOK` rather than `CHANGED`, which is
+the answer that would have been a false close under the old form.
 
-**Measure — the 2026-10-24 experiment.** Its second half ran again and failed
-again: `bash docs/agents/brief.sh` returns no `brief.sent` in the window the
-events route serves, so the input this loop declares has now been absent on two
-consecutive hook wakes. That is a finding about the experiment's instrument and
-it is recorded rather than smoothed over.
+**Act, under the merge rule.** Mine this run and in `#309`: L58, incident 30,
+`remeasure.sh`, `inbox-numbers.py`, the two new modes of `reread.sh`, five
+conditions converted, and this file. `gh pr diff --name-only` returns no path
+under `prompts/`, so `epitome/pm` holds every file in it. **No charter patch**,
+for the second run running: the clause L57 owes and the clause L58 owes are both
+written out in the register with their file, section and anchor sentence, and
+both ride as amendments to `epitome/pm`'s live ask on `#300` rather than as a
+second copy beside it (L55, L-A100). Two clauses now wait on one ask with no
+applier, against one last night, and that rise is the routed finding.
 
-**The ceiling, enforced against this seat.** This file declares 160 lines and
-says only the table grows. `#305` took it to **248**, by appending the three
-standing counts, which this file never asked for and the charter never put
-here. The counts are observations for the owner, so they belong where she reads
-them: this run's pull request body and the board. They are not in this file,
-and that is the cut the frameworks law asks for rather than a sentence about
-discipline.
-
+**Measure — the 2026-10-24 experiment.** Its second half failed a third time:
+`bash docs/agents/brief.sh` still returns no `brief.sent` in the window the
+events route serves. Its first half held and earned its keep: `caps.sh` is what
+found this seat's own exhaustion, which the 02:3xZ reading of this row recorded
+as zero because the run was still open when it was read.
 
 ## The week's ideas for the owner — sent 2026-10-24, none owed this tick
 

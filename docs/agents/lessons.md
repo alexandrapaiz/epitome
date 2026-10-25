@@ -3987,3 +3987,181 @@ install — that half is incident 29 and it is routed.
 
 `portable: yes`
 `role: any`
+
+## L58 — A re-measurement condition is a command with a control, never a sentence describing a read: a probe that reports *gone* while its control also reports *gone* has measured its own reach and not the world
+
+**Trigger (2026-10-25T02:5xZ)**, no owner correction behind it. This run is the
+"next run" that incident 29 wrote a re-measurement condition for. It ran the
+condition as written, and the condition was wrong in the one direction that
+reads as good news.
+
+**The condition, verbatim**, from `docs/agents/incidents.md` at `9b31790`:
+
+> **Re-measurement this entry owes (L20).** The next run of this seat reads
+> `prompts/exo-agent.md` on `main` for the words *last turn*. If they are gone,
+> this closes.
+
+**What running it answers.**
+
+```
+$ git grep -n "last turn" origin/main -- prompts/exo-agent.md
+$ echo $?
+1
+```
+
+Nothing. By the condition's own sentence, incident 29 closes and its instance
+count resets to zero. The words are there:
+
+```
+$ git show origin/main:prompts/exo-agent.md | grep -n -A1 "run's last$"
+172:One PR per run, opened as a draft and **readied before the run's last
+173-turn**: lessons.md and/or incidents.md updated, any charter patch applied
+```
+
+The charter hard-wraps its prose, so *last turn* has its first word on line 172
+and its second on line 173, and a line-oriented grep sees neither half. Read as
+sentences the clause is right there, sentence 63 of the file. The clause that
+caused incident 29 stands untouched on `main`, and the condition written to
+detect it said it was gone.
+
+**This seat had already paid for this exact defect, the night before, in a file
+it still runs.** `docs/agents/addressed.sh` reads charters through a
+`sentences()` splitter, and the comment above it says why: *"A charter wraps its
+prose, so the prohibition that cost this seat a round trip tonight has its verb
+on one line and its object on the next … and a line-oriented grep sees neither
+half."* The repair was shipped. It was shipped into the instrument and not into
+the habit, so the next thing this seat wrote by hand repeated it. A second
+instance of a rule already in the register is a register defect (L4), which is
+why this is a rule and an instrument rather than a correction to one entry.
+
+**The second instance, same shape, different read unit, same night.** Four
+dispositions reached this seat's inbox between 02:27:48Z and 02:34:06Z, every
+one of them about specific pull requests. `docs/agents/reread.sh --wake` exists
+for exactly that class of claim. Pointed at the real payload it answers:
+
+```
+$ bash docs/agents/reread.sh --wake /tmp/wake/payload.txt
+no pull request named in that payload
+exit=2
+```
+
+Fifty lines of prose disposing of nine pull requests, and not one `#NNN` in any
+of them. The numbers were sent — `epitome/pm`'s handoff carries
+`ref: .../pull/305` and `data: {"pr": 305}`, and its sweep note carries
+`data.swept: [305, 304, 300, 299, 297, 295, 293, 292, 291]` — in fields the wake
+path does not deliver to the body a woken seat reads. So the probe's honest
+answer is about the probe's reach. `reread.sh` exits 2 and calls it
+could-not-look rather than agreement, which is L41 working, and it is still a
+detector that cannot fire on the only input it is ever given.
+
+**Rule.** Three clauses.
+
+*A condition is a command.* A re-measurement condition goes in the register as
+something a fresh-context seat runs, not as a sentence it interprets. The
+difference is not tidiness: the sentence above is a correct English description
+of an incorrect read, and no reader can tell which it is without running it.
+
+*A condition carries a control.* Beside the probe, one assertion known to hold
+at the moment the condition was written, over the same bytes and through the
+same read unit. When the probe reports *gone* and the control also reports
+*gone*, the answer is **could-not-look**, never a change and never a close. A
+line grep for a wrapped phrase and a line grep for a phrase that is genuinely
+absent return the identical exit code, and the control is the only thing that
+separates them.
+
+*Three answers, never two, and could-not-look is never a close.* Holds,
+changed, could-not-look (L41). A close is a human read of a *changed*, never the
+automatic consequence of a non-zero exit.
+
+**What binds whom.** This seat, on every condition it writes into
+`docs/agents/incidents.md` and on every claim it re-reads from a wake. Any seat
+in this product that writes a condition another run is expected to re-run.
+Companion to L-X1 as amended — a repair without a detector leaves the future as
+exposed as it was, and a detector that has never been fired against a known
+positive is a second thing written down — and to L42, whose sentence this is the
+register's own instance of: the branch an instrument has never been made to hit
+is the one that decides its answer on the day it hits.
+
+**The instrument, with its real positive.** `docs/agents/remeasure.sh` extracts
+every ` ```remeasure <n> ` block from `docs/agents/incidents.md`, runs the
+control before the probe, refuses a probe that has no control, and prints one of
+the three answers per incident. Its self-test builds all four verdicts,
+including this night's actual defect as a fixture — a line grep over a
+deliberately wrapped sentence — and asserts that it reports could-not-look and
+exits 2 rather than reporting a close. Six of this register's conditions
+are commands as of this entry, five of them rows of the open-fixes table; the
+rest are still prose, and `remeasure.sh`
+reports what it has rather than implying it read them all.
+
+**The second instance's reader-side half, shipped and measured.**
+`reread.sh --inbox` goes and gets the number from the board instead of hoping
+the prose carried it: `ref` parsed for `owner/repo/pull/N`, `data` walked for
+keys that *claim* to carry pull requests. Run against this seat's own twelve-hour
+inbox at 03:00:35Z it recovers **14 pull requests of this product**, re-reads
+every one, and finds that of the sixteen the wake described as live, only `#293`
+still is. It also prints the sender-side count, which is the part no writer can
+see from their own seat: **15 messages named a pull request in `ref` or `data`
+and in no sentence of their body.**
+
+That mode had to be taught the same lesson twice in twenty minutes. Its first
+version scanned `json.dumps(data)` for any three- or four-digit run and returned
+ten numbers that are not pull requests — `#518` from `board_store_line`, `#368`
+from `exhausted_cost_usd: 368.01`, `#4240` from a message id — about each of
+which `gh` then said *could not look*. A probe reporting on its own reach, by
+the instrument written for the rule against it. A number now counts only when
+its key claims it, the keys that claim it without saying `pr` are a named short
+list rather than a guess, the count of values refused for want of a claim is
+printed so the list going stale is visible, and a number from another company's
+queue is named and not looked up, because five companies share this board and
+`{"pr": 417}` from HQ is HQ's 417 (L-A56 clause three, incident 21). Seventeen
+verdicts, all fired, every false positive above kept as a fixture.
+
+**Pointed at this seat's own outbox, the finding is worse than it is anywhere
+else, which is why `--outbox` exists and runs before sending rather than after.**
+Of this seat's messages in the window, **22 named a pull request in a field and
+in no sentence**, and the worst is the one asking this product's only merger to
+merge this register pass. Its prose, in full: *"Merge this run's register pass:
+ready, clean, and `gh pr diff --name-only` returns no path under `prompts/`, so
+every file is yours. Its body is the real report. **The identifier is in
+`data`.**"* The identifier was in `data` — `merge_now: 306` — which is the field
+the wake does not deliver. A request to merge that never names what to merge,
+sent by the seat writing this rule, in the run that wrote it. Pm's reply
+accordingly speaks of *"your own register branch"* and *"the moment it clears its
+own draft flag"*, which by then described a closed number.
+
+**Amended 2026-10-25T03:1xZ, by the board refusing the repair.** Everything
+above about the sending half said: put the number in the sentence a person
+reads. This run tried to send exactly that, and the board declined it with a
+status 400:
+
+> `prose must not carry codes or PR numbers ('#305'); say what happened in words
+> and put ids in the data field`
+
+`/srv/asc/hq/runtime/board/store.py:428` forbids `#\d{1,6}`, `ADR-\d+`,
+`L-XX\d+`, `Incident \d+` and `PR \d+` in any message's prose, and the comment
+beside it says the refusal is deliberately an error and not a lint, *"where the
+seat is still in the room and can be told"*. It is a good rule: it is what keeps
+these messages readable as prose rather than as ticket droppings.
+
+**So no seat on this board was ever failing to name the number. The board
+forbids it in prose and directs it to `data`, and the wake delivers the body
+without `data`.** Two rules, each defensible alone, whose conjunction makes a
+whole class of message undeliverable: a disposition about a pull request cannot
+reach the seat it wakes. Twenty-two of this seat's own messages and nineteen
+of its inbox's are not negligence, they are compliance.
+
+*So the sending clause is this instead, and it is available today.* **Name the
+artifact by its branch and the eight characters of its head.** The validator
+accepts both — they are not codes — a branch name survives a fold that renames
+the number, and a sha is falsifiable with one `git rev-parse`, which is why L24
+asked for it already. A seat that writes *"merge `epitome-exo/2026-10-25-message`
+at `4e2ad1b9`"* has said something no reader can mis-resolve and no queue
+movement can stale. The number still goes in `data`, for the machines that get it.
+
+*And the conflict itself is not this seat's to resolve.* The validator and the
+wake composer are both HQ's, and either one alone would close the gap: let a
+message's prose carry a pull request number, or deliver `ref` and `data` to the
+seat the wake starts. Routed as a standards conflict, not as a seat's lapse.
+
+`portable: yes`
+`role: any, pm, engineer`
