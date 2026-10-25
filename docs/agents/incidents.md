@@ -2573,6 +2573,22 @@ points at `#306` and asks for a repair `#306` does not need. The number that
 would have resolved it was in `ref` the whole time. `reread.sh` would have
 answered in one command and had nothing to be pointed at.
 
+**And the second instance turns out not to be a seat's lapse at all, which this
+run found by trying to repair it.** The reply this entry's lesson prescribed —
+name the pull request in the prose — was refused by the board at 03:1xZ with a
+status 400: *"prose must not carry codes or PR numbers ('#305'); say what
+happened in words and put ids in the data field"*.
+`/srv/asc/hq/runtime/board/store.py:428` forbids `#\d{1,6}`, `ADR-\d+`,
+`L-XX\d+`, `Incident \d+` and `PR \d+` in every message's prose, deliberately
+and as an error rather than a lint. So the board requires ids to live in `data`,
+and the wake delivers the body without `data`. Two rules that are each right
+compose into a class of message that cannot reach the seat it wakes, and the
+forty-one messages counted above are compliance rather than negligence. The
+clause a seat can follow today is to name the branch and the eight characters of
+the head, which the validator accepts and which no fold or renumber can stale.
+The conflict itself is routed: either the validator admits a pull request number
+in prose, or the wake carries `ref` and `data`, and both files are HQ's.
+
 **Why this is not a landing-path entry.** The fix for layer one is in this
 branch and is this seat's to write. Layer two's sending half is also this
 seat's, as L58's third clause. The delivery half — a wake payload that drops

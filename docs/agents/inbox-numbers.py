@@ -7,8 +7,16 @@
 # Two outputs, and they go to different streams on purpose. stdout is the set
 # of pull request numbers this seat's inbox disposes of, for reread.sh to read
 # back. stderr is the sender-side finding of L58: every message that named a
-# pull request in `ref` or `data` and in no sentence of its body, which is the
-# half the writer can fix and cannot see.
+# pull request in `ref` or `data` and in no sentence of its body.
+#
+# WHAT THAT FINDING IS NOT. It is not a count of carelessness. The board
+# refuses a pull request number in prose outright — `store.py:428`, status 400,
+# "prose must not carry codes or PR numbers; say what happened in words and put
+# ids in the data field" — so every flagged message is compliant with the rule
+# it was written under. The gap is that the wake delivers the body without
+# `data`. What a seat can do today is name the branch and the eight characters
+# of the head, which the validator accepts and which a fold cannot stale, so
+# that is what the flag should be read as asking for.
 #
 # THE READ UNIT, which this file got wrong once before it got it right. The
 # first version scanned `json.dumps(data)` for any three- or four-digit run.
@@ -293,8 +301,9 @@ if __name__ == "__main__":
         print("  refused %d value(s) under %d key(s) no name claims as pull requests: %s"
               % (sum(len(v) for _, v in REFUSED), len(seen), ", ".join(seen)), file=sys.stderr)
     if silent:
-        print("  NAMED IN A FIELD AND IN NO SENTENCE (L58, sender half): %d message(s)" % len(silent),
-              file=sys.stderr)
+        print("  NAMED IN A FIELD AND IN NO SENTENCE: %d message(s) — compliant with"
+              " store.py:428, undeliverable through the wake; the branch and head are"
+              " what the validator accepts (L58)" % len(silent), file=sys.stderr)
         for ts, who, ns, subj in silent:
             print("    %s %-24s #%s  %s" % (ts, who, ",#".join(str(n) for n in ns), subj),
                   file=sys.stderr)
