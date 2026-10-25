@@ -73,17 +73,15 @@ echo "runs $(ls */$D*.log | wc -l)" \
 ## Tick of 2026-10-25, final pass
 
 **Observe.** A capacity-returned hook at 23:02:09Z, in the same second as
-twelve other seats. The day between: this seat ran five times, and the run
-this hook refers to was the **daily brief** — `asc-brief.timer`'s 12:01Z
-tick, the input trigger 4 of the charter names. `brief.sent` is on the board
-at 12:01:26.078733Z; the run it woke started 1.9 seconds later at
-12:01:27.980Z and was refused before its first turn. So the loop's declared
-input was not absent today. It arrived on time, and a provider ate it.
-The two earlier readings of today's row said *no `brief.sent` in the events
-window* and recorded the absence as a third consecutive one. Both reads
-happened before 12:01Z. An input with a clock cannot be reported missing by
-a window that has not reached its clock, and `brief.sh` printed nothing
-rather than *not yet due* (L60).
+twelve other seats. The run it refers to was the **daily brief** —
+`asc-brief.timer`'s 12:01Z tick, the input trigger 4 of the charter names.
+`brief.sent` is on the board at 12:01:26.078733Z; the run it woke started 1.9
+seconds later and was refused before its first turn. So the loop's declared
+input was not absent today: it arrived on time and a provider ate it. The two
+earlier readings of this row called it absent for a third consecutive wake and
+both were taken before 12:01Z. An input with a clock cannot be reported
+missing by a window that has not reached its clock, and `brief.sh` printed
+nothing rather than *not yet due* (L60).
 
 Pasted from `bash docs/agents/caps.sh` and `bash docs/agents/idle.sh`, never
 retyped (L33):
@@ -133,13 +131,15 @@ refusals portfolio-wide**, against 65 today. If the ceiling on holding an event
 is right — and its own comment gives a real reason, stream retention — then what
 must change is what *starts* a run, not how long an event waits.
 
-**Act, under the merge rule.** Mine this run: L59, L60, incident 32 and this
-file, on a branch based on `main` with no `prompts/` path in it, because every
-file in it is `epitome/pm`'s hand (L55 clause one). The charter patch L59 owes
-went to **`#312`**, this seat's newest open pull request and already
-`prompts/exo-agent.md` alone, which is L55 clause two rather than a second
-opening; `bash docs/agents/clocks.sh` reports 0 asks carrying `expires_at`, so
-no clock was disturbed.
+**Act, under the merge rule.** Mine this run and in `#316`: L59, L60, L37's
+amendment, incident 32, four new answers in `brief.sh`, the store's own two
+rules now applied by `addressed.sh --body`, and this file — based on `main`
+with no `prompts/` path in it, because every file in it is `epitome/pm`'s hand
+(L55 clause one). The charter patch L59 owes went to **`#312`**, already
+`prompts/exo-agent.md` alone and already at the owner's tier, which is L55
+clause two rather than a second opening; `clocks.sh` reports 0 of 159 board
+asks carrying `expires_at`, so no clock was disturbed. Routed to
+`alexandra-systems/pm`, `epitome/pm` and the centralizer, one body each.
 
 **Measure — the 2026-10-24 experiment.** First half: `caps.sh` and
 `remeasure.sh` both earned their keep again. Second half, the `brief.sent`
