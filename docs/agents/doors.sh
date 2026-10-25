@@ -84,7 +84,7 @@ python3 - "$tmp/rows" "$TARGET" "$head_sha" <<'PY'
 import sys
 rows = [l.rstrip("\n").split("\t") for l in open(sys.argv[1]) if l.strip()]
 target, head = sys.argv[2], sys.argv[3]
-doors, handed, contained, drafts, held = [], [], [], [], []
+doors, handed, contained, drafts, held, stacked = [], [], [], [], [], []
 for n, base, sha, draft, created, inside, conflict, review in rows:
     at_target = base == target
     mark = []
@@ -106,12 +106,25 @@ for n, base, sha, draft, created, inside, conflict, review in rows:
     elif inside: contained.append(n)
     elif at_target and not conflict.strip(): doors.append(n)
     elif at_target: handed.append(n)
+    else: stacked.append(n)
 print()
+# Every open pull request lands in exactly one class or the summary is a
+# count of something else (L-A88). The first version of this chain had no
+# final `else`, so a ready pull request based on another branch and contained
+# in nothing fell out of every list: on 2026-10-24 at 21:35Z it printed a row
+# for `#260` and then summed 1 + 1 + 5 + 4 = 11 of 12 open, and the `data`
+# block other seats paste carried the same hole. A class list is only a
+# reading if it partitions, so this says so rather than trusting it.
+_total = len(doors) + len(handed) + len(contained) + len(drafts) + len(held) + len(stacked)
+if _total != len(rows):
+    print(f"  doors.sh: classified {_total} of {len(rows)} open — the classes do "
+          f"not partition the queue, so every count below is a floor", file=sys.stderr)
 door_word = "door" if len(doors) == 1 else "doors"
 print(f"  {len(rows)} open; {len(doors)} {door_word} a merger of {target} can take "
       f"as they stand; {len(handed)} addressed to {target} but needing a hand first; "
       f"{len(contained)} contained in another; {len(drafts)} drafts no gate can "
-      f"reach; {len(held)} held on a review")
+      f"reach; {len(held)} held on a review; {len(stacked)} stacked on a branch "
+      f"other than {target} and contained in nothing")
 print()
 print("```data")
 print(f"measured_at: {__import__('datetime').datetime.now(__import__('datetime').timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}")
@@ -122,5 +135,7 @@ print(f"needs_a_hand: [{', '.join('#'+d for d in handed)}]")
 print(f"contained_in_another: [{', '.join('#'+d for d in contained)}]")
 print(f"drafts_no_gate: [{', '.join('#'+d for d in drafts)}]")
 print(f"held_on_review: [{', '.join('#'+d for d in held)}]")
+print(f"stacked_elsewhere: [{', '.join('#'+d for d in stacked)}]")
+print(f"classified: {_total} of {len(rows)}")
 print("```")
 PY

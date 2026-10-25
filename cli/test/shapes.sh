@@ -48,21 +48,23 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # The allowance: what each file still carries, and the ceiling it may not pass.
 # A file absent from this list is allowed none. Lower a number when you convert
 # a suite; there is no reason for one to rise, and a rise is what this fails on.
-# Counts read 2026-10-24 on `main` after #277 merged: 159 sites in eight files,
-# less the one in test/all.sh that this branch converts. smoke-validate.sh and
-# smoke-temporal.sh are converted and absent, so allowed none.
+# Counts re-read 2026-10-24 22:5xZ on `main`: 57 sites in six files. The roster
+# and deploy suites reached zero when their conversions merged, and their two
+# numbers come down here with them, because an allowance left standing after
+# its suite is converted is not a record of history -- it is 66 and 34 free
+# quiet pipes a later change may add back without this gate saying a word.
+# This scan asked for both by name on every run since those merges.
 #
 # One line here is not an allowance but an exemption, and it is named rather
 # than hidden: probe-pipefail.sh carries five of the shape because exhibiting it
-# IS that file's subject. It is counted so that it cannot quietly grow a sixth. smoke-validate.sh
-# is the one already converted and so is absent, allowed none. smoke-roster.sh
-# and smoke-temporal.sh are converted in two pull requests open as this lands,
-# and when either merges this gate says so and asks for its number to come
-# down; it does not go red for a suite getting better.
+# IS that file's subject. It is counted so that it cannot quietly grow a sixth.
+# smoke-validate.sh, smoke-temporal.sh, smoke-roster.sh and smoke-deploy.sh are
+# converted and absent, so allowed none. The doctor suite's 31 are converted in
+# a pull request of this seat open as this lands, and when it merges this gate
+# says so and asks for its number to come down; it does not go red for a suite
+# getting better.
 ALLOWED="
 cli/test/probe-pipefail.sh 5
-cli/test/smoke-roster.sh 66
-cli/test/smoke-deploy.sh 34
 cli/test/smoke-doctor.sh 31
 cli/test/smoke-langgraph.sh 19
 deploy/test-provision.sh 4

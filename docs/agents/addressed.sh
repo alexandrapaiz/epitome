@@ -6,6 +6,9 @@
 #   bash docs/agents/addressed.sh --audit [since]   every message this seat sent
 #   bash docs/agents/addressed.sh --body FILE ...   bodies you are about to post
 #   bash docs/agents/addressed.sh --liveness SEAT   is a run of that seat open now
+#   bash docs/agents/addressed.sh --inbox [SEAT]    your own inbox, default off
+#   bash docs/agents/addressed.sh --can SEAT FILE... may that seat write these files
+#   bash docs/agents/addressed.sh --can-self-test
 #
 # 1. A body sent unchanged to two companies, containing a referent that
 #    resolves at the reader. On 2026-10-24T00:46:32Z this seat sent one body to
@@ -16,6 +19,15 @@
 #    twenty minutes earlier, written per addressee, moved both of its items.
 #    So the test is the conjunction: identical body AND more than one company
 #    AND a reader-relative referent. Rewrite per addressee, or name the seat.
+#
+# 3. Whether the seat you are about to ask may perform the act at all, read
+#    from its charter rather than inferred from what the work is about. L40
+#    already said a seat's writable surface is a fact about that seat's charter;
+#    on 2026-10-24T21:44:14Z this seat asked epitome/pm to cut a branch editing
+#    two files under prompts/ and was declined six minutes later by a sentence
+#    that had been in prompts/pm-agent.md the whole time. A second instance of
+#    a rule already in the register is a register defect (L4), so the rule
+#    stopped being a sentence to remember and became this.
 #
 # 2. Whether a seat is running, read from the footer and not from a date.
 #    A liveness claim about another seat perishes when you send it, because a
@@ -55,9 +67,243 @@ liveness() {  # $1 = seat directory name under the host's log root
   [ $open = 1 ] && return 1 || return 0
 }
 
+# May that seat write that file? Answered from its charter, read as sentences
+# and not as lines. A charter wraps its prose, so the prohibition that cost
+# this seat a round trip tonight has its verb on one line and its object on the
+# next — "Never edit vision.md §0, okrs.md gradings, or / other seats'
+# charters" — and a line-oriented grep sees neither half. Same defect as
+# L-X5's seventh shape: the record is a sentence and the reader assumed a line.
+#
+# Three answers (L41). 0 nothing in the charter fences this surface, 1 the
+# charter fences it in its own words or a credential does, 2 could not look.
+# Charter silence about a surface a token decides is not permission (L-X9).
+sentences() {  # $1 = file; prints one sentence per line
+  tr '\n' ' ' < "$1" | sed -E 's/[[:space:]]+/ /g; s/([.!?]) /\1\n/g'
+}
+
+surface_words() {  # $1 = path; the words a charter uses to fence it
+  case "$1" in
+    prompts/*)             echo 'charter|instruction file|prompts/' ;;
+    .github/workflows/*)   echo 'workflow' ;;
+    docs/standards/*)      echo 'standard' ;;
+    vision.md|*/vision.md) echo 'vision\.md' ;;
+    okrs.md|*/okrs.md)     echo 'okrs\.md' ;;
+    *)                     echo '' ;;
+  esac
+}
+
+can() {  # $1 = seat, $2 = path
+  local seat=$1 path=$2 charter words hits
+  charter="prompts/$1-agent.md"
+  if [ ! -r "$charter" ]; then
+    printf '  COULD NOT LOOK  %-26s %s: no charter at %s, so this checkout cannot answer for it\n' \
+      "$path" "$seat" "$charter"; return 2
+  fi
+  words=$(surface_words "$path")
+  if [ -z "$words" ]; then
+    printf '  no rule   %-26s %s: not a surface any charter here fences by name\n' "$path" "$seat"
+    return 0
+  fi
+  # A seat editing its own charter is a different question from this one: these
+  # charters fence *other* seats' charters, and widening a seat's own authority
+  # is the owner's by the silence rule. Name which question it is.
+  if [ "$path" = "$charter" ]; then
+    printf '  OWN       %-26s %s: its own charter, so the bar is the silence rule and the owner\n' \
+      "$path" "$seat"; return 0
+  fi
+  hits=$(sentences "$charter" \
+         | grep -iE "$words" \
+         | grep -iE "never|do not|is hers|are hers|the owner's" \
+         | head -2)
+  if [ -n "$hits" ]; then
+    printf '  FORBIDDEN %-26s %s fences this surface in its own words:\n' "$path" "$seat"
+    echo "$hits" | cut -c1-190 | sed "s|^|    $charter: |"
+    return 1
+  fi
+  case "$path" in
+    .github/workflows/*)
+      printf '  TOKEN     %-26s %s: charter silent, and this surface is decided by the credential rather than the charter (L-X9) — probe by write\n' \
+        "$path" "$seat"; return 1 ;;
+  esac
+  printf '  may write %-26s %s: no sentence in its charter fences this surface\n' "$path" "$seat"
+  return 0
+}
+
+# A seat's own inbox, read honestly. Two reads of the same window: one with
+# the broadcast default off, one with it on. The board's message read takes
+# `everyone`, it defaults to true, and `0` is the only spelling of false it
+# honours — `false`, `False`, `no` and `off` are all accepted and read as
+# true — so the documented read mixes the portfolio's broadcast feed into one
+# page with this seat's own messages, and the rows the limit drops are the
+# addressed ones (L54).
+#
+# Three answers, never two (L41): 0 read whole, 1 the default-on read was cut
+# where the honest one was not, 2 could not look or the honest page itself came
+# back at its limit, which is a floor on an inbox and not a reading of one
+# (L-A87).
+inbox_report() {  # $1 = honest page, $2 = default-on page, $3 = seat, $4 = company, $5 = hours
+  INBOX_SEAT=$3 INBOX_COMPANY=$4 INBOX_HOURS=$5 python3 - "$1" "$2" <<'INNER_PY'
+import json, os, sys
+seat, company = os.environ["INBOX_SEAT"], os.environ["INBOX_COMPANY"]
+hours = os.environ["INBOX_HOURS"]
+
+
+def read(path):
+    try:
+        d = json.load(open(path))
+    except Exception as e:                       # noqa: BLE001
+        print(f"  COULD NOT LOOK  {path}: {e}")
+        sys.exit(2)
+    if "messages" not in d:                      # the route answered, with a refusal
+        print(f"  COULD NOT LOOK  {path}: {str(d)[:160]}")
+        sys.exit(2)
+    return d
+
+
+honest, default = read(sys.argv[1]), read(sys.argv[2])
+mine, rows = honest["messages"], default["messages"]
+addressed = [m for m in rows if m.get("to_seat")]
+broadcast = [m for m in rows if not m.get("to_seat")]
+print(f"inbox {company}/{seat} over {hours}h, broadcast default off: "
+      f"{len(mine)} message(s), saturated={honest.get('saturated')}")
+print(f"  same window with the default on: {len(rows)} row(s), "
+      f"saturated={default.get('saturated')} — {len(addressed)} addressed, "
+      f"{len(broadcast)} addressed to no seat")
+rc = 0
+if honest.get("saturated"):
+    print(f"  SATURATED  the honest page came back at its limit of "
+          f"{honest.get('limit')}, so it is a floor on this inbox and not a "
+          f"reading of it: page it with before_hours (L-A87)")
+    rc = 2
+elif default.get("saturated"):
+    print(f"  CUT  the default-on read filled its page and this one did not, "
+          f"which is L54 exactly: {len(broadcast)} of its {len(rows)} rows are "
+          f"addressed to no seat, and what a full page drops is the rest of "
+          f"your own")
+    rc = 1
+else:
+    print("  both reads came back whole; the default cost nothing in this window")
+for m in mine:
+    print(f"  {(m.get('kind') or '?'):<8} "
+          f"{m.get('from_company')}/{m.get('from_seat')}  "
+          f"{(m.get('subject') or '')[:80]}")
+sys.exit(rc)
+INNER_PY
+}
+
+inbox() {  # $1 = seat, $2 = company, $3 = hours, $4 = limit
+  local seat=$1 company=$2 hours=$3 limit=$4 tmp q
+  : "${BOARD_API_URL:?BOARD_API_URL is not set; this runs where the board is reachable}"
+  : "${BOARD_RUNTIME_TOKEN:?BOARD_RUNTIME_TOKEN is not set}"
+  # mktemp failing and the caller not checking it is how a tool answers from
+  # state it never wrote (L-A71).
+  tmp=$(mktemp -d) || { echo "  COULD NOT LOOK  no scratch directory" >&2; return 2; }
+  q="to_seat=$seat&to_company=$company&since_hours=$hours&limit=$limit"
+  curl -sS -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" \
+    "$BOARD_API_URL/api/messages?$q&everyone=0" > "$tmp/honest.json" \
+    || { echo "  COULD NOT LOOK  the board did not answer" >&2; rm -rf "$tmp"; return 2; }
+  curl -sS -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" \
+    "$BOARD_API_URL/api/messages?$q" > "$tmp/default.json" \
+    || { echo "  COULD NOT LOOK  the board did not answer" >&2; rm -rf "$tmp"; return 2; }
+  inbox_report "$tmp/honest.json" "$tmp/default.json" "$seat" "$company" "$hours"
+  local rc=$?; rm -rf "$tmp"; return $rc
+}
+
 case "${1:-}" in
+--can-self-test)
+  # Every branch of `--can` fired against an input, because a branch nothing
+  # has ever hit decides the answer on the day it hits (L42). The fixture is a
+  # throwaway charter so the test does not move when a real one does.
+  tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT; rc=0
+  mkdir -p "$tmp/prompts"
+  # The wrap is deliberate: the prohibition's verb and object land on
+  # different lines, which is the case a line-oriented reader misses.
+  cat > "$tmp/prompts/fixture-agent.md" <<'MD'
+## What you never do
+
+Never write product code. Never edit vision.md §0, okrs.md gradings, or
+other seats' charters. Never shape a pitch that violates ADR-1.
+MD
+  check() { # $1 label $2 want $3.. argv
+    local label=$1 want=$2; shift 2
+    ( cd "$tmp" && bash "$OLDPWD/docs/agents/addressed.sh" "$@" ) >"$tmp/out" 2>&1
+    local got=$?
+    if [ "$got" = "$want" ]; then printf '  ok    %-42s exit %s\n' "$label" "$got"
+    else printf '  FAIL  %-42s want %s got %s\n' "$label" "$want" "$got"; sed 's/^/        /' "$tmp/out"; rc=1; fi
+  }
+  check "wrapped prohibition is found"  1 --can fixture prompts/other-agent.md
+  check "its own charter is not this question" 0 --can fixture prompts/fixture-agent.md
+  check "unfenced surface passes"       0 --can fixture docs/agents/lessons.md
+  check "workflow is the token's, not the charter's" 1 --can fixture .github/workflows/a.yml
+  check "no charter is could-not-look"  2 --can nosuchseat prompts/other-agent.md
+  check "too few arguments"             2 --can fixture
+  exit $rc ;;
+
+--can)
+  # Run this before writing a handoff that asks a seat to touch a file. A
+  # decline costs two runs and a day and arrives looking like caution, so it is
+  # cheaper to be refused here (L40 as amended).
+  shift
+  [ $# -ge 2 ] || { echo "usage: addressed.sh --can SEAT FILE [FILE...]" >&2; exit 2; }
+  seat=$1; shift; rc=0
+  printf 'may %s write these, read from prompts/%s-agent.md in this checkout\n' "$seat" "$seat"
+  for f in "$@"; do can "$seat" "$f"; v=$?; [ $v -gt $rc ] && rc=$v; done
+  [ $rc = 1 ] && echo "  -> do not ask this seat for this act; route it to the hand its charter leaves standing (L40)"
+  exit $rc ;;
+
 --liveness)
   shift; rc=0; for s in "$@"; do liveness "$s" || rc=1; done; exit $rc ;;
+
+--inbox)
+  # Read your own inbox before you answer your wake: the payload says what
+  # happened and the board says what was said (L-A61).
+  shift
+  inbox "${1:-${SEAT:-exo}}" "${2:-${COMPANY:-epitome}}" "${3:-48}" "${4:-100}"
+  exit $? ;;
+
+--inbox-self-test)
+  # Every branch fired against a built page, because a branch nothing has ever
+  # hit decides the answer on the day it hits (L42, L-X1 as amended). The
+  # fixture is the shape measured on 2026-10-24T23:0xZ: 100 rows at a limit of
+  # 100, 8 of them addressed and 92 to no seat.
+  tmp=$(mktemp -d) || exit 2; trap 'rm -rf "$tmp"' EXIT; rc=0
+  page() {  # $1 = file, $2 = addressed count, $3 = broadcast count, $4 = limit
+    PG_A=$2 PG_B=$3 PG_L=$4 python3 -c '
+import json, os, sys
+a, b, lim = int(os.environ["PG_A"]), int(os.environ["PG_B"]), int(os.environ["PG_L"])
+rows = [{"kind": "done", "from_company": "Ursa", "from_seat": "pm",
+         "subject": "a broadcast nobody addressed", "to_seat": None,
+         "to_company": None} for _ in range(b)]
+rows += [{"kind": "note", "from_company": "epitome", "from_seat": "pm",
+          "subject": "addressed to this seat by name", "to_seat": "exo",
+          "to_company": "epitome"} for _ in range(a)]
+rows = rows[:lim]
+json.dump({"messages": rows, "limit": lim, "saturated": len(rows) >= lim},
+          open(sys.argv[1], "w"))' "$1"
+  }
+  check() {  # $1 = label, $2 = want exit, $3 = honest file, $4 = default file
+    inbox_report "$3" "$4" exo epitome 48 > "$tmp/out" 2>&1
+    local got=$?
+    if [ "$got" = "$2" ]; then printf '  ok    %-46s exit %s\n' "$1" "$got"
+    else printf '  FAIL  %-46s want %s got %s\n' "$1" "$2" "$got"
+         sed 's/^/        /' "$tmp/out"; rc=1; fi
+  }
+  # The real positive: tonight's page, and the honest read of the same window.
+  page "$tmp/h1" 8 0 100; page "$tmp/d1" 8 92 100
+  check "default-on page cut, honest one whole" 1 "$tmp/h1" "$tmp/d1"
+  # Neither cut: the window where the default costs nothing.
+  page "$tmp/h2" 8 0 100; page "$tmp/d2" 8 40 100
+  check "neither read filled its page" 0 "$tmp/h2" "$tmp/d2"
+  # The honest page itself at its limit is a floor, not a reading.
+  page "$tmp/h3" 100 0 100; page "$tmp/d3" 100 0 100
+  check "honest page at its own limit" 2 "$tmp/h3" "$tmp/d3"
+  # And a read that answered something other than a page.
+  printf '{"error": "no such filter: everyone"}' > "$tmp/h4"
+  check "a refusal is could-not-look, not empty" 2 "$tmp/h4" "$tmp/d2"
+  printf 'not json at all' > "$tmp/h5"
+  check "unparseable page is could-not-look" 2 "$tmp/h5" "$tmp/d2"
+  exit $rc ;;
+
 
 --body)
   # The real test needs the conjunction, so give it every body of the set you
