@@ -115,12 +115,21 @@ base, self_sha = sys.argv[2], sys.argv[3]
 # sat on an ungated branch of their own. That is the same error as counting a
 # stack's links as separate decisions: the question is whether a free route
 # exists, not whether a blocked one does.
-carriers, unread = {}, []
+carriers, unread, mine = {}, [], {}
 for r in rows:
     if len(r) < 7:
         unread.append(r[0]); continue
     n, sha, head, draft, ids, files, charter = r[:7]
-    if sha == self_sha:       # this run's own branch is the repair, not the finding
+    if sha == self_sha:
+        # This run's own branch is the repair and not the finding, so it is
+        # excluded from the counts. It is NOT excluded from the page. Skipping
+        # it silently made the summary line read "0 lessons, 0 incidents and 0
+        # files exist on a branch and on no main" on 2026-10-25 while four
+        # entries of this run's own sat exactly there, which is a skip spelled
+        # like a clean bill (L41, L-A34, L-A88). A class that can be non-zero
+        # and never appear reads as zero.
+        mine[n] = (sha, [i for i in ids.split() if i],
+                   [f for f in files.split() if f], draft == "true")
         continue
     gate = []
     if charter and charter != "UNREAD": gate.append("charter: " + charter)
@@ -144,7 +153,16 @@ lessons = sorted((k for k in ids_all if k.startswith("L")), key=lambda s: int(s[
 incs    = sorted((k for k in ids_all if k.startswith("I")), key=lambda s: int(s[1:]))
 gated   = sorted(k for k in carriers if not free(k))
 print(f"  {len(lessons)} lessons, {len(incs)} incidents and {len(files_all)} files under "
-      f"docs/agents/ exist on a branch and on no main.")
+      f"docs/agents/ exist on another branch and on no main.")
+if mine:
+    own_i = sorted({i for _, ids, _, _ in mine.values() for i in ids})
+    own_f = sorted({f.replace("docs/agents/", "") for _, _, fs, _ in mine.values() for f in fs})
+    bits = []
+    if own_i: bits.append(" ".join(own_i))
+    if own_f: bits.append(" ".join(own_f))
+    print(f"  Excluded from that count, and not a finding: {', '.join('#'+n for n in sorted(mine))}, "
+          f"this run's own branch, carrying {' and '.join(bits) if bits else 'nothing'}. "
+          f"It is off main too, and it is off main because it is being written.")
 print(f"  Of those, {len(gated)} have no ungated branch carrying them at all, so the thing "
       f"they are waiting for is a charter decision and not a merger.")
 if unread:
@@ -160,6 +178,11 @@ print("files_off_main: [" + ", ".join(sorted(files_all)) + "]")
 print("only_route_is_a_charter_decision: [" + ", ".join(
       (k[2:] if k.startswith("f:") else k) for k in gated) + "]")
 print("unreadable_heads: [" + ", ".join("#" + u for u in unread) + "]")
+own_ids = sorted({i for _, ids, _, _ in mine.values() for i in ids})
+own_files = sorted({f for _, _, fs, _ in mine.values() for f in fs})
+print("on_this_runs_own_branch_excluded: [" + ", ".join("#" + n for n in sorted(mine)) + "]")
+print("excluded_ids: [" + ", ".join(own_ids) + "]")
+print("excluded_files: [" + ", ".join(f.replace("docs/agents/", "") for f in own_files) + "]")
 print("```")
 sys.exit(1 if (carriers or unread) else 0)
 PY
