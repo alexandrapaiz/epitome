@@ -209,7 +209,7 @@ else
   STUB_APP_PUBLIC_KEY="$(cat "$ROOT/app.pub.pem")" \
     node "$CLI/test/cloudflare-stub.mjs" "$STUB_PORT" > "$STUB_LOG" 2>&1 &
   STUB_PID=$!
-  for _ in $(seq 1 50); do grep -q "on http://127.0.0.1:$STUB_PORT" "$STUB_LOG" && break; sleep 0.2; done
+  for _ in $(seq 1 50); do grep -q "on http://127.0.0.1:$STUB_PORT" "$STUB_LOG" 2>/dev/null && break; sleep 0.2; done
 
   start_dev() {
     (cd "$ROOT/dev" && "$WRANGLER" dev --port "$PORT" --inspector-port "$INSPECT" > "$ROOT/wrangler.log" 2>&1 &)

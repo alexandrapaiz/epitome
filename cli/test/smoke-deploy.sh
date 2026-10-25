@@ -80,7 +80,7 @@ start_stub() { # mode
   GH_STARTS=$((GH_STARTS+1)); GH_STUB_LOG="$ROOT/github-stub-$GH_STARTS.log"
   node "$CLI/test/github-stub.mjs" "$GH_PORT" "$ROOT/app.pub.pem" "$GH_LOG" "$1" "$ROOT/app.pem" > "$GH_STUB_LOG" 2>&1 &
   GH_PID=$!
-  for _ in $(seq 1 60); do grep -q "github-stub on $GH_PORT" "$GH_STUB_LOG" && return 0; sleep 0.2; done
+  for _ in $(seq 1 60); do grep -q "github-stub on $GH_PORT" "$GH_STUB_LOG" 2>/dev/null && return 0; sleep 0.2; done
   echo "the stand-in GitHub API never came up"; cat "$GH_STUB_LOG"; exit 1
 }
 stop_stub() { kill "${GH_PID:-}" 2>/dev/null; wait "${GH_PID:-}" 2>/dev/null; GH_PID=""; }
@@ -161,7 +161,7 @@ rm -f "$WORK/.gitignore"
 DEPLOY_STARTS=$((DEPLOY_STARTS+1)); DEPLOY_LOG="$ROOT/deploy-$DEPLOY_STARTS.log"
 (cd "$WORK" && EPITO_GITHUB_API="http://127.0.0.1:$GH_PORT" $E deploy --no-open --port "$DPORT" > "$DEPLOY_LOG" 2>&1) &
 DEPLOY_PID=$!
-for _ in $(seq 1 100); do grep -q "waiting up to" "$DEPLOY_LOG" && break; sleep 0.1; done
+for _ in $(seq 1 100); do grep -q "waiting up to" "$DEPLOY_LOG" 2>/dev/null && break; sleep 0.1; done
 check "deploy is waiting, and said so with the URL to open" "grep -q 'http://127.0.0.1:$DPORT/' '$DEPLOY_LOG'"
 check "  it named the App and the permissions before sending anyone anywhere" "grep -q 'permissions: contents:write, pull_requests:write' '$DEPLOY_LOG'"
 

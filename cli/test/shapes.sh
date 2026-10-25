@@ -207,6 +207,11 @@ cli/test/probe-stub-restart.sh 1
 # increments with `V=$((V+1))` -- either written into the name directly or
 # through one variable whose every assignment carries it.
 #
+# All three spellings of a redirect into a file count -- `>`, `>>` and `&>`.
+# An append never truncates at all, so a wait reading one is stale by
+# construction rather than by a lost race; there is no such site here, and the
+# scan takes it anyway so that adding one is not a way through.
+#
 # Backgrounding is read by removing `2>&1`, `1>&2` and `&&` from the line and
 # asking whether an `&` survives. That is a heuristic and it is a safe one: a
 # line has to ALSO redirect stdout into a file and ALSO have a loop reading
@@ -254,9 +259,9 @@ function has_counter(t,   c) {
   b = $0; gsub(/2>&1/, "", b); gsub(/1>&2/, "", b); gsub(/&&/, "", b)
   if (b ~ /&/) {
     s = $0
-    while (match(s, /[^0-9&>]>[ \t]*"?[^ \t">|&)]+"?/)) {
+    while (match(s, /[^0-9>]>>?[ \t]*"?[^ \t">|&)]+"?/)) {
       t = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
-      sub(/^[^>]*>[ \t]*/, "", t); gsub(/"/, "", t)
+      sub(/^[^>]*>>?[ \t]*/, "", t); gsub(/"/, "", t)
       if (t ~ /^\/dev\// || t == "") continue
       if (!(t in startline)) { startline[t] = NR; order[++starts] = t }
     }

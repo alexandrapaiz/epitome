@@ -410,7 +410,7 @@ writeFileSync(process.argv[2], publicKey.export({ type: "spki", format: "pem" })
 chmod 600 "$ROOT/pm-app.pem"
 GH_STARTS=$((GH_STARTS+1)); GH_STUB_LOG="$ROOT/github-stub-$GH_STARTS.log"
 node "$CLI/test/github-stub.mjs" "$GH_PORT" "$ROOT/pm-app.pub.pem" "$GH_LOG" ok > "$GH_STUB_LOG" 2>&1 & GH_PID=$!
-for _ in $(seq 1 60); do grep -q 'github-stub on' "$GH_STUB_LOG" && break; sleep 0.2; done
+for _ in $(seq 1 60); do grep -q 'github-stub on' "$GH_STUB_LOG" 2>/dev/null && break; sleep 0.2; done
 check "the stand-in GitHub API is up" "grep -q 'github-stub on $GH_PORT (ok)' '$GH_STUB_LOG'"
 echo "  pm: App 1234, key $ROOT/pm-app.pem (2048-bit, thrown away with this run)"
 echo "  badkey: App 99, and a key that is not a PEM — the refusal path"
@@ -423,7 +423,7 @@ node "$CLI/test/slack-sink.mjs" "$SLACK_PRODUCT_PORT" "$SLACK_PRODUCT" > "$ROOT/
 # than against a product (ADR-18).
 OTLP_STARTS=$((OTLP_STARTS+1)); OTLP_LOG="$ROOT/otlp-$OTLP_STARTS.log"
 node "$CLI/test/otlp-sink.mjs" "$OTLP_PORT" "$SPANS" > "$OTLP_LOG" 2>&1 & OTLP_PID=$!
-for _ in $(seq 1 60); do grep -q 'otlp sink on' "$OTLP_LOG" && break; sleep 0.2; done
+for _ in $(seq 1 60); do grep -q 'otlp sink on' "$OTLP_LOG" 2>/dev/null && break; sleep 0.2; done
 cd "$STATE"
 export TEMPORAL_ADDRESS="127.0.0.1:$GRPC_PORT" TEMPORAL_NAMESPACE="$NS" \
        EPITO_HOOK_SECRET="$SECRET" EPITO_PORT="$PORT" EPITO_STUB_DIR="$STUB" \
@@ -452,7 +452,7 @@ check "...and the two commands that start one" "said \"\$docout\" 'epito worker'
 
 WORKER_STARTS=$((WORKER_STARTS+1)); WORKER_LOG="$ROOT/worker-$WORKER_STARTS.log"
 node "$CLI/src/index.js" worker > "$WORKER_LOG" 2>&1 & WORKER_PID=$!
-for _ in $(seq 1 100); do grep -q 'state: .RUNNING' "$WORKER_LOG" && break; sleep 0.3; done
+for _ in $(seq 1 100); do grep -q 'state: .RUNNING' "$WORKER_LOG" 2>/dev/null && break; sleep 0.3; done
 check "the worker is polling the seats queue" "grep -q 'epito worker: 127.0.0.1:$GRPC_PORT namespace=$NS queue=seats' '$WORKER_LOG'"
 # And the engine says so too, which is the half the log cannot prove: a worker
 # process that printed RUNNING and a queue the engine has seen a poll on are

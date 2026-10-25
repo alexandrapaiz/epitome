@@ -60,7 +60,7 @@ detail() { result | python3 -c 'import json,sys; print(json.loads(sys.stdin.read
 step "sink: a stand-in trace backend on 127.0.0.1:$SINK_PORT (Phoenix takes the same OTLP)"
 SINK_STARTS=$((SINK_STARTS+1)); SINK_LOG="$ROOT/sink-$SINK_STARTS.log"
 node "$CLI/test/otlp-sink.mjs" "$SINK_PORT" "$SPANS" > "$SINK_LOG" 2>&1 & SINK_PID=$!
-for _ in $(seq 1 60); do grep -q 'otlp sink on' "$SINK_LOG" && break; sleep 0.2; done
+for _ in $(seq 1 60); do grep -q 'otlp sink on' "$SINK_LOG" 2>/dev/null && break; sleep 0.2; done
 check "the sink is up" "grep -q 'otlp sink on $SINK_PORT' '$SINK_LOG'"
 
 TRACED=(OTEL_EXPORTER_OTLP_ENDPOINT="http://127.0.0.1:$SINK_PORT" TRACEPARENT="00-$TRACE_ID-$EXECUTE_SPAN-01")
