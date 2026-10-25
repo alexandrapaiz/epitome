@@ -53,9 +53,53 @@ E="node $CLI/src/index.js"
 STUB="$CLI/test/stub-executor.mjs"
 
 pass=0; fail=0
+# How many lines of the evidence a failing gate prints: enough to carry a
+# doctor section and its closing line, not the whole 7 KB document.
+EVIDENCE_LINES="${EPITO_SMOKE_EVIDENCE_LINES:-24}"
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
-bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
-check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# A failing gate says what it looked at. Three of this suite's assertions have
+# now failed one at a time on a busy box, a different one each run, and each
+# cost a run of archaeology to identify, because `FAIL <label>` names the claim
+# and never the output the claim was made against: the only way to learn which
+# of six rows was missing was to run the suite again and hope to be unlucky in
+# the same place. On failure only -- a green run's output is byte for byte what
+# it was.
+#
+# The haystack printed is the one the test names. Half of these gates assert
+# against their own captured document (`$FJ2`, `$IJD`, `$eout`) rather than the
+# last `run`'s `$out`, and printing the wrong one sends the next reader
+# somewhere else entirely. The first `$NAME` in the UNEVALUATED expression is
+# that document's name -- `check` is handed its test as a string, so the name
+# survives to here; when there is no name, or it holds nothing, the last
+# `run`'s output is the answer.
+bad()  {
+  fail=$((fail+1)); printf '  FAIL %s\n' "$1"
+  [ -n "${2:-}" ] || return 0
+  printf '       the test: %s\n' "$2"
+  local name hay
+  # Matched in the shell, not through `grep ... | head -1`: that is a producer
+  # piped into a reader that exits on its first line, which is the shape the
+  # card next to this one is converting out of every suite in here. The
+  # failure path is the last place to introduce one.
+  name=""
+  [[ "$2" =~ [$]\{?([A-Za-z_][A-Za-z0-9_]*) ]] && name="${BASH_REMATCH[1]}"
+  hay=""
+  [ -n "$name" ] && hay="${!name:-}"
+  # A value with no newline in it is a path, a port or a queue name and not a
+  # document: three of these gates grep a FILE that `$TMP` only locates, and
+  # printing that directory as though it were the haystack would be a wrong
+  # answer confidently given. It is printed as the note it is, and the last
+  # `run`'s output goes underneath as the document.
+  if [ -n "$hay" ] && [ "${hay#*$'\n'}" = "$hay" ]; then
+    printf '       $%s is %s\n' "$name" "$hay"
+    hay=""
+  fi
+  [ -n "$hay" ] || { name=out; hay="${out:-}"; }
+  [ -n "$hay" ] || return 0
+  printf '       $%s, %s bytes, last %s lines:\n' "$name" "${#hay}" "$EVIDENCE_LINES"
+  printf '%s\n' "$hay" | tail -n "$EVIDENCE_LINES" | sed 's/^/       | /'
+}
+check(){ if eval "$2"; then ok "$1"; else bad "$1" "$2"; fi; }
 step() { printf '\n== %s\n' "$1"; }
 cleanup() { if [ -n "${EPITO_SMOKE_KEEP:-}" ]; then printf '\nkept: %s\n' "$TMP"; else rm -rf "$TMP"; fi; }
 trap cleanup EXIT
@@ -130,9 +174,16 @@ export EPITO_STUB_DIR="$TMP/stub"
 # no engine is one where `epito run` refuses — which is the right answer and
 # not a test failure. The suite asks once and says so.
 ENGINE_ADDR="${TEMPORAL_ADDRESS:-127.0.0.1:7233}"
-engine_up() {
-  node -e 'const n=require("net"),a=process.argv[1],i=a.lastIndexOf(":"),s=n.connect({host:a.slice(0,i),port:Number(a.slice(i+1))});s.setTimeout(500);s.on("connect",()=>{s.end();process.exit(0)});s.on("timeout",()=>process.exit(1));s.on("error",()=>process.exit(1));' "$ENGINE_ADDR"
+# Does anything accept a connection at host:port. Asked of the box's engine
+# here, and of the stand-in listener this suite starts itself in section 5 --
+# which waited at a fixed `sleep 1` instead until a box at load 18 showed what
+# that guess is worth.
+answers() {
+  node -e 'const n=require("net"),a=process.argv[1],i=a.lastIndexOf(":"),s=n.connect({host:a.slice(0,i),port:Number(a.slice(i+1))});s.setTimeout(500);s.on("connect",()=>{s.end();process.exit(0)});s.on("timeout",()=>process.exit(1));s.on("error",()=>process.exit(1));' "$1"
 }
+engine_up() { answers "$ENGINE_ADDR"; }
+# And waits up to 12s for one to come up, for the listeners that are ours.
+answering() { for _ in $(seq 1 60); do answers "$1" && return 0; sleep 0.2; done; return 1; }
 HAVE_ENGINE=0
 if engine_up; then HAVE_ENGINE=1; fi
 
@@ -166,12 +217,23 @@ worker_cleanup() { [ -n "$WORKER_PID" ] && kill "$WORKER_PID" 2>/dev/null; wait 
 cleanup() { worker_cleanup; if [ -n "${EPITO_SMOKE_KEEP:-}" ]; then printf '\nkept: %s\n' "$TMP"; else rm -rf "$TMP"; fi; }
 
 run() { out="$($E doctor "$@" 2>&1)"; rc=$?; }
-said() { printf '%s' "$out" | grep -q -e "$1"; }
+# A herestring, not a pipe. `grep -q` exits the instant it matches, which closes
+# the pipe the producer is still writing into; under `pipefail` that death
+# becomes the pipeline's verdict, so the old `printf | grep -q` form could print
+# FAIL for a pattern it had MATCHED (test/shapes.sh carries the measurement).
+# A herestring has no pipe and no second process to kill.
+said() { grep -q -e "$1" <<<"$out"; }
 # For the two kinds of string this suite asserts that are NOT patterns: a bot
 # login (`<slug>[bot]` is a bracket expression to grep, so said() matched
 # nothing at all) and a URL (every dot matches any character, so a wrong host
 # would pass). Both are things to compare literally or not at all.
-saidf() { printf '%s' "$out" | grep -qF -e "$1"; }
+saidf() { grep -qF -e "$1" <<<"$out"; }
+# said() reads the last `run`'s output, which most of this suite asserts
+# against. said_in() is the same question asked of a string you name: a second
+# capture, a helper's output, one grep's lines handed to another. Two words
+# apart on purpose — a two-argument call to said() would quietly search the
+# wrong haystack.
+said_in() { local hay="$1"; shift; grep -q "$@" <<<"$hay"; }
 
 step "1. a roster with every piece in place"
 if [ "$HAVE_RUNTIME" = 1 ]; then
@@ -206,7 +268,8 @@ check "and EPITO_EXECUTOR's current value"                   "said 'EPITO_EXECUT
 # identity section added a second block that names the seats an answer covers
 # the same way, and a bare grep for "covers graph" stopped being a statement
 # about the executor the moment it existed.
-check "said once per binary, with the seats it covers"       "said 'covers plain, roaded' && ! printf '%s' \"\$out\" | grep 'not on the PATH a run gets' | grep -q graph"
+pathrow="$(grep -e 'not on the PATH a run gets' <<<"$out")" || true
+check "said once per binary, with the seats it covers"       "said 'covers plain, roaded' && ! said_in \"\$pathrow\" graph"
 check "and the graph seat is judged on its own executor"     "! said 'graph.*not on the PATH'"
 
 # A binary that is THERE and will not start. This is epitod v0's first real
@@ -235,9 +298,9 @@ check "named once, with everyone who asks for it"           "said 'DOCTOR_SMOKE_
 check "with the two honest fixes"                           "said 'or delete the line entirely'"
 unset_out="$(env -u DOCTOR_SMOKE_HELD $E doctor "$R" 2>&1)"; unset_rc=$?
 check "a name this box does not hold at all is a report" \
-  "[ $unset_rc -ne 1 ] || ! printf '%s' \"\$unset_out\" | grep -q 'DOCTOR_SMOKE_HELD is set'"
+  "[ $unset_rc -ne 1 ] || ! said_in \"\$unset_out\" 'DOCTOR_SMOKE_HELD is set'"
 check "and says so in the roster's own vocabulary" \
-  "printf '%s' \"\$unset_out\" | grep -q 'not on this box'"
+  "said_in \"\$unset_out\" 'not on this box'"
 
 step "4. a seat with no open road here"
 env -u DOCTOR_SMOKE_KEY $E doctor "$R/roaded" > "$TMP/noroad.txt" 2>&1; rc=$?
@@ -267,7 +330,13 @@ if node -e 'import("@temporalio/client").then(()=>process.exit(0),()=>process.ex
   # what tells them apart, and it only exists when the client is installed.
   node -e 'require("net").createServer(()=>{}).listen(17997,"127.0.0.1",()=>{setTimeout(()=>process.exit(0),30000)})' &
   FAKE=$!
-  sleep 1
+  # Wait for the port, do not sleep at it. A fixed second is a guess about how
+  # long node takes to bind, and on a busy box it is the wrong guess: doctor
+  # then finds nothing listening and says "nothing answered at
+  # 127.0.0.1:17997", which is the one sentence the two gates below exist to
+  # rule out -- so they would fail over this suite's own timing and say so in
+  # epito's voice.
+  answering 127.0.0.1:17997 || bad "the stand-in listener for section 5 never bound to 127.0.0.1:17997 -- the four gates below are about epito and this is not"
   TEMPORAL_ADDRESS=127.0.0.1:17997 run "$R"
   check "a port that answers and is not Temporal exits 1"   "[ $rc -eq 1 ]"
   check "in the daemon's own sentence"                      "said 'no Temporal server answering at 127.0.0.1:17997'"
@@ -329,12 +398,12 @@ if [ "$HAVE_ENGINE" = 1 ]; then
   # with no worker is not a count of anything running.
   if [ "$HAVE_RUNTIME" = 1 ]; then
     psout="$(EPITO_TASK_QUEUE="$QUIET" $E ps "$R" 2>&1)"
-    check "ps says in its header that nothing is polling"    "printf '%s' \"\$psout\" | grep -q 'queue=$QUIET (no worker)'"
-    check "...and under the table, with the fix"             "printf '%s' \"\$psout\" | grep -q '✗ nothing is polling $QUIET'"
+    check "ps says in its header that nothing is polling"    "said_in \"\$psout\" 'queue=$QUIET (no worker)'"
+    check "...and under the table, with the fix"             "said_in \"\$psout\" '✗ nothing is polling $QUIET'"
     # (That nothing will fire at its NEXT time either is asserted in
     # smoke-temporal.sh, which is the suite that registers real schedules.)
     psout="$($E ps "$R" 2>&1)"
-    check "and says who IS polling when something is"        "printf '%s' \"\$psout\" | grep -q 'queue=$EPITO_TASK_QUEUE (1 worker polling)'"
+    check "and says who IS polling when something is"        "said_in \"\$psout\" 'queue=$EPITO_TASK_QUEUE (1 worker polling)'"
   fi
 else
   echo "  SKIPPED -- no engine answering at $ENGINE_ADDR. \"The engine is up and nothing is polling it\" needs the first half to be true."
@@ -387,7 +456,8 @@ EPITO_BUS_STREAM="" run "$B"
 check "a box with no stream reports the subscribing seats"   "said '! bus' && said 'both, listener' "
 check "and names the seat that therefore never fires"        "said 'listener never fires'"
 check "the fix is in the closing report, with the variable"  "said 'Fix: set EPITO_BUS_STREAM'"
-check "and it is a report: the ✗ lines never mention a bus"  "! printf '%s' \"\$out\" | grep '^  ✗' | grep -q bus"
+refusedrows="$(grep -e '^  ✗' <<<"$out")" || true
+check "and it is a report: the ✗ lines never mention a bus"  "! said_in \"\$refusedrows\" bus"
 EPITO_BUS_STREAM="smoke-stream" run "$B"
 check "a box that names a stream says so, with the seats"    "said '✓ bus' && said 'smoke-stream'"
 check "and does not pretend it asked the server"             "said 'opened nothing' && said 'epito bus'"
@@ -425,6 +495,43 @@ out="$($E doctor "$R" --dep 2>&1)"; rc=$?
 check "a misspelled flag is refused, not ignored"             "[ $rc -eq 1 ] && said 'Did you mean --deep'"
 out="$($E doctor "$R" --json --wat 2>&1)"; rc=$?
 check "and an unknown one lists the flags doctor takes"       "[ $rc -eq 1 ] && said '[-][-]deep'"
+
+# 7b. The document a reader gets is the whole document, through a pipe as well
+# as into a file. `console.log` to a pipe is asynchronous in node and
+# `process.exit` discards what has not reached the kernel, so until the fix
+# that lands with this section, a roster whose report crosses one pipe buffer
+# printed 94,600 bytes into a file and 65,536 of them into `| jq`, exit code
+# unchanged, the JSON cut mid-token. The amount that survived was whatever the
+# box's pipe buffer happened to be — 65,536 and 131,072 in two measurements on
+# the same box — which is why it reads as a parse error that comes and goes.
+#
+# Three seats is 5 KB and never crossed it, so the gate builds a roster that
+# does. Nothing here is slow: without --deep no seat is probed, and the extra
+# seats are copies of one manifest already in this roster.
+step "7b. a report bigger than one pipe buffer survives the pipe"
+BIG="$TMP/bigroster"; mkdir -p "$BIG"
+cp -r "$R/plain" "$BIG/plain"
+for n in $(seq 2 80); do
+  mkdir -p "$BIG/plain$n"
+  sed "s/^name = \"plain\"/name = \"plain$n\"/" "$R/plain/agent.toml" > "$BIG/plain$n/agent.toml"
+done
+# Completeness is the claim, and it is asked of one invocation. Two
+# invocations are not comparable byte for byte: the worker row carries the age
+# of its evidence ("last polled 2s ago"), so a `cmp` between two runs of this
+# command would be a gate that fails for being right.
+$E doctor "$BIG" --json 2>&1 | cat > "$TMP/big-pipe.json" || true
+$E doctor "$BIG" 2>&1 | cat > "$TMP/big-human.txt" || true
+SEATS=$(ls -d "$BIG"/*/ | wc -l)
+check "the piped report is over one pipe buffer, so this gate asks something" \
+  "[ \$(wc -c < '$TMP/big-pipe.json') -gt 65536 ]"
+check "and through the pipe it is valid JSON"                 \
+  "node -e 'JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\"))' '$TMP/big-pipe.json' 2>/dev/null"
+check "with every seat of the roster still in it"             \
+  "node -e 'const r=JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\"));process.exit(r.seats.length===Number(process.argv[2])?0:1)' '$TMP/big-pipe.json' $SEATS"
+# The human report leaves by the other two exits and loses its closing line
+# the same way — and that line is the whole verdict.
+check "the human report, piped, still ends with its own verdict" \
+  "grep -q 'Nothing was started' <<< \"\$(tail -1 '$TMP/big-human.txt')\""
 
 step "8. it writes nothing"
 run "$R"
@@ -478,7 +585,7 @@ IJ="$($E doctor "$R" --json 2>&1)"
 check "every seat acts as nobody when no App is on the box" \
   "istate \"\$IJ\" 'graph=none plain=none roaded=none'"
 check "...which refuses nothing: it is how every seat ran before this leg" \
-  "! jq_refusals \"\$IJ\" | grep -q 'identity\|App\|acts as'"
+  "rf=\$(jq_refusals \"\$IJ\") && ! said_in \"\$rf\" 'identity\|App\|acts as'"
 run "$R"
 check "...and the prose says it once for all three, not once each"  "[ \$(printf '%s' \"\$out\" | grep -c '^  . nobody:') -eq 1 ]"
 check "...naming the two variables that change it, once"            "said 'EPITO_APP_ID_<SEAT>' && [ \$(printf '%s' \"\$out\" | grep -c 'EPITO_APP_ID_<SEAT>') -le 2 ]"
@@ -503,7 +610,7 @@ node -e 'const{generateKeyPairSync}=require("crypto");const{privateKey}=generate
 OJ="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E doctor "$R" --json 2>&1)"
 check "a seat with an App and a signing key acts as itself" \
   "istate \"\$OJ\" 'graph=none plain=own roaded=none'"
-check "...and that is not a refusal"                                "! jq_refusals \"\$OJ\" | grep -q 'mint\|half an identity'"
+check "...and that is not a refusal"                                "rf=\$(jq_refusals \"\$OJ\") && ! said_in \"\$rf\" 'mint\|half an identity'"
 out="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E doctor "$R" 2>&1)"
 check "...the App id is named, and the names it came from"          "said 'its own GitHub App: id 123456' && said 'EPITO_APP_ID_PLAIN'"
 check "...and never a byte of the key"                              "! said 'PRIVATE KEY'"
@@ -514,7 +621,7 @@ check "...with the other two seats still on one line of their own"  "[ \$(printf
 # the silent fallback the identity leg exists to delete.
 HJ="$(EPITO_APP_ID_PLAIN=123456 $E doctor "$R" --json 2>&1)"
 check "an App id with no key is half an identity"                   "istate \"\$HJ\" 'graph=none plain=half roaded=none'"
-check "...and THAT refuses, like a road this box has and has wrong" "jq_refusals \"\$HJ\" | grep -q 'half of an identity'"
+check "...and THAT refuses, like a road this box has and has wrong" "rf=\$(jq_refusals \"\$HJ\") && said_in \"\$rf\" 'half of an identity'"
 out="$(EPITO_APP_ID_PLAIN=123456 $E doctor "$R" 2>&1)"
 check "...naming the key variable it is missing"                    "said 'EPITO_APP_KEY_FILE_PLAIN'"
 check "...and what the runtime would do with it"                    "said 'silently fall back to whatever else the box gives them'"
@@ -523,7 +630,7 @@ check "...and what the runtime would do with it"                    "said 'silen
 # nothing, not "the shared credential".
 check "...named per seat, not assumed to be a shared token"         "said 'names no GitHub credential either'"
 HJ2="$(EPITO_APP_ID_PLAIN= EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E doctor "$R" --json 2>&1)"
-check "a line somebody half-filled in is the same answer"           "printf '%s' \"\$HJ2\" | grep -q '\"half\"'"
+check "a line somebody half-filled in is the same answer"           "said_in \"\$HJ2\" '\"half\"'"
 out="$(EPITO_APP_ID_PLAIN= EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E doctor "$R" 2>&1)"
 check "...told apart from absent, in the env file's own words"       "said 'set here and set to nothing'"
 
@@ -532,7 +639,7 @@ check "...told apart from absent, in the env file's own words"       "said 'set 
 # and the mint is the run's first step, so the run never starts.
 MJ="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_PLAIN='-----BEGIN RSA PRIVATE KEY-----
 truncated' $E doctor "$R" --json 2>&1)"
-check "a key that is not a readable PEM refuses before 06:00"       "printf '%s' \"\$MJ\" | grep -q '\"refused\"'"
+check "a key that is not a readable PEM refuses before 06:00"       "said_in \"\$MJ\" '\"refused\"'"
 out="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_PLAIN='-----BEGIN RSA PRIVATE KEY-----
 truncated' $E doctor "$R" 2>&1)"
 check "...in the mint's own sentence"                               "said 'not a readable PEM'"
@@ -549,11 +656,11 @@ RU="$TMP/unmintable"; mkdir -p "$RU/scoped"
 sed 's/name = "plain"/name = "scoped"/; s/scopes = \["github:contents"\]/scopes = ["github:packages"]/' "$R/plain/agent.toml" > "$RU/scoped/agent.toml"
 UJ="$($E doctor "$RU" --json 2>&1)"
 check "an unmintable scope with no App on the box is a report" \
-  "istate \"\$UJ\" 'scoped=none' && ! jq_refusals \"\$UJ\" | grep -q 'mint'"
+  "istate \"\$UJ\" 'scoped=none' && rf=\$(jq_refusals \"\$UJ\") && ! said_in \"\$rf\" 'mint'"
 out="$($E doctor "$RU" 2>&1)"
 check "...said as a report, in the two commands that do refuse"     "said 'epito deploy' && said 'a RUN does not care'"
 UJ2="$(EPITO_APP_ID_SCOPED=123456 EPITO_APP_KEY_FILE_SCOPED="$TMP/plain.pem" $E doctor "$RU" --json 2>&1)"
-check "the same scope WITH an App on the box is a refusal"          "printf '%s' \"\$UJ2\" | grep -q '\"refused\"' && jq_refusals \"\$UJ2\" | grep -q 'mint would refuse'"
+check "the same scope WITH an App on the box is a refusal"          "said_in \"\$UJ2\" '\"refused\"' && rf=\$(jq_refusals \"\$UJ2\") && said_in \"\$rf\" 'mint would refuse'"
 out="$(EPITO_APP_ID_SCOPED=123456 EPITO_APP_KEY_FILE_SCOPED="$TMP/plain.pem" $E doctor "$RU" 2>&1)"
 check "...naming the scope, and no longer calling it harmless"      "said 'github:packages' && ! said 'a RUN does not care'"
 # readiness.js's note names `epito deploy` and `epito token` and not `run`,
@@ -566,13 +673,13 @@ check "...and the seat's own note adds the run, for this box"       "said 'a RUN
 FS="$TMP/filestore"; mkdir -p "$FS/.epito/keys"
 printf '[{"agent":"plain","externalId":"654321"}]' > "$FS/.epito/principals.json"
 FJ="$(cd "$FS" && EPITO_EXECUTOR="$STUB" node "$CLI/src/index.js" doctor "$R" --json 2>&1)"
-check "a record with no key beside it is half an identity"          "printf '%s' \"\$FJ\" | grep -q '\"half\"'"
+check "a record with no key beside it is half an identity"          "said_in \"\$FJ\" '\"half\"'"
 cp "$TMP/plain.pem" "$FS/.epito/keys/plain.pem"
 FJ2="$(cd "$FS" && EPITO_EXECUTOR="$STUB" node "$CLI/src/index.js" doctor "$R" --json 2>&1)"
 check "both halves together is the laptop's own identity, id and all" \
-  "printf '%s' \"\$FJ2\" | grep -q '\"654321\"' && printf '%s' \"\$FJ2\" | grep -q 'principals.json'"
+  "said_in \"\$FJ2\" '\"654321\"' && said_in \"\$FJ2\" 'principals.json'"
 check "...and the preflight read the store a run in that directory would" \
-  "printf '%s' \"\$FJ2\" | grep -q '$FS/.epito/principals.json'"
+  "said_in \"\$FJ2\" '$FS/.epito/principals.json'"
 
 step "11. the identity block in epito env, from the same reader"
 # The ideas ledger's row: `epito env` reports the names a manifest DECLARES,
@@ -581,22 +688,22 @@ step "11. the identity block in epito env, from the same reader"
 # nothing about the thing that decides whose name its PRs open under.
 eout="$(env -u GH_TOKEN -u GITHUB_TOKEN $E env "$R" 2>&1)"
 check "epito env carries the block, and says no manifest declares it" \
-  "printf '%s' \"\$eout\" | grep -q 'the names no manifest declares'"
+  "said_in \"\$eout\" 'the names no manifest declares'"
 check "...with the same sentence doctor prints, from the same module" \
-  "printf '%s' \"\$eout\" | grep -q 'nobody: no App on this box'"
+  "said_in \"\$eout\" 'nobody: no App on this box'"
 check "...and it does not claim --template covers them" \
-  "printf '%s' \"\$eout\" | grep -q 'not in .--template.'"
+  "said_in \"\$eout\" 'not in .--template.'"
 ejson="$(EPITO_APP_ID_PLAIN=123456 EPITO_APP_KEY_FILE_PLAIN="$TMP/plain.pem" $E env "$R" --json 2>&1)"
 check "--json carries one identity row per seat" \
   "printf '%s' \"\$ejson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\"));process.exit(r.identity.length===3&&r.identity.find(x=>x.agent===\"plain\").state===\"own\"?0:1)'"
 check "...and never the key, only which App" \
-  "! printf '%s' \"\$ejson\" | grep -q 'PRIVATE KEY'"
+  "! said_in \"\$ejson\" 'PRIVATE KEY'"
 # The exit code stays this command's own: whether a run would REFUSE is
 # doctor's contract, and a half identity is not a name a manifest asked for.
 env -u GH_TOKEN EPITO_APP_ID_PLAIN=123456 $E env "$R" >/dev/null 2>&1; erc=$?
 check "a half identity does not change what epito env exits"        "[ $erc -eq 0 ]"
 eout="$(env -u GH_TOKEN EPITO_APP_ID_PLAIN=123456 $E env "$R" 2>&1)"
-check "...and it hands that refusal to doctor by name"              "printf '%s' \"\$eout\" | grep -q 'epito doctor'"
+check "...and it hands that refusal to doctor by name"              "said_in \"\$eout\" 'epito doctor'"
 
 step "12. and whether GitHub has that App: the half --deep leaves the box for"
 # The identity section above proves the key on this box signs the JWT a mint
@@ -618,18 +725,33 @@ gh_stop() { [ -n "${GH_PID:-}" ] || return 0; kill "$GH_PID" 2>/dev/null; wait "
 # Reaped on the way out as well as between modes: a suite that leaves a
 # listener behind is a suite the next one blames.
 trap 'gh_stop; cleanup' EXIT
+GH_STARTS=0
 gh_start() {
   gh_stop
   : > "$GH_LOG"
-  node "$CLI/test/github-stub.mjs" 0 "$TMP/app.pub.pem" "$GH_LOG" "$1" > "$TMP/gh-$1.log" 2>&1 &
+  # The file this start's port is read out of is named for the START, not for
+  # the mode. Two of the seven modes are started twice -- `ok` at 12a and 12d,
+  # `thin-perms` at 12e and 12e' -- and under a per-mode name the second start
+  # reads its port out of a file that already holds the FIRST start's line, for
+  # a listener this function has just killed. The `>` truncation happens in the
+  # forked child and the `sed` below happens in the parent; when the parent
+  # wins that race it takes the dead port, leaves the wait loop at once, and
+  # every gate in the section is then made against a GitHub that is not
+  # listening -- which is how 12d printed six FAILs at load 18 while 12a, the
+  # first start of the same mode, passed. test/probe-stub-restart.sh is that
+  # race, measured. A per-start name makes the stale read impossible rather
+  # than unlikely: nothing but this start ever writes this file.
+  GH_STARTS=$((GH_STARTS+1))
+  local log="$TMP/gh-$GH_STARTS-$1.log"
+  node "$CLI/test/github-stub.mjs" 0 "$TMP/app.pub.pem" "$GH_LOG" "$1" > "$log" 2>&1 &
   GH_PID=$!
   GH_PORT=""
   for _ in $(seq 1 60); do
-    GH_PORT="$(sed -n 's/github-stub on \([0-9]*\).*/\1/p' "$TMP/gh-$1.log")"
+    GH_PORT="$(sed -n 's/github-stub on \([0-9]*\).*/\1/p' "$log" 2>/dev/null)"
     [ -n "$GH_PORT" ] && break
     sleep 0.2
   done
-  if [ -z "$GH_PORT" ]; then echo "  the stand-in GitHub API never came up"; cat "$TMP/gh-$1.log"; return 1; fi
+  if [ -z "$GH_PORT" ]; then echo "  the stand-in GitHub API never came up"; cat "$log"; return 1; fi
   GH_API="http://127.0.0.1:$GH_PORT"
 }
 # Two seats on ONE App, both on acme/box; `graph` has no App at all and is on a
@@ -674,7 +796,7 @@ if gh_start ok; then
   check "and the block names the installation, once, for both" "said 'installed on acme/box as installation 4242' && [ \$(printf '%s' \"\$out\" | grep -c 'installation 4242') -eq 1 ]"
   check "...with the grant it found there"                     "said 'granted there everything its .identity..scopes ask to mint'"
   check "...and the seats that one request covers"             "said 'covers plain, roaded'"
-  check "no identity refusal reached the verdict"              "! jq_refusals \"\$IJA\" | grep -q 'installation\|mint'"
+  check "no identity refusal reached the verdict"              "rf=\$(jq_refusals \"\$IJA\") && ! said_in \"\$rf\" 'installation\|mint'"
   # Who the pull request opens as: the App's slug, which is neither seat's
   # name, because an App name is unique across GitHub and the plain one is
   # usually taken. (The count of that request is asserted above, before this
@@ -690,7 +812,7 @@ fi
 if gh_start not-installed; then
   IJB="$(ijson "$R" --deep)"
   check "an App installed nowhere is a refusal, not a tick"    "iseat \"\$IJB\" 'graph=unasked plain=refused roaded=refused'"
-  check "...and it reaches the list the exit code is read off" "jq_refusals \"\$IJB\" | grep -q 'App on this box that GitHub will not mint for'"
+  check "...and it reaches the list the exit code is read off" "rf=\$(jq_refusals \"\$IJB\") && said_in \"\$rf\" 'App on this box that GitHub will not mint for'"
   irun "$R" --deep
   check "...in the run path's own sentence, not a paraphrase"  "said 'is not installed on acme/box' && said 'can mint nothing, however valid its key'"
   check "...carrying the fix and whose job it is"              "said 'install the App on acme/box (its owner does this once)'"
@@ -730,7 +852,7 @@ if gh_start ok; then
   check "an id this box names that GitHub does not have refuses" "iseat \"\$IJD\" 'graph=unasked plain=mismatch roaded=installed'"
   check "...and the ask is still one request, for both seats"   "[ \"\$(asked acme/box)\" = 1 ]"
   check "...and who the App is was asked once too, for both"    "[ \"\$(apped)\" = 1 ]"
-  check "...for that seat only, on an App the other seat shares" "jq_refusals \"\$IJD\" | grep -q 'names an installation id'"
+  check "...for that seat only, on an App the other seat shares" "rf=\$(jq_refusals \"\$IJD\") && said_in \"\$rf\" 'names an installation id'"
   out="$(EPITO_INSTALLATION_ID_PLAIN=9999 ident $E doctor "$R" --deep 2>&1)"
   check "...saying both ids, and which of them the mint uses"   "said 'installation 4242, while this box tells its runs to mint from 9999'"
   check "...and the fix names the variable an operator edits"   "said 'EPITO_INSTALLATION_ID_PLAIN' && said 'correct it to 4242'"
@@ -748,7 +870,7 @@ fi
 if gh_start thin-perms; then
   IJE="$(ijson "$R" --deep)"
   check "a grant short of the manifest's scopes is a refusal"  "iseat \"\$IJE\" 'graph=unasked plain=ungranted roaded=ungranted'"
-  check "...named as the 422 the mint would get"               "jq_refusals \"\$IJE\" | grep -q '422'"
+  check "...named as the 422 the mint would get"               "rf=\$(jq_refusals \"\$IJE\") && said_in \"\$rf\" '422'"
   irun "$R" --deep
   check "...with the level it has and the level it needs"       "said 'contents is read and the manifest needs write'"
   check "...and the fix names the grant, or the scope to drop"  "said 'grant the App contents:write' && said 'scopes are the ceiling'"
@@ -779,7 +901,7 @@ gh_stop
 : > "$GH_LOG"
 IJF="$(ijson "$R" --deep)"
 check "a GitHub this box cannot reach is NOT a refusal"        "iseat \"\$IJF\" 'graph=unasked plain=unreachable roaded=unreachable'"
-check "...and nothing about it reaches the refusals list"      "! jq_refusals \"\$IJF\" | grep -q 'installation\|will not mint'"
+check "...and nothing about it reaches the refusals list"      "rf=\$(jq_refusals \"\$IJF\") && ! said_in \"\$rf\" 'installation\|will not mint'"
 irun "$R" --deep
 check "...said as a report, with why that line is drawn there" "said 'could not be checked at GitHub from this box' && said 'the kind of mint failure that passes'"
 check "...and it does not cast doubt on what IS proven"        "said 'their key signs here'"
