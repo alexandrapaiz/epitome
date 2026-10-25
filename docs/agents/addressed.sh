@@ -6,6 +6,8 @@
 #   bash docs/agents/addressed.sh --audit [since]   every message this seat sent
 #   bash docs/agents/addressed.sh --body FILE ...   bodies you are about to post
 #   bash docs/agents/addressed.sh --liveness SEAT   is a run of that seat open now
+#                                                   (bare name resolved against this
+#                                                   product's prefix; ambiguous refused)
 #   bash docs/agents/addressed.sh --inbox [SEAT]    your own inbox, default off
 #   bash docs/agents/addressed.sh --can SEAT FILE... may that seat write these files
 #   bash docs/agents/addressed.sh --can-self-test
@@ -53,10 +55,52 @@ flag_body() {  # $1 = label, $2 = file holding the body
   return 0
 }
 
-liveness() {  # $1 = seat directory name under the host's log root
-  local root=${EPITO_LOGS:-/srv/asc/state/.epito/logs} seat=$1 newest open=0
-  if [ ! -d "$root/$seat" ]; then
-    echo "$seat: no log directory at $root/$seat — this box cannot answer"; return 2
+# This box carries every company's seats in one flat directory, so a bare
+# `engineer` or `pm` is a real directory belonging to somebody else. Resolving
+# it by "whichever name happens to exist" is how incident 21 happened, and the
+# repair that run shipped taught the *caller* to pass a prefix rather than
+# teaching this function to refuse an ambiguous one — so on 2026-10-25 a bare
+# `engineer` still answered about HQ's engineer, confidently, and a bare
+# `market` answered "this box cannot answer" while `epitome-market` sat in the
+# same root. Four answers and never two (L41), and the ambiguity is a refusal
+# rather than a pick: `docs/standards/lessons.md` L-A56's third clause says a
+# shared name is not an address, and five companies hold a seat called `exo`.
+# The prefix comes from the remote rather than from a literal, so a fork of
+# this repository resolves against its own name.
+product_prefix() {
+  local url; url=$(git config --get remote.origin.url 2>/dev/null) || true
+  url=${url%.git}; url=${url##*/}
+  printf '%s' "${url:-epitome}" | tr '[:upper:]' '[:lower:]'
+}
+
+resolve_seat() {  # $1 = name as the caller wrote it; prints the directory or fails
+  local root=$1 name=$2 pre; pre=$(product_prefix)
+  case "$name" in
+    */*) echo "addressed.sh: $name is not a seat name" >&2; return 2 ;;
+    *-*) [ -d "$root/$name" ] && { printf '%s' "$name"; return 0; }
+         echo "$name: no log directory at $root/$name — this box cannot answer"; return 2 ;;
+  esac
+  local bare=0 mine=0
+  [ -d "$root/$name" ] && bare=1
+  [ -d "$root/$pre-$name" ] && mine=1
+  if [ $bare = 1 ] && [ $mine = 1 ]; then
+    echo "$name: AMBIGUOUS — both $root/$name and $root/$pre-$name exist on this box, and they are two companies' seats. Say which: $pre-$name for this product's, $name for the other (L-A56, incident 21)"
+    return 2
+  fi
+  [ $mine = 1 ] && { printf '%s' "$pre-$name"; return 0; }
+  if [ $bare = 1 ]; then
+    echo "$name: $root/$name exists and is NOT this product's seat — this product's would be $pre-$name, which is absent. Answering about $name would be answering about another company (L-A56, incident 21)"
+    return 2
+  fi
+  echo "$name: no log directory at $root/$name or $root/$pre-$name — this box cannot answer"
+  return 2
+}
+
+liveness() {  # $1 = seat name, bare or prefixed; resolved, never guessed
+  local root=${EPITO_LOGS:-/srv/asc/state/.epito/logs} seat newest open=0
+  seat=$(resolve_seat "$root" "$1") || { [ -n "$seat" ] && echo "$seat"; return 2; }
+  if [ "$seat" != "$1" ]; then
+    printf '%s: resolved to %s, the seat of this product on this box\n' "$1" "$seat"
   fi
   newest=$(ls -t "$root/$seat"/*.log 2>/dev/null | head -1)
   [ -z "$newest" ] && { echo "$seat: no runs ever recorded"; return 1; }

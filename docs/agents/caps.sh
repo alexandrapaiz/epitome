@@ -124,15 +124,21 @@ if finished == 0:
 print(f"read {files} log(s) over {window[-1]}..{window[0]} from {logs}: "
       f"{finished} finished, {unparsed} still open or without a result object")
 print()
-print(f"{'SEAT':<22}{'CAP':>5}{'RUNS':>6}{'EXHAUST':>9}{'REFUSED':>9}{'$ BURNT':>9}{'MIN':>6}  NOTE")
+print(f"{'SEAT':<22}{'CAP':>5}{'RUNS':>6}{'EXHAUST':>9}{'REFUSED':>9}{'BEFORE':>7}{'$ BURNT':>9}{'MIN':>6}  NOTE")
 
 findings = 0
 tot_c = tot_m = 0.0
-tot_e = 0
+tot_e = tot_r = tot_b = tot_runs = 0
+rf_seats, bf_seats = set(), set()
 for s in sorted(seats):
     d = seats[s]
     ex = d.get("error_max_turns", [])
     rf = d.get("refused", [])
+    # REFUSED is every finished run a limit touched. BEFORE is the subset that
+    # never took a second turn. They are different facts and the register has
+    # twice printed one under the other's name (L33), so the instrument prints
+    # both and the prose quotes these labels rather than inventing one.
+    bf = [x for x in rf if (x[1] or 0) <= 1]
     runs = sum(len(v) for v in d.values())
     cost = sum(x[2] for x in ex); mins = sum(x[3] for x in ex)
     cap = caps.get(s)
@@ -148,7 +154,10 @@ for s in sorted(seats):
         if cap is None:
             note += "; cap not declared in this repo's agents/"
     print(f"{s:<22}{(cap if cap is not None else '-')!s:>5}{runs:>6}{len(ex):>9}{len(rf):>9}"
-          f"{cost:>9.2f}{mins:>6.0f}  {note}")
+          f"{len(bf):>7}{cost:>9.2f}{mins:>6.0f}  {note}")
+    tot_r += len(rf); tot_b += len(bf); tot_runs += runs
+    if rf: rf_seats.add(s)
+    if bf: bf_seats.add(s)
 
 print()
 if findings:
@@ -157,5 +166,26 @@ if findings:
           f"of a peak and all of them are evidence about the cap (L-X3 as amended).")
 else:
     print(f"No seat exhausted its cap over {window[-1]}..{window[0]}, read from {finished} finished runs.")
+
+print(f"{tot_r} finished run(s) on {len(rf_seats)} seat(s) were touched by a provider limit, "
+      f"of which {tot_b} on {len(bf_seats)} seat(s) never took a second turn. "
+      f"A limit-touched run and a refused-before-a-turn run are different facts and this is "
+      f"both of them; quote the label, never the other one's name (L33).")
+print()
+print("```data")
+print(f"measured_at: {datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}")
+print(f"window: {window[-1]}..{window[0]}")
+print(f"logs_read: {files}")
+print(f"runs_finished: {finished}")
+print(f"runs_open_or_without_a_result: {unparsed}")
+print(f"limit_touched: {tot_r}")
+print(f"limit_touched_seats: {len(rf_seats)}")
+print(f"refused_before_a_turn: {tot_b}")
+print(f"refused_before_a_turn_seats: {len(bf_seats)}")
+print(f"exhausted: {tot_e}")
+print(f"exhausted_seats: {findings}")
+print(f"exhausted_cost_usd: {tot_c:.2f}")
+print(f"exhausted_minutes: {tot_m:.0f}")
+print("```")
 sys.exit(1 if findings else 0)
 PY
