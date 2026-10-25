@@ -54,22 +54,32 @@ answers() { node -e 'const n=require("net"),s=n.connect({host:"127.0.0.1",port:N
 ROUNDS="${1:-40}"
 STARTS=0
 # One round is one mode started twice, which is what 12a/12d and 12e/12e' are.
-round() { # <shape> -> prints the verdict, returns 1 on a stale read
+#
+# It sets VERDICT rather than printing it, and is called directly rather than
+# inside `$(...)`, because a command substitution is a subshell: the first
+# draft of this probe read its verdict that way and paid for it twice. Every
+# round's surviving listener was started in a subshell, so the PARENT's
+# GH_PID never saw it and the parent's EXIT trap killed nothing -- one 30-round
+# run left 60 node servers behind on the box, which is load, on the one suite
+# whose fault this probe exists to measure. And STARTS was incremented in that
+# same subshell, so the per-start names restarted at 1 every round and the
+# shape this probe calls new was not actually the shape the suite now has.
+round() { # <shape> -> sets VERDICT, returns 1 on a stale read
   local shape="$1" first second log
   for n in 1 2; do
     case "$shape" in
       mode)  log="$TMP/gh-ok.log" ;;                              # the old name
       start) STARTS=$((STARTS+1)); log="$TMP/gh-$STARTS-ok.log" ;; # the new one
     esac
-    start_and_wait ok "$log" || { printf 'the stub never came up at all'; return 0; }
+    start_and_wait ok "$log" || { VERDICT='the stub never came up at all'; return 0; }
     [ "$n" = 1 ] && first="$GH_PORT" || second="$GH_PORT"
   done
   if [ "$first" = "$second" ]; then
-    if answers "$second"; then printf 'STALE (%s twice, still listening)' "$second"
-    else printf 'STALE (%s twice, and nothing is listening on it)' "$second"; fi
+    if answers "$second"; then printf -v VERDICT 'STALE (%s twice, still listening)' "$second"
+    else printf -v VERDICT 'STALE (%s twice, and nothing is listening on it)' "$second"; fi
     return 1
   fi
-  printf 'fresh (%s then %s)' "$first" "$second"
+  printf -v VERDICT 'fresh (%s then %s)' "$first" "$second"
 }
 
 printf '\n== the second start of a mode, %s rounds of each shape, load %s\n' \
@@ -81,8 +91,9 @@ for shape in mode start; do
     start) printf '\n  this shape: the wait file is named for the START\n' ;;
   esac
   for i in $(seq 1 "$ROUNDS"); do
-    v="$(round "$shape")" || stale[$shape]=$(( ${stale[$shape]} + 1 ))
-    printf '    round %2s: %s\n' "$i" "$v"
+    VERDICT=""
+    round "$shape" || stale[$shape]=$(( ${stale[$shape]} + 1 ))
+    printf '    round %2s: %s\n' "$i" "$VERDICT"
   done
 done
 gh_stop
