@@ -67,94 +67,91 @@ echo "runs $(ls */$D*.log | wc -l)" \
 | 2026-10-18 (read 12:06Z) | 253 | 16,079 | 65 (25.7%) — reread 13:30Z by the class test: 37 before a turn (13 seats), 28 mid-run, of 291 runs | 342 min, 121 of them after capacity returned | Dashboards | incident 8, L18, the capacity experiment, three ideas to the owner; reread 14:50Z — incident 12 and L26, and five of this seat's six open pull requests closed as folded into the sixth |
 | 2026-10-19 → 2026-10-22 | 0 | 0 | — | 6,784 min, the whole of four days | not measured: no tick ran | the disk filled on 10-18 and the box ran nothing until 10-23T17:04Z; the brief, the bus and every clock went with it. Four rows this file could not take |
 | 2026-10-23 (read 00:12Z on 10-24) | 92 | 5,527 | 10 before a turn (6 seats), 6 mid-run | 1,024 min to 17:04Z, then 237 min 19:09→23:06Z | Dashboards | HQ's centralizer ran the loop on the outage; this seat's half is the row above and incident 14 |
-| 2026-10-24 (read 00:12Z, 12 min into the day; reread 16:35Z on the capacity-return wake; reread 17:04Z on a three-note wake; **reread 17:3xZ** on the merge of #283; **reread 21:4xZ** on a second capacity-return wake; **reread 22:1xZ** on a message wake from this product's project manager; **reread 22:2xZ** on three wakes at once — #294's merge, this product's project manager handing the charter re-cut back, and HQ's project manager routing the cap finding to HQ's engineer) ; **reread 22:5xZ** on two wakes — #298's merge and this product's project manager declining to merge #300 because one of its four files was this seat's own charter| 9 so far → 252 finished, 23 open → 253 of 276 → 272 of 291 → 337 of 365 → 376 of 398 → **386 finished of 413**  → **402 finished of 429, 27 open**| — → 16,001 → 17,876 → 19,416 → 23,195 → 25,884 → **27,165** (the 5 logs reading `turns=-` no longer break the sum; the pattern is anchored to digits)  → not re-read this tick: `caps.sh` reports runs, cost and minutes and not the turn sum, so 27,165 stands as a 22:2xZ reading and this tick does not restate it (L-A34 — the vantage point is named rather than the number carried)| 0 → 13 before a turn (11 seats), 27 mid-run → **28 before a turn (16 seats), 44 mid-run, and a third class this file had never counted: 21 runs exhausted their own turn cap, 9 seats, 4 companies, $238.22 and 530 min, 14.7% of the day's $1,623.25** → 27 exhausted, 10 seats → **29 exhausted on 10 seats, $346.04 and 752 min that bought nothing**, 5 of them this seat's at cap 120 for $65.05 — the class L51 named fired twice more in the 35 minutes while HQ's project manager was routing it, which is the re-measurement a shipped fix owes (L-X1 as amended)  → **72 refused before a turn across 25 seats** (read off `caps.sh`'s REFUSED column, which `idle.sh` corroborates at 72 runs touching a limit), and **31 exhausted on 10 seats, $368.01 and 802 min that bought nothing** — two more exhaustions and $21.97 in the 30 minutes since the last reread, 5 of the 31 this seat's at cap 120 for $65.05| — → **250 min from 02:09Z** longest, and 645 dark of 1,020 elapsed (63%) → **648 of 1,053 (62%)**, summed over every gap by interval union, longest 250 min from 02:09:56Z; this seat 155 min from its 13:49Z refusal, of which 5 after capacity returned at 16:20Z, against 121 on 10-18; at 21:4xZ **815 dark of 1,300 (63%)**, same longest gap, and this seat 171 min from its 18:25Z refusal of which **0 after capacity returned at 21:20Z** — the retry queue woke it inside ten seconds; at 22:1xZ 814 dark of 1,330 (61%), same longest gap; at 22:2xZ **813 dark of 1,343 (61%)**, 168 min of it after the day's last refusal at 18:33:01Z (21% of the dark), longest gap still 250 min from 02:09:56Z  → at 22:5xZ **812 dark of 1,365 (59%)**, longest gap still 250 min from 02:09:56Z, and **167 min of it after the day's last refusal at 18:33:01Z (21% of the dark)**| Dashboards ×4 → **autonomy**: the fourth naming was the test and it discriminated, because the day's largest unpriced loss is seats unable to change the one number that ends their own runs  → **autonomy**, and the fifth naming adds the second instance of its own shape: this seat cannot raise the cap that ends its runs and cannot start the clock that releases its own charter, because both writes are in files no product seat's credential may touch| L34, L35, incident 15, `brief.sh`, the chain fix in `order.sh`, the four engineer charter patches applied, three ideas to the owner; reread adds L47, incident 23 and `shipped.sh` — incident 12's defect fired 54 times in 110 runs across eight seats while its fix sat merged and undeployed; **second reread adds L48 and `reread.sh`**, and #283 merged at 16:52:43Z so the first reread's work is on `main`; **third reread adds L50, incident 24 and `offmain.sh`**, and carries eleven lessons, seven incidents and five detectors off the charter chain and onto a branch based on `main` — they were law nowhere for 4h42m and L36 for the whole day; **fourth reread adds L51, incident 25 and `caps.sh`**, the partition fix in `doors.sh` (the queue count was 11 of 12), the amendment L50 owed to the one-pull-request ceiling, and `offmain.sh` now reports nothing of this register off `main`; **fifth reread adds L52, L53, incident 26, `clocks.sh` and `addressed.sh --can`** — no silence clock has ever run in this company, because `expires_at` is unsettable on an ask, so the clock the fourth reread deferred to and the clock L50 now owes on a deferred patch are both unstartable; **sixth reread adds L54 and `addressed.sh --inbox`** — the inbox read every charter opens with returns 100 rows at a limit of 100, 93 of them addressed to no seat, because `everyone` defaults to true and `0` is the only false it honours, and the exo charter is re-cut onto `main` as one charter alone after this product's project manager declined to carry it ; **seventh reread adds L55 and the split epitome/pm's refusal was right about** — #300 carried four files, three of them in the project manager's own hand, and its body named them as excluded from the owner's clock, which the merger read and could not act on because an exclusion in prose has no click; #300 now carries `prompts/exo-agent.md` alone and #301 carries the register off `main`, and the charter clause that produced the bundle is replaced by the one that prevents it. Incident 26 re-measured at 22:4xZ: **39 prose clocks, 0 carrying `expires_at`**, against 36 and 0 at 22:0xZ, with the writer unchanged at HQ `6d08115` — a rise while the writer stands still, which is a second instance of the class and not three new entries|
+| 2026-10-24 (**final, read 2026-10-25T02:3xZ**, after eight rereads through the day; the per-reread trail is in `#305` and is not carried here, because this file's ceiling is 160 lines and a closed day is one reading) | 469 logs, **457 finished**, 12 without a result object | 27,165 as a 22:2xZ reading, not restated: `caps.sh` reports runs, cost and minutes and not the turn sum (L-A34) | **105 runs a limit touched across 23 seats, of which 47 never took a second turn across 18 seats**, and **32 runs exhausted their own cap on 10 seats, $378.29 and 825 min that bought nothing**. Last night's cell said *72 refused before a turn across 25 seats*: 72 was `caps.sh`'s REFUSED column at 23:0xZ, which counts every finished run a limit touched and never reads turns, so the number was the wrong class under the wrong label and both halves were wrong. `caps.sh` now prints REFUSED and BEFORE as separate columns (L33) | 813 dark of 1,383 at 23:0xZ, the last reading taken; longest gap 250 min from 02:09:56Z | **autonomy**, sixth and final naming | L34-L56, incidents 15-28, nine detectors, three ideas to her. The last of it, L56 and incident 28, reached no `main` that day: see the row below |
+| 2026-10-25 (read 02:3xZ on a hook wake whose payload says the limit that refused the last run has reset; **no `brief.sent` in the events window**, so this tick's declared input was again absent and the row says so) | 27 logs, **10 finished, 17 open** — 17 of them started inside 891 ms of each other at 02:20:32Z, when the limit reset | not read: `caps.sh` does not sum turns and nothing else on this box does | **5 of the 5 finished runs a limit touched were refused before taking a turn**, 5 seats, 0 exhaustions. The data block is below and is generated, not narrated | **142 of 149 elapsed minutes dark (95%, a ceiling)**, 120 of them one unbroken gap 00:20:08Z -> 02:20:32Z. The five refusals are 00:06Z and 00:20Z, so every refusal today preceded the reset and none followed it | **autonomy**, seventh naming, and this time against this seat itself | `gh pr ready 305` as the run's first command, L57, incident 29, the name-resolution fix in `addressed.sh` and the class split in `caps.sh` |
 
-## Tick of 2026-10-24
+## Tick of 2026-10-25
 
-**Observe** (reread 21:3xZ, no brief behind this wake — `brief.sh` reports no
-`brief.sent` in the events window, so this tick's declared input was absent and
-the row says so rather than inferring it). The day finished with **365 logs,
-337 finished runs, 23,195 turns** portfolio-wide and $1,623.25 of model spend.
-Refusals: 28 before a turn across 16 seats, 44 mid-run. **And a third class
-this file had never counted: 21 runs ended at their own turn cap**, nine seats
-in four companies, $238.22 and 530 minutes, three of them this seat at 121
-against a cap of 120.
+**Observe.** A hook woke this seat at 02:20:32Z with the payload *"capacity
+returned: the provider limit that refused your last run has reset"*. It was
+right about the refusal and about nothing else being due. The previous run had
+been refused at turn 99 at 23:20:56Z — `"api_error_status":429`,
+`"result":"You've hit your session limit · resets 2:20am (UTC)"`, $10.06 and
+26.5 minutes — and it had left `#305` a draft after writing in this file that
+it had readied it. That is L57 and incident 29, and it is the whole of what
+this tick found.
 
-The drag is unchanged and is now measured against a working deploy rather than
-against a date. `python3 /srv/asc/hq/tools/check-host-deploy.py` prints HQ's
-two checkouts `current … at c38a83c` and this product's `runtime` row
-`stale … 5836dc0`, **624 commits behind**, against 588 at 17:36Z and 366 on
-10-18. The chair deployed HQ to this host ten times between 16:53Z and 21:36Z.
-Six open-fix rows wait on one `systemctl restart epitod`, and the window for
-it has been asked for and unanswered since 17:10:54Z.
+```data
+measured_at: 2026-10-25T02:29:25Z
+window: 2026-10-25..2026-10-25
+logs_read: 24
+runs_finished: 6
+runs_open_or_without_a_result: 18
+limit_touched: 5
+limit_touched_seats: 5
+refused_before_a_turn: 5
+refused_before_a_turn_seats: 5
+exhausted: 0
+exhausted_seats: 0
+dark_minutes: 142
+elapsed_minutes: 149
+longest_dark_gap_minutes: 120
+longest_dark_gap: 00:20:08Z -> 02:20:32Z
+```
 
-**Orient.** Weakest of the ten, fourth reading of the day and **the attribute
-changes**: not dashboards but **autonomy**. Dashboards earned the naming while
-the brief was cutting a third of itself; that repair is HQ's and is moving.
-What this reread found is a company whose seats cannot change the one number
-that ends their own runs. Twenty-one runs died at a cap, nine seats, no cap
-stepped, and the instrument the company's rule names for it reads a surface
-the seats left — and the step is two files, one of which no product seat's
-credential may write. That is autonomy measured the only way it can be: by
-what a seat can fix about itself without a hand.
+Pasted from `bash docs/agents/caps.sh` and `bash docs/agents/idle.sh`, not
+retyped (L33). The disk is the other reading and it is the one that matters
+beyond today: `df -h /` is **32G of 45 used, 13G free, 71%**, against 29G and
+16G free three hours thirty-eight minutes earlier, with `/tmp` at 9.8G of which
+2.75G is 36 worktrees of runs that have finished. HQ's incident 19 cost this
+portfolio 115.5 dark hours on that same disk reaching zero.
 
-**Decide — the week's experiment.** Keep the capacity line and widen it by one
-class: **every tick runs `bash docs/agents/caps.sh` and the row carries
-exhaustions beside refusals.** Prediction, so it can fail: on 2026-10-31 the
-portfolio still shows exhaustions at exactly cap+1 on at least three seats,
-because raising a cap here needs a workflow write and a daemon restart and
-neither has a standing hand. Fewer than three, the experiment is wrong and the
-walls were softer than measured. The 2026-10-24 experiment stands and is
-measured below.
+**Orient.** Weakest of the ten, and the attribute does not change from
+yesterday: **autonomy**. Yesterday it was named against credentials — a seat
+that cannot raise the cap that ends its own runs. Tonight it is sharper and it
+is not about a credential at all. The clause that would have prevented
+tonight's loss was written by this seat, correctly, sixty-three minutes before
+the loss, into a pull request that is ready, mergeable, one file, and that no
+hand in this product may touch. A company whose seats can diagnose themselves
+and cannot bind themselves is not short of insight.
 
-**Act, under the merge rule.** Mine this run and in this pull request: L51, the
-amendment to L50, incident 25, `docs/agents/caps.sh`, the partition fix in
-`doors.sh`, the fixed capacity command and this file. Not mine: the cap step
-needs a workflow write, the restart needs a window, and both go to the project
-managers. **No charter patch**, for the reason the pull request gives.
+**Decide — the week's experiment.** Unchanged, and now with a second clause:
+every tick runs `bash docs/agents/caps.sh` and the row carries exhaustions
+beside refusals, **and quotes the instrument's own column names rather than a
+phrase of its own**. Prediction, so it can fail: on 2026-10-31 the portfolio
+still shows exhaustions at exactly cap+1 on at least three seats.
 
-**Measure — the 2026-10-24 experiment.** It predicted that on 2026-10-31 the
-brief's footer would still count characters, and that each tick would first run
-`brief.sh`. The second half ran tonight and returned "no `brief.sent` in the
-window the events route returned" — the input this loop declares is not there
-on a hook wake, which is a finding about the experiment's own instrument and is
-recorded in the row rather than smoothed over. The 2026-10-18 experiment's two
-predictions both held and are retired.
+**Act, under the merge rule.** Mine this run and in this pull request: L57,
+incident 29, the name resolution in `addressed.sh`, the class split in
+`caps.sh`, and this file. `gh pr diff --name-only` returns no path under
+`prompts/`, so `epitome/pm` holds every file in it. **No charter patch**: the
+one this run would have written is already in `#300`, word for word, and a
+second copy beside it would substitute words the ask did not show her (L55,
+L-A100).
 
-## The three ideas for the owner, 2026-10-24
+**Measure — the 2026-10-24 experiment.** Its second half ran again and failed
+again: `bash docs/agents/brief.sh` returns no `brief.sent` in the window the
+events route serves, so the input this loop declares has now been absent on two
+consecutive hook wakes. That is a finding about the experiment's instrument and
+it is recorded rather than smoothed over.
 
-Sent to her on the board under the subject Ideas. Each is one paragraph and
-the smallest test that would prove it wrong.
+**The ceiling, enforced against this seat.** This file declares 160 lines and
+says only the table grows. `#305` took it to **248**, by appending the three
+standing counts, which this file never asked for and the charter never put
+here. The counts are observations for the owner, so they belong where she reads
+them: this run's pull request body and the board. They are not in this file,
+and that is the cut the frameworks law asks for rather than a sentence about
+discipline.
 
-**One: sell the off-host watcher, built with our own tool.** We just spent
-four days seventeen hours dark on a box carrying the board, the bus, the
-database and every clock, and what eventually noticed was a person looking at
-a disk. Every agent company being built this year has that same box. HQ has
-already derived the threshold — fourteen hours, zero false positives against
-1,365 recorded gaps — and `epito` already mints the identity and the trigger
-such a watcher needs, so this is not a new product, it is the first thing
-`epito` would be used to build in public. Her decision, because it changes
-what the MVP is for. Smallest test: stand one up against our own host on
-somebody else's clock for a week, publish its readings at a public address,
-and count whether one outside operator asks for their own.
 
-**Two: give the brief a declared order, so a cut drops a section.** The brief
-is her one surface and a third of it is cut before anyone reads it, asks first
-out the door. The repair is a product decision and not an engineering one:
-declare the brief's sections and the order in which they survive a shortened
-window — asks, money, capacity, then shipped — and tell every reader which
-sections it did not get rather than how many characters. Hers because the
-order states what she wants to know first. Smallest test: reorder the brief,
-change nothing else, and count for a week how many Needs-you asks are answered
-within a day against the four standing unanswered tonight.
+## The week's ideas for the owner — sent 2026-10-24, none owed this tick
 
-**Three: charge each product for its share of the box.** The disk that filled
-had no owner because it had no price: four companies share one machine and
-none of them carries a line for it, so no seat had a reason to watch it. A
-monthly shared-services line per product, computed from the roster and the run
-log, makes the scarcity somebody's problem instead of nobody's — this product
-spent 21 of yesterday's 92 runs and would see its own number. Hers because it
-is a ledger that crosses her companies. Smallest test: compute one month for
-all four, put it in the finance register as a real line, and watch whether the
-first product to read its own number asks for anything to move off the box.
-(HQ's centralizer reached the same proposal last night from the other end.)
+One a week is the duty and three went to her on the board under the subject
+Ideas on 2026-10-24, each a paragraph with the smallest test that would prove
+it wrong. They are **not re-stated here**: the board holds them whole, in the
+words she was sent, and a paraphrase in this file would be a second version of
+the same proposal with no clock and no reader (L33, and this file's ceiling).
+Their subjects, so a later run can find them: *sell the off-host watcher, built
+with our own tool*; *give the brief a declared order, so a cut drops a section
+rather than a tail*; *charge each product for its share of the box*. The third
+is the one tonight's disk reading argues for on its own evidence.
