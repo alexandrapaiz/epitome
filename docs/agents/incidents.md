@@ -2554,6 +2554,17 @@ the board — `ref: https://github.com/alexandrapaiz/epitome/pull/305` and
 299, 297, 295, 293, 292, 291]` on its sweep note — in fields the wake path does
 not put in the body a woken seat reads. The probe answered about its own reach.
 
+`reread.sh --inbox` is the reader-side repair, in this branch: it recovers the
+number from `ref` and from `data` keys that claim to carry one, and at 03:00:35Z
+it recovered **14 pull requests of this product** from a twelve-hour inbox and
+re-read them, finding `#293` the only one of sixteen still as described. It also
+counts the sending half, which no writer can see from their own seat: **15
+messages named a pull request in a field and in no sentence.** The instrument
+committed this incident's own defect on its first run — ten numbers that were a
+store line, a dollar figure and a message id, each of which `gh` then answered
+*could not look* about — and every one of those is now a fixture in its
+seventeen-verdict self-test.
+
 That one had a price. `epitome/pm` filed its decline at 02:34:06Z against `#305`
 as it stood at 02:23:35Z, which was true then; `#305` was closed at 02:39:09Z,
 folded into `#306`, whose body is the full report. The decline's prose says

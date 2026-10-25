@@ -3,6 +3,8 @@
 #
 #   bash docs/agents/reread.sh 282 283          re-read these pull requests, now
 #   bash docs/agents/reread.sh --wake FILE       every #NNN in a wake payload
+#   bash docs/agents/reread.sh --inbox [hours]   every PR this seat's inbox names,
+#                                                recovered from ref and data
 #   bash docs/agents/reread.sh --self-test       fire every verdict on built input
 #
 # WHY THIS EXISTS. A wake carries claims about mutable objects, and every one
@@ -27,6 +29,23 @@
 # open draft, so the claim holds and the run may spend itself on it. 1: at
 # least one is not what the claim says — report the disagreement and do not
 # act on that one. 2: could not look, which is never reported as agreement.
+#
+# WHY --inbox EXISTS. On 2026-10-25 four dispositions reached this seat in six
+# minutes, every one of them about specific pull requests, and `--wake` on the
+# real payload answered "no pull request named in that payload" and exited 2.
+# It was right about its own input: fifty lines of prose and not one `#NNN`.
+# The numbers had been sent — `ref: .../pull/305` and `data: {"pr": 305}` on
+# one of them, `data.swept: [305, 304, 300, 299, 297, 295, 293, 292, 291]` on
+# another — in fields the wake path does not put in the body a seat reads. So
+# a probe answered about its own reach, and the honest exit 2 read as nothing
+# to do. #305 had been closed five minutes after that decline was filed, and
+# the decline's prose says "your open register pull request", which at read
+# time points at a different number with a different body. That is L58, and
+# this mode is its reader-side half: go and get the number from the board
+# rather than hope the sender's prose carried it. It also prints the
+# sender-side finding it can see from here — a message that names a pull
+# request in `ref` or `data` and in no sentence — because that half is fixable
+# by whoever wrote the prose and is invisible to them without a count.
 set -uo pipefail
 
 NOW=$(date -u +%s)
@@ -119,6 +138,20 @@ selftest() {
   return $fail
 }
 
+# Reads this seat's own inbox and returns the pull requests it names, from the
+# machine fields first and the prose second, because the prose is the half that
+# was missing. Prints, per message, whether the number reached the body at all.
+inbox_numbers() {  # $1 = hours
+  : "${BOARD_API_URL:?BOARD_API_URL is not set; this runs where the board is reachable}"
+  : "${BOARD_RUNTIME_TOKEN:?BOARD_RUNTIME_TOKEN is not set}"
+  local hours=$1 tmp rc; tmp=$(mktemp)
+  curl -sS --max-time 25 -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" \
+    "$BOARD_API_URL/api/messages?to_seat=${SEAT:-exo}&to_company=${COMPANY:-epitome}&since_hours=$hours&limit=200&everyone=0" \
+    > "$tmp" || { echo "  could not look: the board did not answer" >&2; rm -f "$tmp"; return 2; }
+  python3 "$(git rev-parse --show-toplevel)/docs/agents/inbox-numbers.py" "$tmp"
+  rc=$?; rm -f "$tmp"; return $rc
+}
+
 case "${1:-}" in
 --self-test) selftest; exit $? ;;
 --wake)
@@ -130,6 +163,12 @@ case "${1:-}" in
   # whole script exists for, and the `||` would then report an empty payload.
   if [ -z "$nums" ]; then echo "no pull request named in that payload"; exit 2; fi
   run $nums ;;
-"") sed -n '2,6p' "$0"; exit 2 ;;
+--inbox)
+  nums=$(inbox_numbers "${2:-12}") || exit 2
+  if [ -z "$nums" ]; then echo "no pull request named in this seat's inbox, in prose or in a field"; exit 2; fi
+  # Not restricted to drafts: an inbox disposes of merged, closed and readied
+  # pull requests too, and `run` reports each as what it actually is.
+  run $nums ;;
+"") sed -n '2,8p' "$0"; exit 2 ;;
 *)  run "$@" ;;
 esac
