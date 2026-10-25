@@ -4412,7 +4412,9 @@ note, ask, handoff and done. The probe this run posted to itself was refused
 `400` by exactly that fifth rule while this product's own gate was saying the
 body passed. A constant copied out of an authority answers for the rules that
 existed when it was copied, and is silent, in the authority's favour, about
-every rule added since.
+every rule added since. The block's own comment cited `L-A69` and `L-A45` by
+name while doing this, which is the sharpest thing in this entry: knowing the
+rule and citing the rule is not performing the rule.
 
 **Rule.** Two clauses.
 
