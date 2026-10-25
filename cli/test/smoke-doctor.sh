@@ -507,7 +507,8 @@ done
 # of its evidence ("last polled 2s ago"), so a `cmp` between two runs of this
 # command would be a gate that fails for being right.
 $E doctor "$BIG" --json 2>&1 | cat > "$TMP/big-pipe.json" || true
-$E doctor "$BIG" 2>&1 | cat > "$TMP/big-human.txt" || true
+$E doctor "$BIG" > "$TMP/big-human-file.txt" 2>&1 || true
+$E doctor "$BIG" 2>&1 | cat > "$TMP/big-human-pipe.txt" || true
 SEATS=$(ls -d "$BIG"/*/ | wc -l)
 check "the piped report is over one pipe buffer, so this gate asks something" \
   "[ \$(wc -c < '$TMP/big-pipe.json') -gt 65536 ]"
@@ -515,10 +516,18 @@ check "and through the pipe it is valid JSON"                 \
   "node -e 'JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\"))' '$TMP/big-pipe.json' 2>/dev/null"
 check "with every seat of the roster still in it"             \
   "node -e 'const r=JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\"));process.exit(r.seats.length===Number(process.argv[2])?0:1)' '$TMP/big-pipe.json' $SEATS"
-# The human report leaves by the other two exits and loses its closing line
-# the same way — and that line is the whole verdict.
-check "the human report, piped, still ends with its own verdict" \
-  "grep -q 'Nothing was started' <<< \"\$(tail -1 '$TMP/big-human.txt')\""
+# The human report leaves by the other two exits. It is the smaller document —
+# 25 KB for this roster, inside one pipe buffer on a quiet box — so this pair is
+# a watch rather than a reproduction, and it is written to survive both of
+# doctor's verdicts: which one this box gets depends on whether anything is
+# polling, and the closing sentence is not the same in the two. Line count and
+# the last line are what a truncation takes and what an age does not: the
+# worker row carries "last polled 2s ago", so the two documents differ in
+# bytes by design and may not be compared that way.
+check "the human report, piped, is as long as the one a file got" \
+  "[ \$(wc -l < '$TMP/big-human-file.txt') -eq \$(wc -l < '$TMP/big-human-pipe.txt') ]"
+check "and both end on the same line"                         \
+  "[ \"\$(tail -1 '$TMP/big-human-file.txt')\" = \"\$(tail -1 '$TMP/big-human-pipe.txt')\" ]"
 
 step "8. it writes nothing"
 run "$R"
