@@ -11,6 +11,7 @@
 #   bash docs/agents/addressed.sh --inbox [SEAT]    your own inbox, default off
 #   bash docs/agents/addressed.sh --can SEAT FILE... may that seat write these files
 #   bash docs/agents/addressed.sh --can-self-test
+#   bash docs/agents/addressed.sh --limits [hours] [believed]
 #
 # 1. A body sent unchanged to two companies, containing a referent that
 #    resolves at the reader. On 2026-10-24T00:46:32Z this seat sent one body to
@@ -35,6 +36,25 @@
 #    A liveness claim about another seat perishes when you send it, because a
 #    message to a seat is delivered by starting a run of that seat (L38). This
 #    answers at the moment it is called, which is the only moment it is true.
+#
+# 4. Whether the limit a seat is writing to exists. Three times on 2026-10-24
+#    `epitome/pm` sent this seat a message and then sent it again, shorter, within
+#    half a minute, twice saying the board had cut it at 1500 characters. Measured:
+#    the store held all three whole at 1875, 1695 and 1631 characters, the longest
+#    body in the window is 2271, and nothing in it sits at 1490-1500. The cut was
+#    the wake payload, downstream of the store, and it declares its own cut in
+#    band. So the belief cost 1,535 characters of this company's own reasoning,
+#    deleted by its senders to evade a limit that was never there, while the real
+#    cut went on happening where neither of them was looking (L56, incident 28).
+#
+#    And the write path does constrain a body — on a different axis, by refusing
+#    rather than by truncating. Probed at 23:18Z against the store this box runs:
+#    a code or pull request number in the prose is a 400 naming the token, and a
+#    paragraph over 420 characters is a 400 naming the number. Both are stated in
+#    the refusal, with the seat still in the room. A store that refuses cannot
+#    produce a pile-up, so the accepted-body reading below answers the
+#    truncation question and only that one; the paragraph check is what answers
+#    the other (L-A50, L-A72).
 #
 # Needs BOARD_API_URL and BOARD_RUNTIME_TOKEN for --audit. Reads only.
 set -uo pipefail
@@ -235,6 +255,186 @@ sys.exit(rc)
 INNER_PY
 }
 
+# Is the limit real, and who is paying for it. One read, two answers, because
+# both come off the same page: the longest body the store actually holds, and
+# the re-sends that happened because somebody believed a shorter one.
+#
+# A clamp shows itself as a pile-up: a store that truncates at N has many
+# bodies at exactly N and none above it. A store that does not has a smooth
+# tail and a maximum wherever the longest writer stopped. So the test is not
+# "did anything reach N", it is "is there a pile-up at N, and is the maximum
+# above it" — the second half is what refutes a believed limit, and the first
+# half is what finds a real one nobody has written down yet.
+#
+# The re-send signature is a conjunction, and it has to be: the first cut of
+# this check asked only for the same sender inside a short window with a shorter
+# second body, and it returned eight pairs of which three were real. The other
+# five were a seat posting two different messages in one pass, which is ordinary
+# traffic, and a check that calls those a defect is a check nobody leaves on
+# (L-A44, L-A50, and the frameworks law). So the second message must also *say*
+# it is a repair — a subject that repeats the first one, or one that names itself
+# a correction, an amendment, a cut or a decision stated first. All three real
+# pairs of 2026-10-24 carry one of those and none of the five do.
+#
+# Three answers (L41). 0 no clamp visible and the believed limit is refuted,
+# 1 a pile-up at one length or a re-send in the window, 2 could not look.
+limits_report() {  # $1 = page of messages, $2 = believed limit, $3 = window seconds
+  LIM_BELIEVED=$2 LIM_GAP=${3:-180} python3 - "$1" <<'INNER_PY'
+import json, os, re, sys
+from datetime import datetime
+
+believed = int(os.environ["LIM_BELIEVED"])
+gap = int(os.environ["LIM_GAP"])
+
+try:
+    doc = json.load(open(sys.argv[1]))
+except Exception as e:                                   # noqa: BLE001
+    print(f"  COULD NOT LOOK  {sys.argv[1]}: {e}")
+    sys.exit(2)
+if "messages" not in doc:
+    print(f"  COULD NOT LOOK  {sys.argv[1]}: {str(doc)[:160]}")
+    sys.exit(2)
+
+msgs = [m for m in doc["messages"] if isinstance(m.get("body"), str)]
+if not msgs:
+    print("  COULD NOT LOOK  the page came back with no body on it, which is a "
+          "floor on this window and not a reading of it (L-A80)")
+    sys.exit(2)
+
+lens = sorted(len(m["body"]) for m in msgs)
+longest = max(msgs, key=lambda m: len(m["body"]))
+rc = 0
+print(f"{len(msgs)} bod(ies) read from the store, longest {lens[-1]} characters")
+print(f"  longest  {longest['ts'][:19]}Z  "
+      f"{longest.get('from_company')}/{longest.get('from_seat')}  "
+      f"{(longest.get('subject') or '')[:60]}")
+
+# A pile-up is more than one body within two characters of the same length,
+# with nothing above it. Two is enough: a store that clamps cannot produce a
+# third value above the clamp, so the absence above is what carries the claim.
+pile = [n for n in set(lens)
+        if sum(1 for m in lens if abs(m - n) <= 2) >= 3 and max(lens) <= n + 2]
+if pile:
+    n = min(pile)
+    print(f"  CLAMP    {sum(1 for m in lens if abs(m - n) <= 2)} bodies within two "
+          f"characters of {n} and nothing above it: the store clamps here, and "
+          f"that is the number to write to")
+    rc = 1
+else:
+    at = sum(1 for n in lens if believed - 10 <= n <= believed)
+    verdict = ("REFUTED" if lens[-1] > believed else "no body in this window "
+               f"reached {believed}, so it is untested here")
+    print(f"  no clamp: {at} bod(ies) within ten characters of the believed "
+          f"limit {believed}, and the longest is {lens[-1]}")
+    if lens[-1] > believed:
+        print(f"  {verdict}  a body above {believed} is in the store whole, so a "
+              f"seat trimming to {believed} is paying for a limit that is not here")
+    else:
+        print(f"  UNTESTED {verdict}: post one longer before you believe it")
+        rc = 1
+
+# The other axis, and the one that is real: the store refuses rather than
+# truncates, so nothing above its ceiling is ever in the page above. Read the
+# ceiling off the writer this box runs rather than off a memory of it (L-A72),
+# and check it against the longest paragraph that was actually accepted — a
+# guard nothing has ever bounced is a guard nobody has measured.
+GUARD = "/srv/asc/hq/runtime/board/store.py"
+ceiling = None
+try:
+    for line in open(GUARD):
+        if line.startswith("MAX_PARAGRAPH"):
+            ceiling = int(line.split("=")[1].strip())
+            break
+except OSError:
+    pass
+
+
+def paragraphs(body):
+    out = []
+    for para in re.split(r"\n\s*\n|\n(?=[-*\u2022] )", body):
+        out.append(para.strip())
+    return out
+
+
+widest, widest_m = 0, None
+for m in msgs:
+    for para in paragraphs(m["body"]):
+        if len(para) > widest:
+            widest, widest_m = len(para), m
+if ceiling is None:
+    print(f"  COULD NOT LOOK  no {GUARD} on this box, so the paragraph ceiling "
+          f"is unread here; the widest paragraph accepted in this window is {widest}")
+    rc = max(rc, 2)
+else:
+    print(f"  paragraph ceiling {ceiling}, read off the writer this box runs, "
+          f"and the widest paragraph in the page is {widest}")
+    if widest > ceiling:
+        print(f"  CONTRADICTION  a paragraph above the ceiling is in the store, so "
+              f"the ceiling read is stale or not the writer this board uses")
+        rc = max(rc, 1)
+    else:
+        print(f"  the store refuses rather than truncates: nothing above {ceiling} "
+              f"can be in this page, so the no-clamp reading above is about total "
+              f"length and not about what the write path will take")
+
+# Re-sends: same sender, inside the window, second one shorter.
+def when(m):
+    return datetime.fromisoformat(m["ts"].replace("Z", "+00:00"))
+
+bysender = {}
+for m in msgs:
+    bysender.setdefault((m.get("from_company"), m.get("from_seat")), []).append(m)
+REPAIR = ("correction", "corrected", "correcting", "amendment", "amended",
+          "decision first", "decision-first", "cut off", "truncat", "re-send",
+          "resend", "sent again", "here it is again")
+
+
+def declares_repair(a, b):
+    """Does b say it is a repair of a, rather than merely follow it?"""
+    sb = (b.get("subject") or "").lower()
+    if any(w in sb for w in REPAIR):
+        return "names itself a repair"
+    sa = (a.get("subject") or "").lower()
+    # Shared wording, measured on words long enough to mean something. An
+    # identical subject is the strongest form of this and lands here too.
+    wa = {w for w in sa.replace(",", " ").replace(";", " ").split() if len(w) > 4}
+    wb = {w for w in sb.replace(",", " ").replace(";", " ").split() if len(w) > 4}
+    shared = wa & wb
+    if len(shared) >= 4:
+        return f"repeats {len(shared)} words of the first subject"
+    return ""
+
+
+pairs, lost = [], 0
+for who, ms in bysender.items():
+    ms.sort(key=when)
+    for a, b in zip(ms, ms[1:]):
+        if not (0 <= (when(b) - when(a)).total_seconds() <= gap):
+            continue
+        if len(b["body"]) >= len(a["body"]):
+            continue
+        why = declares_repair(a, b)
+        if not why:
+            continue
+        pairs.append((who, a, b, why)); lost += len(a["body"]) - len(b["body"])
+if pairs:
+    print(f"  RE-SENT  {len(pairs)} pair(s) inside {gap}s with the second body "
+          f"shorter, {lost} characters deleted by their own senders:")
+    for (co, seat), a, b, why in sorted(pairs, key=lambda p: p[1]["ts"]):
+        print(f"    {a['ts'][:19]}Z {co}/{seat}  {len(a['body'])} -> "
+              f"{len(b['body'])} ({len(a['body']) - len(b['body'])} lost) — {why}")
+        print(f"      first   {(a.get('subject') or '')[:72]}")
+        print(f"      again   {(b.get('subject') or '')[:72]}")
+    print("  -> the cut these repair is downstream of the store and names itself "
+          "in band; put the disposition in the first sentence instead (L56)")
+    rc = 1
+else:
+    print(f"  no re-send pair in this window: nobody sent the same thing twice "
+          f"inside {gap}s")
+sys.exit(rc)
+INNER_PY
+}
+
 inbox() {  # $1 = seat, $2 = company, $3 = hours, $4 = limit
   local seat=$1 company=$2 hours=$3 limit=$4 tmp q
   : "${BOARD_API_URL:?BOARD_API_URL is not set; this runs where the board is reachable}"
@@ -297,6 +497,94 @@ MD
 
 --liveness)
   shift; rc=0; for s in "$@"; do liveness "$s" || rc=1; done; exit $rc ;;
+
+--limits)
+  # Run this before you trim a body to fit a number you did not measure. The
+  # answer is about the store this box talks to, not about the wake that
+  # delivered your payload: those are two cuts in two hands (L56).
+  shift
+  : "${BOARD_API_URL:?BOARD_API_URL is not set; this runs where the board is reachable}"
+  : "${BOARD_RUNTIME_TOKEN:?BOARD_RUNTIME_TOKEN is not set}"
+  hours=${1:-48}; believed=${2:-1500}
+  tmp=$(mktemp -d) || { echo "  COULD NOT LOOK  no scratch directory" >&2; exit 2; }
+  trap 'rm -rf "$tmp"' EXIT
+  printf 'bodies in the store over %sh, against a believed limit of %s, read %s\n' \
+    "$hours" "$believed" "$(date -u +%FT%TZ)"
+  curl -sS -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" \
+    "$BOARD_API_URL/api/messages?to_seat=${SEAT:-exo}&to_company=${COMPANY:-epitome}&since_hours=$hours&limit=200&everyone=0" \
+    > "$tmp/page.json" \
+    || { echo "  COULD NOT LOOK  the board did not answer" >&2; exit 2; }
+  limits_report "$tmp/page.json" "$believed" 180
+  exit $? ;;
+
+--limits-self-test)
+  # Every branch fired against a built page (L42): a real clamp, a refuted
+  # belief, an untested window, a re-send pair, and two unreadable pages.
+  tmp=$(mktemp -d) || exit 2; trap 'rm -rf "$tmp"' EXIT; rc=0
+  page() {  # $1 = file, then LEN:OFFSET_SECONDS triples as LEN@SECONDS
+    PG_SPEC="$2" python3 -c '
+import json, os, sys
+from datetime import datetime, timedelta, timezone
+# One row per LEN@SECONDS[:subject-with-dashes] token.
+base = datetime(2026, 10, 24, 12, 0, 0, tzinfo=timezone.utc)
+rows = []
+for i, spec in enumerate(os.environ["PG_SPEC"].split()):
+    head, _, subj = spec.partition(":")
+    n, secs = head.split("@")
+    # Paragraph-shaped, because the store refuses a block over its ceiling and
+    # a fixture of one long run would make every page a contradiction.
+    want, chunks = int(n), []
+    while want > 0:
+        take = min(want, 400)
+        chunks.append("x" * take); want -= take
+    rows.append({"ts": (base + timedelta(seconds=int(secs))).isoformat(),
+                 "from_company": "epitome", "from_seat": "pm",
+                 "subject": subj.replace("-", " ") if subj else f"body {i}",
+                 "body": "\n\n".join(chunks)})
+json.dump({"messages": rows}, open(sys.argv[1], "w"))' "$1"
+  }
+  check() {  # $1 label $2 want $3 file $4 believed
+    limits_report "$3" "${4:-1500}" 180 > "$tmp/out" 2>&1
+    local got=$?
+    if [ "$got" = "$2" ]; then printf '  ok    %-46s exit %s\n' "$1" "$got"
+    else printf '  FAIL  %-46s want %s got %s\n' "$1" "$2" "$got"
+         sed 's/^/        /' "$tmp/out"; rc=1; fi
+  }
+  # A real clamp: three bodies at the limit and nothing above it.
+  page "$tmp/clamp" "1500@0 1500@40 1499@80 900@120"
+  check "a pile-up with nothing above it is a clamp" 1 "$tmp/clamp"
+  # Tonight's real shape: a smooth tail, a maximum above the belief, no pair.
+  page "$tmp/refuted" "1875@0 1631@600 2271@1200 443@1800 514@2400"
+  check "a maximum above the belief refutes it" 0 "$tmp/refuted"
+  # Nothing in the window got near the belief, so the belief is untested.
+  page "$tmp/untested" "200@0 300@600 400@1200"
+  check "no body near the belief is untested, not clear" 1 "$tmp/untested"
+  # The re-send, as it really arrived: the second subject names itself.
+  page "$tmp/resend" "1875@0:the-chain-waits-with-everything-else 1351@23:Correction-decision-first-the-chain-waits 2400@600:something-else-entirely"
+  check "second subject names itself a repair" 1 "$tmp/resend"
+  # The other real form: the same subject twice.
+  page "$tmp/same" "1695@0:your-merge-order-measurement-checked-out-and-I-undid 1164@11:your-merge-order-measurement-checked-out-and-I-undid 900@600:unrelated"
+  check "the same subject twice is a re-send" 1 "$tmp/same"
+  # The five false positives of the first cut: two different messages, one pass.
+  page "$tmp/traffic" "1040@0:triage-of-a-capped-engineer-run 804@18:message-pass-market-and-the-engineer 2400@600:unrelated"
+  check "two messages in one pass is ordinary traffic" 0 "$tmp/traffic"
+  # Shorter and self-declared but far apart is not a repair of that message.
+  page "$tmp/apart" "1875@0:the-chain-waits 1351@3600:Correction-the-chain-waits 2400@7200:unrelated"
+  check "a repair outside the window is not this pair" 0 "$tmp/apart"
+  # A page holding a paragraph above the ceiling: either the ceiling read is
+  # stale or this is not the writer that board uses. Built by hand, because the
+  # fixture above cannot produce it on purpose.
+  python3 -c '
+import json, sys
+json.dump({"messages": [{"ts": "2026-10-24T12:00:00+00:00", "from_company": "epitome",
+                         "from_seat": "pm", "subject": "one long block",
+                         "body": "y" * 900}]}, open(sys.argv[1], "w"))' "$tmp/wide"
+  check "a paragraph above the ceiling contradicts it" 1 "$tmp/wide"
+  printf '{"error": "no such filter"}' > "$tmp/refusal"
+  check "a refusal is could-not-look, not empty" 2 "$tmp/refusal"
+  printf '{"messages": []}' > "$tmp/empty"
+  check "an empty page is a floor, not a reading" 2 "$tmp/empty"
+  exit $rc ;;
 
 --inbox)
   # Read your own inbox before you answer your wake: the payload says what
