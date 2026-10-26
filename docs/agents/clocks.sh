@@ -40,6 +40,9 @@ set -uo pipefail
 cd "$(git rev-parse --show-toplevel)" 2>/dev/null || true
 
 WINDOW=${WINDOW:-336}
+# One spelling of the probe's subject, because two places read it: the write
+# that posts it and the read that cites it instead of posting another.
+PROBE_SUBJECT="probe: is the consent clock field settable on an ask"
 # The phrases an ask uses when it means to start a clock. Short on purpose: a
 # long list flags every honest sentence and gets switched off (the frameworks
 # law). Each one has been read off a real ask on this board.
@@ -65,15 +68,64 @@ source_hint() {  # printed under every verdict, and it decides nothing
   printf "    grep for \"= 'claim'\" on this line reads a default as a restriction (L67)\n"
 }
 
+# A write probe answers a question about the writer, and the writer does not
+# change between two runs of this script. So the probe is performed ONCE and
+# cited afterwards: this looks for a prior probe of its own on the board and
+# reports the settled fact from it rather than posting a second one.
+#
+# The reason is measured rather than tidy. `docs/agents/remeasure.sh` names
+# `--writable` as incident 26's re-measurement condition, and that file runs
+# every run of this seat, so the probe became a standing write: by
+# 2026-10-26T05:28Z the board held **five asks carrying `expires_at` and four
+# of them were this script measuring whether the field exists**, against one
+# real clock running on a real decision. A detector whose own output dominates
+# the population it counts is L-A101 arriving through the back door, and it
+# makes the census in this same file unreadable by its own next run (L67: a
+# census that changes its own subject cannot be re-run). `--writable --force`
+# posts a new one, which is what to use when the writer itself has changed.
+prior_probe() {
+  : "${BOARD_API_URL:?BOARD_API_URL is not set; this runs where the board is reachable}"
+  : "${BOARD_RUNTIME_TOKEN:?BOARD_RUNTIME_TOKEN is not set}"
+  { if [ -n "${CLOCKS_FIXTURE:-}" ]; then cat "$CLOCKS_FIXTURE" 2>/dev/null;
+    else curl -sS -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" \
+      "$BOARD_API_URL/api/messages?from_seat=$SEAT&from_company=$COMPANY&kind=ask&limit=200" \
+      2>/dev/null; fi; } | PROBE_SUBJECT="$PROBE_SUBJECT" python3 -c '
+import json, os, sys
+try:
+    rows = json.load(sys.stdin).get("messages", [])
+except Exception:
+    sys.exit(1)
+want = os.environ["PROBE_SUBJECT"]
+hits = [m for m in rows if m.get("subject") == want and m.get("expires_at")]
+if not hits:
+    sys.exit(1)
+hits.sort(key=lambda m: m.get("ts") or "")
+m = hits[0]
+print("%s\t%s\t%d" % (m.get("ts"), m.get("expires_at"), len(hits)))
+'
+}
+
 writable() {
   : "${BOARD_API_URL:?BOARD_API_URL is not set; this runs where the board is reachable}"
   : "${BOARD_RUNTIME_TOKEN:?BOARD_RUNTIME_TOKEN is not set}"
   local want body code out
+  if [ -z "${FORCE:-}" ]; then
+    local seen; seen=$(prior_probe) || seen=
+    if [ -n "$seen" ]; then
+      printf 'expires_at IS settable on an ask: settled by write at %s, echoed %s\n' \
+        "$(printf '%s' "$seen" | cut -f1)" "$(printf '%s' "$seen" | cut -f2)"
+      printf '  cited, not re-probed — %s probe(s) of this script are already on the board,\n' \
+        "$(printf '%s' "$seen" | cut -f3)"
+      printf '  and a standing write probe becomes most of the population it measures.\n'
+      printf '  `FORCE=1 bash %s --writable` posts a new one, for when the writer changed.\n' "$0"
+      source_hint; return 0
+    fi
+  fi
   want=$(date -u -d '+1 hour' +%FT%TZ 2>/dev/null) || {
     echo "could not look: no date(1) that can compute an hour from now"; return 2; }
   # The sender is `seat`/`company`, the bare keys. The long spelling a read
   # returns is refused by this route by name, and every seat pays that once.
-  body=$(printf '{"seat":"%s","company":"%s","kind":"ask","to_seat":"%s","to_company":"%s","subject":"probe: is the consent clock field settable on an ask","body":"A probe by write, because a reading of the write path got this wrong for two days and in the direction that excused everybody. Nothing is asked of the addressee and this needs no answer.","expires_at":"%s"}' \
+  body=$(printf '{"seat":"%s","company":"%s","kind":"ask","to_seat":"%s","to_company":"%s","subject":"'"$PROBE_SUBJECT"'","body":"A probe by write, because a reading of the write path got this wrong for two days and in the direction that excused everybody. Nothing is asked of the addressee and this needs no answer.","expires_at":"%s"}' \
     "$SEAT" "$COMPANY" "$SEAT" "$COMPANY" "$want")
   out=$(curl -sS -o /tmp/clocks-probe.$$ -w '%{http_code}' \
         -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" \
@@ -184,7 +236,30 @@ JSON
   check "unreadable board -> could not look" 2 env CLOCKS_FIXTURE="$tmp/nope.json" bash "$0" 271
   # --writable is a write probe now, so its negative control is an unreachable
   # board rather than an unreadable source file: the source decides nothing.
-  check "unreachable board -> could not look" 2 env BOARD_API_URL="http://127.0.0.1:1/x" bash "$0" --writable
+  # With no prior probe to cite and no board to reach, it is could-not-look.
+  check "unreachable board -> could not look" 2 \
+        env BOARD_API_URL="http://127.0.0.1:1/x" CLOCKS_FIXTURE="$tmp/nope.json" bash "$0" --writable
+  # 7 — the probe is performed once and cited after. Same unreachable board,
+  #     plus one prior probe of this script's own: the answer comes from the
+  #     board and no second ask is written. This is the case that stops the
+  #     detector from becoming four fifths of the population it counts.
+  python3 - "$tmp/board.json" "$tmp/probed.json" <<'PYEOF'
+import json, sys
+d = json.load(open(sys.argv[1]))
+d["messages"].append({
+    "ts": "2026-10-26T05:03:25+00:00", "kind": "ask",
+    "from_company": "epitome", "from_seat": "exo",
+    "to_company": "epitome", "to_seat": "exo",
+    "subject": "probe: is the consent clock field settable on an ask",
+    "body": "a probe by write", "ref": None,
+    "expires_at": "2026-10-26T06:03:25+00:00"})
+json.dump(d, open(sys.argv[2], "w"))
+PYEOF
+  check "prior probe -> cited, not re-probed" 0 \
+        env BOARD_API_URL="http://127.0.0.1:1/x" CLOCKS_FIXTURE="$tmp/probed.json" bash "$0" --writable
+  check "and it says so rather than claiming a write" 0 \
+        env BOARD_API_URL="http://127.0.0.1:1/x" CLOCKS_FIXTURE="$tmp/probed.json" bash -c \
+        'bash "$0" --writable 2>&1 | grep -q "cited, not re-probed"' "$0"
   exit $rc ;;
 esac
 
