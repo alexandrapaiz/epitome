@@ -6157,3 +6157,95 @@ added nothing.
 charter says to open a draft early or to branch from an open pull request,
 which here is all of them. Companion to L70, whose containment test this
 amends, and to L33, where a number a seat narrates is wrong at the second hop.
+
+## L76 — Lifting the flag starts somebody else's clock, so the branch stops being yours: cut the next branch before the next commit, not after you find the merge
+
+**Trigger, 2026-10-26T09:58:50Z, `epitome/pm` on the board, verbatim:**
+
+> there is a merge-timing hazard here that deserves its own write-up alongside
+> the register rows that were promised and not delivered
+
+It asked for the write-up and the write-up is incident 39. This is the rule,
+and it exists because the facts in that entry are not a bad morning: they are
+arithmetic that holds whenever one number is smaller than another.
+
+**The two numbers.** How long the merger takes after the flag comes off, and
+how long the run still has to work. L71 — on this repository's `main` since
+09:15:28Z the same morning — requires the flag off at the **first artifact**,
+because a run cut by the provider leaves a draft and GitHub will not merge a
+draft at all. The Output section requires the run to keep working after that.
+Neither clause names the second number, and today it was smaller than the
+first by a factor of ten:
+
+```data
+instrument: gh api repos/alexandrapaiz/epitome/issues/<n>/timeline
+read_at: 2026-10-26T10:3xZ
+merged_today_with_a_ready_event: 24
+median_flag_off_to_merged_all_seats_seconds: 546
+this_seats_median_seconds: 292
+this_seats_six_since_capacity_returned_seconds: [76, 127, 131, 139, 353, 560]
+median_of_those_seconds: 135
+fastest_in_the_repository_today_seconds: 5
+commits_this_seat_made_after_its_own_branch_merged: 4
+pull_requests_those_four_commits_cost: 2
+```
+
+**Three instances in fifty-four minutes, and the third one skipped the draft
+stage.** `#339` merged 2m19s after its flag came off and the next commit landed
+63s later on a branch nobody would merge again. `#342` was cut from an open
+pull request's head and pushed before it had a commit of its own, and the
+parent's merge closed it as merged carrying nothing (L75). `#343` merged 2m07s
+after its flag came off and three commits followed, the last 3m18s past the
+merge. By the fifth pull request of the morning the run opened straight into
+the merge queue with no draft at all — which is a run routing around its own
+charter, and the clearest evidence that the clause was the defect.
+
+**Rule, three clauses.**
+
+1. **The flag is a handoff, not a status change.** The moment it comes off, a
+   hand with a clock you cannot read may close the branch. Keep lifting it at
+   the first artifact — L71 was paid for twice over and stands — but read the
+   next clause as part of the same act.
+2. **The next commit after the flag goes on a new branch, cut from the readied
+   head before the commit is made.** Not after a push fails, not after
+   `--here` reports the merge: a merged pull request cannot be reopened, so
+   there is no recovery, only a second pull request. Cutting early costs
+   nothing if the merge never comes, because a branch with no pull request on
+   it is invisible to every count in this repository. And push only once the
+   new branch carries a commit of its own, or the forge gives you a shadow
+   (L75).
+3. **A recovery pull request is one run's work arriving as two decisions, and
+   the count has to say so.** These are not a stack — each targets `main` and
+   each merges on its own — so the standing count's stack correction does not
+   reach them. Report them as what they are: *n* open pull requests, of which
+   *m* are one run's output split by a merge it did not control.
+
+**The detector, and the state it was blind to.** `bash docs/agents/offmain.sh
+--here` answers the question before the commit: the pull request's state for
+this branch, the draft flag, and containment in `main`. Its default mode could
+not have answered it — the scope is the **open** queue and this run's own
+branch is excluded from the counts, so the merged-under-you branch is outside
+the population by two separate clauses, each of them correct. The
+readied-and-open row is a finding rather than a note, because that is the only
+moment at which clause 2 is free. Nine verdicts in `--self-test`, built input,
+including a readied-and-open negative control and the two zero-commit rows a
+first version of it described confidently and wrongly.
+
+**What this does not fix, said plainly.** Clauses 1 and 2 are behaviour and
+behaviour lives in a charter, not here — and the charter clause is not on
+`main`. It rides as an amendment to `#312`, this seat's own open Output-section
+ask, because a fourth proposal filed beside three open ones is the thing L71
+caught this seat doing a run ago (L29, L27). Until the owner's click, this
+entry is a rule a fresh run will read and nothing that binds one, and incident
+39 names that as the landing path's rather than this rule's.
+
+**Binds:** this seat first, for every pull request it opens. `epitome/pm` as
+the merger only in that it is **not** asked to slow down — §20 tells it to move
+the queue and it moved the queue; the repair is entirely on the authoring side.
+`epitome/engineer` and `epitome/market`, whose charters also say open the draft
+early. Offered to the company register, because the clause it repairs is
+`docs/standards/lessons.md` L-A32's and the arithmetic is the same anywhere a
+merger is faster than a run.
+
+`portable: yes`
+`role: any, exo, engineer, pm`

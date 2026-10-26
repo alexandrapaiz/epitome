@@ -3443,3 +3443,131 @@ run was writing. The charter clause this entry carries narrows the defect to
 the one window that costs a pull request; it does not settle whether branching
 from an open pull request is right, which `#300` has been asking since
 2026-10-24T22:17:30Z and which is still the owner's.
+
+## Incident 39 — 2026-10-26 — Two runs of this seat opened five pull requests in fifty-four minutes, and three of the five exist only because the merger answered faster than the run could finish
+
+**This entry was asked for by name, which is why it leads.** `epitome/pm`, on
+the board at 09:58:50Z, verbatim: *"there is a merge-timing hazard here that
+deserves its own write-up alongside the register rows that were promised and
+not delivered."* It was right about the hazard and it is the hazard's third
+instance that this entry is written from.
+
+**The handoff's other half, re-read rather than taken** (L24, L38, L48: the
+only moment a claim about a pull request is true is the moment you read it).
+The three rows it named as promised and missing were a second lesson, an
+incident entry and a loop row. Two of the three were on `main` fifteen minutes
+after that message was composed — `L74` and `Incident 38`, carried by `#343`,
+merged 10:13:53Z — and the loop row reached `main` at 10:27:26Z with `#344`,
+three minutes before this entry was written. So the handoff is answered by
+measurement on two of three items and by this entry on the third, and nothing
+about it was wrong when it was sent.
+
+**The facts, and every row is a timeline event rather than a field.**
+
+| pull request | opened | flag off | merged | flag off → merged | why it exists |
+|---|---|---|---|---|---|
+| `#339` | 09:33:38Z | 09:43:05Z | 09:45:24Z | **2m19s** | the run's own work |
+| `#340` | 09:48:41Z | 09:48:45Z | 09:58:05Z | 9m20s | to carry `L73`, committed 09:46:27Z onto `#339`'s branch 63s after it merged |
+| `#342` | 09:54:57Z | never | 09:58:07Z | — | cut from `#340`'s head and pushed before it had a commit; closed as merged by `#340`'s merge, carrying nothing (L75) |
+| `#343` | 10:03:37Z | 10:11:46Z | 10:13:53Z | **2m07s** | the next run's own work |
+| `#344` | 10:19:42Z | **opened not a draft** | 10:27:26Z | 7m44s (from opening) | to carry three commits made 10:15:45Z–10:17:11Z onto `#343`'s branch, up to 3m18s after it merged |
+
+Three of the five — `#340`, `#342`, `#344` — carry no work that was not already
+written when they were opened. One of the three carried nothing at all. By the
+fifth the run had stopped using the draft stage altogether, which is the
+clearest evidence in the table that the flag itself had become the thing to
+avoid: `#344` has no `ready_for_review` event in its timeline because it was
+opened straight into the merge queue.
+
+**The impact is on the one number this charter publishes for the owner.** Her
+queue count reads pull requests, and the charter's first standing count already
+corrects it for stacks — *"a linear stack is one decision presented as many"*.
+These are not a stack. `#340`, `#343` and `#344` each targeted `main`, each
+merged on its own, and each is a separate click. One run's output arrived at
+the merge button as three decisions with nothing to mark them as one, and no
+clause in this charter tells the count to say so.
+
+**Root cause, in the system, and the merger is not in it.** `epitome/pm` is
+doing exactly what its standard tells it to (§20: the item is held until the
+queue moves), and the queue moved. The defect is a conjunction of three charter
+clauses that are each correct and were each written for a different failure:
+
+1. **Lift the flag at the first artifact** (L71), because a run cut by the
+   provider leaves a draft and a draft ships nothing. Written this morning from
+   two instances that cost 78 and 72 turns.
+2. **Keep working after it** — the Output section's own words, and `#312`'s
+   pending amendment makes it explicit: *"the body is the report, so it is
+   written at the same first moment the flag is lifted and rewritten as the run
+   learns more."*
+3. **One pull request per run**, the dispatch's ceiling.
+
+Nothing in the three says where a commit goes when it is made after the flag
+came off, and that is the whole gap. The answer is forced by arithmetic the
+charter never states: **the flag is a trigger on somebody else's clock, and
+today that clock is shorter than the work.** Measured across every pull request
+merged in this repository today that has a `ready_for_review` event:
+
+```data
+instrument: gh api repos/alexandrapaiz/epitome/issues/<n>/timeline, gh pr list --state merged
+read_at: 2026-10-26T10:3xZ
+merged_today_with_a_ready_event: 24
+median_flag_off_to_merged_all_seats_seconds: 546
+fastest_today_seconds: 5
+slowest_today_seconds: 124208
+this_seats_pull_requests_of_those: 15
+this_seats_median_seconds: 292
+this_seats_under_180s: 6
+since_capacity_returned_0905Z_this_seat: 6
+since_capacity_returned_median_seconds: 135
+since_capacity_returned_gaps_seconds: [76, 127, 131, 139, 353, 560]
+runs_of_this_seat_in_the_window: 2
+window: 2026-10-26T09:33:38Z..10:27:26Z
+pull_requests_opened_in_window: 5
+exist_only_because_of_merge_timing: 3
+carrying_nothing_at_all: 1
+commits_made_after_their_own_branch_merged: 4
+longest_such_commit_after_its_merge: 3m18s
+```
+
+A run of this seat lasts tens of minutes. Half of this seat's pull requests
+today were merged inside five minutes of the flag coming off, and in the hour
+after capacity returned the median was **135 seconds**. Under that distribution
+clauses 1 and 2 together guarantee the orphan; they do not risk it.
+
+**Fix shipped, and it is in three parts with three different hands.**
+
+- `docs/agents/offmain.sh --here`, in this entry's own pull request. The
+  default mode walks the open queue and excludes this run's own branch, so the
+  merged-under-you case was outside its population twice over. The new mode
+  asks about `HEAD`: the pull request's state, the draft flag, and containment
+  in `main`, with the readied-and-open row returning a **finding** rather than
+  a note because that is the only moment at which cutting the next branch costs
+  nothing. Nine verdicts in `--self-test`, including the two zero-commit rows a
+  first draft of it described wrongly.
+- **L76**, the rule a fresh-context run applies without having seen any of
+  this: the next commit after the flag comes off goes on a new branch, cut
+  before the commit is made.
+- **The charter clause**, which is the only part that binds, and it is **not on
+  `main` and not in this pull request**. It rides as an amendment to `#312`,
+  this seat's own open ask, which already carries the Output section's
+  flag-and-body material — because filing a fourth proposal beside three open
+  ones is the thing L71 caught this seat doing a run ago (L29, L27).
+
+**Where the fix is, rather than the word shipped.** Two of the three parts are
+in `#345` and on no `main` yet; the clause that binds is in `#312`, open since
+2026-10-25T03:25:52Z. **The one thing blocking it is that no hand in this
+repository but the owner's may merge under `prompts/`**, which is the same
+blocker as incidents 36 and 38 and the same one `alexandra-systems/exo-centralizer`
+has already routed to HQ's project manager as work that is not landing. Counted
+as instances and not entries (L20): three instances in fifty-four minutes —
+`#339`'s orphan, `#342`'s shadow, `#343`'s orphan — and all three fell after L71 was on
+`main` at 09:15:28Z, so the rule being missing is not what let them through.
+That is what makes this the landing path's and not a new rule's. The next run of this seat re-measures `#312` and says in first person
+whether it moved.
+
+**Lessons linked.** L76 (new, the rule), L71 (the clause that makes the flag
+early), L75 (the shadow, which is this hazard's degenerate case — a recovery
+branch pushed before it carried a commit), L70 clause 1 (why the recovery
+branch targets `main` and therefore counts as its own decision), L20 (a second
+instance while the fix sits written is an incident of the landing path),
+incident 38 (the same morning, the same conjunction, narrowed by one window).

@@ -48,8 +48,8 @@
 # and together they make exactly one case invisible: the branch this run is
 # committing to, whose pull request has already merged. Lifting the flag hands
 # the branch to a hand with its own clock, and on 2026-10-26 that clock answered
-# this seat in a median of **133 seconds** in the hour after capacity returned.
-# Twice in forty-six minutes a run of this seat kept committing past it — L73's
+# this seat in a median of **135 seconds** in the hour after capacity returned.
+# Twice in thirty-one minutes a run of this seat kept committing past it — L73's
 # text at 09:46:27Z, 63s after `#339` merged, and three commits from 10:15:45Z
 # to 10:17:11Z, up to 3m18s after `#343` merged — and each time the recovery was
 # a further pull request (incident 39, L76). A run cannot ask the default mode
