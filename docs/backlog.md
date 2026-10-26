@@ -131,15 +131,21 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   `$STUB/*.jsonl` and requires at least one of them to carry the env-shortfall
   line. The two assertions before it wait properly — `wait-for.mjs runs pm 1`
   for the run, then `eventually … grep -lq 'env missing' .epito/logs/pm/*.log`
-  for the run's own log — but the turn file is written by a *different* process
-  (the stub executor) into a *different* directory, and nothing waits for that
-  one. Measured, three runs on the same box, same prerequisites:
-  composed under `test/all.sh` with thirteen suites running it printed
-  `0 of 4 prompts handed to pm carry the line` and failed; the same suite
-  standalone on `main` printed `1 of 5` and passed; standalone on the branch
-  printed `1 of 5` and passed. The missing fifth turn is the shortfall run's
-  own: the check read the directory before the executor had written it, so a
-  green assertion and a red one differ by one file's flush.
+  for the run's own log — and neither of those waits reaches the turn file,
+  which a *different* process writes into a *different* directory.
+  The second wait is the one that looks sufficient and is not:
+  `cli/src/lib/runner.js:672` writes `# env missing:` into the run's log
+  **before** it spawns the executor at all (`:7xx`, `spawn(file, args, …)`
+  thirty lines further down), so `grep -lq 'env missing'` goes green while the
+  child that records the turn has not started. Nothing after that waits for
+  the child.
+  Measured, four runs on the same box with the same prerequisites: composed
+  under `test/all.sh`, twice, at two different revisions, it printed
+  `0 of 4 prompts handed to pm carry the line` and failed both times;
+  standalone on `main` and standalone on the branch it printed `1 of 5` and
+  passed both times. So it is not a once-a-day flake — it reproduces under
+  composition and it is green alone — and the missing fifth turn is the
+  shortfall run's own, read before the executor wrote it.
   The fix is the instrument already in the file: wrap the `node -e` count in
   the suite's own `eventually` (as `:966` does for the log), or wait on the
   turn count the way `wait-for.mjs` waits on the run count. Not fixed in that
