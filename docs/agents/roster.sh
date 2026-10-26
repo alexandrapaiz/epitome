@@ -33,7 +33,8 @@
 # `env`, `subscriptions` and `scopes` are not compared by anything and have
 # diverged on every seat of this product.
 #
-# Reads only. No credential, no network.
+# Reads only: it invokes nothing that writes, and `epito help` is the single
+# invocation it makes. No credential, no network.
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 
@@ -78,14 +79,30 @@ if command -v epito >/dev/null 2>&1; then
       BIN_BEHIND=$(git rev-list --count "$BIN_HEAD..origin/main" 2>/dev/null)
     fi
   fi
-  # Which documented commands the running binary does not have. Asked of the
-  # binary rather than read off its source, because the source on disk here is
-  # not the source it was started from (L-A16: configured is not in effect).
-  for c in validate run ps window token routes doctor env bus board audit report note message deploy init; do
-    case "$(epito "$c" --help 2>&1 | head -1)" in
-      *"unknown command"*) BIN_MISSING="$BIN_MISSING${BIN_MISSING:+,}$c" ;;
-    esac
-  done
+  # Which commands this repository ships that the running binary does not list.
+  # Asked of the binary rather than read off its source, because the source on
+  # disk here is not the source it was started from (L-A16: configured is not
+  # in effect).
+  #
+  # `epito help` is read ONCE and parsed. The obvious probe — invoking each
+  # command with `--help` and looking for "unknown command" — is what the first
+  # version of this script did, and it is not read-only: `epito init --help`
+  # takes `--help` as the new agent's NAME and scaffolds `agent.toml` and
+  # `prompts/--help.md` into the working tree. It did exactly that in this
+  # repository on 2026-10-26 while the header three lines up said "Reads only"
+  # (L63's own clause turned on its author: the claim was never compared
+  # against the act). A probe that must not change anything does not invoke
+  # the thing it is probing.
+  helptxt=$(mktemp) || helptxt=
+  if [ -n "$helptxt" ]; then
+    epito help > "$helptxt" 2>&1 || true
+    for c in validate run ps window token routes doctor env bus board audit report note message deploy init; do
+      grep -qE "(^|[^a-z-])epito $c([^a-z-]|\$)" "$helptxt" || BIN_MISSING="$BIN_MISSING${BIN_MISSING:+,}$c"
+    done
+    rm -f "$helptxt"
+  else
+    BIN_NOTE="no scratch directory, so the command list is could-not-look"
+  fi
 else
   BIN_NOTE="no epito on PATH; could not look"
 fi

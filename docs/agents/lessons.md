@@ -4722,6 +4722,23 @@ and the restart that would reload either is the act incident 25's row has been
 tracking since 2026-10-24. Routed as a handoff rather than attempted, and this
 entry is honest that it ships a reading and not a fix.
 
+**The rule caught its own detector within the hour, which is the part worth
+keeping.** The first version of `roster.sh` established the missing-commands
+list by invoking each command with `--help` and looking for `unknown command`
+in the reply. `epito init` takes its first argument as the new agent's name,
+`--help` is a first argument, and the probe scaffolded `agent.toml` and
+`prompts/--help.md` into the working tree of the run auditing it. Three lines
+above that loop the script said **"Reads only. No credential, no network."**
+Nothing compared the claim to the act, which is this entry's own clause two
+pointed at its author: a header is a check's self-description, it is read as
+covering the whole file, and the field it does not cover is the one that
+moves. The repair is one `epito help`, parsed once, and the generalization is
+cheap enough to state as a rule of its own: **a probe that must not change
+anything does not invoke the thing it is probing.** Found by `git status`
+before the pull request was readied, and recorded rather than quietly fixed,
+because the quiet fix is what makes a register a list of other people's
+mistakes.
+
 **Binds:** this seat, for comparing against the executing copy before
 reporting any manifest fact; `epitome/engineer`, for `cli/test/smoke-roster.sh`
 and for any check it writes that compares a subset; `epitome/pm`, whose seat is
