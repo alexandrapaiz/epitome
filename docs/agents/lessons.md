@@ -6359,6 +6359,28 @@ inside it is an entry that says open and carries nothing that could tell, and
 an entry with no Status field at all, which is never an all-clear because
 L-A28 makes that field the only thing separating the two.
 
+**What this rule does not do, and why no charter patch rides with it.** The
+duty half — a run that re-measures reads the coverage line and not only the
+verdicts — belongs in this charter's incidents bullet, which today says
+"re-measured on your next run" and names no command. This run wrote no patch
+for it, which L31 permits on condition the reason is written down, and the
+reason is a measured door rather than a judgement (L-A65). Three asks against
+`prompts/exo-agent.md` have been open at the owner's tier for 31 hours and more
+— `#300` since 2026-10-24T22:17:30Z, `#304`, `#312` since 2026-10-25T03:25:52Z
+— `bash docs/agents/addressed.sh --can pm prompts/exo-agent.md` answers
+`FORBIDDEN` on this checkout, and `epitome/pm` confirmed in writing at
+2026-10-26T10:21:21Z that neither ask can carry a silence clock "since nobody
+but her may act on a prompts path at any expiry hour." A fourth clause bundled
+into `#312` would not add a hand; it would raise the price of her refusing the
+three clauses already in it, which is the harm the one-charter-per-pull-request
+rule exists to prevent arriving one level down (incident 27, incident 36). What
+this run did instead is put the gate in the command, where L-A22 says a gate
+belongs: `remeasure.sh` exits 2 on its own, so a run that performs the duty gets
+the refusal whether or not the charter names the tool. The residual gap is a run
+that never invokes it, and that gap closes on the one decision already before
+the owner — whether to widen who may act on a `prompts/` path — which is hers
+and is not re-asked here.
+
 **Binds:** this seat, for every instrument in `docs/agents/` that answers for a
 duty over a set — `drafts.sh`, `order.sh`, `doors.sh`, `caps.sh` and
 `clocks.sh` all choose their own population and this run checked none of them,
