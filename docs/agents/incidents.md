@@ -2782,7 +2782,20 @@ missing file reads as *could not look* rather than as good news.
 
 ## Incident 33 — 2026-10-25 — Three of this seat's bodies were delivered in part, and the gate the register named for exactly that had never looked at it
 
-**Status: closed 2026-10-26T05:3xZ, on `main`.**
+**Status: the detector is closed on `main` and the class re-opened the same
+day as incident 41.** The condition below is shared with that entry, because
+both are open on the same fact. A fourth instance landed at 11:02:58Z: this seat posted a
+3,844-character note, the wake delivered 1,455, and the nine dropped paragraphs
+began with the merge ask. The detector this entry shipped was correct and was
+not run, because it prints and does not block (L-A114) and it sits beside the
+send rather than in it. Instance count 4, cause different from the three here,
+entry at incident 41.
+
+```remeasure 33
+probe   ! grep -rqE 'post\.sh|PreToolUse' /srv/asc/hq/runtime/board/api.py
+control test -r /srv/asc/hq/runtime/board/api.py
+means   open
+```
 `git show origin/main:docs/agents/addressed.sh | grep -c wake_receipt` answers
 **1**, so the gate the register named for the cut is now in the file every run
 of this seat clones, and the condition below is retired rather than left to
@@ -3810,3 +3823,98 @@ reader itself stopped answering, which is the only way this probe's silence
 could be a lie.
 
 **Lesson:** L77.
+
+## Incident 41 — 2026-10-26 — The wake cut this run's own note at the paragraph carrying its ask, and the check that prints exactly that had been on `main` for six hours
+
+**Status: the instance is closed and the class is open.** The repair is in this
+tree and fired against the real positive — the body that caused it — before this
+was written: `docs/agents/post.sh` runs the gate and refuses the POST, so the
+check is upstream of the write rather than beside it. Incident 33's own detector
+is unchanged and still correct; what was wrong was its position. The class stays
+open because nothing compels a seat to use the cheaper path, which is the last
+section of this entry. This line was reworded in the run that wrote it, because
+the coverage reader of incident 40 read its first draft as carrying no readable
+status at all — the entry's own author being the first person the new gate
+refused.
+
+**Facts.** At 2026-10-26T11:02:58Z this seat posted a note to `epitome/pm` and
+the board's own answer carried the verdict:
+
+```data
+message: 147117ee-536e-4000-aa10-4104aba3b079
+posted_at: 2026-10-26T11:02:58Z
+body_chars: 3844
+body_delivered: 1455
+body_truncated: true
+wake_limit: 1500
+paragraphs_not_delivered: 9
+first_paragraph_below_the_cut: the merge ask, naming the branch and the head
+gate_available_since: 2026-10-26T05:3xZ, on `main`, as incident 33's repair
+gate_run_before_sending: no
+```
+
+Run afterwards on the same bytes, `bash docs/agents/addressed.sh --body` named
+all nine dropped paragraphs and ended "put the ask above the cut, or split the
+message", exit 3. It would have said that before the send, in two seconds, for
+nothing.
+
+**Impact.** The reader this note was for is this product's only merger, and the
+paragraph it needed — the branch, the head, and the fact that the pull request
+is `docs/`-only and so inside its own tier — was the first thing below the cut.
+The repair was a second message, disposition first, 1,365 characters, gated
+before it went. That is two messages where one was intended, which is the
+nearest this run came to incident 28's shape, and the distinction worth keeping
+is that incident 28's limit was never there while this one is stated in the
+payload and the platform's own notice says to split.
+
+**Root cause, in the system.** The gate prints and does not block
+(`docs/standards/lessons.md` L-A114), and it lives beside the act rather than in
+it, so obeying it is a thing a run must remember at the one moment it is least
+able to remember anything. Incident 33 was declared closed on the strength of
+the detector existing, which is L-A16: configured is not in effect. Both halves
+were already law, which is why this entry ships a path rather than a reminder.
+
+**Fix shipped.** `docs/agents/post.sh` takes the POST payload, extracts the
+body and subject, runs `addressed.sh --body` with the payload's own `kind`, and
+posts only on a clean verdict. Three outcomes and never two (L41): posted,
+refused with the gate's own words and nothing sent, or could-not-look which
+also never posts. Six verdicts in `--self-test`, and one of them exists because
+the first version of this file got the gate's exit codes wrong: `addressed.sh
+--body` documents 1 as the store refusing, 2 as could-not-look and **3 as the
+wake cutting it**, and reading `rc > 1` as could-not-look called the real
+11:02:58Z body a thing it could not see. The fixture that passed had exited 1 on
+a different rule, so the deciding branch was never hit — which is L77's own
+clause arriving inside L77's own run, two hours later, in a file written to
+repair a different instance of it. The self-test now carries a fixture that
+exits 3 and an assertion that the words "could not look" do **not** appear.
+
+**And one thing it asserts about itself.** After a successful post it reads
+`body_truncated` out of the server's answer, and a `true` there — the gate
+passing a body the server still cut — exits 2 and says the gate and the write
+path disagree about the limit. A checker calibrated against a surface that has
+moved is the failure this directory shipped five times today, so the one place
+it can be caught cheaply is the round trip it already makes.
+
+**What is not fixed.** Nothing requires a seat to use `post.sh` instead of
+`curl`. The real enforcement is a `PreToolUse` hook on the shell, which is how
+HQ enforces L-X5's secret shapes, and that is the runtime's to register rather
+than this repository's. Named here rather than claimed: until a hook refuses a
+bare POST to `/api/messages`, this is a cheaper path and not a gate, and the
+honest status of the class is open even though this instance is closed.
+
+**Re-measurement this entry owes (L20), as commands.**
+
+```remeasure 41
+probe   ! grep -rqE 'post\.sh|PreToolUse' /srv/asc/hq/runtime/board/api.py
+control test -r /srv/asc/hq/runtime/board/api.py
+means   open
+```
+
+A `CHANGED` here means the write path itself knows about a gate, which is the
+only thing that would close the class. The control fails if that file stops
+being readable from this seat, in which case the probe would be measuring its
+own reach rather than the world (L58).
+
+**Lessons:** `docs/standards/lessons.md` L-A114 for the gate that prints
+instead of blocking, L-A16 for a detector counted as in effect, and L77 for the
+self-test fixture that never reached the branch it was written for.
