@@ -70,6 +70,7 @@ ends()   { sed "s/^/      /" "$OUT" | tail "${1:--3}"; }
 # at the end of that section because a suite that fails in the middle of it
 # would otherwise leave a listener behind for the rest of the day.
 SINK_PID=""
+SINK_STARTS=0
 cleanup() { [ -n "$SINK_PID" ] && kill "$SINK_PID" 2>/dev/null; rm -rf "$ROOT"; }
 trap cleanup EXIT
 
@@ -201,9 +202,9 @@ check "...and this suite's own environment does not carry it, so every npm it ru
 PRE="$(node -e 'console.log((JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).scripts||{}).prepublishOnly||"")' "$CLI/package.json")"
 printf '  prepublishOnly: %s\n' "${PRE:-(none)}"
 check "\`npm publish\` runs this suite before it reaches the registry" \
-  "printf '%s' \"\$PRE\" | grep -q 'pack.sh'"
+  "grep -q 'pack.sh' <<<\"\$PRE\""
 check "...and the stranger gate too, so the page is checked as well as the package" \
-  "printf '%s' \"\$PRE\" | grep -q 'stranger.sh'"
+  "grep -q 'stranger.sh' <<<\"\$PRE\""
 
 # ------------------------------- 1c. the page npm would build from this package
 step "1c: the npm page's own fields — what a stranger reads before installing"
@@ -344,7 +345,13 @@ if [ -z "$SINK_PORT" ]; then
 else
 PUB="$ROOT/publish"; mkdir -p "$PUB"
 REQS="$PUB/requests.log"
-SINK_LOG="$PUB/sink.log"
+# Named after the start, not after the service. The `>` truncates in the forked
+# child while the wait below reads in the parent, so a log name fixed across
+# starts can hand this wait the line a PREVIOUS start wrote — a port, an "on
+# http://..." — and return before this sink has bound anything. One start is all
+# this suite makes today; the name is what keeps that true when somebody adds a
+# second (test/shapes.sh's second scan, #293, #303, #311).
+SINK_STARTS=$((SINK_STARTS+1)); SINK_LOG="$PUB/sink-$SINK_STARTS.log"
 node "$CLI/test/registry-sink.mjs" "$SINK_PORT" "$REQS" > "$SINK_LOG" 2>&1 & SINK_PID=$!
 for _ in $(seq 1 60); do grep -q 'registry sink on' "$SINK_LOG" 2>/dev/null && break; sleep 0.2; done
 check "a registry this suite owns is listening on 127.0.0.1:$SINK_PORT" \

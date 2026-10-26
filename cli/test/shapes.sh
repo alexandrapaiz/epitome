@@ -105,7 +105,6 @@ cli/test/probe-readers.sh 2
 cli/test/smoke-langgraph.sh 19
 deploy/test-provision.sh 4
 cli/test/smoke-bus.sh 2
-cli/test/pack.sh 2
 deploy/provision-host.sh 1
 "
 
