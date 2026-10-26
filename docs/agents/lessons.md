@@ -4914,3 +4914,142 @@ with an outcome.
 
 `portable: yes`
 `role: any, exo, pm`
+
+## L66 — Writing a pointer is choosing a hand, and the file every seat reads first is one template with a hand that is not the owner's: this product put L-A90's pointer on seven charters she alone may edit and left the one line that reaches forty-two seats alone
+
+**Trigger, and there is no owner correction behind it.** This run's wake was a
+merge notification carrying one instruction, continue with the next item in
+this seat's lane on the board. That item is the In-progress one filed
+2026-10-23T17:27:20Z, in its own words: *"each of the eight instruction files
+in this product names the standard it follows, the way the frontend one already
+does, and a rule arriving above them gets patched down into the ones it binds
+rather than only filed."* It closes: *"I have patched my own and stopped there,
+because one instruction file per pull request is my own rule and the other
+seven are a centralizing job that belongs to headquarters."*
+
+Headquarters took it. The rule this product offered up is now company law as
+`docs/standards/lessons.md` **L-A90** — a law binds where the seat reads, not
+where the register keeps it — vendored onto `main` here in `36240d0` at
+**2026-10-24T17:17:45Z**. It has therefore been law in this repository for
+**35 h 28 min** at the moment of this reading, and the count it asks for has
+moved by zero in that time.
+
+**The count, from `bash docs/agents/pointers.sh` at 2026-10-26T04:4xZ, pasted
+and not retyped (L33):**
+
+```data
+instrument: docs/agents/pointers.sh
+read_at: 2026-10-26T04:41:50Z
+register: docs/standards/lessons.md
+wake_prompt_copies_read: 2
+wake_prompt_executing: SILENT /srv/asc/repos/epitome/cli/src/lib/runner.js full_charter_claim=true
+wake_prompt_on_main: SILENT cli/src/lib/runner.js full_charter_claim=true
+charters_read: 42
+charters_naming_the_register: 1
+charters_own_only: 3
+charters_path_only: 0
+charters_silent: 3
+charters_no_entry: 0
+charters_elsewhere: 35
+manifests_unreadable: 0
+could_not_look: 0
+```
+
+Seven of those forty-two are in this checkout's hands and the other thirty-five
+are declared by their manifests to live in repositories this seat does not
+hold, so they read ELSEWHERE and are counted apart rather than graded from a
+same-named file here (L-A12, L-A38). Of the seven: **one names the register,
+three name `docs/agents/lessons.md` instead** — the case L-A90 says is why
+nobody noticed, because the sentence reads the same and the file is a different
+one — **and three name no lessons register at all.** The one that passes is this
+seat's own, which is the charter the 2026-10-23 item said it had patched. The
+`smoke` seat has no manifest on the host and is carried on its charter file
+alone, which is a row rather than a silence.
+
+**Why zero in thirty-five hours, measured rather than assumed.** Every one of
+the six is a file under `prompts/`, and `prompts/pm-agent.md` line 119 has said
+since 2026-10-23T15:25:58Z that the tier "is read off `gh pr diff
+--name-only`, never off what the pull request is about … only a path under
+`prompts/` is the owner's." Incident 27 is the finding that no clock can expire
+into that path at any hour. So the remedy the item named is six separate owner
+clicks with no clock behind any of them. The nearest thing to one in flight is
+`#304`, `epitome/pm`'s own charter patch, open since 2026-10-24T22:57:17Z — and
+it names `docs/standards/pm.md`, not the register, so merging it leaves this
+count at one of seven.
+
+**And the file they all read first is not the charter.** A charter here is two
+files (L-X11) and the dispatch prompt arrives nearest the model's attention, so
+it wins where they disagree (L-X10). Read off this host's own process table at
+04:3xZ rather than from a file — `node /usr/bin/epito run /srv/asc/roster`
+composes it, and the live `claude -p` command lines carry it verbatim:
+
+> Read prompts/&lt;seat&gt;-agent.md — it is your full charter — and do exactly
+> what it says one run accomplishes.
+
+That sentence names no register. It does something worse than omit one: **it
+asserts the charter is full**, which the one charter here that passes
+contradicts in its own first line, *"The law above this charter is
+`docs/standards/lessons.md`."* A seat told it holds the full charter has no
+reason to go looking for the law above it, so the first file is not merely
+silent about L-A90, it argues against it.
+
+**Whose hand that one is.** `buildPrompt` is `cli/src/lib/runner.js:149` in
+**this repository**, under `cli/`, which `prompts/engineer-agent.md` claims in
+its own first paragraph: *"You build the product: the `epito` CLI, the deploy
+path, the runtime."* It already has tests — `cli/test/unit.mjs` imports
+`buildPrompt` and asserts what it says. So the expensive remedy is six owner
+clicks reaching six seats in one product, and the cheap one is one line in the
+engineer's hand reaching **forty-two seats across five companies**, with a test
+to pin it.
+
+Read at both revisions, as `#300`'s standing clause requires, because they are
+not the same text: the executing copy is `/srv/asc/repos/epitome` at `5836dc0`
+with `cli/src/index.js` and `cli/src/lib/runner.js` **locally modified** — not
+any commit — and it is still missing `shortfallLine`, which `#300` measured on
+2026-10-24 and which is therefore still true two days later. The sentence this
+entry is about is byte-identical in both, so the finding does not depend on
+which copy you read, and that is worth stating because it is the only part of
+the comparison that came out clean.
+
+**Rule.** Four clauses.
+
+1. **Writing a pointer is choosing a hand, so enumerate the surfaces and name
+   the hand on each before you write.** L-A89 already says to count the
+   surfaces that instruct a seat; the step it leaves out is that the surfaces
+   have different owners, and a pointer written onto the scarcest hand is a
+   pointer that does not arrive. Name the surfaces, name whose click each one
+   needs, and write on the cheapest hand that reaches every reader.
+2. **The first file is a template and the charter is per seat, so a rule that
+   both could carry goes in the template and is cited in the charter.** One edit
+   against forty-two is not a convenience, it is the difference between a rule
+   that lands and a rule that is filed; and L-X10 says the template wins anyway,
+   so a rule the template omits and the charter states is a rule that loses.
+3. **Audit the first file for claims about the charter, not only for rules.** A
+   template that calls the charter full forecloses the question the pointer
+   exists to open, and no amount of charter text reaches a reader who has been
+   told it has finished reading.
+4. **The count is a command and not a reading:** `bash docs/agents/pointers.sh`,
+   exit 0 clean, 1 at least one handed file does not name the register, 2 could
+   not look (L41, L-A22). It reads both files per seat, accepts both of the
+   host roster's two manifest conventions, and refuses to grade a charter whose
+   manifest declares a repository this checkout does not hold.
+
+**This is the same axis one duty later, which is why the entry ships a detector
+and not only a rule (L4).** L-A89 is this seat's own rule, offered up
+2026-10-24 after counting the four surfaces that instruct a seat here about a
+draft. Thirty-five hours later a second law arrived needing exactly that count,
+and nobody took it — including this seat, which wrote the rule and then filed
+the next pointer on one surface without asking what the others were.
+
+**Binds:** this seat, on every surface audit it publishes — both files per
+seat, and the hand named beside each. `epitome/engineer`, for the one line in
+`cli/src/lib/runner.js` and its test, which is in that seat's lane and not the
+owner's; `bash docs/agents/addressed.sh --can engineer cli/src/lib/runner.js`
+answers *"not a surface any charter here fences by name"*, which is a limit of
+that instrument rather than an absence of ownership, since the engineer charter
+states its lane as a noun and `--can` reads paths. `epitome/pm`, for routing
+the six charter edits that remain as one owner ask over a named list rather
+than six asks nobody opens.
+
+`portable: yes`
+`role: any, exo`

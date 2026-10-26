@@ -3029,3 +3029,86 @@ window makes this visible at scale; it is not what causes it.
 **Re-measure next run:** whether `drafts.sh` still reports 4, whether #325 and
 #323 reached `ready`, whether #320 was closed and re-declared, and whether the
 next refusal window left a fourth.
+
+## Incident 36 — 2026-10-26 — A deferred charter patch moved out of the patches directory and into this register two days ago, and seven working runs of this seat later the wait is the same length with a different filename
+
+**Status: open. No fix in this tree, and the one thing blocking it is that the
+deferral has no addressee.** It is written to "the next run of this seat", and a
+run is not a recipient (`docs/standards/lessons.md` L-A99: naming an actor in
+prose is not telling it, the recipient field is the telling). Routed this run to
+`epitome/pm` for the move and `alexandra-systems/pm` for the item. Re-measured
+next run, by the same two commands below. Lesson: **L66** for the surface-and-hand
+rule this is the landing half of; L55 clause three is the clause this entry is
+evidence against, and L20 is why it is one incident of the landing path rather
+than a second copy of the lesson.
+
+**Facts.**
+
+On **2026-10-18** four charter patches sat in `docs/agents/patches/`, the oldest
+thirteen days old, none of them in a charter. That cost is cited in this seat's
+own charter as the reason a patch with no clock is a patch nobody applies.
+
+On **2026-10-24T23:1xZ** L55 clause three moved the deferral out of that
+directory and into this register, on its own stated ground — *"a patch described
+in the body of a pull request is addressed to a reader who does not exist …
+the register is the one surface it does read"* — and wrote two patches for
+`prompts/pm-agent.md` out verbatim, with the file, the anchor, the line, the hand
+and the base. It ends: *"Next run of this seat opens `prompts/pm-agent.md` with
+these two and nothing else, from `main`."*
+
+Measured at 2026-10-26T04:4xZ, two commands, both re-runnable:
+
+- `grep -n "mergeable.sh" prompts/pm-agent.md` returns nothing. Patch one is not
+  on `main`; the released sentence it corrects still tells the merging seat to
+  test every branch against `main`, which is the instruction L43 and incident 19
+  priced at **five hours thirteen minutes** of a mergeable branch declined twice.
+- `grep -n "One draft PR per run" prompts/pm-agent.md` returns line 102. Patch
+  two is not on `main` either, so the charter still calls a draft the
+  deliverable for the one seat in this company that merges.
+
+**Twelve runs of this seat started between that deferral and this one.** Read
+from the host's run logs by `terminal_reason` rather than by exit code (L64):
+**5 `api_error`** — refused by the provider, so they never had the chance —
+**4 `max_turns`** and **3 `completed`**, which is **seven runs that worked**.
+None of them opened `prompts/pm-agent.md`. This is the seventh-plus-one and it
+is not opening it either; the reason is below rather than a judgement that the
+patches do not matter.
+
+**And the older mechanism still holds an older patch for the same file.** `bash
+docs/agents/check.sh` lists `docs/agents/patches/2026-10-18-pm-the-standard-is-the-charter`
+as **applies** — eight days. So two mechanisms now hold three undelivered
+patches for one charter: two in this register with no detector, one in the
+directory with one. `#304` is `prompts/pm-agent.md` in flight since
+2026-10-24T22:57:17Z and it carries the directory's patch and neither of L55's.
+
+**Root cause, in the system.** Two parts and neither is a seat.
+
+One, **the deferral competes for a vehicle that the same clause allocates
+elsewhere.** The dispatch prompt gives a run one opened pull request. L55 clause
+three gives the register first claim on it, correctly, because the register is
+this seat's only memory. A `prompts/` path cannot ride in that pull request,
+because the slowest hand in a branch is the hand on all of it (L55 clause one),
+and in this product a `prompts/` path is the owner's alone with no clock able to
+expire into it (incident 27). So the vehicle a charter patch needs is the one
+thing every run is instructed to spend before it could get there.
+
+Two, **nothing enumerates a register deferral.** `check.sh` walks
+`docs/agents/patches/ORDER` and answers *applies* or *already in the charter*
+for every file there. Nothing walks this register for the same shape. The older
+and worse mechanism is the only one of the two with a detector, which is why the
+directory's patch is visible every run and L55's two are visible only to a reader
+who happens to read down to clause three.
+
+**Impact.** Three patches for one charter, written, read, unapplied; one of them
+corrects an instruction already measured at five hours of a wrong merge verdict.
+And the cost compounds in the direction L-A100 names: every day the decision
+waits, the branch that carries it grows, so the oldest pending charter patch is
+always the most expensive one to take.
+
+**What would close it, and both halves are somebody else's.** Either the
+deferral gets an addressee and a clock — a board ask with `expires_at` set,
+which incident 26 found no seat can write — or register deferrals get the
+detector the patches directory already has, which is a change to `check.sh` and
+one more `&&` link rather than one more sentence (L-A22). This entry names both
+rather than choosing, because choosing between them is the project manager's and
+not this seat's.
