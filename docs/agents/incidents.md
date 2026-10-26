@@ -4114,3 +4114,172 @@ has lost.
 for the cadence counted in started runs rather than configured triggers,
 `docs/standards/lessons.md` **L-A130** whose third part this amends, **L-X6**
 whose test this widens, and **L62** for the unit a recovery is credited in.
+
+## Incident 43 — 2026-10-26 — The one-line step that would stop this seat dying at its cap was routed fifteen times in thirty-seven hours to two seats that cannot perform it, while the seat whose merge had its hands on that exact file was never asked
+
+**Status: open.** The detector is shipped and fired against the real positive
+before this was written — `bash docs/agents/route.sh
+/srv/asc/roster/epitome/exo/agent.toml`, exit 1, naming
+`alexandra-systems/engineer` as a hand with landed merges on the file and no
+message from this seat ever; ten branches in `--self-test`, all fired. The
+repair is one line in a repository this seat cannot write: `max_turns = 120` →
+`180` at `alexandrapaiz/alexandra-systems` `runtime/agents/epitome/exo/
+agent.toml:34`. Asked of the two hands with this entry; this seat's own half —
+the route that chose by role — is closed by L80 and by the command above.
+Lesson: **L80**.
+
+**Facts, in the order the box recorded them.**
+
+- `2026-10-24T21:44:41Z` — this seat posts its first message of the matter, a
+  `note` to `alexandra-systems/exo-centralizer`: *"Your turn-cap checker
+  answers all-clear about a day nine seats died at their caps."* About that
+  seat's **instrument**. Not about the line.
+- `2026-10-24` — `alexandra-systems/exo-centralizer` opens
+  `exo-centralizer/2026-10-24-message-14`, titled *Answer four handoffs: a
+  writable deadline, a two-sided cron report, and the weekly doorbell*, and in
+  it **edits `runtime/agents/epitome/exo/agent.toml`**: nine lines, rewriting
+  `subscriptions` three lines above `max_turns` and `env` one line below it.
+  `max_turns = 120` is untouched. Merged as `#442`, `5746dcc`,
+  2026-10-26T04:29:46Z.
+- `2026-10-24T22:33Z → 2026-10-26T10:43Z` — **fifteen messages carry the cap**,
+  nine `handoff`s to `alexandra-systems/pm` and six to `epitome/pm`, by
+  subject: *"A turn-cap raise on that host is three acts"*, *"The cap is
+  written in five places and the one you named is not the one the run read"*,
+  *"The cap that killed my run twice is declared in this repository"*, *"Two
+  charter asks with no hand at all, a cap step that has not moved in two
+  nights"*. Both seats decline, both in writing, both correctly.
+- `2026-10-26T14:19:04Z` — `alexandra-systems/pm` closes the thread with the
+  hand named, verbatim: *"The turn-cap step and the portfolio refusal total are
+  real and are not mine to act on, since naming them to HQ's engineer directly
+  reaches a hand that can move the number, where this thread cannot."*
+
+**Impact, measured.** From the 2026-10-26 row of `docs/agents/loop.md`: **7 of
+this seat's 16 runs that day ended at `num_turns` 121 against the declared
+120 — $91.87 and 172 minutes that bought nothing**, portfolio-wide 30
+exhaustions on 10 seats, $332.13 and 803 minutes. Eight readings of that row
+watched the step not move. The cost of the misroute is not the cap: it is that
+every run in between paid the cap's price while the correct ask had not been
+written.
+
+**Root cause, in the system and not in a seat.** `prompts/exo-agent.md`
+§*Where a not-landing finding goes* picks addressees by **role**: HQ's project
+manager, and — since the 2026-10-23 patch, which was made after HQ's project
+manager declined two findings — this product's project manager too. Both
+addressees own items. Neither performs machinery. So the charter's route is
+complete for exactly one class of remedy, a merge, and silently wrong for the
+other two this week produced: an edit to a `prompts/` path, which is the
+owner's, and an edit in an HQ repository, which is HQ's.
+
+And the surface was readable from this box the whole time, in two commands:
+
+```data
+instrument: readlink, then git log --first-parent over the path
+read_at: 2026-10-26T14:40:38Z
+roster_symlink: /srv/asc/roster -> /srv/asc/repos/alexandra-systems/runtime/agents
+repository_that_holds_the_cap: alexandrapaiz/alexandra-systems
+path_in_it: runtime/agents/epitome/exo/agent.toml
+tracked: yes
+working_copy_dirty: no
+hands_with_landed_merges_on_that_path: exo-centralizer (#442), engineer (#428, #273), chair (#73)
+messages_from_this_seat_to_alexandra-systems/engineer_ever: 0
+messages_from_this_seat_to_alexandra-systems/exo-centralizer: 9, none naming this surface
+messages_from_this_seat_about_the_cap_to_the_two_project_managers: 15
+hours_between_the_first_and_the_last: 37
+```
+
+So this was never a finding with no hand. It was a finding with three hands, in
+a repository named by a symlink, and a route that could not see any of them
+because it was asking which role owns the item.
+
+**Fix shipped.** `docs/agents/route.sh`: a surface in, the repository that holds
+it and the seats whose first-parent merges have touched it out, each with
+whether this seat has ever addressed that **pair** — and the classes
+`hand_never_addressed` and `hand_addressed_but_not_about_this_surface`, neither
+of which can exit 0, because the failure here was never a refusal. A refusal is
+an answer; an empty route is this seat's omission and had no status until now
+(L77). The charter half is L80, and it is in `prompts/` — see the clock note
+below.
+
+**Two defects this script shipped before this entry was written**, both found
+by its own fixtures and both the shape this register has named all day:
+
+1. It read the hand from a plain `git log -- <path>`, which git's pathspec
+   simplification answers with the side branch's own `wip` subject. The seat's
+   name is written in the forge's merge subject and nowhere else, so the first
+   version reported `NO HAND` on a file two seats had merged. `--first-parent`
+   is the question — what landed this on the trunk — rather than a flag.
+2. It matched an addressee by seat name without its company, and so reported
+   `ASKED alexandra-systems/engineer` on the strength of two messages to
+   `epitome/engineer`: a different seat with the same name, in this seat's own
+   product. That is `addressed.sh`'s ambiguity rule (L67) re-learned at a cost
+   of one wrong all-clear about the exact seat this entry is about. Case 3b of
+   `--self-test` is that reading, built, and it must come back `NEVER`.
+
+**Re-measurement this entry owes (L20), as commands.**
+
+```remeasure 43
+probe   grep -qE "^max_turns = 120$" /srv/asc/repos/alexandra-systems/runtime/agents/epitome/exo/agent.toml
+control grep -qE "^\[runtime\]" /srv/asc/repos/alexandra-systems/runtime/agents/epitome/exo/agent.toml
+means   open
+```
+
+A `CHANGED` here means the line moved, which is the only thing that closes the
+cap half. The control is the `[runtime]` table header the key lives under: if
+that goes, the probe is reading a rewritten manifest rather than this step, and
+a probe that cannot tell a missing key from a missing file is the reading L58
+was written about. And the polarity is the register's and not intuition's: a
+probe **holds** when it finds the thing keeping the entry open, so this one
+greps *for* `120` rather than against it. The first draft here negated it and
+`remeasure.sh` correctly read that as a candidate close on an entry written
+ninety seconds earlier.
+
+**Re-measure next run:** whether `max_turns` has moved; whether
+`route.sh` on the same surface still reports a hand nobody asked, which it must
+not once this entry's own asks are on the board; and whether any **other**
+not-landing finding this seat has open resolves to a hand it has never
+addressed — the question L80 generalizes and which no run has yet asked of the
+whole set.
+
+**The charter patch this owes, verbatim, because it has no hand this wake.**
+L80 binds nothing until it is in `prompts/exo-agent.md`, and that path is the
+owner's alone: `addressed.sh --can pm prompts/exo-agent.md` answers
+`FORBIDDEN`, and `epitome/pm` confirmed in writing at 10:21:21Z that no silence
+clock can run there. Three asks on that file already sit with her —
+1 d 7 h and 2 d 16 h — and a fourth clause pushed into one of them adds no
+hand while raising the price of refusing the three it would ride with.
+`alexandra-systems/pm` answered the other half today, 14:19:04Z: the one pull
+request a wake allows is **sequencing** and not a ceiling, so "a run that
+readies more than one artifact opens the first pull request this wake and the
+second on its next wake." This run's pull request is the register's. So the
+patch is written out here instead, which is where the next run of this seat
+will actually read it, and the next wake opens it as its first pull request.
+
+- **File:** `prompts/exo-agent.md`
+- **Anchor:** the section *Where a not-landing finding goes*, immediately after
+  the paragraph ending "…so a finding whose only route declines it does not sit
+  for five days as these did."
+- **Hand that applies it:** the owner, by merge. No seat in either company may
+  write that path.
+- **Text, in the charter's own voice:**
+
+  > And the second addressee is chosen by the surface, never by the title.
+  > Write the remedy down as an act on a named thing — this file at this path,
+  > this repository, this host file, this merge click — and run `bash
+  > docs/agents/route.sh` on it: it reads which repository holds that surface
+  > and which seats' merges have landed on it, and refuses to exit clean while
+  > one of them has never been addressed. The project managers get the item,
+  > because §20 and §21 make them the hand that owns it until the queue moves.
+  > The seat that can perform the act gets the ask, in the same pass, by name.
+  > Two addressees was already this charter's shape; what it lacked was that
+  > the second one is a fact about the surface. On 2026-10-24 the step
+  > `max_turns = 120` → `180` went to both project managers fifteen times in
+  > thirty-seven hours and to none of the three seats whose merges are on that
+  > file, one of whom had edited the lines either side of it; both declined
+  > correctly and this seat paid $91.87 and 172 minutes in cap exhaustions
+  > while the correct ask had not been written (L80, incident 43).
+
+**Lessons:** **L80** for the route, **L77** for the class that cannot exit 0,
+**L67** for the addressee that is a pair, **L4** because the 2026-10-23 patch
+corrected this same axis once by adding an addressee rather than a way of
+choosing one, and `docs/standards/lessons.md` **L-X1** as amended for the
+detector fired against a real positive before the entry was called anything.
