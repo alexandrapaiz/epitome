@@ -3355,3 +3355,91 @@ base ref was deleted — is in the open queue and is `mergeable.sh`'s, which
 already prints each base and marks the one not targeting `main`; that is the
 checker that caught `#329` at 05:12Z today. Neither instrument reads the other's
 population, and this entry says so rather than claiming coverage.
+
+## Incident 38 — 2026-10-26 — This run's own pull request was closed as merged three minutes after it opened, by the merge of the pull request it was told to branch from, and the instrument repaired eight hours earlier counted it as a landing
+
+**Status: both repairs are in the tree on this run's branch, each fired against
+a real positive before this was written; the preventive clause is a charter
+patch and is not on `main`.** Lessons: **L75** for the cause, **L70** for the
+instrument it reopens. Re-measured next run by the two commands in the facts.
+
+**Facts, all re-readable.**
+
+This run opened `#342` as a draft at 2026-10-26T09:54:57Z, within its first
+turns, as this charter's Output section requires. Its branch,
+`epitome-exo/2026-10-26-message-8`, was cut from `#340`'s head because this
+charter says *"Start from your own newest open pull request, not from `main`"*,
+and it was pushed before it carried a commit of its own. Both branches
+therefore named one commit.
+
+- `gh pr view 340 --json headRefOid,mergedAt,mergeCommit` → `7309e4ad`,
+  `2026-10-26T09:58:05Z`, `01218f60`.
+- `gh pr view 342 --json headRefOid,mergedAt,mergeCommit` → `7309e4ad`,
+  `2026-10-26T09:58:07Z`, `01218f60`.
+
+One merge commit, two pull requests, two seconds apart. `#342` lived 190
+seconds and contributed nothing. A merged pull request cannot be reopened, so
+this run's work moved to `#343`, cut from `main` and carrying a commit before
+it was pushed.
+
+**Impact, at its true size and no larger.** No text was lost: `#342` held only
+the commit it inherited, which merged on `#340` as intended. What was lost is
+three minutes and a pull request number, and — the part that would not have
+announced itself — the run's own body. This charter says the body is the
+report; `#342`'s body was the report of a run still in progress, and it is now
+attached to a closed pull request nobody will read, on a branch nobody will
+merge again. A run that died in those three minutes would have left its draft
+*marked merged*, which reads from every surface in this company as work that
+shipped. That is the version of this to be afraid of, and nothing in the tree
+would have caught it before today.
+
+**Root cause, in the system and not in a seat, two layers.**
+
+One, the charter, and it is two correct rules whose conjunction is the defect.
+*Open the draft first, before anything else that takes time* exists because a
+run that dies must still ship its partial work (L-A32, L71). *Branch from your
+own newest open pull request* exists because `main` is the one view guaranteed
+not to hold the entry the last run is waiting to merge. Obeyed together they
+guarantee a window — from the push to the first commit — in which this run's
+pull request is a duplicate of another one and dies when it merges. The window
+is as long as the run's first piece of work, and in this repository a parent
+merges in minutes: `#340` merged nine minutes and twenty-four seconds after it
+was opened.
+
+Two, the instrument. `docs/agents/landed.sh` was repaired this morning on
+`#338` to stop reading the forge's `merged` field and to test containment in
+the trunk instead (L70, incident 37, merged 09:28:59Z). Containment answers
+**yes** for a shadow, because `7309e4ad` genuinely is an ancestor of `main`. So
+twenty-nine minutes after that repair landed, the instrument named in this
+charter for *what landed* reported **7 merged onto main** for the morning, of
+which one added nothing. Same instrument, same morning, same class of false
+merge claim, through the second of its two doors.
+
+**Instances, not entries (L20).** Two in the 166 merges this repository has
+recorded. `#342` today, and `#156` on 2026-10-18, which merged one second after
+`#153` on merge commit `639f8caf` because `#153` was the stack that contained
+it. The first went uncounted for eight days, by every instrument, including the
+queue count this charter asks for every run.
+
+**Fix shipped.**
+
+- `docs/agents/landed.sh` gains a `shadow` class: the first merged row for a
+  merge commit is the landing and every later one is counted apart and never in
+  the merges. Fired before this was written — the morning window now reads **6
+  merged onto main, 1 shadowed**, and across all 166 merges it names `#342` and
+  `#156` and no other row.
+- `docs/agents/drafts.sh` is the other instrument that reads a draft's standing
+  and it is repaired in the same pull request for a different defect (L74).
+- The preventive clause — **commit before you push** — is a charter patch and
+  is flagged as the owner's to merge or refuse. It is four words of behaviour
+  and needs no instrument, which is the reason it is worth the clause: the
+  detector above catches the shadow after it exists, and this stops it being
+  made.
+
+**What is not fixed here.** The underlying conjunction stands: a branch cut
+from an open pull request still inherits that pull request's fate in every
+other way, and `#343` is based on `main` only because `#340` merged while this
+run was writing. The charter clause this entry carries narrows the defect to
+the one window that costs a pull request; it does not settle whether branching
+from an open pull request is right, which `#300` has been asking since
+2026-10-24T22:17:30Z and which is still the owner's.

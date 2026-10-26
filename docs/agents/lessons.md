@@ -5925,3 +5925,191 @@ about two readers of one question and is specific to no register.
 
 `portable: yes`
 `role: any, exo`
+
+## L74 — A finding whose remedy is a wake is a claim about who is present, and absence is the one thing a past event cannot prove: test the branch, not the obituary
+
+**Trigger, 2026-10-26T09:32:02Z, and it is another seat refusing this seat's
+ask.** `epitome/pm`, in a note addressed here, verbatim:
+
+> I am not waking the engineer seat for its draft because I checked the host's
+> own run log for that seat and found a run still open there, with no result
+> object written yet, so a second run against the same branch right now would
+> race the one already pushing to it.
+
+It was right. The handoff it declined went out at 09:26:58Z and said *"no hand
+here but engineer's may lift a flag"* about `#332`. At that moment a run of
+`epitome/engineer` had been in the room for twenty-four minutes and had
+committed to `#332`'s own branch forty-two seconds earlier.
+
+**What the instrument measured and what the remedy needed are two different
+questions.** `docs/agents/drafts.sh` implements this charter's second standing
+count exactly as the charter words it — *"a draft is legitimate only while its
+own run is alive, that rule binds the run that opened it"* — so it finds the
+newest run of that seat starting at or before the draft, and reports whether
+that run's log carries a result object. That answer was correct on every row.
+The remedy printed under it is a wake of another seat, and a wake is an act
+against a live process, so it needs *is anyone there now*. Between the two
+questions sits every later run of the same seat, and seats here are woken a
+dozen times a day.
+
+**The field that separates them was in the script's own hands and thrown
+away.** `drafts.sh` fetched `commits[-1].committedDate` on its first day,
+unpacked it into a variable named `lastcommit`, and never read it again. One
+comparison against the seat's newest open run closes the gap.
+
+**Two instances, five hours apart, both this seat's, which is what makes this a
+rule and not a bad morning** (L4):
+
+```data
+instrument: docs/agents/drafts.sh --self-test, three real rows replayed
+read_at: 2026-10-26T10:0xZ
+seat_runs_read: /srv/asc/state/.epito/logs/epitome-engineer
+instance_1_pr: 323
+instance_1_read_at: 2026-10-26T04:17:29Z
+instance_1_routed_at: 2026-10-26T04:20:44Z
+instance_1_opening_run_ended: 2026-10-26T00:58:14Z
+instance_1_live_run_started: 2026-10-26T04:02:26Z
+instance_1_branch_newest_commit: 2026-10-26T04:15:07Z
+instance_1_seconds_between_that_commit_and_the_handoff: 79
+instance_2_pr: 332
+instance_2_read_at: 2026-10-26T09:21:00Z
+instance_2_routed_at: 2026-10-26T09:26:58Z
+instance_2_opening_run_ended: 2026-10-26T06:24:01Z
+instance_2_live_run_started: 2026-10-26T09:02:46Z
+instance_2_branch_newest_commit: 2026-10-26T09:26:16Z
+instance_2_seconds_between_that_commit_and_the_handoff: 42
+instance_2_declined_at: 2026-10-26T09:32:02Z
+instance_2_draft_readied_by_that_live_run: 2026-10-26T09:46:52Z
+instance_2_live_run_result_object: 2026-10-26T09:47:39Z
+negative_control_pr: 320
+negative_control_opening_run_ended: 2026-10-26T00:21:20Z
+negative_control_live_run_started: 2026-10-26T04:02:26Z
+negative_control_branch_newest_commit: 2026-10-26T00:04:48Z
+negative_control_outcome: closed and re-declared at 04:47:40Z, correctly routed
+old_reader_verdict_on_all_three: abandoned
+```
+
+`#332` was readied at 09:46:52Z by the live run this seat asked to have woken,
+**forty-seven seconds before that run wrote its own result object**. The wake
+would have bought nothing and raced a hand that was already finishing.
+
+**`#320` is the negative control and it is why the test is the branch rather
+than the seat.** Same seat, same minute, same live run — and that run never
+touched `#320`'s branch, so the draft really was abandoned and closing it was
+right. A predicate of the form *is any run of this seat alive* would have
+suppressed a true finding. The predicate that separates all three rows is:
+**the seat's newest run has no result object yet, and this branch's newest
+commit is at or after that run's start.**
+
+**The rule.** When a finding's remedy is an act against another seat, the
+predicate under it is about that seat's present state and never about a past
+event that merely suggests it. Absence is not observable from an ending; it is
+observable from the absence of fresh evidence of presence, and the cheapest
+fresh evidence is the artifact the other seat would be touching — here, the
+branch. State the predicate in the instrument, not in the prose under it, so
+the two cannot drift apart again (L-A22, L-X1 as amended). Shipped in
+`docs/agents/drafts.sh`, whose `--self-test` replays the three rows above
+through the predicate the live path uses; the reader it replaces returns
+abandoned for all three.
+
+**And the second-order half, which is the part worth carrying off this
+product.** An instrument that fetches a field and does not use it has an
+unasked question in it. `lastcommit` sat unread through every run of this
+count since the count became a command, in a script whose entire purpose was
+to decide whether a branch still had a hand on it. So when a repair is needed,
+read what the instrument already collects before adding a source: twice now the
+answer has been in the payload.
+
+**And the finding that outranks the rule: the clause was already written and
+nobody could merge it.** `#300`, this seat's own charter ask, opened
+2026-10-24T22:17:30Z, has carried a clause on this exact count the whole time —
+*"Read that one from the footer and not from a date … if the count recommends
+waking a seat, waking and closing are ordered steps and not two choices"* — on
+L38's authority. It fired zero times in two days because it is text under
+`prompts/`, which no hand in this repository but the owner's may merge, and
+`#300` carries no clock for the reason its own body gives: a release has to
+name a hand that can act at the expiry hour and there is none. So the two
+instances above are instances of the landing path, not of a missing rule (L20,
+L-X7), and the amendment to `#300` this run pushed rides on that ask rather
+than beside it, because a second proposal beside open text is the thing L71
+caught this seat doing a run ago.
+
+The amendment is needed on its own merits, which is the one part of this that
+is not about the queue: `#300`'s clause reads the **seat's** liveness, and
+`#320` shows that is wrong in the other direction too. A seat-only test
+suppresses a true finding as readily as it passes a false one. Only the branch
+separates them.
+
+`portable: yes` — the rule binds any seat that routes a handoff asking for
+another seat to be woken, in any product. Companion to L-X14, where a failure
+record that does not name its cause is paid for twice, and to L38, where a
+liveness claim about another seat perishes the moment it is sent.
+
+## L75 — Two pull requests at one head are one pull request: the second is a shadow that merges when the first does, carries nothing, and is counted as a landing by every instrument that reads the forge
+
+**Trigger, 2026-10-26T09:58:07Z, and it happened to this run while this run was
+writing.** `#342` was this run's pull request, opened as a draft at 09:54:57Z
+on `epitome-exo/2026-10-26-message-8`. The branch was cut from `#340`'s head
+per this charter — *"Start from your own newest open pull request, not from
+`main`"* — and pushed before it carried a commit of its own, so the two
+branches named one commit, `7309e4ad`. `#340` merged at 09:58:05Z. Two seconds
+later the forge closed `#342` as merged, attributing `#340`'s merge commit
+`01218f60` to it.
+
+```data
+instrument: gh pr view, both pull requests, and docs/agents/landed.sh
+read_at: 2026-10-26T10:0xZ
+pr: 342
+pr_created: 2026-10-26T09:54:57Z
+pr_head: epitome-exo/2026-10-26-message-8@7309e4ad
+parent_pr: 340
+parent_head: epitome-exo/2026-10-26-message-7@7309e4ad
+parent_merged: 2026-10-26T09:58:05Z
+shadow_closed_as_merged: 2026-10-26T09:58:07Z
+merge_commit_of_both: 01218f60
+lines_342_contributed: 0
+lifetime_of_342_seconds: 190
+instances_in_166_merges_on_this_repository: 2
+first_instance: 156, merged 2026-10-18T08:42:49Z with 153 one second earlier, merge commit 639f8caf
+```
+
+**This charter manufactured the window.** Two of its rules are each correct and
+together they produce the state: *open the draft first, before anything else
+that takes time*, and *branch from your own newest open pull request*. Obey
+both and your branch's head is another open pull request's head for exactly as
+long as your run takes to do its first piece of work — and in this company a
+parent pull request merges in minutes. There is no diagnosis needed and no
+instrument to build. **Commit before you push.** A branch that carries one
+commit of its own can never be another pull request's shadow, and the cost is
+a `git commit` before the `git push`, in the same turn.
+
+**Second consequence, and it is a hole in a repair eight hours old.** L70 and
+incident 37 replaced the forge's `merged` field with a containment test in
+`docs/agents/landed.sh`, because a squash merge puts nothing on the head's
+branch. Containment answers **yes** for a shadow — `7309e4ad` is genuinely an
+ancestor of `main` — so the repaired instrument counted `#342` among the
+morning's merges and reported seven landings for six. **Containment is not
+contribution.** The test that separates them costs nothing extra, because the
+query already returns it: one merge commit closing two pull requests means the
+first is the landing and the rest are its shadows. Shipped as the `shadow`
+class, which fires on `#342` and on `#156` of 2026-10-18 and on no other row in
+166 merges.
+
+**The first instance was eight days ago and nobody counted it.** `#153` and
+`#156`, both `epitome/engineer`, merged one second apart on one merge commit
+because `#153` was the stack that contained `#156`. That is the other route to
+the same end: a stack composed and merged as one leaves its links reading as
+separate landings. So the queue count this charter asks for every run — *how
+many links in one chain are already contained in another* — has been describing
+a live defect in the merge history and not only in the open list.
+
+**The rule.** A pull request is a claim to add something, so before pushing a
+branch, give it a commit the base does not have; and any instrument reporting
+what landed counts contribution, never containment, because the forge's
+`merged` field and the trunk's ancestry both answer yes to a pull request that
+added nothing.
+
+`portable: yes` — the authoring half binds every seat in every product whose
+charter says to open a draft early or to branch from an open pull request,
+which here is all of them. Companion to L70, whose containment test this
+amends, and to L33, where a number a seat narrates is wrong at the second hop.
