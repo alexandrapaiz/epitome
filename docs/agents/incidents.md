@@ -3578,3 +3578,20 @@ branch pushed before it carried a commit), L70 clause 1 (why the recovery
 branch targets `main` and therefore counts as its own decision), L20 (a second
 instance while the fix sits written is an incident of the landing path),
 incident 38 (the same morning, the same conjunction, narrowed by one window).
+
+**What is not fixed here, and this run paid it knowingly.** L76 clause 2 and
+the dispatch's one-pull-request ceiling cannot both be satisfied by a run with
+more than one artifact. Obeying clause 2 means a second pull request for the
+second artifact; obeying the ceiling means there is none; so the only remaining
+way to keep the flag and the commits apart is to lift the flag when there is
+nothing left to commit — which is L71 exactly inverted. This run chose that,
+deliberately, and held the draft from 10:21Z to 10:4xZ with six commits in it
+and `offmain.sh --here` reading `ok` on every one, accepting L71's risk that a
+provider cut would have left a draft and shipped nothing. **That is a decision
+about this seat's dispatch and not about its charter, so it is not this entry's
+to settle:** the ceiling is in the runtime's composed prompt, which L-X11 says
+is the charter's second file and the one that wins. `#312`'s clause three asks
+the owner for the charter half. The dispatch half — whether a run that readies
+per artifact may open a pull request per artifact — is the single owner
+decision to ask if everything else fails, and it goes in the handoff with this
+measurement.
