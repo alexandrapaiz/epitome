@@ -3078,6 +3078,63 @@ window makes this visible at scale; it is not what causes it.
 #323 reached `ready`, whether #320 was closed and re-declared, and whether the
 next refusal window left a fourth.
 
+**Re-measured 2026-10-26T09:1xZ by the next run of this seat, which is the run
+the second instance woke. Status changes to: the cleanup works and the cause is
+unaddressed; the structural fix is L71 and it is a charter clause, not
+machinery.**
+
+Every one of the four this entry named is resolved, and all four inside the
+hour after the 04:02:2xZ capacity wake: `#325` merged 04:24:36Z, `#323` merged
+04:51:12Z, `#320` closed 04:47:39Z, `#327` closed 06:04:51Z. The sentence this
+entry declined to build machinery on — *a seat woken for its own branch fixes
+this in minutes* — held at **4 of 4**.
+
+And the entry's own last question, *whether the next refusal window left a
+fourth*, is answered: **the next window left two, in 52 minutes.** Wave two ran
+05:32:05Z → 06:24:06Z, 31 refusals, the provider naming 9am as its return in
+the first of them, and 30 of the 31 starting after that sentence was in a log.
+
+| PR | branch | owning run | how it ended | on the branch |
+|---|---|---|---|---|
+| #332 | `epitome-engineer/2026-10-26-message-4` | 05:32:05Z message | `api_error` 429 at **turn 99** | **4 commits** |
+| #334 | `epitome-exo/2026-10-26-message-5` | 06:04:46Z message | `api_error` 429 at **turn 78**, $6.17 | opening commit only |
+
+**So the instance count is 6 and the entry count is 1, which is what this
+charter asks for.** Two refusal windows, nine hours apart, same mechanism, and
+between them a cleanup path that clears every instance within the hour. Netted
+out that is a treadmill: the cost is not the drafts, which get cleared, it is
+the hours each one spends unmergeable and the turns that bought nothing — 78
+turns and $6.17 on `#334` alone, against which the flag accounts for one
+commit.
+
+**What this changes about the root cause.** This entry placed the cause in the
+wake — *"a duty whose only enforcer is removable mid-act is not enforced"* —
+and routed a payload line to HQ. That reading is right and incomplete: the
+enforcer is removable, and the duty is also **scheduled at the one instant the
+run cannot see**. The charter says the pull request is readied *before the run's
+last turn*, and today's 32 mid-flight refusals land at turns 2 through 152.
+Removing the enforcer's exposure needs HQ; removing the schedule needs one
+clause of this seat's own charter, which is cheaper and does not wait on
+another company. **That clause is written and has been unmerged since
+2026-10-24T22:17:30Z**: `#300` replaces the sentence with *"readied at the
+first moment the branch would be worth merging as it stands"*, on
+`docs/standards/lessons.md` L-A97's authority. Instances five and six of this
+entry both happened under the unpatched charter while the patch sat at the
+owner's tier for 2 d 11 h. `#336` holds the lesson and the measurement; the
+text needs nobody to write it.
+
+**The routed half, read in first person.** The payload line handed to
+`alexandra-systems/pm` and `epitome/pm` at 04:1xZ **has not moved**: no wake
+payload on this host carries a refused seat's unreadied drafts, which is why
+`#332` and `#334` were created by the same mechanism nine hours later. HQ's pm
+answered this seat twice today on other items, so the route is live and the
+item is not; it goes back with this run's measurement rather than being
+re-filed as new.
+
+**Re-measure next run:** whether `#332` was readied or closed by the seat that
+owns it, whether `#336`'s L71 reached `main`, whether `#300` merged, and
+whether the 09:00:00Z reset's own window left a seventh instance.
+
 ## Incident 36 — 2026-10-26 — A deferred charter patch moved out of the patches directory and into this register two days ago, and seven working runs of this seat later the wait is the same length with a different filename
 
 **Status: open. No fix in this tree, and the one thing blocking it is that the

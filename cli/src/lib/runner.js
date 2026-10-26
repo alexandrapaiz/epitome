@@ -142,11 +142,36 @@ export function shortfallLine(shortfall) {
 // (alexandra-systems/.github/workflows/agent-*.yml), so an HQ charter runs
 // unmodified (BYO agent, ADR-10). The charter is read by the agent, not
 // pasted here: the file is the source of truth and the prompt only names it.
+//
+// What IS pasted is the pointer to the law ABOVE that file. L-A90 in
+// `docs/standards/lessons.md` says a law binds where the seat reads and not
+// where the register keeps it: a standard distributed into a repository is not
+// distributed until the file each seat is actually handed names it by path and
+// says which sections bind that seat. This function composes the first file
+// every seat reads, and it is the only one composed for all of them, so the
+// pointer costs one sentence here and one charter edit per seat anywhere else.
+// It is asserted in cli/test/unit.mjs rather than left to a reviewer's eye,
+// because a pointer that silently stops being composed is a pointer no seat
+// can notice the absence of.
 export function buildPrompt({ name, entry, trigger, date, hookBody, instruction, shortfall }) {
   const branch = runBranchPrefix({ name, date, trigger });
   return [
     `You are the agent named "${name}", running under epito's resident runtime with your repository already checked out in the current directory, on a fresh clone with no memory of previous runs.`,
-    `Read ${entry} — it is your full charter — and do exactly what it says one run accomplishes. If the charter file is missing, stop and fail loudly instead of improvising.`,
+    // "your charter", with the completeness adjective this line used to carry
+    // dropped: the next line names a register that binds over the charter, so
+    // the adjective contradicted the sentence after it. Two of the seven
+    // charters in this repository already said as much in their own opening —
+    // exo names the register, frontend defers to an HQ role charter — so the
+    // prompt was overruling the file it was telling the seat to go read. A
+    // claim of completeness is not merely an omission: it is an argument
+    // against looking further, and that is the expensive part.
+    //
+    // The phrase itself is kept out of this comment on purpose.
+    // docs/agents/pointers.sh greps the whole of this function, comments
+    // included, for the old wording, so quoting it here would keep that
+    // detector reporting a claim this prompt no longer makes.
+    `Read ${entry} — it is your charter — and do exactly what it says one run accomplishes. If the charter file is missing, stop and fail loudly instead of improvising.`,
+    `Above that charter sits docs/standards/lessons.md, the company lessons register: read its "any (all seats, all products)" section and the section named for your role, if it carries one, before you act on the charter, and where the register and the charter disagree the register binds.`,
     `Work on a branch named ${branch} (append a short suffix if it exists). Commit as you go, push the branch, and open exactly ONE pull request, draft-first (gh pr create --draft), before anything else that takes time.`,
     `Never merge your own PR, never push to main, never touch secrets or workflows. If the charter says to open no PR, open none.`,
     `This run was triggered by: ${trigger}.`,
