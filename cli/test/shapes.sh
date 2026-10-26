@@ -6,7 +6,12 @@
 #   bash test/shapes.sh            # from cli/
 #   bash test/shapes.sh --list     # print every site it finds, converted or not
 #
-# The shape: `<producer> | grep -q '<pattern>'` under `set -o pipefail`. Quiet
+# Two scans, one summary. The second is at the bottom of this file, with its own
+# note: a start that waits on a log file it did not create is the fault it looks
+# for, and it is the same kind of fault — a gate that reads the wrong thing and
+# says ok.
+#
+# The first shape: `<producer> | grep -q '<pattern>'` under `set -o pipefail`. Quiet
 # grep exits the instant it matches; the producer whose pipe it just closed dies
 # writing into it; and `pipefail` makes the pipeline's status that death rather
 # than grep's own 0. So the gate can print FAIL for a pattern it MATCHED.
@@ -138,6 +143,181 @@ for f in $FILES; do
     ok "$f carries $n, its allowance, unchanged"
   fi
   [ "$LIST" = 1 ] && [ "$n" != 0 ] && lines "$f" | sed 's/^/       /'
+done
+
+# ---------------------------------------------------------------------------
+# The second shape, and the reason this file stopped being about one: a
+# start-and-wait that reads a log file whose name is fixed across starts.
+#
+#   node test/github-stub.mjs ... > "$ROOT/github-stub.log" 2>&1 &
+#   for _ in $(seq 1 60); do grep -q 'github-stub on' "$ROOT/github-stub.log" && break; ...
+#
+# The `>` truncates that file in the FORKED CHILD; the wait's reader runs in
+# the parent. Whenever the parent gets there first, the file still holds what
+# the previous start of the same name wrote -- a port, a listener, an "on
+# http://..." -- so the wait returns before this start has bound anything, and
+# every assertion after it is made against a service that is not there.
+#
+# Measured, not argued: smoke-deploy.sh starts its stand-in GitHub twice on one
+# fixed port and took the dead port whenever the parent won (#303), and
+# smoke-doctor.sh did the same across the two modes it starts twice -- 12d
+# printed six FAILs at load 18 while 12a, the first start of the same mode,
+# passed (#293). test/probe-stub-restart.sh is that race run both ways: the
+# ports are the kernel's pick out of the ephemeral range, so two starts
+# agreeing by chance is about 1 in 28000 and a match is a stale read.
+#
+# The fix is the NAME. A file this start created cannot hold a previous
+# start's line:
+#
+#   GH_STARTS=$((GH_STARTS+1)); GH_STUB_LOG="$ROOT/github-stub-$GH_STARTS.log"
+#
+# A per-start counter is the only thing this scan accepts, deliberately. A
+# hand-written number -- `ingress.log` beside `ingress2.log`, which is how
+# smoke-temporal.sh tells its two ingress starts apart -- is discipline, and it
+# holds exactly until somebody copies the block. A truncation in the parent
+# (`: > "$f"`) closes the race against a start that is already dead and not
+# against one still writing at its old offset. Only the counter makes a stale
+# read impossible rather than unlikely, and only the counter is visible to a
+# scan: it is the difference between a file that happens to be unique today and
+# a name that cannot repeat.
+#
+# What this does NOT report, because it is sound: a wait that asks the SERVICE
+# rather than its log. smoke-bus.sh connects a socket, smoke-cloudflare.sh
+# curls wrangler on its port, smoke-doctor.sh asks `epito doctor` whether the
+# worker has polled, smoke-temporal.sh asks the engine for its namespace. Those
+# four start into a fixed log name too and none of them is listed below: the
+# fault needs the wait to be reading the file.
+WAIT_EXEMPT="
+cli/test/probe-stub-restart.sh 1
+"
+# One exemption, named rather than hidden, the way the allowance above names
+# its three: probe-stub-restart.sh takes the log path as an argument and runs
+# the stale shape and the per-start shape the same number of times to compare
+# them, so a generic `> "$2"` with a wait that reads `"$2"` is what that file
+# is FOR. Everything else in this repository is converted as of this branch,
+# the fix is one line, and so a new site here is a mistake rather than a cost
+# somebody has not paid yet -- which is why this table counts one file and not
+# a column of ceilings.
+
+# The scan. Two passes over one file: collect, then decide in END.
+#
+# A site is a background command whose stdout goes into a file, plus a line
+# inside a loop that reads THAT path with grep/sed/awk/tail/head/cat. It is
+# sound when the path text carries a per-start counter -- a variable V the file
+# increments with `V=$((V+1))` -- either written into the name directly or
+# through one variable whose every assignment carries it.
+#
+# All three spellings of a redirect into a file count -- `>`, `>>` and `&>`.
+# An append never truncates at all, so a wait reading one is stale by
+# construction rather than by a lost race; there is no such site here, and the
+# scan takes it anyway so that adding one is not a way through.
+#
+# Backgrounding is read by removing `2>&1`, `1>&2` and `&&` from the line and
+# asking whether an `&` survives. That is a heuristic and it is a safe one: a
+# line has to ALSO redirect stdout into a file and ALSO have a loop reading
+# that same path before anything is reported.
+#
+# Comment lines are skipped, which is the opposite of what the scan above does
+# with its three exemptions, and for a reason rather than by inconsistency:
+# this shape takes two lines to write down, so the note at the top of this
+# section quotes it in full, and a scan that counted sentences about the fault
+# could not be documented without exempting its own documentation. A
+# commented-out start does not run; the quiet-pipe scan counts its comments
+# because a stray `-q` in a sentence there is an accident, not a definition.
+waitsites() {
+  [ -f "$ROOT/$1" ] || return 0
+  awk '
+function has_counter(t,   c) {
+  for (c in counter) if (index(t, "$" c) || index(t, "${" c)) return 1
+  return 0
+}
+/^[ \t]*#/ { next }
+{
+  src[NR] = $0
+
+  s = $0
+  while (match(s, /[A-Za-z_][A-Za-z0-9_]*=\$\(\([ ]*[A-Za-z_][A-Za-z0-9_]*[ ]*\+[ ]*1[ ]*\)\)/)) {
+    t = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+    eq = index(t, "="); n = substr(t, 1, eq - 1)
+    if (index(t, "((" n) || index(t, "(( " n)) counter[n] = 1
+  }
+
+  s = $0
+  while (match(s, /[A-Za-z_][A-Za-z0-9_]*="[^"]*"/)) {
+    t = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+    eq = index(t, "="); n = substr(t, 1, eq - 1)
+    assign[n] = assign[n] "\n" substr(t, eq + 2, length(t) - eq - 2)
+  }
+
+  one = ($0 ~ /(^|[ \t;])(for|while)[ \t].*;[ \t]*do[ \t].*;[ \t]*done/)
+  inloop[NR] = (depth > 0 || one)
+  if (!one) {
+    if ($0 ~ /(^|[ \t;])(for|while)[ \t]/ && $0 ~ /(;[ \t]*do([ \t]|$)|[ \t]do[ \t]*$)/) depth++
+    else if ($0 ~ /^[ \t]*done([ \t]|$|;)/) { depth--; if (depth < 0) depth = 0 }
+  }
+
+  b = $0; gsub(/2>&1/, "", b); gsub(/1>&2/, "", b); gsub(/&&/, "", b)
+  if (b ~ /&/) {
+    s = $0
+    while (match(s, /[^0-9>]>>?[ \t]*"?[^ \t">|&)]+"?/)) {
+      t = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+      sub(/^[^>]*>>?[ \t]*/, "", t); gsub(/"/, "", t)
+      if (t ~ /^\/dev\// || t == "") continue
+      if (!(t in startline)) { startline[t] = NR; order[++starts] = t }
+    }
+  }
+}
+END {
+  for (i = 1; i <= starts; i++) {
+    p = order[i]
+    sound = has_counter(p)
+    if (!sound && p ~ /^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?$/) {
+      v = p; gsub(/[$\{\}]/, "", v)
+      if (v in assign) {
+        k = split(assign[v], vals, "\n"); any = 0; bare = 0
+        for (j = 1; j <= k; j++) if (vals[j] != "") { any = 1; if (!has_counter(vals[j])) bare = 1 }
+        sound = (any && !bare)
+      }
+    }
+    if (sound) continue
+    for (ln = 1; ln <= NR; ln++) {
+      if (!inloop[ln]) continue
+      if (!index(src[ln], "\"" p "\"")) continue
+      if (src[ln] !~ /(grep|sed|awk|tail|head|cat)[ \t]/) continue
+      printf "%d\t%s\t%d\n", startline[p], p, ln
+      break
+    }
+  }
+}
+' "$ROOT/$1"
+}
+
+printf '\n== the same gates, scanned for a start that waits on a fixed log name\n'
+for f in $FILES; do
+  sites="$(waitsites "$f")"
+  n="$(printf '%s' "$sites" | grep -c . )"
+  exempt="$(printf '%s\n' "$WAIT_EXEMPT" | awk -v f="$f" '$1==f {print $2}')"
+  exempt="${exempt:-0}"
+  if [ "$n" -gt "$exempt" ]; then
+    bad "$f starts $n service(s) into a log name that cannot tell two starts apart"
+    printf '       A wait that greps a fixed log name can match the line the PREVIOUS\n'
+    printf '       start wrote, and return before this one has bound anything.\n'
+    printf '       Fix: name the file after the start — `N=$((N+1));\n'
+    printf '       LOG="$ROOT/thing-$N.log"` — or wait on the service instead of its log.\n'
+    printf '%s\n' "$sites" | while IFS="$(printf '\t')" read -r sl path wl; do
+      [ -n "$sl" ] || continue
+      printf '       %s:%s starts into %s, and :%s waits by reading it\n' "$f" "$sl" "$path" "$wl"
+    done
+  elif [ "$n" -lt "$exempt" ]; then
+    ok "$f has $n — its exemption of $exempt is stale now, lower it to $n"
+  elif [ "$n" = 0 ]; then
+    ok "$f has none"
+  else
+    ok "$f has $n, its named exemption, unchanged"
+  fi
+  if [ "$LIST" = 1 ] && [ "$n" != 0 ]; then
+    printf '%s\n' "$sites" | sed 's/^/       /'
+  fi
 done
 
 printf '\n-----------------------------------------------\n'

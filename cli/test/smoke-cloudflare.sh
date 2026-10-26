@@ -26,6 +26,7 @@ ROOT="${TMPDIR:-/tmp}/epito-cf-smoke-$$"
 SEAT="$CLI/test/fixtures/cloudflare/edge-demo"
 PORT="${EPITO_TEST_CF_PORT:-48791}"
 STUB_PORT="${EPITO_TEST_CF_STUB_PORT:-48792}"
+STUB_STARTS=0
 INSPECT="${EPITO_TEST_CF_INSPECTOR_PORT:-48793}"
 KEY="door-key-for-this-smoke-test"
 E="node $CLI/src/index.js"
@@ -197,10 +198,18 @@ else
     ].join("\n"));
   ' "$ROOT/dev/.dev.vars" "$ROOT/app.pub.pem" "$KEY" "$STUB_PORT"
 
+  # The log is named for the START, not for the stub. The wait below greps it
+  # for the listening line, and `>` truncates in the forked child while the
+  # grep runs in the parent: under one fixed name, a second start reads the
+  # line the first one wrote and leaves the loop before anything is bound.
+  # One start today, so this is the latent half of test/shapes.sh's second
+  # scan -- the name is what keeps the second start honest rather than a note
+  # asking whoever adds it to remember.
+  STUB_STARTS=$((STUB_STARTS+1)); STUB_LOG="$ROOT/stub-$STUB_STARTS.log"
   STUB_APP_PUBLIC_KEY="$(cat "$ROOT/app.pub.pem")" \
-    node "$CLI/test/cloudflare-stub.mjs" "$STUB_PORT" > "$ROOT/stub.log" 2>&1 &
+    node "$CLI/test/cloudflare-stub.mjs" "$STUB_PORT" > "$STUB_LOG" 2>&1 &
   STUB_PID=$!
-  for _ in $(seq 1 50); do grep -q "on http://127.0.0.1:$STUB_PORT" "$ROOT/stub.log" && break; sleep 0.2; done
+  for _ in $(seq 1 50); do grep -q "on http://127.0.0.1:$STUB_PORT" "$STUB_LOG" 2>/dev/null && break; sleep 0.2; done
 
   start_dev() {
     (cd "$ROOT/dev" && "$WRANGLER" dev --port "$PORT" --inspector-port "$INSPECT" > "$ROOT/wrangler.log" 2>&1 &)
@@ -233,13 +242,13 @@ else
     CODE="$(curl -s -o "$ROOT/post.out" -w %{http_code} -X POST -H 'accept: text/html' "http://127.0.0.1:$PORT/runs?key=$KEY")"
     check "pressing the button sends a browser back to the page"  '[ "'"$CODE"'" = 303 ]'
     sleep 1
-    check "the agent signed a JWT as its OWN App, and it verified"  'grep -q "JWT verifies as App 1234567" "$ROOT/stub.log"'
-    check "  for no longer than GitHub allows"                      'grep -q "600s long" "$ROOT/stub.log"'
+    check "the agent signed a JWT as its OWN App, and it verified"  'grep -q "JWT verifies as App 1234567" "$STUB_LOG"'
+    check "  for no longer than GitHub allows"                      'grep -q "600s long" "$STUB_LOG"'
     check "  and asked for exactly the manifests scopes, on exactly its repo" \
-      'grep -qF "asked for {\"contents\":\"write\"} on [\"edge-demo\"]" "$ROOT/stub.log"' 
+      'grep -qF "asked for {\"contents\":\"write\"} on [\"edge-demo\"]" "$STUB_LOG"' 
     check "it read its charter with the MINTED token, not with the JWT" \
-      'grep -q "with the minted installation token" "$ROOT/stub.log"'
-    check "and the charter is what reached the model"               'grep -q "charter arrived" "$ROOT/stub.log"'
+      'grep -q "with the minted installation token" "$STUB_LOG"'
+    check "and the charter is what reached the model"               'grep -q "charter arrived" "$STUB_LOG"'
 
     AFTER="$(curl -s "http://127.0.0.1:$PORT/?key=$KEY")"
     has   "the page now shows the run, and that it succeeded"  "$AFTER" ">ok<"
