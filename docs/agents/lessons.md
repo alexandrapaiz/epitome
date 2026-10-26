@@ -4508,24 +4508,29 @@ cut by trigger. The field is read on every run and dropped on every run.
 
 **So the unbuilt number, computed from `main` with `main`'s own code, one
 command, no new collector** (`cap.read_runs(cap.DEFAULT_ROOT, '2026-10-25',
-known)`, scope source `roster`, 187 runs):
+known)`, scope source `roster`, 187 runs, re-read at 2026-10-26T00:1xZ once
+the day was closed):
 
 | trigger | completed | refused | failed | running |
 |---|---|---|---|---|
-| `cron` | 1 | **11** | 0 | 2 |
-| `message` | 71 | 59 | 3 | 10 |
+| `cron` | 2 | **11** | 0 | 1 |
+| `message` | 74 | 59 | 3 | 7 |
 | `hook` | 24 | 0 | 3 | 3 |
 
-Thirteen cron slots fired on 2026-10-25 and eleven were refused, each one
+Fourteen cron slots fired on 2026-10-25, thirteen of them finished, and eleven
+of those were refused — each one
 carrying the reset it was waiting for — ten of the eleven waiting on
 `23:00:00Z`, the weekly pool's announced return, and the eleventh on
 `02:20:00Z`. That is the whole of "slots refused, by period, with the reset
 each one was waiting for", and `capacity.py` could have printed it on any day
 since it was written. Independently measured and agreeing: PR #467's own
 commentary reports 13 slots fired and 11 refused on this host for the same
-day, reached by reading the roster's crons rather than the logs' trigger field.
-Two seats measured the same quantity two ways on one night and neither could
-read it off the instrument whose job it is.
+day, reached by reading the roster's crons rather than the logs' trigger field
+— one firing fewer than the logs carry, which is the ordinary disagreement
+between a schedule and a record and is exactly the disagreement an output key
+would have settled. Two seats measured the same quantity two ways on one night,
+agreed on the number that matters, and neither could read it off the instrument
+whose job it is.
 
 **The second source is this seat's own capacity line, and it is the worse
 half.** `docs/agents/loop.md` for 2026-10-25 credits the recovery in these
