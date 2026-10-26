@@ -6020,6 +6020,26 @@ to decide whether a branch still had a hand on it. So when a repair is needed,
 read what the instrument already collects before adding a source: twice now the
 answer has been in the payload.
 
+**And the finding that outranks the rule: the clause was already written and
+nobody could merge it.** `#300`, this seat's own charter ask, opened
+2026-10-24T22:17:30Z, has carried a clause on this exact count the whole time —
+*"Read that one from the footer and not from a date … if the count recommends
+waking a seat, waking and closing are ordered steps and not two choices"* — on
+L38's authority. It fired zero times in two days because it is text under
+`prompts/`, which no hand in this repository but the owner's may merge, and
+`#300` carries no clock for the reason its own body gives: a release has to
+name a hand that can act at the expiry hour and there is none. So the two
+instances above are instances of the landing path, not of a missing rule (L20,
+L-X7), and the amendment to `#300` this run pushed rides on that ask rather
+than beside it, because a second proposal beside open text is the thing L71
+caught this seat doing a run ago.
+
+The amendment is needed on its own merits, which is the one part of this that
+is not about the queue: `#300`'s clause reads the **seat's** liveness, and
+`#320` shows that is wrong in the other direction too. A seat-only test
+suppresses a true finding as readily as it passes a false one. Only the branch
+separates them.
+
 `portable: yes` — the rule binds any seat that routes a handoff asking for
 another seat to be woken, in any product. Companion to L-X14, where a failure
 record that does not name its cause is paid for twice, and to L38, where a
