@@ -75,6 +75,31 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   read a first start's line — one line each, same fix, deploy suite
   still untouched. Handed off rather than fixed here, because it
   wasn't the card that run was given. Seat: engineer.
+- [ ] **The npm publish token died unused; a fresh one is the only way
+  cycle 2's distribution scope finishes.** `NPM_TOKEN` expired
+  2026-10-24T19:26:26Z (docs/cycles/2026-10-18-cycle-2.md's standing
+  risk) with nobody having run `npm publish`. Confirmed by probe this
+  pass, 21:23Z: `registry.npmjs.org/epito-cli`, `/epito`,
+  `/epitome-cli`, `/epito-agents`, `/epito-mint` all answer 404 —
+  nothing published under any accepted name. Everything engineering is
+  already done and green on `main` (the `epito-cli` rename, the gates,
+  the publish runbook at `docs/deploy/npm-publish.md`); the only two
+  actions left are minting a replacement token (another Touch ID, same
+  shape as the first) and running the publish with it, both
+  secrets/account actions this charter does not execute. Seat: chair or
+  owner.
+- [ ] **Two more quiet-pipe sites are latent, not yet wrong, and the suite
+  has no detector for the shape itself.** Handed off by the engineer,
+  2026-10-24 ~23:18Z (ref: PR #303's own report): any start-and-wait that
+  reads a log file whose name is fixed across starts can match a prior
+  start's line, and `cli/test/smoke-temporal.sh:402` and
+  `cli/test/smoke-cloudflare.sh:201` both have that shape. Neither is
+  broken today because each starts once per run; both break the day
+  either suite starts its stub twice. The fix at a site is the one line
+  `smoke-deploy.sh` (#303) and `smoke-doctor.sh` (#293) already used; the
+  missing piece is a detector, and `cli/test/shapes.sh` already scans
+  eight files for the sibling quiet-pipe shape and is the natural home
+  for this one too. Seat: engineer.
 - [ ] **The check that is supposed to catch the host being behind is
   disabled by the host being behind: a seat's clone arrives shallow, so
   the distance command answers 1 where the truth is 578.** From the
