@@ -188,7 +188,7 @@ def ended_at(path):
     # says when the run left the room.
     return datetime.datetime.fromtimestamp(os.path.getmtime(path), datetime.timezone.utc)
 
-bad = held = seen = unknown = 0
+bad = held = seen = unknown = alive = 0
 print("open drafts on this repository, against the host run logs at %s" % logs)
 print()
 print("%-6s%-40s%-7s%6s  %s" % ("PR", "BRANCH", "AGE", "CMTS", "WHOSE HAND"))
@@ -232,6 +232,13 @@ for line in sys.stdin.read().splitlines():
 
     if tag == "alive":
         note = "alive: %s has no result object yet" % stamp
+        # Counted, because for three hours it was not. A class that can be
+        # non-zero and never appear in the data block reads as zero to every
+        # reader the charter tells to paste the block rather than retype it
+        # (L41, L-A34, L-A88, L33). On 2026-10-26T10:33:14Z this script printed
+        # one row and `drafts_open: 1` over three zeros, and the one row was
+        # the reading run's own draft.
+        alive += 1
     elif tag == "held":
         note = ("HELD by %s %s, live and on this branch (newest commit %s); its own "
                 "run to ready, not a wake" % (live[0].strftime("%H:%M:%SZ"), live[1],
@@ -261,6 +268,10 @@ if held:
     print("%d draft(s) whose opening run ended but whose branch a live run of the same seat is "
           "working now: these are NOT routed as abandoned and no wake is asked for them, because "
           "a wake sent into a live run races the hand already there (L74)." % held)
+if alive:
+    print("%d draft(s) are held by their own opening run, which has not written a result object "
+          "yet: that is the one state in which the rule is being obeyed rather than broken, and "
+          "it is the reading run's own draft whenever a run of this seat is reading." % alive)
 if unknown:
     print("%d draft(s) could not be judged: no run log answers for them, which is could-not-look "
           "and not a clean bill (L41)." % unknown)
@@ -272,7 +283,9 @@ print("logs: %s" % logs)
 print("drafts_open: %d" % seen)
 print("drafts_with_no_hand_left: %d" % bad)
 print("drafts_held_by_a_live_run_of_their_seat: %d" % held)
+print("drafts_held_by_their_own_opening_run: %d" % alive)
 print("drafts_not_judgeable: %d" % unknown)
+print("classes_sum_to_drafts_open: %s" % (bad + held + alive + unknown == seen))
 print("```")
 sys.exit(1 if bad else 0)
 PY

@@ -6196,7 +6196,10 @@ stage.** `#339` merged 2m19s after its flag came off and the next commit landed
 pull request's head and pushed before it had a commit of its own, and the
 parent's merge closed it as merged carrying nothing (L75). `#343` merged 2m07s
 after its flag came off and three commits followed, the last 3m18s past the
-merge. By the fifth pull request of the morning the run opened straight into
+merge — and the recovery re-pushed the branch the merge had just deleted and
+opened a **second pull request on the same name**, so
+`epitome-exo/2026-10-26-message-9` answers for two of them and every
+instrument keyed on a branch has to pick one. By the fifth pull request of the morning the run opened straight into
 the merge queue with no draft at all — which is a run routing around its own
 charter, and the clearest evidence that the clause was the defect.
 
@@ -6209,7 +6212,10 @@ charter, and the clearest evidence that the clause was the defect.
 2. **The next commit after the flag goes on a new branch, cut from the readied
    head before the commit is made.** Not after a push fails, not after
    `--here` reports the merge: a merged pull request cannot be reopened, so
-   there is no recovery, only a second pull request. Cutting early costs
+   there is no recovery, only a second pull request. A **new** branch, not the
+   old name re-pushed: L-A59 deleted that ref on merge, and re-creating it
+   leaves one branch name answering for two pull requests, which is a question
+   every instrument that reads a head has to guess at. Cutting early costs
    nothing if the merge never comes, because a branch with no pull request on
    it is invisible to every count in this repository. And push only once the
    new branch carries a commit of its own, or the forge gives you a shadow

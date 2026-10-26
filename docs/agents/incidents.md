@@ -3470,10 +3470,15 @@ about it was wrong when it was sent.
 | `#340` | 09:48:41Z | 09:48:45Z | 09:58:05Z | 9m20s | to carry `L73`, committed 09:46:27Z onto `#339`'s branch 63s after it merged |
 | `#342` | 09:54:57Z | never | 09:58:07Z | — | cut from `#340`'s head and pushed before it had a commit; closed as merged by `#340`'s merge, carrying nothing (L75) |
 | `#343` | 10:03:37Z | 10:11:46Z | 10:13:53Z | **2m07s** | the next run's own work |
-| `#344` | 10:19:42Z | **opened not a draft** | 10:27:26Z | 7m44s (from opening) | to carry three commits made 10:15:45Z–10:17:11Z onto `#343`'s branch, up to 3m18s after it merged |
+| `#344` | 10:19:42Z | **opened not a draft** | 10:27:26Z | 7m44s (from opening) | to carry three commits made 10:15:45Z–10:17:11Z onto `#343`'s branch, up to 3m18s after it merged — and it is a **second pull request on that same branch**, `epitome-exo/2026-10-26-message-9`, which L-A59's delete-on-merge had already removed and the push re-created |
 
 Three of the five — `#340`, `#342`, `#344` — carry no work that was not already
-written when they were opened. One of the three carried nothing at all. By the
+written when they were opened. One of the three carried nothing at all. The
+third did not even cut a branch: it re-pushed the one the merge had just
+deleted and opened a second pull request on the same name, so
+`epitome-exo/2026-10-26-message-9` now answers for two pull requests and every
+instrument keyed on a branch name has to pick one — which `landed.sh` printed
+plainly at 10:35:13Z, two rows with one branch. By the
 fifth the run had stopped using the draft stage altogether, which is the
 clearest evidence in the table that the flag itself had become the thing to
 avoid: `#344` has no `ready_for_review` event in its timeline because it was
@@ -3527,6 +3532,8 @@ exist_only_because_of_merge_timing: 3
 carrying_nothing_at_all: 1
 commits_made_after_their_own_branch_merged: 4
 longest_such_commit_after_its_merge: 3m18s
+pull_requests_sharing_one_branch_name: 2 — #343 and #344, epitome-exo/2026-10-26-message-9
+that_branch_on_the_remote_now: deleted, twice, by L-A59
 ```
 
 A run of this seat lasts tens of minutes. Half of this seat's pull requests
