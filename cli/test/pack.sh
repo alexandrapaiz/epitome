@@ -28,9 +28,16 @@
 #      before, which named a file path inside our own package
 #   4. installing the engine alongside makes those commands work, so the
 #      message in 3 tells the truth
+#   5. and a publish of this package is REFUSED, performed rather than
+#      rehearsed: section 1d runs a real `npm publish` against a registry of
+#      this suite's own on 127.0.0.1, because the refusal the manifest carries
+#      is one `npm publish --dry-run` cannot see at all
 #
-# Nothing here touches the network except `npm install` of a local tarball,
-# and nothing touches an account.
+# Nothing here touches the network except `npm install` of a local tarball.
+# Section 1d does perform a publish, at a registry this suite starts on
+# loopback and with no credential for any other one reachable from inside it;
+# that section's own comment is the four belts, and nothing here touches an
+# account.
 set -uo pipefail
 
 CLI="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -54,8 +61,16 @@ RC=0
 run_epito() { "$E" "$@" >"$OUT" 2>&1; RC=$?; }
 said()   { grep -q "$1" "$OUT"; }
 shows()  { sed "s/^/      /" "$OUT" | head "${1:--3}"; }
+# The same, from the other end. `shows` prints the head, which is right for a
+# command whose answer is its first line; npm's publish puts its verdict last,
+# under sixty lines of tarball manifest.
+ends()   { sed "s/^/      /" "$OUT" | tail "${1:--3}"; }
 
-cleanup() { rm -rf "$ROOT"; }
+# Section 1d starts a server on this box. It is listed here rather than killed
+# at the end of that section because a suite that fails in the middle of it
+# would otherwise leave a listener behind for the rest of the day.
+SINK_PID=""
+cleanup() { [ -n "$SINK_PID" ] && kill "$SINK_PID" 2>/dev/null; rm -rf "$ROOT"; }
 trap cleanup EXIT
 
 mkdir -p "$PREFIX" "$WORK" "$TGZ_DIR"
@@ -273,6 +288,151 @@ if [ "$LIC" = "UNLICENSED" ]; then
 else
   check "a named licence ($LIC) ships the LICENSE file that states it" \
     'grep -qiE "^licen[sc]e" "$ROOT/files.txt"'
+fi
+
+# --------------------- 1d. the preflight that performs the publish, not a dry run
+step "1d: a real \`npm publish\` against a registry on this box — the guard, asserted"
+# WHAT THIS SECTION IS FOR, because the obvious cheaper version of it is wrong.
+#
+# `cli/package.json` carries `private: true`, so npm refuses to publish this
+# package until somebody deliberately removes the field. The cheap assertion is
+# to grep the manifest for the field. That asserts a string, not a refusal, and
+# this product has already been burned once by the gap between the two: the
+# `--dry-run` leak at the top of this file passed every assertion it made while
+# making none about the publish.
+#
+# The second instance is worse, and it is the reason this section exists.
+# `npm publish --dry-run` — the command this product's own publish runbook
+# taught as the safe preflight — cannot see this refusal AT ALL. The refusal is
+# the first statement of libnpmpublish's publish function, and npm calls that
+# function behind `if (!dryRun)`. Read on npm 10.9.8 on this box:
+#
+#   node_modules/libnpmpublish/lib/publish.js:15   if (manifest.private) throw EPRIVATE
+#   lib/commands/publish.js:161                    if (!dryRun) { await ... libpub(...) }
+#
+# The in-command copy of the same check at lib/commands/publish.js:139 does not
+# help: it is guarded by `workspace &&`, and publishing cli/ is not a workspace
+# publish. So the dry run prints `+ epito-cli@0.1.0` and exits 0 with the guard
+# fully in place — the same output it prints with the guard removed. Anybody
+# verifying the guard the way the runbook taught would conclude it is absent.
+#
+# The only thing that can tell the two apart is a publish that is performed.
+# That needs a registry, so this starts one: test/registry-sink.mjs on
+# 127.0.0.1, which records every request and answers all of them 500.
+#
+# WHY THIS IS SAFE TO HAVE IN A SUITE, in four belts rather than one comment:
+#   1. every npm here is given `--registry http://127.0.0.1:<port>/` on the
+#      command line, which beats npmrc and environment both;
+#   2. it runs from an extracted tarball under $TMPDIR, so the project-level
+#      .npmrc npm reads from the publish directory is one this suite wrote;
+#   3. `--userconfig` and `--globalconfig` point at scratch files and NPM_TOKEN
+#      is removed from the environment, so no credential for any real registry
+#      is reachable from inside this section — a leak would be an unauthorized
+#      request, not a publish;
+#   4. the sink answers 500, so no run of this suite can come away believing it
+#      published anything.
+#
+# WHICH MANIFEST IS "THE GUARDED ONE": the committed one, read with `git show`,
+# not the tree's. The deliberate publish lifts the field from the working tree
+# and puts it back afterwards (docs/deploy/npm-publish.md), and `prepublishOnly`
+# runs this suite — so a gate that read the tree would assert nothing on the one
+# run that matters, which is the quiet-gate fault all over again.
+SINK_PORT="$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})' 2>/dev/null)"
+if [ -z "$SINK_PORT" ]; then
+  echo "  SKIPPED: this box would not hand out a loopback port, so no publish could be performed"
+  echo "  Fix: nothing in this repository — a node that cannot listen on 127.0.0.1 is the box talking."
+else
+PUB="$ROOT/publish"; mkdir -p "$PUB"
+REQS="$PUB/requests.log"
+SINK_LOG="$PUB/sink.log"
+node "$CLI/test/registry-sink.mjs" "$SINK_PORT" "$REQS" > "$SINK_LOG" 2>&1 & SINK_PID=$!
+for _ in $(seq 1 60); do grep -q 'registry sink on' "$SINK_LOG" 2>/dev/null && break; sleep 0.2; done
+check "a registry this suite owns is listening on 127.0.0.1:$SINK_PORT" \
+  "grep -q 'registry sink on $SINK_PORT' '$SINK_LOG'"
+
+printf '//127.0.0.1:%s/:_authToken=not-a-real-token-and-no-registry-will-take-it\n' "$SINK_PORT" > "$PUB/npmrc"
+chmod 600 "$PUB/npmrc"
+: > "$PUB/global-npmrc"
+
+# Two trees, one field apart, both built out of the tarball section 1 just
+# packed — so what is published here is the real package and not a stand-in.
+mkdir -p "$PUB/guarded" "$PUB/lifted"
+tar xzf "$TGZ" -C "$PUB/guarded" --strip-components=1
+tar xzf "$TGZ" -C "$PUB/lifted" --strip-components=1
+# `--ignore-scripts` on every publish below, for one reason that is not tidiness:
+# without it npm runs `prepublishOnly`, which is this suite, inside this suite.
+# The refusal under test is reached before any script would run anyway, which
+# the EPRIVATE assertion below is also evidence for.
+pub() { local dir="$1"; shift
+  ( cd "$dir" && env -u NPM_TOKEN npm \
+      --userconfig "$PUB/npmrc" --globalconfig "$PUB/global-npmrc" \
+      --registry "http://127.0.0.1:$SINK_PORT/" \
+      publish --ignore-scripts "$@" ) >"$OUT" 2>&1; RC=$?; }
+
+# `HEAD:package.json` is resolved from the repository root, not from `-C`, so
+# that spelling reads cli/package.json nowhere and this suite took the fallback
+# silently on its first run. `HEAD:./` is the form that means "relative to
+# here", and the printed line below is what made the difference visible.
+if git -C "$CLI" show HEAD:./package.json > "$PUB/committed.json" 2>/dev/null; then
+  COMMITTED_FROM="git HEAD"
+else
+  cp "$CLI/package.json" "$PUB/committed.json"
+  COMMITTED_FROM="the working tree — this checkout has no git, so a lifted field cannot be told from a removed one here"
+fi
+cp "$PUB/committed.json" "$PUB/guarded/package.json"
+node -e '
+  const fs = require("fs"), f = process.argv[1];
+  const m = JSON.parse(fs.readFileSync(f, "utf8"));
+  delete m.private;
+  fs.writeFileSync(f, JSON.stringify(m, null, 2) + "\n");
+' "$PUB/lifted/package.json"
+COMMITTED_PRIVATE="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).private === true ? "yes" : "no")' "$PUB/committed.json")"
+printf '  the manifest under test came from %s; private: %s\n' "$COMMITTED_FROM" "$COMMITTED_PRIVATE"
+
+# --- half one: the publish path is real, so an empty log means "refused"
+# This half runs whichever way the field goes, and it is what makes the other
+# half readable. Without it, "no request arrived" is as consistent with a broken
+# sink as with a working guard.
+: > "$REQS"
+pub "$PUB/lifted"
+ends -3
+check "with no \`private\` field, a publish of this package reaches a registry" \
+  "[ -s '$REQS' ] && grep -q '^PUT /' '$REQS'"
+printf '  the sink recorded: %s\n' "$(tr '\n' ';' < "$REQS")"
+check "...and what it sent was the tarball, not an empty probe" \
+  "awk '\$1==\"PUT\" && \$3 > 100000 {found=1} END {exit found?0:1}' '$REQS'"
+
+# --- half two: the guard, performed
+: > "$REQS"
+if [ "$COMMITTED_PRIVATE" = yes ]; then
+  pub "$PUB/guarded"
+  ends -4
+  check "the committed manifest refuses its own publish, in npm's own words" \
+    "[ \$RC != 0 ] && said 'code EPRIVATE'"
+  check "...before any request reaches the registry, so no tarball leaves the box" \
+    "[ ! -s '$REQS' ]"
+else
+  printf '  NOTE: the committed manifest carries no `private` field. That is what a\n'
+  printf '        deliberate publish of this package looks like, so this is a notice and\n'
+  printf '        not a failure — but it means the only thing standing between an\n'
+  printf '        accidental `npm publish` in cli/ and a permanent public version is\n'
+  printf '        whoever is typing. Half one above is the assertion that still holds.\n'
+fi
+
+# --- the pin: the preflight that cannot see any of it
+# Both halves above distinguish the guarded manifest from the lifted one. This
+# asserts that `--dry-run` CANNOT, which is the finding, and it is written as an
+# assertion rather than a comment so that the day npm fixes this the suite says
+# so instead of going quiet.
+: > "$REQS"
+pub "$PUB/guarded" --dry-run
+ends -2
+check "\`npm publish --dry-run\` reports success on the guarded manifest — it asserts nothing" \
+  "[ \$RC = 0 ] && said '^+ '"
+check "...and sends nothing either, so its silence is not evidence of the guard" \
+  "[ ! -s '$REQS' ]"
+
+kill "$SINK_PID" 2>/dev/null; SINK_PID=""
 fi
 
 # ------------------------------------------------- 2. install, with NO engine
