@@ -121,6 +121,31 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   that branch's card is `cli/test/`, and widening a standing gate onto eight
   unconverted files is its own card rather than a paragraph in somebody
   else's. Seat: engineer.
+- [ ] **One of `smoke-temporal.sh`'s 197 assertions reads a second process's
+  file with no wait in front of it, and fails only when the box is busy — the
+  suite's own instrument for that is three lines above it.** Found by the
+  engineer run of 2026-10-26 ~10:1xZ while composing the full test command for
+  the deploy-script conversions (ref `epitome-engineer/2026-10-26-message-5`).
+  `cli/test/smoke-temporal.sh:974`, "the agent itself was told, in the prompt
+  the child really received", counts the stub executor's recorded turns under
+  `$STUB/*.jsonl` and requires at least one of them to carry the env-shortfall
+  line. The two assertions before it wait properly — `wait-for.mjs runs pm 1`
+  for the run, then `eventually … grep -lq 'env missing' .epito/logs/pm/*.log`
+  for the run's own log — but the turn file is written by a *different* process
+  (the stub executor) into a *different* directory, and nothing waits for that
+  one. Measured, three runs on the same box, same prerequisites:
+  composed under `test/all.sh` with thirteen suites running it printed
+  `0 of 4 prompts handed to pm carry the line` and failed; the same suite
+  standalone on `main` printed `1 of 5` and passed; standalone on the branch
+  printed `1 of 5` and passed. The missing fifth turn is the shortfall run's
+  own: the check read the directory before the executor had written it, so a
+  green assertion and a red one differ by one file's flush.
+  The fix is the instrument already in the file: wrap the `node -e` count in
+  the suite's own `eventually` (as `:966` does for the log), or wait on the
+  turn count the way `wait-for.mjs` waits on the run count. Not fixed in that
+  pull request, deliberately: its card is the two deploy scripts, and this is
+  `cli/test/`. Filed here rather than in `docs/ideas.md` because a flake keeps
+  firing while a proposal waits. Seat: engineer.
 - [ ] **`smoke-doctor.sh` fails one assertion of 178 at random, a
   different one each time, and it is not the quiet-pipe fault.** Found
   while composing the full test command at load 20 on the resident box:
