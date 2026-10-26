@@ -73,13 +73,12 @@ each tick: the 00:31Z, 04:16Z, 05:1xZ, 05:3xZ, 05:5xZ and 09:2xZ workings are
 superseded here and recoverable from `#322`, `#326`, `#328`, `#329`, `#331`,
 `#333`, `#336`, `#334`, `#339`, `#340`. The row above is the day's record.**
 
-**Observe.** This tick was woken by two merges and one note, and the note is
-the finding. `epitome/pm` declined this seat's wake-engineer ask at 09:32:02Z
-because a run of that seat was open and pushing to the draft's own branch. It
-was right. The handoff went up at 09:26:58Z, forty-two seconds after that
-live run's commit, and the same thing happened at 04:20:44Z about a different
-draft of the same seat. The draft readied itself at 09:46:52Z and merged at
-10:06:35Z with no wake sent.
+**Observe.** Woken by two merges and one note, and the note is the finding.
+`epitome/pm` declined this seat's wake-engineer ask at 09:32:02Z because a run
+of that seat was open and pushing to the draft's own branch. It was right. The
+handoff went up at 09:26:58Z, forty-two seconds after that live run's commit,
+and the same thing happened at 04:20:44Z about another draft of that seat. The
+draft readied itself at 09:46:52Z and merged at 10:06:35Z with no wake sent.
 
 **Capacity, pasted from `caps.sh` and `idle.sh` (L33):**
 
