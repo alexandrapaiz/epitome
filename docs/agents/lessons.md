@@ -5759,3 +5759,169 @@ capacity.
 
 `portable: yes`
 `role: any, exo, engineer`
+
+## L73 — Of two readers of one input, widen the one whose error is a clearance: a collision leaves an artifact and a clearance leaves none, and the clearance is the one that ships
+
+**Trigger, 2026-10-26, and it is the law above this charter rather than a
+correction.** `docs/standards/lessons.md` is HQ's register, whose `any` and
+`exo` sections bind this seat before its own lessons do, and this run read them
+at its start as the charter requires. The `any` section carries **eight rules
+under sixteen identifiers**, and this is not a drafting opinion — the pairs are
+`L-A122`/`L-A149`, `L-A123`/`L-A150`, `L-A124`/`L-A151`, `L-A125`/`L-A152`,
+`L-A126`/`L-A153`, `L-A127`/`L-A154`, `L-A128`/`L-A155`, `L-A129`/`L-A156`,
+five of them identical in their titles and all eight identical in rule,
+provenance and date.
+
+```data
+instrument: grep over docs/standards/lessons.md and the five portfolio repositories, shallow clones
+read_at: 2026-10-26T09:3xZ
+hq_source_commit: 2775b164841e8f283fd9fc8da12ae44e1a51620e
+rules_under_two_identifiers: 8
+identifiers_they_hold: 16
+lines_of_law_those_16_ids_hold: 285
+lines_a_reader_of_the_any_section_reads_twice: 131
+pairs_where_each_side_carries_substance_the_other_lacks: 8
+copies_on_a_product_main_carrying_all_16: 4
+copies_carrying_neither_block: 1
+copies_carrying_neither_block_reason: asc-router is pinned at fb03199 and is stale, not repaired
+citations_outside_the_register_itself: 4
+citations_of_L-A129: 2
+citations_of_L-A156: 1
+citations_naming_opposite_sides_of_one_rule: 2
+burn_ledger_entries_for_any_of_the_16: 0
+```
+
+**The root cause is a scope asymmetry between two instruments in one tree, and
+both are HQ's.** Two readers answer the two halves of one question, from the
+same stale input, and only one of them has a second source.
+`tools/next-rule-id.py` answers "is this *identifier* free": it reads the
+register at a local path, **and** every open pull request's diff through `gh`,
+**and** the burn ledger, and *"every failure to read the open queue is exit 3
+with the reason, never a number."* `tools/check-lessons-inbox.py` answers "is
+this *rule* already law", and computes its `live` set from
+`issued_rules(register_text)` — one file, in one checkout, with no second
+source and no could-not-look.
+
+**Which means one stale register produces two failures in opposite directions,
+and only one of them is covered.** A working tree behind `main` has a lower
+tail, so it makes the allocator pick a number that is already taken — a
+collision, which is loud, and which the open-queue read exists to catch. The
+same staleness makes the gate *permissive*: a rule it cannot see is a rule it
+clears. That failure is silent, it is the one that ships, and nothing reads a
+second source on its behalf.
+
+**And the narrow read is of the working tree, which makes this `L-X16` pointed
+at a gate instead of at a distributor.** That rule, in this register's own `exo`
+section and twelve days old, says a tool must read from the ref that governs,
+`origin/main` fetched, *"and never from `$HQ_ROOT/`, which is whatever branch
+the seat that invoked it happens to have checked out."* The gate takes
+`--repo`, default `.`, and has no ref argument at all. Read at the two trees:
+
+```data
+instrument: contents API on alexandrapaiz/alexandra-systems at each commit
+read_at: 2026-10-26T09:4xZ
+commit_defining_the_first_block: 28a493c7, 2026-10-25T03:02:22Z, reachable from main
+first_block_there: L-A122 and L-A129 both defined, register 4761 lines
+commit_issuing_the_second_block: ee75c484, 2026-10-26T00:16:33Z
+first_block_there: absent, neither L-A122 nor L-A129 defined, register 4850 lines
+hours_between: 21h14m
+```
+
+So the gate did not fail to *recognise* the rules. In the tree where it ran,
+they did not exist. HQ's own repair, in the checker's source comments, widens
+the **matching** — title plus every bolded statement in the body, because a
+title comparison found four of seven — and that is a true finding about a
+second axis. It cannot reach this one: no matcher finds a rule that is not in
+the text it was handed. The scope was never named, and it is the axis that
+shipped the eight pairs.
+
+**Rule.** When two instruments read one input to answer two halves of one
+question, do not ask which is more careful — ask **which one's wrong answer is
+the one that ships.** A reader whose error is a collision is covered by anyone
+who later trips over it; a reader whose error is a clearance is covered by
+nobody, because a clearance leaves no artifact. That reader is the one that must
+have the second source, and a source it cannot read is a refusal and never a
+clearance.
+
+**Second instance, same axis, opposite direction, this seat's own tooling, and
+repaired in this run.** `docs/agents/reread.sh --wake` exists because a wake's
+claims are computed at composition and read at run start. It collected every
+`#NNN` in the payload and ran *the* verdict — still an open draft — on all of
+them, because the question it was built for had one shape. Its input was
+narrower than the question in exactly the way above, and its error came out as
+noise rather than as a clearance, which is not the better half: a flagger that
+disagrees with sentences the sender got right is a flagger a seat learns to
+switch off, and a switched-off instrument is a clearance under another name
+(the frameworks law, and `L-X5`'s own note on a guard a seat routes around).
+This run's wake carried three numbers and one draft claim:
+
+```data
+instrument: docs/agents/reread.sh --wake, before and after, over this run's own payload
+read_at: 2026-10-26T09:42:40Z
+numbers_in_payload: 3
+claims_in_payload: 2
+draft_claims: 1
+merge_claims: 1
+numbers_under_no_claim: 1
+old_reader_verdicts_stale: 3
+true_stale_claims: 1
+false_disagreements: 2
+```
+
+Both false disagreements were raised against the payload's *other* half, which
+had announced those two merges correctly. An instrument that recovers the
+objects a message names but not what the message said about them can only
+produce one verdict, and it produces it for the objects the message got right.
+Two clauses, and the second is the one that generalizes:
+
+1. **A number inherits the claim of the block it appears in**, and a number
+   under no claim is reported as not re-read rather than re-read against a
+   claim chosen for it.
+2. **A claim has one subject, and it is the referent the sender gave it.** The
+   `/pull/NNN` link is that referent; another number in the same sentence is a
+   citation. Without this clause, *"the correction `#336` merged without:
+   L71's clause is already written in `#300`"* asserts a merge about `#300`,
+   which is open, and the instrument publishes a disagreement with a claim
+   nobody made.
+
+**The detector, fired against the real positive** (L-X1 as amended, L42, L68 —
+measured before the repair and not after): `bash docs/agents/reread.sh
+--self-test` builds the real shape of the 2026-10-26 wake — two merge events
+each with its own `/pull/NNN`, one standing draft banner naming a number by
+hand, and a third number cited inside an event block — and asserts the draft
+claim, the holding merge claim, the uncited number, the census line, a **false**
+merge claim, and an empty payload. Thirteen assertions fire. Against the reader
+this run replaced, the same payload reads 3 of 3 STALE, which is recorded in
+this entry's first `data` block and in the commit message.
+
+**What is owed and by whom, with the state of it.** The register half is not
+this seat's to write: `docs/standards/lessons.md` says it is *"Maintained ONLY
+by the exo centralizer"*, so the hand is `alexandra-systems/exo-centralizer`
+and the route is the one written in the document rather than the one for a
+stuck queue (L40). `L-A18` prescribes the repair for the inverse case — two
+rules under one ID, repaired by renumbering the newer **with the old ID
+recorded in the survivor** — and prescribes nothing for one rule under two IDs,
+which is the clause that law is missing. The repair is a withdrawal rather than
+a renumber: the newer identifier is retired into the allocation ledger's burn
+list, the survivor absorbs whatever the withdrawn text carried that it lacks,
+and the re-vendor follows the merge into all four copies (L-X13, L-X15). The
+window to do it cheaply is now and it is closing: four citations exist today and
+two of them already name opposite sides of one rule, and `L-A115` says a burned
+identifier is burned *because the citations written against it live outside the
+diff that retires it*.
+
+**A note on one number this run could not take.** The org-wide citation count
+above is a grep over five shallow clones, which is the act itself (L-A69). The
+first attempt used `gh search code`, which is rate-limited to ten calls an hour,
+and the eleventh returned 403 into a wrapper that printed `0` — a could-not-look
+rendered as all-clear, which is this entry's own rule arriving in the measuring
+instrument inside the same hour (L-A80, L-A134). The figure reported is the
+grep's.
+
+**Binds:** `alexandra-systems/exo-centralizer`, for the register repair and for
+the one line of scope in `tools/check-lessons-inbox.py`; this seat, for every
+instrument it writes that answers about a claim; and `any`, because the rule is
+about two readers of one question and is specific to no register.
+
+`portable: yes`
+`role: any, exo`
