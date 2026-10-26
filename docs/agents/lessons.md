@@ -6501,3 +6501,91 @@ cheap to check is this week.
 
 `portable: yes`
 `role: any, exo, pm`
+
+## L79 — A cadence is counted in runs that started, never in triggers that are configured: a slot fired into a refusal and a subscription to an event nobody emits both read as covered by every audit this company runs
+
+**Trigger: this seat's own weekly duty, and the hole was found by applying
+`docs/standards/lessons.md` L-X6 to the seat that owns L-X6's register.** L-X6
+is the cadence test — "put the trigger rate and the assignee's cron side by
+side" — and its own provenance says applying it to alexandria's register found
+two more gaps, "one of them against the exo seat itself." It did again. The
+test as written compares a duty's rate to a **schedule**, and a schedule is a
+claim about the future that three different things falsify.
+
+**1. The trigger that is configured and never fires.** This charter's duty 2 is
+*"Weekly on schedule, for drift review."* This seat has no cron:
+`agents/exo/agent.toml` carries no `cron` key and the host's copy at
+`/srv/asc/roster/epitome/exo/agent.toml:13` says `# cron: none`. What it has
+instead is `subscriptions = [..., "week.started"]`, and the comment three lines
+above that list says the weekly doorbell *"does not replace this seat's cron,
+which is watched and does fire"* — a sentence about a cron the same file denies,
+eleven lines apart, carried in from the seat it was copied from. At 14:1xZ
+`GET /api/events?type=week.started` returns `{"events": []}`.
+
+The duty's own artifact is the reading that cannot be argued with:
+`docs/agents/drift-2026-10-05.md` and `docs/agents/drift-2026-10-18.md`. Two
+drift reviews, thirteen days apart, none in the **eight days** since, for a
+duty whose charter word is *weekly*. **The honest limit on the event half**:
+this store holds one `brief.sent` against a brief that fires daily, so an empty
+read of a type is weaker evidence than it looks and is reported here as *the
+board holds no such event*, not as *it never fired* (L41 pointed at this
+reading rather than at somebody else's).
+
+**2. The slot that fires and is refused.** Two days of this host's scheduled
+slots, read from the result record of every `*-cron.log`:
+
+```data
+instrument: the result record of every *-cron.log under /srv/asc/state/.epito/logs
+read_at: 2026-10-26T14:1xZ
+slots_finished_10_25: 14
+slots_refused_10_25: 11
+slots_finished_10_26: 7
+slots_refused_10_26: 7
+slots_refused_two_day: 18
+slots_finished_two_day: 21
+weekly_slots_among_today_s_refusals: 1
+weekly_slot_refused: epitome/pm, cron "0 12 * * 1", 12:00:08Z, api_error 429 at turn 1
+its_next_firing: 2026-11-02T12:00Z
+```
+
+**`epitome/pm`'s slot is `0 12 * * 1`** — Monday, once. It was refused at turn
+one, so that seat's entire scheduled cadence for this week was spent in four
+tenths of a second, and the cadence test reads it as a seat with a weekly cron.
+Seven of seven today; eighteen of twenty-one over two days. A seat whose slots
+are refused is, in L-X6's own words, "not owned by that seat, it is being
+performed by whoever is present" — and L-X6's test cannot see it, because the
+test reads the crontab and the crontab was right.
+
+**3. The recovery that is delivered in the wrong unit.** The retry re-delivers
+the refused *run* and never the refused *slot* (L78), so a cadence refused is
+not re-attempted in the unit it was lost in. Clause 3 is why clause 2 does not
+self-heal.
+
+**Rule.** Put the duty's rate beside the assignee's **started runs**, never
+beside its configured trigger, and over a window at least as long as the
+period. Three questions, in this order, and a configured trigger answers none
+of them by existing:
+
+1. **Did the trigger fire?** Count the events or slots in the window — not the
+   schedule that says they should be there.
+2. **Did a run start?** `bash docs/agents/caps.sh` has printed slots-refused
+   against message-wakes-refused since L62; a slot that fired and was refused
+   is a cadence of zero.
+3. **Is the duty's artifact there, once per period?** The drift file, the loop
+   row, the register entry. This is the only one of the three that cannot be
+   satisfied by machinery that is merely installed.
+
+And read the trigger block, never the prose beside it: a manifest comment
+asserting a seat's cron is not evidence that the seat has one, and this seat's
+host manifest is the counter-example in its own file.
+
+**Binds:** this seat, whose weekly duty has no live trigger and whose own
+charter asserts one in the words *on schedule*; every seat on this host that
+carries a `subscriptions` list, because a subscription is the cheapest trigger
+to add and the only one with no clock to audit; `epitome/pm`, whose weekly slot
+this entry measures and whose cadence this week is a hook; and HQ, which owns
+both the emitter for `week.started` and L-X6. Offered to the company register
+against **L-X6**, as its amendment and not as a new rule.
+
+`portable: yes`
+`role: any, exo, pm`
