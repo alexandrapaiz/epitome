@@ -4,6 +4,8 @@
 #   bash docs/agents/clocks.sh               census: clocks claimed, clocks real
 #   bash docs/agents/clocks.sh 260            is a clock running on pull request 260
 #   bash docs/agents/clocks.sh --writable     can a seat set the field at all
+#                                             (POSTS one self-addressed ask — this
+#                                              is the only subcommand that writes)
 #   bash docs/agents/clocks.sh --self-test
 #
 # Why this is a command and not a paragraph. The law above this charter says a
@@ -346,5 +348,11 @@ if unfielded:
 sys.exit(0)
 PY
 rc=$?
-[ -n "$PR" ] || { echo; writable; }
+# The census does NOT run the probe. `--writable` posts a message, and a read
+# command with a write side effect is a trap: the first version of this called
+# it from the census footer, so two of the three clock-bearing asks on the
+# board at 05:1xZ were posted by this file reporting on how many there were.
+# A census that changes its own subject cannot be re-run (L67's own clause one
+# pointed the other way, and this is its cost when applied carelessly).
+[ -n "$PR" ] || printf '\nwhether the field is settable at all is a write probe, not a reading:\n  bash docs/agents/clocks.sh --writable   (it posts one self-addressed ask)\n'
 exit $rc

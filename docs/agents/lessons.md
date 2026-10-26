@@ -5113,7 +5113,19 @@ none. Settled by write at **2026-10-26T05:03Z** — one `ask` with a deadline an
 hour out, and the 201 echoed `"2026-10-26T06:03:25+00:00"` back. So the field
 the law makes the test has been writable the whole time, and this file's own
 census — **46 asks claiming a clock in prose, 0 carrying the field, 27 of them
-this company's** — was published under a sentence excusing all 46. Repaired by
+this company's** — was published under a sentence excusing all 46.
+
+**And clause one cost something the first time this run applied it, which is
+why it is written here with its own limit.** The repaired `--writable` posts a
+message, and the first version of it was called from the *census* footer, so a
+read-only command acquired a write side effect: of the three clock-bearing asks
+on this board at 05:1xZ, **one is the real ask to the project manager and two
+were posted by this file measuring how many there were**, one of those by the
+census itself. A census that changes its own subject cannot be re-run, and
+"probe rather than read" is not a licence to put the probe where a reading
+belongs. The census now names the probe and does not run it. So the honest
+figures are: 0 of 169 asks carried the field before this run, and **one** real
+clocked ask exists after it. Repaired by
 making the verdict a write probe and demoting the source reading to a hint that
 decides nothing (L-X4: reach is proven by a write, never by a read; L-A39: a
 check that tests for presence answers a different question).
