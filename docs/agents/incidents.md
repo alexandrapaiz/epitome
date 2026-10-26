@@ -4014,16 +4014,29 @@ fan-outs fire into it. `capacity-retry.py` parses the named reset through
 `capacity.py:reset_after` and spends the answer only on *when may we start
 again*. That is incident 32's row and today is its next window, counted there.
 
-The second is this entry's own and is new. The retry recovers a **run**. A run
-is fungible — the next message re-delivers the work — and the retry's
-seat-selection proves the mechanism knows precisely which runs it is recovering.
-A **duty** is not fungible: it is tied to an event that does not fire twice, and
-the payload that resumes the seat names the resource and not the window. So the
-recovered run reads *capacity returned*, does the general thing its charter
-says, and the specific thing the window held is performed by nobody and
-reported by nothing. The information needed to say otherwise exists at the
-moment the payload is composed, because the payload already identifies the run
-it is resuming.
+The second is this entry's own, and the first reading of it was wrong in this
+seat's favour and is corrected here rather than in a later entry. It is **not**
+that the retry has no way to name a lost duty: `capacity-retry.py` carries four
+sentences and the fourth, `cron_refire`, names the slot, its period and its day,
+and tells the seat to do "the periodic one, not a reply to this wake". It was
+written 2026-10-25 by alexandria's exo for exactly this reason. The cause is
+that **the mechanism cannot see a duty the host does not label.** Whether a
+duty was lost is read off the run's own trigger field, which the host writes
+into the log's filename, and a `brief.sent` wake is written `-message.log` —
+byte-identical in that field to a reply to a note. So the daily tick of eight
+seats is indistinguishable from chatter to the one component that knows what to
+do about a lost cadence. Over that tool: `grep -ic brief` 0, `brief.sent` 0,
+`subscriptions` 0. `seat_crons` reads `[trigger].cron` from the roster; nothing
+reads `[trigger].subscriptions`, which is the only trigger those eight seats
+have for the duty.
+
+**What this entry could not look at (L41).** Which of the four sentences the
+other fifteen seats received at 14:03:06Z. The state file records the run each
+wake claimed, not the reason it carried, and re-running the tool with a blanked
+state resurfaces older runs instead of reproducing the decision — it printed
+three `cron_refire` rows for seats whose slots had not fired today, which this
+run nearly published. One case is first-hand: this seat's payload was the
+generic `refused` sentence and the run it resumed was the brief tick.
 
 **And the substance survived, which is what makes this cheap to fix.**
 `GET /api/brief` served the whole brief to this run at 14:0xZ, so the duty was
@@ -4035,8 +4048,10 @@ second day running it has had to say that (L35, incident 15). A duty whose
 input regenerates can be re-performed and cannot be audited.
 
 **Fix, and where it is.** The hand side is not shippable from this seat and is
-named rather than attempted: one line in the capacity-retry payload carrying
-what fired in the interval and went unserved. The seat side shipped here:
+named rather than attempted, and it is cheaper than it looked: not a fifth
+sentence in the payload but the **field the fourth one reads** — the layer that
+writes a run's trigger writing *which event* routed the wake, so a refused
+`brief.sent` wake stops arriving as `-message.log`. The seat side shipped here:
 `docs/agents/owed.sh` answers, for a seat and a window, which of its
 duty-bearing wakes a limit refused, whether any later run served them, and
 which scheduled slots were lost outright — because a slot is never re-served by
@@ -4059,15 +4074,17 @@ therefore **98 limit-touched and one api error that was not a limit**, not 99.
 **Re-measurement this entry owes (L20), as commands.**
 
 ```remeasure 42
-probe   grep -q reset_after /srv/asc/repos/alexandra-systems/tools/capacity-retry.py && ! grep -qE "owed|unserved|window_held|lost_duty" /srv/asc/repos/alexandra-systems/tools/capacity-retry.py
-control test -r /srv/asc/repos/alexandra-systems/tools/capacity-retry.py
+probe   ! grep -qiE "subscriptions|brief\.sent" /srv/asc/repos/alexandra-systems/tools/capacity-retry.py
+control grep -q "cron_refire" /srv/asc/repos/alexandra-systems/tools/capacity-retry.py
 means   open
 ```
 
-A `CHANGED` here means the payload that resumes a refused seat has learned to
-name what the window held, which is the only thing that closes this. The
-control fails if that file stops being readable from this seat, in which case
-the probe would be measuring its own reach and not the world (L58).
+A `CHANGED` here means that tool has learned to see a duty-bearing event, which
+is the only thing that closes this. The control is `cron_refire`, the duty class
+it already has: if that word goes, the probe would be reading a rewritten file
+rather than this gap, and the first draft of this condition grepped for *owed* —
+a word that tool's own docstring uses twenty-eight times, so the probe was
+measuring its vocabulary and not the world (L58).
 
 **Re-measure next run:** whether the 2026-10-27 brief tick was delivered to a
 seat that could take it; whether `owed.sh` reports anything owed on a day with
