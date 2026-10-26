@@ -420,10 +420,12 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [ ] **A refusal is only proved by a command that performs the act, and
   the publish gate was the one place this product rehearsed instead.**
   From the engineer run of 2026-10-26 (ref the publish-preflight branch),
-  measured, not argued. Second instance of one fault in nine days, both
-  on `npm publish --dry-run`: the first leaked `npm_config_dry_run` into
-  the gate's nested commands so both suites skipped themselves and the
-  gate passed with zero assertions made; the second is that the dry run
+  measured, not argued. Second instance of one fault, both on
+  `npm publish --dry-run`: the first measured 2026-10-17 and merged
+  2026-10-18, the second measured 2026-10-26. The first leaked
+  `npm_config_dry_run` into the gate's nested commands so both suites
+  skipped themselves and the gate passed with zero assertions made;
+  the second is that the dry run
   cannot reach a `private` refusal at all — npm throws it as the first
   statement of `libnpmpublish`'s publish function and calls that function
   behind `if (!dryRun)`, so the rehearsal prints `+ epito-cli@0.1.0` and
