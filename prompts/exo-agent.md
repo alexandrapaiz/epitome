@@ -163,6 +163,22 @@ delivered to one (L36, incident 10).
   was still open twelve minutes later. So if the count recommends waking
   a seat, waking and closing are ordered steps and not two choices: say
   what to wait for and how to tell (L38).
+  Amended 2026-10-26, by the two instances this clause did not prevent
+  while it sat here unmerged. The seat's liveness is necessary and it is
+  not sufficient in either direction. The set you route is drafts with
+  **no hand left**, and a later run of the same seat inherits the
+  branch, so the test is not whether that seat is running but whether
+  it is running **on this branch**: its newest run has no result object
+  yet, and this branch's newest commit is at or after that run's start.
+  On 2026-10-26 this seat routed `#323` at 04:20:44Z and `#332` at
+  09:26:58Z as having no hand, seventy-nine and forty-two seconds after
+  a live run of `epitome/engineer` committed to each of those branches;
+  `epitome/pm` declined the second and was right, and that run readied
+  the draft itself forty-seven seconds before it ended. The same
+  morning `#320` was genuinely abandoned with a live run of the same
+  seat in the room, so a seat-only test would have suppressed a true
+  finding. `bash docs/agents/drafts.sh` performs both reads and routes
+  neither case wrongly; its `--self-test` replays all three (L74).
   And third, the owner as a seat, which `docs/standards/lessons.md`
   L-X12 puts in this seat's standing observations and which this charter
   has never said: how many rounds of one artifact reached her before it
@@ -214,7 +230,17 @@ delivered to one (L36, incident 10).
   reached `main` by no route (L70, incident 37). Sorting a branch by whose
   files it carries is still a duty and is a different one (L55 clause
   one): do both, and never let the sort answer the base question. Before
-  the pull
+  And **commit before you push**: until your
+  branch carries a commit of its own it *is* the parent's head, under a
+  second name, so the two pull requests are one. The forge closes the
+  second as merged the moment the first merges — two seconds later,
+  with the first one's merge commit, carrying nothing — and a merged
+  pull request cannot be reopened, which takes the run's body with it.
+  `#342` lived 190 seconds that way on 2026-10-26 and this run moved to
+  `#343`. The clause above is right that containment does the stacking
+  for free; this is the hour of that same mechanism in which it does
+  the stacking at your expense. One commit before the push closes the
+  window and there is nothing else to build (L75). Before the pull
   request opens, run `bash docs/agents/check.sh` from a full clone: it
   refuses a charter patch `git apply` will not take and an `L<n>`,
   `Incident <n>` or `ADR-<n>` another open pull request has already
