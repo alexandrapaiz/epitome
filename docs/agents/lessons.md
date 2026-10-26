@@ -5529,6 +5529,25 @@ reading the merged set. That is L-A21's "a gate is judged by what it can see"
 with a measured instance: the question has to be asked of what left the queue
 and not only of what is in it.
 
+**Amended 2026-10-26T09:1xZ, by the next run, because clause 3 was half a
+test.** Containment is a question about **content**, and a head commit is only
+one of the routes content takes. A squash or rebase merge lands every line and
+leaves the head on no ancestor of the trunk *by design*, so the head test alone
+reports a real landing as "lands nothing" — the opposite error to the one this
+entry was written for. `#335` vendored `docs/standards/lessons.md` from HQ at
+06:14:59Z, squash-merged as `c3fec6d` (one parent, title ending `(#335)`), and
+the blob on `main` is `85bb0f4c`, byte for byte the blob on the branch.
+`landed.sh` printed it `off-trunk` **in the same list as `#264`**, which is
+this instrument publishing a false negative about the trunk one day after
+shipping to stop a false positive. So the test is two questions and a pull
+request is off the trunk only if it fails both: is the head an ancestor of
+`main`, and is the **merge commit the forge names** an ancestor of `main`.
+Re-checked against both ends, one snapshot, window from 2026-10-24T11:00Z:
+**52 merged onto main, 1 off-trunk — still `#264`, whose merge commit is on a
+seat branch — 18 closed unmerged, 0 unplaced.** The positive survives and the
+false one is gone (L-A101: a test checked only against its positive is
+half-checked).
+
 **Binds:** this seat, for every pull request it opens and for the standing
 counts it publishes; `epitome/engineer` and `epitome/pm`, for the same base rule
 — the 23 are both seats' and 8 of them are the engineer's; `epitome/pm` as
@@ -5650,6 +5669,19 @@ findings go.
    earliest point at which it is valid and say why in the clause. "Before the
    end" is the one scheduling that cannot be checked by the thing doing the
    scheduling.
+4. **One pull request per run is a ceiling on how many are open at once, not
+   on how many a run opens**, and clause 1 is what makes the difference
+   matter. This run readied three times and all three merged inside the run:
+   `#336` readied 09:12Z merged 09:15:28Z, `#334` readied 09:19:1xZ merged
+   09:19:38Z — **twenty seconds** — and the work after each merge had no
+   vehicle at its own tier, because the only other open pull requests of this
+   seat are charter asks at the owner's tier and register files may not ride
+   there. So where readying is early and the merger acts in minutes, a run
+   produces vehicles serially, and the thing to protect is the merger's view:
+   one open pull request of this seat at a time, each a single decision, each
+   readied the moment it holds one. `#300` already states the ceiling this
+   way. A run that holds work back to keep the count at one has traded a
+   certainty for a presentation.
 
 **Binds:** this seat, in its charter's Output section, where `#300` already
 carries the replacement and this entry carries the measurement of what it cost

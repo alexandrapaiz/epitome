@@ -62,17 +62,18 @@ printf 'window   %s .. %s\n\n' "$since" "$now"
 # the forge's field decides nothing on its own.
 set -o pipefail
 if ! rows=$(gh pr list --state closed --limit 300 \
-      --json number,state,mergedAt,closedAt,headRefName,headRefOid,baseRefName,title \
+      --json number,state,mergedAt,closedAt,headRefName,headRefOid,baseRefName,title,mergeCommit \
     | jq -r --arg since "$since" '
         [ .[]
           | {n: .number,
              outcome: (if .mergedAt then "merged" else "closed" end),
              at: (.mergedAt // .closedAt),
              ref: .headRefName, oid: .headRefOid, base: .baseRefName,
+             mc: (.mergeCommit.oid // ""),
              title: .title}
           | select(.at != null and .at >= $since) ]
         | sort_by(.at)
-        | .[] | [.n, .outcome, .at, .ref, .oid, .base, .title] | @tsv')
+        | .[] | [.n, .outcome, .at, .ref, .oid, .base, .mc, .title] | @tsv')
 then
   echo "the query failed, so this run has no answer — refusing rather than printing a zero" >&2
   exit 2
@@ -94,13 +95,24 @@ contained() {   # contained <sha> -> 0 on trunk, 1 off trunk, 2 could not look
 }
 
 merged=(); offtrunk=(); closed=(); unknown=(); first=""; last=""
-while IFS=$'\t' read -r n outcome at ref oid base title; do
+while IFS=$'\t' read -r n outcome at ref oid base mc title; do
   [ -z "${n:-}" ] && continue
   verdict=$outcome; note=""
   if [ "$outcome" = merged ]; then
-    contained "$oid"; case $? in
+    contained "$oid"; rc=$?
+    # The head is one route and the squash is the other. Ask the merge commit
+    # the forge names before calling a landing nothing.
+    if [ "$rc" != 0 ] && [ -n "${mc:-}" ]; then
+      contained "$mc"; mrc=$?
+      if [ "$mrc" = 0 ]; then
+        rc=0; note="squashed as ${mc:0:8}; head ${oid:0:8} is on no ancestor by design"
+      elif [ "$rc" = 2 ] && [ "$mrc" = 1 ]; then
+        rc=1
+      fi
+    fi
+    case $rc in
       0) verdict=merged ;;
-      1) verdict=off-trunk; note="into $base, head ${oid:0:8} on no ancestor of main" ;;
+      1) verdict=off-trunk; note="into $base, neither head ${oid:0:8} nor merge ${mc:0:8} on an ancestor of main" ;;
       2) verdict=unread;    note="could not fetch ${oid:0:8}" ;;
     esac
   fi
