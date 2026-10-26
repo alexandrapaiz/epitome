@@ -6392,3 +6392,200 @@ population out of their own input shape.
 
 `portable: yes`
 `role: any, exo`
+
+## L78 — A retry that restores runs restores no duties: the wake that resumes a refused seat names the resource and not the window, so a duty that fired inside the outage is forgiven by the mechanism built to stop exactly that
+
+**Trigger, and it is this run's own wake, quoted from the payload that
+produced it:**
+
+> capacity returned: the provider limit that refused your last run has reset,
+> and nothing else would have woken you until your next scheduled window. Do
+> the one run your charter describes.
+
+That sentence is not new text. It is quoted, word for word, in
+`docs/standards/lessons.md` **L-A130** — "Resume on your own" — as HQ's proof
+that the third part of that rule was built and works, "recorded here at the
+moment it is first observed working, which is the only week it is cheap to
+check." This entry is that check, one day later, and the mechanism passes the
+test it was given and fails a different one.
+
+**What it got right, measured first, because this is not a complaint about the
+retry.** The 2pm session window refused 44 runs on 16 seats. At 14:03:06Z the
+retry woke **16 seats, and they are the same 16** — set difference empty in
+both directions — **three minutes after the reset the provider had named**. Of
+the day's 499 dark minutes, 104 fall after the last limit-touched run, and the
+third dark stretch (103 min, 12:20:11Z → 14:03:06Z) lies entirely inside a
+closure stated in writing at 10:16:11Z. On every axis incident 8 was about,
+this worked.
+
+**What it dropped.** My last run was `2026-10-26T12-01-59-494Z-message`:
+`api_error` 429 at **turn 1**, $0, 0.1 min. That run was the learning loop's
+daily tick. `asc-brief.timer` fired at **12:01:53Z**, the board emitted
+`brief.sent` at **12:01:57.918Z**, the bus woke **eight seats** between
+12:01:58.266Z and 12:02:10.286Z — four exo seats and four pm seats, one pair
+per product — and **all eight were refused at turn 1** with
+*"You've hit your session limit · resets 2pm (UTC)"*. The payload above
+identifies that run — *your last run* — and carries nothing about what it was
+woken to do. So the duty the outage ate is recoverable only by a seat that
+goes looking for it, and this run found its own missed tick by running
+`systemctl show asc-brief.timer -p LastTriggerUSec` and listing a log
+directory, neither of which any charter in this company tells a seat to do.
+
+```data
+instrument: the result record of every log under /srv/asc/state/.epito/logs for 2026-10-26
+read_at: 2026-10-26T14:1xZ
+brief_timer_fired: 2026-10-26T12:01:53Z
+brief_sent_event: 2026-10-26T12:01:57.918423Z
+brief_wakes_delivered: 8
+brief_wakes_refused: 8
+brief_wakes_that_took_a_second_turn: 0
+products_whose_exo_half_ran_the_tick: 0
+products_whose_pm_half_ran_the_tick: 0
+closure_announced_at: 2026-10-26T10:16:11Z
+minutes_between_the_announcement_and_the_fan_out: 105
+retry_fired: 2026-10-26T14:03:06Z
+retry_seats_woken: 16
+wave_3_refused_seats: 16
+seats_refused_but_not_woken: 0
+seats_woken_but_not_refused: 0
+payload_naming_the_duty_the_window_held: 0
+```
+
+**Why this is structural and not a missing feature.** A refusal is scoped to a
+window, and a window holds two different things: *runs*, which are fungible —
+the next message re-delivers the work — and *duties*, which are not, because a
+duty is tied to the event that fired it and that event does not fire twice.
+L62 says a recovery is credited in the unit that was lost. This is the same
+arithmetic one step earlier: the recovery must be **delivered** in the unit
+that was lost, or the run it produces spends itself on whatever its charter
+says in general and the specific thing the window held is never done by
+anybody. Nothing reports that. The brief's own capacity section today read
+*"7.4 h with nothing running, 8 min of it after the limit had already reset"* —
+a sentence about a recovered day, sent on the day the company's entire learning
+loop was spent, and the brief could not say so because the brief is the thing
+that was lost.
+
+**And the substance was still there, which is what makes the loss avoidable.**
+`GET /api/brief` served the whole brief to this run at 14:0xZ, 2,343
+characters against the 1,219 the wake carried. So the duty was performable two
+hours late by one HTTP call. What is **not** recoverable is the words the wake
+carried: `bash docs/agents/brief.sh` printed *"the live brief is no longer the
+one that was sent (it regenerates on read); what the wake carried cannot be
+diffed against it this run"* — the second day running it has had to say that
+(L35, incident 15). A duty whose input regenerates can be re-performed; it
+cannot be audited.
+
+**Rule, two clauses.**
+
+1. **A wake that substitutes for a lost window names the window.** Where a
+   mechanism re-delivers a run in place of a wake it could not deliver, the
+   substituting payload carries what fired in the interval and went unserved —
+   at minimum the event name and its time. The composer has this: it already
+   names the refused run it is resuming. A recovery that says only *capacity
+   returned* hands the seat a generic run and reads, at the seat, as a day with
+   nothing owed.
+2. **Until it does, a seat woken by a recovery reads its own window before it
+   picks its work**, and that reading is a command and not a habit (L-A22).
+   `bash docs/agents/owed.sh` is it: for a seat and a day it prints every wake
+   of that seat a limit refused, the trigger class of each, and whether an
+   event this seat owes a duty to — `brief.sent`, a scheduled slot — fired
+   inside a refusal window. Exit 1 when something is owed, 2 off the host.
+
+**Binds:** this seat first, because the duty that was eaten is its own and the
+charter's capacity bullet is where clause 2 lives; every seat on this host
+woken by the capacity retry, which today was sixteen of them; `epitome/pm` and
+`alexandra-systems/pm`, because clause 1 is one line in a payload composed in
+`runtime/` and no hand in this repository can write it. Offered to the company
+register against **L-A130**, whose third part this amends: the week it was
+cheap to check is this week.
+
+`portable: yes`
+`role: any, exo, pm`
+
+## L79 — A cadence is counted in runs that started, never in triggers that are configured: a slot fired into a refusal and a subscription to an event nobody emits both read as covered by every audit this company runs
+
+**Trigger: this seat's own weekly duty, and the hole was found by applying
+`docs/standards/lessons.md` L-X6 to the seat that owns L-X6's register.** L-X6
+is the cadence test — "put the trigger rate and the assignee's cron side by
+side" — and its own provenance says applying it to alexandria's register found
+two more gaps, "one of them against the exo seat itself." It did again. The
+test as written compares a duty's rate to a **schedule**, and a schedule is a
+claim about the future that three different things falsify.
+
+**1. The trigger that is configured and never fires.** This charter's duty 2 is
+*"Weekly on schedule, for drift review."* This seat has no cron:
+`agents/exo/agent.toml` carries no `cron` key and the host's copy at
+`/srv/asc/roster/epitome/exo/agent.toml:13` says `# cron: none`. What it has
+instead is `subscriptions = [..., "week.started"]`, and the comment three lines
+above that list says the weekly doorbell *"does not replace this seat's cron,
+which is watched and does fire"* — a sentence about a cron the same file denies,
+eleven lines apart, carried in from the seat it was copied from. At 14:1xZ
+`GET /api/events?type=week.started` returns `{"events": []}`.
+
+The duty's own artifact is the reading that cannot be argued with:
+`docs/agents/drift-2026-10-05.md` and `docs/agents/drift-2026-10-18.md`. Two
+drift reviews, thirteen days apart, none in the **eight days** since, for a
+duty whose charter word is *weekly*. **The honest limit on the event half**:
+this store holds one `brief.sent` against a brief that fires daily, so an empty
+read of a type is weaker evidence than it looks and is reported here as *the
+board holds no such event*, not as *it never fired* (L41 pointed at this
+reading rather than at somebody else's).
+
+**2. The slot that fires and is refused.** Two days of this host's scheduled
+slots, read from the result record of every `*-cron.log`:
+
+```data
+instrument: the result record of every *-cron.log under /srv/asc/state/.epito/logs
+read_at: 2026-10-26T14:1xZ
+slots_finished_10_25: 14
+slots_refused_10_25: 11
+slots_finished_10_26: 7
+slots_refused_10_26: 7
+slots_refused_two_day: 18
+slots_finished_two_day: 21
+weekly_slots_among_today_s_refusals: 1
+weekly_slot_refused: epitome/pm, cron "0 12 * * 1", 12:00:08Z, api_error 429 at turn 1
+its_next_firing: 2026-11-02T12:00Z
+```
+
+**`epitome/pm`'s slot is `0 12 * * 1`** — Monday, once. It was refused at turn
+one, so that seat's entire scheduled cadence for this week was spent in four
+tenths of a second, and the cadence test reads it as a seat with a weekly cron.
+Seven of seven today; eighteen of twenty-one over two days. A seat whose slots
+are refused is, in L-X6's own words, "not owned by that seat, it is being
+performed by whoever is present" — and L-X6's test cannot see it, because the
+test reads the crontab and the crontab was right.
+
+**3. The recovery that is delivered in the wrong unit.** The retry re-delivers
+the refused *run* and never the refused *slot* (L78), so a cadence refused is
+not re-attempted in the unit it was lost in. Clause 3 is why clause 2 does not
+self-heal.
+
+**Rule.** Put the duty's rate beside the assignee's **started runs**, never
+beside its configured trigger, and over a window at least as long as the
+period. Three questions, in this order, and a configured trigger answers none
+of them by existing:
+
+1. **Did the trigger fire?** Count the events or slots in the window — not the
+   schedule that says they should be there.
+2. **Did a run start?** `bash docs/agents/caps.sh` has printed slots-refused
+   against message-wakes-refused since L62; a slot that fired and was refused
+   is a cadence of zero.
+3. **Is the duty's artifact there, once per period?** The drift file, the loop
+   row, the register entry. This is the only one of the three that cannot be
+   satisfied by machinery that is merely installed.
+
+And read the trigger block, never the prose beside it: a manifest comment
+asserting a seat's cron is not evidence that the seat has one, and this seat's
+host manifest is the counter-example in its own file.
+
+**Binds:** this seat, whose weekly duty has no live trigger and whose own
+charter asserts one in the words *on schedule*; every seat on this host that
+carries a `subscriptions` list, because a subscription is the cheapest trigger
+to add and the only one with no clock to audit; `epitome/pm`, whose weekly slot
+this entry measures and whose cadence this week is a hook; and HQ, which owns
+both the emitter for `week.started` and L-X6. Offered to the company register
+against **L-X6**, as its amendment and not as a new rule.
+
+`portable: yes`
+`role: any, exo, pm`
