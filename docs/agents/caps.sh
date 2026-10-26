@@ -87,6 +87,7 @@ RESULT = re.compile(r'\{"duration_api_ms".*?"type":"result".*?\}', re.S)
 LIMIT  = re.compile(r'hit your [a-z]+ limit|"api_error_status":(?:429|529)|limit (?:reached|exceeded)')
 
 seats = collections.defaultdict(lambda: collections.defaultdict(list))
+by_trigger = collections.defaultdict(lambda: collections.defaultdict(int))
 files = unparsed = 0
 for day in window:
     for path in glob.glob(os.path.join(logs, "*", day + "*.log")):
@@ -112,6 +113,18 @@ for day in window:
             sub = "refused"
         seats[s][sub].append((os.path.basename(path), r.get("num_turns"),
                               r.get("total_cost_usd") or 0.0, (r.get("duration_ms") or 0) / 60000.0))
+        # The trigger is the filename's own last field -- `...Z-cron.log`,
+        # `-message.log`, `-hook.log` -- and it is the one thing on this box
+        # that says which UNIT a refusal spent. A message wake refused loses
+        # hours, because the next message re-delivers the work; a cron slot
+        # refused loses the whole of that seat's cadence for its period, and
+        # three of 2026-10-25's eleven refused slots were their seat's only
+        # slot of the week. HQ's `tools/capacity.py` has parsed this field
+        # since it was written (line 264) and prints it in none of its 24
+        # output keys, so two seats measured the split by hand on one night
+        # and the brief has never carried it (L62).
+        trig = re.sub(r"\.log$", "", os.path.basename(path)).rsplit("-", 1)[-1]
+        by_trigger[trig][sub] += 1
 
 finished = sum(len(v) for d in seats.values() for v in d.values())
 if files == 0:
@@ -171,6 +184,24 @@ print(f"{tot_r} finished run(s) on {len(rf_seats)} seat(s) were touched by a pro
       f"of which {tot_b} on {len(bf_seats)} seat(s) never took a second turn. "
       f"A limit-touched run and a refused-before-a-turn run are different facts and this is "
       f"both of them; quote the label, never the other one's name (L33).")
+
+# A recovery is reported in the unit that was lost (L62 clause 2). The retry
+# this company built wakes a refused seat when the announced reset passes, and
+# it recovers hours: a seat woken with a message sentence does the work that
+# message carried and never the scheduled run. So a line that counts only runs
+# and minutes reads a day as recovered on the day its cadences were spent.
+slots = by_trigger.get("cron", {})
+slot_ref = slots.get("refused", 0)
+slot_all = sum(slots.values())
+if slot_all:
+    print(f"{slot_ref} of {slot_all} scheduled slot(s) were refused, against "
+          f"{by_trigger['message'].get('refused', 0)} of {sum(by_trigger['message'].values())} "
+          f"message wake(s). A slot fires once per period and is the whole of that seat's "
+          f"cadence for it, so these are not the same loss and only this line says which "
+          f"one the day took (L62).")
+else:
+    print("No scheduled slot finished in this window, so the slot column is "
+          "could-not-look and not a clean bill (L41).")
 print()
 print("```data")
 print(f"measured_at: {datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}")
@@ -186,6 +217,10 @@ print(f"exhausted: {tot_e}")
 print(f"exhausted_seats: {findings}")
 print(f"exhausted_cost_usd: {tot_c:.2f}")
 print(f"exhausted_minutes: {tot_m:.0f}")
+for trig in sorted(by_trigger):
+    d = by_trigger[trig]
+    print(f"{trig}_attempted: {sum(d.values())}")
+    print(f"{trig}_refused: {d.get('refused', 0)}")
 print("```")
 sys.exit(1 if findings else 0)
 PY
