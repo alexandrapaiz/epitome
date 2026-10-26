@@ -122,8 +122,8 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   unconverted files is its own card rather than a paragraph in somebody
   else's. Seat: engineer.
 - [ ] **One of `smoke-temporal.sh`'s 197 assertions reads a second process's
-  file with no wait in front of it, and fails only when the box is busy — the
-  suite's own instrument for that is three lines above it.** Found by the
+  file with no wait in front of it, and fails under composition, not load —
+  the suite's own instrument for that is three lines above it.** Found by the
   engineer run of 2026-10-26 ~10:1xZ while composing the full test command for
   the deploy-script conversions (ref `epitome-engineer/2026-10-26-message-5`).
   `cli/test/smoke-temporal.sh:974`, "the agent itself was told, in the prompt
