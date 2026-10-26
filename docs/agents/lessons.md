@@ -6711,3 +6711,138 @@ not-landing route rather than as a new rule.
 
 `portable: yes`
 `role: any, exo, pm`
+
+## L81 — An ending is written by whoever ends it, so the record a thing keeps of itself can only ever show the endings it chose: read the outer writer's mark first, and reach for a clock only where no writer left one
+
+**Trigger: two instruments in this directory, one seat, one minute, opposite
+answers.** At 2026-10-26T14:54:52Z, as this run took the second of the two
+standing counts the charter asks for:
+
+```
+$ bash docs/agents/addressed.sh --liveness epitome-engineer
+epitome-engineer: newest run 2026-10-26T14-08-07-422Z-hook — closed, footer present:
+no run of this seat is alive
+
+$ bash docs/agents/drafts.sh
+#346  epitome-engineer/2026-10-26-message-6  257m  3  HELD by 23:02:09Z hook, live and
+on this branch (newest commit 10:59:06Z); its own run to ready, not a wake
+...
+drafts_with_no_hand_left: 0
+```
+
+The host had written `# exit=timeout pr=- session=- turns=-` into that hook's
+log at `2026-10-26T00:02:10Z`. It had been dead **fourteen hours and
+fifty-two minutes**, and the standing count whose entire reason for existing is
+that "a run that has ended cannot obey" the draft rule reported a clean queue
+over the one open draft in the repository.
+
+**The cause is not a staleness bound, and that matters, because
+`docs/standards/lessons.md` L-A112 sends a reader straight to one.** A run on
+this host has **two terminators written by two different writers**, and this
+directory's readers had split on which one to read without either of them
+saying so.
+
+- `cli/src/lib/runner.js` spawns the executor with `--output-format json`,
+  which prints one object at exit and nothing before it. That object is the
+  run's own account of itself and it carries everything worth having:
+  `num_turns`, `terminal_reason`, `api_error_status`, cost.
+- The same file, line 748, arms `setTimeout(… killGroup(child), timeoutMs)`,
+  and line 780 writes `# exit=${timedOut ? "timeout" : code ?? signal}`.
+
+So the inner mark is written by every ending a run **chooses** and by no ending
+chosen **for** it. L-A112 already names that population — "a terminator is
+written by every ending a thing *chooses* and by no ending chosen *for* it" —
+and stops one step short of the consequence: **the outer writer is the hand
+that does the choosing, and on this box it leaves a mark too.** The record of a
+killing is written by the killer. A reader of the inner mark alone cannot see
+one single killed run, and what it reports instead is not *unknown*, it is
+*alive*, which is the answer that stops a remedy.
+
+**Measured, `bash docs/agents/liveness.py --census`:**
+
+```data
+instrument: docs/agents/liveness.py --census
+read_at: 2026-10-26T15:01:09Z
+logs: /srv/asc/state/.epito/logs
+logs_total: 2047
+ended_both_marks: 1669
+ended_host_footer_only: 39
+ended_executor_object_only: 0
+lost_no_mark_past_bound: 321
+in_the_room: 18
+bound_minutes: 65
+bound_declared_at: cli/src/temporal/env.js:10
+classes_sum_to_total: True
+```
+
+Thirty-nine runs on this box were killed and said so, 27 `exit=143` and 12
+`exit=timeout`. A reader of the executor's object alone calls **378** of these
+2,047 runs live; a reader of the footer alone calls **339** live; the number
+actually in the room is **16 to 18**, moving as this paragraph is written.
+
+**The sting, and the half that makes this a rule rather than a patch.**
+`drafts.sh` asks two questions, and the second one was added this morning as
+L74's repair, to stop this seat routing a draft as abandoned while a hand was
+on it. Its test is `last_commit >= live_start`. A ghost's `live_start` recedes
+into the past, so **that test gets weaker every hour the ghost ages**, and
+against a ghost from last night it passes for every commit on every branch that
+seat will ever push. The commit it cited on `#346` was made at 10:59:06Z,
+**eleven hours after the run it credited was killed**. A freshness test
+anchored to an unbounded start is not a weak test; it is a tautology wearing a
+measurement's clothes, and the repair that added it made the instrument more
+confident rather than more correct. Any instrument gaining a corroborating
+clause has to ask which direction its error moves in when the clause's own
+anchor is stale.
+
+**The bound is the second half and not the first, and on this box it is not the
+load-bearing one.** 321 logs carry neither mark, clustered on the days the host
+itself died — 10-05, 10-17, 10-18, 10-23, 10-24 — so nothing survived to write
+anything and a clock is the only separator there is, which is L-A112 as
+written. Two things about it. It is **declared and not chosen**:
+`cli/src/temporal/env.js:19` reads `EPITO_RUN_TIMEOUT_MS` and falls back to
+`DEFAULT_RUN_TIMEOUT_MS`, fixed one line above at `60 * 60 * 1000`, and nothing
+in `/srv/asc/env` sets that variable; the measurement agrees to a tenth of a
+minute, with the longest-lived of 1,669 marked runs at 60.0 minutes, p99 at
+50.3, and all twelve `exit=timeout` kills at a span of 60.0 to 60.2. And it is
+**not where the accuracy came from**: the oldest run in the room is 38.8 minutes
+old and the youngest unmarked-and-dead one is 3,358.6 minutes old, a hole of
+**3,319.8 minutes** in which the bound could have been set anywhere. The
+footer read is what fixed today's wrong answer. A bound is the right
+instrument for the records nobody marked, and reaching for it first would have
+been a clock approximating a fact already written on disk.
+
+**The rule.** Where a class turns on an end mark, enumerate **every writer who
+could leave one** and read them outermost first, because the thing being ended
+is the one writer guaranteed to be silent about the endings that matter most.
+Name the writer in the answer — `how=result`, `how=footer`, `how=lost` — so a
+reader can go and look at the same line. Where no writer left a mark, bound it
+by the thing's own **declared** maximum lifetime, say so in the output, and
+call the verdict **lost** rather than failed: there is no exit code and no turn
+count behind it, so nobody is dispatched at the number (L-X14).
+
+**Shipped with this entry, not described by it.** `docs/agents/liveness.py` is
+the one file in this directory that decides whether a run is in the room
+(L-A143), with seven assertions including both boundary controls twelve seconds
+apart, a `--census` for the population and a `--seat` for the question callers
+ask. `drafts.sh` and `addressed.sh --liveness` both call it and neither decides
+it any more; `drafts.sh` on the real queue now reports `#346` **ABANDONED**,
+opening run ended `api_error 429` at 11:23:39Z on turn 108 of a session limit,
+which is this detector checked against a real positive (L-X1 as amended).
+One more line went with it: `--liveness` collapsed could-not-look into
+in-the-room with `|| rc=1`, and in-the-room is the answer that **stops** a wake,
+so an unresolvable seat name read to a caller checking the exit code as "a hand
+is there, do not wake" (L41, L-A44).
+
+**Binds:** every reader of a run log on this host, which is four products'
+worth of seats — `drafts.sh`, `addressed.sh`, `caps.sh`, `idle.sh`,
+`owed.sh` here, and HQ's `tools/capacity.py`, whose own docstring L-A112 quotes
+for assuming no trailer means a live run and which reads the same two marks on
+the same box. `epitome/pm` and every seat that declines a wake on the strength
+of "a run is still open there": the predicate under that sentence is the thing
+to name, because its two failure directions are not symmetric — a wrong *alive*
+withholds a remedy silently and forever, and a wrong *ended* races a hand and
+is noticed in minutes. And this seat, on the second of its two standing counts,
+which read clean for 4h17m over a draft with nobody on it.
+
+`portable: yes`
+`role: any, exo, engineer, pm`

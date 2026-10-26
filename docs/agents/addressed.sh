@@ -10,7 +10,8 @@
 #                                                   2 could not look, 3 the wake cuts it:
 #                                                   referents, duplicates, every refusal the
 #                                                   store performs, and what the wake delivers
-#   bash docs/agents/addressed.sh --liveness SEAT   is a run of that seat open now
+#   bash docs/agents/addressed.sh --liveness SEAT   is a run of that seat in the room
+#                                                   now, read by docs/agents/liveness.py
 #                                                   (bare name resolved against this
 #                                                   product's prefix; ambiguous refused)
 #   bash docs/agents/addressed.sh --inbox [SEAT]    your own inbox, default off
@@ -50,10 +51,17 @@
 #    grant, reports a blanket prohibition, and refuses to clear a charter
 #    whose fence it cannot find.
 #
-# 2. Whether a seat is running, read from the footer and not from a date.
+# 2. Whether a seat is running, read from the records and not from a date.
 #    A liveness claim about another seat perishes when you send it, because a
 #    message to a seat is delivered by starting a run of that seat (L38). This
 #    answers at the moment it is called, which is the only moment it is true.
+#
+#    Repaired 2026-10-26T15:0xZ (L81, incident 44). It read the `# exit=` footer
+#    of the newest log by mtime, which is wrong twice: a killed run's mtime moves
+#    to the kill, so a run still in the room can sort beneath a ghost, and 321
+#    logs on this box carry no footer at all because the host died under them.
+#    `docs/agents/liveness.py` now owns the read and this function owns only the
+#    seat resolution below.
 #
 # 4. Whether the limit a seat is writing to exists. Three times on 2026-10-24
 #    `epitome/pm` sent this seat a message and then sent it again, shorter, within
@@ -134,19 +142,24 @@ resolve_seat() {  # $1 = name as the caller wrote it; prints the directory or fa
   return 2
 }
 
+# The seat-resolution half is this function's own and the liveness half is not
+# (L-A143, L81). Two defects were in the read it used to do inline, and both are
+# about which records it could see rather than about the rule it applied. It
+# took the newest log by *mtime*, and a run the host killed has its mtime moved
+# to the kill, so a run still in the room could sort under a ghost and go
+# unseen. And it answered from the `# exit=` footer alone, which 321 logs on
+# this box do not carry because the host itself died under them — for every one
+# of those it said "alive right now", with nothing to bound it.
+# `docs/agents/liveness.py` reads both writers' marks and then the declared wall
+# clock, and is the only thing in this directory that decides this.
 liveness() {  # $1 = seat name, bare or prefixed; resolved, never guessed
-  local root=${EPITO_LOGS:-/srv/asc/state/.epito/logs} seat newest open=0
+  local root=${EPITO_LOGS:-/srv/asc/state/.epito/logs} seat repo
   seat=$(resolve_seat "$root" "$1") || { [ -n "$seat" ] && echo "$seat"; return 2; }
   if [ "$seat" != "$1" ]; then
     printf '%s: resolved to %s, the seat of this product on this box\n' "$1" "$seat"
   fi
-  newest=$(ls -t "$root/$seat"/*.log 2>/dev/null | head -1)
-  [ -z "$newest" ] && { echo "$seat: no runs ever recorded"; return 1; }
-  grep -q '^# exit=' "$newest" || open=1
-  printf '%s: newest run %s — %s\n' "$seat" "$(basename "$newest" .log)" \
-    "$([ $open = 1 ] && echo 'OPEN, no # exit= footer: a run of this seat is alive right now' \
-                     || echo 'closed, footer present: no run of this seat is alive')"
-  [ $open = 1 ] && return 1 || return 0
+  repo=$(git rev-parse --show-toplevel 2>/dev/null || echo .)
+  EPITO_LOGS="$root" python3 "$repo/docs/agents/liveness.py" --seat "$seat"
 }
 
 # May that seat write that file? Answered from its charter, read as sentences
@@ -710,7 +723,14 @@ MD
   exit $rc ;;
 
 --liveness)
-  shift; rc=0; for s in "$@"; do liveness "$s" || rc=1; done; exit $rc ;;
+  # Three outcomes and never two (L41, L-A44). `|| rc=1` collapsed the
+  # could-not-look into the in-the-room, and in-the-room is the answer that
+  # *stops* a wake, so a seat name this box cannot resolve read to a caller
+  # checking the exit code as "a hand is there, do not wake". The higher code
+  # wins: 2 could not look, 1 a run is in the room, 0 none is.
+  shift; rc=0
+  for s in "$@"; do liveness "$s"; c=$?; [ "$c" -gt "$rc" ] && rc=$c; done
+  exit $rc ;;
 
 --limits)
   # Run this before you trim a body to fit a number you did not measure. The
