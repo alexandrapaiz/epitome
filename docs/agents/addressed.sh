@@ -37,6 +37,19 @@
 #    a rule already in the register is a register defect (L4), so the rule
 #    stopped being a sentence to remember and became this.
 #
+#    Repaired 2026-10-26 (L67), because the first version read the whole
+#    charter for a negative word and was wrong three ways at once. Measured
+#    over all seven charters in this product, against the same surface: it
+#    fenced `exo` out of the one file that seat's charter exists to patch,
+#    quoting the clause that commands the act and a sentence in which
+#    `whenever` matched `never`; it cleared `smoke`, whose charter reads
+#    "Write no file. Push nothing."; and it cleared `frontend`, whose
+#    prohibition it could not read at all. Four of seven verdicts were right
+#    and every one of the four was a row no duty hangs on. It now reads the
+#    prohibition surface, requires a verb that writes, names a grant as a
+#    grant, reports a blanket prohibition, and refuses to clear a charter
+#    whose fence it cannot find.
+#
 # 2. Whether a seat is running, read from the footer and not from a date.
 #    A liveness claim about another seat perishes when you send it, because a
 #    message to a seat is delivered by starting a run of that seat (L38). This
@@ -161,8 +174,38 @@ surface_words() {  # $1 = path; the words a charter uses to fence it
   esac
 }
 
+# The fence surface. A charter states what it forbids in one place, and that
+# place is the only honest input to this question (L67). Reading the whole file
+# for a negative word was wrong in three different ways at once, measured over
+# all seven charters here on 2026-10-26: it fenced `exo` out of the one file
+# that seat's charter exists to patch, quoting the clause that commands the act;
+# it cleared `smoke`, whose charter says "Write no file. Push nothing."; and it
+# cleared `frontend`, whose charter it cannot read a prohibition out of at all.
+# Four of seven were right and all four were rows nobody consults.
+fence_section() {  # $1 = charter; prints the prohibition surface or nothing
+  # Two conventions in this product: a `## What you never do` heading, and a
+  # bolded inline label, which `frontend` uses and which has no heading at all.
+  awk '
+    /^## +What you (never do|must not)/ {inside=1; next}
+    inside && /^## / {inside=0}
+    inside {print; next}
+    /^\*\*What you (never|must not)/ {print}
+  ' "$1"
+}
+
+# A prohibition needs a verb that writes. "Never assign fault: the unit of
+# failure is a charter" sits inside this seat's own prohibition section and
+# fences nothing, which is why the surface alone is not enough.
+WRITE_VERB='edit|write|touch|change|modify|rewrite|patch|push|commit|create|ship|open'
+# A charter that forbids all writing never names a surface, so it is missed by
+# every surface-matching rule. `smoke` is the whole population here, and it is
+# the seat for which a false clearance is worst.
+BLANKET='write no file|write nothing|push nothing|create no |open no |touch nothing|write to nothing'
+# The other half nothing read: a charter that *commands* the act on a surface.
+GRANT='patch(es)? .*(charter|prompts/)|written into the charter|into the charter file|applied to the charter file|smallest patch'
+
 can() {  # $1 = seat, $2 = path
-  local seat=$1 path=$2 charter words hits
+  local seat=$1 path=$2 charter words fence named blanket grant
   charter="prompts/$1-agent.md"
   if [ ! -r "$charter" ]; then
     printf '  COULD NOT LOOK  %-26s %s: no charter at %s, so this checkout cannot answer for it\n' \
@@ -180,21 +223,53 @@ can() {  # $1 = seat, $2 = path
     printf '  OWN       %-26s %s: its own charter, so the bar is the silence rule and the owner\n' \
       "$path" "$seat"; return 0
   fi
-  hits=$(sentences "$charter" \
-         | grep -iE "$words" \
-         | grep -iE "never|do not|is hers|are hers|the owner's" \
-         | head -2)
-  if [ -n "$hits" ]; then
-    printf '  FORBIDDEN %-26s %s fences this surface in its own words:\n' "$path" "$seat"
-    echo "$hits" | cut -c1-190 | sed "s|^|    $charter: |"
+
+  fence=$(fence_section "$charter")
+  if [ -z "$fence" ]; then
+    # A charter with no prohibition surface cannot be cleared by reading it, and
+    # a clearance is the one answer that closes the question for every later
+    # reader (L-A34). So this is a could-not-look and says where it looked.
+    printf '  COULD NOT LOOK  %-26s %s: %s states no prohibition surface — no "## What you never do"\n' \
+      "$path" "$seat" "$charter"
+    printf '             and no bolded "what you must not" label, so nothing here fences or clears it\n'
+    return 2
+  fi
+
+  blanket=$(printf '%s' "$fence" | tr '\n' ' ' | grep -ioE "$BLANKET" | head -2)
+  if [ -n "$blanket" ]; then
+    printf '  FORBIDDEN %-26s %s forbids writing anything, so it names no surface:\n' "$path" "$seat"
+    printf '%s' "$blanket" | sed "s|^|    $charter: |"; echo
     return 1
+  fi
+
+  named=$(sentences <(printf '%s\n' "$fence") \
+          | grep -iE "$words" | grep -iE "$WRITE_VERB" | head -2)
+  grant=$(sentences "$charter" | grep -iE "$words" | grep -iE "$GRANT" | head -1)
+
+  if [ -n "$named" ] && [ -n "$grant" ]; then
+    # Contested territory: a seat yields and files the conflict rather than
+    # winning the race (docs/standards/lessons.md L-A10).
+    printf '  CONTESTED %-26s %s both fences and commands this surface; do not act, file it:\n' "$path" "$seat"
+    echo "$named" | cut -c1-150 | sed "s|^|    fences:  |"
+    echo "$grant" | cut -c1-150 | sed "s|^|    commands: |"
+    return 1
+  fi
+  if [ -n "$named" ]; then
+    printf '  FORBIDDEN %-26s %s fences this surface in its prohibition section:\n' "$path" "$seat"
+    echo "$named" | cut -c1-190 | sed "s|^|    $charter: |"
+    return 1
+  fi
+  if [ -n "$grant" ]; then
+    printf '  GRANTED   %-26s %s is told to write this surface by its own charter:\n' "$path" "$seat"
+    echo "$grant" | cut -c1-190 | sed "s|^|    $charter: |"
+    return 0
   fi
   case "$path" in
     .github/workflows/*)
       printf '  TOKEN     %-26s %s: charter silent, and this surface is decided by the credential rather than the charter (L-X9) — probe by write\n' \
         "$path" "$seat"; return 1 ;;
   esac
-  printf '  may write %-26s %s: no sentence in its charter fences this surface\n' "$path" "$seat"
+  printf '  may write %-26s %s: its prohibition section names no such surface\n' "$path" "$seat"
   return 0
 }
 
@@ -577,6 +652,49 @@ MD
   check "workflow is the token's, not the charter's" 1 --can fixture .github/workflows/a.yml
   check "no charter is could-not-look"  2 --can nosuchseat prompts/other-agent.md
   check "too few arguments"             2 --can fixture
+
+  # The four cases the old reading got wrong, each a real charter in this
+  # product on 2026-10-26 reduced to its mechanism (L67). Three of the four are
+  # false clearances or false fences; the fourth is the one it got right by
+  # accident and must still get right on purpose.
+  cat > "$tmp/prompts/granted-agent.md" <<'MD'
+## What you do
+
+Charter patches, surgical, written into the charter itself. When a lesson needs
+to live in a charter to bind, write the smallest patch in the charter's own
+voice — a few lines, never a rewrite — into the charter file.
+
+## What you never do
+
+Never edit vision.md, okrs.md, or cycle files. Never assign fault: the unit of
+failure is a charter, a register, or tooling — never a seat.
+MD
+  cat > "$tmp/prompts/blanket-agent.md" <<'MD'
+## What you never do
+
+Open no PR. Create no branch. Write no file. Push nothing.
+MD
+  cat > "$tmp/prompts/nofence-agent.md" <<'MD'
+You polish wording and layout. Say on the board when a polish needs a
+behaviour change and hand it to the engineer.
+MD
+  cat > "$tmp/prompts/label-agent.md" <<'MD'
+**What you must not touch.** The CLI's behaviour and the runtime are the
+engineer's; you change wording and error text, never what a command does.
+MD
+  # 1 — a grant is not a fence. The old reading quoted "a few lines, never a
+  #     rewrite" and the fault clause as the prohibition, and fenced the one
+  #     seat chartered to write the file.
+  check "a grant reads as a grant, not a fence"  0 --can granted prompts/other-agent.md
+  # 2 — "never assign fault: ... a charter ..." is in the prohibition section
+  #     and fences nothing, so the surface alone cannot decide it.
+  check "no write verb is no prohibition"        0 --can granted docs/agents/lessons.md
+  # 3 — a blanket prohibition names no surface and was cleared for every one.
+  check "write-nothing forbids every surface"    1 --can blanket prompts/other-agent.md
+  # 4 — a charter with no prohibition surface cannot be cleared by reading it.
+  check "no prohibition surface is could-not-look" 2 --can nofence prompts/other-agent.md
+  # 5 — and the label convention is a surface, so this one is grounded.
+  check "a bolded label is a prohibition surface"  0 --can label prompts/other-agent.md
   exit $rc ;;
 
 --can)

@@ -37,7 +37,9 @@ if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
 fi
 
 git fetch -q origin main 'refs/pull/*/head:refs/remotes/pull/*' 2>/dev/null
-printf 'measured %s against %s %s\n\n' "$(date -u +%FT%TZ)" "$BASE" "$(git rev-parse --short "$BASE")"
+measured_at=$(date -u +%FT%TZ)
+base_sha=$(git rev-parse --short=8 "$BASE")
+printf 'measured %s against %s %s\n\n' "$measured_at" "$BASE" "$base_sha"
 
 mapfile -t rows < <(gh pr list --state open --limit 200 \
   --json number,isDraft,headRefOid,title --jq \
@@ -47,10 +49,11 @@ mapfile -t rows < <(gh pr list --state open --limit 200 \
 work=$(mktemp -d); trap 'git worktree remove -f "$work" >/dev/null 2>&1; rm -rf "$work"' EXIT
 git worktree add -q --detach "$work" "$BASE" || { echo "no worktree"; exit 2; }
 
-seq_nums=(); blocked=(); covered=(); all_nums=()
+seq_nums=(); blocked=(); covered=(); all_nums=(); heads=()
 for row in "${rows[@]}"; do
   IFS=$'\t' read -r n draft sha title <<<"$row"
   all_nums+=("$n")
+  heads+=("$n: $sha")
   # Already contained by something merged above it — say so rather than
   # skipping the line. A silently dropped row makes the printed count differ
   # from `gh pr list` with nothing to explain it, and a reader cannot tell a
@@ -110,3 +113,20 @@ for n in "${all_nums[@]}"; do
 done
 printf '%d open; %d of them are links in a chain; %d independent decisions for a merger\n' \
   "${#all_nums[@]}" "$chain_links" "$(( ${#all_nums[@]} - chain_links ))"
+
+# And the set itself, generated, because this seat's charter requires the prose
+# that cites an ordering to point at a `data` block rather than count for
+# itself: "a number you narrate is wrong at the second hop and unrecoverable at
+# the third" (L33). Paste this; do not retype it.
+printf '\n```data\n'
+printf 'instrument: docs/agents/order.sh\n'
+printf 'measured_at: %s\n' "$measured_at"
+printf 'base: %s\n' "$base_sha"
+printf 'merge_sequence: [%s]\n' "$(IFS=,; echo "${seq_nums[*]}")"
+printf 'needs_a_hand: [%s]\n' "$(IFS=,; echo "${blocked[*]:-}")"
+printf 'covered_by_one_above: [%s]\n' "$(IFS=,; echo "${covered[*]:-}")"
+printf 'open: %d\n' "${#all_nums[@]}"
+printf 'chain_links: %d\n' "$chain_links"
+printf 'independent_decisions: %d\n' "$(( ${#all_nums[@]} - chain_links ))"
+for h in "${heads[@]}"; do printf 'head_%s\n' "$h"; done
+printf '```\n'
