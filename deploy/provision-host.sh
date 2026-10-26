@@ -616,11 +616,37 @@ ufw --force enable >/dev/null
 # REJECTs everything, ahead of ufw's chains — so ufw's 443 rule never sees a
 # packet. Insert an ACCEPT for 443 right after the vendor's 22 rule (mirroring
 # it, not removing it) and persist, so Caddy is reachable after a reboot too.
-if [ "$SKIP_CADDY" = 0 ] && iptables -S INPUT | grep -q -- '-j REJECT --reject-with icmp-host-prohibited'; then
-  iptables -C INPUT -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT 2>/dev/null \
-    || iptables -I INPUT "$(( $(iptables -S INPUT | grep -n -- '--dport 22 -j ACCEPT' | cut -d: -f1 | head -1) ))" -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT
-  if command -v netfilter-persistent >/dev/null; then netfilter-persistent save >/dev/null 2>&1; else install -d /etc/iptables && iptables-save > /etc/iptables/rules.v4; fi
-  echo "  vendor iptables chain found (Oracle image): 443 ACCEPT inserted ahead of its REJECT and persisted"
+if [ "$SKIP_CADDY" = 0 ]; then
+  # One snapshot of the chain, read twice with no pipe, in place of two
+  # `iptables -S INPUT` calls piped into readers. The first pipe was into
+  # quiet grep, which can report no match for a line it DID match
+  # (cli/test/shapes.sh's header carries the rate and the signature): that
+  # verdict decides this whole block, so losing the race leaves a box whose
+  # 443 is shadowed by the vendor REJECT and silently prints nothing about it.
+  # The second pipe fed `cut` into `head -1`, which closes the pipe early
+  # under `pipefail` — the same race on the line that picks the position.
+  INPUT_RULES="$(iptables -S INPUT 2>/dev/null || true)"
+  if grep -q -- '-j REJECT --reject-with icmp-host-prohibited' <<<"$INPUT_RULES"; then
+    # awk rather than `grep -n | cut -d: -f1 | head -1`: one process, nothing
+    # to orphan, the same answer — the first matching line's number, or empty.
+    AT="$(awk '/--dport 22 -j ACCEPT/ {print NR; exit}' <<<"$INPUT_RULES")"
+    if [ -z "$AT" ]; then
+      # Empty used to reach `iptables -I INPUT "$(( ))"`, which is `0`, and
+      # iptables answers `Invalid rule number '0'` with status 2 — so
+      # `set -e` ended the provision here, mid-firewall, on a usage error
+      # that names neither the rule broken nor the fix. Say both and carry on:
+      # fail2ban and the closing instructions are still worth having.
+      echo "provision-host: the vendor iptables chain is here (its REJECT is in INPUT) but no '--dport 22 -j ACCEPT' rule is, so there is no position to insert 443 ahead of the REJECT" >&2
+      echo "provision-host: 443 is left to ufw alone, which this chain shadows — https://$DOMAIN will not answer until an ACCEPT sits above the REJECT. Insert and persist it, then re-run this script:" >&2
+      echo "provision-host:   iptables -I INPUT 1 -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT" >&2
+      echo "provision-host:   netfilter-persistent save    # or: iptables-save > /etc/iptables/rules.v4" >&2
+    else
+      iptables -C INPUT -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT 2>/dev/null \
+        || iptables -I INPUT "$AT" -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT
+      if command -v netfilter-persistent >/dev/null; then netfilter-persistent save >/dev/null 2>&1; else install -d /etc/iptables && iptables-save > /etc/iptables/rules.v4; fi
+      echo "  vendor iptables chain found (Oracle image): 443 ACCEPT inserted ahead of its REJECT and persisted"
+    fi
+  fi
 fi
 install -d -m 0755 /etc/fail2ban/jail.d
 cat > /etc/fail2ban/jail.d/epitod.local <<'JAIL'
