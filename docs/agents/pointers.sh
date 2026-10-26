@@ -44,6 +44,12 @@
 # `EPITO_LAUNCHER` overrides the resolved launcher path, which is how the
 # self-test reaches a constructed one instead of the host's.
 #
+# `--all` walks every seat the host runs and refuses to grade any whose manifest
+# declares a repository other than this checkout: a same-named charter here is
+# not that repository`s charter, and reading it would be a confident finding
+# about a world this seat cannot see (L-A12, L-A38). Those rows read ELSEWHERE
+# and are counted apart, so the denominator never silently becomes the portfolio.
+#
 # Reads only.
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
@@ -70,11 +76,13 @@ if [ -z "$LAUNCHER" ] && command -v epito >/dev/null; then
   [ -f "$cand" ] && LAUNCHER=$cand
 fi
 
-ROSTER="$ROSTER" COMPANY="$COMPANY" ALL="$ALL" LAUNCHER="$LAUNCHER" python3 -c '
+HERE=$(git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##')
+ROSTER="$ROSTER" COMPANY="$COMPANY" ALL="$ALL" LAUNCHER="$LAUNCHER" HERE="$HERE" python3 -c '
 import os, re, sys, glob, datetime
 
 roster, company = os.environ["ROSTER"], os.environ["COMPANY"]
 every, launcher = bool(os.environ.get("ALL")), os.environ.get("LAUNCHER") or ""
+here = os.environ.get("HERE") or ""
 VENDORED, OWN = "docs/standards/lessons.md", "docs/agents/lessons.md"
 now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -119,22 +127,38 @@ for label, path in copies:
 
 # ---- file two: the charter at each seat`s entry, plus any charter with no
 # manifest, because a parser counts what it could not attach (L-A91).
-seats, sources = {}, {}
-dirs = sorted(glob.glob(os.path.join(roster, "*"))) if every else [os.path.join(roster, company)]
-for d in dirs:
-    co = os.path.basename(d)
-    for m in sorted(glob.glob(os.path.join(d, "*", "agent.toml"))):
-        seat = os.path.basename(os.path.dirname(m))
-        try:
-            t = open(m, errors="replace").read()
-        except OSError:
-            continue
-        e = re.search(r"^\s*entry\s*=\s*\"([^\"]+)\"", t, re.M)
-        r = re.search(r"^\s*repo\s*=\s*\"([^\"]+)\"", t, re.M)
-        seats[(co, seat)] = (e.group(1) if e else "", r.group(1) if r else "")
-        sources[(co, seat)] = "host manifest"
+# This roster holds two conventions and an instrument that knows one of them
+# reports the other as nothing: <roster>/<company>/<seat>/agent.toml for a
+# product seat and <roster>/<seat>/agent.toml for a headquarters seat. Both are
+# accepted, and a manifest that parses but names no entry is counted rather than
+# dropped (L-A91).
+seats, sources, skipped = {}, {}, []
+found = []
+if every:
+    found += [(os.path.basename(os.path.dirname(m)), m)
+              for m in sorted(glob.glob(os.path.join(roster, "*", "agent.toml")))]
+    found += [(m.split(os.sep)[-3], m)
+              for m in sorted(glob.glob(os.path.join(roster, "*", "*", "agent.toml")))]
+else:
+    found += [(company, m)
+              for m in sorted(glob.glob(os.path.join(roster, company, "*", "agent.toml")))]
+    found += [(company, m) for m in sorted(glob.glob(os.path.join(roster, company, "agent.toml")))]
+for co, m in found:
+    seat = os.path.basename(os.path.dirname(m))
+    if seat == co: seat = co
+    try:
+        t = open(m, errors="replace").read()
+    except OSError as e:
+        skipped.append("%s: %s" % (m, e)); continue
+    ent = re.search(r"^\s*entry\s*=\s*\"([^\"]+)\"", t, re.M)
+    rep = re.search(r"^\s*repo\s*=\s*\"([^\"]+)\"", t, re.M)
+    nm = re.search(r"^\s*name\s*=\s*\"([^\"]+)\"", t, re.M)
+    if nm and seat == co: seat = nm.group(1)
+    seats[(co, seat)] = (ent.group(1) if ent else "", rep.group(1) if rep else "")
+    sources[(co, seat)] = "host manifest"
 if not seats:
-    print("\n  could not look: no manifest under %s (L41)" % roster); couldnot += 1
+    print("\n  could not look: no manifest under %s, by either convention (L41)" % roster)
+    couldnot += 1
 for m in sorted(glob.glob("agents/*/agent.toml")):
     seat = os.path.basename(os.path.dirname(m))
     if (company, seat) in seats: continue
@@ -157,10 +181,13 @@ for (co, seat) in sorted(seats):
     src = sources[(co, seat)]
     if not entry:
         v, note = "NO-ENTRY", "the manifest names no charter file"
-    elif co != company and not every:
-        continue
+    elif _repo and here and _repo.lower() != here.lower():
+        # A same-named file in THIS checkout is not that repository`s charter.
+        # Grading it from here would be a confident finding about a world that
+        # is not in this seat`s hands (L-A12, L-A38).
+        v, note = "ELSEWHERE", "%s, not in this checkout" % _repo
     elif not os.path.exists(entry):
-        v, note = "ELSEWHERE", "not in this checkout: %s" % (_repo or "unknown repo")
+        v, note = "ELSEWHERE", "%s: no such file here" % (_repo or "repo not declared")
     else:
         v, note = verdict(open(entry, errors="replace").read(), seat)
     counts[v] = counts.get(v, 0) + 1
@@ -191,6 +218,7 @@ print("charters_read: %d" % total)
 print("charters_naming_the_register: %d" % clean)
 for k in ("OWN-ONLY", "PATH-ONLY", "SILENT", "NO-ENTRY", "ELSEWHERE"):
     print("charters_%s: %d" % (k.lower().replace("-", "_"), counts.get(k, 0)))
+print("manifests_unreadable: %d" % len(skipped))
 print("could_not_look: %d" % couldnot)
 print("```")
 bad = total - clean + sum(1 for _l, _p, v, _f in first_rows if v != "PASS")
