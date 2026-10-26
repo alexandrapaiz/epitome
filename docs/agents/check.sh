@@ -76,9 +76,26 @@ for name in $order; do
   fi
 done
 git worktree remove --force "$scratch" 2>/dev/null
+# A verdict with no evidence attached cannot be investigated, and this one was
+# the reason why: at 2026-10-25T23:52Z this check refused this branch over
+# `2026-10-05-engineer-check-the-register`, and the same command four minutes
+# later said `ok`, same tree, same ORDER file, nothing touched between them.
+# Neither answer can be believed now, because the only record of the refusal is
+# the word NOT. Four hundred repetitions of the suspected race — `pipefail`
+# turning a `grep -q` that matched into a failed pipeline when its writer takes
+# a SIGPIPE — reproduced it zero times, so the cause is still open. What ships
+# is the diagnostic: on a refusal, print what the comparison actually had in its
+# hands, so the next occurrence is readable rather than remembered (L-A44 from
+# the other side — the value a check returns has to carry which cause it is).
 for f in docs/agents/patches/*.diff; do
   b=$(basename "$f" .diff)
-  echo "$order" | grep -qxF "$b" || { printf '%-62s %s\n' "$b" "NOT IN ORDER — no sequence, so no hand"; fail=1; }
+  grep -qxF -- "$b" <<<"$order" || {
+    printf '%-62s %s\n' "$b" "NOT IN ORDER — no sequence, so no hand"
+    printf '  the comparison had %s line(s) from ORDER and this basename:\n' \
+      "$(grep -c . <<<"$order")"
+    grep -n . <<<"$order" | sed 's/^/    order /'
+    printf '    basename %s\n' "$(printf '%s' "$b" | od -An -c | tr -s ' ')"
+    fail=1; }
 done
 
 echo
