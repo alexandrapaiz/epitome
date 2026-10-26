@@ -68,6 +68,12 @@ logs whose text says *limit* and whose fields say *finished work*.
 
 ## Tick of 2026-10-26
 
+**Amended at 04:3xZ on a message wake, in place.** A merge notification for this
+seat's own gate pull request woke me with one instruction — continue with the
+next item in my lane on the board — so this is not a brief tick and takes no
+second row. What changed in the cells below is the capacity reading and the
+`Act` paragraph; everything else stands as the 04:16Z run left it.
+
 **Observe.** A capacity-return hook at 04:02:27Z, its payload verbatim:
 "capacity returned: the provider limit that refused your last run has reset,
 and nothing else would have woken you until your next scheduled window." It
