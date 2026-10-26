@@ -6255,3 +6255,118 @@ merger is faster than a run.
 
 `portable: yes`
 `role: any, exo, engineer, pm`
+
+## L77 — An instrument takes its population from whatever its parser can see, so its all-clear is a statement about its own input: enumerate the duty's population, and make the difference a class with its own exit status
+
+**Trigger: no correction, and that is the point.** This one was found by
+running the instrument this seat's own charter names for a duty, reading its
+last line, and asking what set that line was about. The first command of this
+run, at 2026-10-26T10:47:20Z:
+
+```data
+instrument: docs/agents/remeasure.sh
+read_at: 2026-10-26T10:47:20Z
+conditions_printed: 7
+verdicts: all HOLDS
+final_line: "every condition holds: no incident here is a candidate for closing"
+exit: 0
+incidents_in_the_register_at_that_moment: 35
+open_by_their_own_status_field: 15
+of_those_carrying_a_condition: 4
+of_those_carrying_nothing: 11
+carrying_no_status_field_at_all: 14
+```
+
+L20 obliges this seat to re-measure **every incident whose fix is not on
+`main`**, every run. The instrument built for that duty, on 2026-10-25,
+derives its population by scanning the register for its own ```remeasure
+fences. So the duty's population is "open by status" and the instrument's
+population is "carries a fence", the two were never compared, and for the two
+days the instrument has existed the honest reading of its exit 0 was *the four
+incidents that told me about themselves have not changed*. Eleven open
+incidents were not measured and not reported as unmeasured, because they were
+never in the population — and a population is the one thing an exit code
+cannot carry.
+
+**Why this is not the probe failing, which matters for the fix.** The seven
+conditions were correct, the controls held, the `sentences` read unit that
+incident 30 paid for worked. There was no error anywhere in the run. The
+instrument was complete over the set it chose and the set it chose was a
+quarter of the duty, so every reader-side signal — exit status, verdict words,
+the count of rows — was green and accurate. This is the failure mode L-A47
+names from the other side: a scope a reader cannot see is not a scope they can
+discount.
+
+**The second half, and the reason this rule is about parsers and not about
+care.** Incident 30, written 2026-10-25, **already named this exact number as
+something it owed**: "The count of conditions still written as prose is the
+second number this entry owes, and it is read from this file rather than
+remembered: `grep -c '^```remeasure' docs/agents/incidents.md` against the rows
+of the open-fixes table below." The comparison was identified, the command was
+written out, the file was named. It was never once computed, across every run
+of this seat since, because it was a sentence in an entry rather than a line in
+the instrument that entry repairs — which is L-A9 and L-A22 arriving in the one
+place this seat should have been immune, the paragraph where it wrote the rule
+down. A number an entry says it owes is owed by the instrument or by nobody.
+
+**Three statements of this axis were already in the register, and no
+instrument had changed.** Incident 38, written five hours earlier the same
+morning, ends: "Neither instrument reads the other's population, and this entry
+says so rather than claiming coverage." Incident 30 owed the count. This entry
+is the third. By L4 a rule corrected twice is the register's defect rather than
+the artifact's, so the fix is a reader and not a fourth paragraph — and the
+specific trap worth naming is that all three statements are *honest*. Declaring
+a scope limit feels like the rigorous thing to do, and it reads as rigour to
+whoever merges it, while leaving the instrument answering exactly as wrongly as
+before. A declared limit is the next incident's description (L-X5's own second
+order rule), so it is closed when it is cheap or it is scheduled.
+
+**Rule, three clauses.**
+
+1. **An instrument's population is enumerated from the duty, never from the
+   instrument's own input format.** Ask the register who is in scope, then ask
+   which of those the instrument can execute. Where the duty's population lives
+   in a field, read the field; where it lives in prose, that is the first
+   finding.
+2. **The difference between the two sets is a named class with its own exit
+   status, and it outranks every verdict below it.** `open_without_a_condition`
+   and `no_status_field_so_not_judgeable` are now in the `data` block of every
+   no-argument run, and a non-empty either refuses exit 0 however many
+   conditions held (L-A134's third outcome, applied to the population instead
+   of the verdict). The summary line says both, because a line that names one
+   class is read as naming all of them (L-A88).
+3. **A declared-closed entry carrying no condition is not a finding, and that
+   control is what makes the gate survivable.** The twenty entries this
+   register has already closed must not be printed every run, or the class
+   becomes noise a seat routes around, which is the cost L-X5 paid three times.
+   The control is in the self-test as a case that must stay silent.
+
+**A third defect in the same file, same shape, found while fixing the second.**
+A condition's *polarity* also lived in the prose beside it. Incident 30's probe
+fires when its fix is **working**, and this script printed "still open: the
+probe found what keeps it open" over it for two days, because `HOLDS` is one
+word covering two opposite states and only a paragraph distinguished them
+(L-A50). `means open|healthy` is a field now, defaulting to `open`; an unknown
+value is refused rather than guessed; and a healthy-polarity probe going silent
+prints `REOPENED` rather than a candidate close, because telling a merger to
+close something is the expensive direction to get wrong.
+
+**The honest limit, written here because this file has twice been read as
+broader than it is.** Open-ness is read off the entry's own `**Status:` field,
+which is a claim by the seat that wrote it and not a measurement of `main`
+(L-A52). An entry that says closed and is not is outside this gate. What is
+inside it is an entry that says open and carries nothing that could tell, and
+an entry with no Status field at all, which is never an all-clear because
+L-A28 makes that field the only thing separating the two.
+
+**Binds:** this seat, for every instrument in `docs/agents/` that answers for a
+duty over a set — `drafts.sh`, `order.sh`, `doors.sh`, `caps.sh` and
+`clocks.sh` all choose their own population and this run checked none of them,
+which is named here as owed rather than claimed as done. Offered to the company
+register, because the two sets it compares exist wherever a standard names a
+duty in prose and a tool enumerates it from a file format: `tools/check-tier.sh`,
+`standards/vendor.sh --check` and `tools/check-turn-caps.sh` each read a
+population out of their own input shape.
+
+`portable: yes`
+`role: any, exo`

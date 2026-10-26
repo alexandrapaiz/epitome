@@ -3299,6 +3299,19 @@ somebody else's ask and rides from its author, not from here (this charter's
 commands, plus whether the clock posted this run expired and what happened at
 its expiry.
 
+**Re-measurement this entry owes (L20), as commands.** Written 2026-10-26 by
+incident 40's repair, which found this entry in the class of open entries with
+nothing that could tell.
+
+```remeasure 36
+probe   ! sentences origin/main:prompts/pm-agent.md | grep -qi "mergeable.sh"
+control sentences origin/main:prompts/pm-agent.md | grep -qi "One draft PR per run"
+means   open
+```
+
+A `CHANGED` here means the pm charter on `main` carries the deferred patch and
+the two-day wait this entry measures is over.
+
 ## Incident 37 — 2026-10-26 — A pull request this forge calls merged put its commits on a dead seat branch and none on the trunk, and the instrument this charter names for *what landed* was reading the forge's field
 
 **Status: the detector is closed and on this run's branch; the clause that
@@ -3366,6 +3379,19 @@ base ref was deleted — is in the open queue and is `mergeable.sh`'s, which
 already prints each base and marks the one not targeting `main`; that is the
 checker that caught `#329` at 05:12Z today. Neither instrument reads the other's
 population, and this entry says so rather than claiming coverage.
+
+**Re-measurement this entry owes (L20), as commands.** Written 2026-10-26 by
+incident 40's repair.
+
+```remeasure 37
+probe   ! sentences origin/main:prompts/exo-agent.md | grep -qi "Containment does the stacking"
+control sentences origin/main:prompts/exo-agent.md | grep -qi "One branch per seat"
+means   open
+```
+
+A `CHANGED` here means `#300` merged and the preventive clause is law. The
+detector half is already on `main` and is not what this probe reads: this entry
+is open on the clause alone, so the probe asks about the clause alone.
 
 ## Incident 38 — 2026-10-26 — This run's own pull request was closed as merged three minutes after it opened, by the merge of the pull request it was told to branch from, and the instrument repaired eight hours earlier counted it as a landing
 
@@ -3455,7 +3481,27 @@ the one window that costs a pull request; it does not settle whether branching
 from an open pull request is right, which `#300` has been asking since
 2026-10-24T22:17:30Z and which is still the owner's.
 
+**Re-measurement this entry owes (L20), as commands.** Written 2026-10-26 by
+incident 40's repair.
+
+```remeasure 38
+probe   ! sentences origin/main:prompts/exo-agent.md | grep -qi "open the pull request against"
+control sentences origin/main:prompts/exo-agent.md | grep -qi "One branch per seat"
+means   open
+```
+
+A `CHANGED` here means `#300` merged. Both repairs reached `main` with `#343`
+and `#344`, so nothing in this probe is about them.
+
 ## Incident 39 — 2026-10-26 — Two runs of this seat opened five pull requests in fifty-four minutes, and three of the five exist only because the merger answered faster than the run could finish
+
+**Status: closed on the detector and on the register, open on the charter
+clause.** `offmain.sh --here` and `drafts.sh` are both on `main`; L75 and L76
+are both on `main`; clause 2 of L76 is behaviour and binds nowhere until the
+owner merges `#312`, which has been open since 2026-10-25T03:25:52Z. This line
+was missing when the entry was written an hour before, and its absence is the
+`not_judgeable` class of incident 40 — written by the seat that owns both the
+field and the rule requiring it, in the same morning (L-A28, L-X1 as amended).
 
 **This entry was asked for by name, which is why it leads.** `epitome/pm`, on
 the board at 09:58:50Z, verbatim: *"there is a merge-timing hazard here that
@@ -3606,3 +3652,161 @@ the owner for the charter half. The dispatch half — whether a run that readies
 per artifact may open a pull request per artifact — is the single owner
 decision to ask if everything else fails, and it goes in the handoff with this
 measurement.
+
+**Re-measurement this entry owes (L20), as commands.** Written 2026-10-26, in
+the same run as the entry, because the entry was in incident 40's own
+`no_status_field` class an hour after it was written.
+
+```remeasure 39
+probe   ! sentences origin/main:prompts/exo-agent.md | grep -qi "cut from the readied head"
+control sentences origin/main:prompts/exo-agent.md | grep -qi "One branch per seat"
+means   open
+```
+
+A `CHANGED` here means `#312` merged and clause 2 of L76 binds a run rather
+than describing one.
+
+## Incident 40 — 2026-10-26 — The instrument this charter names for re-measuring open incidents reported all-clear over four of fourteen, because its population was the fences it could parse
+
+**Status: the repair is in this tree and fired against the real positive
+before this was written; the register debt it exposed is open and counted.**
+`docs/agents/remeasure.sh` enumerates the register rather than its own fences,
+names two classes that cannot exit 0, and carries 19 verdicts in
+`--self-test`. The fourteen entries with no Status field are open, named below
+with the date they were named, and now counted on every run.
+
+**Facts.** The first command of this run, 2026-10-26T10:47:20Z:
+
+```data
+instrument: docs/agents/remeasure.sh
+read_at: 2026-10-26T10:47:20Z
+conditions_printed: 7
+verdicts: 7 HOLDS, 0 CHANGED, 0 COULD NOT LOOK
+final_line: "every condition holds: no incident here is a candidate for closing"
+exit: 0
+```
+
+The same file, read for the population the duty actually names, at
+2026-10-26T10:50:27Z:
+
+```data
+instrument: docs/agents/remeasure.sh --coverage
+read_at: 2026-10-26T10:50:27Z
+register: docs/agents/incidents.md
+incidents_in_register: 35
+conditions_executable: 7
+open_by_their_own_status: 15
+open_with_a_condition: [26,27,29,32]
+open_without_a_condition: [19,20,22,23,24,25,28,34,36,37,38]
+no_status_field_so_not_judgeable: [1,5,6,7,8,9,10,11,12,13,14,16,17,39]
+exit: 2
+```
+
+**Impact.** L20 is the clause that makes an unlanded fix a measurement rather
+than a note, and it is discharged by this instrument on every run of this
+seat. For the two days since the instrument shipped, eleven open incidents
+were neither measured nor reported as unmeasured. Three of those eleven are
+this seat's own from this morning — 34, 37 and 38 — so the entries most likely
+to be live were the ones the instrument was least likely to carry, because a
+condition is written by the run that has time left and today's runs did not.
+Nothing was lost that is unrecoverable: the eleven are all still open and
+nothing was wrongly closed, so the cost is two days of a duty reported as
+performed, and the exit 0 that reported it.
+
+**Root cause, in the system.** The script's `blocks()` function is both its
+parser and its census. It greps for ```remeasure fences and the set it returns
+is the set it then iterates, so "no fence" and "nothing to measure" are the
+same state inside it and the second one is the one the exit code reports. The
+duty's own population is a different set living in a different place — the
+`**Status:` field of each entry — and no line of the script had ever read that
+field. Two populations, never joined, and the smaller one owning the verdict.
+
+**The aggravating fact, and the one that makes this an incident rather than a
+lesson alone.** Incident 30 named this exact comparison as a number it owed,
+in prose, on 2026-10-25, with the command written out. Seven working runs of
+this seat later it had never been computed once. A comparison written as a
+sentence under the entry that asks for it is owed by nobody, which is L-A9 and
+L-A22 landing on the seat that keeps the register — and by L4 a rule already in
+the register failing a second time is the register's defect, so this run shipped
+the structural fix rather than a third sentence.
+
+**Fix shipped, and the real positive it fired against.** `remeasure.sh` gains
+`population()`, `classify()` and `coverage()`; the no-argument run prints the
+scope **before** the verdicts, because a reader who sees seven HOLDS and then a
+scope line has already formed the answer; and the population's exit status
+outranks the verdicts'. Fired against the real register above: exit 2, eleven
+and fourteen named. Three self-test cases are the controls that decide whether
+anyone keeps it — a fully covered register must say so and exit 0, a
+declared-closed entry carrying no condition must not be a finding, and a Status
+field wrapped across two lines with one closed half and one open half reads as
+open, which is the shape incident 20 and incident 24 are written in.
+
+**Second defect, same file, same shape, found while fixing the first.** A
+condition's polarity lived in the prose beside the block. `means open|healthy`
+is now a field; an unknown value is refused; a healthy probe going silent
+prints `REOPENED` and never a candidate close. Incident 30's block carries
+`means healthy` and now reads "the fix is still working, so there is nothing to
+reopen".
+
+**The state at the end of the run that found it, so the next run compares
+objects rather than sentences (L-A45).**
+
+```data
+instrument: docs/agents/remeasure.sh --coverage
+read_at: 2026-10-26T10:55:21Z
+incidents_in_register: 36
+conditions_executable: 12
+open_by_their_own_status: 17
+open_with_a_condition: [26,27,29,32,36,37,38,39,40]
+open_without_a_condition: [19,20,22,23,24,25,28,34]
+no_status_field_so_not_judgeable: [1,5,6,7,8,9,10,11,12,13,14,16,17]
+exit: 2
+```
+
+Conditions went from 7 to 12 in this run: 36, 37, 38 and 39 are this seat's own
+entries of today and this morning, every one of them open on a charter clause
+reaching `main`, so each probe reads `origin/main:prompts/` for the clause's own
+words and each control reads a sentence known present in the same file. All four
+fire `HOLDS`, which means all four are genuinely open rather than unreadable.
+The eight that remain are 19 through 34, written across five weeks in contexts
+this run did not reconstruct.
+
+**Owed, with its reason and the date it was named (L-A145).** Thirteen entries
+carry no Status field, named 2026-10-26, all of them from 2026-09-18 to
+2026-10-24. This run did not backfill them, and the reason is
+that it will not guess at thirteen historical states under turn pressure to
+turn a gate green: a wrong `closed` is worse than an honest
+`not_judgeable`, because it removes the entry from the population permanently
+and silently, which is this entry's own defect committed deliberately. Incident
+39's line was added this run because that entry is this morning's and its state
+is known. The remaining thirteen are a backfill job for a run with turns to
+spend, and the count is in the `data` block of every no-argument run until it
+is zero.
+
+**A third instance was already written in this register, one entry above.**
+Incident 38 closes with "Neither instrument reads the other's population, and
+this entry says so rather than claiming coverage" — the same defect, named
+honestly, in the same file, five hours before this one was found. Three
+statements of one axis and no instrument changed is what L4 calls a register
+defect, and it is why this run shipped a population reader instead of a fourth
+sentence.
+
+**Also owed, and not claimed as done.** Five other instruments in
+`docs/agents/` choose their own population the same way — `drafts.sh`,
+`order.sh`, `doors.sh`, `caps.sh`, `clocks.sh`. This run checked none of them
+against the duty each answers for. L77 names them; no instance is claimed.
+
+**Re-measurement this entry owes (L20), as commands.**
+
+```remeasure 40
+probe   bash docs/agents/remeasure.sh --coverage | grep -q "not an all-clear"
+control bash docs/agents/remeasure.sh --coverage | grep -q "incidents_in_register"
+means   open
+```
+
+A `CHANGED` here means every open incident in the register now carries a
+condition and the backfill above is done. The control fails if the coverage
+reader itself stopped answering, which is the only way this probe's silence
+could be a lie.
+
+**Lesson:** L77.
