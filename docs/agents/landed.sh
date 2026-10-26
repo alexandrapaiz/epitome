@@ -94,7 +94,16 @@ contained() {   # contained <sha> -> 0 on trunk, 1 off trunk, 2 could not look
   return 1
 }
 
-merged=(); offtrunk=(); closed=(); unknown=(); first=""; last=""
+merged=(); offtrunk=(); closed=(); unknown=(); shadow=(); first=""; last=""
+# One merge commit can close two pull requests. When a branch is pushed at a
+# head another open pull request already has -- which is what "branch from your
+# own newest open pull request" produces for as long as the new branch carries
+# no commit of its own -- the forge marks both merged, with the same merge
+# commit, and containment answers yes for both because the commits really are
+# on the trunk. They are just not this pull request's contribution. So the
+# first merged row for a merge commit is the landing and every later one is its
+# shadow, counted in its own class and never in the merges (L75).
+declare -A mc_seen=()
 while IFS=$'\t' read -r n outcome at ref oid base mc title; do
   [ -z "${n:-}" ] && continue
   verdict=$outcome; note=""
@@ -110,8 +119,16 @@ while IFS=$'\t' read -r n outcome at ref oid base mc title; do
         rc=1
       fi
     fi
+    if [ "$rc" = 0 ] && [ -n "${mc:-}" ]; then
+      if [ -n "${mc_seen[$mc]:-}" ]; then
+        rc=3; note="same merge commit ${mc:0:8} as #${mc_seen[$mc]}, which landed it; this one shares a head and contributes nothing"
+      else
+        mc_seen[$mc]=$n
+      fi
+    fi
     case $rc in
       0) verdict=merged ;;
+      3) verdict=shadow ;;
       1) verdict=off-trunk; note="into $base, neither head ${oid:0:8} nor merge ${mc:0:8} on an ancestor of main" ;;
       2) verdict=unread;    note="could not fetch ${oid:0:8}" ;;
     esac
@@ -120,6 +137,7 @@ while IFS=$'\t' read -r n outcome at ref oid base mc title; do
   [ -n "$note" ] && printf '       %s\n' "$note"
   case $verdict in
     merged)    merged+=("$n"); [ -z "$first" ] && first=$at; last=$at ;;
+    shadow)    shadow+=("$n") ;;
     off-trunk) offtrunk+=("$n") ;;
     unread)    unknown+=("$n") ;;
     *)         closed+=("$n") ;;
@@ -136,8 +154,12 @@ fi
 # usually zero, because a class that can be non-zero and never prints reads as
 # zero (L-A88). No early return: a window whose only finding is an off-trunk
 # merge must not render a line that never mentions one.
-printf '\n%d merged onto main, %d merged off-trunk, %d closed unmerged, %d open now\n' \
-  "${#merged[@]}" "${#offtrunk[@]}" "${#closed[@]}" "$open_now"
+printf '\n%d merged onto main, %d merged off-trunk, %d shadowed, %d closed unmerged, %d open now\n' \
+  "${#merged[@]}" "${#offtrunk[@]}" "${#shadow[@]}" "${#closed[@]}" "$open_now"
+if [ "${#shadow[@]}" -gt 0 ]; then
+  printf 'the forge calls those %d merged and each shares its merge commit with an earlier row; they land nothing of their own (L75)\n' \
+    "${#shadow[@]}"
+fi
 if [ "${#offtrunk[@]}" -gt 0 ]; then
   printf 'the forge calls those %d merged and none of their commits is on main; they land nothing (L70)\n' \
     "${#offtrunk[@]}"
@@ -158,9 +180,10 @@ fi
 json_list() { local a=("$@"); printf '['; local i; for i in "${!a[@]}"; do
   [ "$i" -gt 0 ] && printf ','; printf '%s' "${a[$i]}"; done; printf ']'; }
 printf '\ndata, for the message that carries this (paste it; do not retype it):\n'
-printf '{"measured_at":"%s","main":"%s","window_from":"%s","merged_onto_main":%s,"merged_off_trunk":%s,"closed_unmerged":%s,"could_not_place":%s,"merged_span_seconds":%d,"merged_first":"%s","merged_last":"%s","open_now":%s}\n' \
+printf '{"measured_at":"%s","main":"%s","window_from":"%s","merged_onto_main":%s,"merged_off_trunk":%s,"shadowed_by_a_shared_head":%s,"closed_unmerged":%s,"could_not_place":%s,"merged_span_seconds":%d,"merged_first":"%s","merged_last":"%s","open_now":%s}\n' \
   "$now" "$(git rev-parse --short origin/main)" "$since" \
   "$(json_list "${merged[@]}")" "$(json_list "${offtrunk[@]}")" \
+  "$(json_list "${shadow[@]}")" \
   "$(json_list "${closed[@]}")" "$(json_list "${unknown[@]}")" \
   "$span" "${first:-}" "${last:-}" "$open_now"
 
