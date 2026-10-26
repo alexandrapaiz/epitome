@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Does the sentence still stand with the code deleted? (L14, L64.)
+# Does the sentence still stand with the code deleted? (L14, L65.)
 #
 #   bash docs/agents/codes.sh --pr N              a pull request's title and opening
 #   bash docs/agents/codes.sh --branch [NAME]     the open pull request on a branch
@@ -28,7 +28,7 @@
 # 51 carry a pull request number, every one of them accepted silently.
 #
 # And the rate is not discipline. It tracks how numbered a seat's own subject
-# matter is, which is why a clause has never moved it (L64): `epitome-engineer`
+# matter is, which is why a clause has never moved it (L65): `epitome-engineer`
 # is 0 of 33 titles and was 0 of 27 before the clause naming the pull request
 # body landed in its charter on 2026-10-24, so its clean record is not that
 # clause working. `epitome-exo` is 15 of 52, because every run of that seat
