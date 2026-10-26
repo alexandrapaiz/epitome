@@ -5,6 +5,76 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **The quiet-pipe conversion's order changes: credential-holding
+  suites go first, because the negated form of the shape does not fail
+  loud, it fails quiet — a false PASS, not a false FAIL.** Converted so
+  far, merged to `main`: `smoke-validate.sh`, `smoke-temporal.sh`,
+  `smoke-roster.sh` (66 sites), plus `cli/test/shapes.sh`, a standing
+  scan gate that fails the suite the moment a file carries more of the
+  shape than its allowance, so a reintroduced site is caught without
+  waiting for a run to get unlucky. `smoke-deploy.sh` (34 sites) is
+  converted and sitting on an open pull request, still a draft, pending
+  its own seat marking it ready.
+  The reorder itself: three of `smoke-deploy.sh`'s 34 sites were the
+  negated form, `! producer | grep -q <secret>`, and under `pipefail`
+  that form inverts a real leak into a reported pass rather than a
+  reported failure — the producer dies writing into the pipe quiet grep
+  already closed, `pipefail` carries that death as the verdict, and `!`
+  turns it into ok. All three were the credential assertions in that
+  suite (no token in the ledger's output, no private key material, no
+  browser prompt on a second deploy), and all three are converted and
+  mutation-checked now. A false red gets re-run by a human; a false
+  green on a credential assertion is believed, which is why the order
+  matters more than the count.
+  Checked the four files still untouched for the same shape rather than
+  trusting the occurrence counts alone: `smoke-doctor.sh` (31 sites)
+  carries one in this exact form, a private-key-leak check on a minted
+  identity's output; `smoke-langgraph.sh` (19), `smoke-bus.sh` (2) and
+  `pack.sh` (2) carry none — their credential-flavored checks either
+  have no pipe in them (a direct `grep` of a file) or aren't about a
+  credential at all. So `smoke-doctor.sh` goes next, not whichever file
+  is smallest or next in line; `smoke-langgraph.sh`, `smoke-bus.sh` and
+  `pack.sh` follow it in either order. The two deploy scripts
+  (`deploy/test-provision.sh`, 4 sites; `deploy/provision-host.sh`, 1)
+  still land last of all, per the standing rule that a false failure
+  mid-provision costs more than a false failure in a test — that part
+  of the order is unchanged.
+  The card that first filed this (PR #269) is superseded and closed:
+  its own site counts were low (lines, not occurrences — several lines
+  carry more than one instance of the shape) and its diff has stood in
+  permanent conflict against `main` since the suites it described kept
+  moving without it. This entry replaces it with the corrected counts
+  and the corrected order. Seat: engineer (the conversions, in the
+  order above), pm (tracked the reorder, merged what was ready).
+- [ ] **`smoke-doctor.sh` fails one assertion of 178 at random, a
+  different one each time, and it is not the quiet-pipe fault.** Found
+  while composing the full test command at load 20 on the resident box:
+  one run failed an unconditional template-sentence check, a second run
+  failed an org-App-permissions check, a third run of the same suite
+  passed all 178. The two failing assertions share no shape — one pipes
+  a captured string into `grep -q`, the other has no pipe in it at all
+  — and the engineer ran the first one's exact pipeline 2,000 times over
+  the real output and got zero anomalies, which rules out the fault
+  class above as the cause. So something in `smoke-doctor.sh` is
+  load-sensitive on a busy box, and a gate that fails a random
+  assertion once a run is a gate nobody will trust even when it is
+  right. Filed here rather than chased this run, because finding it was
+  one card's worth of work and fixing it is another's. Seat: engineer.
+- [ ] **One cause of the card above is found and fixed on PR #293, and
+  the same fault sits in the deploy suite too, in a worse form.** The
+  stand-in GitHub in these suites starts more than once per run and
+  reads its chosen port back out of a file named for the stub's mode,
+  not for the specific start; two of the doctor suite's modes start
+  twice, so a second start could read the port line a first start
+  wrote for a listener already killed, and every gate after that point
+  runs against a GitHub that isn't there. The deploy suite has it
+  worse: it restarts its stand-in on a fixed port into one shared log
+  file and waits for that same port line on both starts, so the stale
+  match always lands rather than only sometimes. PR #293's fix: name
+  the wait file after the start, not the mode, so a second start can't
+  read a first start's line — one line each, same fix, deploy suite
+  still untouched. Handed off rather than fixed here, because it
+  wasn't the card that run was given. Seat: engineer.
 - [ ] **The check that is supposed to catch the host being behind is
   disabled by the host being behind: a seat's clone arrives shallow, so
   the distance command answers 1 where the truth is 578.** From the
