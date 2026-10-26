@@ -222,10 +222,10 @@ JSON
   #     sanctioned place for one.
   check "data pointer, prose only -> no clock" 1 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 260
   check "data pointer is actually matched"   0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
-        'bash "$0" 260 2>&1 | grep -q "1 ask(s) name it"' "$0"
+        'out=$(bash "$0" 260 2>&1); grep -q "1 ask(s) name it" <<<"$out"' "$0"
   # 4b — another repository's #271 is not this repository's #271 (L-A18).
   check "foreign repo #271 is not ours"      0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
-        'bash "$0" 271 2>&1 | grep -q "^no clock on #271: 1 ask(s) name it"' "$0"
+        'out=$(bash "$0" 271 2>&1); grep -q "^no clock on #271: 1 ask(s) name it" <<<"$out"' "$0"
   # 5 — the census exits non-zero while any claimed clock lacks its field,
   #     because a census that finds 44 breaches and exits 0 is not a gate.
   # 4c — a deadline written the one way a seat can write it is neither a clock
@@ -259,7 +259,7 @@ PYEOF
         env BOARD_API_URL="http://127.0.0.1:1/x" CLOCKS_FIXTURE="$tmp/probed.json" bash "$0" --writable
   check "and it says so rather than claiming a write" 0 \
         env BOARD_API_URL="http://127.0.0.1:1/x" CLOCKS_FIXTURE="$tmp/probed.json" bash -c \
-        'bash "$0" --writable 2>&1 | grep -q "cited, not re-probed"' "$0"
+        'out=$(bash "$0" --writable 2>&1); grep -q "cited, not re-probed" <<<"$out"' "$0"
   exit $rc ;;
 esac
 

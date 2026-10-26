@@ -88,9 +88,18 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # and the allowance table below holds nothing else. 37 less 23 less 5 is 9,
 # and that is what this gate prints.
 #
-# A nine-line table is not the end of this work: see the banner below the
-# allowance for the twenty-one shell files under docs/agents/ that this gate
-# has never read, and the board card that holds them.
+# docs/agents/ joins this table's scope on this branch and leaves it with
+# nothing: the sixteen sites the widening found in eight of those twenty-one
+# files are converted in the same diff, so the table is back to its three
+# named exemptions. Eleven of the sixteen were LIVE and five were LATENT, and
+# the difference is one measured fact rather than a judgement: `pipefail` does
+# not cross `bash -c` (measured, 200 asks each -- a matching pipeline that
+# reported failure 200 of 200 times in the parent reported it 0 of 200 inside
+# `bash -c`). So a site in a file's own shell misfires today, and a site
+# inside a `bash -c` string misfires the day its runner turns pipefail on.
+# Both are converted: this scan cannot tell them apart, and the latent five
+# include the fixture in remeasure.sh that a seat copies when it writes a
+# real probe.
 #
 # Three lines here are not allowances but exemptions, and they are named rather
 # than hidden: probe-pipefail.sh carries five of the shape, probe-negated.sh
@@ -106,8 +115,10 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 #
 # Converted and therefore absent, allowed none: smoke-validate.sh,
 # smoke-temporal.sh, smoke-roster.sh, all.sh, smoke-deploy.sh, smoke-doctor.sh,
-# smoke-langgraph.sh, smoke-bus.sh, pack.sh, and both deploy scripts here --
-# every file this gate scans except the three probes. A number may only be
+# smoke-langgraph.sh, smoke-bus.sh, pack.sh, both deploy scripts, and now the
+# eight seat tools -- brief.sh, check.sh, clocks.sh, idle.sh, mergeable.sh,
+# remeasure.sh, reread.sh, stage.sh -- every file this gate scans except the
+# three probes. A number may only be
 # lowered by a branch that can see
 # its conversion land: a number that is too HIGH costs one advisory line, and a
 # number lowered for a conversion that does not land fails this gate on main.
@@ -119,14 +130,6 @@ ALLOWED="
 cli/test/probe-pipefail.sh 5
 cli/test/probe-negated.sh 2
 cli/test/probe-readers.sh 2
-docs/agents/brief.sh 1
-docs/agents/check.sh 1
-docs/agents/clocks.sh 3
-docs/agents/idle.sh 2
-docs/agents/mergeable.sh 1
-docs/agents/remeasure.sh 3
-docs/agents/reread.sh 1
-docs/agents/stage.sh 4
 "
 
 pass=0; fail=0

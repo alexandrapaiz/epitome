@@ -151,11 +151,11 @@ probe   true
 \`\`\`
 ## Incident 5 — the same wrapped file read as sentences
 \`\`\`remeasure 5
-probe   sentences $t/charter.md | grep -qi "run last turn"
-control sentences $t/charter.md | grep -qi "one PR per run"
+probe   s=\$(sentences $t/charter.md); grep -qi "run last turn" <<<"\$s"
+control s=\$(sentences $t/charter.md); grep -qi "one PR per run" <<<"\$s"
 \`\`\`
 EOF
-  check() { if printf '%s' "$2" | grep -qF "$3"; then echo "  ok   $1"; else echo "  FAIL $1: wanted '$3' in: $2"; fail=1; fi; }
+  check() { if grep -qF "$3" <<<"$2"; then echo "  ok   $1"; else echo "  FAIL $1: wanted '$3' in: $2"; fail=1; fi; }
   FILE="$t/incidents.md"
   out=$(run 1); rc=$?
   check "a probe that fires is the incident still open" "$out" "HOLDS"

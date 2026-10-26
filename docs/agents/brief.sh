@@ -39,7 +39,7 @@ if [ "${1:-}" = "--self-test" ]; then
     out=$(BRIEF_FIXTURES=1 BRIEF_LIVE="$d/live.json" BRIEF_EVENTS="$4" \
           BRIEF_SCHEDULE="$5" BOARD_API_URL=x BOARD_RUNTIME_TOKEN=x \
           bash "$0" 2>&1); got=$?
-    if [ "$got" = "$2" ] && printf '%s' "$out" | grep -q "$3"; then
+    if [ "$got" = "$2" ] && grep -q "$3" <<<"$out"; then
       printf '  %-14s exit %s, says %-14s ok\n' "$1" "$got" "$3"
     else
       printf '  %-14s exit %s (wanted %s), said: %s\n' "$1" "$got" "$2" "$(printf '%s' "$out" | head -1)"; ok=0
