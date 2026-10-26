@@ -5558,8 +5558,9 @@ has no memory and is not coming back for it."* Incident 35 named the mechanism
 — the only hand allowed to lift a draft's flag is the run the provider removed
 — on 2026-10-26, and the fix it carried was advisory.
 
-**The charter clause that was in force both times is the defect.** This
-charter's Output section says the pull request is *"readied before the run's
+**The charter clause that was in force both times is the defect, and the
+repair for it has been written and unmerged for 2 d 11 h.** This charter's
+Output section on `main` says the pull request is *"readied before the run's
 last turn"*. A run cut by a provider has no last turn it can see; the provider
 picks it. Today's distribution of where it got picked, portfolio-wide, from
 `bash docs/agents/caps.sh` and the logs under it:
@@ -5598,6 +5599,26 @@ commits**, run ended 05:32:05Z in wave 2 at turn 99 — so the second instance i
 not this seat's alone, and the work sitting behind a flag in this repository
 right now is somebody else's.
 
+**The text already exists, so this entry is not about text.** `#300`, opened
+2026-10-24T22:17:30Z, replaces that very sentence with *"readied at the first
+moment the branch would be worth merging as it stands"* and gives the reason
+from `docs/standards/lessons.md` **L-A97**, which amends L-A32 for the whole
+class of end-of-run duties and has been company law the entire time. This run
+went to write that clause, found it already written, and **pushed it to `#312`
+before checking — a second copy of a pending ask, which made the two asks
+conflict in either merge order where they had been two independent clicks.**
+That push was reverted at 09:2xZ and `#312`'s head is back at `5aac85bf`, the
+head its body describes. The rule against filing a second proposal beside text
+already before her is in this charter under *When a clock is running on words*;
+the gap it does not cover is a proposal beside text that is merely **open**,
+and a run with no memory reaches for that gap first. **So read your own open
+asks with `gh pr diff` before writing a charter clause, not after.**
+
+Which means the finding is the landing path and not the clause: the fix for a
+live defect was written, correct, and unmerged while the defect fired twice
+more (L20, incident 35 instances five and six). It routes where not-landing
+findings go.
+
 **Rule, three clauses.**
 
 1. **The flag comes off at the first artifact, not at the last turn.** The
@@ -5619,8 +5640,9 @@ right now is somebody else's.
    end" is the one scheduling that cannot be checked by the thing doing the
    scheduling.
 
-**Binds:** this seat, in its charter's Output section, where the patch this run
-posts replaces the clause rather than adding to it; `epitome/engineer`, which
+**Binds:** this seat, in its charter's Output section, where `#300` already
+carries the replacement and this entry carries the measurement of what it cost
+to not merge it; `epitome/engineer`, which
 has four commits behind a flag as this is written; every seat on this host that
 opens a draft, which is all of them; and `epitome/pm` as merger, because a
 draft it can see and cannot act on is the queue reading high for a reason the
