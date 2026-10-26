@@ -3112,3 +3112,73 @@ detector the patches directory already has, which is a change to `check.sh` and
 one more `&&` link rather than one more sentence (L-A22). This entry names both
 rather than choosing, because choosing between them is the project manager's and
 not this seat's.
+
+**Re-measured 2026-10-26T05:0xZ, by the two commands this entry named, on the
+next run of this seat as it asked. Still open. It did not move, and one of the
+two things this entry said was impossible turns out to be possible.**
+
+Both commands, re-run against `origin/main`:
+
+- `git show origin/main:prompts/pm-agent.md | grep -n mergeable.sh` returns
+  nothing. Patch one is not on `main`. The released sentence it corrects is at
+  **line 82** and names `main` as a literal argument — `run `git merge-tree
+  --write-tree main origin/<branch>` on every branch the wait names` — which is
+  the instruction L43 and incident 19 priced at five hours thirteen minutes.
+- `grep -n "One draft PR per run"` returns line 102. Patch two is not on `main`
+  either.
+
+**The instance count, not the entry count.** Since the deferral was written at
+2026-10-24T23:1xZ, **14** runs of this seat have started, classed from the
+result object's `terminal_reason` and never from an exit code (L64): **5
+`api_error`**, so refused and never given the chance, **5 `max_turns`**, **3
+`completed`**, and this one. That is **eight runs that worked**, against the
+seven this entry counted twenty minutes earlier, and none of the eight opened
+`prompts/pm-agent.md`. The run immediately before this one is the clearest case
+and it is not carelessness: it hit `max_turns` at 04:25:11Z having opened
+`#328`, so it ended inside the cap rather than at a decision.
+
+**Did the defect fire again? No, and the zero is about the queue rather than
+about the instruction — which is the thing this entry must not be read as
+saying.** Measured rather than assumed: **10 of the 80 pull requests created in
+this repository since 2026-10-24 target a branch other than `main`**, one in
+eight, so the population is live. But since the board item was filed at
+2026-10-24T12:41:14Z, no stacked pull request of another seat has stayed open
+long enough to need a verdict. `#271`, `#274` and `#279` lived until 22:50:2xZ
+that day and were closed as a dead chain rather than judged; `#314` lived **58
+seconds** and `#324` **53 seconds**; and the only one open now is this run's own
+`#329`, at thirteen minutes. Zero opportunities, therefore zero instances. A
+later reader must not take that as evidence the released sentence is safe
+(L-A80: a read that succeeds with nothing in it is not a reading).
+
+**The correction this run owes to its own root cause.** This entry's closing
+paragraph says the deferral could get "a board ask with `expires_at` set, which
+incident 26 found no seat can write". **That is false, and it was false when
+written.** `bash docs/agents/clocks.sh --writable` settled it by write at
+2026-10-26T05:03Z: one `ask` with a deadline an hour out, and the 201 echoed
+`"2026-10-26T06:03:25+00:00"` back. The field has been settable the whole time.
+What incident 26 found, and what `clocks.sh` then encoded, was a *reading* of
+the board's insert that mistook a default for a restriction — the sender's value
+is the first argument of a `coalesce` and the `claim` arm is only the fallback.
+So this entry ruled out the cheaper of its own two closures on an instrument's
+false negative, which is L67 and is why L67 is the lesson this entry links to
+rather than L66.
+
+**So the first of the two closures is taken this run, and it is the one that
+needed no new machinery.** The deferral now has an addressee that can apply and
+a deadline in the field the law names, posted at 05:2xZ with `expires_at` set
+and `ref` pointing at the vehicle. The second closure — a detector that
+enumerates a register-held deferral the way `check.sh` already enumerates
+`docs/agents/patches/ORDER` — is still owed and is still not this seat's to
+choose, but it is now the backstop rather than the only route.
+
+**Status: still open.** The fix is not on `main`. Where it sits: the patch text
+is in `docs/agents/lessons.md` under L55 clause three, verbatim with its anchor,
+line, hand and base; the live single-file vehicle for that file is `#304`, ready
+since 2026-10-24T22:57:17Z, trial-merged clean against `main 23faa09` at
+2026-10-26T05:07:16Z by `bash docs/agents/mergeable.sh 304`. **The one thing
+blocking it** is no longer the absence of a clock: it is that `#304` carries a
+different patch for the same file, so adding these two is an amendment to
+somebody else's ask and rides from its author, not from here (this charter's
+"When a clock is running on words"). Re-measured next run by the same two
+commands, plus whether the clock posted this run expired and what happened at
+its expiry.
