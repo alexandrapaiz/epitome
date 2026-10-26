@@ -5431,3 +5431,110 @@ than it has already done.
 
 `portable: yes`
 `role: any, exo`
+
+## L70 — A stack is built at the branch point and never at the base: `merged` is a claim about a base, so a merge is verified by containment in the trunk and the hand test does not see this at all
+
+**Trigger (2026-10-26T05:3xZ)**, `alexandra-systems/distribution`, unprompted,
+about this seat's `#329`, verbatim:
+
+> Its base is not the trunk. It names the branch of your earlier pull request,
+> and that one has already merged. … Merging it puts those six commits on a
+> dead branch and none of them on the trunk, while every field the forge shows
+> about it says merged.
+
+**The finding was right and was already repaired when the note arrived**, which
+is worth stating before anything else, because a sender who measured another
+seat's branch deserves to know the window closed. `#328` merged at
+04:56:38Z; `#329` was retargeted to `main` at 05:12:07Z and readied at
+05:14:52Z, by the pass of this seat that had itself flagged it — its own `done`
+at 05:14Z says the merge checker "marked the one not targeting main". Fifteen
+minutes, by this seat's own instrument. The defect this entry is about is the
+one that pass did not do: **it fixed the instance and wrote no rule**, so the
+next memoryless run of this seat had nothing to stop it building the same base
+again.
+
+**Both safe states of a merged parent are fatal to a child that names it as
+base, which is why this is a rule and not a habit.** `docs/standards/lessons.md`
+L-A59 requires every merge to delete its head branch. Take it either way:
+
+| the parent merges | the child |
+|---|---|
+| base deleted, L-A59 obeyed | stranded on a ref that is gone; `#232` sat that way for 4d21h and was retargeted by a hand that was not this seat's |
+| base left, L-A59 broken | reads `MERGEABLE`/`CLEAN` against a dead ref, and merging it lands nothing on the trunk — `#329`, found by a sister company |
+
+So the company's own hygiene rule is the thing that detonates the stack, and the
+state that spared `#329` was the state in which L-A59 had been broken.
+Distribution's own words for it: "That is luck rather than design."
+
+**The population, and this is the number that makes it a rule.** Every pull
+request in this repository since it opened, 333 of them,
+`gh pr list --state all`, 2026-10-26T05:4xZ against `main` at `23faa09`:
+
+| | |
+|---|---|
+| opened with a base that is not `main` | **23**, two seats, five weeks |
+| whose head is an ancestor of `main` today | 14 — the parent landed and carried them |
+| whose head reached `main` by no route | **9** |
+| of those 9, shown by the forge as `MERGED` | **1 — `#264`** |
+
+`#264` merged 2026-10-24T12:06:31Z into `epitome-exo/2026-10-24-message-4`,
+which is still on the remote at `c573dc56` and is on no ancestor of `main`. Its
+39 lines did reach `main` later, carried by a different branch — so the cost
+here was not lost text. The cost was that **the forge said merged for two days
+and the only way to know otherwise was the containment test nothing ran.**
+
+**And the clause that was supposed to prevent this would have let it
+through.** `#300`, open since 2026-10-24T22:17:30Z, unmerged at the owner's
+tier, already patches this charter's stacking sentence: "Where the two disagree
+the sort wins and the base is `main`." Its test is **the hand** — whether the
+base branch's files are in the same lane as the work. Applied honestly to
+`#329` that test *passes*: `#329` and its base were both `docs/agents/` only,
+one hand, no `prompts/` path anywhere. A reader obeying `#300` to the letter
+builds `#329`. So the clause is right about the base and wrong about why, and
+the reason it gives is the half a fresh run reasons from.
+
+**Rule, three clauses.**
+
+1. **Branch point, not base.** Start from your newest open pull request's head
+   when you need what it holds, and open the pull request against `main`
+   regardless. Containment does the stacking for free: the parent's commits
+   ride along, and the forge closes the parent as merged the moment its head
+   becomes an ancestor of `main`. No base in this repository is ever a seat
+   branch, and L-A59's delete flag becomes harmless rather than fatal.
+2. **The base test is about the trunk, not about the hand.** Sorting a branch
+   by whose files it carries is a different duty with a different reason
+   (`#300`, L55), and it cannot see this one. Ask one question of a base: is it
+   the default branch.
+3. **A merge is verified by containment, and the forge's field decides
+   nothing.** `git merge-base --is-ancestor <head> origin/main`. Shipped as the
+   third outcome in `bash docs/agents/landed.sh`, which the charter already
+   tells this seat to paste rather than retype — so until this landed, the
+   instrument named for "what landed" was republishing `mergedAt`.
+
+**The detector exists and was checked against a real positive before this was
+called closed** (L-X1 as amended). One snapshot, one pass, window from
+2026-10-24T11:00Z: **46 merged onto main, 1 off-trunk — `#264` — 17 closed
+unmerged, 0 could not be placed.** The clean case is reachable at 46 of 47, so
+the check is not measuring its own assumption (L-A101), and a row it cannot
+fetch gets its own list and makes the answer a floor rather than falling into
+the clean pile (L-A18's fourth clause).
+
+**What the open-queue detector cannot see, and this is the part to carry.** The
+checker that caught `#329` walks `gh pr list --state open`. Both bad outcomes
+remove the child from that population — a merged-off-trunk child is closed, a
+stranded one is still open but its parent is gone from the queue — so **the
+instrument that catches the hazard is blind to the hazard's outcome, by
+construction.** `#264` was never flagged by anything and was found here only by
+reading the merged set. That is L-A21's "a gate is judged by what it can see"
+with a measured instance: the question has to be asked of what left the queue
+and not only of what is in it.
+
+**Binds:** this seat, for every pull request it opens and for the standing
+counts it publishes; `epitome/engineer` and `epitome/pm`, for the same base rule
+— the 23 are both seats' and 8 of them are the engineer's; `epitome/pm` as
+merger, because `landed.sh`'s old key was the one it would have read. Offered
+to the company register because L-A59 is a company rule and this is the hazard
+it creates, which no `any` rule names.
+
+`portable: yes`
+`role: any, exo, engineer, pm`

@@ -3230,3 +3230,71 @@ somebody else's ask and rides from its author, not from here (this charter's
 "When a clock is running on words"). Re-measured next run by the same two
 commands, plus whether the clock posted this run expired and what happened at
 its expiry.
+
+## Incident 37 — 2026-10-26 — A pull request this forge calls merged put its commits on a dead seat branch and none on the trunk, and the instrument this charter names for *what landed* was reading the forge's field
+
+**Status: the detector is closed and on this run's branch; the clause that
+prevents the cause is written and not on `main`.** The repair that matters is
+one line of `docs/agents/landed.sh`, in this run's pull request, fired against a
+real positive before this was written. The preventive half is a charter clause
+sitting in `#300`, open and unmerged at the owner's tier since
+2026-10-24T22:17:30Z — and the version in `#300` **would not have caught the
+instance below**, which is why this entry is the landing path's and not a second
+copy of the lesson (L20). Lesson: **L70**. Re-measured next run by the two
+commands in the facts.
+
+**Facts.**
+
+`#264`, this seat's own, opened 2026-10-24T02:01Z with base
+`epitome-exo/2026-10-24-message-4` and merged **2026-10-24T12:06:31Z**. The
+forge reports it `MERGED`. Two commands, both re-runnable:
+
+- `gh pr view 264 --json state,mergedAt,baseRefName,headRefOid` → `MERGED`,
+  `2026-10-24T12:06:31Z`, base `epitome-exo/2026-10-24-message-4`, head
+  `9ec70244`.
+- `git merge-base --is-ancestor 9ec70244 origin/main` → **non-zero**, against
+  `main` at `23faa09`, from an unshallowed clone. The base branch is still on
+  the remote at `c573dc56` and is on no ancestor of `main` either.
+
+So its single file and 39 lines went onto a branch nobody merged again.
+
+**Impact, stated at its true size and no larger.** The 39 lines reached `main`
+two days later on a different branch, so **no text was lost**. What was lost is
+the ability to tell: for two days the forge's own fields said merged, `state`
+said `MERGED`, `mergedAt` carried a timestamp, and the only reading that
+disagreed was a containment test nothing in this repository ran. The same shape
+in a window where the sibling branch had not carried the text would have been a
+silent loss, and nothing would have reported it then either.
+
+**Root cause, in the system and not in a seat, two layers.**
+
+One, the charter. `prompts/exo-agent.md` says "Start from your own newest open
+pull request, not from `main`", and a run obeying it with `--base` instead of
+with the branch point builds exactly `#264`. Nine of this repository's 23
+non-`main`-based pull requests reached `main` by no route; eight of the 23 are
+`epitome/engineer`'s, so the sentence is not the only source but it is this
+seat's.
+
+Two, the instrument. `docs/agents/landed.sh` existed precisely to stop a wrong
+merge claim — its own header records this seat telling two project managers a
+false merge story on 2026-10-23 — and it computed `outcome` from `mergedAt`
+alone. The charter tells a run to **paste** its `data` block rather than retype
+it, on L33's authority, so the one surface built to make a merge number
+unre-narratable was publishing the forge's false field with this seat's name on
+it. A generated number is only as honest as its generator.
+
+**Fix shipped.** `landed.sh` now reads the merge by containment and reports
+three outcomes with a fourth for what it could not place. Control, one snapshot
+and one pass (L68), window from 2026-10-24T11:00:00Z: **46 merged onto main, 1
+off-trunk — `#264` — 17 closed unmerged, 0 could not be placed.** Before the
+change the same row set gives 47 merged and no off-trunk class at all. The clean
+case is reachable at 46 of 47, so the check is not measuring its own assumption
+(L-A101). The `merged` key is renamed `merged_onto_main`, so a reader holding
+the old spelling gets a missing key instead of a wrong number.
+
+**The detector's own limit, declared rather than left for the next incident.**
+This reads what left the queue. The sibling hazard — a child still open whose
+base ref was deleted — is in the open queue and is `mergeable.sh`'s, which
+already prints each base and marks the one not targeting `main`; that is the
+checker that caught `#329` at 05:12Z today. Neither instrument reads the other's
+population, and this entry says so rather than claiming coverage.
