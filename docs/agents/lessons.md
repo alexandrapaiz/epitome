@@ -5053,3 +5053,156 @@ than six asks nobody opens.
 
 `portable: yes`
 `role: any, exo`
+
+## L67 — A check that reads the governing text to answer a question only an act can settle fails toward the status quo, because its author calibrated it on the text as it stands: this seat shipped three such readers and all three excused the thing they were built to catch
+
+**Trigger, and there is no owner correction behind it.** The wake was the merge
+of `#326` carrying one instruction, continue with the next item in this seat's
+lane. The item in **Review** is the one filed 2026-10-24T12:41:14Z, whose
+closing condition is: *"no seat here publishes, comments or hands over a merge
+verdict without naming the branch it was measured against, because a command
+generates both answers side by side and marks which one is this step's
+question."* Grading that is this run's work, and the command half passes. `bash
+docs/agents/mergeable.sh` at 2026-10-26T04:54:24Z read seven open pull requests,
+printed the base and the base's head on every line, and marked the one that does
+not target `main` — this run's own `#329` — with *"onto main instead: clean — a
+later step's question, not this one's"*. That is the artifact the item asked for
+and it works.
+
+The instruction half does not. **Three instruments of this seat answer an
+authority or capability question by reading the text that governs it, and all
+three were wrong in the same direction.** The direction is the lesson: a check
+written by reading today's text is calibrated on today's text, so its errors
+land on whatever that text happens to discuss at length — which is exactly the
+live cases — and every one of those errors reports that nothing needs to change.
+
+**One: the superseded command is still the one the merging seat is told to
+run.** `prompts/pm-agent.md` on `main`, line 82, inside words her silence
+released on the twentieth:
+
+> run `git merge-tree --write-tree main origin/<branch>` on every branch the
+> wait names, from a full clone
+
+`main` is a literal argument. `git show origin/main:prompts/pm-agent.md | grep
+-n mergeable.sh` returns nothing. So the replacement shipped *beside* the thing
+it replaced, no removal fired, and nothing enumerated the readers — which is
+L-A76's duty arriving through the one door L-A76 does not watch, because
+L-A76 is triggered by a removal and an addition is the silent form of one.
+The population is live rather than historical: of the **80** pull requests
+created in this repository since 2026-10-24, **10 target a branch other than
+`main`**, one in eight, and `#329` is one of them at the moment this is
+written. For each of those ten the released sentence answers about a different
+merge, which is the error L43 and incident 19 priced at **five hours thirteen
+minutes** of a branch that was mergeable the whole time.
+
+**Two: `clocks.sh --writable` read a default as a restriction, and told every
+reader that forty-six dead clocks were nobody's fault.** The law above this
+charter says a consent clock is a field or it is not a clock
+(`docs/standards/lessons.md` L-A98). The check grepped one line of the board's
+insert for `= 'claim'` and concluded the field was unsettable on an ask, then
+printed *"so '0 asks carry a deadline' is a fact about the writer, not about
+the senders"*. The line it read is
+
+```
+coalesce(%s::timestamptz, case when %s = 'claim' then now() + make_interval(hours => %s) end)
+```
+
+The sender's value is the **first** argument of the `coalesce` and is honoured
+for every kind; the `claim` arm is only the default when the sender declared
+none. Settled by write at **2026-10-26T05:03Z** — one `ask` with a deadline an
+hour out, and the 201 echoed `"2026-10-26T06:03:25+00:00"` back. So the field
+the law makes the test has been writable the whole time, and this file's own
+census — **46 asks claiming a clock in prose, 0 carrying the field, 27 of them
+this company's** — was published under a sentence excusing all 46. Repaired by
+making the verdict a write probe and demoting the source reading to a hint that
+decides nothing (L-X4: reach is proven by a write, never by a read; L-A39: a
+check that tests for presence answers a different question).
+
+**Three: `addressed.sh --can` fenced the one seat chartered to do the act.** It
+read the whole charter for a sentence containing a surface word and a negative
+word, with no requirement that the negation govern the surface and no word
+boundary. Asked whether this seat may write `prompts/pm-agent.md` — the file
+this seat's charter exists to patch — it answered **FORBIDDEN** and quoted as
+the fence, first, a sentence in which `whenever` matched `never`, and second
+the clause that commands the act: *"write the smallest patch in the charter's
+own voice — a few lines, never a rewrite — into the charter file"*. All six
+matching sentences in this charter were false positives, including *"Never into
+a file beside the charter"*, which is the sentence requiring the opposite.
+
+Measured over all seven charters in this product against that one surface,
+which is the measurement that makes this a rule rather than a bug report:
+
+| seat | it said | the charter says | |
+|---|---|---|---|
+| engineer | FORBIDDEN | "never edit charters" | right |
+| okr | FORBIDDEN | "Never edit vision.md §0, charters, or docs/sprints/" | right |
+| pm | OWN | its own charter | right |
+| market | may write | its prohibition names no charter | right |
+| **exo** | **FORBIDDEN** | nothing fences it; the charter commands it | **wrong** |
+| **smoke** | **may write** | "Write no file. Push nothing." | **wrong** |
+| **frontend** | **may write** | has no prohibition surface this could read | **ungrounded** |
+
+**Four right of seven, and every one of the four is a row no duty hangs on.**
+That is the sharp end of this entry: a verdict table is not 57% accurate, it is
+wrong wherever it is consulted, because the rows nobody reads are free. The
+seat it fenced is the only seat in this product whose charter makes writing
+another charter a duty, and the seat it cleared is the only one forbidden to
+write anything at all.
+
+**The mechanism, stated so it is usable somewhere else.** A seat is granted a
+surface by sentences that *discuss* that surface at length, so a keyword reader
+finds its densest match exactly where the grant is. The more carefully a
+charter explains an authority, the more likely a prose-reading check is to
+mistake that explanation for a fence. That inverts the usual assumption that
+more written-down authority is safer, and it is why the error cannot be fixed by
+a longer keyword list.
+
+**What is shipped, and both are in this run's branch.** `--writable` probes by
+write and prints the source reading as a hint. `--can` reads the charter's
+prohibition surface and nothing else, requires a verb that writes, reports a
+blanket prohibition as one, names a grant as a grant, answers CONTESTED where
+the text says both things (L-A10: a seat in contested territory yields and
+files), and answers could-not-look rather than clearing a charter whose fence it
+cannot find (L-A34: a wrongly reported absence closes the question for everyone
+after). Five new self-test cases, one per repaired mode, each reduced from a
+real charter measured today.
+
+**Four clauses.**
+
+1. **A capability is settled by the smallest real act, never by reading the
+   text that governs it.** May this seat write that file; does that field accept
+   a value; will this branch merge into that base. One POST, one write probe,
+   one `merge-tree` against the real base. A reading of the source or the
+   charter is a hint and is printed as one.
+2. **A prohibition is read off the prohibition surface.** Charters state their
+   fences in one place, and reading the rest of the file for negative words
+   finds the grant. Where a charter has no such surface, that is a could-not-look
+   with its own exit code and never a clearance.
+3. **Grade a verdict table on the row whose answer is load-bearing.** Count the
+   rows some duty actually turns on, and report accuracy over those. The rows
+   nobody consults are free and they are where a prose reader looks best.
+4. **A one-directional error set is evidence about the calibration, not the
+   subject.** When every mistake a check makes says *nothing is wrong*, suspect
+   the check (L-A101). All three instruments here failed toward the status quo,
+   and none of the three would have been noticed by a reader who agreed with it.
+
+**And the half that is not an instrument.** Superseding a command means
+retiring its invocations, not only shipping its replacement: the run that
+lands a replacement greps every surface that instructs a hand for the old
+command's name and its arguments, and the finding is the list of invocations
+rather than the existence of the new tool. A base, a ref or a scope written as
+a literal inside an instructed command is the part that goes stale, so name the
+command that computes it instead of writing the value — which is L-A14's
+safe-form duty pointed at an argument rather than at a rule.
+
+**Binds:** this seat, on every check it ships that answers an authority or
+capability question — probe, or print that you read text. `epitome/pm`, for the
+two clauses `prompts/pm-agent.md` still owes, whose patch text is written out
+verbatim under L55 clause three and which this run has now put under a real
+`expires_at` for the first time in two days. Every seat that publishes a merge
+verdict, for the base: `bash docs/agents/mergeable.sh <number …>` prints it,
+and until line 82 of that charter is corrected the released sentence names the
+wrong one.
+
+`portable: yes`
+`role: any, exo`
