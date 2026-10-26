@@ -56,6 +56,13 @@ run_shim() { # <fixture-dir> <python> [extra env assignments…]
 }
 result() { grep -E '^\{"session_id"' "$OUT" | tail -1; }
 detail() { result | python3 -c 'import json,sys; print(json.loads(sys.stdin.read()).get("detail") or "")'; }
+# Both of those are producers, so neither may be piped into quiet grep: grep
+# exits the instant it matches, the pipe it closes kills `tail` (or python3)
+# mid-write, and `pipefail` reports that death as the verdict — so a check can
+# print FAIL for a pattern it MATCHED. The output is captured whole first and
+# matched against a herestring, which has no pipe and no second process to
+# kill. Same helper as smoke-roster.sh, smoke-temporal.sh, smoke-deploy.sh.
+said() { local hay="$1"; shift; grep -q "$@" <<<"$hay"; }
 
 step "sink: a stand-in trace backend on 127.0.0.1:$SINK_PORT (Phoenix takes the same OTLP)"
 SINK_STARTS=$((SINK_STARTS+1)); SINK_LOG="$ROOT/sink-$SINK_STARTS.log"
@@ -86,14 +93,14 @@ if [ -n "$PY_REAL" ]; then
   rc=$(run_shim "$work" "$PY_REAL" "${FACTS[@]}" "${TRACED[@]}" EPITO_GRAPH=seat EPITO_PROMPT="You are the agent named graphs. Read prompts/graphs.md.")
   sed 's/^/  /' "$OUT"
   check "the graph ran, and the shim exited 0" "[ '$rc' = 0 ]"
-  check "its steps are the run's turns, and its last message is the result" "result | grep -q '\"num_turns\": 2' && result | grep -q 'opened https://github.com/alexandrapaiz/epitome/pull/999'"
+  check "its steps are the run's turns, and its last message is the result" "said \"\$(result)\" '\"num_turns\": 2' && said \"\$(result)\" 'opened https://github.com/alexandrapaiz/epitome/pull/999'"
   check "the run's charter reached the graph, read from inside the clone" "grep -q 'charter prompts/graphs.md: # graphs' '$OUT'"
   check "so did the credential epito minted for this run" "grep -q 'GH_TOKEN=ghs_SMOKETOKEN000000000000000000000000' '$OUT'"
   check "and the trigger, so a graph can behave differently on a hook" "grep -q 'trigger cron' '$OUT'"
 
   step "1 (either spelling): langgraph.json may point at a compiled graph or a StateGraph"
   rc=$(run_shim "$work" "$PY_REAL" "${FACTS[@]}" EPITO_GRAPH=uncompiled EPITO_PROMPT="hello")
-  check "an uncompiled StateGraph is compiled by the runtime, not by the author" "[ '$rc' = 0 ] && grep -q 'graph \"uncompiled\"' '$OUT' && result | grep -q '\"num_turns\": 2'"
+  check "an uncompiled StateGraph is compiled by the runtime, not by the author" "[ '$rc' = 0 ] && grep -q 'graph \"uncompiled\"' '$OUT' && said \"\$(result)\" '\"num_turns\": 2'"
 
   step "3: every node is a span in the RUN's trace, with no OpenTelemetry package installed"
   # In a file rather than inline: an assertion about nesting is worth reading,
@@ -141,7 +148,7 @@ PYX
   rc=$(run_shim "$boom" "$PY_REAL" "${FACTS[@]}" EPITO_GRAPH=seat EPITO_PROMPT="go")
   echo "  $(detail)"
   check "exit 3 is the graph raising, not the adapter refusing" "[ '$rc' = 3 ]"
-  check "the reason is one sentence on the board, naming whose code it is" "detail | grep -q 'raised while running: RuntimeError' && detail | grep -q \"this is the agent's own code\""
+  check "the reason is one sentence on the board, naming whose code it is" "said \"\$(detail)\" 'raised while running: RuntimeError' && said \"\$(detail)\" \"this is the agent's own code\""
 else
   step "1: SKIPPED — langgraph is not importable by ${EPITO_PYTHON:-python3}"
   cat <<'MSG'
@@ -161,47 +168,47 @@ step "2: the same contract, against a graph-shaped object and no framework at al
 stub="$ROOT/stub"; cp -r "$CLI/test/fixtures/langgraph-stub" "$stub"
 rc=$(run_shim "$stub" python3 "${FACTS[@]}" "${TRACED[@]}" EPITO_PROMPT="You are the agent named graphs.")
 sed 's/^/  /' "$OUT"
-check "it runs with nothing installed: epito imports nothing from the agent's language" "[ '$rc' = 0 ] && result | grep -q '\"num_turns\": 2'"
+check "it runs with nothing installed: epito imports nothing from the agent's language" "[ '$rc' = 0 ] && said \"\$(result)\" '\"num_turns\": 2'"
 check "one graph and no [runtime].graph is not ambiguous, so it just runs" "grep -q 'graph \"seat\" from ./src/agent.py:graph' '$OUT'"
 
 step "4: every refusal names the rule, in the product's words, with the fix"
 empty="$ROOT/empty"; mkdir -p "$empty"; echo "not a langgraph app" > "$empty/README.md"
 rc=$(run_shim "$empty" python3 "${FACTS[@]}" EPITO_PROMPT=go); echo "  $(detail)"
-check "no langgraph.json -> 2, and it offers the claude adapter as the alternative" "[ '$rc' = 2 ] && detail | grep -q 'looked for langgraph.json at the root' && detail | grep -q 'set \[runtime\].adapter = \"claude\"'"
+check "no langgraph.json -> 2, and it offers the claude adapter as the alternative" "[ '$rc' = 2 ] && said \"\$(detail)\" 'looked for langgraph.json at the root' && said \"\$(detail)\" 'set \[runtime\].adapter = \"claude\"'"
 
 two="$ROOT/two"; mkdir -p "$two/src"; cp "$CLI/test/fixtures/langgraph-stub/src/agent.py" "$two/src/"
 printf '{"graphs": {"alpha": "./src/agent.py:graph", "beta": "./src/agent.py:graph"}}\n' > "$two/langgraph.json"
 rc=$(run_shim "$two" python3 "${FACTS[@]}" EPITO_PROMPT=go); echo "  $(detail)"
-check "two graphs and no [runtime].graph -> 2, naming both and one to pick" "[ '$rc' = 2 ] && detail | grep -q 'more than one graph (alpha, beta)' && detail | grep -q '\[runtime\].graph = \"alpha\"'"
+check "two graphs and no [runtime].graph -> 2, naming both and one to pick" "[ '$rc' = 2 ] && said \"\$(detail)\" 'more than one graph (alpha, beta)' && said \"\$(detail)\" '\[runtime\].graph = \"alpha\"'"
 rc=$(run_shim "$two" python3 "${FACTS[@]}" EPITO_GRAPH=gamma EPITO_PROMPT=go); echo "  $(detail)"
-check "a [runtime].graph that is not in langgraph.json -> 2, listing what is" "[ '$rc' = 2 ] && detail | grep -q '\[runtime\].graph names \"gamma\"' && detail | grep -q 'declares alpha, beta'"
+check "a [runtime].graph that is not in langgraph.json -> 2, listing what is" "[ '$rc' = 2 ] && said \"\$(detail)\" '\[runtime\].graph names \"gamma\"' && said \"\$(detail)\" 'declares alpha, beta'"
 
 bad="$ROOT/bad"; mkdir -p "$bad"
 printf '{"graphs": {"seat": "src/agent.py"}}\n' > "$bad/langgraph.json"
 rc=$(run_shim "$bad" python3 "${FACTS[@]}" EPITO_PROMPT=go); echo "  $(detail)"
-check "a spec that is not <file>:<attribute> -> 2, with the shape written out" "[ '$rc' = 2 ] && detail | grep -q 'which is not <file-or-module>:<attribute>'"
+check "a spec that is not <file>:<attribute> -> 2, with the shape written out" "[ '$rc' = 2 ] && said \"\$(detail)\" 'which is not <file-or-module>:<attribute>'"
 
 gone="$ROOT/gone"; mkdir -p "$gone"
 printf '{"graphs": {"seat": "./src/nowhere.py:graph"}}\n' > "$gone/langgraph.json"
 rc=$(run_shim "$gone" python3 "${FACTS[@]}" EPITO_PROMPT=go); echo "  $(detail)"
-check "a file langgraph.json names but the repo does not have -> 2" "[ '$rc' = 2 ] && detail | grep -q 'that file is not in this repository'"
+check "a file langgraph.json names but the repo does not have -> 2" "[ '$rc' = 2 ] && said \"\$(detail)\" 'that file is not in this repository'"
 
 attr="$ROOT/attr"; mkdir -p "$attr/src"; cp "$CLI/test/fixtures/langgraph-stub/src/agent.py" "$attr/src/"
 printf '{"graphs": {"seat": "./src/agent.py:workflow"}}\n' > "$attr/langgraph.json"
 rc=$(run_shim "$attr" python3 "${FACTS[@]}" EPITO_PROMPT=go); echo "  $(detail)"
-check "an attribute that is not there -> 2, listing what the file does export" "[ '$rc' = 2 ] && detail | grep -q 'has no \"workflow\" in it' && detail | grep -q 'Graph, graph'"
+check "an attribute that is not there -> 2, listing what the file does export" "[ '$rc' = 2 ] && said \"\$(detail)\" 'has no \"workflow\" in it' && said \"\$(detail)\" 'Graph, graph'"
 
 notgraph="$ROOT/notgraph"; mkdir -p "$notgraph/src"
 printf 'graph = "this is a string, not a graph"\n' > "$notgraph/src/agent.py"
 printf '{"graphs": {"seat": "./src/agent.py:graph"}}\n' > "$notgraph/langgraph.json"
 rc=$(run_shim "$notgraph" python3 "${FACTS[@]}" EPITO_PROMPT=go); echo "  $(detail)"
-check "an object that is not a graph -> 2, naming what it actually is" "[ '$rc' = 2 ] && detail | grep -q 'is a str, which is not a graph this runtime can run'"
+check "an object that is not a graph -> 2, naming what it actually is" "[ '$rc' = 2 ] && said \"\$(detail)\" 'is a str, which is not a graph this runtime can run'"
 
 raises="$ROOT/raises"; mkdir -p "$raises/src"
 printf 'import nonexistent_dependency\ngraph = None\n' > "$raises/src/agent.py"
 printf '{"graphs": {"seat": "./src/agent.py:graph"}}\n' > "$raises/langgraph.json"
 rc=$(run_shim "$raises" python3 "${FACTS[@]}" EPITO_PROMPT=go); echo "  $(detail)"
-check "a missing dependency -> 2, and says whose job installing it is" "[ '$rc' = 2 ] && detail | grep -q 'raised ModuleNotFoundError' && detail | grep -q 'the runtime runs it, it does not install it'"
+check "a missing dependency -> 2, and says whose job installing it is" "[ '$rc' = 2 ] && said \"\$(detail)\" 'raised ModuleNotFoundError' && said \"\$(detail)\" 'the runtime runs it, it does not install it'"
 
 step "3 (off means off): no endpoint, no spans, no complaint"
 before=$(wc -l < "$SPANS" 2>/dev/null || echo 0)

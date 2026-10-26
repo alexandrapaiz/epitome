@@ -34,8 +34,15 @@
 #   8 KiB    needle on line 1    8 of 500 wrong      needle on the last line  0 of 500
 #   64 KiB   needle on line 1  442 of 500 wrong      needle on the last line  0 of 500
 #
-# Every wrong verdict is PIPESTATUS `141 0`: grep MATCHED and exited 0, and the
-# producer was killed writing the rest. So the race is not about the buffer at
+# Every wrong verdict there is PIPESTATUS `141 0`: grep MATCHED and exited 0,
+# and the producer was killed writing the rest. `141` is not the only signature,
+# which matters for anyone diagnosing one of these by eye: a producer that
+# handles SIGPIPE itself reports its own exit code instead of dying of it. A
+# `python3` producer is the case in this repository, and it reads `1 0` —
+# BrokenPipeError, exit 1 — which is indistinguishable from "the pattern was
+# not there". Measured at 100 of 100 asks with 200 KB still to write after the
+# needle, and 0 of 100 with 100 bytes, which is the same POSITION race as above
+# and not a second fault. So the race is not about the buffer at
 # all — it is about whether grep can match before the producer has finished
 # writing, which the needle's POSITION decides and the output's size only makes
 # more likely. A needle on the last line cannot lose the race; a needle in a
@@ -69,13 +76,17 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # The allowance: what each file still carries, and the ceiling it may not pass.
 # A file absent from this list is allowed none. Lower a number when you convert
 # a suite; there is no reason for one to rise, and a rise is what this fails on.
-# Counts re-read on `main` at 2026-10-25 02:4xZ, after the deploy suite's
-# conversion and the recalibration that followed it: 57 sites in six files,
-# less the 31 in smoke-doctor.sh that this branch converts. What is left after
-# this branch is smoke-langgraph.sh (19), smoke-bus.sh (2), pack.sh (2) and the
-# two deploy scripts (5), which the board card asks to land last and separately
-# -- a false failure in the middle of provisioning a box is worse than a false
-# failure in a test.
+# Counts re-read on `main` at 2026-10-26 09:2xZ, after smoke-doctor.sh's
+# conversion (#292) landed: 37 sites in eight files, which is 9 in the three
+# named probe exemptions below, 23 in smoke-langgraph.sh (19), smoke-bus.sh (2)
+# and pack.sh (2) that this branch converts, and 5 in the two deploy scripts.
+# What is left after this branch is those two and nothing else --
+# deploy/test-provision.sh (4) and deploy/provision-host.sh (1), which the
+# board card asks to land last and separately, because a false failure in the
+# middle of provisioning a box is worse than a false failure in a test. Every
+# suite under cli/test/ is converted as of this branch; the three probe files
+# below are the shape on purpose and say so. 37 less 23 is the 14 this branch
+# leaves, and this gate prints them.
 #
 # Three lines here are not allowances but exemptions, and they are named rather
 # than hidden: probe-pipefail.sh carries five of the shape, probe-negated.sh
@@ -90,8 +101,9 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # can quietly grow one more.
 #
 # Converted and therefore absent, allowed none: smoke-validate.sh,
-# smoke-temporal.sh, smoke-roster.sh, all.sh, smoke-deploy.sh, and
-# smoke-doctor.sh here. A number may only be lowered by a branch that can see
+# smoke-temporal.sh, smoke-roster.sh, all.sh, smoke-deploy.sh, smoke-doctor.sh,
+# and smoke-langgraph.sh, smoke-bus.sh and pack.sh here. A number may only be
+# lowered by a branch that can see
 # its conversion land: a number that is too HIGH costs one advisory line, and a
 # number lowered for a conversion that does not land fails this gate on main.
 # The stale direction is the safe one, so this file will always trail a merge
@@ -102,10 +114,7 @@ ALLOWED="
 cli/test/probe-pipefail.sh 5
 cli/test/probe-negated.sh 2
 cli/test/probe-readers.sh 2
-cli/test/smoke-langgraph.sh 19
 deploy/test-provision.sh 4
-cli/test/smoke-bus.sh 2
-cli/test/pack.sh 2
 deploy/provision-host.sh 1
 "
 
@@ -120,7 +129,13 @@ bad() { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
 lines() { [ -f "$ROOT/$1" ] && grep -nE "$SHAPE" "$ROOT/$1" | grep -vE '^[0-9]+:[[:space:]]*#'; true; }
 count() { lines "$1" | grep -oE "$SHAPE" | wc -l; }
 
-printf '\n== every shell gate in this repository, scanned for the quiet-pipe shape\n'
+# What this prints is what it read, and it has never read the whole repository:
+# FILES is cli/test/ and deploy/ only, and docs/agents/ holds twenty-one more
+# shell files -- the tools the seats run to decide things -- of which eight
+# carry this shape at fifteen sites. That is a card on the board, not a fact
+# this banner may round off: a gate that says "every" while scanning half is
+# how a blind spot gets read as a clean bill of health.
+printf '\n== cli/test/ and deploy/, scanned for the quiet-pipe shape (docs/agents/ is not scanned)\n'
 FILES="$( (cd "$ROOT" && ls cli/test/*.sh deploy/*.sh 2>/dev/null) )"
 for f in $FILES; do
   n="$(count "$f")"
@@ -194,7 +209,9 @@ cli/test/probe-stub-restart.sh 1
 # its three: probe-stub-restart.sh takes the log path as an argument and runs
 # the stale shape and the per-start shape the same number of times to compare
 # them, so a generic `> "$2"` with a wait that reads `"$2"` is what that file
-# is FOR. Everything else in this repository is converted as of this branch,
+# is FOR. Everything else UNDER THE TWO DIRECTORIES THIS FILE SCANS is
+# converted as of this branch -- which is not the same claim as the repository,
+# and the difference is the board card named in the banner below --
 # the fix is one line, and so a new site here is a mistake rather than a cost
 # somebody has not paid yet -- which is why this table counts one file and not
 # a column of ceilings.
@@ -292,7 +309,7 @@ END {
 ' "$ROOT/$1"
 }
 
-printf '\n== the same gates, scanned for a start that waits on a fixed log name\n'
+printf '\n== the same files, scanned for a start that waits on a fixed log name\n'
 for f in $FILES; do
   sites="$(waitsites "$f")"
   n="$(printf '%s' "$sites" | grep -c . )"
