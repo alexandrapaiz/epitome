@@ -32,8 +32,22 @@ probe_root() {
   local said
   said="$(sudo -n true 2>&1 || true)"
   if [ -z "$said" ]; then ROOT_REACH=yes; ROOT_SAID=""; return; fi
-  ROOT_SAID="$(printf '%s\n' "$said" | head -1)"
-  if printf '%s' "$said" | grep -qiE 'password'; then ROOT_REACH=interactive; return; fi
+  # Also pipe-free, and this is the one place in this repository where that
+  # matters for a reason other than quiet grep: `head -1` closes the pipe on
+  # its producer, `pipefail` carries that death, and an assignment under
+  # `set -e` dies of it. Measured: the same line with a 20,000-line producer
+  # exits 141; with the one line of sudo's refusal this site actually reads it
+  # survived 300 of 300 asks, so this is a latent shape rather than a firing
+  # one. 38 assignments in this repository pipe into `head`/`tail`, and 37 of
+  # them are in files that run without `set -e` or carry `|| true`, which is
+  # why this is one line here and not a card.
+  ROOT_SAID="$(head -1 <<<"$said")"
+  # A herestring, not a pipe into quiet grep: this line is not an assertion,
+  # it DECIDES which of the three answers the reader gets, and quiet grep can
+  # report "no match" for a string it matched (cli/test/shapes.sh's header has
+  # the rate). A false no-match here tells an operator whose sudo only wants a
+  # password that their box cannot become root at all, and prints the wrong fix.
+  if grep -qiE 'password' <<<"$said"; then ROOT_REACH=interactive; return; fi
   ROOT_REACH=no
 }
 
@@ -60,6 +74,24 @@ fix_lines() {
   esac
 }
 
+# The loop the last check below used to carry, as a function, for two reasons.
+# The pipe into quiet grep is the one this card is about. The `|| exit 1` it
+# also carried is the other: `check` runs its argument through `eval` inside an
+# `if`, and `exit` is not caught by an `if` — so that check could not report
+# itself. A mutated needle exited the suite with status 1 before `check`
+# printed either verdict and before the tally line ran, which means the one
+# assertion covering all three reach answers was unmutatable, and a conversion
+# that left the `exit` in place could not have been proved live. `return 1`
+# leaves the verdict where the other eight are. It is the only `exit` inside a
+# check body in this repository: 867 `check` calls across cli/test/ and
+# deploy/, one match.
+every_case_names_a_fix() {
+  local r
+  for r in yes interactive no; do
+    grep -qE 'docker|daemon' <<<"$(fix_lines "$r" x)" || return 1
+  done
+}
+
 # The only assertions a box with no usable daemon can make: that the sentence
 # it just printed is one its reader can act on. Before this, a docker-less box
 # asserted NOTHING — `test/all.sh` called the suite `unrun`, which is honest
@@ -76,10 +108,15 @@ skip_path_checks() {
 
   echo
   echo "  == the skip path's own checks (what this box can still prove)"
+  # Captured once and matched as a herestring, like the five below it: the two
+  # lines this replaces piped `fix_lines` into quiet grep, and under `pipefail`
+  # that pipeline can carry the producer's death instead of grep's match.
+  local yes_out
+  yes_out="$(fix_lines yes '')"
   check "a box with working sudo is told to start the daemon" \
-    "fix_lines yes '' | grep -q 'sudo systemctl start docker'"
+    "grep -q 'sudo systemctl start docker' <<<\"\$yes_out\""
   check "and told the group fix, named for whoever is reading" \
-    "fix_lines yes '' | grep -q 'usermod -aG docker \"${USER:-$(id -un)}\"'"
+    "grep -q 'usermod -aG docker \"${USER:-$(id -un)}\"' <<<\"\$yes_out\""
   check "sudo that only wants a password is still sudo, so the fix is unchanged" \
     "[ \"\$(fix_lines interactive 'sudo: a password is required')\" = \"\$(fix_lines yes '')\" ]"
   out="$(fix_lines no 'sudo: The \"no new privileges\" flag is set')"
@@ -97,7 +134,7 @@ skip_path_checks() {
   check "plus the one somebody with root can run for it" \
     "grep -q 'usermod -aG docker' <<<\"\$out\""
   check "every case names a fix: no reach answer prints a bare complaint" \
-    "for r in yes interactive no; do fix_lines \$r x | grep -qE 'docker|daemon' || exit 1; done"
+    "every_case_names_a_fix"
 
   printf '\nprovision: %d ok, %d failed\n' "$pass" "$fail"
   # A skip is not a failure; a skip path that lies is. So the exit code is

@@ -79,14 +79,18 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # Counts re-read on `main` at 2026-10-26 09:2xZ, after smoke-doctor.sh's
 # conversion (#292) landed: 37 sites in eight files, which is 9 in the three
 # named probe exemptions below, 23 in smoke-langgraph.sh (19), smoke-bus.sh (2)
-# and pack.sh (2) that this branch converts, and 5 in the two deploy scripts.
-# What is left after this branch is those two and nothing else --
+# and pack.sh (2), and 5 in the two deploy scripts --
 # deploy/test-provision.sh (4) and deploy/provision-host.sh (1), which the
-# board card asks to land last and separately, because a false failure in the
-# middle of provisioning a box is worse than a false failure in a test. Every
-# suite under cli/test/ is converted as of this branch; the three probe files
-# below are the shape on purpose and say so. 37 less 23 is the 14 this branch
-# leaves, and this gate prints them.
+# board card asked to land last and separately, because a false failure in the
+# middle of provisioning a box is worse than a false failure in a test. The
+# first 23 are this branch's base (#332) and the last 5 are this branch, so
+# the two directories this file scans are converted down to the 9 exemptions
+# and the allowance table below holds nothing else. 37 less 23 less 5 is 9,
+# and that is what this gate prints.
+#
+# A nine-line table is not the end of this work: see the banner below the
+# allowance for the twenty-one shell files under docs/agents/ that this gate
+# has never read, and the board card that holds them.
 #
 # Three lines here are not allowances but exemptions, and they are named rather
 # than hidden: probe-pipefail.sh carries five of the shape, probe-negated.sh
@@ -102,7 +106,8 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 #
 # Converted and therefore absent, allowed none: smoke-validate.sh,
 # smoke-temporal.sh, smoke-roster.sh, all.sh, smoke-deploy.sh, smoke-doctor.sh,
-# and smoke-langgraph.sh, smoke-bus.sh and pack.sh here. A number may only be
+# smoke-langgraph.sh, smoke-bus.sh, pack.sh, and both deploy scripts here --
+# every file this gate scans except the three probes. A number may only be
 # lowered by a branch that can see
 # its conversion land: a number that is too HIGH costs one advisory line, and a
 # number lowered for a conversion that does not land fails this gate on main.
@@ -114,8 +119,6 @@ ALLOWED="
 cli/test/probe-pipefail.sh 5
 cli/test/probe-negated.sh 2
 cli/test/probe-readers.sh 2
-deploy/test-provision.sh 4
-deploy/provision-host.sh 1
 "
 
 pass=0; fail=0
