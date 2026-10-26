@@ -109,8 +109,19 @@ if [ "$SELFTEST" = 1 ]; then
   case "$out" in *"could not look"*) ;; *)
     echo "owed.sh --self-test: no event source must say could not look" >&2; ok=0 ;; esac
 
-  rm -rf "$a" "$b" "$c" "$d" "$e"
-  [ "$ok" = 1 ] && { echo "owed.sh --self-test: all verdicts fired"; exit 0; }
+  # 6. An api_error that is not a limit, on a brief wake. A limit refuses a
+  #    duty and leaves it owed; an api error means the run began and failed,
+  #    which is this seat's business and not the retry's. Counting it here
+  #    would make every content refusal look like lost capacity.
+  f=$(mktemp -d); mk "$f" epitome-exo 12-01-59 message api_error 2 0 "API Error: cant help with this"
+  ev 12:01:57 > "$f/events.json"
+  out=$(bash "${BASH_SOURCE[0]}" --logs "$f" --events "$f/events.json" --roster /nonexistent 2>&1); rc=$?
+  [ "$rc" = 0 ] || { echo "owed.sh --self-test: an api error is not a limit refusal — expected 0, got $rc" >&2; ok=0; }
+  case "$out" in *"0 of them refused"*) ;; *)
+    echo "owed.sh --self-test: expected zero limit refusals for a non-limit api_error" >&2; ok=0 ;; esac
+
+  rm -rf "$a" "$b" "$c" "$d" "$e" "$f"
+  [ "$ok" = 1 ] && { echo "owed.sh --self-test: all six verdicts fired"; exit 0; }
   exit 1
 fi
 
@@ -172,8 +183,13 @@ if not runs:
     sys.exit(2)
 
 def refused(rec):
+    """Limit-refused, on one field and no prose. `api_error_status in (429,529)`
+    is exactly coextensive with the 397 limit refusals in this host's whole
+    history; `terminal_reason == api_error` is wider by one — a content refusal
+    with no status — and reading the result text is wider by two completed runs
+    that merely quote a refusal (L64, and `caps.sh`'s fourth fixture)."""
     if not rec: return False
-    return rec.get("terminal_reason") == "api_error" or rec.get("api_error_status") in (429, 529)
+    return rec.get("api_error_status") in (429, 529)
 
 def finished_ok(rec):
     return bool(rec) and rec.get("terminal_reason") in ("completed", "max_turns")
