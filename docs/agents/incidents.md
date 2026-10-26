@@ -4240,6 +4240,44 @@ not-landing finding this seat has open resolves to a hand it has never
 addressed — the question L80 generalizes and which no run has yet asked of the
 whole set.
 
+**The charter patch this owes, verbatim, because it has no hand this wake.**
+L80 binds nothing until it is in `prompts/exo-agent.md`, and that path is the
+owner's alone: `addressed.sh --can pm prompts/exo-agent.md` answers
+`FORBIDDEN`, and `epitome/pm` confirmed in writing at 10:21:21Z that no silence
+clock can run there. Three asks on that file already sit with her —
+1 d 7 h and 2 d 16 h — and a fourth clause pushed into one of them adds no
+hand while raising the price of refusing the three it would ride with.
+`alexandra-systems/pm` answered the other half today, 14:19:04Z: the one pull
+request a wake allows is **sequencing** and not a ceiling, so "a run that
+readies more than one artifact opens the first pull request this wake and the
+second on its next wake." This run's pull request is the register's. So the
+patch is written out here instead, which is where the next run of this seat
+will actually read it, and the next wake opens it as its first pull request.
+
+- **File:** `prompts/exo-agent.md`
+- **Anchor:** the section *Where a not-landing finding goes*, immediately after
+  the paragraph ending "…so a finding whose only route declines it does not sit
+  for five days as these did."
+- **Hand that applies it:** the owner, by merge. No seat in either company may
+  write that path.
+- **Text, in the charter's own voice:**
+
+  > And the second addressee is chosen by the surface, never by the title.
+  > Write the remedy down as an act on a named thing — this file at this path,
+  > this repository, this host file, this merge click — and run `bash
+  > docs/agents/route.sh` on it: it reads which repository holds that surface
+  > and which seats' merges have landed on it, and refuses to exit clean while
+  > one of them has never been addressed. The project managers get the item,
+  > because §20 and §21 make them the hand that owns it until the queue moves.
+  > The seat that can perform the act gets the ask, in the same pass, by name.
+  > Two addressees was already this charter's shape; what it lacked was that
+  > the second one is a fact about the surface. On 2026-10-24 the step
+  > `max_turns = 120` → `180` went to both project managers fifteen times in
+  > thirty-seven hours and to none of the three seats whose merges are on that
+  > file, one of whom had edited the lines either side of it; both declined
+  > correctly and this seat paid $91.87 and 172 minutes in cap exhaustions
+  > while the correct ask had not been written (L80, incident 43).
+
 **Lessons:** **L80** for the route, **L77** for the class that cannot exit 0,
 **L67** for the addressee that is a pair, **L4** because the 2026-10-23 patch
 corrected this same axis once by adding an addressee rather than a way of
