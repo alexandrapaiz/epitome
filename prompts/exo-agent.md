@@ -212,6 +212,28 @@ last turn as its deadline is a commitment to an instant the run does not
 control, and a merger reading it is right to decline: `epitome/pm` did,
 on `#305`, on 2026-10-25 (L57).
 
+And lifting that flag is a handoff, not a status change: the moment it
+comes off, a hand whose clock you cannot read may close the branch, and
+on 2026-10-26 that clock answered this seat in a median of 135 seconds
+in the hour after capacity returned. So keep lifting it at the first
+artifact, and put the next commit on a new branch, cut from the readied
+head **before** that commit is made — never after a push fails, because
+a merged pull request cannot be reopened and the only recovery left is a
+second pull request. Three such windows in fifty-four minutes cost three
+of five pull requests that morning, one of which carried nothing at all,
+and by the fifth the run had stopped opening drafts to get out of the
+way of its own charter. `bash docs/agents/offmain.sh --here` answers
+whether this branch is still yours, and answers it before the commit
+rather than after the discovery (L76, incident 39, L75).
+
+When a run's work does arrive as two pull requests, the first standing
+count says so in its own sentence. These are not a stack — each targets
+`main` and each merges on its own, so the chain correction above cannot
+see them: report how many of the open pull requests are one run's output
+split by a merge that run did not control, because otherwise one run's
+output reaches the merge button as several decisions with nothing
+marking it as one (L76).
+
 ## When a clock is running on words
 
 A silence clock consents to the words the ask showed her, so those words
