@@ -69,13 +69,15 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # The allowance: what each file still carries, and the ceiling it may not pass.
 # A file absent from this list is allowed none. Lower a number when you convert
 # a suite; there is no reason for one to rise, and a rise is what this fails on.
-# Counts re-read on `main` at 2026-10-25 02:4xZ, after the deploy suite's
-# conversion and the recalibration that followed it: 57 sites in six files,
-# less the 31 in smoke-doctor.sh that this branch converts. What is left after
-# this branch is smoke-langgraph.sh (19), smoke-bus.sh (2), pack.sh (2) and the
-# two deploy scripts (5), which the board card asks to land last and separately
-# -- a false failure in the middle of provisioning a box is worse than a false
-# failure in a test.
+# Counts re-read on `main` at 2026-10-26 05:5xZ, after smoke-doctor.sh's
+# conversion (#292) landed: 26 sites in six files, less the 23 in
+# smoke-langgraph.sh (19), smoke-bus.sh (2) and pack.sh (2) that this branch
+# converts. What is left after this branch is the two deploy scripts and
+# nothing else -- deploy/test-provision.sh (4) and deploy/provision-host.sh
+# (1), which the board card asks to land last and separately, because a false
+# failure in the middle of provisioning a box is worse than a false failure in
+# a test. Every suite under cli/test/ is converted as of this branch; the three
+# probe files below are the shape on purpose and say so.
 #
 # Three lines here are not allowances but exemptions, and they are named rather
 # than hidden: probe-pipefail.sh carries five of the shape, probe-negated.sh
@@ -90,8 +92,8 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # can quietly grow one more.
 #
 # Converted and therefore absent, allowed none: smoke-validate.sh,
-# smoke-temporal.sh, smoke-roster.sh, all.sh, smoke-deploy.sh, and
-# smoke-doctor.sh here. A number may only be lowered by a branch that can see
+# smoke-temporal.sh, smoke-roster.sh, all.sh, smoke-deploy.sh, smoke-doctor.sh,
+# and smoke-langgraph.sh, smoke-bus.sh and pack.sh here. A number may only be lowered by a branch that can see
 # its conversion land: a number that is too HIGH costs one advisory line, and a
 # number lowered for a conversion that does not land fails this gate on main.
 # The stale direction is the safe one, so this file will always trail a merge
@@ -102,9 +104,7 @@ ALLOWED="
 cli/test/probe-pipefail.sh 5
 cli/test/probe-negated.sh 2
 cli/test/probe-readers.sh 2
-cli/test/smoke-langgraph.sh 19
 deploy/test-provision.sh 4
-cli/test/smoke-bus.sh 2
 deploy/provision-host.sh 1
 "
 

@@ -153,10 +153,10 @@ node "$TMP/setup.mjs" "$URL" "$STREAM" "$EPITO_BUS_GROUP" > "$TMP/setup.log" 2>&
 
 out="$($E bus "$R" 2>&1)"; rc=$?
 printf '%s\n' "$out" | sed 's/^/      /'
-said() { printf '%s' "$out" | grep -q -e "$1"; }
+said() { grep -q -e "$1" <<<"$out"; }
 check "it names the bus, the stream and what the stream holds"  "said 'stream $STREAM' && said '1 message held'"
 check "the subscribing seats are both there, with their subjects" "said 'listener' && said 'quiet' && said 'smoke.events.support.run.failed'"
-check "the seat with a consumer shows the event waiting for it"  "printf '%s' \"\$out\" | grep -E 'listener .*smoke-listener .*1' | grep -q ."
+check "the seat with a consumer shows the event waiting for it"  "grep -qE 'listener .*smoke-listener .*1' <<<\"\$out\""
 check "the seat nothing has served says so, rather than showing a zero" "said 'none yet'"
 check "...and says what creates one, in the words of the command that does" "said 'never been served by a running .epito run'"
 check "it exits 0: an event waiting is the system working, not a fault"  "[ $rc -eq 0 ]"
