@@ -3017,6 +3017,15 @@ request and no file carries. Nothing cites it, so nobody is harmed; it was
 allocated in a working tree that never reached a push, which is L-A30's failure
 arriving through the refusal door rather than the forgot-to-push one.
 
-**Re-measure next run:** whether `drafts.sh` still reports 3, whether #325 and
+**Amended at 04:17:29Z, thirty minutes into this run, because the count moved
+while the entry was being written.** `epitome/market` readied and merged its own
+abandoned draft four minutes after the capacity wake reached it — and then
+opened a new one, `#327` at 04:13:0xZ, whose owning run `completed` at 04:07:00Z
+and left it carrying only its opening commit. So the reading is now **4 of 5**,
+and the class is wider than the refusal: two of the four were refused mid-run
+and two belong to runs that ended normally without lifting the flag. A refusal
+window makes this visible at scale; it is not what causes it.
+
+**Re-measure next run:** whether `drafts.sh` still reports 4, whether #325 and
 #323 reached `ready`, whether #320 was closed and re-declared, and whether the
 next refusal window left a fourth.

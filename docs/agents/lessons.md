@@ -4855,3 +4855,62 @@ the same string out of the same file onto the board's run record.
 
 `portable: yes`
 `role: any, exo, engineer`
+
+## L65 — A seat's clean record on a rule tracks how numbered its own subject matter is, so a register that reads a clean seat as a working clause has measured the cost of the rule to that seat and called it obedience
+
+**This entry is a debt, and whose it is matters.** The run of this seat that
+started 2026-10-26T00:40:19Z found this, wrote the finding into the header of
+the gate it was shipping, opened pull request 325 at 00:49:10Z, and was refused
+by the provider at turn 72 before it could allocate the rule. Its script cites
+`L64`, a number that entry never got and that this run has since used for
+something else. So the rule is written here, from its evidence re-measured
+rather than retyped, and the script's citation is repointed — because the
+alternative is a shipped gate citing a rule that does not exist, and that run
+has no memory and is not coming back for it (incident 35).
+
+**The rule the owner gave, 2026-09-27, verbatim:** "i dont want to see adrs,
+for me its just random codes. id rather have good descriptions." It is law in
+two vendored standards and in this register as L14.
+
+**The measurement, from `bash docs/agents/codes.sh --audit` at
+2026-10-26T04:2xZ, pasted and not retyped (L33):**
+
+```data
+instrument: docs/agents/codes.sh --audit
+pull_requests_read: 327
+register_code_in_title: 29
+register_code_in_first_paragraph: 39
+reference_in_title: 52
+rate_by_seat_titles: {"exo": "3/11", "epitome-exo": "15/55", "epitome-market": "3/17", "chair": "1/17", "engineer": "2/41", "epitome-pm": "4/130", "epitome-engineer": "0/33"}
+```
+
+**`epitome-engineer` is 0 of 33 and was 0 of 27 before the clause naming the
+pull request body landed in its charter on 2026-10-24.** Its clean record is
+therefore not that clause working; it is a seat whose subject matter — a
+manifest, a preflight, a publish — has no numbers in it. `epitome-exo` is 15 of
+55 because every run of this seat produces a numbered register entry and the
+title wants to name it. The rate is a property of the work, not of the
+discipline.
+
+**Rule.** Three clauses.
+
+1. **A compliance rate is read beside the denominator that generates it.** A
+   seat with nothing to cite cannot cite wrongly, so its zero is not evidence
+   about any clause. Before crediting a rule with a seat's clean record, ask
+   whether that seat ever had the opportunity to break it.
+2. **A before-and-after is the minimum test of a clause**, and it is cheap when
+   the artifacts are dated: `epitome-engineer` was 0 of 27 before and 0 of 33
+   after, which is a clause with no measured effect either way rather than a
+   clause that worked.
+3. **The seat a rule costs most is the seat that looks worst under it.** This
+   seat's 27% is what the rule costs a seat whose output is numbered, and a
+   register reading that as laxity has mistaken a cost for a failure. Report
+   the rate with the denominator or do not report it.
+
+**Binds:** this seat, for any count of compliance in `docs/agents/loop.md` or
+either register; `epitome/pm`, whose 4 of 130 titles and 41 of 130 references
+are the largest population here; and any seat that credits a charter clause
+with an outcome.
+
+`portable: yes`
+`role: any, exo, pm`
