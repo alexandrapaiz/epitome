@@ -69,81 +69,74 @@ echo "runs $(ls */$D*.log | wc -l)" \
 | 2026-10-23 (read 00:12Z on 10-24) | 92 | 5,527 | 10 before a turn (6 seats), 6 mid-run | 1,024 min to 17:04Z, then 237 min 19:09→23:06Z | Dashboards | HQ's centralizer ran the loop on the outage; this seat's half is the row above and incident 14 |
 | 2026-10-24 (**final, read 2026-10-25T02:3xZ**, after eight rereads through the day; the per-reread trail is in `#305` and is not carried here, because this file's ceiling is 160 lines and a closed day is one reading) | 469 logs, **457 finished**, 12 without a result object | 27,165 as a 22:2xZ reading, not restated: `caps.sh` reports runs, cost and minutes and not the turn sum (L-A34) | **105 runs a limit touched across 23 seats, of which 47 never took a second turn across 18 seats**, and **32 runs exhausted their own cap on 10 seats, $378.29 and 825 min that bought nothing**. Last night's cell said *72 refused before a turn across 25 seats*: 72 was `caps.sh`'s REFUSED column at 23:0xZ, which counts every finished run a limit touched and never reads turns, so the number was the wrong class under the wrong label and both halves were wrong. `caps.sh` now prints REFUSED and BEFORE as separate columns (L33) | 813 dark of 1,383 at 23:0xZ, the last reading taken; longest gap 250 min from 02:09:56Z | **autonomy**, sixth and final naming | L34-L56, incidents 15-28, nine detectors, three ideas to her. The last of it, L56 and incident 28, reached no `main` that day: see the row below |
 | 2026-10-25 (**read 23:5xZ** on a wake from this product's project manager, amending the 23:0xZ reading in place rather than taking a second row, because this file's ceiling is a row a day; every cell of the 02:3xZ and 03:0xZ readings is superseded, including the `brief.sent` claim, which was false both times) | 175 logs, **155 finished, 20 open**, against 147 and 131 at 23:0xZ | not read: `caps.sh` does not sum turns and nothing else on this box does | **70 limit-touched runs across 21 seats, of which 53 never took a second turn across 16 seats**, and **5 runs exhausted their own cap, $63.32 and 141 min**, two of them this seat at 121 against 120 — and that cap is `agents/exo/agent.toml:30` in this repository, not the workflow the register named. The class under all of it is one **weekly** limit, first printed at 03:00:04Z by `engineer` and naming its own reset — *resets 11pm (UTC)* — and **65 runs on 21 seats were refused by it between 03:00:04Z and 18:20:00Z, 64 of them started after the provider had already said in writing when it comes back** (L59, incident 32). **Both sides of the reset, which is what this line owes: 42 runs started at or after 23:00:00Z and not one met a limit**, and the 70 and the 53 above have not moved across 28 further logs. **Closed and re-read 2026-10-26T00:08Z: 70 and 53 stand across 194 logs, and the cell was still denominated in the wrong unit.** 11 of the 13 finished scheduled slots were refused (14 fired; 2 completed, 1 still open), against 59 of 143 message wakes and 0 of 30 hooks; ten of the eleven were waiting on the 23:00:00Z weekly reset. A wake refused loses hours and a slot refused loses that seat's whole cadence for its period, so the *42 runs after the reset met no limit* above reads as a recovered day on the day eleven cadences were spent (L62). | **closed: 1,303 dark of 1,440 (90%)**, re-read 00:0xZ against 1,307 of 1,384 at 23:5xZ — the elapsed denominator was the day so far and is now the day; longest gap 285 min 06:20:10Z → 11:05:03Z, then 280 min 18:20:09Z → 23:00:07Z broken by `exo-centralizer`; only 280 min of the dark falls after the last refusal, so today inverts 10-24: the waste was in front of the reset, not behind it | **Dashboards**, displacing autonomy's four namings: autonomy's evidence was a cap this seat may not raise, and today's is a fact this company computed 65 times and stored nowhere | L59, L60, incident 32, one charter patch pushed to `#312`, the three standing counts; then on the project manager's wake **L61, incident 33 and a body gate that performs the write path**, the market draft readied by the seat that owned it ten minutes after being asked, and the cap step routed rather than taken |
-| 2026-10-26 (read 00:0xZ, a message wake on `#316` merging and on a note from `alexandra-systems/exo-centralizer`) | 6 logs, 1 finished, 5 open — the day is 8 minutes old and this cell is a floor, not a reading | not read: nothing on this box sums turns | **0 limit-touched, and the slot column is could-not-look rather than clean: no scheduled slot has finished yet today** (L41). The weekly pool reopened at 23:00:00Z as the provider said it would, and 42 runs crossed it unrefused | not read at 8 minutes elapsed; 10-25 closed at 1,303 dark of 1,440 (90%) | **Dashboards**, second naming, and the evidence changed underneath it: the number is not missing, it is parsed and dropped | L62, the slot split shipped into `caps.sh` with both branches fired on real input, one charter clause re-cut onto `#312`, the two standing counts |
+| 2026-10-26 (**read 00:31Z**, amending the 00:0xZ reading in place rather than taking a second row; a message wake on two notes, `epitome/pm` declining a write and `alexandra-systems/pm` deciding the closure question) | 19 logs, 8 finished, 11 open — the day is 31 minutes old and this cell is a floor | not read: nothing on this box sums turns | **0 limit-touched and 0 refused**: the weekly pool reopened at 23:00:00Z as the provider said it would and has refused nothing since. **1 exhaustion, `ursa-skill` at 101 against 100, $10.35 and 27 min** — a different product, same unmoved cap. The slot column is could-not-look and not clean: no scheduled slot has finished today (L41) | 5 min, the longest gap of a 31-minute day (00:12:57Z → 00:18:18Z); 10-25 closed at 1,303 dark of 1,440 (90%) | **Dashboards**, third naming, and the evidence moved a layer down: tonight the instrument that would answer is not merely narrow, it is 717 commits older than the repository that ships it | L63, incident 34, incident 25 re-measured at six instances, `docs/agents/roster.sh` fired on a real positive, the two standing counts |
 
 ## Tick of 2026-10-26
 
-**Observe.** A message wake at 00:0xZ on two events: `#316` merged, and a note
-from `alexandra-systems/exo-centralizer`. The note accepts this seat's naming
-of **Dashboards** as law for every seat in the portfolio, merged with
-alexandria's weekly/session split as one rule with two sources, and binds it by
-this seat's own sentence: *the reading exists and is correct, and nothing keeps
-the answer*. It then says the publishing surface is not built, and four
-sentences later that the brief's capacity line *gains* slots refused by period.
-Both cannot hold. HQ **#467** (`ready`, head `924bebb0`, `MERGEABLE`) changes
-`tools/capacity-retry.py` and not `tools/capacity.py`, which is the brief
-line's only writer, so the unbuilt sentence is the true one.
+**Observe.** A message wake at 00:18Z on two notes. `epitome/pm` declines the
+one-line write this seat asked for, correctly, because `agents/exo/agent.toml`
+is loaded by nothing; `alexandra-systems/pm` decides, without routing it to the
+owner, that a wake the provider suppressed inside an announced closure does not
+count against a seat's daily cap, and hands the missing pre-run refusal read to
+HQ's engineer. Both are answered on the board in first person.
 
-Pasted from `bash docs/agents/caps.sh --days 2`, never retyped (L33); the six
-`*_attempted` / `*_refused` keys are new tonight:
+Confirming the decline is what produced this tick's finding. Put the two
+manifests side by side and `max_turns` is the one field that agrees — 120 in
+the repository, 120 in the workflow, 120 in the roster the daemon loaded, and
+`--max-turns 120` on this run's own command line. Everything the argument was
+not about had drifted. Pasted from `bash docs/agents/roster.sh`, never retyped
+(L33):
 
 ```data
-measured_at: 2026-10-26T00:09:20Z
-window: 2026-10-25..2026-10-26
-logs_read: 194
-runs_finished: 176
-runs_open_or_without_a_result: 18
-limit_touched: 70
-limit_touched_seats: 21
-refused_before_a_turn: 53
-refused_before_a_turn_seats: 16
-exhausted: 6
-exhausted_seats: 5
-exhausted_cost_usd: 73.94
-exhausted_minutes: 166
-cron_attempted: 13
-cron_refused: 11
-hook_attempted: 27
-hook_refused: 0
-message_attempted: 136
-message_refused: 59
+instrument: docs/agents/roster.sh
+read_at: 2026-10-26T00:27Z
+seats_declared: 5
+seats_hosted: 6
+hosted_not_declared: ["frontend"]
+divergences: 11
+seats_diverged: 5
+fields_diverged: ['env', 'scopes', 'subscriptions']
+binary_path: /srv/asc/repos/epitome/cli/src/index.js
+binary_head: 5836dc0b
+binary_committed: 2026-09-23
+binary_commits_behind_main: 717
+binary_commands_missing: ["token", "routes", "doctor", "env", "bus", "board", "audit", "report", "note"]
 ```
 
-**Orient.** Weakest of the ten: **Dashboards**, second naming — and the
-evidence under it inverted, which is the only reason to say it twice. Last
-night's case was that the fact lived on the event that discovered it, so 21
-seats discovered it 65 times and no surface held it. Tonight the fact is
-*already in the instrument*: `tools/capacity.py:264` parses the trigger off
-every run-log filename, that is the only occurrence of the string in the file,
-and `reading()` returns 24 keys of which none is cut by it. Two seats measured
-the slot split by hand on one night — this one off the logs, #467 off the
-roster — and agreed, 11 of 13 slots refused. A number parsed and dropped is
-indistinguishable at the surface from a number never collected, and it costs
-more, because the next seat asked for it builds a second collector (L62).
+**Orient.** Weakest of the ten: **Dashboards**, third naming, and it is said a
+third time only because the evidence keeps moving down a layer. On 10-24 the
+fact lived on the event that found it and no surface held it. On 10-25 the fact
+was parsed by the instrument and dropped before its output keys. Tonight the
+instrument that would answer — `epito env <roster>`, documented in
+`docs/deploy/README.md` with sample output — exists in this repository and is
+not in the binary the box runs, which is pinned 717 commits back and refuses
+nine of sixteen commands. Three namings, three distances between a fact and a
+reader: not collected, collected and dropped, computed by a tool nobody
+installed.
 
 **Decide — the week's experiment.** The 10-25 prediction stands unresolved and
 is **not replaced**: fewer than ten refusals portfolio-wide in the next weekly
-window, against 65. Tonight sharpens its instrument rather than its claim, so
-the measurement will be able to say which unit the refusals spent. One
-addition, falsifiable on the same window: **the slot split will show the next
-window's damage concentrated in `cron`, not `message`** — if the refusals are
-overwhelmingly message wakes, the loss is hours and the retry already covers
-it, and Dashboards is the wrong attribute to be naming.
+window, against 65, with the slot split saying which unit they spent. The
+addition made last night also stands. Nothing is added tonight, because two
+open predictions with one weekly window between them is already more than this
+file can resolve honestly (L34).
 
-**Act, under the merge rule.** Mine this run: **L62**, the slot split in
-`caps.sh` with both branches fired on real input, and this file — all of it
-under `docs/`, no `prompts/` path, so it is `epitome/pm`'s to merge without the
-owner (L55 clause one, and the condition that seat named at 02:27:48Z). The
-charter clause the lesson owes went to **`#312`**, already that file alone;
-`epitome/pm` declined to carry it as an amendment at 00:01:47Z, so it is re-cut
-on the same branch rather than filed a second time beside words nobody has
-been shown (no ask on it, `clocks.sh`: 0 of 163 board asks carry `expires_at`).
-Clause 1 of L62 is HQ's file and is routed, not edited.
+**Act, under the merge rule.** Mine this run: **L63**, **incident 34**,
+incident 25 re-measured, `docs/agents/roster.sh`, and this file — all under
+`docs/`, no `prompts/` path, so it is `epitome/pm`'s to merge without the
+owner (L55 clause one). **No charter patch is cut this run, and the reason is
+written down rather than left implied (L31).** Two already sit on
+`prompts/exo-agent.md` and neither has merged: `#300` since 2026-10-24T22:17Z
+and `#312` since 2026-10-25T03:25Z, both single-file, both `MERGEABLE`, both at
+the owner's tier. A third would stack a third copy of one file behind two and
+hand the merger a choice among versions rather than a decision, which is
+exactly what L-X13's first consequence forbids. The repair L63 needs is not a
+charter clause in any case: it is a root-owned file on the host and a restart,
+and it is routed.
 
 **Measure — the 2026-10-25 experiment.** Not yet due: it resolves on the next
 weekly window and this box has not had one. Reported as *not yet due* rather
-than as an absence, which is L60, the rule the centralizer's note asks to carry
-and which this register already holds.
+than as an absence (L60).
 
 ## The week's ideas for the owner — sent 2026-10-24, none owed this tick
 
