@@ -22,9 +22,12 @@
 # are. Three things it does that the exit code of a run cannot.
 #
 # 1. **A cause, not an outcome** (L-X14). A refused run, an exhausted run and
-#    a crashed run all carry `exit=1`. This splits them by the result object's
-#    own `subtype` and `terminal_reason`, which are the only fields that say
-#    which happened.
+#    a crashed run all carry `exit=1`. This splits them by `terminal_reason`,
+#    which is the field that says which happened: `subtype` reads "success" on
+#    every one of the 323 provider refusals in this host's history, and the
+#    text of a log is not evidence about its own run, because the log carries
+#    the run's final report and this seat's final reports quote refusals
+#    (L64).
 # 2. **A zero is not a clean bill** (L-A80, L-A47 clause two applied to runs
 #    rather than to repositories). Reading no runs exits 2 and says so. HQ's
 #    tool does `[ -n "$runs" ] || continue`, so a seat whose runs moved
@@ -87,6 +90,7 @@ RESULT = re.compile(r'\{"duration_api_ms".*?"type":"result".*?\}', re.S)
 LIMIT  = re.compile(r'hit your [a-z]+ limit|"api_error_status":(?:429|529)|limit (?:reached|exceeded)')
 
 seats = collections.defaultdict(lambda: collections.defaultdict(list))
+text_only = []
 by_trigger = collections.defaultdict(lambda: collections.defaultdict(int))
 files = unparsed = 0
 for day in window:
@@ -109,8 +113,21 @@ for day in window:
             unparsed += 1
             continue
         sub = r.get("subtype") or "?"
-        if sub == "success" and LIMIT.search(text):
+        # The class of an ending is in the result object's own fields, and the
+        # file around it is not one of them. `subtype` is "success" on all 323
+        # provider refusals in this host's history, so it cannot carry the
+        # class; `terminal_reason` splits completed / api_error / max_turns and
+        # is read here. The text search this replaced matched anywhere in the
+        # log, and the log contains `result` -- the run's own final report --
+        # so a run of this seat that merely wrote the refusal sentence down was
+        # counted as refused: `epitome-exo/2026-10-18T13-07-01-011Z`, 98 turns,
+        # $8.19, terminal_reason completed, documenting incident 8 (L64).
+        if r.get("terminal_reason") == "api_error" or r.get("api_error_status") in (429, 529):
             sub = "refused"
+        elif LIMIT.search(text):
+            # Named rather than dropped (L-A88): this is a log whose text says
+            # limit and whose fields say the run finished its work.
+            text_only.append(os.path.basename(path))
         seats[s][sub].append((os.path.basename(path), r.get("num_turns"),
                               r.get("total_cost_usd") or 0.0, (r.get("duration_ms") or 0) / 60000.0))
         # The trigger is the filename's own last field -- `...Z-cron.log`,
@@ -180,6 +197,11 @@ if findings:
 else:
     print(f"No seat exhausted its cap over {window[-1]}..{window[0]}, read from {finished} finished runs.")
 
+if text_only:
+    print(f"{len(text_only)} log(s) carry a refusal signature in their text and in none of their "
+          f"result object's fields, and are counted above as what they are — finished work. "
+          f"The signature is in the run's own final report, which is the one place a seat that "
+          f"documents refusals is guaranteed to write one (L64): {', '.join(sorted(text_only))}.")
 print(f"{tot_r} finished run(s) on {len(rf_seats)} seat(s) were touched by a provider limit, "
       f"of which {tot_b} on {len(bf_seats)} seat(s) never took a second turn. "
       f"A limit-touched run and a refused-before-a-turn run are different facts and this is "
@@ -217,6 +239,7 @@ print(f"exhausted: {tot_e}")
 print(f"exhausted_seats: {findings}")
 print(f"exhausted_cost_usd: {tot_c:.2f}")
 print(f"exhausted_minutes: {tot_m:.0f}")
+print(f"refusal_signature_in_text_only: {len(text_only)}")
 for trig in sorted(by_trigger):
     d = by_trigger[trig]
     print(f"{trig}_attempted: {sum(d.values())}")
