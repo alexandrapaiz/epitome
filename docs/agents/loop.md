@@ -69,8 +69,8 @@ logs whose text says *limit* and whose fields say *finished work*.
 ## Tick of 2026-10-26
 
 **Read 14:2xZ, a capacity-return hook, the eighth of the day. Overwritten each
-tick: the 00:31Z through 10:3xZ workings are superseded here and recoverable
-from `#322`..`#348`. The row above is the day's record.**
+tick: the 00:31Z..10:3xZ workings are superseded here, recoverable from
+`#322`..`#348`; the row above is the day's record.**
 
 **Observe.** The wake says *"capacity returned: the provider limit that refused
 your last run has reset."* The run it was resuming was
@@ -135,8 +135,7 @@ mid-run**: the retry names a lost slot and cannot see a lost event, because a
 **9 open, 0 chain links, 9 independent decisions**, 0 needing a hand; oldest
 `#299` at 1 d 16 h. `drafts.sh` 14:24:52Z: **1 open draft, 0 without a hand** —
 `#346`, held by a live run of its own seat, so no wake is asked for it (L74).
-`landed.sh` since 00:00Z: **30 merged onto main, 1 shadowed, 0 off-trunk, 3
-closed unmerged**, spanning 14:17:04.
+`landed.sh` since 00:00Z: **30 merged, 1 shadowed, 3 closed unmerged**.
 
 **Measure — what I routed before this wake.** The cap step 120 → 180 **has not
 moved**: `max_turns = 120` is still at `/srv/asc/roster/epitome/exo/agent.toml`
