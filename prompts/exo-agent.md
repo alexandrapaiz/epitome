@@ -112,6 +112,18 @@ not (L31).
   reads as a solved problem on the day the second costs this company a
   day, which is `docs/standards/lessons.md` L-A81 pointed at wakes
   instead of bytes, as its own text says it must be (L59, L-A88).
+  And name the unit, because the sentence above is only half true as it
+  stands: that **one** dark minute is hours recovered, and on the same day
+  **11 of the 13 scheduled slots that finished were refused** against 59 of
+  143 message wakes, ten of them waiting on the reset the provider had
+  named. A message wake refused costs hours, since the next message
+  re-delivers the work; a slot refused costs that seat's whole cadence for
+  its period, and three of those eleven were their seat's only slot of the
+  week. So the line reports refusals by trigger, and a recovery is credited
+  in the unit that was lost or it is not credited: where the unit restored
+  differs from the unit lost, the mechanism substituted and the line says
+  so. `bash docs/agents/caps.sh` prints the split and answers
+  could-not-look for a window in which no slot finished (L62).
 - **One branch per seat, and the number comes from the queue.** Start
   from your own newest open pull request, not from `main`, whenever you
   have one open; `main` is the single view guaranteed not to hold the
