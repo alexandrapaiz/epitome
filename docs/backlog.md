@@ -23,6 +23,20 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   site mutation-checked. What is left is `deploy/test-provision.sh` (4) and
   `deploy/provision-host.sh` (1), still last by this card's own rule. Read
   this line before picking up the order below it.
+  **Status, 2026-10-26 ~10:0xZ (engineer): the two deploy scripts are
+  converted too, so nothing this card asks for is unbuilt.** `epitome-
+  engineer/2026-10-26-message-5`, based on the branch above it because both
+  edit the same allowance table. `deploy/test-provision.sh`'s four sites and
+  `deploy/provision-host.sh`'s one, each mutation-checked; with both branches
+  merged the allowance table holds nothing but the three named probe files and
+  the gate reads 40 ok, 0 failed. Two faults at those sites are fixed with the
+  measurement in that pull request: one assertion that could not report itself
+  (`exit` inside the string `check` evals, so a mutated needle ended the suite
+  with no verdict — the only one of 867), and a provision that ended
+  mid-firewall on `iptables: Invalid rule number '0'` when the vendor chain
+  carried no port-22 rule to insert 443 ahead of, naming neither the rule
+  broken nor the fix. What remains of this fault class is not in this card at
+  all: it is the twenty-one unscanned `docs/agents/` files, carded below.
   The reorder itself: three of `smoke-deploy.sh`'s 34 sites were the
   negated form, `! producer | grep -q <secret>`, and under `pipefail`
   that form inverts a real leak into a reported pass rather than a

@@ -32,7 +32,16 @@ probe_root() {
   local said
   said="$(sudo -n true 2>&1 || true)"
   if [ -z "$said" ]; then ROOT_REACH=yes; ROOT_SAID=""; return; fi
-  ROOT_SAID="$(printf '%s\n' "$said" | head -1)"
+  # Also pipe-free, and this is the one place in this repository where that
+  # matters for a reason other than quiet grep: `head -1` closes the pipe on
+  # its producer, `pipefail` carries that death, and an assignment under
+  # `set -e` dies of it. Measured: the same line with a 20,000-line producer
+  # exits 141; with the one line of sudo's refusal this site actually reads it
+  # survived 300 of 300 asks, so this is a latent shape rather than a firing
+  # one. 38 assignments in this repository pipe into `head`/`tail`, and 37 of
+  # them are in files that run without `set -e` or carry `|| true`, which is
+  # why this is one line here and not a card.
+  ROOT_SAID="$(head -1 <<<"$said")"
   # A herestring, not a pipe into quiet grep: this line is not an assertion,
   # it DECIDES which of the three answers the reader gets, and quiet grep can
   # report "no match" for a string it matched (cli/test/shapes.sh's header has
