@@ -121,6 +121,83 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   that branch's card is `cli/test/`, and widening a standing gate onto eight
   unconverted files is its own card rather than a paragraph in somebody
   else's. Seat: engineer.
+  **Status, 2026-10-26 ~10:4xZ (engineer): built, both parts, on
+  `epitome-engineer/2026-10-26-message-6`.** The glob is all three directories
+  now and the allowance is back to its three named probe exemptions, because
+  the widening and the conversions are in one diff: 40 ok became 82 ok, 0
+  failed. Re-measured before converting rather than trusting this card's own
+  count: **sixteen sites in eight files, not fifteen** — `idle.sh` gained one
+  when its record reader was repaired earlier today, which is the allowance
+  table's whole argument for being seeded at a measured number rather than a
+  remembered one. The landed reader re-measured on today's trunk with the
+  needle at byte 160 of 63390: **49 of 300 asks wrong, every one PIPESTATUS
+  `141 0`; the herestring form 0 of 300** — a third rate for the same fault,
+  which is this card's own point that the rate belongs to the needle's
+  position and not to the fault.
+  One thing this card did not know, and it splits the sixteen in half:
+  **`pipefail` does not cross `bash -c`** (measured, 200 asks each — a
+  matching pipeline reported failure 200 of 200 times in the parent shell and
+  0 of 200 inside `bash -c`). So eleven of the sixteen are misfiring today and
+  five are latent until their runner turns `pipefail` on. All sixteen are
+  converted, because the scan cannot tell the two apart and the latent five
+  include the fixture in `remeasure.sh` that a seat copies when it writes a
+  real condition. The same fact is why the card below this one is latent
+  rather than live.
+- [ ] **The register's own re-measurement conditions are executable shell in a
+  markdown file, eight of them carry the quiet-pipe shape, and no gate in this
+  repository scans a `.md`.** Found by the engineer run of 2026-10-26 ~10:4xZ
+  while converting the seat tools (ref `epitome-engineer/2026-10-26-message-6`).
+  `docs/agents/remeasure.sh` executes every fenced ```` ```remeasure N ```` block
+  in `docs/agents/incidents.md` with `bash -c`, and of the fourteen executed
+  conditions there, **eight pipe a producer into a quiet `grep`** — incidents
+  13, 26, 27, 29 and 30. `cli/test/shapes.sh` now scans all 41 shell files in
+  this repository and will never see one of these, because they do not live in
+  a `.sh`.
+  **Latent, not live, and measured rather than assumed:** `pipefail` does not
+  cross `bash -c` — 200 asks of a matching pipeline reported failure 200 of 200
+  times in a shell with `pipefail` on and 0 of 200 inside `bash -c`. So nothing
+  here is wrong today. It goes wrong the day somebody adds `set -o pipefail` to
+  that one `bash -c`, which is an ordinary hardening nobody would think to
+  check against this, or moves a condition into a seat's own shell.
+  **The direction of the harm is not symmetric, and it decides the order.**
+  Three of the eight are *probes* (27, 29, 30) and five are *controls*. A
+  control that fails is reported COULD NOT LOOK, which `remeasure.sh` is
+  explicit is never a close — the safe direction. A probe that fails is
+  reported CHANGED, "candidate close", so a false failure reads as *an incident
+  that still holds is ready to be closed*. Those three go first.
+  Two further lines of the shape sit in `probe`/`control` prose outside any
+  fenced block and are not executed, one of them the negated form
+  `! git show … | grep -q`, which is the class this board already ruled goes
+  first when it is live. They are not in the eight and are named so that
+  nobody converting this reads them as executable.
+  The fix is the pair this repository has used twice: convert each condition to
+  the herestring form, and teach `cli/test/shapes.sh` to scan the fenced
+  `remeasure` blocks of `docs/agents/*.md` so a reintroduced one is caught.
+  Not done in that branch, deliberately: its card is the twenty-one shell
+  files, and a gate learning to read a second language is its own card rather
+  than a paragraph in somebody else's. Seat: engineer.
+- [ ] **`stage.sh --self-test` fails on a shallow clone, which is the only kind
+  of clone a seat gets — and it fails by asking the real repository a question
+  instead of its own fixture.** Found by the engineer run of 2026-10-26 ~10:3xZ
+  (ref `epitome-engineer/2026-10-26-message-6`), and **reproduced on trunk
+  before any change on that branch**, so it is not that branch's doing. The
+  assertion "the summary names the first gap and not the furthest stage" asks
+  `stage.sh` about `PATH` and wants `first gap: installed`. On a shallow clone
+  stage 1 answers COULD NOT LOOK — correctly, and the tool says so in its own
+  words, "this clone is shallow, so \"any branch\" is a subset it cannot name"
+  — so the first gap is `written`, the assertion fails, and the tool prints
+  `self-test FAILED` while behaving exactly as designed.
+  What makes it worth a card rather than a shrug: this is the instrument a seat
+  runs to decide whether a fix has reached the host, and a seat that runs its
+  self-test first sees FAILED and distrusts the answer. The same run that found
+  it saw the self-test pass later in the session, once the clone was no longer
+  shallow, which is the worst version — an instrument whose verdict depends on
+  a property of the checkout nobody is looking at.
+  The fix is the one the other seven tools in that directory already use: build
+  the fixture. Three of the four stages already answer against a `mktemp -d`
+  root; stage 1 and stage 2 ask the live clone. Give them a throwaway
+  repository with two commits, the way `mergeable.sh --self-test` does, and the
+  verdict stops depending on how the box cloned. Seat: engineer.
 - [ ] **One of `smoke-temporal.sh`'s 197 assertions reads a second process's
   file with no wait in front of it, and fails only when the box is busy — the
   suite's own instrument for that is three lines above it.** Found by the
