@@ -100,6 +100,61 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   missing piece is a detector, and `cli/test/shapes.sh` already scans
   eight files for the sibling quiet-pipe shape and is the natural home
   for this one too. Seat: engineer.
+- [ ] **Message pass, 2026-10-25: the engineer's own handoff names a fixed-second
+  flake class in two suites neither this seat nor the engineer's box can run,
+  and the branch the handoff points to as "already fixed" turns out to be
+  stuck itself.** Inbox: a `handoff` from `epitome/engineer` (ref #293) found
+  while chasing `smoke-doctor.sh`'s random failure — a different class from
+  the quiet-pipe fault already fixed there, one sentence: a test sleeps a
+  fixed second where it could wait for the condition, and the assertions
+  right below it are about that very condition. A short second fails loud in
+  the product's own voice; a short second before a *negative* assertion is
+  worse, because it passes green for the wrong reason and nobody looks twice
+  at a green.
+  Read the two files directly rather than trust the description secondhand —
+  this box has neither the Temporal binary nor wrangler either, so neither
+  suite runs here, same as the engineer's box. Found exactly the four sites
+  named: `cli/test/smoke-cloudflare.sh:235` (one second after the button
+  POST, then five greps of the stub's log for lines a still-running
+  background `ctx.waitUntil` is in the middle of writing — the suite already
+  carries the instrument, a `grep`-in-a-loop a few lines above at :203) and
+  `:252` (one second after the scheduled-trigger ping, then two assertions on
+  `/api/state`'s run count — same shape, poll that endpoint instead of
+  guessing). `cli/test/smoke-temporal.sh:511` (one second before `gone`, the
+  suite's own poll-until-absent helper at :147 — the sleep is now redundant
+  weight in front of a check that already retries, not a race by itself) and
+  `:670` (one second before reading an audit count back to prove *no* run
+  started for a refused webhook — traced the refusal in `cli/src/run.js:359`
+  and it returns 403 synchronously, writing its audit line with
+  `appendFileSync` before the response the test's blocking `curl` is waiting
+  on, so this specific read is already race-free; the general case the
+  handoff is right to flag is a refusal path that dispatches anything async,
+  and the suite's own `wait-for.mjs` action-mode is the instrument for that
+  shape if one is ever added here).
+  Not this seat's to fix either way — product code, cli/test/, stays with
+  whoever holds the binaries. The handoff's own count (two fixes already
+  landed, two more to go) needed a correction: the doctor-suite fix it points
+  at, #293, is not landed. `tools/check-draft-prs.sh --repo
+  alexandrapaiz/epitome` reads it `finish` (idle 4h, substance `work`, and
+  its own body says "Draft while the run works" with the promised
+  measurement and transcript never added) — and separately the owner
+  commented on it directly, which is Tier C on its own regardless of the
+  draft state. Both clauses written on the PR itself rather than acted on:
+  neither is this seat's to clear. The other draft this pass's standing
+  merge sweep found, #297 (market, rev 17), had no such hold by the tool's
+  own read — `ready`, no label, no review, no owner comment, diff scoped to
+  `docs/market.md` alone — but checking fresh rather than acting on a
+  five-minute-old read found it already `CLOSED`: a chair on the owner's
+  account had closed it two minutes earlier (citing L-E10, L-A32), a day
+  stale against rev 16, with rev 18 opening fresh in the same window
+  (#307). Nothing left there for this pass.
+  Replied to the handoff on the board, first person, with the correction and
+  the four sites named exactly. Linear mirror: skipped, `LINEAR_API_KEY`
+  absent (probed this run).
+  Seat: pm (routed, re-checked #297 and found it already closed, declined
+  #293 with the clause named), engineer (the four sites, and #293's own
+  unfinished body, on a box with the Temporal binary and wrangler).
+
 - [ ] **The check that is supposed to catch the host being behind is
   disabled by the host being behind: a seat's clone arrives shallow, so
   the distance command answers 1 where the truth is 578.** From the
