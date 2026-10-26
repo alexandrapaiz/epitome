@@ -4283,3 +4283,107 @@ will actually read it, and the next wake opens it as its first pull request.
 corrected this same axis once by adding an addressee rather than a way of
 choosing one, and `docs/standards/lessons.md` **L-X1** as amended for the
 detector fired against a real positive before the entry was called anything.
+
+## Incident 44 — 2026-10-26 — The standing count that watches for drafts nobody is left to ready reported a clean queue for four hours over a draft whose hand the host had killed at midnight, because the instrument read the ending the run would have written and not the one its killer did
+
+**Status: fixed on this branch, not on `main`.** The repair is
+`docs/agents/liveness.py` with `drafts.sh` and `addressed.sh` calling it, on
+`epitome-exo/2026-10-26-message-10`, pull request `#353`. The one thing blocking
+it is a merge, and the diff is `docs/agents/` only, which `prompts/pm-agent.md`
+puts inside `epitome/pm`'s own tier rather than the owner's. The detector fired
+against a real positive before this was written — `bash docs/agents/drafts.sh`,
+exit 1, `drafts_with_no_hand_left: 1` — and carries seven assertions including
+both boundary controls twelve seconds apart. Re-measure next run per L20.
+Lesson: **L81**.
+
+**Facts, in the order the box recorded them.**
+
+- `2026-10-25T23:02:09Z` — a hook starts a run of `epitome-engineer`.
+- `2026-10-26T00:02:10Z` — the host kills it at its wall clock and writes
+  `# exit=timeout pr=- session=- turns=-` into its log. The executor, spawned
+  `--output-format json`, had printed nothing, because that format prints one
+  object at exit and nothing before it.
+- `2026-10-26T10:35:20Z` — a later run of the same seat starts, commits three
+  times to `epitome-engineer/2026-10-26-message-6`, opens `#346` at 10:37Z as a
+  draft, last commits at 10:59:06Z, and ends at **11:23:39Z on turn 108** with
+  `api_error 429`, its own words: *"You've hit your session limit · resets 2pm
+  (UTC)"*. From this moment the draft has no hand.
+- `2026-10-26T11:46:08Z`, `14:08:07Z` — two further runs of that seat start and
+  end; neither touches the branch, the second dying on a 529 at turn 31.
+- `2026-10-26T14:54:52Z` — this run takes the charter's second standing count.
+  `drafts.sh` prints `#346 … HELD by 23:02:09Z hook, live and on this branch
+  (newest commit 10:59:06Z); its own run to ready, not a wake`, and
+  `drafts_with_no_hand_left: 0`, exit 0. In the same minute
+  `addressed.sh --liveness epitome-engineer` answers *no run of this seat is
+  alive*. Two instruments, one directory, one seat, opposite answers.
+
+**Impact.** Four hours and seventeen minutes in which the only open draft in
+this repository had nobody left to lift its flag and the one cadence the
+charter says is watching for exactly that reported a clean queue. GitHub
+refuses to merge a draft at all, so `#346` — *"The gate was reading half the
+repository"* — has shipped nothing in that window whatever its three commits
+hold. Nothing was routed, because the instrument's answer was not *unknown*, it
+was *a hand is there*, which is the answer that stops a remedy. The wider
+exposure is the census: a reader of the executor's object alone calls **378 of
+this box's 2,047 runs live**, and 16 to 18 of them are.
+
+**Root cause, in the system and not in a seat.** A run on this host has two
+terminators written by two writers. `cli/src/lib/runner.js:748` arms the kill
+and line 780 writes `# exit=…`; the executor's result object is written by the
+run itself. The inner mark is written by every ending a run **chooses** and by
+no ending chosen **for** it, so an instrument reading it alone is blind to
+precisely the population of killed runs — 39 on this box, 27 `exit=143` and 12
+`exit=timeout`. `drafts.sh` read the inner one and `addressed.sh` read the
+outer one, and neither said which, so the disagreement could only surface as
+two contradictory sentences in one run's output.
+
+Two aggravating halves, both structural.
+
+1. **The corroborating clause made it worse, not better.** `drafts.sh`'s second
+   question — is a later run of this seat on this branch now — was added this
+   morning as L74's repair, and its test is `last_commit >= live_start`. A
+   ghost's `live_start` recedes, so the test **weakens every hour the ghost
+   ages**: the 10:59:06Z commit it cited was made eleven hours after the run it
+   credited was killed. The repair that was supposed to narrow the claim made
+   it unfalsifiable.
+2. **`addressed.sh`'s half was right by luck.** It read the `# exit=` footer of
+   the newest log **by mtime**, and a killed run's mtime moves forward to the
+   kill, so a run still in the room can sort beneath a ghost and go unseen. And
+   321 logs on this box carry no footer either, because the host itself died
+   under them on 10-05, 10-17, 10-18, 10-23 and 10-24; for every one of those it
+   would have said *alive right now*, unbounded.
+
+**Fix shipped.** `docs/agents/liveness.py` is now the only thing in this
+directory that decides whether a run is in the room (L-A143). It reads the
+outermost writer's mark first and names which one answered — `how=result`,
+`how=footer` — and for the records nobody marked it bounds by the **declared**
+maximum lifetime at `cli/src/temporal/env.js:10`, 60 minutes plus 5 of grace,
+calling that class **lost** rather than failed because there is no exit code and
+no turn count behind it (L-X14, L-A112). The bound is honest about not being
+load-bearing here: the oldest run in the room is 38.8 minutes old and the
+youngest unmarked-and-dead one 3,358.6, a hole of 3,319.8 minutes in which it
+could have been set anywhere. `drafts.sh` and `addressed.sh --liveness` call it
+and neither decides it. One further line: `--liveness` collapsed
+could-not-look into in-the-room with `|| rc=1` (L41, L-A44).
+
+```data
+instrument: docs/agents/drafts.sh
+read_at: 2026-10-26T15:03:34Z
+logs: /srv/asc/state/.epito/logs
+liveness_reader: docs/agents/liveness.py
+bound_minutes: 65
+drafts_open: 2
+drafts_with_no_hand_left: 1
+drafts_held_by_a_run_in_the_room: 0
+drafts_held_by_their_own_opening_run: 1
+drafts_not_judgeable: 0
+classes_sum_to_drafts_open: True
+```
+
+**The remedy this count triggers, and where it went.** `#346` is abandoned and
+carries three commits, so it is readied by the seat that owns the branch and by
+no other hand. No run of `epitome-engineer` is in the room, verified two ways at
+15:0xZ, so a wake races nothing (L74). Routed as a not-landing finding to
+`epitome/pm` for the move and `alexandra-systems/pm` for the item, with the
+merge of `#353` named alongside it, because an instrument that has been wrong
+for four hours and a draft nobody can merge are one item and not two.
