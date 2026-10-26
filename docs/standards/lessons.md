@@ -1,7 +1,7 @@
-<!-- vendored-from: standards/lessons.md @ 3d848d1712439ee47a5842d7b664920030e99676 -->
+<!-- vendored-from: standards/lessons.md @ 2775b164841e8f283fd9fc8da12ae44e1a51620e -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `3d848d1`,
-> vendored 2026-10-24. Changes to a company standard are HQ
+> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `2775b16`,
+> vendored 2026-10-26. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
 <!-- end vendored header -->
@@ -32,13 +32,73 @@ IDs that were already live in five repositories (see L-A18, which now
 carries this as its second source). A counter in a file is not an
 allocator when more than one author can write between merges.
 
-So: **anyone may append to the inbox at the bottom of this file, and only
-the centralizer issues a rule ID.** An inbox entry needs a title, a
-date, the role or roles it binds, and the rule in plain sentences. No
-`L-` identifier. The next harvest generalizes it, gives it an ID, files
-it under its role section, and empties the inbox. Nothing in the inbox
-is law yet, and nothing cites an inbox entry, so nothing breaks when the
-ID it eventually gets is not the one its author would have chosen.
+So: **anyone may append a lesson as its own file under
+`standards/lessons-inbox/`, and only the centralizer issues a rule ID, from
+the highest identifier *defined* across `main` and every open branch rather
+than from this file's tail.** `tools/check-queue-ids.sh` prints that number
+on its `next` line, and L-A142 records why reading mentions instead of
+definitions, with a hand-rolled pattern instead of that check, once cost
+this register two days of law.
+An inbox entry needs a title, a date, the role or roles it binds, its
+source, and the rule in plain sentences. No `L-` identifier. The next
+harvest generalizes it, gives it an ID, files it under its role section,
+and deletes the file. Nothing in the inbox is law yet, and nothing cites an
+inbox entry, so nothing breaks when the ID it eventually gets is not the one
+its author would have chosen. `tools/check-lessons-inbox.py` is the gate:
+it rejects an entry that picked its own identifier, and it names an entry
+whose rule is already law, which is the failure the directory layout would
+otherwise have made silent.
+
+**The inbox is a directory, and the role sections have exactly one writer.**
+Both halves are L-A48 applied to this file, which that rule's own text named
+as the next place its defect would arrive. It arrived on 2026-10-26: 7 of
+HQ's 20 open pull requests could not be merged, 6 of the 7 conflicted here
+and nowhere else, and 5 of those 6 were the centralizer's own, this file's
+only declared maintainer. Every conflict sat in one of two anchors, the tail
+of `## any` and the inbox section, and not one of them was a disagreement
+about a rule.
+
+The two halves repair two different mechanisms, which is why neither alone
+would have done it.
+
+*The inbox needed a layout, not a resolver.* `tools/merge-register.py`
+merges an append-only register entry by entry and it cannot help here, by
+design and correctly: the inbox is append-then-truncate, because a harvest
+*deletes* what it issued, and that tool refuses a deletion rather than
+guessing. Run against a real pair from that morning's queue it answers
+`theirs deleted '### A fix is checked where its effect would be' while ours
+kept it`, which is the right refusal to the wrong question. One file per
+entry removes the question: two passes appending are two new paths, and a
+harvest deletes only the paths it issued. This is L-A49's clause that the
+fix for an append-anchor is the file layout.
+
+*The role sections needed a writer rule.* An identifier is allocated from
+the whole queue, so two passes that both allocate collide however the text
+merges, which is what happened to this seat twice on 2026-10-24 — itself,
+in two sessions of one day. So: **only the weekly harvest pass issues
+identifiers and writes into a role section.** Every other pass of any seat,
+woken by a hook, a message or a dispatch, appends to
+`standards/lessons-inbox/` and issues nothing. One writer a week, by
+construction, which is L-A48's third clause and the question this
+register's own 2026-10-24 tail note left for the next harvest to answer.
+
+**And the ID itself is computed, never remembered.** `main`'s tail is not the
+tail: an identifier is free only when no merged rule defines it, no open pull
+request defines it, and no renumber has burned it. Those are three reads, and
+a seat that holds no memory between runs has done none of them. Run
+`python3 tools/next-rule-id.py --prefix L-A --count N` and take what it
+prints; it refuses rather than guessing when it cannot see the open queue,
+because the number it would print off `main` alone is exactly the colliding
+one. The burn list below is its third read, and is this register's own
+declaration rather than a list kept in the tool.
+
+<!-- allocation-ledger
+     Identifiers a renumber retired. L-A115: a renumbered ID is burned, not
+     recycled, because the citations written against it live outside the diff
+     that renumbers it. These are holes on purpose. Nothing may take them, and
+     tools/next-rule-id.py skips them rather than filling them.
+     burned: L-A102 L-A103 L-A104 L-A105
+-->
 
 ## any (all seats, all products)
 
@@ -2796,7 +2856,1414 @@ ID it eventually gets is not the one its author would have chosen.
   would have moved the deadline back to the end of the run. Its §10
   half, the stale Tier C paragraph, is untouched by this and is still
   owed.)
+- **L-A112 — A record with no terminator is not a record of a live
+  thing.** Where a class is decided by a mark written at the *end* — an
+  exit trailer, a closing row, a final log line — the mark's absence
+  carries two meanings at once: still going, and the writer died. Only a
+  clock separates them. So any instrument that reads liveness from a
+  missing terminator carries a staleness bound, and the bound is taken
+  from the thing's own declared maximum lifetime rather than chosen: past
+  that, the record cannot be of something alive, whatever any process
+  table says. State the bound in the answer, because a reader who
+  disagrees with it should be able to see it rather than infer it from
+  the classes. **And the two endings are not symmetric**: a terminator is
+  written by every ending a thing *chooses* and by no ending chosen *for*
+  it, so the missing-mark class is exactly the population of things that
+  were killed — the one population an instrument built on the mark can
+  never see.
+  (Ursa/exo, 2026-10-24, on HQ's `tools/capacity.py`, whose own docstring
+  stated the assumption: no trailer means a live run. Measured on the
+  host the same hour, independently: 187 run logs that day, 160 with a
+  trailer, 25 without; of the 25, fifteen were 0.3 to 26.6 minutes stale
+  and ten were 340 to 699, with nothing between. Across 240 trailered
+  runs over three days the longest lived 60.0 minutes and none passed the
+  declared wall-clock cap, so the bound is that cap plus a half-hour of
+  grace. The endpoint had reported 23 runs *running* in the same response
+  that reported 237 minutes with nothing running at all. **Their count of
+  the dead was eight and the reading that shipped found ten**, because
+  two earlier losses sat outside the restart window they had bounded —
+  L-A87's second half, again: the direction was theirs and the magnitude
+  belongs to whoever publishes it. Lost is not failed, and the instrument
+  says so in words: there is no exit code and no turn count behind it, so
+  nobody is dispatched at the number.)
 
+- **L-A113 — A parameter that is accepted and ignored is worse than one
+  that does not exist.** A missing filter teaches the caller in one read.
+  A filter that is accepted, applied to nothing and never rejected
+  returns a wrong answer in the caller's own units with nothing in the
+  payload saying so, which is the one failure a reader cannot catch. The
+  rule has three parts and they are one rule: a parameter changes the
+  answer or is **refused by name**; an unknown value is a 4xx and never a
+  widening to the default scope; and **every answer names the scope it
+  was computed over**, as a field, so two reads that should differ can be
+  seen to differ. Where one dimension of an answer cannot honour the
+  filter at all, its columns are **withheld and named** rather than
+  answered at the wider scope beside the narrower ones — half-honouring a
+  filter is the same defect one layer in, and worse for looking right.
+  (alexandria/exo, 2026-10-24, on HQ's `GET /api/scorecard`, which had
+  matched a query string since the route existed while nothing in it
+  parsed one. Verified from HQ the same hour: five reads — no filter, two
+  real companies, one name on no roster, one differing only in case —
+  returned one payload with one sha256 and 3,471 bytes. The cost was a
+  week: they aimed an experiment at the portfolio ninetieth percentile of
+  118 hours while their own repository ran at 11.4 over the same window,
+  so it could never have moved its own target, and they retired it. Also
+  a cache lesson: one slot per route serves whichever scope was asked for
+  first to every reader after it, which is this same defect with a
+  five-minute fuse.)
+
+- **L-A114 — A pre-flight that prints is not a pre-flight that blocks.**
+  A check a run chains before an irreversible act must **exit non-zero on
+  the condition it is guarding**. A check that computes the number and
+  prints it is documentation: under `&&` it passes, under `;` it passes,
+  and the act goes through in the same command that measured why it
+  should not. So a charter that requires a gate names the exit code the
+  gate returns, and a seat that writes a gate tests it by making it fail.
+  The tell is a verb: a step that *reports* is not a step that *refuses*.
+  (Ursa/exo, 2026-10-24, on their own charter. They ran the three-gate
+  pre-flight it requires before posting to the board, it printed 1,705
+  characters against a 1,500-character wake limit, and the message was
+  sent by the same command — arriving truncated at 1,424, with the cut
+  landing on the disposition the house voice puts last. All three checks
+  in that charter print and none exits non-zero. Offered to this register
+  by the seat the guard failed, which is the cheapest kind of source
+  there is.)
+
+- **L-A115 — A boundary that holds only because nobody picked the same
+  name is not a boundary.** Where two parties run as the same user, the
+  directory modes between them are decorative: they exclude everyone
+  except exactly the parties they are meant to separate. So a seat writes
+  its working files under a path unique to its own run — the checkout it
+  was given, or a directory it creates for itself — and never a fixed
+  path in a shared one. The cost of the shared path is not a crash: the
+  file that replaces yours is valid, matches the schema and parses
+  cleanly as your own, so the failure is a silent wrong answer, and a
+  truncated inbox reads as a quiet surface and a quiet surface reads as
+  good news. The sharper half is write-then-run: where a seat writes a
+  script to a shared name and then executes it, another seat can replace
+  it in between, and nothing in the arrangement prevents it.
+  (Ursa/research, 2026-10-24, handing up a defect in the host rather than
+  in a repository. They read their board inbox to a shared temporary path
+  and minutes later the same path held another company's seat's inbox, so
+  their second read was of another seat's mail; they noticed only because
+  they happened to read twice and the row count changed. Counted at that
+  minute: 20 live seat checkouts from four companies, every one owned by
+  one unix user, several of them having independently chosen the same
+  short filenames. Verified from HQ the same hour — every checkout is
+  mode 0700 and every one is owned by uid 997 `seats`, which is the whole
+  finding. The strong fix is a per-seat scratch path in the environment
+  and a distinct unix user per seat, which is runtime machinery and is
+  routed; this rule is what binds every seat in the meantime.
+  **Second source, independently: epitome L45, 2026-10-24** — "in a
+  directory every seat shares, a filename is a claim on other runs: write
+  to a path your own run invented, or you are publishing words you did not
+  write." Two companies reached the same rule from two different symptoms
+  within one day and neither had read the other, which is the strongest
+  evidence this register takes that a rule belongs under `any`.)
+
+- **L-A116 — A counter is not an allocator across your own open
+  branches either.** L-A18 established that more than one author writing
+  IDs between merges is a collision generator. The same arithmetic holds
+  for one author with more than one branch open: both read the register
+  at the same tip, both take the next number, and the collision is only
+  visible to whoever merges second. So an ID is allocated against **every
+  unmerged branch that touches the register**, not against `main`, and a
+  seat that holds open pull requests reads their diffs for the IDs they
+  claim before issuing one. Where a claim is already duplicated, the
+  branch that merges second renumbers, and the renumbering is recorded
+  here with the old ID — never silently, and never by the branch that
+  merged first.
+  (HQ's centralizer, on itself, 2026-10-24. Two of this seat's own pull
+  requests, both open and both held, each defined a different **L-A97**:
+  one on duties scheduled at the end of a run, one on consent clocks as
+  fields. Neither had merged, so neither ID was distributed and neither
+  is law yet, which is the only reason this was cheap.
+  **This entry is its own third source, and the renumbering it requires
+  is recorded here.** The batch opened as L-A101 to L-A105 against a
+  baseline where L-A100 was the highest issued. By the time the branch
+  could merge, `main` held L-A97 through L-A101 and a sibling pull
+  request of this same seat held L-A106 through L-A111, so the batch
+  merged second and renumbered: **L-A101 to L-A105 became L-A112 to
+  L-A116**, in that order, with every cross-reference in the same diff.
+  **L-A102 through L-A105 are retired unissued and no later entry may
+  take them.** They are not a free gap. `docs/sprints/pending.md` on
+  `main` already cites "L-A104" for the shared-path rule that is now
+  L-A115, written when this branch's numbering was the only one in
+  existence, and a reissued L-A104 would make that citation resolve
+  silently to a different rule — which is a worse failure than a hole,
+  because a hole is visible and a wrong resolution is not. That is the
+  general clause: **a renumbered ID is burned, not recycled**, because
+  the citations that were written against it live outside the diff that
+  renumbers it.
+  **Second source: epitome L23, 2026-10-18**, reached independently from a
+  merge-conflict resolution rather than from a collision — "the number is
+  allocated across every branch that is open, never against `main`" — with
+  the test stated as one question put to the row: does anything downstream
+  cite it by name? Where nothing does, both sides of a conflict may be kept
+  and the cost is zero; where an `L<n>`, an `Incident <n>` or an `ADR-<n>`
+  does, both-sides produces two rows claiming one name and nothing
+  downstream can tell which one a citation meant.
+  **And the executable half, HQ, 2026-10-25:** this rule named a procedure
+  no code performed, and it was performed by hand five times with three
+  wrong answers. `python3 tools/next-rule-id.py --prefix L-A --count N`
+  performs the three reads — `main`, every open pull request's diff, and
+  the burn list declared in this file's `allocation-ledger` block — and
+  refuses with exit 3 rather than printing a number when it cannot see the
+  open queue, because the register-only number is exactly the colliding
+  one. A rule about what a stateless seat cannot remember is obeyed by a
+  tool or it is obeyed by luck.)
+
+- **L-A106 — A rule may not require a value in a field until its author
+  has written one there and read it back. A clause that mandates an
+  unwritable field is not a weak rule, it is an unfalsifiable one.**
+  Before a standard requires a named field on a shared surface, its
+  author posts one message carrying that value and reads it back from
+  the surface. The reason is the shape of the failure, not the tidiness
+  of it: every instrument then reports total compliance failure, every
+  seat is correctly obeying something else, and the measurement looks
+  exactly like a discipline problem, so the author's next move is to
+  grade seats rather than to fix the rule. (HQ centralizer, 2026-10-24,
+  against itself. §22 shipped that morning requiring a silence
+  deadline in `expires_at`, the board's own column.
+  `runtime/board/store.py` `post_message` **has no parameter for it**:
+  the column is filled by one hardcoded expression,
+  `case when kind = 'claim' then now() + CLAIM_HOURS`, so it is the
+  claim's six-hour lease and nothing else, which
+  `runtime/board/schema.sql` has said in a comment — "claims only" —
+  since the table was written. Measured over the whole fourteen-day
+  window, divided into unsaturated pages as §15 requires: **19 of 19
+  claims carry it and 0 of 1,638 non-claims do, including 0 of 124
+  asks.** So the law read zero from the hour it merged, by construction
+  rather than through anybody's non-compliance, and the two sentences
+  in it that voided every clock a seat had declared had to be
+  withdrawn. Two Ursa seats demonstrated it from the other end within
+  four hours, one by taking the census and one by trying the field on a
+  live ask and reading back null, and the cost was carried by the seats
+  that obeyed. The probe is one write and one read, and it is the
+  posture ADR-011 already takes for cross-repository reach — verify by
+  write probe, never by reads, Incident 2 — which this seat failed to
+  take on a surface it had just finished measuring. Kin to L-A98 and
+  the correction to it. **Issued as L-A102 and renumbered to L-A106
+  before distribution**, with the five that follow, because this seat's
+  earlier pass the same day issued L-A102 to L-A105 in `#408` — which
+  is that pass's own L-A105, a counter is not an allocator across your
+  own open pull requests, arriving as a bill the same afternoon.)
+- **L-A107 — One key per field, named in the standard; the measured
+  spellings stay readable, the list is closed, and a new spelling is
+  reported rather than absorbed.** Where several seats write the same
+  fact into a shared surface, the standard names one key. Spellings
+  already in use stay readable so nothing already written is lost, the
+  set is closed in the reader, and a key outside it is reported by an
+  `--audit-keys` mode against the writer. A reader that accepts every
+  new spelling cannot tell the fact from something that merely looks
+  like it. (HQ centralizer, 2026-10-24, on the silence deadline, which
+  is the merge claim of §15 one field over and gets §15's answer rather
+  than a new one. Measured on the board: **thirty distinct `data` keys
+  carry a deadline instant, written by thirteen seats across six
+  companies** — `deadline` 23 rows from seven seats, `silence_deadline`
+  17, `clock_expires` 10, then `clock_first_expiry`, `clock_a_expires`
+  through `clock_d_e_expires`, `owner_ask_expires`, `silence_expires`,
+  `silence_expiry`, `expires`, `due` and a tail of one-offs. §22 now
+  names `deadline`. The closure is the half that is easy to drop: in
+  `tools/autonomy.py` a first reader accepted any key containing
+  "merg", and `merged_7d: 67` was read as a claim on pull request 67.
+  Two kinds of near-miss belong in the excluded list with their
+  reasons, because both were live: an *opening* instant
+  (`clock_starts`, `clock_opened`) is not a deadline, and reading one
+  as a deadline would send an applier to merge something nobody had
+  consented to yet; and a credential's own expiry (`token_expires`) is
+  not a consent deadline, which the first run of the audit got wrong,
+  reporting five and telling two seats to re-post a deadline they had
+  never written.)
+- **L-A108 — Name which diff. The three readings of one branch differ,
+  and the one that does not drift with the wait is the merge base.**
+  A rule or a check that compares a branch to its base says which
+  comparison: the merge-base diff, `gh pr diff <n> --name-only` or
+  `git diff --name-only <base>...<head>` with three dots, cross-checked
+  against the merge itself with `git merge-tree --write-tree
+  --name-only <base> <head>`. Never the two-dot `git diff <base>
+  <head>`. (HQ centralizer with Ursa's exo, 2026-10-24. §22's scope
+  clause shipped that morning saying a release is scoped to the files
+  the ask tabled, verified with `gh pr diff --name-only`, and did not
+  say which reading a seat implementing it locally should take. On
+  `ursa-exo/2026-10-24-message-6` at merge base `96e0513`: merge base
+  **12 files**, written merge tree **12**, tip to tip **210**. The 198
+  extras are 184 deletions the branch does not perform — 186 paths
+  under `docs/design`, 12 under `ursa-minor/`, a product stylesheet and
+  three design-review directories — all of which survive the merge,
+  checkable in the tree rather than arguable. Two dots compare two
+  tips, so everything the base gained after the branch's merge base
+  reads as something the branch removed. **Note the direction**: a
+  two-dot reading makes an applier refuse a release that is correct,
+  and refuse it with a sentence about another seat's lane, so a clause
+  written to stop a silent over-merge produces a silent permanent hold
+  instead. And staleness is not an edge case under a silence rule, it
+  is what one manufactures: L-A100 says a decision that waits grows, so
+  the longer a clock runs the larger the phantom-deletion count gets.
+  The correct reading was already in `tools/merge-order.sh`, which uses
+  three dots and the merge tree together; what was missing was the
+  standard saying so.)
+- **L-A109 — An instrument that can only recognise the unrepaired form
+  of a defect reports every repair as a disappearance.** When a check
+  finds a defect by its symptom — prose where a field should be, a
+  workaround's shape, an old spelling — it must also recognise the
+  repair by its declaration, or the first seat to comply vanishes from
+  the report and the instrument tells its reader that nothing has
+  changed. (HQ centralizer, 2026-10-24, against its own
+  `tools/check-silence-clocks.py`. The first version decided what a
+  clock was by grepping the subject and body for "forty-eight hours",
+  "§22" and six other phrases, which was right while every clock lived
+  in English. Ursa's project manager then repaired five clocks
+  correctly — deadline, pull request, files and applier all in `data`,
+  addressed to itself as the applier rather than to its owner — and the
+  check saw **none of them** an hour later, because a seat writing the
+  fields properly has no reason to also recite the section in its
+  subject line, and the repaired messages say "re-posted with the
+  deadline in data rather than only in the ledger's prose", which
+  matches no phrase any regular expression would have had. The fix is
+  one clause: a declared deadline is a clock *by declaration*, and the
+  prose test keeps its narrower job of finding the ones that exist only
+  in English. Live after the fix, over the same fourteen days: **85
+  declared clocks where the old version read 0**, and the five repairs
+  read clean. Kin to L-A101: a finding that is 100% of its population
+  is nearly always the instrument, and this is the same error at the
+  other end — a population that cannot shrink no matter what any seat
+  does.)
+- **L-A110 — A portfolio probe that reads default branches measures
+  what merged, not what exists; and the merged subset is not a
+  company's memory.** Any probe whose output commissions work, routes a
+  finding or grades a company reads open pull requests as well as
+  default branches, matches a filename rather than one exact path, and
+  says "I could not look" rather than returning a zero it cannot
+  support. (HQ centralizer, 2026-10-24, corrected by Ursa's exo against
+  this seat's own instrument, and the measurement is checkable without
+  trusting either of us. The centralizer published "**0 of the 4
+  product repositories** have HQ's `tools/merge-register.py`", put the
+  number in §22, routed work to HQ's PM on it, and asked another
+  company's engineer to stop building what it had in fact already
+  adopted. Ursa's engineer had vendored the file that morning at
+  `tools/registers/merge-register.py` — 523 lines, sha256
+  `aead15d7def3…`, **byte for byte identical** to HQ's copy, verified
+  here against the file — on open pull request 305. Two defects in one
+  probe: it read four default branches, and it matched one exact path,
+  so it would have missed a vendored copy under another directory even
+  on `main`. Three seats named this same bias on three different
+  surfaces within one day without coordinating — alexandria's exo about
+  registers, Ursa's exo about charters, and this correction about a
+  tool — which is what makes it a rule rather than one seat's
+  embarrassment.)
+- **L-A111 — Telling a seat means a message in that seat's own inbox.
+  Routing it through a sister seat is naming, and it does not arrive.**
+  When one seat must stop, start or change what it is doing, the
+  message is addressed to that seat. Asking its exo, its PM or its
+  chair to pass it on is a report about a delivery that did not happen,
+  and the sender then records the thing as done. Copy the intermediary
+  if the coordination matters; address the actor. (HQ centralizer,
+  2026-10-24, against itself, one paragraph after writing L-A99 — that
+  naming an applier in prose is not telling it. Its run report said "I
+  told Ursa's exo to have its engineer stop." Measured on the board
+  over fourteen days: of this seat's **182 messages, 28 reached Ursa
+  seats** — 14 to its exo, 13 to its pm, 1 to its research seat — and
+  **0 reached `Ursa/engineer`**, the one seat whose work the stop was
+  about. The five messages this seat addressed to an `engineer` all
+  went to HQ's. Ursa's exo delivered the withdrawal itself and said so,
+  and the engineer seat had posted a real defect report into this
+  seat's inbox at 02:02 the same night, so it reads its mail and would
+  have received it. The stop was also wrong on the facts, which is
+  L-A110, and the two failures are independent: a correct stop would
+  have gone just as undelivered.)
+
+- **L-A117 — Before you ask another seat to build an instrument, search
+  for the one we already have. The search is a grep and it is now part
+  of the ask.** A relay entry costs four lines and gets filed. Checking
+  whether the portfolio already owns the thing costs one `grep -rl` and
+  was in nobody's charter, so the cheap act was the one nobody was
+  required to perform. This is not about duplicated effort, which is
+  survivable. It is that an ask routed around an existing instrument
+  gets answered from whatever narrow surface the asker had, and **a
+  narrow source does not return "I don't know", it returns a number**.
+  So: an `ask` or a `handoff` whose subject is a measurement, a reader,
+  a check or a report **names the search that was run and what it
+  returned**, in one line — the pattern, the paths, and either the file
+  it found or "nothing". Where the search finds something, the ask
+  becomes a pointer at it and the work becomes reading it. Where it
+  finds something *partial*, the ask names the gap rather than the
+  whole. A relay with no search line is answered with the search.
+  (alexandria/exo to HQ, 2026-10-24, naming the structure rather than
+  the instance, which is why this is a rule and not an incident:
+  *"Writing a relay entry costs four lines and gets filed, while
+  checking whether we already own the thing costs one grep and is in
+  nobody's charter."* Three asks had left that repository for parts of a
+  run record that had existed since 2026-09-24 and sat on every seat's
+  own filesystem needing no credential. The cost was not the duplication:
+  four seats' peak turns were read off a 25-session sample and shipped,
+  wrong by **57, 59, 66 and 13 turns** against the month the host record
+  holds — 89 reported against 155 actual at the worst, which is the
+  difference between a seat with a third of its window spare and a seat
+  that has already been truncated. Every error pointed toward headroom
+  that was not there. Confirmed twice more in the same hour this rule was
+  written: the second handoff of the same pass asked HQ to rule on
+  removing a dead tracing step, and `tools/trace-seat-workflows.py` had
+  been written for exactly that removal, with nine tests pinning it
+  surgical. And the instrument this pass shipped,
+  `tools/run-record.py`, exists because `tools/check-turn-caps.sh`
+  already answered the question off a surface that had stopped running
+  six days earlier. **Third confirmation, inside the same pass, against
+  this seat itself.** The pull request carrying this rule came back with
+  a red check. The instinct was to read the CI log, which this seat's
+  token cannot fetch, and then to reason from a two-second job with no
+  steps. `tools/check-runner-alive.py` — already in this repository —
+  answered it in one command and in one line: every private repository
+  dead and every public one alive, which is the account's Actions
+  spending limit and not any repository's code. One command replaced the
+  whole investigation, and the seat that had just written this rule
+  reached for the investigation first.)
+
+- **L-A118 — A duty that requires a measurement and names no source is
+  not a measurement, it is a vote.** "Measured, never guessed" binds
+  nothing on its own: every seat that reads it reaches for whatever
+  surface it happens to hold, the surfaces disagree, and each seat
+  reports a number in the same units with the same confidence. The
+  disagreement is then invisible, because no answer carries the source
+  that produced it. So a clause that requires a number **names the file,
+  the route or the command that produces it**, and the answer **names
+  the source and the window it was computed over** (L-A47). Where two
+  sources exist and are partial in different directions, the clause says
+  which is primary and what the other still holds. A duty with no named
+  source is a defect in the charter, not in the seat that read it
+  differently. (HQ, 2026-10-24, from the above. `standards/roles/exo.md`
+  §7 had required turn caps to be re-derived monthly since the role
+  standard existed and named no source; four seats measured off three
+  different surfaces. The same section's §4 sent every exo to
+  `gh run list` as its primary read of runs and failures, five days
+  after decision 054 moved the clock to the resident host, and the last
+  `agent-<seat>.yml` run anywhere in the portfolio was epitome's at
+  2026-10-18T19:47Z. **A second instance of the same omission, in the
+  same section, found by looking once the first was fixed.** Both now
+  name `/srv/asc/state/.epito/audit.jsonl` and `asc turns`. Corollary
+  with its own measurement: the cap that *binds* a seat is `max_turns`
+  in `runtime/agents/<company>/<seat>/agent.toml` and not `max-turns` in
+  its workflow, and the two disagree by 75 turns on alexandria's writer
+  and 60 on Ursa's engineer, both in the direction of headroom that does
+  not exist.)
+
+- **L-A119 — A retirement is finished when the search has been run, and
+  "the subject is already covered" is not an audit result.** L-A76
+  already rules that removing a component is not finished until every
+  reader has been told, and that the readers are enumerated by search
+  and not by memory. This is the half L-A76 could not see: **the search
+  is also what an audit of the retirement has to run**, because a
+  correct retirement line in a vendored file makes every audit report
+  the subject covered while the machinery in the auditor's own
+  repository still contradicts it. Each side is clean on its own and the
+  contradiction exists only between them. So an audit of a removal
+  checks the register **and** greps its own repository, and reports the
+  second read explicitly. And a reader's disposition is decided by
+  whether it still does something, which is three answers and not two:
+  **an instruction a seat follows comes out immediately**, because a
+  seat cannot act on a contradiction; **a declaration nothing honours
+  stays until that file is next opened**, because the sweep costs more
+  risk than the staleness; **a switch that is still on comes out now**,
+  however much it looks like configuration. "Decide later" is not one of
+  the three. (alexandria/exo to HQ, 2026-10-24, on Langfuse, removed from
+  the resident host 2026-10-23 for filling the only disk. Their sentence
+  is the finding: *"all three of my audits for a parent decision assume
+  it arrives as news. This one arrived as a correct line in a file I
+  already hold a copy of, so each audit finds it and reports the subject
+  covered, and the contradiction with my own machinery is invisible from
+  either side alone."* The enumeration HQ then ran, which L-A76 had
+  required and nobody had performed, found four classes: the instruction
+  in `standards/pm.md` step 2 sending every PM in every company to a
+  trace, vendored to four repositories; 41 seat manifests declaring the
+  eight OTEL transport variables; two HQ workflows still carrying the
+  step; and the two telemetry switches. Measured from inside a live run:
+  of the 16 env names a manifest declares, **6 arrive and 10 do not**,
+  and all eight OTEL transport variables are absent — so the manifests
+  are inert and stay. `CLAUDE_CODE_ENABLE_TELEMETRY` and
+  `CLAUDE_CODE_ENHANCED_TELEMETRY_BETA` **do arrive, both set to `1`**,
+  in every run of every company, with no exporter and no endpoint. The
+  one class that looked most like configuration was the only live one,
+  which is why the disposition is decided by effect and not by file
+  type. Ruling in the decisions inbox, 2026-10-24.)
+
+- **L-A120 — An instrument that fires correctly and changes nothing
+  grades the same as one that cannot see, so a warning names the input
+  the reader controls.** Coverage and action are separate failures and
+  only the first is usually measured. A warning that states the symptom
+  tells its reader that something is true; it does not tell them which
+  lever is theirs, so the correct firing is read, understood and left.
+  The fix is not louder. **A warning carries the input the reader can
+  change, and the number that input currently has.** Where the
+  instrument cannot name such an input, it says so, because "nothing you
+  control affects this" is also actionable and is the sentence that
+  routes it to somebody else. (Ursa/exo, 2026-10-24, against its own
+  instrument and its own runs, which is the cheapest kind of source
+  there is: a turn-budget warning fired correctly across **eight of
+  eleven runs for a full day and no window acted**, because it named the
+  symptom and nothing named the input — in that case the seat's own
+  charter, which had gone from 2,221 to 4,100 lines in thirteen hours at
+  a 2.6% replacement ratio, read in full at the top of every window and
+  charged to the cap. Their own words: *"An instrument nobody reads
+  grades the same as one that cannot see."* HQ's corollary from the same
+  pass, which is why this is portfolio law: an instrument **no charter
+  points at** grades the same as one that does not exist, and
+  `standards/roles/exo.md` §7 is the recorded instance. Also the reason
+  `tools/run-record.py`'s findings line names the manifest field and the
+  step to take rather than reporting that a cap was hit.)
+
+- **Numbering note, 2026-10-24.** This batch is **L-A117 to L-A120**.
+  **L-A102 to L-A105 are retired unissued and no entry may take them**:
+  they were allocated on an unlanded branch of this seat, renumbered to
+  L-A112 to L-A116 when that branch merged second, and `docs/sprints/pending.md`
+  already cites "L-A104" for the rule that became L-A115 — so a reissued
+  L-A104 would resolve silently to a different rule, which is worse than
+  a visible hole. L-A106 to L-A111 are a sibling pull request's. See
+  L-A116: a renumbered ID is burned, not recycled.
+
+- **L-A121 — A variable is a claim; the artefact is the evidence.** A
+  check that reads an environment variable, a config key or a field has
+  read what somebody intended, not what happened, and the two part
+  company silently. Python's `tempfile` does not fail when `TMPDIR`
+  names a directory it cannot write: it falls back to the shared one, at
+  exit 0, with the variable still reading correct. So a check for an
+  effect asserts on the artefact the effect would leave — the file's
+  actual path, the row that was written, the directory it landed in —
+  and reads the variable only to say which answer it expected. Where the
+  effect is a promise written in a standard, the pattern to copy is the
+  pair: the promise where a reader can cite it, and a check whose own
+  table of clauses a test compares against that document, so the two
+  cannot drift. (alexandra-systems, HQ engineer, appended to this
+  register's inbox 2026-10-24. HQ held three states at one minute that
+  are indistinguishable from inside the repository: the runtime fix
+  giving every run a private scratch directory merged and staged, the
+  architecture register saying so truthfully, and a seat on the host
+  with no `TMPDIR` at all, writing its temp files into a world-writable
+  directory holding twenty-three other companies' live checkouts. The
+  only instrument was a commit distance, and a distance is the same
+  number whether the one line that matters is inside it or not. See
+  `standards/runtime.md` "The environment a run is handed" and
+  `tools/check-seat-env.py`. Corollary of L-A40, which is the rule that
+  merged is not running; this one is about what the check may read once
+  it asks.)
+
+- **L-A122 — When you revert, the reason goes in the revert.** A revert
+  whose message is git's generated three lines records that something
+  was undone and destroys why, and why is the only part of it anybody
+  later needs. The reason belongs in the revert commit, where every
+  instrument that reads history will find it. A comment on the reverted
+  pull request is not that place: it is the one surface nothing in this
+  company reads. (epitome, 2026-10-24, generalized at HQ. Its PM
+  reverted two merges at 12:44Z for a reason that was careful and
+  correct — whether a product charter file may clear on silence was on
+  the owner's desk from a parallel pass, and it declined to settle that
+  by merging first — and wrote that reason as a pull request comment
+  four minutes later. The next run of the check over those files
+  printed the same findings it had printed before the work was done.)
+
+- **L-A123 — A check that reads only current state cannot tell "nobody
+  did this" from "somebody deliberately undid this", and the two have
+  opposite next moves.** The first says do the work. The second says go
+  and ask the hand that undid it, because the finding is already
+  somebody's decision. A check that cannot distinguish them reports the
+  first and is confidently wrong, which is worse than a stale number,
+  because it is actionable and the action is to redo undone work. Where
+  the history is in the forge the check reads it rather than asking any
+  repository to adopt a convention, and names the commit, the date and
+  the hand. The finding does not disappear — the seat still lacks the
+  law — only the addressee changes. (epitome and alexandra-systems,
+  2026-10-24. Five charters read as omissions for a morning; all five
+  had been delivered and reverted in the same minute, and
+  `tools/check-register-pointer.py` now reports them as `BACK` with the
+  commit, the date, the hand, and whether the revert gave a reason.
+  Measured over the portfolio the same day: five of five findings
+  reclassified, zero genuine omissions.)
+
+- **L-A124 — The destination is not one of its own sources.** A path
+  declared once and read for two purposes will be read wrongly for one
+  of them. A tool that reads a declared surface says which of its
+  purposes it is reading it for, and a tool that reads a surface it
+  cannot be a source of skips it and says so on the page, because a
+  stated skip is not a zero: a product missing from a queue and a
+  product that cannot be in one read identically from the count alone.
+  (alexandra-systems, 2026-10-24. HQ's manifest declares
+  `surfaces.lessons: standards/lessons.md`, which is true, and the
+  harvest reads it to answer whether a product's lesson has been
+  promoted. It is also the harvest's destination, so scanning it for
+  candidates reported two of this register's own sentences as markers it
+  could not parse, every run. Note what this is not: the rule that
+  produced the false positive, report what you could not parse instead
+  of counting it zero, is right, and keeping it is why the real
+  twenty-one-lesson queue became visible the same morning. A correct
+  rule pointed at a file with nothing to parse is a scoping defect, not
+  a reason to stop reporting.)
+
+- **L-A125 — When a runtime moves, the move is not done until the
+  instruments that watch it have moved too, and the migration plan names
+  them one by one.** A plan that lists what runs and not what watches
+  leaves a company flying on surfaces that cannot fail loudly, because
+  the thing that would have reported the silence is itself silent. Name
+  every scheduled job, every check and every renderer in the plan, and
+  for each one say whether it moved, is retired, or is knowingly left
+  behind, the third being a decision with a date. (alexandra-systems,
+  2026-10-24, appended to this register's inbox and measured again the
+  same evening. Decision 054 took every HQ seat off GitHub Actions and
+  onto the host on the owner's instruction not to spend on GitHub. The
+  seats moved; the things that watch them did not. `company-sync`, which
+  regenerates the view this register's own charter says to read first,
+  `daily-brief`, which is the event that wakes it, and every suite that
+  gates a merge are all still `.github/workflows` jobs in the one
+  repository in the portfolio that is private. Measured on day twelve of
+  Incident 16: `tools-tests` triggered 519 times and started zero, 191
+  commits touching `tools/` reached `main` with no suite able to run,
+  and the view was stamped six days old without saying so. Measured
+  again that evening: `company-sync` has failed twelve consecutive
+  scheduled runs since 2026-10-13, each in three or four seconds, which
+  is the never-started signature, and its last success was 2026-10-12.
+  `company-checks`, which is where `tools/check-queue-ids.sh` runs, has
+  failed eleven since 2026-10-13. The instrument that would have caught
+  this register's own identifier collisions is wired to the one runner
+  that is dark.)
+
+- **L-A126 — A vendored copy is written by the tool that stamps it,
+  never by hand, and a copy with no header is treated as drift whatever
+  its contents.** `standards/vendor.sh` writes a
+  `vendored-from: <path> @ <sha>` header into every copy it makes, and
+  that header is not provenance etiquette: it is the only thing that
+  lets a reader answer "how far behind, and since when" in one line
+  instead of cloning HQ and bisecting. A copy that cannot be dated
+  cannot be trusted even when it is correct. (alexandra-systems, HQ pm,
+  appended to this register's inbox 2026-10-24. All four product copies
+  of the project-management standard were updated by hand on 2026-10-16
+  and the header went with the convenience. Measured at HQ the evening
+  of 2026-10-24, after a tool-written sync the same afternoon: epitome
+  and atelier-app carry the header and name `fb114f4`, which is `main`'s
+  own version of the file, so both are current to the commit. alexandria
+  and Ursa carry no header at all, and their copies are 48,588 bytes
+  against `main`'s 71,892. Two of four undatable, and those two are the
+  two that are actually behind.)
+
+- **L-A127 — A drift measurement names the commit each copy came from,
+  not the difference in bytes.** Bytes answer "how much", which nobody
+  acts on. The commit answers "since when", which is the number that
+  says whether a sync ran and which copy to look at. A report that can
+  only count bytes says so, rather than converting the one measurement
+  it has into the conclusion it wanted. (alexandra-systems, 2026-10-24,
+  two readings of the same portfolio nine hours apart. The morning's had
+  no instrument but `wc -c`, reported all four copies of the
+  project-management standard "the same twenty-three thousand bytes
+  behind", and concluded that nothing had re-vendored anywhere. Half of
+  that was right and half was wrong and the byte count could not tell
+  which. The evening's read the headers: four of four copies of this
+  register name HQ `3d848d1`, four commits and five rules behind, and
+  the pm standard splits two and two. Companion to L-A126: that rule is
+  why a copy can be dated at all, this one is what the measurement
+  prints.)
+
+- **L-A128 — Identical lag across every copy is evidence the sync ran,
+  not that it did not.** Four copies of a file all behind the source by
+  exactly the same amount is the signature of a distribution pass that
+  worked: one tool, one source commit, four repositories, one moment.
+  The reading it invites is the opposite one. So before reporting that a
+  sync has not run, read the copy's header and the target repository's
+  merge history, because "stale" and "never synced" are different facts
+  and only one of them is somebody's fault. A drift report that cannot
+  rule one out says which one. (alexandra-systems, 2026-10-24. A handoff
+  reached a seat saying this register had not re-vendored since the last
+  sync. It had: all four copies were re-vendored from HQ `c2705bc` and
+  merged between 00:27:31Z and 00:33:25Z, each faithful to the commit
+  its own header named, and the first of twenty new rules landed at HQ
+  fifty-six seconds after the last of those merges. The same shape
+  repeated that afternoon, and the second reading was taken correctly
+  because this rule was in the inbox by then.)
+
+- **L-A129 — When a distributed artefact's source changes faster than
+  the cadence of the thing that distributes it, the cadence is the
+  defect, not the copies.** The ordering rule inside a run is settled by
+  L-A63: write, merge, then sync. This is the ordering between runs,
+  which that rule does not reach. A periodic sync against an hourly
+  source has exactly one reachable state, "behind by however long since
+  the last wake", so the trigger moves to the event — the merge that
+  touches the source — and the periodic pass becomes the backstop that
+  catches what the event dropped, not the mechanism. A register that
+  reports "four of four current" against such a source is reporting a
+  timestamp, and should print it. (alexandra-systems, 2026-10-24. The
+  portfolio's four copies of this register were exactly current at
+  00:33Z. The source then took fifteen commits in seventeen hours,
+  adding twenty rules. Nothing failed: the tool is already the one
+  idempotent command that takes every repository as an argument, it ran,
+  it merged, and the copies were byte-exact. The portfolio was still a
+  working day behind by lunchtime. Measured again at 21:00Z the same
+  day: a sync ran at 17:08Z, and four commits and five rules had already
+  landed on top of it.)
+
+- **L-A130 — A run a resource refused did not fail.** A resource the run
+  does not own — the provider's session limit, an account's payment state,
+  a disk, a token's rate — can refuse a run before it does anything, and a
+  refusal is not an outcome of the work. Three parts, and a company that
+  has only the first two still goes dark. **Record the class, not the
+  result:** an exit code that is the same for "this seat did the wrong
+  thing" and "this seat was never allowed to begin" cannot be triaged,
+  counted or alarmed on, so the surface that records a run carries the
+  class in a field of its own — and where the boundary that knows the
+  class is a table you own, you add the column rather than building a
+  second instrument. **Give the work back:** idempotence is decided by the
+  refusal, not by the policy, and a run refused before its first turn did
+  nothing and is safe to re-deliver; work discarded because the thrower
+  could not tell whether it had begun is a classification failure wearing
+  a safety policy's clothes. **Resume on your own:** a refusal ends when
+  the resource returns, and something must be watching for that, or the
+  outage runs until the next unrelated knock and is as long as the
+  quietest hour. (epitome L18, 2026-10-18: the provider refused 65 of that
+  day's 253 runs across 19 seats and all four companies; 37 were refused
+  at turn one having done nothing, the bus had already acknowledged all 65
+  so nothing re-delivered them, and 121 of the 342 dark minutes fell after
+  the limit had already reset. Second source, HQ on itself, 2026-10-25:
+  this run exists because the third part was built — the wake that
+  produced it says "capacity returned: the provider limit that refused
+  your last run has reset, and nothing else would have woken you until
+  your next scheduled window." The rule is recorded here at the moment it
+  is first observed working, which is the only week it is cheap to check.)
+
+- **L-A131 — One landing attempt per stack; the second one is a report.**
+  Where a charter tells a seat to do work that can only be completed by an
+  authority the seat does not hold, the clause names its own stopping
+  point, or the duty re-fires every run and quietly becomes the seat's
+  whole cadence. A run may compose a stack and verify it **once**. After
+  that the stack is a queue-depth report to whoever holds the gate — the
+  count, the oldest item's age, the conflicts it has already caused — and
+  the run goes back to the work its cycle names, or ends and says why. The
+  test is two commands before any run decides to land anything: does a
+  pull request already exist whose branch contains every link
+  (`git merge-base --is-ancestor`), and is `main` an ancestor of it? Two
+  yeses mean there is nothing to land, and saying so in one paragraph is
+  the entire run. What makes this structural rather than tidiness is the
+  second cost: verification of an unmerged stack has the shelf life of the
+  next merge to anything, so the work of holding a deep stack current
+  grows with how long it stays unmerged and is paid out of the building
+  cadence. (epitome L13, 2026-10-05: five engineer runs in five days
+  opened five pull requests over one unmerged chain — #37 composed three
+  branches, #40 five, #45 nine, #48 verified the composition cold, #51
+  refreshed it after it went stale — while the role that would end the
+  sequence by merging was itself an open pull request. One stack there was
+  verified green at 02:27Z and was stale at 02:28Z.)
+
+- **L-A132 — "Shipped" is a claim about `main` and about nothing else.**
+  A branch, a handoff, a board item, a merge order, an engineer who has
+  agreed to build it: none of those is a shipped fix. An entry that names
+  one of them says so in those words, names the one thing blocking it, and
+  **stays open**. The same arithmetic governs a deferral: a plan that will
+  act "once those merge" is only as real as the merge it waits for, so the
+  run that writes the deferral tests it — trial-merge the branches it
+  names, today — and if the condition is itself jammed, waiting cannot end
+  it and the deferral is a handoff instead. This is the field a
+  fresh-context seat reads to learn whether a defect is still live, which
+  is why an intention recorded in it is worse than an empty one. (epitome
+  L19 and L20, both 2026-10-18, merged here because they are one rule read
+  from two ends. L20: two incidents published that day carried the heading
+  "fix shipped", neither fix was on `main`, and the defect recurred at
+  12:25:59Z into the surface the standard calls the only record. L19: of
+  25 open pull requests, 7 merged in sequence and 18 stopped, 17 of them
+  in one append-only Markdown table — and the two merges the deferral was
+  waiting on were two of the blocked ones, so the condition that would
+  release it was blocked by the jam that caused it. Third source, HQ on
+  itself, 2026-10-25: 18 pull requests open here, 8 of them this one
+  seat's, four of those conflicting with each other in this very file, and
+  the oldest `MERGEABLE` one 168 hours old. Nothing in that queue is
+  shipped, and every run that reads the register sees the rules those
+  branches carry as though they were law.)
+
+- **L-A133 — The slowest clock in a pull request is the clock on all of
+  it.** A merge is one click on the whole branch. This is L-A67's union
+  rule one level up: that one says a change's tier is the union of its
+  paths, and this one says a change's clock is the maximum of its
+  contents. A charter patch carries the slowest clock this company has —
+  the owner's silence — and every register entry, detector and helper
+  sharing its branch inherits it. Two duties follow, and neither is "open
+  a second pull request", because a run gets one. **The ask names what the
+  clock is not about:** before asking for a release on silence, read your
+  own branch's file list and name every file the ask is *not* about, with
+  one sentence saying the clock does not cover it either. **An exclusion
+  claimed on a bundled branch is measured, not asserted:** a sentence in a
+  pull request body excludes nothing, because the branch is the unit of
+  merge, so the ask pastes `gh pr diff --name-only` and says plainly that
+  the merger cannot honour the exclusion and that the slowest hand holds
+  all of it. That is a confession, not a remedy, and it is written as one.
+  (epitome L39 and L55, 2026-10-24, merged. L55's trigger is `epitome/pm`
+  declining to merge a four-file branch whose other three files it would
+  gladly have taken: "a merge is one click on the whole branch, so the
+  slowest tier in it is the tier of all of it, and yours is the slowest
+  tier here." The refusal was its own charter performed correctly, which
+  is why the lesson is the asker's and not the merger's.)
+
+- **L-A134 — A check reports three outcomes, and the third must not be
+  spelled like the first.** Clean, a finding, and *I could not take a
+  reading* — each with its own wording and its own exit status, because a
+  silent instrument and a healthy subject produce the same output and only
+  one of them is news. The could-not-look answer names the window it
+  actually searched: the count, the span, the route, and the parameter
+  that route honours. Corollary for anything built on a shared feed: a
+  detector's reach is a function of other people's traffic, so it degrades
+  to what it can still answer alone rather than to nothing — print
+  everything the source can say by itself, then declare the blind part
+  blind. (epitome L41, 2026-10-24. Second source, HQ on itself the same
+  day, from the runtime-scratch pass: "a check that cannot tell must not
+  answer ok, because the next seat believes it" — `tempfile` does not fail
+  when `TMPDIR` names a directory it cannot write, it falls back silently
+  at exit 0 with the variable still reading correct. Two companies reached
+  the same clause within hours from unrelated instruments, which is what
+  a rule binding `any` looks like before anyone writes it down.)
+
+- **L-A135 — A measurement of another branch perishes; take it last and
+  print the head you took it at.** A run's own files hold still while it
+  works; another seat's branch does not, and neither does the queue. So a
+  claim about either is taken immediately before it is written down and is
+  written down with the revision it was taken at. Two halves, and the
+  second is what makes the first checkable. **Re-measure what moves and
+  carry only what cannot:** a standing re-measurement that re-runs the
+  cheap local facts and carries forward the expensive remote one has
+  re-measured nothing that mattered, because fetching a head, running
+  someone's code or test-merging a branch is the only part that could have
+  changed — which is exactly why it is the part that gets carried.
+  **An ordering is generated, not typed:** a merge order is produced by
+  walking the open queue and test-merging each candidate onto the running
+  result, never by a seat reasoning about it in prose. (epitome L24,
+  2026-10-18.)
+
+- **L-A136 — An inbox is a feed, not a queue, so the duty is written down
+  before it is worked.** Two things are true of work that arrives as a
+  message and are not true of work on a board: nothing holds it but the
+  run reading it, and the surface it arrived on is a feed that scrolls.
+  So the first durable act of a run that accepts a duty its charter does
+  not state is to write the duty down — a register entry and a charter
+  patch, both named — before doing any of the duty itself. A run can end
+  at any turn; a file cannot. And read the feed as a feed: an addressed
+  read that inherits the store's defaults is not an addressed read.
+  Measured in one seat's inbox, the documented query returned 100 messages
+  over eight hours of which 3 were addressed to that seat — 1.7 percent —
+  with the handoff that mattered off the end of the page; turning the
+  broadcast default off cut the same window from 177 messages to 12.
+  (epitome L17, 2026-10-17.)
+- **L-A137 — When a scope filter keeps a multi-author file, filter that
+  file's entries too, and delete rather than refresh what you did not
+  write.** A rule that selects by file is correct for a file one seat
+  owns. An append-only register is one file with many authors, so the
+  same filter keeps every foreign entry inside the file it kept, and a
+  branch that says it dropped everything outside its lane has dropped
+  it only at the granularity of paths. Carrying a stale copy of another
+  seat's entry is worse than carrying nothing, because the merge then
+  presents two versions as equal-authority alternatives and the
+  ordinary resolution reverts the author's later work. Refreshing the
+  copy instead of deleting it buys one day: it goes stale again on the
+  author's next pass. So the split takes the whole file and then
+  removes, entry by entry, everything whose author is not this branch —
+  and a seat that cannot tell which entries are its own reads
+  `git log -L` or the entry's own provenance line, rather than keeping
+  all of them to be safe.
+  **The general shape, which is worth more than the clause: a correct
+  rule applied at a coarser granularity than the harm it protects
+  against silently keeps what it was written to drop.** No sweep for
+  contradictory standards can find it, because there is no
+  contradiction — the rule does exactly what it says, one layer out.
+  The check is therefore not "does any standard disagree" but "what
+  unit does this filter name, and what unit does the damage live in".
+  Ask it of every rule that selects: by file, by directory, by branch,
+  by repository, by company.
+  (Ursa's exo, 2026-10-25, measured and handed up rather than written
+  into its own charter, because the clause it fixes is HQ's and a local
+  fix would leave the other ten seats exposed —
+  `INC-2026-10-25-a-file-scoped-split-keeps-another-seats-register-entry-and-freezes-it`,
+  Ursa PR 418. Its file-scoped split of 2026-10-24 dropped the six
+  files outside its lane and the commit message said nothing of anyone
+  else's survived, which was true of files and false of entries. One
+  entry in a register Ursa's exo owns — Incident 19 — had been written
+  by Ursa's PM; the split froze the copy at **75 lines** while its
+  author grew it to **182**, so the later merge put **107 lines of
+  another seat's postmortem** one ordinary resolution away from being
+  reverted. What caught it was that repository's register merge driver,
+  which refused the merge and named the entry; without the driver the
+  same merge is a plain-text conflict on a 6,000-line file, which is
+  the shape a seat resolves by hand under time pressure. The enumerated
+  class there was four multi-author registers —
+  `docs/agents/incidents.md`, `docs/decisions.md`, `docs/ideas.md`,
+  `docs/sprints/pending.md` — and this register is a fifth, portfolio
+  wide, which is why the rule is filed under `any`.)
+
+- **L-A138 — An instrument whose own actions produce the events it reads
+  cannot treat "latest" as "current".** Any reader that identifies the
+  state of a thing by its most recent event, and that can itself create
+  an event of that kind, eventually reads its own failed action as the
+  thing's state. The failure is silent and it is worst exactly when the
+  instrument is working hardest, because the more often it acts the more
+  of the recent history is its own. So: **when a loop's output becomes an
+  input to its next read, carry the unresolved subject beside the newest
+  one, and name the unresolved subject when the newest one is empty.** Two
+  maps in the same walk, not a second pass and not a heuristic on
+  timestamps. And the test that catches it is never "does the newest row
+  parse" — it is "what does this read say after my own action fails".
+  (HQ, 2026-10-25, measured by Ursa's exo and handed up rather than
+  patched locally, because the tool is HQ's and eleven seats ride on one
+  deployment —
+  `INC-2026-10-25-a-barren-retry-wake-hides-the-window-that-did-the-work`,
+  Ursa PR 429, fixed in HQ PR 467. `tools/capacity-retry.py` wakes a
+  refused seat when the provider's announced reset passes, and its wakes
+  are themselves refusable. So a refusal at turn one lands on top of the
+  window that did the work, becomes the seat's new latest run, and the
+  payload says "your last run" truthfully while the branch it should be
+  pointing at sits further back. Over this host's logs for 2026-10-23..25:
+  **110 barren turn-one refusals became a seat's latest run and 73 of them
+  masked an unresolved refusal past turn one with nothing completed
+  between — 66.4%**, across 19 seats and all five companies, nine runs
+  deep at worst and up to a masked window of 147 turns. HQ's own `pm` seat
+  was five deep; Ursa's was the nine. Reproduced independently at HQ from
+  the same logs before it was granted, which is the standard for a handoff
+  that carries a number.)
+
+- **L-A139 — "Something already ran, so the job is done" is a claim about
+  a unit. Write the unit down before you believe it.** Every coverage
+  condition counts in some unit, and it is only as true as that unit. The
+  mistake is not the condition, which is usually correct in the unit it
+  was written for; the mistake is that the loss lives in a different unit
+  and nothing in the code says so. **For each "already covered" test, name
+  the unit the coverage is in and the unit the loss is in; where they
+  differ, the test needs a second clause keyed on the lost unit.** This is
+  [[L-A137]]'s question one layer out — *what unit does this rule name,
+  and what unit does the harm live in* — asked of a coverage condition
+  rather than of a scope filter, and it is the second time in one night
+  that the same question found a live defect. Its companion for recovery:
+  **a duty that gets one attempt per period is recovered by naming the
+  duty, not by returning the hour.** A seat woken off its schedule does
+  its ordinary run unless the payload says which slot it is serving, so a
+  mechanism that gives back the capacity and not the name gives back the
+  hours and loses the cadence.
+  (HQ, 2026-10-25, from alexandria's exo —
+  `INC-2026-10-25-the-weekly-slot-is-scheduled-inside-the-hours-the-weekly-provider-budget-is-spent`,
+  alexandria PRs 518 and 521, granted in HQ PR 467. The retry's condition
+  4 reads "no run of that seat started after it, by any trigger: a
+  scheduled window that fired in between has already done the job". True
+  of hours. False of cadences, because a message wake does the work the
+  message carried and never the scheduled run. **Thirteen cron slots fired
+  on 2026-10-25 and eleven were refused before a turn; three of those were
+  their seat's only slot of the week, so they lost a cycle and not a day.**
+  Over the host's whole history, 27 firings and 18 that produced nothing.
+  The retry then worked perfectly — it woke thirteen seats 2m09s after the
+  resource returned — and woke ten of them for their latest *message* wake
+  with the ordinary sentence. The hours came back and eleven cadences did
+  not, which is the exact shape of believing a coverage condition in the
+  wrong unit.)
+
+- **L-A140 — A retry horizon longer than the memory of the record that
+  proves the retry happened is not a retry. It is a loop.** Any mechanism
+  that acts at most once per subject does it with two numbers: how long a
+  subject stays eligible, and how long the ledger remembers that it was
+  served. When the first outlives the second, the proof is pruned while
+  the subject is still eligible and the mechanism fires again, for as long
+  as its timer ticks. **Cap the eligibility horizon by the ledger's own
+  prune, and read both from one constant rather than from two numbers that
+  agree today.** Then assert it in a test, because the two live in
+  different functions and nothing else connects them. The class is wider
+  than retries: dedupe windows, idempotency keys, claim files, silence
+  clocks ([[L-A98]], [[L-A99]]), any "have I done this already" that
+  forgets.
+  (HQ, 2026-10-25, found while granting L-A139 rather than after an
+  incident. A refused cron slot is worth re-firing for its own period,
+  since the next firing is what would otherwise cover it — but
+  `tools/capacity-retry.py` prunes its claim file to three days, so a
+  weekly horizon would have called a slot owed four days after the claim
+  recording its recovery had been forgotten: one run per tick of a
+  five-minute timer, on a seat that had already been recovered. The
+  horizon is now `min(period, KEEP_DAYS * 24)` and
+  `test_no_refire_horizon_outlives_the_claim_that_proves_the_refire`
+  pins it.)
+
+- **L-A141 — A provider's refusal carries its own sentence. The sentence
+  is the class; the status code is not.** One `429` was two limits here
+  for five weeks — a session limit that resets in hours and a weekly limit
+  that resets at a week boundary — and every instrument in both
+  repositories counted them as one number. **73 weekly against 226 session
+  over the host's whole history, and 65 of 70 refusals on 2026-10-25 were
+  the weekly class**, which is the difference between a four-hour dead zone
+  and a twenty-hour one. Nothing had to be collected to find it: the
+  discriminator was in each run's own log the whole time and the surface
+  that serves it already carried the provider's words verbatim. So:
+  **when an error carries prose, parse the prose and store the class
+  beside the code** — and the second half, which is the more expensive
+  one — **a shared resource's announced reset is a fact to publish once,
+  not a fact to rediscover.** On 2026-10-25 twenty-one seats across four
+  products met one reset sentence sixty-five times, sixty-four of them
+  after it had already been printed on another seat's log, and no surface
+  on the box said the pool was closed until 23:00Z. A shared resource with
+  no budget and no watch is an outage with a date on it.
+  (alexandria's exo and epitome's exo, independently, 2026-10-25 —
+  alexandria PR 521, epitome PR 316, where it displaced four consecutive
+  namings of autonomy as the portfolio's weakest ExO attribute and was
+  named Dashboards: *"the reading exists and is correct. Nothing keeps the
+  answer."* Two products, one rule, which is what a merge of duplicates
+  looks like.)
+
+- **L-A142 — A counter read from the tail of a file is not an allocator
+  when the authors cannot see each other's drafts, and a hand-rolled grep
+  is not a substitute for the check that already answers it.** An
+  identifier space whose only counter is the last line of the default
+  branch has one failure and one false alarm. The failure is the
+  collision: two authors, or two sessions of one memoryless author, read
+  the same tail and issue the same number, which then means one thing on
+  `main` and another in every vendored copy. The false alarm is the one
+  this register paid for, and it is the more interesting half, because a
+  false collision costs a deferral and a deferral looks like prudence.
+  **The allocator is the highest identifier *defined* across the base and
+  every open branch, where defined means the entry line that introduces
+  the rule and never a `[[link]]` or a mention in someone else's text.**
+  A pattern that cannot tell those apart counts this register's own
+  cross-references as claims, and the denser the register's internal
+  linking gets the more unsafe its tail reads.
+
+  The rule that generalizes past identifiers: **before a seat writes its
+  own instrument for a question, it looks for the one the company already
+  has, because a hand-rolled measurement inherits none of the care in the
+  one it replaced.** Here the care is specific and hard to rediscover.
+  `tools/check-queue-ids.sh` has read definitions only since 2026-10-07,
+  it compares branch against branch rather than only against `main` where
+  `gh pr view --json mergeable` is blind, it declines to offer a gap below
+  the tail because a gap is exactly where an open branch is sitting, it
+  reports a ref it could not compare as a finding rather than as clean,
+  and it keeps the pre-merge question separate from the audit of the
+  base's own published duplicates so the gate is not red on every clean
+  branch. So the allocation step is one command, `tools/check-queue-ids.sh`,
+  and its `next` line is the answer.
+  (HQ, 2026-10-24 and 2026-10-26. The 2026-10-24 renumber note in this
+  file's inbox stated the first half correctly, then deferred nine
+  entries on a measurement it took by hand: it reported two of this
+  seat's open pull requests both allocating `L-A102` and `L-A105` for
+  different rules, said a third session reading `main`'s tail would make
+  it three, and issued no identifier at all. Re-measured on 2026-10-26 by
+  definition line: **#422 defines A117 to A120, #434 defines A121 to A129,
+  #450 defines A130 to A136, #467 defines A138 to A141 — four branches,
+  disjoint, nothing twice**, and the two pull requests the note named,
+  #408 and #413, had merged on 2026-10-24 and 2026-10-25. The overlap it
+  reported was this register's rules citing each other. `check-queue-ids.sh`
+  was in `tools/` the whole time, had been since 2026-10-07, answers
+  exactly this question, and prints `next standards/lessons.md L-A142` —
+  the number the deferral said could not be known. **The cost was nine
+  entries and eleven rules sitting outside the law for two days.** This is
+  [[L-A144]] with the seat as its own victim, the number having come from
+  a pattern rather than from the command that derives it, and
+  [[L-A145]]'s re-measure is what discharged it.)
+
+- **L-A143 — A value a reader can apply lives in exactly one file, and a
+  pointer with the old copy still underneath it is not a supersession.**
+  Any artifact someone acts on — a command they will run, a count they
+  will quote, a configuration they will apply — needs one source and a
+  check that fails when a second appears. Writing the new location into
+  the old file does not retire the old file, because a reader who arrives
+  at the old copy first reads a value and leaves, and nothing about the
+  copy tells them it lost. The two moves are the same move: delete the
+  duplicate, and add a check that exits non-zero when the count of
+  declaring files is not one. A superseded file is a deleted file or a
+  file that cannot be read for that value.
+  (HQ's distribution seat, 2026-10-25, handed up rather than appended
+  because the register was contended that night — see [[L-A146]]. Five
+  files in that seat's own directory declared the same four
+  repositories' panels and no two agreed. Another company's project
+  manager read the copy on the default branch and asked the owner to run
+  a command whose four topics did not describe the repository they were
+  for, so the owner did exactly the right thing with the wrong file. The
+  seat's own check now answers this with an exit code rather than a
+  report, which is [[L-A114]]'s rule applied to its own directory.)
+
+- **L-A144 — A number a seat puts in a message comes from the command
+  that derives it, never from recall, because a memoryless seat's
+  recalled number is a guess wearing a digit.** A digit reads as
+  measurement to every recipient, and a seat that starts each run with no
+  memory of the last one has no recall worth the name: what feels
+  remembered is a sentence from a context window that is gone. The second
+  half is the units. Deriving a number correctly and then naming it as a
+  count of something else compares one thing against another, and the
+  reader cannot see the substitution because both sides are numerals. So
+  a number in owner-facing or seat-facing prose carries the command that
+  produced it, or it does not appear.
+  (HQ's distribution seat, 2026-10-25, the second half of the handoff
+  behind [[L-A143]], and self-reported: *"I told her twelve topics when
+  my own file said twelve fields, which is four repositories times three,
+  so we compared a count of one thing against a count of another."*
+  Second source the same week, HQ's exo centralizer, 2026-10-26: the
+  deferral corrected by [[L-A142]] was a count of pattern matches
+  reported as a count of claims.)
+
+- **L-A145 — An owed item carries its reason, the date that reason was
+  last measured, and the command that measures it; and a run that
+  inherits an item runs that command before writing the item forward.**
+  A list of owed work is a list of claims about the present, written in
+  the past. Carried forward without re-measurement it decays into a
+  record of what used to block, and the decay is invisible because the
+  item still reads true. The three fields are the whole mechanism: the
+  reason says what would discharge it, the date says how stale the reason
+  is, and the command makes re-measuring cheaper than copying. **Items
+  discharge, narrow and change addressee between runs far more often than
+  a seat expects, so the re-measure is not hygiene at the margin; it is
+  the step that finds the defect.**
+  (HQ's distribution seat, 2026-10-26, who made it the first standing
+  rule of its own directory and then performed it rather than described
+  it: on the first pass one owed item had already been discharged by that
+  seat's own merged pull request hours before the list was read and was
+  still carried as a blocker on a live submission, a second discharged, two
+  narrowed, and *"a defect nobody had seen"* surfaced. Second source the
+  same night, HQ's exo centralizer: the standing block appended to this
+  seat's wake named pull request 463 as an idle draft no gate could reach,
+  twenty hours stale, and 463 had been readied and merged twenty-three
+  minutes before the wake fired. Both instances are the same shape, which
+  is why this is filed under `any` and not under the one seat that wrote
+  it: a standing reminder is an owed item too, and the bus cannot
+  re-measure for you.)
+
+- **L-A146 — When a writer reports that it could not write a shared file,
+  that is a property of the file, not of the writer. A contended
+  append-only register is a lock.** The symptom arrives as politeness —
+  one seat hands its entry to another rather than appending, a second
+  defers its own harvest, a third keeps its rules on a branch beside code
+  it cannot self-merge — and each of those reads locally as a careful
+  decision. Counted together they are a queue on one path. The exposure is
+  the count — **how many open branches touch this file right now** — and
+  if the answer is more than one the next author's cost is a conflict
+  resolution on someone else's prose. **The cost is a different question
+  and has a different command: `tools/merge-order.sh --pr N` for whether
+  the queue will let N land, `tools/check-queue-ids.sh` for whether two
+  branches claimed one identifier.** See the amendment at the end of this
+  rule, which is why both are named here rather than below. Two fixes, in
+  order of how much they buy: give the surface per-entry granularity so two authors do not share
+  a line range, and until then give it a merge driver that refuses rather
+  than a text merge that silently prefers one side ([[L-A137]]). The rule
+  for the reader of such a report: do not thank the writer for the
+  courtesy and move on, because the courtesy is the measurement.
+  (HQ's distribution seat, 2026-10-26, correcting this seat's reading of
+  its own handoff: *"I sent it over the board because your harvest branch
+  held the file. You could not write it because three of your own
+  branches did. Same cause from two seats, and the cause is the file."*
+  Their count was seven open branches touching `standards/lessons.md`
+  that night; re-measured on 2026-10-26 it is eight, four of them this
+  seat's, and the per-entry inbox directory this rule asks for is still
+  unbuilt. Filed with [[L-A143]], which was the entry that could not be
+  appended.)
+
+  **Amendment, 2026-10-26, and it is a correction to this rule's own
+  diagnostic. The exposure and the cost are two questions with two
+  commands, and this rule named only a number.** HQ's distribution seat
+  asked for it twice on the board and then filed it in the inbox rather
+  than a third time, having measured the defect in the rule's own text:
+  `git show origin/main:standards/lessons.md | grep -A14 'L-A146 —' |
+  grep -cE 'merge-order|check-queue-ids'` returned **0**, so a rule
+  reported for the [[L-A14]] defect — a prohibition or a diagnostic with
+  no executable form — still carried it after its fix landed.
+
+  - *Will these branches conflict over the file?* `tools/merge-order.sh
+    --pr N`. Exit **1** when N will not survive the queue, and the
+    output names which branches cancel it and on which file.
+  - *Did two branches claim the same register identifier?*
+    `tools/check-queue-ids.sh`. Exit **0** when no identifier is claimed
+    twice, read by definition line rather than by mention.
+
+  The branch count is the exposure; mutual exclusivity is the cost, and
+  substituting one for the other is a number derived correctly and then
+  named as a measure of something else ([[L-A144]]), which no reader can
+  catch because both sides are numerals. The proof that the count cannot
+  answer the first question is `#472` on 2026-10-26: it defined **zero**
+  rules in this file and it still cancelled `#473`. Disjoint identifiers
+  mean nobody has to renumber; they say nothing about whether git can
+  merge the two, and a conflict on somebody else's prose is the whole
+  cost this rule is about. On that morning the two readings were eight
+  branches touching this file and **seven of seventeen open pull
+  requests that could not be merged at all**, every one of them here —
+  and one branch landing is what turned six clean branches into rebases.
+
+  The per-entry inbox this rule asks for is no longer unbuilt:
+  `standards/lessons-inbox/` landed in `#479` on 2026-10-26, and the
+  same measurement the next morning read **two** branches on this file
+  rather than eight. The role sections below are still one anchor with
+  one writer, which is why the count here is two and not zero.)
+
+- **L-A147 — A clock set on authority does not move with patience.** When
+  a decision waits on who may make it, the hours it has waited are not
+  evidence toward it, and a request to move it sooner because it has
+  waited longer is asking the wrong question of the wrong holder. Two
+  obligations follow, one on each side. The holder of the clock says what
+  the clock is about when they decline, so the asker learns which lever
+  exists: an authority clock moves on the authority's word and on nothing
+  else. And the asker, told that, stops counting hours and goes looking
+  for the splittable part, because **a branch is usually not one authority
+  but two stapled together, and the lower half can ship today**
+  ([[L-A137]]).
+  (HQ's pm seat to this seat, 2026-10-26, declining to advance
+  `alexandra-systems#234` ahead of a silence clock expiring
+  2026-10-27T02:51:27Z: *"The hours between a hundred and sixty-eight and
+  a hundred and eighty-nine do not move that clock, since the clock is
+  about authority and not about patience."* They re-ran the tier checker
+  fresh rather than trusting either seat's prior reading, which is
+  [[L-A145]], and then answered the splittable half without the owner:
+  the ledger-directory convention is not on the tiers' reserved list, so
+  the two files carrying it read Tier B on their own and may merge today
+  as long as the branch does not also touch the tiers section.)
+
+- **L-A148 — A fix is checked where its effect would be, not where its
+  code is.** A merged fix, a true register row and a broken box are three
+  states that look identical from inside the repository, because the only
+  instrument is a commit distance and a distance is the same number
+  whether the one line that matters is inside it or not. **A change that
+  is only useful once it is running is not finished when it merges. It is
+  finished when something reads its effect in the place the effect would
+  appear, and that reading says which of merged, deployed and working it
+  got.** Two corollaries. A variable is a claim and the artefact is the
+  evidence: Python's `tempfile` does not fail when `TMPDIR` names a
+  directory it cannot write, it falls back to the shared one at exit 0
+  with the variable still reading correct, so a check that greps for the
+  variable calls that state green. And a check that cannot tell must not
+  answer ok; it reports that it could not tell, because the next seat
+  believes it. The pattern to copy is the pair: the promise written where
+  a reader can cite it, and a check whose own table of clauses a test
+  compares against that document, so the two cannot drift.
+  (HQ, 2026-10-24, appended to this file's inbox and issued its
+  identifier on 2026-10-26 under [[L-A142]]. HQ held all three states at
+  one minute: the runtime fix giving every run a private scratch
+  directory was merged and staged, the architecture register said so
+  truthfully, and a seat running on the host had no `TMPDIR` at all and
+  wrote its temp files into a world-writable directory holding
+  twenty-three other companies' live checkouts. See
+  `standards/runtime.md` "The environment a run is handed",
+  `tools/check-seat-env.py`, and the ADR of the same date. Binds `any`,
+  and `engineer` in particular.)
+
+- **L-A149 — When you revert, the reason goes in the revert.** A revert
+  whose message is git's generated three lines records that something was
+  undone and destroys why. The reason is almost always careful, and
+  putting it anywhere other than the commit puts it on a surface no
+  instrument in this company reads.
+  (epitome's pm, 2026-10-24, who reverted two merges at 12:44Z for a
+  correct reason — whether a product charter file may clear on silence
+  was on the owner's desk from a parallel pass, and they declined to
+  settle it by merging first — and wrote that reason as a comment on one
+  of the two reverted pull requests four minutes later. The next run of
+  the check over those files printed the findings it had printed before
+  the work was done, and what it implied was: open the same pull request
+  again. Inbox entry of 2026-10-24, issued on 2026-10-26 under
+  [[L-A142]].)
+
+- **L-A150 — A check that reads only current state cannot tell "nobody
+  did this" from "somebody deliberately undid this", and the two have
+  opposite next moves.** The first says do the work. The second says go
+  and ask the hand that undid it. Where the history is already in the
+  forge a check reads it rather than asking any repository to adopt a
+  convention, and it reports the commit, the date, the hand, and whether
+  the revert gave a reason ([[L-A149]]). The finding does not disappear —
+  the seat still lacks the law — only the addressee changes.
+  (HQ, 2026-10-24, the second half of [[L-A149]]'s entry;
+  `tools/check-register-pointer.py` now reports `BACK` with those four
+  fields. Issued 2026-10-26 under [[L-A142]].)
+
+- **L-A151 — The destination is not one of its own sources.** A path
+  declared once and read for two purposes will be read wrongly for one of
+  them. **A tool that reads a declared surface says which of its purposes
+  it is reading it for, and a tool that reads a surface it cannot be a
+  source of skips it and says so on the page.** A skip stated is not a
+  zero: a product missing from a queue and a product that cannot be in
+  one read the same from the count alone.
+  (HQ, 2026-10-24. HQ's manifest declares `surfaces.lessons:
+  standards/lessons.md`, which is true, and the harvest reads it to answer
+  whether a product's lesson has been promoted yet. It is also the
+  harvest's destination, so scanning it for portable-lesson candidates
+  reported two of this register's own sentences — prose beginning with a
+  backticked marker while talking about the marker — as markers that
+  could not be parsed, every run. Note what this is not: the rule that
+  produced the false positive, report what you could not parse instead of
+  counting it zero, is right, and keeping it is why the real
+  twenty-one-lesson queue became visible the same morning. A correct rule
+  pointed at a file with nothing to parse is a scoping defect, not a
+  reason to stop reporting. Binds `any` and `exo`. Issued 2026-10-26
+  under [[L-A142]].)
+
+- **L-A152 — Instruments do not follow a runtime when it moves; they have
+  to be carried.** **When a runtime moves, the move is not done until the
+  instruments that watch it have moved too, and the migration plan names
+  them one by one.** A plan that lists what runs and not what watches
+  leaves a company flying on surfaces that cannot fail loudly, because
+  the thing that would have reported the silence is itself silent. Name
+  every scheduled job, every check and every renderer, and for each one
+  say whether it moved, is retired, or is knowingly left behind, the third
+  being a decision with a date.
+  (HQ, 2026-10-24. Decision 054 took every HQ seat off GitHub Actions and
+  onto the host, on the owner's instruction not to spend on GitHub. The
+  seats moved. `company-sync`, which regenerates the view this seat's
+  charter says to read first, `daily-brief`, which is the event that is
+  supposed to wake it, and every test suite that gates a merge are all
+  still `.github/workflows` jobs in the one repository in the portfolio
+  that is still private, and had therefore not started once since
+  2026-10-13 — Incident 16. Measured on day twelve: `tools-tests`
+  triggered **519** times and started **zero**; **191** commits touching
+  `tools/` reached `main` with no suite able to run; the view was stamped
+  six days old and said nothing about being stale. The suite was run by
+  hand that pass and passed, 1,175 tests, so nothing was broken, which
+  was luck observed late rather than a gate. Issued 2026-10-26 under
+  [[L-A142]].)
+
+- **L-A153 — A vendored copy is written by the tool that stamps it, never
+  by hand, and a copy with no header is treated as drift whatever its
+  contents.** `standards/vendor.sh` writes a `vendored-from: <path> @
+  <sha>` header into every copy it makes, and that header is not
+  provenance etiquette. It is the only thing that lets a reader answer
+  "how far behind, and since when" in one line instead of cloning the
+  source and bisecting. A copy that cannot be dated cannot be trusted
+  even when it is correct.
+  (HQ, 2026-10-24: on 2026-10-16 all four product copies of the
+  project-management standard were updated by hand rather than by the
+  tool, and the header went with the convenience. Binds `any`, `pm`,
+  `exo`. Issued 2026-10-26 under [[L-A142]].)
+
+- **L-A154 — A drift measurement names the commit each copy came from,
+  not the difference in bytes.** Bytes answer "how much", which nobody
+  acts on. The commit answers "since when", which is the number that says
+  whether a sync ran.
+  (HQ, 2026-10-24, the second half of [[L-A153]]'s entry. With the
+  headers gone, a project manager measuring the portfolio's drift on
+  2026-10-24 had no instrument left but `wc -c`, reported all four copies
+  "the same twenty-three thousand bytes behind", and concluded from the
+  identical figure that nothing had re-vendored anywhere. Half of that
+  conclusion was right and half was wrong, and the byte count could not
+  say which — see [[L-A155]]. Issued 2026-10-26 under [[L-A142]].)
+
+- **L-A155 — Identical lag across every copy is evidence the sync ran,
+  not that it did not.** Four copies all behind the source by exactly the
+  same amount is the signature of a distribution pass that worked: one
+  tool, one source commit, four repositories, one moment. The reading it
+  invites is the opposite one. So **before reporting that a sync has not
+  run, read the copy's header and the target repository's merge history,
+  because "stale" and "never synced" are different facts and only one of
+  them is somebody's fault** — and a drift report that cannot distinguish
+  the two says which one it could not rule out.
+  (HQ, 2026-10-24, after that reading reached a seat as a handoff saying
+  the lessons register had not re-vendored since the last sync. It had:
+  all four copies were re-vendored from HQ `c2705bc` and merged between
+  00:27:31Z and 00:33:25Z, each faithful to the commit its own header
+  named. The first of twenty new rules landed at HQ at 00:34:21Z,
+  fifty-six seconds after the last of those merges, and fourteen further
+  commits touched the file the same day — which is [[L-A156]]. Binds
+  `any`, `pm`, `exo`. Issued 2026-10-26 under [[L-A142]].)
+
+- **L-A156 — When a distributed artifact's source changes faster than the
+  cadence of the thing that distributes it, the cadence is the defect,
+  not the copies.** A periodic sync against an hourly source has exactly
+  one reachable state, "behind by however long since the last wake". So
+  the trigger moves to the event, meaning the merge that touches the
+  source, and the periodic pass becomes the backstop that catches what the
+  event dropped rather than the mechanism. A register that reports "four
+  of four current" against such a source is reporting a timestamp, and
+  should print it. The ordering rule inside a run is settled — write,
+  merge, then sync — and this is the ordering *between* runs, which that
+  rule does not reach.
+  (HQ, 2026-10-24. The portfolio's four copies of the lessons register
+  were exactly current at 00:33Z. `standards/lessons.md` then took
+  fifteen commits in seventeen hours, adding twenty rules, the first
+  fifty-six seconds after the last sync merged. Nothing failed: the tool
+  is already the one idempotent command that takes every repository as an
+  argument, it ran, it merged, and the copies were byte-exact. The
+  portfolio was still a working day behind by lunchtime. Binds `any`,
+  `exo`, `distribution`. Issued 2026-10-26 under [[L-A142]].)
+
+- **L-A157 — A test double that speaks a language cannot check the
+  language.** Where a double stands in for an interpreter — a database, a
+  shell, a template engine, a regular-expression engine, another
+  service's schema — **the string handed to it is unverified, and
+  something else has to read it.** Either execute it against the real
+  interpreter in a fixture, or check the string statically for the faults
+  that interpreter would raise, and say which of the two is covering it.
+  A suite that mocks an interpreter names what it therefore cannot see,
+  in the same place a reader looks for its coverage. This is not a gap in
+  those tests; it is a property of the double, and test count and coverage
+  both read high while the first reader of that string is production.
+  (HQ, 2026-10-24. The board route for the company scorecard has thorough
+  tests: both data sources, the cache, the degraded readings, the company
+  filter. One line of its SQL gained a parameter in a position Postgres
+  cannot assign a type to, the server refused the whole statement from
+  then on, and the route returned no numbers at all in every scope for
+  nine hours while the suite stayed green, because its fake cursor's
+  `execute(self, sql, *a)` takes the statement and discards it. The same
+  suite is equally blind to a column that does not exist, a table a
+  migration renamed, and a typo in a clause. On this host a scratch
+  Postgres costs about ninety seconds. Binds `any` and `engineer`. Issued
+  2026-10-26 under [[L-A142]].)
+
+- **L-A158 — A gate's verdict must be the verdict of the surface that
+  performs the act. An instrument whose answer changes with configuration
+  that is never committed has two answers and no verdict.** Per-clone git
+  config, a per-host environment, a session's installed extras: each is a
+  place a measurement can quietly become a measurement of the measurer.
+  **Pin, inside the measuring call, the configuration the performing
+  surface actually has, and report any other reading as its own named
+  second answer** — never as the verdict and never silently. And a
+  verdict that only one configuration can produce is not entitled to
+  explain itself: an instrument that could not run the comparison says
+  so, because "the other arm disagrees" and "I could not run the other
+  arm" are opposite findings that look identical from a conflict marker.
+  (HQ, 2026-10-26, fixing it in its own shared tool. `tools/check-merge-queue.sh`
+  is mandated by `standards/pm.md` §11.2 and never registered a merge
+  driver. Run against Ursa, which declares six merge attributes, on the
+  same twelve pull requests in the same minute: with no drivers in the
+  clone it answered **9 clean, 3 CONFLICT, exit 1**, dispatching three
+  seats to rebase branches that needed no judgement; with Ursa's own
+  installer run — which Ursa's own tools run — it answered **all twelve
+  merge cleanly, exit 0**, for three branches GitHub's button will
+  refuse. Neither answer was GitHub's, which merges server-side in a
+  clone that has no drivers either and therefore performs the driverless
+  merge permanently ([[L-A49]]). The first draft of the fix then
+  committed the second half of this rule: it reported "this repository's
+  own merge drivers do not resolve it either" on all three of Ursa's
+  conflicts, in a clone where those drivers had no command at all. Caught
+  by running the change against the live repository before believing it.
+  Binds `any`, `engineer`, `pm`, `exo`. Issued 2026-10-26 under
+  [[L-A142]].)
+
+- **L-A159 — A measurement a standard mandates names the command that
+  performs it. A method stated only as prose gets re-implemented, and the
+  re-implementation reaches for the surface the prose forbids,** because
+  the forbidden surface is usually the one that always answers. Where a
+  tool already implements a standard's recipe, the standard names the
+  tool in the same paragraph as the recipe; the recipe stays so the number
+  can be read, not so it can be rebuilt weekly by hand. Two copies of one
+  method, one executable and one in prose, is one of them drifting, and
+  the prose copy is the one a fresh-context seat runs.
+  (Ursa's ExO, 2026-10-26. `standards/roles/exo.md` §5 attribute 9 spends
+  six sentences forbidding GitHub's `mergedBy` for the autonomy grade and
+  naming the board join that replaces it, and named no command.
+  `tools/autonomy.py` had been that join for eight days. That seat ran
+  it and reported **44.0% on 50 merges with 28 unresolved**, correctly;
+  twenty-two minutes later it handed HQ the orient paragraph grading the
+  same attribute **zero** — "every one of the fifty was merged by the
+  owner" — off `mergedBy`. The portfolio measured 67.3% that night and no
+  repository measured zero. One seat, one standard, one week, both the
+  forbidden number and the right one, and the forbidden one is what
+  travelled to HQ. Binds `any`, `exo`, `pm`. Issued 2026-10-26 under
+  [[L-A142]].)
+
+- **L-A160 — A refusal that fires twice in a row is a finding about its
+  cause, not a safeguard working.** An instrument that correctly declines
+  to answer must name the act that would let it answer, and **the second
+  consecutive decline makes that act the finding and routes it** to
+  whoever can perform it. A decline whose remedy is unrunnable from what
+  the decline prints is a decline that will repeat forever: it reads as
+  prudence, it costs nothing to emit, and the attribute it guards simply
+  goes ungraded until a reader takes the number from whatever surface
+  always answers. Naming the remedy is not enough if naming it requires
+  the reader to rebuild the instrument's own join — **print the
+  identifiers, not the count.**
+  (HQ, 2026-10-26, from the pair of readings above. `tools/autonomy.py`
+  refuses the grade when over a third of merges carry no seat claim, and
+  the standard's instruction on refusal was "say so, and grade
+  dashboards". Ursa's refusal fired for **six consecutive windows** —
+  28 of 50 unclaimed, re-measured here at 32 of 58 — and not one window
+  routed anything, because "grade the claims instead" is unrunnable from
+  a count: a seat handed "28 unresolved" has to rebuild the join to learn
+  which 28. The sixth refusal is also the window that published the
+  forbidden number. The tool now prints the unresolved identifiers with
+  the refusal, 32 of them against Ursa tonight, and `standards/roles/exo.md`
+  §5 attribute 9 makes the second consecutive refusal a route rather than
+  a repetition. Binds `any`, `exo`, `pm`, `engineer`. Issued 2026-10-26
+  under [[L-A142]].)
 
 ## engineer
 
@@ -3996,46 +5463,18 @@ ID it eventually gets is not the one its author would have chosen.
 
 ## inbox — lessons awaiting an ID
 
-Anyone may append here between harvests: the owner, the chair, any
-seat. Nothing in this section is law and nothing cites it. The
-centralizer generalizes each entry at the next harvest, gives it a rule
-ID, files it under its role section, and deletes it from here. Format:
-a title, the date, the role or roles it binds, and the rule in plain
-sentences. **No `L-` identifier.** See the preamble and L-A18 for why
-a second author picking IDs is a collision generator rather than a
-convenience.
+**Moved, 2026-10-26, to `standards/lessons-inbox/`, one file per entry.**
+Do not append here. This section is kept as the pointer, and
+`tools/check-lessons-inbox.py` fails on any `### ` entry left under it,
+because two inboxes is worse than one in the wrong place: a harvest reads
+one of them and the other is both not law and not queued.
 
-### A fix is checked where its effect would be, not where its code is
-
-2026-10-24. Binds `any`, and `engineer` in particular.
-
-A merged fix, a true register row and a broken box are three states that
-look identical from inside the repository. On 2026-10-24 HQ held all
-three at one minute: the runtime fix giving every run a private scratch
-directory was merged and staged, the architecture register said so
-truthfully, and a seat run on the host had no `TMPDIR` at all and wrote
-its temp files into a world-writable directory holding twenty-three
-other companies' live checkouts. Nothing in the company could tell those
-states apart, because the only instrument was a commit distance, and a
-distance is the same number whether the one line that matters is inside
-it or not.
-
-So a change that is only useful once it is *running* is not finished
-when it merges. It is finished when something reads its effect in the
-place the effect would appear, and that reading says which of merged,
-deployed and working it got. Two corollaries, both earned the same day.
-A variable is a claim and the artefact is the evidence: Python's
-`tempfile` does not fail when `TMPDIR` names a directory it cannot
-write, it silently falls back to the shared one at exit 0 with the
-variable still reading correct, so a check that greps for the variable
-calls that state green. And a check that cannot tell must not answer ok:
-it reports that it could not tell, because the next seat believes it.
-
-The pattern to copy is the pair: the promise written down where a reader
-can cite it, and a check whose own table of clauses is compared against
-that document by a test, so the two cannot drift. See
-`standards/runtime.md` "The environment a run is handed",
-`tools/check-seat-env.py`, and the ADR of the same date.
+Anyone may add a file there between harvests: the owner, the chair, any
+seat in any product. Nothing in it is law and nothing cites it. The
+harvest generalizes each entry, gives it a rule ID, files it under its
+role section, and deletes the file. Format and the reason for the layout
+are in `standards/lessons-inbox/README.md`; the preamble above carries
+the rule and what it cost to learn.
 
 *Empty as of 2026-10-12, and empty on arrival for the second harvest
 running: nothing was appended here between 2026-09-28 and this run. The five entries that
@@ -4073,103 +5512,77 @@ harvest's report rather than lost with the inbox entry.*
 
 ---
 
-### This harvest allocated no rule ID, on purpose (2026-10-24, the hook pass)
+*Empty again as of 2026-10-26. The nine entries appended between
+2026-10-24 and this run are now **L-A142 and L-A148 to L-A157** under
+`any`, eleven rules from nine entries, two of them having carried two
+rules under one title. The five identifiers between them, L-A143 to
+L-A147, came from the board the same night rather than from this
+section: four from HQ's distribution seat and one from HQ's pm. The nine
+were held unissued for two days by the deferral note that stood here,
+which said two open pull requests had both
+allocated the same identifiers and that a third session would make it
+three. Re-measured at this harvest by definition line rather than by
+mention, the four open branches touching this file were disjoint — #422
+defines L-A117 to L-A120, #434 defines L-A121 to L-A129, #450 defines
+L-A130 to L-A136, #467 defines L-A138 to L-A141 — and the two pull
+requests the note named, #408 and #413, had merged on 2026-10-24 and
+2026-10-25. The overlap it reported was this register's own rules citing
+each other, and `tools/check-queue-ids.sh` had been printing the right
+answer in `tools/` since 2026-10-07. That correction is itself the rule
+now, L-A142. L-A117 to
+L-A136 remain reserved by their open branches and were skipped rather
+than filled.*
 
-*Binds: `exo`, and anyone who writes this file.*
+---
 
-The renumber note above says the durable fix for two sessions of one seat
-allocating from the same tail "is the unnumbered inbox the preamble already
-provides, and the next harvest should ask why this seat does not use it for
-its own entries." This is that harvest, and the answer is that the collision
-is not historical. It is live and unmerged right now: `alexandra-systems#408`
-and `#413` are both this seat's, both open, and both allocate **L-A102** and
-**L-A105** for different rules. Whichever merges second carries two IDs that
-mean one thing on `main` and another in five vendored copies, which is L-A18
-exactly.
+**An instrument whose healthy output is silence must make its own failure
+loud** — 2026-10-26, binds `engineer` and `any` seat that builds a reporter.
 
-A third session allocating from `main`'s tail while two unmerged PRs hold
-numbers past it would make that three. So the four entries below take no
-identifier. They are law when a harvest issues them an ID, after the two open
-PRs land and the true tail is readable from one place.
+`tools/host/asc-hq-suites.sh` runs HQ's own suites hourly on the host and
+posts to the board only when the verdict changes colour, which is the right
+design: a note every hour saying the same thing is a note nobody reads by
+Thursday. It had never delivered one note, in either colour, in its whole
+installed life. The morning main went red it found the red within the hour
+and told nobody; a sibling seat found it by hand four hours and twenty-three
+minutes later, after a third seat had already written "zero failures and zero
+errors" into a pull request description.
 
-The rule this is an instance of, for whoever issues these: **a counter read
-from the tail of a file is not an allocator when the authors cannot see each
-other's drafts.** A seat with no memory between runs cannot hold a reservation,
-and two sessions of the same seat are two authors. The inbox exists so an
-author who cannot see the tail safely does not have to.
+Nothing noticed, because for a change-only reporter *nothing to say* and
+*cannot say anything* produce the same output, and the unit's own exit status
+was 0 by deliberate design so that a red suite would not read as a broken
+unit. Every instrument pointed at it — the systemd Result, the timer's last
+fire, this company's own host-units check — was green and correct.
 
-### A rollback is not an omission (2026-10-24)
+Three rules, which are one rule wearing three hats:
 
-*Binds: `any`.*
+1. A reporter must distinguish *reported* from *ran*. Its state file recorded
+   the last run rather than the last delivery, so a refused note looked
+   reported, and the 24-hour re-post of a standing red could never fire
+   because `now - last_when` was reset to about an hour every hour.
+2. A refusal is an exit code, never a `print`. This one was caught by a
+   `print` inside a heredoc inside a unit whose journal a seat cannot read.
+   That is L-A114 again — a check that does not block is not a gate — in its
+   mirror image: a *send* that cannot fail is not a send.
+3. A composer must not be able to compose a message its destination refuses.
+   The body said an incident number in prose and pasted forty lines of test
+   output as one paragraph; the board's store refuses both, by rules that had
+   been importable from `runtime/board/store.py` the whole time, and
+   `tools/board-send.py` had existed for days specifically to put them in
+   front of a send. Four host units each hand-rolled a POST around that gate.
+   The company paid for one gate and ran four ungated doors past it.
 
-Two rules, and each binds on its own.
+The generalization worth keeping is about what a review looks at. Every
+reading this system took of that unit asked whether it *ran*. None asked
+whether anything *arrived*, and arrival is the only thing a reporter is for.
+A reporting instrument's test is a read of its destination, not of its own
+exit status.
 
-**When you revert, the reason goes in the revert.** A revert whose message is
-git's generated three lines records that something was undone and destroys why.
-epitome's PM reverted two merges at 2026-10-24T12:44Z for a reason that was
-careful and correct — whether a product charter file may clear on silence was
-on the owner's desk from a parallel pass, and it declined to settle that by
-merging first — and wrote it as a comment on one of the two reverted pull
-requests four minutes later. That is the one surface no instrument in this
-company reads. The next run of the check over those files printed the same
-findings it printed before the work was done, and what it implied was: open
-the same pull request again.
-
-**A check that reads only current state cannot tell "nobody did this" from
-"somebody deliberately undid this", and the two have opposite next moves.** The
-first says do the work; the second says go and ask the hand that undid it.
-Where the history is already in the forge, a check reads it rather than asking
-any repository to adopt a convention: `tools/check-register-pointer.py` now
-reports `BACK` with the commit, the date, the hand, and whether the revert gave
-a reason. It is still a finding — the seat still lacks the law — and only the
-addressee changes.
-
-### The destination is not one of its own sources (2026-10-24)
-
-*Binds: `any`, `exo`.*
-
-A path declared once and read for two purposes will be read wrongly for one of
-them. HQ's manifest declares `surfaces.lessons: standards/lessons.md`, which is
-true: it is where HQ's lessons live, and the harvest reads it to answer "has
-this product's lesson been promoted yet". It is also this harvest's
-destination, and scanning it for portable-lesson candidates reported two of the
-register's own sentences — prose beginning with a backticked `portable: yes`
-while talking about the marker — as markers that could not be parsed, every run.
-
-So a tool that reads a declared surface says which of its purposes it is
-reading it for, and a tool that reads a surface it cannot be a source of skips
-it and says so on the page. A skip stated is not a zero: a product missing from
-a queue and a product that cannot be in one read the same from the count alone.
-
-Note what this is not. The rule that produced the false positive — report what
-you could not parse instead of counting it zero — is right, and keeping it is
-why the real 21-lesson queue became visible the same morning. A correct rule
-pointed at a file with nothing to parse is a scoping defect, not a reason to
-stop reporting.
-
-### Instruments do not follow a runtime when it moves; they have to be carried (2026-10-24)
-
-*Binds: `any`.*
-
-Decision 054 took every HQ seat off GitHub Actions and onto the host, on the
-owner's instruction not to spend on GitHub. The seats moved. The things that
-watch the seats did not: `company-sync`, which regenerates the view this
-seat's charter says to read first, `daily-brief`, which is the event that is
-supposed to wake it, and every test suite that gates a merge are all still
-`.github/workflows` jobs in the one repository in the portfolio that is still
-private, and have therefore not started once since 2026-10-13 (Incident 16).
-
-Measured on day twelve: `tools-tests` was triggered **519** times and started
-**zero**; **191** commits touching `tools/` reached `main` with no suite able
-to run; the view was stamped six days old when this pass opened it, and said
-nothing about being stale. The suite was run by hand in this pass and passed,
-1175 tests, so nothing was broken — but that was luck observed late, not a
-gate.
-
-The rule: **when a runtime moves, the move is not done until the instruments
-that watch it have moved too, and the migration plan names them one by one.**
-A plan that lists what runs and not what watches leaves a company flying on
-surfaces that cannot fail loudly, because the thing that would have reported
-the silence is itself silent. Name every scheduled job, every check and every
-renderer in the plan, and for each one say whether it moved, is retired, or is
-knowingly left behind — the third being a decision, with a date.
+Second, smaller entry from the same run, same date, binds `any`: **a test
+that pins a clock in its fixtures and then shells its subject out as a
+subprocess has a fuse in it, not a flake.** `tools/tests/test_brief_reach.py`
+built events against a frozen instant and measured them with the wall clock,
+because the tool it spawned had no way to be told what time the fixtures
+thought it was. It went red at a computable moment — the fixture's instant
+plus the window's default — and stayed red. A tool whose verdict is a
+subtraction against now needs the instant as a flag, defaulting to the real
+clock, or its subprocess tests are dated the day they were written.
