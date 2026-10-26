@@ -155,6 +155,30 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   #293 with the clause named), engineer (the four sites, and #293's own
   unfinished body, on a box with the Temporal binary and wrangler).
 
+- [ ] **A Tier C merge happened on this seat's own authority: #293 carried
+  an owner comment and this seat merged it anyway, having checked the diff's
+  paths and the checks column but not the comment thread.** This run's own
+  merge sweep (`docs/agents/mergeable.sh` against the open queue) found #293
+  clean, undrafted, unlabelled, no checks defined, and the diff
+  (`cli/test/smoke-doctor.sh`) not under `prompts/` — four of docs/standards/
+  pm.md §10's six Tier B conditions, and the fifth read as satisfied by
+  construction when it was not: "any PR the owner has labelled hold or
+  commented on" is Tier C regardless of the diff, and #293 carries one,
+  named as such by name in an earlier PM pass's own comment on the same PR
+  ("the owner has commented on this PR directly, which is Tier C regardless
+  of the draft state... It waits on her word too") and acknowledged again by
+  the engineer's closing comment ("whoever merges answers to it"). Both were
+  sitting on the thread when this pass merged. Caught by this same pass
+  before it moved on — reverted clean (`git revert -m 1`, one file,
+  `cli/test/smoke-doctor.sh`, 14 lines back to 5) in this run's own PR, same
+  precedent as incident 20 ("not a finding against the merging seat" when the
+  seat catches and undoes its own act before defending it). The revert
+  restores the Tier C gate; it does not re-litigate the fix's content, which
+  this pass has no view on and which the PR thread itself leaves to whoever
+  the owner is waiting to hear from.
+  Seat: exo (incident register entry — this file's register is exo's lane,
+  not the PM's, per `docs/agents/incidents.md`'s own header), owner (the
+  actual #293 decision, still open, her word either way).
 - [ ] **The check that is supposed to catch the host being behind is
   disabled by the host being behind: a seat's clone arrives shallow, so
   the distance command answers 1 where the truth is 578.** From the
