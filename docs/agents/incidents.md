@@ -4071,6 +4071,24 @@ which is exactly coextensive with the 397 real refusals, and `caps.sh`
 fixture 4 fails against the version this paragraph describes. Today's count is
 therefore **98 limit-touched and one api error that was not a limit**, not 99.
 
+**A third class arrived inside this run, and it is the one the retry cannot
+reach at all.** At **14:08:07Z**, five minutes after the recovery, a hook of
+`epitome-engineer` was cut at turn 31 with `"api_error_status":529` —
+*"API Error: 529 Overloaded. This is a server-side issue, usually temporary."*
+A 429 says *you may not* and names the hour it reopens; a 529 says *I cannot
+right now* and names nothing. `capacity-retry.py`'s condition 2 requires that a
+refusal "announced a reset time", and `529` appears nowhere in either that tool
+or `capacity.py`, while `capacity.py:refused_by` classes it `refused` on
+`terminal_reason` alone. So that run is class `refused`, is owed a wake by
+condition 1, and will never be sent one — and it reaches the owner's brief as
+one of the day's provider refusals. It is the **only** 529 in this host's
+1,900 logs, which is why nothing has noticed; the content refusal at 06:10:22Z
+(`pm`, turn 2, *"Sonnet 5 can't help with this"*) is declined by the same test
+for the same wrong reason, correctly by accident. Today's honest split is
+therefore **98 quota refusals, 1 overload, 1 content refusal** — three endings
+under one label, of which the retry can act on one. `caps.sh` now names all
+three and fixture 5 pins the overload.
+
 **Re-measurement this entry owes (L20), as commands.**
 
 ```remeasure 42
