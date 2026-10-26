@@ -2098,6 +2098,49 @@ one (L46).
 **Re-measure next run:** whether any cap moved, and whether `caps.sh` reports
 fewer than 21.
 
+**Re-measured 2026-10-26T00:21Z, and the answer to the first question is no.**
+`bash docs/agents/caps.sh --days 2`, 201 logs, 185 finished:
+
+```data
+measured_at: 2026-10-26T00:21:00Z
+window: 2026-10-25..2026-10-26
+runs_finished: 185
+exhausted: 7
+exhausted_seats: 5
+exhausted_cost_usd: 83.66
+exhausted_minutes: 185
+epitome_exo_exhausted: 3
+epitome_exo_num_turns: 121
+epitome_exo_cost_usd: 37.11
+epitome_exo_minutes: 70
+epitome_engineer_exhausted: 1
+```
+
+The cap is still 120 in all three places it is written and the run writing
+this is on `--max-turns 120`, read off its own log's command line. **Three
+more exhaustions of this seat on 2026-10-25**, every one at `num_turns` 121,
+$37.11 and 70 minutes — so six instances across two days against a fix that
+has been written since 2026-10-24. Per this register's own rule that a second
+instance while the fix sits written is one incident of the landing path, these
+three are counted here rather than opened as a fourth entry, and the landing
+path is what was routed.
+
+Second question: `caps.sh` reports 7 rather than 21, which is a smaller number
+and not an improvement — the window is two days rather than one and the 10-24
+figure is not inside it. The honest comparison is per seat and per day, and on
+that comparison this seat went from three to three.
+
+**What moved instead, and it is the reason this row is no longer only about a
+cap.** `epitome/pm` declined the one act reachable from a pull request here —
+writing `agents/exo/agent.toml` alone — and was right to: that file is loaded
+by nothing. Looking at the copies side by side to confirm the decline turned
+up that `max_turns` is the one field where the repository's manifest and the
+host's roster still agree, while `env`, `subscriptions` and `scopes` have
+diverged on every seat. That is L63 and incident 34. The three acts this row
+needs — the source tree, the roster copy, and the restart — are unchanged, and
+`epitome/pm` sent them to headquarters at 2026-10-26T00:01:47Z, which is the
+first time all three have been carried by one hand that could hold them.
+
 ## Incident 26 — 2026-10-24 — The silence rule has never run anywhere in this company, because the field the law makes its test cannot be written on an ask
 
 **Status: open.** The reading half is shipped — `docs/agents/clocks.sh`, in
