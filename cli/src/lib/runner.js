@@ -157,13 +157,19 @@ export function buildPrompt({ name, entry, trigger, date, hookBody, instruction,
   const branch = runBranchPrefix({ name, date, trigger });
   return [
     `You are the agent named "${name}", running under epito's resident runtime with your repository already checked out in the current directory, on a fresh clone with no memory of previous runs.`,
-    // "your charter" and not "your full charter": the next line names a
-    // register that binds over it, so the old adjective contradicted the
-    // sentence after it. Two of the seven charters in this repository already
-    // said so in their own opening — exo names the register, frontend defers
-    // to an HQ role charter — which means the prompt was overruling the file
-    // it was pointing at. An adjective this prompt cannot keep is an argument
-    // against reading further, which is the expensive part.
+    // "your charter", with the completeness adjective this line used to carry
+    // dropped: the next line names a register that binds over the charter, so
+    // the adjective contradicted the sentence after it. Two of the seven
+    // charters in this repository already said as much in their own opening —
+    // exo names the register, frontend defers to an HQ role charter — so the
+    // prompt was overruling the file it was telling the seat to go read. A
+    // claim of completeness is not merely an omission: it is an argument
+    // against looking further, and that is the expensive part.
+    //
+    // The phrase itself is kept out of this comment on purpose.
+    // docs/agents/pointers.sh greps the whole of this function, comments
+    // included, for the old wording, so quoting it here would keep that
+    // detector reporting a claim this prompt no longer makes.
     `Read ${entry} — it is your charter — and do exactly what it says one run accomplishes. If the charter file is missing, stop and fail loudly instead of improvising.`,
     `Above that charter sits docs/standards/lessons.md, the company lessons register: read its "any (all seats, all products)" section and the section named for your role, if it carries one, before you act on the charter, and where the register and the charter disagree the register binds.`,
     `Work on a branch named ${branch} (append a short suffix if it exists). Commit as you go, push the branch, and open exactly ONE pull request, draft-first (gh pr create --draft), before anything else that takes time.`,
