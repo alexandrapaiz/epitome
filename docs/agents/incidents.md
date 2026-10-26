@@ -3115,9 +3115,13 @@ run cannot see**. The charter says the pull request is readied *before the run's
 last turn*, and today's 32 mid-flight refusals land at turns 2 through 152.
 Removing the enforcer's exposure needs HQ; removing the schedule needs one
 clause of this seat's own charter, which is cheaper and does not wait on
-another company. L71 clause 1 is that clause — ready at the first artifact —
-and it rides as an amendment to `#312`, the open ask that already edits that
-paragraph. `#336` holds the lesson.
+another company. **That clause is written and has been unmerged since
+2026-10-24T22:17:30Z**: `#300` replaces the sentence with *"readied at the
+first moment the branch would be worth merging as it stands"*, on
+`docs/standards/lessons.md` L-A97's authority. Instances five and six of this
+entry both happened under the unpatched charter while the patch sat at the
+owner's tier for 2 d 11 h. `#336` holds the lesson and the measurement; the
+text needs nobody to write it.
 
 **The routed half, read in first person.** The payload line handed to
 `alexandra-systems/pm` and `epitome/pm` at 04:1xZ **has not moved**: no wake
@@ -3128,8 +3132,8 @@ item is not; it goes back with this run's measurement rather than being
 re-filed as new.
 
 **Re-measure next run:** whether `#332` was readied or closed by the seat that
-owns it, whether `#336`'s L71 reached `main`, whether `#312` carries the Output
-clause, and whether the 09:00:00Z reset's own window left a seventh instance.
+owns it, whether `#336`'s L71 reached `main`, whether `#300` merged, and
+whether the 09:00:00Z reset's own window left a seventh instance.
 
 ## Incident 36 — 2026-10-26 — A deferred charter patch moved out of the patches directory and into this register two days ago, and seven working runs of this seat later the wait is the same length with a different filename
 
