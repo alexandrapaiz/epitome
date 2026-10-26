@@ -119,6 +119,14 @@ ALLOWED="
 cli/test/probe-pipefail.sh 5
 cli/test/probe-negated.sh 2
 cli/test/probe-readers.sh 2
+docs/agents/brief.sh 1
+docs/agents/check.sh 1
+docs/agents/clocks.sh 3
+docs/agents/idle.sh 2
+docs/agents/mergeable.sh 1
+docs/agents/remeasure.sh 3
+docs/agents/reread.sh 1
+docs/agents/stage.sh 4
 "
 
 pass=0; fail=0
@@ -132,14 +140,15 @@ bad() { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
 lines() { [ -f "$ROOT/$1" ] && grep -nE "$SHAPE" "$ROOT/$1" | grep -vE '^[0-9]+:[[:space:]]*#'; true; }
 count() { lines "$1" | grep -oE "$SHAPE" | wc -l; }
 
-# What this prints is what it read, and it has never read the whole repository:
-# FILES is cli/test/ and deploy/ only, and docs/agents/ holds twenty-one more
-# shell files -- the tools the seats run to decide things -- of which eight
-# carry this shape at fifteen sites. That is a card on the board, not a fact
-# this banner may round off: a gate that says "every" while scanning half is
-# how a blind spot gets read as a clean bill of health.
-printf '\n== cli/test/ and deploy/, scanned for the quiet-pipe shape (docs/agents/ is not scanned)\n'
-FILES="$( (cd "$ROOT" && ls cli/test/*.sh deploy/*.sh 2>/dev/null) )"
+# What this prints is now what the repository holds, which it was not until
+# this branch. FILES was cli/test/ and deploy/ only -- twenty files -- while
+# docs/agents/ held twenty-one more, the tools the seats run to DECIDE things,
+# and not one of them had ever been scanned. A gate that says "every" while
+# reading half is how a blind spot gets read as a clean bill of health, so the
+# glob is all three directories and the allowance below carries the sites that
+# widening found.
+printf '\n== cli/test/, deploy/ and docs/agents/, scanned for the quiet-pipe shape\n'
+FILES="$( (cd "$ROOT" && ls cli/test/*.sh deploy/*.sh docs/agents/*.sh 2>/dev/null) )"
 for f in $FILES; do
   n="$(count "$f")"
   allowed="$(printf '%s\n' "$ALLOWED" | awk -v f="$f" '$1==f {print $2}')"
