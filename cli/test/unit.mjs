@@ -4049,6 +4049,75 @@ test("the branch the prompt asks for and the branch the lookup searches for are 
   assert.equal(runBranchPrefix({ name: "pm", date: "2026-10-18", trigger: "nonsense" }), "pm/2026-10-18-hook");
 });
 
+// The wake prompt is the FIRST file a seat reads and the only one composed for
+// every seat, so it is where the pointer to the law above the charter costs one
+// sentence instead of one edit per charter. L-A90: "a standard distributed into
+// a repository is not distributed until the file each seat is actually handed
+// names it by path and says which sections bind that seat."
+//
+// This asserts the composed prompt the way docs/agents/pointers.sh grades a
+// handed file, so the two cannot drift into disagreeing about the same text:
+// the literal path, and within the 800 characters after it a word saying which
+// parts bind. It then asserts the target really carries the sections the
+// sentence promises, because a pointer is only as good as the headings it aims
+// at and renaming one of them is a silent break otherwise.
+const REGISTER = "docs/standards/lessons.md";
+test("the wake prompt hands every seat the register above its charter, by path and by section", () => {
+  const prompt = buildPrompt({
+    name: "epitome-engineer", entry: "prompts/engineer-agent.md",
+    trigger: "message", date: "2026-10-26", shortfall: { missing: [], empty: [] },
+  });
+
+  // pointers.sh's heuristic, run here on the text the runtime really composes.
+  const at = prompt.indexOf(REGISTER);
+  assert.ok(at >= 0, `the prompt every seat reads first must name ${REGISTER} by path`);
+  const window = prompt.slice(at, at + 800);
+  assert.match(window, /section|binds/,
+    "a path with nothing saying which parts bind is the PATH-ONLY row pointers.sh fails: naming a 274 kB register is not telling a seat what to read");
+
+  // Order: the register is named with the charter and before the work, because
+  // a rule that arrives after the instructions is a rule read too late.
+  const lines = prompt.split("\n");
+  const charter = lines.findIndex((l) => l.startsWith("Read prompts/engineer-agent.md"));
+  const register = lines.findIndex((l) => l.includes(REGISTER));
+  const work = lines.findIndex((l) => l.startsWith("Work on a branch named"));
+  assert.ok(charter >= 0 && register === charter + 1 && work === register + 1,
+    `charter, then register, then the work: got ${charter}, ${register}, ${work}`);
+
+  // The claim this line used to make about the charter it points at. Two
+  // charters here open by naming law above themselves, so "full" was the
+  // prompt overruling the file it was telling the seat to go read — and a
+  // seat told its charter is complete has been argued out of looking for
+  // the register the next sentence names.
+  assert.ok(!prompt.includes("full charter"),
+    "the prompt cannot call a charter full in one sentence and name a register binding over it in the next");
+  assert.match(prompt, /Read prompts\/engineer-agent\.md — it is your charter —/);
+
+  // The sentence is composed for every seat, not only this one: nothing in it
+  // depends on the name, so a seat minted tomorrow is handed it too.
+  for (const [name, entry] of [["pm", "prompts/pm-agent.md"], ["epitome-frontend", "prompts/frontend-agent.md"]]) {
+    const other = buildPrompt({ name, entry, trigger: "cron", date: "2026-10-26", shortfall: { missing: [], empty: [] } });
+    assert.ok(other.includes(REGISTER), `${name} is handed the register too`);
+  }
+
+  // And the headings it aims at exist. The all-seats section binds every seat,
+  // which is why the sentence names it in the register's own words rather than
+  // paraphrasing a heading a reader then cannot find.
+  const register_md = readFileSync(new URL(`../../${REGISTER}`, import.meta.url), "utf8");
+  const heads = register_md.split("\n").filter((l) => l.startsWith("## ")).map((l) => l.slice(3).trim());
+  assert.ok(heads.includes("any (all seats, all products)"),
+    `the register's all-seats heading moved; the prompt still quotes it: ${heads.join(" | ")}`);
+  assert.match(prompt, /"any \(all seats, all products\)" section/);
+  assert.ok(heads.includes("engineer") && heads.includes("pm"),
+    "the role sections the sentence sends a seat looking for are really there");
+
+  // The hedge in the sentence is load-bearing, not politeness: seats run here
+  // whose role has no section of its own, and they are still bound by the
+  // all-seats one. If that ever stops being true the hedge can go.
+  assert.ok(!heads.includes("frontend"),
+    "if every role has a section, drop \"if it carries one\" from the prompt rather than leaving a hedge that misleads");
+});
+
 test("the lookup finds this run's pull request by branch prefix, and asks as the run itself", async (t) => {
   const { asked, api } = await pullsStub(t, [{ number: 169, ref: "epitome-engineer/2026-10-18-message-4" }]);
   const found = await pullRequestForRun({
