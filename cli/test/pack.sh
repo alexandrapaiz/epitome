@@ -310,7 +310,7 @@ step "1d: a real \`npm publish\` against a registry on this box — the guard, a
 #   node_modules/libnpmpublish/lib/publish.js:15   if (manifest.private) throw EPRIVATE
 #   lib/commands/publish.js:161                    if (!dryRun) { await ... libpub(...) }
 #
-# The in-command copy of the same check at lib/commands/publish.js:139 does not
+# The in-command copy of the same check at lib/commands/publish.js:136 does not
 # help: it is guarded by `workspace &&`, and publishing cli/ is not a workspace
 # publish. So the dry run prints `+ epito-cli@0.1.0` and exits 0 with the guard
 # fully in place — the same output it prints with the guard removed. Anybody
