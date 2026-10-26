@@ -34,13 +34,15 @@
 #   8 KiB    needle on line 1    8 of 500 wrong      needle on the last line  0 of 500
 #   64 KiB   needle on line 1  442 of 500 wrong      needle on the last line  0 of 500
 #
-# Every wrong verdict is PIPESTATUS `141 0`: grep MATCHED and exited 0, and the
-# producer was killed writing the rest. `141` is not the only signature, which
-# matters for anyone diagnosing one of these by eye: a producer that handles
-# SIGPIPE itself reports its own exit code instead. smoke-langgraph.sh's
-# `detail` is `python3`, and that one reads `1 0` — BrokenPipeError, exit 1 —
-# which is indistinguishable from "the pattern was not there". Measured on this
-# branch at 161 of 200 asks. So the race is not about the buffer at
+# Every wrong verdict there is PIPESTATUS `141 0`: grep MATCHED and exited 0,
+# and the producer was killed writing the rest. `141` is not the only signature,
+# which matters for anyone diagnosing one of these by eye: a producer that
+# handles SIGPIPE itself reports its own exit code instead of dying of it. A
+# `python3` producer is the case in this repository, and it reads `1 0` —
+# BrokenPipeError, exit 1 — which is indistinguishable from "the pattern was
+# not there". Measured at 100 of 100 asks with 200 KB still to write after the
+# needle, and 0 of 100 with 100 bytes, which is the same POSITION race as above
+# and not a second fault. So the race is not about the buffer at
 # all — it is about whether grep can match before the producer has finished
 # writing, which the needle's POSITION decides and the output's size only makes
 # more likely. A needle on the last line cannot lose the race; a needle in a
@@ -74,15 +76,17 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # The allowance: what each file still carries, and the ceiling it may not pass.
 # A file absent from this list is allowed none. Lower a number when you convert
 # a suite; there is no reason for one to rise, and a rise is what this fails on.
-# Counts re-read on `main` at 2026-10-26 05:5xZ, after smoke-doctor.sh's
-# conversion (#292) landed: 26 sites in six files, less the 23 in
-# smoke-langgraph.sh (19), smoke-bus.sh (2) and pack.sh (2) that this branch
-# converts. What is left after this branch is the two deploy scripts and
-# nothing else -- deploy/test-provision.sh (4) and deploy/provision-host.sh
-# (1), which the board card asks to land last and separately, because a false
-# failure in the middle of provisioning a box is worse than a false failure in
-# a test. Every suite under cli/test/ is converted as of this branch; the three
-# probe files below are the shape on purpose and say so.
+# Counts re-read on `main` at 2026-10-26 09:2xZ, after smoke-doctor.sh's
+# conversion (#292) landed: 37 sites in eight files, which is 9 in the three
+# named probe exemptions below, 23 in smoke-langgraph.sh (19), smoke-bus.sh (2)
+# and pack.sh (2) that this branch converts, and 5 in the two deploy scripts.
+# What is left after this branch is those two and nothing else --
+# deploy/test-provision.sh (4) and deploy/provision-host.sh (1), which the
+# board card asks to land last and separately, because a false failure in the
+# middle of provisioning a box is worse than a false failure in a test. Every
+# suite under cli/test/ is converted as of this branch; the three probe files
+# below are the shape on purpose and say so. 37 less 23 is the 14 this branch
+# leaves, and this gate prints them.
 #
 # Three lines here are not allowances but exemptions, and they are named rather
 # than hidden: probe-pipefail.sh carries five of the shape, probe-negated.sh
@@ -98,7 +102,8 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 #
 # Converted and therefore absent, allowed none: smoke-validate.sh,
 # smoke-temporal.sh, smoke-roster.sh, all.sh, smoke-deploy.sh, smoke-doctor.sh,
-# and smoke-langgraph.sh, smoke-bus.sh and pack.sh here. A number may only be lowered by a branch that can see
+# and smoke-langgraph.sh, smoke-bus.sh and pack.sh here. A number may only be
+# lowered by a branch that can see
 # its conversion land: a number that is too HIGH costs one advisory line, and a
 # number lowered for a conversion that does not land fails this gate on main.
 # The stale direction is the safe one, so this file will always trail a merge

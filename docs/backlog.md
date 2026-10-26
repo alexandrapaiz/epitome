@@ -73,6 +73,15 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   the pipe grep had already matched and closed. The herestring form of the
   same question: 0 of 300. So `stage.sh` reports an item as not landed,
   about once in fourteen asks, when it has.
+  Re-measured 2026-10-26 09:2xZ on today's `main` before this card was
+  readied, because a rate nobody can reproduce is not a card: **31 of 300**,
+  again every one `141 0`, herestring again 0 of 300. The two rates differ
+  because the RATE is not a property of the fault — it is set by where the
+  needle sits, and this re-measurement's needle is at byte 966 of 56035.
+  Early needle, high rate; a needle on the file's last line cannot lose the
+  race at all. So size the fix by the signature and the 0-of-300, not by
+  either percentage: what reproduces every time is that the pipe form can
+  answer NOT FOUND for a line the file holds and the herestring form cannot.
   The other three that decide something rather than print it, in the order
   their being wrong costs the most: `stage.sh:107` (`env | grep -oE ... |
   grep -qx "$id"`, which reports whether a named credential is present in
