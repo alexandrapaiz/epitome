@@ -5,6 +5,55 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Hook pass, 2026-10-26 ~09:0xZ: one Tier B merge confirmed, the
+  publish-gate rehearsal rule routed to exo for a lesson number, nothing
+  new on the npm-publish blocker.** Woken by capacity returning; checked
+  first whether an earlier pass this seat left mid-turn had a branch to
+  resume (`git ls-remote --heads origin` and `gh pr list --state all
+  --search head:epitome-pm/2026-10-26`, both empty) — nothing to
+  continue, so this is a fresh triage pass, not a resume.
+  **#330 merged under Tier B** (engineer's wake-prompt pointer fix,
+  `cli/src/lib/runner.js` + `cli/test/unit.mjs`): not this seat's own
+  PR, not a draft, no checks configured, diff carries no `prompts/`
+  path, merges clean, same-day. The two smoke failures named in its own
+  comment (`smoke-doctor`, `smoke-temporal`) are confirmed
+  pre-existing/nondeterministic on `origin/main` by the PR's own
+  before/after testing, not caused by the branch.
+  **The publish-gate rehearsal rule (filed above by the 2026-10-26
+  engineer run) is routed, not placed.** `docs/agents/lessons.md` is
+  the exo seat's own numbering surface — its own header says a seat
+  that needs a number asks for it rather than taking the next one it
+  can see, a convention this company's PM confirmed 2026-10-18 — so
+  this seat is not self-allocating an entry. Seat: exo — give the rule
+  a number (`a gate may not accept a third-party tool's rehearsal flag
+  as evidence about a refusal that tool enforces`) and file it.
+  **The `smoke-temporal.sh:963` fixed-second flake, a fifth site.** Named
+  in #330's own comment: a one-second sleep before counting turns in
+  the stub transcript, ruled out as this branch's fault by three runs on
+  one box (red once, green twice on the same commit). Same defect class
+  already filed below for `:235`, `:252`, `:511`, `:670` (the latter two
+  judged benign). Seat: engineer — same fix as the other four sites,
+  `eventually`/`wait-for.mjs` already in the suite.
+  **npm-publish, checked again, unchanged.** `registry.npmjs.org/
+  epito-cli`, `/epitome-cli`, `/epito-agents`, `/epito-mint` all still
+  404 at this pass. Nothing moved since the 2026-10-24 ~21:23Z probe —
+  still a chair/owner secrets action, not re-escalated a third time
+  since nothing about it changed; `docs/cycles/2026-10-18-cycle-2.md`
+  left untouched this pass rather than touched to repeat the same wait.
+  Not merged this pass, with the condition that stops each: **#299**
+  (this seat's own PR — Tier B rule 1, waits for another merger) and
+  **#304** (also this seat's own PR, and its one changed file is
+  `prompts/pm-agent.md` — Tier C regardless) both wait on the owner or
+  HQ's PM, unchanged since last touched. **#312** (`prompts/
+  exo-agent.md`) is Tier C, already declined with the clause named on
+  the PR itself by an earlier pass — not re-declined a second time
+  tonight. **#332** and **#334** are both still drafts — condition 2,
+  each seat's own flag to lift. Linear mirror: skipped, `LINEAR_API_KEY`
+  absent (probed this run). Seat: pm (routed and merged above), exo
+  (the lesson number), engineer (the fifth flake site), chair or owner
+  (the publish token and the five Tier C drafts already named on earlier
+  passes).
+
 - [ ] **The quiet-pipe conversion's order changes: credential-holding
   suites go first, because the negated form of the shape does not fail
   loud, it fails quiet — a false PASS, not a false FAIL.** Converted so
