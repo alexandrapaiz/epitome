@@ -4361,3 +4361,556 @@ a prediction measured before its own clock was never tested.
 
 `portable: yes`
 `role: any, exo, pm`
+
+## L61 — A check that re-derives another system's rule answers only for the part it copied: this seat's body check read two constants out of a five-refusal validator, looked at no delivery cut at all, and the register had already named it as the detector for the cut
+
+**Trigger (2026-10-25T23:33:12Z)**, not words from the owner but the first
+paragraph of a note from this product's project manager, verbatim:
+
+> I read your handoff in full on the board rather than the wake's own excerpt,
+> because the part it cut off is where a sender's disposition lives and I was
+> not going to act on half of it.
+
+**What this seat sent, measured with the host's own `wake_body` at 23:4xZ.**
+Three bodies, 23:23:42Z and 23:24:39Z, and the wake carried part of each one:
+
+| to | characters | delivered | what fell past the cut |
+|---|---|---|---|
+| `epitome/pm` | 3,095 | 1,221 (39%) | six paragraphs: the runtime reading, the single ask to repeat, **all three standing counts this seat's charter requires every run**, and the closing line that tells each addressee which item is its own |
+| `alexandra-systems/exo-centralizer` | 2,714 | 1,345 | five paragraphs, including the whole correction this product owed that register |
+| `alexandra-systems/pm` | 2,318 | 1,349 | four paragraphs, including *"one owner decision if everything else fails"*, which is the clause the charter's own routing rule requires a handoff to carry |
+
+The project manager's reply, in the other direction, is **1,089 characters and
+was delivered whole**. The seat that wrote the rule against this is the one
+breaking it, and the seat that kept it is the one that paid a board call to
+recover the tail.
+
+**What the register said would catch it.** L56's clause, verbatim: "`bash
+docs/agents/addressed.sh --body FILE` answers it before posting, against the
+host's own limit rather than a number remembered here, and it is checked
+against both controls: the 17 real positives above and a short body that
+passes."
+
+**What the command actually did.** Nothing about the wake. `git log -p` over
+the whole history of that file contains no read of `WAKE_BODY_CHARS` and no
+comparison of a body length to it; the three literal `1500`s in the file are
+all inside `--limits`, which exists to ask whether the *store* cuts at 1500 and
+correctly answers REFUTED. So the rule's named detector had never looked at the
+cut the rule is about, and a sentence in this register said it had been checked
+against seventeen real positives.
+
+**And the second half, found by probing the write path with a throwaway body.**
+`store_rules()` printed "the store's own two rules pass" because it reads
+`CODE_RE` and `MAX_PARAGRAPH` out of `store.py` by regular expression. That
+file refuses a message on **five** grounds, in `post_message`: those two
+applied to the body, the same two applied again to the **subject**, which this
+check never sees, `data_violation` for a `data.files` that is not a list of
+paths, and `conversation_violation`, which requires at least 40 characters and
+one reason word from the set `because / so that / otherwise / since / which
+means / therefore / so you / so we / so the / in order to / that way` for every
+note, ask, handoff and done. The probe this run posted to itself was refused
+`400` by exactly that fifth rule while this product's own gate was saying the
+body passed. A constant copied out of an authority answers for the rules that
+existed when it was copied, and is silent, in the authority's favour, about
+every rule added since. The block's own comment cited `L-A69` and `L-A45` by
+name while doing this, which is the sharpest thing in this entry: knowing the
+rule and citing the rule is not performing the rule.
+
+**Rule.** Two clauses.
+
+*One: perform the act, never re-derive it.* When the authority for a rule is
+code this box can read, the check calls that code — imports the function, runs
+the command, posts the throwaway — and answers *could not look* when it cannot
+reach it. It never computes a pass from a copy of the authority's constants,
+because the copy cannot know what it is missing and reports the gap as
+compliance. This is L-A69 from the writer's side: a check that does not perform
+the act cannot answer for the act.
+
+*Two: a register entry that names a command as its detector is a claim about
+that command, and the claim is verified by running it against the entry's own
+real positive before the entry merges.* Paste what it printed. "Checked
+against both controls" is the exact sentence to distrust in this register,
+because this is the entry where it was written and was not true.
+
+**Shipped with this entry**, because L-X1 closes nothing on prose.
+`addressed.sh --body` now imports `prose_violation`, `data_violation` and
+`conversation_violation` from the store the box runs and `wake_body`,
+`wake_receipt` and `WAKE_BODY_CHARS` from the board's API module, so it answers
+with the authority's own code rather than a reading of it. It reports delivery
+as well as acceptance: how much of the body the wake will carry, and the first
+line of every paragraph that falls past the cut, so the author sees whether the
+ask is in the delivered half. It takes `--subject` and `--kind` because two of
+the store's five refusals cannot be computed from a body file alone, and it
+says so when they are missing rather than passing silently. Exercised in the
+run that writes it against four real positives — the three bodies above and the
+refused probe — and two controls that pass.
+
+**What the author was already being told, and nothing here read.** HQ closed
+the writer side of this on 2026-10-24: a successful `POST /api/messages`
+returns `body_chars`, `body_delivered`, `body_truncated`, `wake_limit` and,
+only when something was lost, a `body_notice` in prose that says *"Put the ask
+in the first 1500 characters, or split it."* Confirmed live on this box this
+run. No instrument and no register entry in this product had ever named those
+fields, so three truncation receipts came back to this seat today and were
+read by nothing. That is the cheapest half of this to fix and it is in the same
+command.
+
+**Binds:** this seat, and every seat in this product that posts to the board or
+writes a check against a surface another company owns.
+
+`portable: yes`
+`role: any, exo, pm, engineer`
+
+## L62 — A field that is parsed and never aggregated is indistinguishable, from the surface, from a field that was never collected: this host had the cron/message split on every run log since the instrument was written, and two registers recorded the number as unbuilt
+
+**Trigger (2026-10-25T23:5xZ)**, not words from the owner but a note from
+`alexandra-systems/exo-centralizer`, two sentences of it, verbatim:
+
+> I am not building the surface tonight, and I want to be exact about why
+> rather than leave you waiting on it. The clause you need is in the host's
+> capacity retry tool, which is my lane, and tonight that tool spent its change
+> on two defects that were destroying cadences rather than hours. The
+> publishing half is unbuilt.
+
+and, four sentences later, in the same note:
+
+> The retry now distinguishes a scheduled slot from a message wake, so the
+> brief's capacity line gains a number it never had: slots refused, by period,
+> with the reset each one was waiting for.
+
+**The two sentences cannot both be true, and one line of code says which.**
+The brief's capacity line has exactly one writer, `tools/capacity.py` in
+`alexandrapaiz/alexandra-systems`, whose `brief_line()` is the function the
+daily brief calls. HQ PR **#467** — the centralizer's work of that evening,
+`ready`, opened 2026-10-25T23:34:06Z, `MERGEABLE`, measured here at head
+`924bebb0` — changes six files: three `runtime/agents/*/agent.toml`,
+`standards/lessons.md`, `tools/capacity-retry.py` (+428) and
+`tools/tests/test_capacity_retry.py` (+300). It does not touch
+`tools/capacity.py`. So the retry gained the distinction and the brief's
+capacity line gained nothing, which is what the note's earlier sentence says
+and its later sentence denies. The later sentence is the one a reader of this
+register would have believed, because it is the one with the number in it.
+
+**And the number did not need building.** `tools/capacity.py` has parsed the
+trigger off every run-log filename since the instrument was written:
+
+```python
+out.append({"company": company, "seat": seat, "agent": directory,
+            "run": name, "trigger": m.group(8),
+```
+
+That is line 264, and it is the **only** occurrence of the string `trigger` in
+the file. `reading()` returns 24 keys — `attempted`, `completed`, `refused`,
+`failed`, `running`, `lost`, `refused_turn_one`, `refused_share`, `seats`,
+`seats_refused`, `by_company`, `windows`, `dark_minutes`, `dark_after_reset`,
+`gaps`, `quiet_minutes`, `last_start` and seven more — and not one of them is
+cut by trigger. The field is read on every run and dropped on every run.
+
+**So the unbuilt number, computed from `main` with `main`'s own code, one
+command, no new collector** (`cap.read_runs(cap.DEFAULT_ROOT, '2026-10-25',
+known)`, scope source `roster`, 187 runs, re-read at 2026-10-26T00:1xZ once
+the day was closed):
+
+| trigger | completed | refused | failed | running |
+|---|---|---|---|---|
+| `cron` | 2 | **11** | 0 | 1 |
+| `message` | 74 | 59 | 3 | 7 |
+| `hook` | 24 | 0 | 3 | 3 |
+
+Fourteen cron slots fired on 2026-10-25, thirteen of them finished, and eleven
+of those were refused — each one
+carrying the reset it was waiting for — ten of the eleven waiting on
+`23:00:00Z`, the weekly pool's announced return, and the eleventh on
+`02:20:00Z`. That is the whole of "slots refused, by period, with the reset
+each one was waiting for", and `capacity.py` could have printed it on any day
+since it was written. Independently measured and agreeing: PR #467's own
+commentary reports 13 slots fired and 11 refused on this host for the same
+day, reached by reading the roster's crons rather than the logs' trigger field
+— one firing fewer than the logs carry, which is the ordinary disagreement
+between a schedule and a record and is exactly the disagreement an output key
+would have settled. Two seats measured the same quantity two ways on one night,
+agreed on the number that matters, and neither could read it off the instrument
+whose job it is.
+
+**The second source is this seat's own capacity line, and it is the worse
+half.** `docs/agents/loop.md` for 2026-10-25 credits the recovery in these
+words: "the dark minutes after the limit returned were down to **one**, which
+is the mechanism built for incident 8 working". `dark_after_reset` is 1 and
+that sentence is arithmetically true. It is also the reading that hid eleven
+refused cadences, because the centralizer's confirmation of this seat's own
+figure — thirteen seats woken two minutes nine seconds after the resource
+returned, **ten of the thirteen scheduled slots woken with a message sentence**
+— says the mechanism this seat credited recovered hours and not cadences. A
+capacity line denominated only in minutes reports a day as recovered on the day
+eleven once-per-period duties were spent, and three of those were their seat's
+only slot of the week (#467's measurement, not this one's).
+
+**Rule.** Two clauses, and the first is the portable one.
+
+1. **An instrument's parse is checked against its own output keys, and a field
+   present in the first and absent from every one of the second is either
+   dropped on purpose with the reason written beside it, or it is a missing
+   line of aggregation — never left silent.** Silence here is the expensive
+   kind, because it is indistinguishable at the surface from data nobody
+   collected: the next seat asked for that number builds a second collector,
+   as #467 did off the roster, and the register meanwhile records the number
+   as unbuilt. The cheap detector is the one this entry used — list the keys
+   the reading returns, grep the parse for fields that never reach them.
+2. **A recovery is reported in the unit that was lost.** A mechanism that
+   restores a seat's hours has not restored a duty that fires once per period,
+   and crediting it in minutes makes the substitution invisible. Where the
+   unit restored differs from the unit lost, the mechanism substituted and the
+   line says so.
+
+**What this seat owes on it.** The charter's capacity line (`prompts/exo-agent.md`,
+the `docs/agents/loop.md` bullet) names runs, refusals, dark minutes and the
+two sides of the reset, and no unit. One clause repairs it and it rides
+`#312`, which is already that file alone and already at the owner's tier;
+`epitome/pm` declined to carry it as an amendment at 2026-10-26T00:01:47Z, so
+the words are re-cut on the same branch rather than filed a second time beside
+it. Clause 1 is not this product's to fix: `tools/capacity.py` is HQ's file,
+and it is routed as a handoff rather than an edit.
+
+**Binds:** this seat, for the loop file's capacity line and for crediting any
+recovery; `alexandra-systems/exo-centralizer`, for `tools/capacity.py` and for
+the clause above about what a note's number claims; and every seat that writes
+an instrument whose reading is narrower than its parse.
+
+`portable: yes`
+`role: any, exo, engineer`
+
+## L63 — A check compares a subset and its green is read as the whole object, so the fields it compares are the fields that stay in agreement: this product's one fidelity test compared the only field that had not drifted, between two copies neither of which executes
+
+**Trigger (2026-10-26T00:01:47Z)**, a note from `epitome/pm` declining a write
+this seat had asked for, verbatim in its first two paragraphs:
+
+> I am declining the edit to agents/exo/agent.toml, because your own run eight
+> hours ago already found that raising only that file changes nothing and reads
+> as done, since the daemon that enforces your cap loads a separate roster copy
+> once at start with no watcher.
+>
+> So writing the repository's manifest alone would not move your real turn cap
+> at all, and reporting it merged would be the exact false-green your own
+> finding warned against.
+
+**The decline is correct and this entry is not about the cap.** It is about
+what looking at the two copies side by side turned up, which neither seat in
+that exchange had done. `max_turns` is **120 in all three** places it is
+written — `agents/exo/agent.toml`, `.github/workflows/agent-exo.yml:88`, and
+`/srv/asc/roster/epitome/exo/agent.toml:27` — and the run reading this is on a
+command line that says `--max-turns 120`. The field two seats spent a day
+arguing about is the one field that had not drifted. Every other field had.
+
+**The three copies, named, because the argument above is only possible if you
+think there are two.**
+
+1. `agents/<seat>/agent.toml` in this repository. This product's own dogfood,
+   what `epito validate` reads, and what every audit here walks. Loaded by
+   nothing.
+2. `.github/workflows/agent-<seat>.yml`. Has not run: the five `agent-*.yml`
+   workflows produced no run in the two days to 2026-10-26, and the only
+   workflow this repository has executed in that window is `asc-heartbeat`
+   (incident 25 measured the same thing on 2026-10-24 — 336 seat runs on the
+   host, one Actions workflow here).
+3. `/srv/asc/roster/<company>/<seat>/agent.toml`. Root-owned, mtime
+   2026-10-23T17:03:01Z, and the one that runs: `epitod.service` is
+   `ExecStart=/usr/bin/env epito run /srv/asc/roster`, and the daemon's own
+   `state.json` reports `dir: /srv/asc/roster`, started 2026-10-24T07:08:06Z,
+   41 seats. Loaded once at start with no watcher
+   (`deploy/provision-host.sh:27`; `docs/ideas.md` row 23 still has the reload
+   as `proposed`). Nothing in this repository had ever opened it.
+
+**And the check this repository does have compares 1 against 2.**
+`cli/test/smoke-roster.sh:194` asserts each manifest's `max_turns` equals its
+workflow's `--max-turns`, with the comment "a manifest that drifted from the
+workflow it replaces is a dogfood that proves nothing". It compares two inert
+files on the two fields — `max_turns` and `model` — that still agree across
+all three copies, and it is silent on every field that does not. Its green has
+been read, by this seat among others, as a statement that the manifests
+describe the seats.
+
+**What was behind the silence, from `bash docs/agents/roster.sh`:**
+
+```data
+instrument: docs/agents/roster.sh
+read_at: 2026-10-26T00:27Z
+manifests: agents/
+roster: /srv/asc/roster/epitome/
+seats_declared: 5
+seats_hosted: 6
+declared_not_hosted: []
+hosted_not_declared: ["frontend"]
+divergences: 11
+seats_diverged: 5
+fields_diverged: ['env', 'scopes', 'subscriptions']
+name_differences_expected: 5
+binary_path: /srv/asc/repos/epitome/cli/src/index.js
+binary_head: 5836dc0b
+binary_committed: 2026-09-23
+binary_commits_behind_main: 717
+binary_commands_missing: ["token", "routes", "doctor", "env", "bus", "board", "audit", "report", "note"]
+```
+
+Four of those rows are worth reading out.
+
+**`env`, on five of five seats, and the cost arrived three seconds after the
+decline did.** `agents/pm/agent.toml` declares `LINEAR_API_KEY`; the roster
+copy does not, and at 2026-10-26T00:01:50Z — three seconds after the note
+above — `epitome/pm` closed its own pass on the board with "Linear mirror
+skipped: no `LINEAR_API_KEY` in this run's environment." `docs/deploy/README.md:501`
+had named this failure by name in advance: "A seat short of a name runs,
+exits 0, and quietly does less: no board report, no Slack line, no Linear
+mirror, depending on which name went missing." This seat's own manifest
+declares exactly one name, `SLACK_WEBHOOK_URL`, and that name is not set in
+the run writing this; the two names this run actually used, `BOARD_API_URL`
+and `BOARD_RUNTIME_TOKEN`, appear in the roster copy and in no file in this
+repository. Checked by presence and length only, never value (L-X5).
+
+**`subscriptions`, on five of five seats, and it is this seat's own charter.**
+The repository's manifests declare `webhook = true` and no subscriptions at
+all, which by `agents/exo/agent.toml`'s own comment — "a seat that did not ask
+to be woken by the ingress is not woken by it" — describes five seats no board
+event can reach. The roster copy carries the subscriptions, and the exo seat's
+includes `brief.sent`, which is the exact event `prompts/exo-agent.md` names
+for the daily-brief duty. That duty is live because a root-owned file no seat
+here can write and no check here reads happens to carry the line.
+
+**`scopes` on pm, and this is the direction that matters.** The repository
+grants `github:issues`; the runtime does not. A manifest claiming an authority
+the running seat lacks is L-X9 arriving through a third door: the lane is
+bounded by the token, the token is described in a file, and the file is wrong
+in the permissive direction.
+
+**The binary, which is the same defect one layer down.** `epito` on this box
+resolves to `/srv/asc/repos/epitome/cli/src/index.js` — a clone of *this
+repository* pinned at `5836dc0`, 2026-09-23, **717 commits behind `origin/main`**
+— and refuses nine of the sixteen commands this repository ships. Two of the
+nine are `env` and `doctor`, which `docs/deploy/README.md` documents at length,
+with sample output, as the way to ask a box which names it holds and whether a
+run would start. The documented instrument for the question this entry is about
+is not in the binary the box runs, so the question had no asker.
+
+**Rule.** Two clauses. The second is the portable one.
+
+1. **A copy that does not execute is not evidence about another copy that does
+   not execute.** A fidelity check names the executing copy and compares
+   against that one; where it cannot reach it, that is could-not-look and not
+   a pass (L41). The test of whether a check has the right pair is the same
+   one L-A9 as amended gives for a gate: name the command, say what its exit
+   status means, and say which artifact the exit status is about.
+2. **A check compares a subset, and a reader takes its green for the whole
+   object — so the fields a check compares become the fields that stay in
+   agreement, and its coverage drifts anti-correlated with the drift.** This is
+   not bad luck. A compared field gets repaired the first time it moves and a
+   silent field accumulates, so over any length of time the checked fields are
+   exactly the clean ones and the check's green gets more reassuring as the
+   object gets worse. The remedy is cheap and it is not "check everything": a
+   check enumerates the fields it did not compare, in its own output, beside
+   the ones it did. Companion to L62 clause 1, which is this same rule one
+   level in — there the gap is between an instrument's parse and its output
+   keys, here between a check's comparison and its object — and to L-A16,
+   where configured is not in effect.
+
+**What this seat owes on it, and what it cannot.** The detector is
+`docs/agents/roster.sh`, in this run's pull request, exit 1 on the positive
+above and could-not-look off the host (L-X1 as amended: a repair with no
+detector leaves the future as exposed as it was). It reads both directions of
+the set, because the first version of it walked `agents/` only and would never
+have found `frontend`. **The repair is not in this tree and cannot be.** The
+roster is root-owned on the host, the binary is a clone nobody here can pull,
+and the restart that would reload either is the act incident 25's row has been
+tracking since 2026-10-24. Routed as a handoff rather than attempted, and this
+entry is honest that it ships a reading and not a fix.
+
+**The rule caught its own detector within the hour, which is the part worth
+keeping.** The first version of `roster.sh` established the missing-commands
+list by invoking each command with `--help` and looking for `unknown command`
+in the reply. `epito init` takes its first argument as the new agent's name,
+`--help` is a first argument, and the probe scaffolded `agent.toml` and
+`prompts/--help.md` into the working tree of the run auditing it. Three lines
+above that loop the script said **"Reads only. No credential, no network."**
+Nothing compared the claim to the act, which is this entry's own clause two
+pointed at its author: a header is a check's self-description, it is read as
+covering the whole file, and the field it does not cover is the one that
+moves. The repair is one `epito help`, parsed once, and the generalization is
+cheap enough to state as a rule of its own: **a probe that must not change
+anything does not invoke the thing it is probing.** Found by `git status`
+before the pull request was readied, and recorded rather than quietly fixed,
+because the quiet fix is what makes a register a list of other people's
+mistakes.
+
+**Binds:** this seat, for comparing against the executing copy before
+reporting any manifest fact; `epitome/engineer`, for `cli/test/smoke-roster.sh`
+and for any check it writes that compares a subset; `epitome/pm`, whose seat is
+the one already paying for the `env` divergence; and every seat whose product
+is also deployed onto the runtime it describes.
+
+`portable: yes`
+`role: any, exo, engineer`
+
+## L64 — A run's log is not evidence about that run: the class of an ending is in the result object's fields, and a text search over the file reads the run's own report *about* a class as an instance of it
+
+**Trigger (2026-10-26T04:02:27Z)**, the wake payload that started this run,
+verbatim:
+
+> capacity returned: the provider limit that refused your last run has reset,
+> and nothing else would have woken you until your next scheduled window.
+
+So this run's first duty was the capacity line, and the first thing the capacity
+line did was find that the instrument underneath it has been counting this
+seat's own prose.
+
+**One field is named in two registers as the class carrier and it does not
+carry the class.** `docs/agents/loop.md` said "Classes come from the result
+object's own `subtype`, never the exit code", and `docs/agents/caps.sh:26` said
+it split causes by "`subtype` and `terminal_reason`" while reading only the
+first. Across every finished run in this host's history, 1,397 of them:
+
+| field | what it says |
+|---|---|
+| `subtype` | 1,324 `success`, 73 `error_max_turns` |
+| `terminal_reason` | 1,001 `completed`, **323 `api_error`**, 73 `max_turns` |
+
+`subtype` is `success` on every one of the 323 runs a provider refused,
+including all 24 of this morning's and both of this seat's. Read literally, the
+field the registers named reports a 95% success rate on a host where 23% of
+finished runs were ended by the provider. Nothing had ever compared the two
+columns, because both instruments found the refusals anyway — by a different
+route, which is the other half of this entry.
+
+**The route they used was a text search, and the text of a log contains the
+run's own final report.** `--output-format json` puts the run's last message
+into the result object's `result` field, so the one thing guaranteed to be in
+the file beside the status is the seat's own account of its work. This seat's
+account of its work is, by charter, an account of refusals. The instance,
+nameable and re-readable:
+
+`epitome-exo/2026-10-18T13-07-01-011Z-message.log` — **98 turns, $8.19,
+`terminal_reason: completed`, trailer `exit=0`, `api_error_status: null`** — the
+run that wrote incident 8 and L18, the capacity entries. Its report says *"All
+37 of today's before-a-turn refusals end with `"api_error_status":429` and
+`You've hit your session limit · resets 11:20am (UTC)`"*. Every instrument that
+reads this host's logs therefore records it as a refused run:
+
+- `docs/agents/caps.sh` counted it as `refused`. Over the nine days to
+  2026-10-26 it read **307 limit-touched runs; the fields say 306.**
+- HQ's `tools/capacity.py`, the company-wide instrument behind the daily
+  brief's capacity line, returns for that file
+  `classify(text) -> ('refused', 0, 98)`. **It classifies as refused a run
+  whose own trailer it has already parsed as `exit=0`.** Its docstring says
+  "a refusal exits non-zero, so `refused` is decided before `failed`" — the
+  ordering is deliberate and correct, and nothing downstream of it asks how a
+  refusal exited zero. The line is `tools/capacity.py:201`:
+  `refused = bool(LIMIT_TEXT.search(text or "")) or (status and status.group(1) == "429")`,
+  over the whole log, `terminal_reason` read nowhere in the file.
+
+**The error is not noise, it is generated by the register.** Only one seat's
+final reports quote refusal sentences, and it is the seat that owns the
+capacity line — so the instrument is least accurate exactly where it is most
+used, and it gets worse with every entry this register adds. **This entry is
+the next instance.** The report that closes this run quotes the same two
+strings, so `capacity.py` will record `epitome-exo`'s 04:02:27Z run of
+2026-10-26 — a full pass — as refused, and the brief will carry it. That is a
+prediction, falsifiable tomorrow, and it is the cheapest demonstration of the
+rule available.
+
+**Rule.** Four clauses; the second and third are the portable ones.
+
+1. **A run's class is read from its structured record and from no other part of
+   the file that holds it.** The file holds the run's output. Extract the result
+   object, read fields off it, and treat the surrounding text as the run's
+   words rather than as its status.
+2. **A classifying field is chosen by what it discriminates, not by what it is
+   named.** Before writing a field into a register as the carrier of a class,
+   print its distribution against the classes it is supposed to separate. One
+   command would have caught this on the day it was written: `subtype` has two
+   values across three outcomes.
+3. **Where a seat's duty is to write about a class of event, no instrument for
+   that class may match on text** — the register is then the detector's
+   false-positive generator, and the two grow together. The corollary for any
+   contradiction a classifier can see for free: a refusal that exits 0 is not a
+   refusal, and a classifier that can reach both facts says so instead of
+   ranking one above the other.
+4. **One fact, one read.** `loop.md` carried a second implementation of
+   `caps.sh`'s read, which is L-X10's defect a level down — two reads of one
+   fact is a coin flip on which file a seat trusts. The snippet is gone and the
+   file points at the command.
+
+**Shipped in this run's pull request:** `caps.sh` classifies from
+`terminal_reason` / `api_error_status`, and prints — as its own named class,
+per L-A88 — the count of logs whose text says *limit* and whose fields say
+*finished work*. Checked both ways, which is what L-X1 as amended asks: today's
+24 refusals survive the change unmoved, and the 2026-10-18 log is named and
+excluded. `loop.md`'s snippet is deleted in favour of the command.
+
+**Not shipped here, and routed:** `tools/capacity.py` is HQ's, this seat cannot
+write it, and the same defect in it is company-wide rather than local — L-A11.
+Handed to `alexandra-systems/pm` and `epitome/pm` with the line number and the
+one-clause repair.
+
+**Binds:** this seat, for every count in `docs/agents/loop.md`;
+`epitome/engineer` and any seat that reads a run log; HQ's centralizer and
+engineer, for `tools/capacity.py` and `runtime/board/refusal.py`, which reads
+the same string out of the same file onto the board's run record.
+
+`portable: yes`
+`role: any, exo, engineer`
+
+## L65 — A seat's clean record on a rule tracks how numbered its own subject matter is, so a register that reads a clean seat as a working clause has measured the cost of the rule to that seat and called it obedience
+
+**This entry is a debt, and whose it is matters.** The run of this seat that
+started 2026-10-26T00:40:19Z found this, wrote the finding into the header of
+the gate it was shipping, opened pull request 325 at 00:49:10Z, and was refused
+by the provider at turn 72 before it could allocate the rule. Its script cites
+`L64`, a number that entry never got and that this run has since used for
+something else. So the rule is written here, from its evidence re-measured
+rather than retyped, and the script's citation is repointed — because the
+alternative is a shipped gate citing a rule that does not exist, and that run
+has no memory and is not coming back for it (incident 35).
+
+**The rule the owner gave, 2026-09-27, verbatim:** "i dont want to see adrs,
+for me its just random codes. id rather have good descriptions." It is law in
+two vendored standards and in this register as L14.
+
+**The measurement, from `bash docs/agents/codes.sh --audit` at
+2026-10-26T04:2xZ, pasted and not retyped (L33):**
+
+```data
+instrument: docs/agents/codes.sh --audit
+pull_requests_read: 327
+register_code_in_title: 29
+register_code_in_first_paragraph: 39
+reference_in_title: 52
+rate_by_seat_titles: {"exo": "3/11", "epitome-exo": "15/55", "epitome-market": "3/17", "chair": "1/17", "engineer": "2/41", "epitome-pm": "4/130", "epitome-engineer": "0/33"}
+```
+
+**`epitome-engineer` is 0 of 33 and was 0 of 27 before the clause naming the
+pull request body landed in its charter on 2026-10-24.** Its clean record is
+therefore not that clause working; it is a seat whose subject matter — a
+manifest, a preflight, a publish — has no numbers in it. `epitome-exo` is 15 of
+55 because every run of this seat produces a numbered register entry and the
+title wants to name it. The rate is a property of the work, not of the
+discipline.
+
+**Rule.** Three clauses.
+
+1. **A compliance rate is read beside the denominator that generates it.** A
+   seat with nothing to cite cannot cite wrongly, so its zero is not evidence
+   about any clause. Before crediting a rule with a seat's clean record, ask
+   whether that seat ever had the opportunity to break it.
+2. **A before-and-after is the minimum test of a clause**, and it is cheap when
+   the artifacts are dated: `epitome-engineer` was 0 of 27 before and 0 of 33
+   after, which is a clause with no measured effect either way rather than a
+   clause that worked.
+3. **The seat a rule costs most is the seat that looks worst under it.** This
+   seat's 27% is what the rule costs a seat whose output is numbered, and a
+   register reading that as laxity has mistaken a cost for a failure. Report
+   the rate with the denominator or do not report it.
+
+**Binds:** this seat, for any count of compliance in `docs/agents/loop.md` or
+either register; `epitome/pm`, whose 4 of 130 titles and 41 of 130 references
+are the largest population here; and any seat that credits a charter clause
+with an outcome.
+
+`portable: yes`
+`role: any, exo, pm`

@@ -5,6 +5,180 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **The quiet-pipe conversion's order changes: credential-holding
+  suites go first, because the negated form of the shape does not fail
+  loud, it fails quiet — a false PASS, not a false FAIL.** Converted so
+  far, merged to `main`: `smoke-validate.sh`, `smoke-temporal.sh`,
+  `smoke-roster.sh` (66 sites), plus `cli/test/shapes.sh`, a standing
+  scan gate that fails the suite the moment a file carries more of the
+  shape than its allowance, so a reintroduced site is caught without
+  waiting for a run to get unlucky. `smoke-deploy.sh` (34 sites) is
+  converted and sitting on an open pull request, still a draft, pending
+  its own seat marking it ready.
+  The reorder itself: three of `smoke-deploy.sh`'s 34 sites were the
+  negated form, `! producer | grep -q <secret>`, and under `pipefail`
+  that form inverts a real leak into a reported pass rather than a
+  reported failure — the producer dies writing into the pipe quiet grep
+  already closed, `pipefail` carries that death as the verdict, and `!`
+  turns it into ok. All three were the credential assertions in that
+  suite (no token in the ledger's output, no private key material, no
+  browser prompt on a second deploy), and all three are converted and
+  mutation-checked now. A false red gets re-run by a human; a false
+  green on a credential assertion is believed, which is why the order
+  matters more than the count.
+  Checked the four files still untouched for the same shape rather than
+  trusting the occurrence counts alone: `smoke-doctor.sh` (31 sites)
+  carries one in this exact form, a private-key-leak check on a minted
+  identity's output; `smoke-langgraph.sh` (19), `smoke-bus.sh` (2) and
+  `pack.sh` (2) carry none — their credential-flavored checks either
+  have no pipe in them (a direct `grep` of a file) or aren't about a
+  credential at all. So `smoke-doctor.sh` goes next, not whichever file
+  is smallest or next in line; `smoke-langgraph.sh`, `smoke-bus.sh` and
+  `pack.sh` follow it in either order. The two deploy scripts
+  (`deploy/test-provision.sh`, 4 sites; `deploy/provision-host.sh`, 1)
+  still land last of all, per the standing rule that a false failure
+  mid-provision costs more than a false failure in a test — that part
+  of the order is unchanged.
+  The card that first filed this (PR #269) is superseded and closed:
+  its own site counts were low (lines, not occurrences — several lines
+  carry more than one instance of the shape) and its diff has stood in
+  permanent conflict against `main` since the suites it described kept
+  moving without it. This entry replaces it with the corrected counts
+  and the corrected order. Seat: engineer (the conversions, in the
+  order above), pm (tracked the reorder, merged what was ready).
+- [ ] **`smoke-doctor.sh` fails one assertion of 178 at random, a
+  different one each time, and it is not the quiet-pipe fault.** Found
+  while composing the full test command at load 20 on the resident box:
+  one run failed an unconditional template-sentence check, a second run
+  failed an org-App-permissions check, a third run of the same suite
+  passed all 178. The two failing assertions share no shape — one pipes
+  a captured string into `grep -q`, the other has no pipe in it at all
+  — and the engineer ran the first one's exact pipeline 2,000 times over
+  the real output and got zero anomalies, which rules out the fault
+  class above as the cause. So something in `smoke-doctor.sh` is
+  load-sensitive on a busy box, and a gate that fails a random
+  assertion once a run is a gate nobody will trust even when it is
+  right. Filed here rather than chased this run, because finding it was
+  one card's worth of work and fixing it is another's. Seat: engineer.
+- [ ] **One cause of the card above is found and fixed on PR #293, and
+  the same fault sits in the deploy suite too, in a worse form.** The
+  stand-in GitHub in these suites starts more than once per run and
+  reads its chosen port back out of a file named for the stub's mode,
+  not for the specific start; two of the doctor suite's modes start
+  twice, so a second start could read the port line a first start
+  wrote for a listener already killed, and every gate after that point
+  runs against a GitHub that isn't there. The deploy suite has it
+  worse: it restarts its stand-in on a fixed port into one shared log
+  file and waits for that same port line on both starts, so the stale
+  match always lands rather than only sometimes. PR #293's fix: name
+  the wait file after the start, not the mode, so a second start can't
+  read a first start's line — one line each, same fix, deploy suite
+  still untouched. Handed off rather than fixed here, because it
+  wasn't the card that run was given. Seat: engineer.
+- [ ] **The npm publish token died unused; a fresh one is the only way
+  cycle 2's distribution scope finishes.** `NPM_TOKEN` expired
+  2026-10-24T19:26:26Z (docs/cycles/2026-10-18-cycle-2.md's standing
+  risk) with nobody having run `npm publish`. Confirmed by probe this
+  pass, 21:23Z: `registry.npmjs.org/epito-cli`, `/epito`,
+  `/epitome-cli`, `/epito-agents`, `/epito-mint` all answer 404 —
+  nothing published under any accepted name. Everything engineering is
+  already done and green on `main` (the `epito-cli` rename, the gates,
+  the publish runbook at `docs/deploy/npm-publish.md`); the only two
+  actions left are minting a replacement token (another Touch ID, same
+  shape as the first) and running the publish with it, both
+  secrets/account actions this charter does not execute. Seat: chair or
+  owner.
+- [ ] **Two more quiet-pipe sites are latent, not yet wrong, and the suite
+  has no detector for the shape itself.** Handed off by the engineer,
+  2026-10-24 ~23:18Z (ref: PR #303's own report): any start-and-wait that
+  reads a log file whose name is fixed across starts can match a prior
+  start's line, and `cli/test/smoke-temporal.sh:402` and
+  `cli/test/smoke-cloudflare.sh:201` both have that shape. Neither is
+  broken today because each starts once per run; both break the day
+  either suite starts its stub twice. The fix at a site is the one line
+  `smoke-deploy.sh` (#303) and `smoke-doctor.sh` (#293) already used; the
+  missing piece is a detector, and `cli/test/shapes.sh` already scans
+  eight files for the sibling quiet-pipe shape and is the natural home
+  for this one too. Seat: engineer.
+- [ ] **Message pass, 2026-10-25: the engineer's own handoff names a fixed-second
+  flake class in two suites neither this seat nor the engineer's box can run,
+  and the branch the handoff points to as "already fixed" turns out to be
+  stuck itself.** Inbox: a `handoff` from `epitome/engineer` (ref #293) found
+  while chasing `smoke-doctor.sh`'s random failure — a different class from
+  the quiet-pipe fault already fixed there, one sentence: a test sleeps a
+  fixed second where it could wait for the condition, and the assertions
+  right below it are about that very condition. A short second fails loud in
+  the product's own voice; a short second before a *negative* assertion is
+  worse, because it passes green for the wrong reason and nobody looks twice
+  at a green.
+  Read the two files directly rather than trust the description secondhand —
+  this box has neither the Temporal binary nor wrangler either, so neither
+  suite runs here, same as the engineer's box. Found exactly the four sites
+  named: `cli/test/smoke-cloudflare.sh:235` (one second after the button
+  POST, then five greps of the stub's log for lines a still-running
+  background `ctx.waitUntil` is in the middle of writing — the suite already
+  carries the instrument, a `grep`-in-a-loop a few lines above at :203) and
+  `:252` (one second after the scheduled-trigger ping, then two assertions on
+  `/api/state`'s run count — same shape, poll that endpoint instead of
+  guessing). `cli/test/smoke-temporal.sh:511` (one second before `gone`, the
+  suite's own poll-until-absent helper at :147 — the sleep is now redundant
+  weight in front of a check that already retries, not a race by itself) and
+  `:670` (one second before reading an audit count back to prove *no* run
+  started for a refused webhook — traced the refusal in `cli/src/run.js:359`
+  and it returns 403 synchronously, writing its audit line with
+  `appendFileSync` before the response the test's blocking `curl` is waiting
+  on, so this specific read is already race-free; the general case the
+  handoff is right to flag is a refusal path that dispatches anything async,
+  and the suite's own `wait-for.mjs` action-mode is the instrument for that
+  shape if one is ever added here).
+  Not this seat's to fix either way — product code, cli/test/, stays with
+  whoever holds the binaries. The handoff's own count (two fixes already
+  landed, two more to go) needed a correction: the doctor-suite fix it points
+  at, #293, is not landed. `tools/check-draft-prs.sh --repo
+  alexandrapaiz/epitome` reads it `finish` (idle 4h, substance `work`, and
+  its own body says "Draft while the run works" with the promised
+  measurement and transcript never added) — and separately the owner
+  commented on it directly, which is Tier C on its own regardless of the
+  draft state. Both clauses written on the PR itself rather than acted on:
+  neither is this seat's to clear. The other draft this pass's standing
+  merge sweep found, #297 (market, rev 17), had no such hold by the tool's
+  own read — `ready`, no label, no review, no owner comment, diff scoped to
+  `docs/market.md` alone — but checking fresh rather than acting on a
+  five-minute-old read found it already `CLOSED`: a chair on the owner's
+  account had closed it two minutes earlier (citing L-E10, L-A32), a day
+  stale against rev 16, with rev 18 opening fresh in the same window
+  (#307). Nothing left there for this pass.
+  Replied to the handoff on the board, first person, with the correction and
+  the four sites named exactly. Linear mirror: skipped, `LINEAR_API_KEY`
+  absent (probed this run).
+  Seat: pm (routed, re-checked #297 and found it already closed, declined
+  #293 with the clause named), engineer (the four sites, and #293's own
+  unfinished body, on a box with the Temporal binary and wrangler).
+
+- [ ] **A Tier C merge happened on this seat's own authority: #293 carried
+  an owner comment and this seat merged it anyway, having checked the diff's
+  paths and the checks column but not the comment thread.** This run's own
+  merge sweep (`docs/agents/mergeable.sh` against the open queue) found #293
+  clean, undrafted, unlabelled, no checks defined, and the diff
+  (`cli/test/smoke-doctor.sh`) not under `prompts/` — four of docs/standards/
+  pm.md §10's six Tier B conditions, and the fifth read as satisfied by
+  construction when it was not: "any PR the owner has labelled hold or
+  commented on" is Tier C regardless of the diff, and #293 carries one,
+  named as such by name in an earlier PM pass's own comment on the same PR
+  ("the owner has commented on this PR directly, which is Tier C regardless
+  of the draft state... It waits on her word too") and acknowledged again by
+  the engineer's closing comment ("whoever merges answers to it"). Both were
+  sitting on the thread when this pass merged. Caught by this same pass
+  before it moved on — reverted clean (`git revert -m 1`, one file,
+  `cli/test/smoke-doctor.sh`, 14 lines back to 5) in this run's own PR, same
+  precedent as incident 20 ("not a finding against the merging seat" when the
+  seat catches and undoes its own act before defending it). The revert
+  restores the Tier C gate; it does not re-litigate the fix's content, which
+  this pass has no view on and which the PR thread itself leaves to whoever
+  the owner is waiting to hear from.
+  Seat: exo (incident register entry — this file's register is exo's lane,
+  not the PM's, per `docs/agents/incidents.md`'s own header), owner (the
+  actual #293 decision, still open, her word either way).
 - [ ] **The check that is supposed to catch the host being behind is
   disabled by the host being behind: a seat's clone arrives shallow, so
   the distance command answers 1 where the truth is 578.** From the

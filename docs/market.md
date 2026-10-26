@@ -1,5 +1,336 @@
 # Market brief — docs/market.md
 
+Maintained by the market seat. This revision: **rev 23, 2026-10-26**, a
+dispatch run that fired on rev 22's own pull request merging
+([#318](https://github.com/alexandrapaiz/epitome/pull/318), merged
+2026-10-26T00:03:36Z) and asking this seat to continue with the next item
+in its lane on the board, and say what it took. `gh pr list --state open
+--search market` was checked first (L-E10): the four hits are other
+seats' pull requests whose title or body happens to contain the word
+"market," none on a branch of this seat's own, so this revision forks
+from `main` rather than extending a branch that no longer exists — #318's
+own branch was deleted on merge, same as #313's before it. This run's own
+clone arrived shallow (`git rev-parse --is-shallow-repository` answered
+`true`), checked fresh rather than assumed from rev 22's own instance,
+which had also answered `true` (L22).
+
+So, again, the "next item in my lane" is this seat's one standing lane
+card, docs/backlog.md's "Market seat brief #1: pricing" (ADR-13, buyer-2
+usage-based pricing) — open since rev 1 (2026-09-18), its recommendation
+unchanged since rev 4 (2026-10-02). Re-checked directly rather than taken
+on rev 22's framing (L-A12): `gh pr view 299 --json
+state,isDraft,mergeable,comments,createdAt,updatedAt` answers OPEN, not a
+draft, `MERGEABLE`, zero comments, `updatedAt` identical to `createdAt`
+(2026-10-24T22:12:57Z / 22:13:03Z) — so #299 has had exactly zero owner
+engagement since the project manager opened it, not merely "no ruling
+yet" but no comment, no push, nothing, for one day two hours as of this
+run. `docs/decisions.md`'s ADR-13 section was re-read directly, not
+grepped for a keyword: no ruling paragraph has landed there, consistent
+with #299 still being open. The pricing question's wait is now **24
+days** from rev 4's recommendation (2026-10-02 to 2026-10-26), one more
+than rev 22's own count of 23 the day before. #299's own 48-hour silence
+clock — named in its body, not in a mechanical field, per rev 22's own
+note that the board API drops `expires_at` on write — would read as
+expiring around 2026-10-26T22:12:57Z, roughly 22 hours from this run, if
+anything actually enforced it; nothing does, so that date is a fact about
+the pull request's prose, not a trigger this seat can rely on firing.
+Nothing for this seat to add to the recommendation itself; carried
+forward by citation below.
+
+Between #318's own merge (00:03:36Z) and this run's own first check
+(00:04:30Z), **54 seconds** separate the clocks — tighter even than
+rev 21→22's 288-second gap and rev 20→21's 289-second gap, and nowhere
+near the four-plus-hour gap this brief has used since rev 15 as enough to
+owe a fresh landscape and demand pass. So this revision does not open new
+ground on §1 (landscape) or §2 (demand): carried forward by citation,
+unedited, from rev 21/22 below.
+
+## 4a. Standing watch: LangChain/LangSmith (ADR-12) — re-checked directly, unchanged, and a methodology fix
+
+Re-fetched directly this run (L-R1), but not the same way as the last
+several revisions: the first pass, using the WebFetch tool against
+`docs.langchain.com/langsmith/changelog` with three different prompts,
+returned three different, partly contradictory accounts of the same
+"October 12-19, 2026" window — one reshaped a single two-sentence bullet
+into two separate "Agent Auth" items, and a second, asked for the
+window's own "Highlights," dropped every Agent Auth line entirely in
+favor of three unrelated bullets (tracing-only API keys, a ScaleDown
+Gateway provider, GCP BYOC data planes) that also belong to that window
+but answer a different question. Nothing here was fabricated — the tool's
+summarization model was paraphrasing real content differently depending
+on what was asked — but a tripwire whose answer depends on exact wording
+cannot be read off a paraphrase, which is the same fixture-vs-real-
+sentence gap L22 named for a different tool. The fix applied this run:
+`curl` the page directly, strip tags, and grep the raw text for the dated
+section boundaries and the literal bullet lines. That produced, verbatim,
+from the raw page (section "October 12-19, 2026," confirmed the newest of
+36 dated headers, no section dated later):
+
+> "Agent Auth can now create a GitHub App owned by an agent from the
+> App's manifest, or bring an existing GitHub App by its App ID and
+> private key, and then install it through a session on the app's
+> connection. Agents can read an app's GitHub status, change its webhook
+> URL, and delete it, which also uninstalls it from every account where
+> it is installed."
+
+> "Deployment runtime keys now mint with a new `DEPLOYMENT_RUNTIME` role,
+> which has Editor permissions plus gateway, sandbox, and
+> `agent-auth-credentials:use` access, instead of workspace admin. Agent
+> Auth credential reads from deployments with user-owned connections now
+> work without granting `workspaces:manage`."
+
+Both are real and both are the same two sentences this brief has tracked
+since rev 8, confirming rev 21/22's quotes were accurate even though they
+were taken the same unverified way. Read again against this watch's one
+tripwire question, neither crosses it: both mint, read, or manage a
+GitHub App's credential through LangSmith's own Agent Auth system, inside
+LangSmith's deployment boundary — not a mechanism by which the agent acts
+on GitHub under a principal of its own outside that boundary. GitHub's
+own agent-apps post (`github.blog/changelog/2026-06-02-extend-github-
+with-agent-apps/`), re-fetched and ground-truthed the same way, still
+reads verbatim "Over the coming months, we'll open up access to allow
+anyone to build agent apps," the first-wave partner list unchanged
+(Amplitude, Bright Security, Endor Labs, LaunchDarkly, Miro, Sonar,
+PagerDuty, Packfiles, Octopus Deploy), no self-serve date. The general
+changelog feed (`github.blog/changelog/`), re-fetched and ground-truthed:
+newest entries still dated 2026-10-23 (Enterprise installations for
+GitHub Apps GA, Usage metrics API additions, Copilot-in-Teams, EMU
+deletions fix, public monitoring additions) and 2026-10-22 (Custom
+skills/agents/MCP servers in usage metrics API, Copilot in Visual Studio,
+Copilot global default GA) — the same set rev 22 read, none later, none a
+path by which an agent acts under its own principal outside the platform
+that hosts it. No new tripwire instance.
+
+**Binds this seat's own future runs of §4a:** when a live check's wording
+is the tripwire itself — not just whether a dated window number changed —
+fetch the page's raw text and quote from that, not from an AI-
+summarized rendering of it. A summarized fetch is adequate for a yes/no
+"did the window advance" check; it is not adequate for "does this
+sentence cross the mechanism line," because the summarizer answered that
+question three different ways inside one run without anyone changing the
+page.
+
+## 4. Integration map — re-verified against today's `main`, unchanged
+
+`cli/src/lib/slack.js` re-read in full this run: still exactly three
+exports (`formatLine`, `webhookName`, `postToSlack`), still a webhook
+poster, no `apps.manifest.create` or any per-agent Slack-identity
+mechanism anywhere in `cli/src/lib/`. `docs/cycles/` still holds nothing
+past cycle 2 (`2026-09-21-cycle-1*.md`, `2026-10-18-cycle-2.md`).
+**Standing recommendation unchanged: Slack remains integration #2**,
+gated behind cycle 3's sequencing. No re-ranking trigger fired this run.
+
+## 1. Landscape and 2. Demand — not re-run this revision
+
+Not stretched into content: the last landscape and demand passes are
+rev 21's own, now under an hour old and well short of this brief's own
+standing measure (first stated rev 15, applied every revision since) of
+a multi-hour gap before a fresh search is owed. Carried forward by
+citation, unedited: §1's WorkOS/Clerk/Entra/Okta/Trigger.dev/Temporal/
+Fly/Modal non-finding and §2's demand non-finding, both from rev 21.
+
+## 3. Positioning and pricing — no fresh fetch owed; ADR-13 still unanswered, #299 untouched
+
+No fresh pricing fetch this run, for the same reason §1 and §2 are not
+re-run this revision. **ADR-13's buyer-2 usage-based pricing question is
+unchanged: still unanswered by the owner, now 24 days** (first raised
+rev 1, 2026-09-18; recommendation shipped rev 4, 2026-10-02). Its one
+live surface, #299, logged above: zero owner engagement since it opened,
+one day two hours ago.
+
+---
+
+*Charter compliance note (rev 23): this run's own duty, read honestly
+against the gap since the last one, is the standing lane card plus the
+two cheap mechanical checks — not a fresh four-section pass. Checked
+against docs/agents/lessons.md before shipping: L13 (this run names its
+own stopping point honestly — a full pass is not owed at 54 seconds, and
+the mechanical checks it does run instead are logged rather than
+skipped); L22 (this run's own clone checked fresh for shallowness rather
+than assumed from rev 22's instance — both answered `true`, checked
+independently rather than carried over). Checked against
+docs/standards/lessons.md: L-E10 (`gh pr list` checked first; the hits
+are other seats' work, so this forks cleanly rather than risking a
+seventh implementation beside a branch this run never looked for);
+L-A12/L-A34 (#299's state and the ADR-13 text in `docs/decisions.md` both
+read directly, not taken from rev 22's framing or inferred from elapsed
+time); L-R1 (the ADR-12 fetches were direct and, this run, ground-truthed
+against the raw page rather than an AI-summarized rendering of it — see
+§4a for why that distinction mattered this run); L-X7 (declines to
+restate rev 21/22's landscape/demand findings as new within a
+fifty-four-second-to-one-hour window). Flagged: the owner's still-open
+word on ADR-13, now 24 days, with #299 as its one live surface and zero
+engagement on it; Microsoft Ignite (Nov 17-20) still the next point the
+Entra question can move; nothing escalated under ADR-12 this run; this
+run could not reach the board's remote door (no `EPITO_HOOK_SECRET` in
+this shell) — same gap rev 21 and 22 named — so the closed status of the
+#318 flag and the #299 status above are this seat's board reply, in
+prose, rather than filed as a board note.*
+
+**What this run took.** The one open lane item, pricing, moved nowhere:
+#299 is still the live surface, still unruled, zero comments, about 22
+hours short of the (non-mechanical) 48-hour clock named in its own body.
+Both standing watches (§4a, §4) re-verified with no change. No
+landscape/demand pass was owed at a 54-second-to-one-hour gap. One
+methodology fix was applied and logged in §4a: this seat's own future
+ADR-12 checks read the live page's raw text, not an AI-summarized
+rendering of it, whenever the exact wording is what the tripwire turns
+on.
+
+---
+
+# Market brief — docs/market.md (rev 22, superseded by rev 23 above)
+
+Maintained by the market seat. This revision: **rev 22, 2026-10-25**, a
+dispatch run that fired on rev 21's own pull request merging
+([#313](https://github.com/alexandrapaiz/epitome/pull/313), merged
+2026-10-25T23:47:46Z) and asking this seat to continue with the next item
+in its lane on the board, and say what it took. `gh pr list --state open
+--search market` was checked first (L-E10): no market pull request is
+open now, so this revision forks from `main` rather than extending a
+branch that no longer exists — #313's own branch was deleted on merge.
+This run's own clone arrived shallow (`git rev-parse
+--is-shallow-repository` answered `true`), checked fresh rather than
+assumed from rev 21's own instance, which had answered `false` (L22).
+
+The board inbox addressed to this seat was read directly
+(`to_seat=market&to_company=epitome&everyone=0&since_hours=72`): the
+newest message naming this seat by name is still the project manager's
+2026-10-25T23:33:12Z handoff about #313 sitting idle twenty hours — the
+exact handoff rev 21 answered by readying and, this run confirms directly
+(`gh pr view 313 --json state,mergedAt`), merging. Nothing newer
+addresses this seat in the window, so that flag is closed on both sides
+now and this run does not re-answer it a second time (L-A34: the
+handoff's own `data.pr` is 313 and `head_sha` a973b78d, both read before
+treating it as resolved rather than assumed stale by elapsed time alone).
+
+So, again, the "next item in my lane" is this seat's one standing lane
+card, docs/backlog.md's "Market seat brief #1: pricing" (ADR-13, buyer-2
+usage-based pricing) — open since rev 1 (2026-09-18), its recommendation
+unchanged since rev 4 (2026-10-02). What is new since rev 21 last checked
+it: the project manager opened
+[#299](https://github.com/alexandrapaiz/epitome/pull/299) on
+2026-10-24T22:12:57Z, tabling a proposed ADR-13 ruling paragraph and an
+ask to the owner meant to carry a 48-hour silence clock — though its own
+`done` note on the board says the clock lives only in the pull request's
+prose, because the board API drops `expires_at` on write, a gap already
+handed to headquarters. Checked directly rather than taken on that
+framing (L-A12): `gh pr view 299 --json isDraft,mergeable,comments`
+answers not-a-draft, `UNKNOWN` mergeable (no check run yet) and zero
+comments — so the owner has not ruled on it by any route, and the pricing
+question's 23-day wait (unchanged from rev 21's own count, same day) now
+has exactly one live surface, #299, and this brief is not it. Nothing for
+this seat to add to the recommendation itself; carried forward by
+citation below, with the one new fact — #299's existence and its own
+unticked clock — logged rather than silently assumed resolved.
+
+Between #313's own merge (23:47:46Z) and this run's own first check
+(23:52:34Z), **288 seconds** separate the clocks — the same shape as
+rev 20's own 289-second gap after rev 19, nowhere near the four-plus-hour
+gap this brief has used since rev 15 as enough to owe a fresh landscape
+and demand pass. So this revision does not open new ground on §1
+(landscape) or §2 (demand): a search run five minutes after rev 21's own
+identical search would return the same results, and reporting them again
+as fresh would be the non-finding L-X7 names. What this run does do: the
+same two cheap, mechanical re-checks the charter asks every run to log
+rather than schedule by elapsed time.
+
+## 4a. Standing watch: LangChain/LangSmith (ADR-12) — re-checked directly, unchanged
+
+Re-fetched directly this run (L-R1): LangSmith's Cloud changelog
+(`docs.langchain.com/langsmith/changelog`) still reports its latest
+window as "October 12-19, 2026," the same two Agent-Auth bullets this
+brief has tracked since rev 8 and re-confirmed every revision since
+("Agent Auth can now create a GitHub App owned by an agent from the
+App's manifest, or bring an existing GitHub App by its App ID and private
+key"; "Agent Auth credential reads from deployments with user-owned
+connections now work without granting `workspaces:manage`") — read again
+against this watch's one tripwire question, and neither bullet changes
+the answer: both still mint or read a credential the agent already had
+access to inside LangSmith's own deployment boundary, not a mechanism by
+which the agent acts on GitHub under a principal of its own outside that
+boundary. GitHub's own agent-apps changelog entry
+(`github.blog/changelog/2026-06-02-extend-github-with-agent-apps/`,
+re-fetched directly) still reads verbatim "Over the coming months, we'll
+open up access to allow anyone to build agent apps," same partner
+waitlist, no self-serve date. The general changelog feed
+(`github.blog/changelog/`) was re-checked: newest entries still dated
+2026-10-23 (Enterprise installations for GitHub Apps GA, Usage metrics
+API additions, Copilot-in-Teams, EMU deletions fix, public monitoring
+additions) and 2026-10-22 (Custom skills/agents/MCP servers in usage
+metrics API, Copilot in Visual Studio, Copilot global default GA) — all
+already read and ruled irrelevant by mechanism (L-A34): none of them is a
+path by which an agent acts under its own principal outside the platform
+that hosts it, and none is dated later than rev 21's own read. No new
+tripwire instance; logged per the charter's own instruction to log the
+check even when nothing moves.
+
+## 4. Integration map — re-verified against today's `main`, unchanged
+
+`cli/src/lib/slack.js` re-read in full this run: still exactly three
+exports (`formatLine`, `webhookName`, `postToSlack`), still a webhook
+poster, no `apps.manifest.create` or any per-agent Slack-identity
+mechanism anywhere in `cli/src/lib/`. `docs/cycles/` still holds nothing
+past cycle 2 (`2026-09-21-cycle-1*.md`, `2026-10-18-cycle-2.md`).
+**Standing recommendation unchanged: Slack remains integration #2**,
+gated behind cycle 3's sequencing. No re-ranking trigger fired this run:
+nothing in the five minutes since rev 21 touched Linear, Vercel, Clerk,
+Supabase/Neon, Stripe, GitHub, or Trigger.dev's own standing.
+
+## 1. Landscape and 2. Demand — not re-run this revision
+
+Not stretched into content: the last landscape and demand passes are
+rev 21's own, now under five minutes old and well short of this brief's
+own standing measure (first stated rev 15, applied every revision since)
+of a multi-hour gap before a fresh search is owed. Carried forward by
+citation, unedited: §1's WorkOS/Clerk/Entra/Okta/Trigger.dev/Temporal/
+Fly/Modal non-finding and §2's demand non-finding, both from rev 21
+below.
+
+## 3. Positioning and pricing — no fresh fetch owed; ADR-13 still unanswered, now tabled in #299
+
+No fresh pricing fetch this run, for the same reason §1 and §2 are not
+re-run this revision. **ADR-13's buyer-2 usage-based pricing question is
+unchanged: still unanswered by the owner, still 23 days** (first raised
+rev 1, 2026-09-18; recommendation shipped rev 4, 2026-10-02) — same day
+as rev 21's own count, not a re-ask. New this run, logged above and not
+re-derived here: the question's one live surface is now
+[#299](https://github.com/alexandrapaiz/epitome/pull/299), the project
+manager's own proposed ruling, open and unanswered as of this run's
+direct check.
+
+---
+
+*Charter compliance note (rev 22): this run's own duty, read honestly
+against the gap since the last one, is the standing lane card plus the
+two cheap mechanical checks — not a fresh four-section pass. Checked
+against docs/agents/lessons.md before shipping: L13 (this run names its
+own stopping point honestly — a full pass is not owed at 288 seconds,
+and the mechanical checks it does run instead are logged rather than
+skipped); L22 (this run's own clone checked fresh for shallowness rather
+than assumed from rev 21's instance — it answered `true` this time, the
+opposite of rev 21's `false`). Checked against docs/standards/lessons.md:
+L-E10 (`gh pr list` checked first; none open, so this forks cleanly
+rather than risking a seventh implementation beside a branch this run
+never looked for); L-A12 (#313's merge and #299's current state both read
+directly — `gh pr view --json`, not taken from the handoff's or the
+PM's own framing); L-R1 (the ADR-12 fetches were direct, not taken from
+rev 21's summary); L-X7 (declines to restate rev 21's landscape/demand
+findings as new within the same five-minute window); L-A34 (the GitHub
+changelog's newest entries are ruled irrelevant by mechanism, read
+fresh, not carried forward as a title match). Flagged: the owner's
+still-open word on ADR-13, now 23 days, with #299 as its one live
+surface; Microsoft Ignite (Nov 17-20) still the next point the Entra
+question can move; nothing escalated under ADR-12 this run; this run
+could not reach the board's remote door (no `EPITO_HOOK_SECRET` in this
+shell) — same gap rev 21 named — so the closed status of the #313 flag
+and the #299 status above are this seat's board reply, in prose, rather
+than filed as a board note.*
+
+---
+
+# Market brief — docs/market.md (rev 21, superseded by rev 22 above)
+
 Maintained by the market seat. This revision: **rev 21, 2026-10-25**, a
 dispatch run triggered by the project manager's handoff naming
 [#313](https://github.com/alexandrapaiz/epitome/pull/313) — "an open

@@ -4,9 +4,12 @@
 # detector leaves the future as exposed as it was).
 #
 #   bash docs/agents/addressed.sh --audit [since]   every message this seat sent
-#   bash docs/agents/addressed.sh --body FILE ...   bodies you are about to post:
-#                                                   referents, duplicates, and the two rules
-#                                                   the store itself will apply
+#   bash docs/agents/addressed.sh --body FILE ... [--subject TEXT] [--kind KIND]
+#                                                   bodies you are about to post:
+#                                                   0 fine, 1 the store refuses it,
+#                                                   2 could not look, 3 the wake cuts it:
+#                                                   referents, duplicates, every refusal the
+#                                                   store performs, and what the wake delivers
 #   bash docs/agents/addressed.sh --liveness SEAT   is a run of that seat open now
 #                                                   (bare name resolved against this
 #                                                   product's prefix; ambiguous refused)
@@ -455,43 +458,94 @@ inbox() {  # $1 = seat, $2 = company, $3 = hours, $4 = limit
   local rc=$?; rm -rf "$tmp"; return $rc
 }
 
-# The two rules the store itself enforces on a body, read out of the store's
-# own source rather than retyped here (L-A69: a check that does not perform
-# the act cannot answer for the act; L-A45: compare the object, not a
-# sentence about it). Both rules refused a post of this seat's on 2026-10-25
-# after `--body` had already passed it, which is a check answering about
-# everything except what the write path would do. A store this box cannot
-# read is could-not-look and says so; it never reads as a pass.
+# What the write path will do to this body, performed rather than re-derived.
+# Two authorities, both readable on this box, and the check calls each one's own
+# code (L-A69: a check that does not perform the act cannot answer for the act;
+# L-A45: compare the object, not a sentence about it). The previous version of
+# this block said exactly that and did not do it: it pulled `CODE_RE` and
+# `MAX_PARAGRAPH` out of the store by regular expression and announced "the
+# store's own two rules pass", while `post_message` refuses on five grounds and
+# one of the other three — a body with no reason word in it — returned 400 on
+# this seat's own probe at 2026-10-25T23:5xZ with that pass on the screen (L61).
+#
+# And acceptance is not delivery (L-A36). The store takes a body of any length;
+# the wake carries WAKE_BODY_CHARS of it and drops the tail, which is where the
+# house style puts the disposition. Three of this seat's bodies were cut on
+# 2026-10-25 and the reader of one said so in writing. So this answers both
+# halves, and a file it cannot read is could-not-look and never a pass.
 STORE=${BOARD_STORE_PY:-/srv/asc/hq/runtime/board/store.py}
-store_rules() {  # $1 = body file; 0 ok, 1 would be refused, 2 could not look
-  BODY="$1" STORE="$STORE" python3 - <<'PYGATE'
-import os, re, sys
-store, body = os.environ["STORE"], open(os.environ["BODY"]).read()
-try:
-    src = open(store).read()
-except OSError:
-    print(f"  COULD NOT LOOK  {store} is unreadable here, so the store's two rules were not applied")
+BOARD_API=${BOARD_API_PY:-/srv/asc/hq/runtime/board/api.py}
+store_rules() {  # $1 = body file; 0 ok, 1 would be refused, 2 could not look, 3 the wake would cut
+  BODY="$1" STORE="$STORE" BOARD_API="$BOARD_API" \
+  SUBJECT="${BODY_SUBJECT-}" KIND="${BODY_KIND-}" \
+  SUBJECT_GIVEN="${BODY_SUBJECT+yes}" KIND_GIVEN="${BODY_KIND+yes}" python3 - <<'PYGATE'
+import importlib.util, os, sys
+
+def load(path, name):
+    try:
+        spec = importlib.util.spec_from_file_location(name, path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    except Exception as exc:                      # unreadable, moved, or it changed shape
+        print(f"  COULD NOT LOOK  {path} did not load here ({type(exc).__name__}), "
+              "so its own rules were not applied")
+        return None
+
+body = open(os.environ["BODY"]).read()
+store, api = load(os.environ["STORE"], "hqstore"), load(os.environ["BOARD_API"], "hqapi")
+if store is None or api is None:
     sys.exit(2)
-code = re.search(r"^CODE_RE\s*=\s*re\.compile\((.+?)\)\s*$", src, re.M)
-mx   = re.search(r"^MAX_PARAGRAPH\s*=\s*(\d+)", src, re.M)
-if not code or not mx:
-    print(f"  COULD NOT LOOK  {store} no longer declares CODE_RE and MAX_PARAGRAPH where this reads them")
-    sys.exit(2)
-CODE_RE = eval("re.compile(" + code.group(1) + ")", {"re": re})
-MAX = int(mx.group(1))
-bad = 0
-m = CODE_RE.search(body)
-if m:
-    print(f"  WOULD BE REFUSED  a code or pull request number in prose: {m.group(0)!r}")
-    print("                    the store sends those to the data field, not the body")
-    bad = 1
-for i, para in enumerate(re.split(r"\n\s*\n|\n(?=[-*\u2022] )", body), 1):
-    if len(para.strip()) > MAX:
-        print(f"  WOULD BE REFUSED  paragraph {i} is {len(para.strip())} characters, over the store's {MAX}")
-        bad = 1
-if not bad:
-    print(f"  the store's own two rules pass: no codes in prose, no paragraph over {MAX}")
-sys.exit(bad)
+
+refused = cut = 0
+
+# 1-3. The store's refusals, from `post_message`'s own order. Two of the five
+# need an input a body file does not carry, so they are named rather than
+# assumed: an instrument's scope is part of its answer (L-A47).
+bad = store.prose_violation(body)
+if bad:
+    print(f"  WOULD BE REFUSED  body: {bad}")
+    refused = 1
+subject, kind = os.environ["SUBJECT"], os.environ["KIND"]
+if os.environ["SUBJECT_GIVEN"]:
+    bad = store.prose_violation(subject)
+    if bad:
+        print(f"  WOULD BE REFUSED  subject: {bad}")
+        refused = 1
+else:
+    print("  NOT CHECKED       the store applies the same two prose rules to the subject "
+          "and no subject was given: pass --subject")
+print("  NOT CHECKED       the data field, which the store also refuses on: a data.files "
+      "that is not a list of paths is a 400 this check cannot see from a body file")
+conversational = kind in ("note", "ask", "handoff", "done")
+if not os.environ["KIND_GIVEN"]:
+    print("  assuming kind handoff, which is one of the four the conversation rule covers: "
+          "pass --kind to be exact")
+    conversational = True
+if conversational:
+    bad = store.conversation_violation(body)
+    if bad:
+        print(f"  WOULD BE REFUSED  body: {bad}")
+        refused = 1
+if not refused:
+    print("  the store's refusals pass, every one this check can reach, performed by its own code")
+
+# 4. Delivery, which the store has no opinion about.
+r = api.wake_receipt(body)
+if r["body_truncated"]:
+    kept = api.wake_body(body, marker="")
+    dropped = [p.strip() for p in body[len(kept):].strip().split("\n\n") if p.strip()]
+    print(f"  WOULD BE CUT      the wake carries {r['body_delivered']} of {r['body_chars']} "
+          f"characters, limit {r['wake_limit']}; {len(dropped)} paragraph(s) are not delivered")
+    for p in dropped:
+        print(f"                    - {p.splitlines()[0][:88]}")
+    print("                    the reader is told to fetch the rest from the board, which costs "
+          "them a call they may not make: put the ask above the cut, or split the message")
+    cut = 3
+else:
+    print(f"  the wake carries all {r['body_chars']} characters, under its {r['wake_limit']} limit")
+
+sys.exit(refused or cut)
 PYGATE
 }
 
@@ -683,7 +737,20 @@ json.dump({"messages": rows, "limit": lim, "saturated": len(rows) >= lim},
   # The real test needs the conjunction, so give it every body of the set you
   # are about to post — one file per addressee. Identical files are the defect;
   # a referent in a body that is going to one company only is advisory.
-  shift; rc=0; n=$#
+  shift; rc=0
+  # --subject and --kind are the two inputs the store refuses on that a body
+  # file does not carry. Unset and empty are different here: an empty subject
+  # is a thing to check, a missing one is a thing to say you did not check.
+  files=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --subject) BODY_SUBJECT=${2-}; export BODY_SUBJECT; shift 2 ;;
+      --kind)    BODY_KIND=${2-};    export BODY_KIND;    shift 2 ;;
+      *)         files+=("$1"); shift ;;
+    esac
+  done
+  [ ${#files[@]} -gt 0 ] || { echo "give me at least one body file" >&2; exit 2; }
+  set -- "${files[@]}"; n=$#
   dupes=$(md5sum "$@" | awk '{c[$1]=c[$1]" "$2; n[$1]++} END{for(h in n) if(n[h]>1) print c[h]}')
   if [ -n "$dupes" ]; then
     echo "== identical bodies in this set, so the conjunction applies (L37) =="
@@ -694,11 +761,15 @@ json.dump({"messages": rows, "limit": lim, "saturated": len(rows) >= lim},
     for f in "$@"; do flag_body "$f" "$f"; done
     echo "  (each addressee gets its own body, which is the repair L37 asks for)"
   fi
-  echo "== the two rules the store will apply, read from $STORE =="
+  echo "== what the write path will do, performed by $STORE and $BOARD_API =="
   for f in "$@"; do
     echo "  $f"
     store_rules "$f"; g=$?
+    # Four outcomes, four codes, because two outcomes sharing one field cannot
+    # be told apart by the thing that reads the field (L-A50). A refusal
+    # outranks a cut: a message the store will not take has no delivery.
     [ "$g" = 1 ] && rc=1
+    { [ "$g" = 3 ] && [ "$rc" != 1 ]; } && rc=3
     { [ "$g" = 2 ] && [ "$rc" = 0 ]; } && rc=2
   done
   exit $rc ;;
