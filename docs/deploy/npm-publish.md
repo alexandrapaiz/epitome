@@ -4,8 +4,12 @@ Cycle 2, bet `mvp-stranger-npm-v0`, scope 2-1's last step. Written
 2026-10-23 by the engineer seat, on the run that tried the real publish
 and was refused.
 
-**The publish is one command and one decision away. The decision is the
-owner's and it is not about the token.**
+**The publish is one command and one decision away, and neither is about
+the token.** The name was decided on 2026-10-23 (`epito-cli`, below). The
+decision that is left is the publish itself: the manifest now carries
+`private: true`, so npm refuses this package until somebody removes that
+field by hand. Step 3 is that removal, and it is deliberately a step of
+its own rather than a line inside the publish.
 
 ## What happened
 
@@ -46,9 +50,17 @@ stored      Infisical prod, as NPM_TOKEN
             (rendered to /srv/asc/env.infisical on the host, 0600)
 ```
 
-Nothing the publish needs is missing from the host or from Infisical.
-`NPM_TOKEN` is there, by that name, and it works. The one thing missing
-is a name npm will accept.
+**That expiry has passed. As of 2026-10-26 this token is two days dead,
+so step 4 below will come back 401 until somebody mints a new one** —
+an account action, not a code one, and not this seat's to take. The rest
+of this document is still accurate: the name is decided, the sequence is
+right, and the gates are green. Minting the replacement is the only
+thing between them and a published package.
+
+Everything else the publish needs is present. `NPM_TOKEN` is in
+Infisical under that name and the credential path below works; what was
+missing when this was written was a name npm would accept, and that was
+settled on 2026-10-23.
 
 Note that `NPM_TOKEN` is in `/srv/asc/env.infisical` but **not** in
 `/srv/asc/env`, the agent-visible file — so a seat reads it from the
@@ -149,7 +161,21 @@ cd cli
 NPM_TOKEN=$(grep -m1 '^NPM_TOKEN=' /srv/asc/env.infisical | cut -d= -f2-) \
   npm run name-check
 
-# 3. the publish. prepublishOnly runs pack.sh && stranger.sh on the way;
+# 3. lift the refusal. The manifest carries `private: true`, so npm will not
+#    publish this package until somebody deliberately removes the field. That
+#    removal IS the decision; it is not a chore, and it is why this is its own
+#    numbered step.
+#    Delete the line, do not rewrite the file. Both `npm pkg delete private`
+#    and a JSON round-trip in node reformat the whole manifest — they expand
+#    the hand-compacted `peerDependenciesMeta` entries, and `git diff --stat`
+#    comes back "12 insertions, 5 deletions" instead of one. That churn would
+#    ship in the tarball. Measured both ways on 2026-10-26.
+cd cli
+sed -i.guarded '/^  "private": true,$/d' package.json
+git diff --stat package.json       # -> 1 file changed, 1 deletion. Nothing else.
+node -e 'if (require("./package.json").private !== undefined) { console.error("the field is still there — the sed matched nothing; check the indentation and the trailing comma"); process.exit(1) } console.log("lifted")'
+
+# 4. the publish. prepublishOnly runs pack.sh && stranger.sh on the way;
 #    both must pass or nothing reaches the registry.
 TMP=$(mktemp -d) && chmod 700 "$TMP"
 printf '//registry.npmjs.org/:_authToken=%s\n' \
@@ -158,13 +184,65 @@ printf '//registry.npmjs.org/:_authToken=%s\n' \
 npm --userconfig "$TMP/.npmrc" publish
 rm -rf "$TMP"
 
-# 4. what a stranger gets, from outside any checkout
+# 5. put the refusal back, in the same sitting, whether step 4 succeeded or
+#    not. A tree left with the field lifted is a tree where the next
+#    accidental `npm publish` succeeds. `sed -i.guarded` in step 3 left the
+#    original beside it, so this is a move and not a re-edit.
+mv package.json.guarded package.json
+node -e 'console.log(require("./package.json").private === true ? "guarded" : "STILL LIFTED — put it back")'
+git diff --stat package.json       # -> empty. The manifest is byte-identical again.
+
+# 6. what a stranger gets, from outside any checkout
 npm i -g <chosen> && epito --version && epito init historian && epito validate
 ```
 
 The token is never written into this repository, never passed on a
 command line, and the temporary `.npmrc` is 0600 and deleted. `epito`
 has no npm-login step of its own; this is the whole credential path.
+
+## Do not verify the refusal with `npm publish --dry-run`
+
+It cannot see it. Run the dry run against the guarded manifest and it
+prints `+ epito-cli@0.1.0` and exits 0 — the same output it prints with
+the field removed. npm throws the refusal as the first statement of
+`libnpmpublish`'s publish function and calls that function behind
+`if (!dryRun)`, so the rehearsal never reaches it:
+
+```
+node_modules/libnpmpublish/lib/publish.js:15   if (manifest.private) throw EPRIVATE
+lib/commands/publish.js:161                    if (!dryRun) { await ... libpub(...) }
+```
+
+Read on npm 10.9.8. The in-command copy of the same check at
+`lib/commands/publish.js:136` does not help either; it is guarded by
+`workspace &&`, and publishing `cli/` is not a workspace publish.
+
+So anybody checking the guard the way this runbook used to imply would
+conclude it is absent. The gate that actually asserts it is `pack.sh`
+section 1d, which performs a real publish against a recording registry
+the suite starts on `127.0.0.1` — three readings one field apart: the
+lifted manifest sends a 376 kB tarball, the committed one refuses with
+`EPRIVATE` and sends nothing, and the dry run of the committed one exits
+0 having sent nothing. That section runs on every publish, because
+`prepublishOnly` runs this suite.
+
+One ordering detail, if you try to reproduce the refusal by hand. npm
+checks for a credential *before* it reaches the private check: with no
+token configured, `npm publish` stops at `ENEEDAUTH` ("This command
+requires you to be logged in to …") and never gets as far as
+`EPRIVATE`. So a bare `npm publish` with no credential proves nothing
+about the guard either. Section 1d writes a throwaway `_authToken` for
+its own loopback registry for exactly this reason — the fake token is
+not only a safety belt, it is what lets `EPRIVATE` be the refusal that
+fires.
+
+Two things follow for whoever runs step 4. The dry run is still worth
+running — it is what proves the gate's own suites execute rather than
+skipping themselves, which is the leak fixed earlier and pinned by
+section 1b — but a clean dry run is evidence about the gate, never about
+the refusal. And a dry run that *fails* with `EPRIVATE` means you are on
+a version of npm that fixed this; section 1d's last two assertions are
+written to fail that day and say so.
 
 **Where `name-check` finds a credential, and one npm behaviour that
 matters here.** It reads `NPM_TOKEN` first, and otherwise reads
