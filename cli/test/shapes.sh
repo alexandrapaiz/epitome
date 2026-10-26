@@ -124,7 +124,13 @@ bad() { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
 lines() { [ -f "$ROOT/$1" ] && grep -nE "$SHAPE" "$ROOT/$1" | grep -vE '^[0-9]+:[[:space:]]*#'; true; }
 count() { lines "$1" | grep -oE "$SHAPE" | wc -l; }
 
-printf '\n== every shell gate in this repository, scanned for the quiet-pipe shape\n'
+# What this prints is what it read, and it has never read the whole repository:
+# FILES is cli/test/ and deploy/ only, and docs/agents/ holds twenty-one more
+# shell files -- the tools the seats run to decide things -- of which eight
+# carry this shape at fifteen sites. That is a card on the board, not a fact
+# this banner may round off: a gate that says "every" while scanning half is
+# how a blind spot gets read as a clean bill of health.
+printf '\n== cli/test/ and deploy/, scanned for the quiet-pipe shape (docs/agents/ is not scanned)\n'
 FILES="$( (cd "$ROOT" && ls cli/test/*.sh deploy/*.sh 2>/dev/null) )"
 for f in $FILES; do
   n="$(count "$f")"
@@ -198,7 +204,9 @@ cli/test/probe-stub-restart.sh 1
 # its three: probe-stub-restart.sh takes the log path as an argument and runs
 # the stale shape and the per-start shape the same number of times to compare
 # them, so a generic `> "$2"` with a wait that reads `"$2"` is what that file
-# is FOR. Everything else in this repository is converted as of this branch,
+# is FOR. Everything else UNDER THE TWO DIRECTORIES THIS FILE SCANS is
+# converted as of this branch -- which is not the same claim as the repository,
+# and the difference is the board card named in the banner below --
 # the fix is one line, and so a new site here is a mistake rather than a cost
 # somebody has not paid yet -- which is why this table counts one file and not
 # a column of ceilings.
@@ -296,7 +304,7 @@ END {
 ' "$ROOT/$1"
 }
 
-printf '\n== the same gates, scanned for a start that waits on a fixed log name\n'
+printf '\n== the same files, scanned for a start that waits on a fixed log name\n'
 for f in $FILES; do
   sites="$(waitsites "$f")"
   n="$(printf '%s' "$sites" | grep -c . )"
