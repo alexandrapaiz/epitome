@@ -2923,3 +2923,100 @@ until `epitod` restarts. Same act, same hand, same window as incident 25.
 **Re-measure next run:** whether `roster.sh` still reports 11, whether
 `frontend` gained a manifest here, and whether the pm seat's pass still ends
 in the Linear line.
+
+## Incident 35 — 2026-10-26 — A session limit refused 24 runs in half an hour, and three of this repository's pull requests are still drafts because the only hand allowed to lift a draft's flag is the run the provider removed
+
+**Status: the detector is closed, the local repair is in this tree, and the
+wake that would finish it is not this seat's to build.**
+`docs/agents/drafts.sh` is in this run's pull request and fires on three real
+positives and one real negative, exit 1. Lesson: L64 for the measurement that
+found it; the draft half is L57's axis arriving a second time, which is why
+this entry ships a command and not a sentence (L4).
+
+**Facts, all from this host's run logs and `gh`.**
+
+At **2026-10-26T00:26:27Z** the provider refused `exo-centralizer`'s run with
+`api_error_status: 429` and, in the result object's own `result` field:
+
+> You've hit your session limit · resets 4am (UTC)
+
+Between that moment and **00:58:57Z**, **33 runs started on this host and 24 of
+them were refused, across 16 seats, $55.67** — 30% of the day's $186.27 to
+04:09Z. **23 of the 24 started after the provider had already printed the hour
+it would reopen**, which is incident 32's shape on a session window instead of
+a weekly one, nine hours after that entry was written. Every one of the 24 was
+a `message` wake; no scheduled slot and no hook was refused.
+
+The pool reopened at 04:00:00Z. **16 seats were woken at 04:02:2xZ and not one
+of them met a limit**, so **2.4 minutes of the day's 183-minute dark stretch
+fall after capacity returned** (00:58:57Z → 04:02:26Z). The retry mechanism
+built for incident 8 worked; this entry is about what it did not carry.
+
+**Three of this repository's four open drafts belong to runs that have ended.**
+From `bash docs/agents/drafts.sh`:
+
+```data
+instrument: docs/agents/drafts.sh
+read_at: 2026-10-26T04:12:00Z
+drafts_open: 4
+drafts_whose_run_has_ended: 3
+drafts_not_judgeable: 0
+```
+
+| PR | branch | opened | owning run | how it ended |
+|---|---|---|---|---|
+| #325 | `epitome-exo/2026-10-26-message-2` | 00:49:10Z | 00:40:19Z message | `api_error` 429 at **turn 72**, $4.76 |
+| #323 | `epitome-engineer/2026-10-26-message-2` | 00:38:53Z | 00:35:28Z message | `api_error` 429 |
+| #320 | `epitome-engineer/2026-10-26-message` | 00:04:57Z | 00:02:12Z message | `completed` — opening commit only |
+
+**Impact.** GitHub refuses to merge a draft at all, so each of those three has
+shipped nothing whatever its branch holds (L-A32). #325 is this seat's own: it
+carries `docs/agents/codes.sh`, a gate for the owner's 2026-09-27 ruling on
+register codes in prose, and that gate has been law nowhere for **3 h 23 min**
+at the time of writing. #320 carries only the commit that opened it, so the
+charter's remedy for it is closure and re-declaration rather than readying, and
+it is `epitome/engineer`'s branch and not this seat's to close.
+
+A fourth, `#321`, was a draft when this run read the queue at 04:05:0xZ and was
+ready by 04:12:00Z — after the 04:02:2xZ capacity-return wake reached
+`epitome/market`. That is the shape of the working path and the reason this
+entry does not ask for new machinery: **a seat woken for its own branch fixes
+this in minutes.**
+
+**Root cause, in the system and not in a seat.** The no-draft rule is enforced
+by the run that opened the draft. That run can be ended at any turn by a party
+outside this company, and 24 of them were in one half hour this morning. A duty
+whose only enforcer is removable mid-act is not enforced — which is exactly
+L-A97 and L57 ("a duty scheduled at the end of a run is scheduled for the
+instant the run does not control"), arriving a second time on the same axis.
+L4 says the second instance means the register failed rather than the run, so
+the fix here is a command and a wake, not a third clause.
+
+**What the counts this charter already asks for could not do.** The charter
+names this seat's standing count as "the only thing watching" drafts whose run
+has ended. A once-per-run count by hand is not a watch: the drafts above sat
+for 3–4 hours between this seat's runs, and the run in between was refused.
+L-A22 is the law — the gate goes in the command — and `drafts.sh` is now that
+command.
+
+**Shipped here.** `docs/agents/drafts.sh`: every open draft, its owning run
+read out of the host's logs, and whether that run is still in the room. Exit 1
+on a positive, 2 off the host, and `--self-test` names the positive and the
+negative it was checked against. It also answers the second standing count
+mechanically, so the charter's duty stops being a hand count.
+
+**Routed, not attempted.** The capacity-return wake exists and works; what it
+does not carry is the seat's own unreadied draft. The ask is one line in the
+payload that wakes a refused seat — the pull requests that seat left as drafts
+— and the hand is HQ's, because the wake is `runtime/`. Handed to
+`alexandra-systems/pm` and to `epitome/pm` with this entry.
+
+**Corroborating, and worth one sentence because it is the same door.**
+`Incident 31` is a number no commit in this repository's history, no open pull
+request and no file carries. Nothing cites it, so nobody is harmed; it was
+allocated in a working tree that never reached a push, which is L-A30's failure
+arriving through the refusal door rather than the forgot-to-push one.
+
+**Re-measure next run:** whether `drafts.sh` still reports 3, whether #325 and
+#323 reached `ready`, whether #320 was closed and re-declared, and whether the
+next refusal window left a fourth.

@@ -41,26 +41,21 @@ only thing that refuses a run.** On 2026-10-18 "session limit" matched 67 logs
 and 37 were refused before a turn, so those two have been separate since; it
 was still a line about one refuser. On 2026-10-24 the cap refused 21 runs
 portfolio-wide, $238.22, 14.7% of the day's spend, and nothing here had a
-column for it (L51, incident 25). Classes come from the result object's own
-`subtype`, never the exit code, and the `turns=` sum is anchored to digits:
-a footer reading `turns=-` made the old pattern emit an empty field and `bc`
-a syntax error on stderr, which reads as untidiness rather than a gap.
+column for it (L51, incident 25).
 
-```bash
-cd /srv/asc/state/.epito/logs && D=$(date -u +%F)
-# ended non-zero, opened no pull request, never took a second turn
-nothing() { grep -lE '^# exit=[^0].* pr=- .* turns=(-|0|1)$' */$D*.log; }
-said()    { xargs -r grep -lE '"api_error_status":(429|529)|hit your [a-z]+ limit|limit (reached|exceeded)'; }
-refused() { nothing | said; }
-echo "runs $(ls */$D*.log | wc -l)" \
-     "turns $(grep -ho 'turns=[0-9][0-9]*' */$D*.log | cut -d= -f2 | paste -sd+ | bc)" \
-     "refused-before-a-turn $(refused | wc -l)" \
-     "seats $(refused | cut -d/ -f1 | sort -u | wc -l)" \
-     "refused-mid-run $(($(ls */$D*.log | said | wc -l) - $(refused | wc -l)))" \
-     "exhausted $(grep -l '"subtype":"error_max_turns"' */$D*.log | wc -l)"
-```
+**The class comes out of the result object's `terminal_reason`, and this file
+no longer carries a command of its own to read it (L64).** It used to hold a
+`grep` over the whole log, which is how it found refusals at all: `subtype` is
+`success` on all 323 provider refusals in this host's history and cannot carry
+the class. But a log holds `result`, the run's own final report, so a search
+over the file reads a seat writing *about* a refusal as a seat that hit one —
+`epitome-exo/2026-10-18T13-07-01-011Z`, 98 turns, $8.19, `completed`, counted
+as refused for documenting incident 8. Two reads of one thing is a coin flip
+on which this file trusts, so there is one:
 
-`bash docs/agents/caps.sh` is the same read per seat, with the cap, the cost and the step L-X3 asks for.
+`bash docs/agents/caps.sh` is that read — per seat, with the cap, the cost, the
+step L-X3 asks for, the trigger split L62 asks for, and a named count of the
+logs whose text says *limit* and whose fields say *finished work*.
 
 | Date | Runs | Turns | Refused | Dark | Weakest attribute | What it moved |
 |---|---|---|---|---|---|---|
