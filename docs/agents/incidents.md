@@ -2675,6 +2675,7 @@ rather than sitting here.
 ```remeasure 30
 probe   bash docs/agents/remeasure.sh --self-test | grep -q "all verdicts fired"
 control bash docs/agents/remeasure.sh --self-test | grep -q "wrapped-sentence positive"
+means   healthy
 ```
 
 A `CHANGED` here means the instrument stopped firing all four verdicts and the
@@ -2682,6 +2683,16 @@ class is open again. The count of conditions still written as prose is the
 second number this entry owes, and it is read from this file rather than
 remembered: `grep -c '^```remeasure' docs/agents/incidents.md` against the rows
 of the open-fixes table below.
+
+**Both halves of this paragraph were defects, found 2026-10-26 and fixed in
+incident 40.** The `means healthy` line above is new: this is the one condition
+in the register whose probe fires when its fix is *working*, that polarity lived
+in the sentence above rather than in the block, and for two days the script
+printed "still open: the probe found what keeps it open" over it. And the second
+number this entry says it owes was never once computed, because a comparison
+written as a sentence under the entry that asks for it is owed by nobody. It is
+now `remeasure.sh --coverage`, which computes it on every no-argument run and
+refuses to exit 0 while it is non-zero.
 
 ## Incident 32 — 2026-10-25 — One weekly limit closed the provider at 03:00Z and named the hour it would reopen, and this host started 64 more runs before it did
 
