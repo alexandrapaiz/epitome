@@ -33,6 +33,19 @@ case "$since" in
          since=$(date -u -d "@$(( $(date -u +%s) - secs ))" +%FT%TZ) ;;
 esac
 
+# A window this script cannot parse must refuse, not widen. The comparison
+# downstream is `jq`'s string `>=` against an ISO stamp, so an argument like
+# `12:00` -- a shape a reader would reasonably try -- passes every row in the
+# forge's history, because "2026-10-05T02:28:05Z" sorts after "12:00". Asked
+# for "since 12:00" on 2026-10-26 this printed 169 merged over a 515-hour span
+# under a header that said `window 12:00 .. 14:24:53Z`, and the run that asked
+# nearly pasted the figure into a handoff (L41, L-A83).
+case "$since" in
+  [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z) ;;
+  *) echo "landed.sh: '$1' is not a window this script can read. Give a relative one (6h, 2d) or a whole instant (2026-10-26T12:00:00Z); a partial stamp silently matches every row in the history. Could not look." >&2
+     exit 2 ;;
+esac
+
 git fetch -q origin main 2>/dev/null
 now=$(date -u +%FT%TZ)
 printf 'measured %s against origin/main %s\n' "$now" "$(git rev-parse --short origin/main)"

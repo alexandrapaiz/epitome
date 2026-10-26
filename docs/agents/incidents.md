@@ -3918,3 +3918,199 @@ own reach rather than the world (L58).
 **Lessons:** `docs/standards/lessons.md` L-A114 for the gate that prints
 instead of blocking, L-A16 for a detector counted as in effect, and L77 for the
 self-test fixture that never reached the branch it was written for.
+
+## Incident 42 — 2026-10-26 — The daily brief woke all eight halves of the company's learning loop into a closure the provider had named 105 minutes earlier, every one of them died at turn one, and the retry that recovered the runs recovered none of the duties
+
+**Status: open.** The detector is shipped and fired against the real positive
+before this was written — `bash docs/agents/owed.sh` names this seat's own lost
+tick, exit 1, six verdicts in `--self-test`. The repair is in no tree this seat
+can write to: clause one of L78 is one line in a payload composed in
+`alexandra-systems` `runtime/`, and `addressed.sh --can` answers `FORBIDDEN`
+there. Routed with this entry. Lesson: **L78**, and **L79** for the cadence half.
+
+**Facts, in the order the box recorded them.**
+
+- `10:16:11Z` — `ursa-frontend`'s run is refused at turn 232 with
+  `"api_error_status":429` and, in the result object's own `result` field,
+  *"You've hit your session limit · resets 2pm (UTC)"*. The provider has now
+  stated in a sentence this company parses that nothing will run for 3 h 44 m.
+- `10:16:11Z → 12:20:01Z` — **44 runs on 16 seats are refused by that window,
+  43 of them started after the sentence above was already in a log.** 33 never
+  took a second turn; the other 11 were cut mid-flight between turns 2 and 232,
+  **826 turns, $62.00 and 230 minutes that bought nothing.**
+- `11:05:07Z → 12:06:08Z` — **all seven of the day's scheduled slots fire into
+  the closure and all seven are refused.** One of them, `epitome/pm`'s
+  `0 12 * * 1`, is a weekly slot: that seat's entire scheduled cadence for the
+  week was spent at 12:00:08Z in four tenths of a second, and its next firing
+  is 2026-11-02T12:00Z.
+- `12:01:53Z` — `asc-brief.timer` fires (`systemctl show asc-brief.timer -p
+  LastTriggerUSec`).
+- `12:01:57.918423Z` — the board emits `brief.sent`, 1,219 characters stored
+  against 2,343 live, its own footer saying 6 of 9 sections were delivered and
+  naming *Shipped, Products, Decided in your name* as cut.
+- `12:01:58.266Z → 12:02:10.286Z` — the bus wakes **eight seats**:
+  `exo-centralizer`, `alexandria-exo`, `ursa-exo`, `epitome-exo`,
+  `epitome-pm`, `alexandria-pm`, `ursa-pm`, `pm`. Four exo seats and four pm
+  seats, one pair per product. **All eight are refused. Every one at turn 1,
+  `num_turns` 1, $0.** Nobody observed, nobody oriented, and no product sent
+  the centralizer the facts the company-wide decision is made on.
+- `14:00:00Z` — the reset the provider named.
+- `14:03:06Z` — `asc-capacity-retry.timer` wakes **sixteen seats**, and they
+  are exactly the sixteen the window refused, set difference empty in both
+  directions. Three minutes. Its payload, verbatim: *"capacity returned: the
+  provider limit that refused your last run has reset, and nothing else would
+  have woken you until your next scheduled window. Do the one run your charter
+  describes."*
+- `14:17:17Z` — `bash docs/agents/owed.sh` on this seat:
+  `brief_events_whose_wake_was_refused: 1`, `brief_events_still_owed: 1`.
+
+```data
+instrument: the result record of every log under /srv/asc/state/.epito/logs, plus systemctl and the board
+read_at: 2026-10-26T14:1xZ
+brief_timer_fired: 2026-10-26T12:01:53Z
+brief_sent_event: 2026-10-26T12:01:57.918423Z
+brief_wakes_delivered: 8
+brief_wakes_refused: 8
+brief_wakes_that_took_a_second_turn: 0
+products_whose_exo_half_ran_the_tick: 0
+products_whose_pm_half_ran_the_tick: 0
+closure_announced_at: 2026-10-26T10:16:11Z
+minutes_from_announcement_to_fan_out: 105
+wave_3_refused: 44
+wave_3_refused_after_the_announcement: 43
+wave_3_cut_mid_flight: 11
+wave_3_mid_flight_turns: 826
+wave_3_mid_flight_cost_usd: 62.00
+wave_3_mid_flight_minutes: 230
+slots_fired: 7
+slots_refused: 7
+weekly_slots_lost: 1
+retry_fired: 2026-10-26T14:03:06Z
+retry_seats_woken: 16
+seats_refused_but_not_woken: 0
+seats_woken_but_not_refused: 0
+payloads_naming_the_duty_the_window_held: 0
+```
+
+**Impact.** The learning loop is the mechanism by which this company turns a
+day's facts into law, and on 2026-10-26 it ran in zero of four products
+because one twelve-second fan-out landed inside a stated closure. This is the
+**second consecutive day** it has been lost — incident 32 records
+2026-10-25T12:01:27.980Z, one seat, turn 1 — and the first on which it was lost
+for all eight halves at once. Nothing reported it: the brief's own capacity
+section that day read *"7.4 h with nothing running, 8 min of it after the limit
+had already reset"*, a sentence about a recovered day, and the brief cannot
+report its own loss because the brief is the thing that was lost. Separately,
+30 runs on 10 seats exhausted their turn caps for **$332.13 and 803 minutes**,
+and the brief told the owner those were *"30 run(s) ran and failed; the PMs
+handled them."*
+
+**Root cause, in the system, and it is two different causes that this entry
+keeps apart.**
+
+The first is incident 32's and is unchanged: no path that *starts* a run asks
+whether the provider has already declared the pool closed, so timers and bus
+fan-outs fire into it. `capacity-retry.py` parses the named reset through
+`capacity.py:reset_after` and spends the answer only on *when may we start
+again*. That is incident 32's row and today is its next window, counted there.
+
+The second is this entry's own, and the first reading of it was wrong in this
+seat's favour and is corrected here rather than in a later entry. It is **not**
+that the retry has no way to name a lost duty: `capacity-retry.py` carries four
+sentences and the fourth, `cron_refire`, names the slot, its period and its day,
+and tells the seat to do "the periodic one, not a reply to this wake". It was
+written 2026-10-25 by alexandria's exo for exactly this reason. The cause is
+that **the mechanism cannot see a duty the host does not label.** Whether a
+duty was lost is read off the run's own trigger field, which the host writes
+into the log's filename, and a `brief.sent` wake is written `-message.log` —
+byte-identical in that field to a reply to a note. So the daily tick of eight
+seats is indistinguishable from chatter to the one component that knows what to
+do about a lost cadence. Over that tool: `grep -ic brief` 0, `brief.sent` 0,
+`subscriptions` 0. `seat_crons` reads `[trigger].cron` from the roster; nothing
+reads `[trigger].subscriptions`, which is the only trigger those eight seats
+have for the duty.
+
+**What this entry could not look at (L41).** Which of the four sentences the
+other fifteen seats received at 14:03:06Z. The state file records the run each
+wake claimed, not the reason it carried, and re-running the tool with a blanked
+state resurfaces older runs instead of reproducing the decision — it printed
+three `cron_refire` rows for seats whose slots had not fired today, which this
+run nearly published. One case is first-hand: this seat's payload was the
+generic `refused` sentence and the run it resumed was the brief tick.
+
+**And the substance survived, which is what makes this cheap to fix.**
+`GET /api/brief` served the whole brief to this run at 14:0xZ, so the duty was
+performable two hours late by one HTTP call, and this run performed it. What
+did **not** survive is the words the wake carried: `bash docs/agents/brief.sh`
+printed *"the live brief is no longer the one that was sent (it regenerates on
+read); what the wake carried cannot be diffed against it this run"* — the
+second day running it has had to say that (L35, incident 15). A duty whose
+input regenerates can be re-performed and cannot be audited.
+
+**Fix, and where it is.** The hand side is not shippable from this seat and is
+named rather than attempted, and it is cheaper than it looked: not a fifth
+sentence in the payload but the **field the fourth one reads** — the layer that
+writes a run's trigger writing *which event* routed the wake, so a refused
+`brief.sent` wake stops arriving as `-message.log`. The seat side shipped here:
+`docs/agents/owed.sh` answers, for a seat and a window, which of its
+duty-bearing wakes a limit refused, whether any later run served them, and
+which scheduled slots were lost outright — because a slot is never re-served by
+a message. Six verdicts in `--self-test`, every fixture built rather than
+looked for, including the two negatives that stop it reporting every past
+refusal forever: a refusal served by a later finished run is **not** owed, and
+an `api_error` that is not a limit is not a refusal.
+
+**One thing this entry corrected in its own instruments while writing itself.**
+Splitting that non-limit `api_error` out of the limit count was done by reading
+the result object's own `result` field for a limit sentence — which is the prose
+read L64 removed, and it caught both of the two completed runs in this host's
+1,633-record history whose final report *quotes* a refusal, one of them this
+seat's own 09:02:46Z hook at 118 turns, printing it as the day's first refused
+hook. The discriminator is now the single field `api_error_status in (429,529)`,
+which is exactly coextensive with the 397 real refusals, and `caps.sh`
+fixture 4 fails against the version this paragraph describes. Today's count is
+therefore **98 limit-touched and one api error that was not a limit**, not 99.
+
+**A third class arrived inside this run, and it is the one the retry cannot
+reach at all.** At **14:08:07Z**, five minutes after the recovery, a hook of
+`epitome-engineer` was cut at turn 31 with `"api_error_status":529` —
+*"API Error: 529 Overloaded. This is a server-side issue, usually temporary."*
+A 429 says *you may not* and names the hour it reopens; a 529 says *I cannot
+right now* and names nothing. `capacity-retry.py`'s condition 2 requires that a
+refusal "announced a reset time", and `529` appears nowhere in either that tool
+or `capacity.py`, while `capacity.py:refused_by` classes it `refused` on
+`terminal_reason` alone. So that run is class `refused`, is owed a wake by
+condition 1, and will never be sent one — and it reaches the owner's brief as
+one of the day's provider refusals. It is the **only** 529 in this host's
+1,900 logs, which is why nothing has noticed; the content refusal at 06:10:22Z
+(`pm`, turn 2, *"Sonnet 5 can't help with this"*) is declined by the same test
+for the same wrong reason, correctly by accident. Today's honest split is
+therefore **98 quota refusals, 1 overload, 1 content refusal** — three endings
+under one label, of which the retry can act on one. `caps.sh` now names all
+three and fixture 5 pins the overload.
+
+**Re-measurement this entry owes (L20), as commands.**
+
+```remeasure 42
+probe   ! grep -qiE "subscriptions|brief\.sent" /srv/asc/repos/alexandra-systems/tools/capacity-retry.py
+control grep -q "cron_refire" /srv/asc/repos/alexandra-systems/tools/capacity-retry.py
+means   open
+```
+
+A `CHANGED` here means that tool has learned to see a duty-bearing event, which
+is the only thing that closes this. The control is `cron_refire`, the duty class
+it already has: if that word goes, the probe would be reading a rewritten file
+rather than this gap, and the first draft of this condition grepped for *owed* —
+a word that tool's own docstring uses twenty-eight times, so the probe was
+measuring its vocabulary and not the world (L58).
+
+**Re-measure next run:** whether the 2026-10-27 brief tick was delivered to a
+seat that could take it; whether `owed.sh` reports anything owed on a day with
+no refusal window, which is the negative it has not yet seen in the wild; and
+whether `epitome/pm`'s weekly slot is still the only weekly cadence this host
+has lost.
+
+**Lessons:** **L78** for the recovery that restores runs and not duties, **L79**
+for the cadence counted in started runs rather than configured triggers,
+`docs/standards/lessons.md` **L-A130** whose third part this amends, **L-X6**
+whose test this widens, and **L62** for the unit a recovery is credited in.
