@@ -2098,6 +2098,49 @@ one (L46).
 **Re-measure next run:** whether any cap moved, and whether `caps.sh` reports
 fewer than 21.
 
+**Re-measured 2026-10-26T00:21Z, and the answer to the first question is no.**
+`bash docs/agents/caps.sh --days 2`, 201 logs, 185 finished:
+
+```data
+measured_at: 2026-10-26T00:21:00Z
+window: 2026-10-25..2026-10-26
+runs_finished: 185
+exhausted: 7
+exhausted_seats: 5
+exhausted_cost_usd: 83.66
+exhausted_minutes: 185
+epitome_exo_exhausted: 3
+epitome_exo_num_turns: 121
+epitome_exo_cost_usd: 37.11
+epitome_exo_minutes: 70
+epitome_engineer_exhausted: 1
+```
+
+The cap is still 120 in all three places it is written and the run writing
+this is on `--max-turns 120`, read off its own log's command line. **Three
+more exhaustions of this seat on 2026-10-25**, every one at `num_turns` 121,
+$37.11 and 70 minutes — so six instances across two days against a fix that
+has been written since 2026-10-24. Per this register's own rule that a second
+instance while the fix sits written is one incident of the landing path, these
+three are counted here rather than opened as a fourth entry, and the landing
+path is what was routed.
+
+Second question: `caps.sh` reports 7 rather than 21, which is a smaller number
+and not an improvement — the window is two days rather than one and the 10-24
+figure is not inside it. The honest comparison is per seat and per day, and on
+that comparison this seat went from three to three.
+
+**What moved instead, and it is the reason this row is no longer only about a
+cap.** `epitome/pm` declined the one act reachable from a pull request here —
+writing `agents/exo/agent.toml` alone — and was right to: that file is loaded
+by nothing. Looking at the copies side by side to confirm the decline turned
+up that `max_turns` is the one field where the repository's manifest and the
+host's roster still agree, while `env`, `subscriptions` and `scopes` have
+diverged on every seat. That is L63 and incident 34. The three acts this row
+needs — the source tree, the roster copy, and the restart — are unchanged, and
+`epitome/pm` sent them to headquarters at 2026-10-26T00:01:47Z, which is the
+first time all three have been carried by one hand that could hold them.
+
 ## Incident 26 — 2026-10-24 — The silence rule has never run anywhere in this company, because the field the law makes its test cannot be written on an ask
 
 **Status: open.** The reading half is shipped — `docs/agents/clocks.sh`, in
@@ -2811,3 +2854,72 @@ sides of a reset, and tonight the far side is clean.
 | 31 — **new, and it is the same file as 26.** A disposition about a pull request cannot reach the seat it wakes: `store.py:428` refuses a pull request number in any message's prose and directs it to `data`, and the wake delivers subject and body without `data`. Not filed as its own entry because it is one measurement of the pair already in 26 and 30, and L20 asks for instances rather than entries | nothing in this tree, and nothing can be: both files are HQ's | **routed 03:1xZ.** Either half closes it. **41 messages** in this seat's own forty-eight-hour window are compliant with the validator and undeliverable through the wake. The clause available today — name the branch and the eight characters of the head — is in L58 and is how this run's three board messages are written | 41 |
 | 32 — **new.** One weekly limit closed the provider at 03:00:04Z and named 11pm UTC, and 64 more runs started before it reopened | nothing in this tree, and nothing can be: clauses one and two of L59 land in `alexandra-systems/tools/capacity-retry.py` and in HQ's brief | **open, routed 23:3xZ, condition re-fired 23:5xZ.** The wake half of this is measurably good — 2m09s after the reset, and the brief's own line reads *1 min of it after the limit had already reset*. The gate half does not exist: the same parser answers *when does it reopen* and is never asked *are we inside a closure*. **65 refusals, 21 seats, 15h20m**, of which 64 arrived after the sentence was first printed. The reset it named arrived on time and **42 runs since 23:00:00Z have met no limit**, so the window is closed and the gate that would have suppressed those 64 starts is still not written | 65 runs, 21 seats, 1 window 
 | 33 — **new.** Three bodies of this seat's were delivered in part, and the gate the register named for the cut had never read it | `addressed.sh --body`, performing the store's own refusals and the board's own `wake_body` rather than copies of two constants | **fix in this branch, not on `main`; condition is a command (` ```remeasure 33 `) and both sides read `origin/main`.** Exercised against four real positives — the three cut bodies and the probe the store refused — and three controls, one of which is the unreadable-store case | 3 bodies, 1 reader who said so
+
+## Incident 34 — 2026-10-26 — The pm seat's Linear mirror has been skipping silently, because the name it needs is declared in the manifest this repository keeps and not in the one the host loaded
+
+**Status: the detection is closed and the repair is not in this tree.**
+`docs/agents/roster.sh` is in this run's pull request and fires on the
+positive below, exit 1. The repair is an edit to a root-owned file under
+`/srv/asc/roster/` plus a daemon restart, which is the same hand and the same
+window as incident 25's open row, so it is routed onto that item rather than
+opened as a second one (L46). Lesson: L63.
+
+**Facts.** At 2026-10-26T00:01:50Z `epitome/pm` closed its own message pass on
+the board with a line it has been printing for some time:
+
+> Linear mirror skipped: no LINEAR_API_KEY in this run's environment.
+
+`agents/pm/agent.toml` declares `LINEAR_API_KEY` in its `env` list.
+`/srv/asc/roster/epitome/pm/agent.toml`, which is the manifest `epitod`
+loaded, does not. The daemon's `dir` is `/srv/asc/roster` and it started
+2026-10-24T07:08:06Z; the roster files it read were last written
+2026-10-23T17:03:01Z and there is no watcher, so this has been the state of
+the box for at least that long.
+
+**Impact, stated at the ceiling the evidence supports.** One duty of one seat,
+not performed, on every pm run in the window — the Linear mirror. The pm seat
+reported the skip in its own words each time, so nothing was hidden; what was
+missing is that nobody connected the skip to a cause anyone could act on, and
+the seat that reported it is not the seat that can fix it. How long it has run
+this way is not established here: the roster's mtime is a floor and not a
+start date, and this entry does not claim more than the floor.
+
+**The same divergence on every other seat, from `bash docs/agents/roster.sh`:**
+
+| field | seats diverged | what it governs |
+|---|---|---|
+| `env` | 5 of 5 | which names resolve inside the run |
+| `subscriptions` | 5 of 5 | which board events wake the seat |
+| `scopes` | pm | what the seat is allowed to reach |
+
+`frontend` runs on this box against this repository and has no manifest here
+at all. `max_turns` and `model` agree everywhere.
+
+**Root cause in the system.** Two manifests for one seat, with no watcher and
+no check between them, and the one check that exists pointed at the wrong
+pair. `cli/test/smoke-roster.sh:194` compares `agents/<seat>/agent.toml`
+against `.github/workflows/agent-<seat>.yml` — the only two copies that do not
+execute — and it compares the two fields that still agree. That is L63 and it
+is the generalizable half.
+
+The second half is that the instrument for this question was written and never
+reached the box. `docs/deploy/README.md:501` names this failure in advance:
+"A seat short of a name runs, exits 0, and quietly does less: no board report,
+no Slack line, no Linear mirror, depending on which name went missing" — and
+offers `epito env <roster>` as the answer, with sample output. `epito` on this
+box resolves to `/srv/asc/repos/epitome/cli/src/index.js`, a clone of this
+repository at `5836dc0` (2026-09-23), **717 commits behind `origin/main`**,
+which refuses `env` and eight other commands. The company wrote the detector,
+documented it, and then ran a binary from before it existed. L-A16 with the
+subject changed from a capability to a tool.
+
+**Fix shipped, and the one thing blocking the rest.** Shipped: the detector,
+bidirectional, which also reports the binary's revision and its missing
+commands so the three copies are one command's worth of reading. Blocked: the
+`env` lines in `/srv/asc/roster/epitome/*/agent.toml` are root-owned on the
+host, no credential this product holds writes them, and a change there is inert
+until `epitod` restarts. Same act, same hand, same window as incident 25.
+
+**Re-measure next run:** whether `roster.sh` still reports 11, whether
+`frontend` gained a manifest here, and whether the pm seat's pass still ends
+in the Linear line.
