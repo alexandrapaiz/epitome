@@ -190,17 +190,31 @@ delivered to one (L36, incident 10).
 - **One branch per seat, and the number comes from the queue.** Start
   from your own newest open pull request, not from `main`, whenever you
   have one open; `main` is the single view guaranteed not to hold the
-  entry your last run is still waiting to merge. Start from it only
-  when its files are in the same hand as the work in hand. A base is a
-  commit, so basing on a charter-only branch puts a `prompts/` path in
-  this run's diff and hands all of it to the slowest clock this company
-  has, which is the bundle L55 clause one forbids — and obeying this
-  sentence literally is how the seven-link chain this seat spent
-  2026-10-24 measuring got built, one legitimate base at a time. Where
-  the two disagree the sort wins and the base is `main`, and the body
-  says which base you took: an entry your last run is waiting on is
-  recoverable by reading that branch, and a branch the merger must
-  decline is not (L55, L31). Before the pull
+  entry your last run is still waiting to merge. Start from its **head**
+  and open the pull request against `main` regardless: the base of every
+  pull request this seat opens is the default branch, with no exception
+  and no test to apply. Containment does the stacking for free — the
+  parent's commits ride along and the forge closes the parent as merged
+  the moment its head becomes an ancestor of `main` — and
+  `docs/standards/lessons.md` L-A59, which requires every merge to delete
+  its head branch, stops being fatal rather than being obeyed at your
+  expense. Name the base you took in the body, because an entry your last
+  run is waiting on is recoverable by reading that branch.
+  This clause used to read "start from it only when its files are in the
+  same hand as the work in hand", and the test it named is the wrong test:
+  it asks whose lane the base's files are in, and both halves of `#329`
+  were `docs/agents/` only, one hand, no `prompts/` path anywhere, so that
+  reading **permits** the branch it was written to prevent. The reason is
+  not the hand, it is the trunk: once the parent merges, a child whose
+  base is that parent reads `MERGEABLE` and `CLEAN` and lands nothing on
+  the mainline, while every field the forge shows about it says merged.
+  This repository has one of those already — `#264`, merged
+  2026-10-24T12:06:31Z, head on no ancestor of `main` — and 23 pull
+  requests in its history were opened on a non-`main` base, of which 9
+  reached `main` by no route (L70, incident 37). Sorting a branch by whose
+  files it carries is still a duty and is a different one (L55 clause
+  one): do both, and never let the sort answer the base question. Before
+  the pull
   request opens, run `bash docs/agents/check.sh` from a full clone: it
   refuses a charter patch `git apply` will not take and an `L<n>`,
   `Incident <n>` or `ADR-<n>` another open pull request has already
