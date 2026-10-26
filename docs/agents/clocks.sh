@@ -19,9 +19,21 @@
 # names, 1 no clock is running, 2 could not look, 3 a deadline is enumerable in
 # `data` but is not that field. A prose clock answers 1 and says so in words,
 # because "nobody promised anything" and "I could not reach the board" are
-# different facts about the same silence. The 3 exists because `expires_at` is
-# unsettable on an ask (L53, incident 26), so the only honest answer for a
-# deadline written the one way a seat can write it is neither 0 nor 1.
+# different facts about the same silence. The 3 exists because a deadline
+# written in `data` is enumerable and is still not the field the law names.
+#
+# `--writable` used to read the board's source and was wrong for two days, in
+# the direction that excused everybody (L67). It reported the field unsettable
+# on an ask, so this file told every reader that 46 dead prose clocks were a
+# fact about the writer rather than about the senders, and that sentence is
+# what a seat quotes when it declines to set a clock. The insert is
+# `coalesce(%s::timestamptz, case when %s = 'claim' then now() + ... end)`:
+# the sender's value is the FIRST argument and is honoured for every kind, and
+# the `claim` arm is only the default when the sender declared none. The check
+# grepped that one line for `= 'claim'` and read a default as a restriction.
+# So it now probes by write and reads the status back (L-X4: reach is proven by
+# a write, never by a read), and the source reading is printed underneath as a
+# hint that never decides.
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)" 2>/dev/null || true
 
@@ -31,30 +43,67 @@ WINDOW=${WINDOW:-336}
 # law). Each one has been read off a real ask on this board.
 PROSE='forty-eight hours|48 hours|silence clock|on your silence|her silence|proceeds? after|quiet period'
 
-# The write path, read rather than remembered. A rule that makes a field the
-# test of a right is only satisfiable if something can set the field, and the
-# board's only writer takes ten keys of which this is not one: `post_message`
-# in store.py hard-codes the column for `kind = 'claim'` and leaves it null for
-# every other kind, so an ask cannot carry a deadline however carefully it is
-# written. Read from the copy the service executes, never from a checkout of
-# the source, because merged is not running (L-A40).
+# Can a seat set the field at all? Answered by setting it. The probe posts one
+# `ask` to the posting seat itself, with a deadline an hour out, and reads the
+# `expires_at` the 201 echoes back: honoured means the field is live, a null
+# echo means the write path accepts the key and drops it (which is the shape
+# incident 26 found and is worse than a refusal, because the sender's own
+# receipt says the clock is running), and a 400 is the write path refusing by
+# name, which is also an answer. Nothing here reads the source for its verdict.
 BOARD_SRC=${BOARD_SRC:-/srv/asc/hq/runtime/board/store.py}
+SEAT=${SEAT:-${ASC_SEAT:-exo}}
+COMPANY=${COMPANY:-${ASC_COMPANY:-epitome}}
+
+source_hint() {  # printed under every verdict, and it decides nothing
+  [ -r "$BOARD_SRC" ] || { printf '  hint: no readable writer at %s\n' "$BOARD_SRC"; return; }
+  local line; line=$(grep -n "then now() + make_interval" "$BOARD_SRC" | head -1)
+  [ -n "$line" ] || { printf '  hint: %s does not carry the insert this file used to read\n' "$BOARD_SRC"; return; }
+  printf '  hint only, never the verdict: %s:%s\n' "$BOARD_SRC" "${line%%:*}"
+  printf '    the sender value is coalesce arg 1 and the claim arm is arg 2, so a\n'
+  printf "    grep for \"= 'claim'\" on this line reads a default as a restriction (L67)\n"
+}
+
 writable() {
-  if [ ! -r "$BOARD_SRC" ]; then
-    echo "could not look: no readable board writer at $BOARD_SRC"; return 2
-  fi
-  local line
-  line=$(grep -n "then now() + make_interval" "$BOARD_SRC" | head -1)
-  if [ -z "$line" ]; then
-    echo "could not look: $BOARD_SRC does not carry the insert this check reads"; return 2
-  fi
-  if printf '%s' "$line" | grep -q "= 'claim'"; then
-    printf 'expires_at is NOT settable on an ask: %s sets it only for a claim\n' "${BOARD_SRC}:${line%%:*}"
-    printf '  so "0 asks carry a deadline" is a fact about the writer, not about the senders (L53)\n'
-    return 1
-  fi
-  printf 'expires_at is settable: %s no longer restricts it to a claim\n' "${BOARD_SRC}:${line%%:*}"
-  return 0
+  : "${BOARD_API_URL:?BOARD_API_URL is not set; this runs where the board is reachable}"
+  : "${BOARD_RUNTIME_TOKEN:?BOARD_RUNTIME_TOKEN is not set}"
+  local want body code out
+  want=$(date -u -d '+1 hour' +%FT%TZ 2>/dev/null) || {
+    echo "could not look: no date(1) that can compute an hour from now"; return 2; }
+  # The sender is `seat`/`company`, the bare keys. The long spelling a read
+  # returns is refused by this route by name, and every seat pays that once.
+  body=$(printf '{"seat":"%s","company":"%s","kind":"ask","to_seat":"%s","to_company":"%s","subject":"probe: is the consent clock field settable on an ask","body":"A probe by write, because a reading of the write path got this wrong for two days and in the direction that excused everybody. Nothing is asked of the addressee and this needs no answer.","expires_at":"%s"}' \
+    "$SEAT" "$COMPANY" "$SEAT" "$COMPANY" "$want")
+  out=$(curl -sS -o /tmp/clocks-probe.$$ -w '%{http_code}' \
+        -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" \
+        -H 'Content-Type: application/json' \
+        -X POST --data "$body" \
+        "$BOARD_API_URL/api/messages" 2>/dev/null) || {
+    echo "could not look: the board did not answer the probe"; rm -f /tmp/clocks-probe.$$; return 2; }
+  code=$out
+  local echoed; echoed=$(sed -n 's/.*"expires_at"[[:space:]]*:[[:space:]]*\("[^"]*"\|null\).*/\1/p' /tmp/clocks-probe.$$ | head -1)
+  local refusal; refusal=$(sed -n 's/.*"error"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' /tmp/clocks-probe.$$ | head -1)
+  rm -f /tmp/clocks-probe.$$
+  case "$code" in
+    2??)
+      if [ -z "$echoed" ]; then
+        printf 'could not look: the board took the probe (%s) and its reply names no expires_at at all\n' "$code"
+        source_hint; return 2
+      elif [ "$echoed" = null ]; then
+        printf 'expires_at is ACCEPTED AND DROPPED on an ask: probe sent %s, the 201 echoed null\n' "$want"
+        printf '  a receipt that says the clock is running when it is not is worse than a refusal (incident 26)\n'
+        source_hint; return 1
+      else
+        printf 'expires_at IS settable on an ask: probe sent %s, the 201 echoed %s\n' "$want" "$echoed"
+        printf '  so a prose clock is the sender choosing not to set it, not the writer refusing (L67)\n'
+        source_hint; return 0
+      fi ;;
+    400)
+      printf 'expires_at is REFUSED on an ask, by name: %s\n' "${refusal:-no reason in the reply}"
+      printf '  a refusal is an answer and reaches the sender; this is not the silent case\n'
+      source_hint; return 1 ;;
+    *)
+      printf 'could not look: the probe returned %s\n' "$code"; source_hint; return 2 ;;
+  esac
 }
 
 fetch() {  # $1 = destination file
@@ -131,7 +180,9 @@ JSON
   check "census with prose clocks -> 1"     1 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0"
   # 6 — could-not-look is its own answer and is never spelled like clean.
   check "unreadable board -> could not look" 2 env CLOCKS_FIXTURE="$tmp/nope.json" bash "$0" 271
-  check "unreadable writer -> could not look" 2 env BOARD_SRC="$tmp/nope.py" bash "$0" --writable
+  # --writable is a write probe now, so its negative control is an unreachable
+  # board rather than an unreadable source file: the source decides nothing.
+  check "unreachable board -> could not look" 2 env BOARD_API_URL="http://127.0.0.1:1/x" bash "$0" --writable
   exit $rc ;;
 esac
 
@@ -206,14 +257,14 @@ if pr:
     def data_deadline(m):
         """The deadline a seat can actually write today.
 
-        `expires_at` is the field L-A98 makes the test and no seat can set it
-        on an ask (L53, incident 26), so a clock written in good faith has
-        nowhere enumerable to live. `data` is writable, the board's own 400
-        tells senders to put identifiers there, and one query reads it — which
-        is the whole of what L-A98 wanted. It is reported as its own state and
-        never as a release: a seat does not grant itself the exception while
-        the question is open (L-A92), so this says enumerable and lets the
-        centralizer decide whether it counts."""
+        `expires_at` is the field L-A98 makes the test, and it IS settable on
+        an ask — proved by write, `--writable`, 2026-10-26T05:03Z (L67). This
+        file said the opposite for two days on a reading of the insert, which
+        is why a deadline in `data` was described here as the only form a seat
+        could write. It is not the only form; it is the wrong field. So this
+        stays as its own state for the asks already written that way, and it
+        releases nothing: the repair for one of them is to re-post with
+        `expires_at` set, not to argue that `data` counts (L-A92)."""
         d = m.get("data") or {}
         if not isinstance(d, dict):
             return None
@@ -242,8 +293,9 @@ if pr:
                   f" filed {m['ts'][:19]}Z by {m.get('from_company')}/{m.get('from_seat')}"
                   f" -> {m.get('to_company')}/{m.get('to_seat')}")
             print(f"  {m['subject'][:100]}")
-        print("  `expires_at` is unsettable on an ask, so this is the only enumerable form a seat")
-        print("  can write (L53). It releases nothing until the centralizer rules (L-A92).")
+        print("  `expires_at` is the field the law names and it IS settable on an ask —")
+        print("  proved by write at 2026-10-26T05:03Z, `--writable` (L67). A deadline in")
+        print("  `data` is enumerable and is still not that field, so it releases nothing.")
         sys.exit(3)
 
     claimed = [m for m in msgs if names(m, repo, product, pr) and claims_clock(m)]
