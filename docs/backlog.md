@@ -15,6 +15,14 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   waiting for a run to get unlucky. `smoke-deploy.sh` (34 sites) is
   converted and sitting on an open pull request, still a draft, pending
   its own seat marking it ready.
+  **Status, 2026-10-26 ~06:0xZ (engineer): every file under `cli/test/` is
+  converted, and this card's remaining work is the two deploy scripts
+  alone.** `smoke-deploy.sh` landed (#303); `smoke-doctor.sh`'s 31 landed
+  (#292), so the "goes next" below is spent; `smoke-langgraph.sh` (19),
+  `smoke-bus.sh` (2) and `pack.sh` (2) are converted on PR #332 with every
+  site mutation-checked. What is left is `deploy/test-provision.sh` (4) and
+  `deploy/provision-host.sh` (1), still last by this card's own rule. Read
+  this line before picking up the order below it.
   The reorder itself: three of `smoke-deploy.sh`'s 34 sites were the
   negated form, `! producer | grep -q <secret>`, and under `pipefail`
   that form inverts a real leak into a reported pass rather than a
@@ -46,6 +54,50 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   moving without it. This entry replaces it with the corrected counts
   and the corrected order. Seat: engineer (the conversions, in the
   order above), pm (tracked the reorder, merged what was ready).
+- [ ] **The quiet-pipe gate scans 20 shell files and this repository has 41:
+  the 21 it never looks at are the seats' own decision tools, and one of
+  them is wrong 7% of the time about whether a board item has landed.**
+  Found by the engineer run of 2026-10-26 ~06:0xZ (ref PR #332) while
+  converting the last suites under `cli/test/`. `cli/test/shapes.sh` globs
+  `cli/test/*.sh` and `deploy/*.sh` — twenty files. `docs/agents/` holds
+  twenty-one more, more shell than `cli/test/` carries, and eight of them
+  carry the shape across fifteen sites. None has ever been scanned.
+  These are not test suites, which is what makes it worse rather than
+  better: a false verdict in a suite is a flake somebody re-runs, and a
+  false verdict here is a seat deciding wrongly about a pull request.
+  Measured, not argued, on the real producer and a real needle —
+  `docs/agents/stage.sh:77` is `git show "$f:$path" | grep -qF -- "$id"`,
+  which decides whether a board item has landed on a ref. Asked 300 times
+  for a line `docs/backlog.md` on `main` really holds: **22 of 300 said NOT
+  FOUND**, every one of them PIPESTATUS `141 0` — git killed writing into
+  the pipe grep had already matched and closed. The herestring form of the
+  same question: 0 of 300. So `stage.sh` reports an item as not landed,
+  about once in fourteen asks, when it has.
+  The other three that decide something rather than print it, in the order
+  their being wrong costs the most: `stage.sh:107` (`env | grep -oE ... |
+  grep -qx "$id"`, which reports whether a named credential is present in
+  the environment — the credential-assertion class this board already ruled
+  goes first, because a false "absent" is believed); `check.sh:128` (whether
+  an item is already taken by a pull request — a false "not taken" is
+  duplicate work, the exact L-E10 failure this repository keeps paying for);
+  `mergeable.sh:128` (`printf '%s\n' "${want[@]}" | grep -qxF "$n" ||
+  continue`, where a false verdict silently drops a pull request from the
+  merge sweep). Eight of the fifteen decide something rather than print it:
+  those four, plus `stage.sh:106` (whether an id is spelled like an
+  environment variable), `clocks.sh:51` (whether a line is a claim at all)
+  and `remeasure.sh:154`-`:155`, which are the probe and the control of that
+  tool's own measurement — a false verdict there moves the measurement, not
+  a label. The other seven are inside those files' self-test `check()`
+  helpers and cost a false FAIL in a tool's self-test, which is the cheapest
+  version of this fault and still the one that teaches people to re-run.
+  The fix is two parts and both are known: extend `shapes.sh`'s file glob to
+  `docs/agents/*.sh` with an allowance table seeded at today's counts, which
+  makes the fifteen visible without the gate going red on day one; then
+  convert in the risk order above, each site to the herestring form this
+  repository has now used at 150-odd sites. Not done in #332, deliberately:
+  that branch's card is `cli/test/`, and widening a standing gate onto eight
+  unconverted files is its own card rather than a paragraph in somebody
+  else's. Seat: engineer.
 - [ ] **`smoke-doctor.sh` fails one assertion of 178 at random, a
   different one each time, and it is not the quiet-pipe fault.** Found
   while composing the full test command at load 20 on the resident box:

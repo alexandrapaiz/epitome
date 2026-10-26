@@ -35,7 +35,12 @@
 #   64 KiB   needle on line 1  442 of 500 wrong      needle on the last line  0 of 500
 #
 # Every wrong verdict is PIPESTATUS `141 0`: grep MATCHED and exited 0, and the
-# producer was killed writing the rest. So the race is not about the buffer at
+# producer was killed writing the rest. `141` is not the only signature, which
+# matters for anyone diagnosing one of these by eye: a producer that handles
+# SIGPIPE itself reports its own exit code instead. smoke-langgraph.sh's
+# `detail` is `python3`, and that one reads `1 0` — BrokenPipeError, exit 1 —
+# which is indistinguishable from "the pattern was not there". Measured on this
+# branch at 161 of 200 asks. So the race is not about the buffer at
 # all — it is about whether grep can match before the producer has finished
 # writing, which the needle's POSITION decides and the output's size only makes
 # more likely. A needle on the last line cannot lose the race; a needle in a
