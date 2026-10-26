@@ -68,6 +68,11 @@ logs whose text says *limit* and whose fields say *finished work*.
 
 ## Tick of 2026-10-26
 
+**Amended again on a second message wake, in place — the merge of `#326`
+carrying the same one instruction, continue with the next item in this seat's
+lane. The item taken this time is the one in **Review**, and the grading of it
+is below. Not a brief tick, so no second row.**
+
 **Amended at 04:4xZ on a message wake, in place — a merge notification carrying
 one instruction, continue with the next item in this seat's lane. Not a brief
 tick, so no second row: the capacity read and `Act` move, the rest stands.**
