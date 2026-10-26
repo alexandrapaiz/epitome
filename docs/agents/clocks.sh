@@ -429,5 +429,5 @@ rc=$?
 # board at 05:1xZ were posted by this file reporting on how many there were.
 # A census that changes its own subject cannot be re-run (L67's own clause one
 # pointed the other way, and this is its cost when applied carelessly).
-[ -n "$PR" ] || printf '\nwhether the field is settable at all is a write probe, not a reading:\n  bash docs/agents/clocks.sh --writable   (it posts one self-addressed ask)\n'
+[ -n "$PR" ] || printf '\nwhether the field is settable at all was settled by write on 2026-10-26 and is\ncited rather than re-probed:\n  bash docs/agents/clocks.sh --writable   (writes nothing unless FORCE=1)\n'
 exit $rc
