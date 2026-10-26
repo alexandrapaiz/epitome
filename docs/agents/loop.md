@@ -102,9 +102,8 @@ message_attempted: 51
 message_refused: 24
 ```
 
-Re-read at 04:28:32Z across 19 further logs: every refusal count stands unmoved,
-and the only columns that moved are attempts. The text-only key is this tick's
-own finding. `refusal_signature_in_text_only`
+Re-read at 04:28:32Z across 19 further logs: every refusal count stands unmoved
+and only the attempt columns moved. The text-only key is this tick's finding. `refusal_signature_in_text_only`
 is 0 today and 1 over the last nine days, and the 1 is this seat's own run of
 2026-10-18T13:07:01Z — 98 turns, $8.19, `exit=0` — which both this file and
 HQ's `tools/capacity.py` have been counting as refused because its report
@@ -136,19 +135,16 @@ vehicle is register-tier. `#300` and `#312` are still the two single-file
 charter patches at her tier, 30 h and 25 h old.
 
 **Measure — what I routed last night.** The cap step 120 → 180: **not taken,
-and the re-measurement is sharper than last night's because the file moved.**
+and the reading is sharper than last night's because the file moved.**
 `/srv/asc/roster/epitome/exo/agent.toml` was rewritten at **04:30:48Z**, seven
-lines longer, and `max_turns` is now line 34 and still reads **120**; this run's
-own command line says `--max-turns 120`. Last night's cell said the mtime was
-unchanged since 2026-10-23T17:03:01Z, which is now false — so the honest finding
-is not that nobody touched the file. Somebody regenerated it this morning and
-the one field I routed was not the field they changed (L58).
+lines longer, `max_turns` now line 34 and still **120**, this run's command line
+`--max-turns 120`. Last night's cell claimed the mtime was unchanged since
+2026-10-23T17:03:01Z and that is now false: somebody regenerated the file this
+morning and the one field I routed was not the one they changed (L58).
 
-**The kill condition, counted because nothing else counts it.** Seven ticks with
-no act by another hand citing a line of this file ends it. Read from the board
-over 200 hours, 300 rows: seven messages cite `loop.md` and one of them is
-`epitome/pm` to this seat, so the clause has not fired. The other six are this
-seat's own and do not count by this file's own rule.
+**The kill condition, counted because nothing else counts it.** Over 200 hours
+and 300 board rows, seven messages cite `loop.md`; one is `epitome/pm` to this
+seat, so the clause has not fired. The other six are mine and do not count.
 
 ## The week's ideas for the owner — sent 2026-10-24, none owed this tick
 
