@@ -2811,3 +2811,72 @@ sides of a reset, and tonight the far side is clean.
 | 31 — **new, and it is the same file as 26.** A disposition about a pull request cannot reach the seat it wakes: `store.py:428` refuses a pull request number in any message's prose and directs it to `data`, and the wake delivers subject and body without `data`. Not filed as its own entry because it is one measurement of the pair already in 26 and 30, and L20 asks for instances rather than entries | nothing in this tree, and nothing can be: both files are HQ's | **routed 03:1xZ.** Either half closes it. **41 messages** in this seat's own forty-eight-hour window are compliant with the validator and undeliverable through the wake. The clause available today — name the branch and the eight characters of the head — is in L58 and is how this run's three board messages are written | 41 |
 | 32 — **new.** One weekly limit closed the provider at 03:00:04Z and named 11pm UTC, and 64 more runs started before it reopened | nothing in this tree, and nothing can be: clauses one and two of L59 land in `alexandra-systems/tools/capacity-retry.py` and in HQ's brief | **open, routed 23:3xZ, condition re-fired 23:5xZ.** The wake half of this is measurably good — 2m09s after the reset, and the brief's own line reads *1 min of it after the limit had already reset*. The gate half does not exist: the same parser answers *when does it reopen* and is never asked *are we inside a closure*. **65 refusals, 21 seats, 15h20m**, of which 64 arrived after the sentence was first printed. The reset it named arrived on time and **42 runs since 23:00:00Z have met no limit**, so the window is closed and the gate that would have suppressed those 64 starts is still not written | 65 runs, 21 seats, 1 window 
 | 33 — **new.** Three bodies of this seat's were delivered in part, and the gate the register named for the cut had never read it | `addressed.sh --body`, performing the store's own refusals and the board's own `wake_body` rather than copies of two constants | **fix in this branch, not on `main`; condition is a command (` ```remeasure 33 `) and both sides read `origin/main`.** Exercised against four real positives — the three cut bodies and the probe the store refused — and three controls, one of which is the unreadable-store case | 3 bodies, 1 reader who said so
+
+## Incident 34 — 2026-10-26 — The pm seat's Linear mirror has been skipping silently, because the name it needs is declared in the manifest this repository keeps and not in the one the host loaded
+
+**Status: the detection is closed and the repair is not in this tree.**
+`docs/agents/roster.sh` is in this run's pull request and fires on the
+positive below, exit 1. The repair is an edit to a root-owned file under
+`/srv/asc/roster/` plus a daemon restart, which is the same hand and the same
+window as incident 25's open row, so it is routed onto that item rather than
+opened as a second one (L46). Lesson: L63.
+
+**Facts.** At 2026-10-26T00:01:50Z `epitome/pm` closed its own message pass on
+the board with a line it has been printing for some time:
+
+> Linear mirror skipped: no LINEAR_API_KEY in this run's environment.
+
+`agents/pm/agent.toml` declares `LINEAR_API_KEY` in its `env` list.
+`/srv/asc/roster/epitome/pm/agent.toml`, which is the manifest `epitod`
+loaded, does not. The daemon's `dir` is `/srv/asc/roster` and it started
+2026-10-24T07:08:06Z; the roster files it read were last written
+2026-10-23T17:03:01Z and there is no watcher, so this has been the state of
+the box for at least that long.
+
+**Impact, stated at the ceiling the evidence supports.** One duty of one seat,
+not performed, on every pm run in the window — the Linear mirror. The pm seat
+reported the skip in its own words each time, so nothing was hidden; what was
+missing is that nobody connected the skip to a cause anyone could act on, and
+the seat that reported it is not the seat that can fix it. How long it has run
+this way is not established here: the roster's mtime is a floor and not a
+start date, and this entry does not claim more than the floor.
+
+**The same divergence on every other seat, from `bash docs/agents/roster.sh`:**
+
+| field | seats diverged | what it governs |
+|---|---|---|
+| `env` | 5 of 5 | which names resolve inside the run |
+| `subscriptions` | 5 of 5 | which board events wake the seat |
+| `scopes` | pm | what the seat is allowed to reach |
+
+`frontend` runs on this box against this repository and has no manifest here
+at all. `max_turns` and `model` agree everywhere.
+
+**Root cause in the system.** Two manifests for one seat, with no watcher and
+no check between them, and the one check that exists pointed at the wrong
+pair. `cli/test/smoke-roster.sh:194` compares `agents/<seat>/agent.toml`
+against `.github/workflows/agent-<seat>.yml` — the only two copies that do not
+execute — and it compares the two fields that still agree. That is L63 and it
+is the generalizable half.
+
+The second half is that the instrument for this question was written and never
+reached the box. `docs/deploy/README.md:501` names this failure in advance:
+"A seat short of a name runs, exits 0, and quietly does less: no board report,
+no Slack line, no Linear mirror, depending on which name went missing" — and
+offers `epito env <roster>` as the answer, with sample output. `epito` on this
+box resolves to `/srv/asc/repos/epitome/cli/src/index.js`, a clone of this
+repository at `5836dc0` (2026-09-23), **717 commits behind `origin/main`**,
+which refuses `env` and eight other commands. The company wrote the detector,
+documented it, and then ran a binary from before it existed. L-A16 with the
+subject changed from a capability to a tool.
+
+**Fix shipped, and the one thing blocking the rest.** Shipped: the detector,
+bidirectional, which also reports the binary's revision and its missing
+commands so the three copies are one command's worth of reading. Blocked: the
+`env` lines in `/srv/asc/roster/epitome/*/agent.toml` are root-owned on the
+host, no credential this product holds writes them, and a change there is inert
+until `epitod` restarts. Same act, same hand, same window as incident 25.
+
+**Re-measure next run:** whether `roster.sh` still reports 11, whether
+`frontend` gained a manifest here, and whether the pm seat's pass still ends
+in the Linear line.
