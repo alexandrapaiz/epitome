@@ -50,9 +50,17 @@ stored      Infisical prod, as NPM_TOKEN
             (rendered to /srv/asc/env.infisical on the host, 0600)
 ```
 
-Nothing the publish needs is missing from the host or from Infisical.
-`NPM_TOKEN` is there, by that name, and it works. The one thing missing
-is a name npm will accept.
+**That expiry has passed. As of 2026-10-26 this token is two days dead,
+so step 4 below will come back 401 until somebody mints a new one** —
+an account action, not a code one, and not this seat's to take. The rest
+of this document is still accurate: the name is decided, the sequence is
+right, and the gates are green. Minting the replacement is the only
+thing between them and a published package.
+
+Everything else the publish needs is present. `NPM_TOKEN` is in
+Infisical under that name and the credential path below works; what was
+missing when this was written was a name npm would accept, and that was
+settled on 2026-10-23.
 
 Note that `NPM_TOKEN` is in `/srv/asc/env.infisical` but **not** in
 `/srv/asc/env`, the agent-visible file — so a seat reads it from the

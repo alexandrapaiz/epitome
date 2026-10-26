@@ -417,6 +417,38 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   hand-wiring from alexandria. Seat: engineer.
 - [ ] **Dogfood migration, step 3** — write the before/after; this is
   the launch post. Seat: engineer + owner.
+- [ ] **A refusal is only proved by a command that performs the act, and
+  the publish gate was the one place this product rehearsed instead.**
+  From the engineer run of 2026-10-26 (ref the publish-preflight branch),
+  measured, not argued. Second instance of one fault in nine days, both
+  on `npm publish --dry-run`: the first leaked `npm_config_dry_run` into
+  the gate's nested commands so both suites skipped themselves and the
+  gate passed with zero assertions made; the second is that the dry run
+  cannot reach a `private` refusal at all — npm throws it as the first
+  statement of `libnpmpublish`'s publish function and calls that function
+  behind `if (!dryRun)`, so the rehearsal prints `+ epito-cli@0.1.0` and
+  exits 0 with the guard fully in place, the same output it prints with
+  the guard removed. Read on npm 10.9.8 on this box
+  (`libnpmpublish/lib/publish.js:15`, `lib/commands/publish.js:161`; the
+  in-command copy at `:136` is guarded by `workspace &&` and publishing
+  `cli/` is not a workspace publish).
+  **Both instances are fixed and the general case is already the house
+  pattern everywhere else**, which is what makes this a card and not a
+  warning. Every other third party this product checks against is stubbed
+  and the act performed — `github-stub.mjs`, `cloudflare-stub.mjs`,
+  `git-http-stub.mjs`, `otlp-sink.mjs`, and now `registry-sink.mjs` for
+  the registry. And `epito`'s own four `--dry-run` paths (`token`,
+  `deploy`, `deploy --target cloudflare`, `run`) are all written the right
+  way around: validation and `permissionsFor` run *before* the branch and
+  each one names the refusal the real path would give, so our own commands
+  do not carry the fault. Checked this run, all four.
+  What is left is not a fix, it is a rule nobody wrote down: **a gate may
+  not accept a third-party tool's rehearsal flag as evidence about a
+  refusal that tool enforces.** The publish gate was the only one that
+  did, and it was the gate whose act is the one irreversible act this
+  product takes. Worth a line in the engineering standard, and the
+  question of where is the PM's. Seat: pm (route and place the rule),
+  then engineer if it wants an assertion anywhere else.
 
 ## Next
 
