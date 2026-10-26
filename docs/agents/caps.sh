@@ -5,6 +5,7 @@
 #   bash docs/agents/caps.sh              today, every seat on this host
 #   bash docs/agents/caps.sh --days 7     a window
 #   bash docs/agents/caps.sh --seat exo   one seat of this product
+#   bash docs/agents/caps.sh --self-test  fire the record reader on built logs
 #
 # WHY THIS EXISTS, AND WHY IT IS NOT A SECOND COPY OF HQ's TOOL. The company
 # already has `tools/check-turn-caps.sh` in alexandra-systems, and
@@ -44,6 +45,39 @@ set -uo pipefail
 LOGS=${EPITO_LOGS:-/srv/asc/state/.epito/logs}
 DAYS=1
 SEAT=
+
+# L42: a reader whose correctness was argued is not a detector. The two
+# fixtures below are the ones the repair of 2026-10-26 is for, and they are
+# built here rather than looked for, because this host's logs do not contain
+# the case yet and a test that cannot run is an absence read as a pass.
+if [ "${1:-}" = "--self-test" ]; then
+  day=$(date -u +%F); ok=1
+  a=$(mktemp -d); mkdir -p "$a/epitome-exo"
+  # 1. A log that writes a result object down and then ends in its own. The
+  #    quoted one says completed at 98 turns -- it is incident 8's, the exact
+  #    text L64 was written for -- and the run's own says a limit refused it.
+  {
+    printf '%s\n' '{"duration_api_ms":1,"type":"result","subtype":"success","terminal_reason":"completed","num_turns":98,"total_cost_usd":8.19,"duration_ms":60000}'
+    printf '%s\n' '{"duration_api_ms":2,"type":"result","subtype":"success","api_error_status":429,"terminal_reason":"api_error","num_turns":78,"total_cost_usd":6.17,"duration_ms":1033349}'
+  } > "$a/epitome-exo/${day}T06-04-46-651Z-message.log"
+  out=$(bash "${BASH_SOURCE[0]}" --logs "$a" 2>&1)
+  for want in 'runs_finished: 1' 'limit_touched: 1' 'refused_before_a_turn: 0'; do
+    case "$out" in *"$want"*) ;; *) echo "caps.sh --self-test: last record wins — expected '$want'" >&2; ok=0 ;; esac
+  done
+  # 2. A log that only quotes one, mid-line, and has no record of its own.
+  #    That is not a finished run, and the answer is could-not-look (exit 2),
+  #    never a count of one.
+  b=$(mktemp -d); mkdir -p "$b/epitome-exo"
+  printf '%s\n' 'documenting it here: {"duration_api_ms":1,"type":"result","terminal_reason":"completed","num_turns":5}' \
+    > "$b/epitome-exo/${day}T07-00-00-000Z-message.log"
+  out=$(bash "${BASH_SOURCE[0]}" --logs "$b" 2>&1); rc=$?
+  [ "$rc" = 2 ] || { echo "caps.sh --self-test: a quoted record is not a finished run — expected exit 2, got $rc" >&2; ok=0; }
+  case "$out" in *"none carried a finished run"*) ;; *) echo "caps.sh --self-test: expected the could-not-look sentence" >&2; ok=0 ;; esac
+  rm -rf "$a" "$b"
+  [ "$ok" = 1 ] && echo "caps.sh --self-test: both fixtures pass" && exit 0
+  exit 1
+fi
+
 while [ $# -gt 0 ]; do
   case "$1" in
     --days) DAYS=${2:?--days needs a number}; shift 2 ;;
@@ -86,7 +120,17 @@ for f in glob.glob(os.path.join(root, "agents", "*", "agent.toml")):
         # step is read off the censored num_turns instead.
         caps["epitome-" + name] = int(m.group(1))
 
-RESULT = re.compile(r'\{"duration_api_ms".*?"type":"result".*?\}', re.S)
+# The result object is a RECORD the executor writes on a line of its own, so
+# the pattern is anchored to one and the LAST of them is taken. It used to be
+# unanchored, dot-all, first-match -- which is the prose reader L64 removed,
+# left standing one line below the comment that says it was removed. Nothing
+# in this host's 1,881 logs quotes a result object yet, so the two reads agree
+# on every one of them today; the register's own habit of pasting generated
+# blocks into prose is what makes that a latency and not a safety margin, and
+# `alexandra-systems/exo-centralizer` hit the same class in its port of this
+# repair on 2026-10-26, from the other direction -- its splitter found no
+# record and fell back to the prose read (L72).
+RESULT = re.compile(r'^\{"duration_api_ms".*"type":"result".*\}$', re.M)
 LIMIT  = re.compile(r'hit your [a-z]+ limit|"api_error_status":(?:429|529)|limit (?:reached|exceeded)')
 
 seats = collections.defaultdict(lambda: collections.defaultdict(list))
@@ -100,7 +144,8 @@ for day in window:
             continue
         files += 1
         text = open(path, errors="replace").read()
-        m = RESULT.search(text)
+        found = RESULT.findall(text)
+        m = found[-1] if found else None
         if not m:
             # No result object: the run is still open, or it died before the
             # executor returned one. Either way it is not a finished run and
@@ -108,7 +153,7 @@ for day in window:
             unparsed += 1
             continue
         try:
-            r = json.loads(m.group(0))
+            r = json.loads(m)
         except ValueError:
             unparsed += 1
             continue
