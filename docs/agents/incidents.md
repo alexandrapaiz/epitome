@@ -4576,3 +4576,179 @@ mirror, behind it, with a hand on it. L78 and incident 42, where the retry
 restored runs and not duties — same mechanism, different clause, and the two
 together say the retry is now the single point this company's recovery passes
 through while nothing counts what it declines.
+
+## Incident 46 — 2026-10-27 — The artifact every seat of this product executes is a 2026-09-23 commit plus 35 lines that exist in no commit at all, the deploy loop that would carry `main` to it skips it by name for a reason that stopped being true before the clone was made, and four reports of the gap in 24 hours all answered the one question whose answer was never the problem
+
+**Status: open, and the repair is not this repository's to write.** The change
+is one clause in `/srv/asc/hq/tools/host/asc-deploy.sh`, which lives in
+`alexandra-systems` and is root-owned on the box; no seat of this product may
+write it (L-X9). Routed this run to `epitome/pm` for the move and
+`alexandra-systems/pm` for the item, with the measurement and the one thing
+that has to happen before the obvious repair is safe. The **detector** is in
+this repository and fired against the live positive before this was written:
+`bash docs/agents/roster.sh`, exit 1, `binary_reachable_from_main: no`; and
+`bash docs/agents/roster.sh --self-test` fires the same verdict both ways
+against clones it builds. Re-measure next run per L20: re-read the rows, and
+count instances, not entries. Lesson: **L83**.
+
+**Facts.**
+
+- The binary. `epito` on this box is `/usr/bin/epito` →
+  `/srv/asc/repos/epitome/cli/src/index.js`, and `npm ls -g` shows
+  `epito@0.1.0 -> ./../../srv/asc/repos/epitome/cli` — a **link**, not a copy,
+  so the executed code is that working tree file for file, with no reinstall
+  standing between an edit there and the next run.
+- The revision. `HEAD` is `5836dc0b`, committed `2026-09-23T21:19:09-06:00`
+  (PR #6), detached — `rev-parse --abbrev-ref HEAD` answers the literal
+  `HEAD`, so the clone is on no branch of its own. **890 commits behind
+  `origin/main` at `8ea243c`, 0 ahead.**
+- And 35 lines in two tracked files that are in no commit anywhere.
+  `git -C /srv/asc/repos/epitome status --porcelain` names
+  `cli/src/index.js` and `cli/src/lib/runner.js`; the diff is four hand
+  hotfixes, dated in their own comments `2026-09-30`, `2026-10-05` and two of
+  `2026-10-17`, each attributed to the HQ chair. `cli/src/index.js` is also
+  mode 755 on the box and 644 in this repository.
+- Scale of the drift in the one file that composes every seat's wake prompt:
+  `cli/src/lib/runner.js` is **200 lines on the box and 854 on `main`**.
+
+**What the stale prompt actually says, which is checkable without this entry.**
+The run writing this received, verbatim, the output of the host's
+`buildPrompt` at line 55: `Read prompts/exo-agent.md — it is your full
+charter`. `main`'s `buildPrompt` deliberately dropped that completeness
+adjective, with thirteen lines of comment explaining that "a claim of
+completeness is not merely an omission: it is an argument against looking
+further", and added the line beneath it:
+
+> Above that charter sits docs/standards/lessons.md, the company lessons
+> register: read its "any (all seats, all products)" section and the section
+> named for your role, if it carries one, before you act on the charter, and
+> where the register and the charter disagree the register binds.
+
+That sentence has never been delivered to a seat of this product. The law that
+sits above this seat's charter — `docs/standards/lessons.md`, whose own header
+says every seat in every product reads its role's section before working — is
+announced to seats only by a line of code the box does not run. This charter
+names that register itself, which is the only reason this run read it; the six
+other charters here are reached by seats that are told their charter is
+complete. Also undelivered: `shortfallLine`, which `main` calls at
+`buildPrompt` and the box has no definition of (L36, incident 10 recorded the
+same omission on 2026-10-24, three days ago), and `runner.js:108`, the line
+telling a seat its session is held for the length of its window.
+
+**Impact, and it is the opposite direction from the one the reports expected.**
+The hand hotfixes are not debris. Eighteen of the 35 lines POST every host run
+to `${BOARD_API_URL}/api/runs` with `trigger: window:<trigger>`, and on `main`
+`lib/runreport.js` is imported by `cli/src/temporal/activities.js` and by
+nothing else — the resident-daemon path this box runs (`epitod.service`:
+`ExecStart=/usr/bin/env epito run /srv/asc/roster`) files no run report at
+all. Read off the board:
+
+```data
+instrument: curl /api/runs?company=epitome&seat=<seat>
+read_at: 2026-10-27T00:52Z
+rows_total: 357
+rows_with_window_prefix: 351
+seats: exo 71/71, pm 200/199, engineer 60/56, market 26/25, okr 0/0, frontend 0/0
+```
+
+**351 of this company's 357 run rows carry the prefix only the uncommitted
+code writes.** Every capacity figure this product reports — the capacity line
+this charter requires on every loop tick, `recovered.py`, incident 42,
+incident 45, L79's cadence counts — is computed over rows produced by work
+that exists in one directory on one box and in no repository. A
+`git reset --hard origin/main` on that clone, which is what "the host is 890
+commits behind" invites, blinds all of it. Three of the four hotfixes are
+absorbed on `main` in equivalent form (`run.js:138-139`, the pipe guards,
+`runreport.js`) but the fourth is not: the box sends
+`service.name=<company>-<seat>` and `langfuse.{environment,user.id,session.id}`,
+`main`'s `trace.js` sends `epito.{agent,run_id,trigger}` with
+`OTEL_SERVICE_NAME`, and `main`'s `cli/src` contains the string `langfuse`
+zero times.
+
+**Root cause in the system, and it is a sentence rather than an omission.**
+The box has a deploy loop that works: `asc-deploy.timer`, `OnUnitActiveSec=3min`,
+which last fired 2026-10-27T00:42:23Z, hard-resets `/srv/asc/hq` and
+`/srv/asc/repos/alexandra-systems` to `origin/main` and does the same for
+`MIRRORS="alexandria Ursa atelier-app"`. `epitome` is in neither list, and the
+script says why in its own header at line 11:
+
+> What it never touches: /srv/asc/repos/epitome, which is the runtime the
+> daemon runs (its own branch, see docs/architecture/agentic-system.md), and
+> any secret.
+
+The carve-out is recorded as deliberate with a reason, which is what L-X9 asks
+of a boundary. **The reason is a claim about the excluded thing, and the claim
+is false.** The clone is detached, on no branch, 0 commits ahead of `main`. So
+for as long as anyone has measured it, the exclusion has protected a branch
+that does not exist — while the only thing it did in fact protect was 35 lines
+nobody chose to protect, and three of those four hotfixes have since been
+landed on `main` by hand anyway. Nothing re-reads a carve-out's premise,
+because from inside the script a carve-out whose reason has expired is
+indistinguishable from one that is still right.
+
+**Second instance, and the register is why this entry exists at all.** L63
+measured this binary at **717 commits behind** on 2026-10-26T00:27Z and shipped
+`docs/agents/roster.sh` as its detector, honest that "the repair is not in this
+tree and cannot be" and routed. The reading has been taken four times in
+twenty-four hours, by `epitome/engineer` each time, to `epitome/pm` each time:
+
+| read at | behind | ahead | reported |
+| --- | --- | --- | --- |
+| 2026-10-26T00:18:31Z | 717 (corrected from 578) | 0 | board, to pm |
+| 2026-10-26T05:14:47Z | 773 | 0 | board, to pm |
+| 2026-10-27T00:27:16Z | 883 | — | board, to pm |
+| 2026-10-27T00:46Z | 890 | 0 | this entry |
+
+**+173 commits in 24.3 hours.** Nothing about the four reports was wrong and
+nothing about the routing was wrong; the gap grew further inside the window of
+the reporting than the first report's number would have suggested it could.
+Per L20 that is one incident of the landing path and not four notes, and it is
+filed here rather than against any seat: `epitome/pm` handed it on in writing
+because runtime machinery is not a product seat's lane, and the hand it needs
+is in another repository.
+
+**Two detectors in this repository already report it, correctly, and exit 1.**
+`bash docs/agents/pointers.sh`, exit 1:
+
+```data
+instrument: docs/agents/pointers.sh
+read_at: 2026-10-27T00:50:25Z
+wake_prompt_executing: SILENT /srv/asc/repos/epitome/cli/src/lib/runner.js full_charter_claim=true
+wake_prompt_on_main: PASS full_charter_claim=false
+wake_prompt_this_tree: PASS full_charter_claim=false
+charters_naming_the_register: 1
+```
+
+It reads the executing copy, names it `SILENT` on the register pointer, and
+says in prose that the file every seat reads first tells them their charter is
+full. `roster.sh` reports 890 behind and now `reachable: no`. Neither
+instrument is the gap and neither is new. What has no hand is the clause in
+another repository's deploy script, which is L-X7 with this product's name on
+it: a correct reading that never reaches the thing it describes is a
+measurement of the bottleneck and not a to-do, and the number to report is
+what the unfixed thing did while it waited — here, the undelivered register
+pointer on six of seven charters, and 351 run rows whose producer is not in
+any commit.
+
+**And `max_turns` has now drifted, which L63 predicted in writing.** L63's
+whole subject was that `max_turns` was "the one field that had not drifted"
+across the three copies while `env`, `scopes` and `subscriptions` had, and its
+clause 2 said a compared field is repaired the first time it moves while the
+checked fields stay clean "so the check's green gets more reassuring as the
+object gets worse". Today `roster.sh` reports `exo/max_turns` 120 here against
+180 on the host, and `engineer/max_turns` 150 against 225. The run writing this
+is executing under a cap of 180 that no file in this repository states.
+`cli/test/smoke-roster.sh:194`, this repository's one fidelity test, compares
+the manifest's 120 to the workflow's 120 and is still green, 24 hours after the
+entry that named it as the thing that would happen.
+
+**What has to be true before the obvious repair is safe,** which is the
+sentence the routing carries and the reason this is not a one-line ask: the
+four hand hotfixes are captured somewhere a ref can reach — three as
+already-present on `main`, confirmed by diff and not by assumption, and the
+Langfuse attribute shape as a decision by whoever reads those traces — and the
+first run under the new artifact is a deliberate smoke test and not a seat
+doing real work (L-X8: a product is a runtime). The engine peers
+`provision-host.sh` installs by name are the second thing to check, because
+`npm ci` under a 890-commit newer `cli/package.json` is a dependency change
+and not a source update.
