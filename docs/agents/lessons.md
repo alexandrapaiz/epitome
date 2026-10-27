@@ -7032,3 +7032,88 @@ authority is. Routed this run to `epitome/pm` for the move and
 
 `portable: yes`
 `role: any, exo, engineer, pm`
+
+## L84 — A framework's kill condition is the only clause in it that nothing else will enforce, so the run that measures it met takes the cut in the same run: a deferral to "next run" is the condition firing twice, and the second firing reads as the first
+
+**Logged against this seat, as `docs/agents/loop.md`'s own law requires** — the
+unit of failure is a framework, never a reader who did not come.
+
+**The condition, written by this seat on 2026-10-18 and measured today.** Seven
+ticks with no decision, handoff or merge **by another seat, a chair or the
+owner** citing a line of that file; a citation by this seat does not count.
+
+```data
+instrument: git log --since=2026-10-18 -- docs/agents/loop.md; board /api/messages
+read_at: 2026-10-27T00:56Z
+tick_rows: 7
+commits_to_this_file: 51
+commits_by_another_author: 0
+board_messages_scanned: 200 (240 h, every direction)
+citations_by_another_seat: 0
+ticks_elapsed: 11
+ticks_the_law_allows: 7
+```
+
+**Eleven ticks, fifty-one commits, one author, and nobody.** The frameworks
+register's law binds this seat before its own charter: a framework must never
+consume more than the work it organizes, and this charter's own words are that
+if the registers consume more run-time than the corrections they prevent, cut
+them and log it as a lesson against this seat. Both halves were satisfied four
+ticks ago.
+
+**The failure this entry is actually about is the deferral, not the file.** The
+tick of 2026-10-27T00:2xZ measured the condition met, said so plainly, and
+wrote: *"The cut is owed. Named rather than taken, because that law logs the
+cut as a lesson against this seat and this run's lesson is spent; next run
+takes it or says why."* Every clause of that is honest and the disposition is
+still wrong, for a reason that generalizes past this file:
+
+**Rule.** A kill condition is the one clause in a framework that nothing
+outside the framework will ever enforce. Every other rule a register carries
+has some second reader — a merger, a gate, a seat it binds — and this one has
+only the author, who is also the party it costs. So *measured met* and *taken*
+must be the same run. "Next run takes it" is not a deferral of an act, it is
+the condition firing a second time, and a stateless seat's next run reads the
+second firing exactly as it read the first: as a thing to name. Three
+corollaries, each cheap:
+
+1. **A budget of effort is not a reason to defer a cut.** The deferral above
+   was rationed against the run's lesson count. A cut is subtraction; it is
+   the cheapest act a run can take, and it gets rationed only because the
+   thing it protects is the author's own work.
+2. **Take the cut in the hand you hold, and name the rest.** Ending a file is
+   the register's hand. A charter clause that still points at the file is the
+   owner's, and waiting for her hand to start is what turns one act into a
+   deferral. So: end the file, carry the clause's replacement verbatim in the
+   register the next run actually reads (L50), and put an ask on the board so a
+   clock runs on the hand that applies it.
+3. **Keep the record and cut the growth.** Deleting the evidence that a
+   framework did not pay for itself is the worse act, and it destroys the only
+   copy of readings nobody else took.
+
+**The charter clause this cut needs, verbatim, with its file, anchor and hand.**
+File `prompts/exo-agent.md`, the bullet beginning at line 91,
+`- **docs/agents/loop.md updated, one row per tick, carrying the capacity
+line.**` — the hand is the **owner's**, because everything under `prompts/` is
+hers alone. The smallest change that makes the charter true: the bullet's
+subject becomes the capacity line rather than the file, reading *"the capacity
+line, every run, in the run's own pull request body and in the board message
+that closes the pass"*, and keeps the rest of the bullet — the four quantities,
+and the instruction to read the error class in the run log before the exit
+code — word for word, because none of that was ever about where the number
+lived. Asked on the board this run to `epitome/pm`, for the forty-eight-hour
+owner-silence ask the company's rule provides for a charter edit. Until it
+moves, `docs/agents/loop.md`'s closing section and this entry are what a run of
+this seat reads, and neither reopens the table.
+
+**What this entry does not do.** It does not touch the daily-brief duty, which
+was never this file: that duty is a board message to
+`alexandra-systems/exo-centralizer` and it goes on. And it does not claim the
+file was worthless — it carried the capacity line through the four-day outage
+of 2026-10-19 and through five session windows on 2026-10-26, and those
+readings are in the registers and in this company's incidents because it
+existed. A framework can be worth having and still not be worth keeping, and
+the kill condition is the clause that tells the two apart.
+
+`portable: yes`
+`role: any, exo`
