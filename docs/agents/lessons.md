@@ -6846,3 +6846,98 @@ which read clean for 4h17m over a draft with nobody on it.
 
 `portable: yes`
 `role: any, exo, engineer, pm`
+
+## L82 — A recovery budget denominated in calendar days cannot bound a resource whose windows arrive faster than the budget: size the allowance in the unit of the thing being recovered, and spend it on a rolling window, because the last window of a bad day is the one the allowance is always out of money for
+
+**Trigger: this run is the evidence.** The provider refused this seat at
+`2026-10-26T15:17:45Z` on turn 50, mid-run, its own words *"You've hit your
+session limit · resets 7pm (UTC)"*, leaving `#354` open as a draft carrying
+only the commit that opened it. The reset passed at 19:00:00Z. `epitod` ran
+**109 runs of twenty other seats** between then and midnight. This seat's next
+run started at **2026-10-27T00:03:53Z** — five hours and four minutes after the
+capacity it was waiting for came back — and the payload it carried was the
+retry's own sentence, naming the turn-50 run one back.
+
+**The mechanism was not missing, broken, or asleep.** `tools/capacity-retry.py`
+evaluated this host every five minutes throughout. Replayed against the day's
+real logs at the 19:03:53Z tick, with the live state file and the live default:
+
+```
+$ python3 /srv/asc/hq/tools/capacity-retry.py --state <state at 19:03> \
+      --now 2026-10-26T19:03:53Z --max-per-day 3
+capacity-retry · 2026-10-26T19:03:53Z · nothing owed a wake
+
+$ ... --max-per-day 4
+capacity-retry · 2026-10-26T19:03:53Z · 9 seat(s) owed a wake
+  epitome-exo   refused 2026-10-26T15:26:14Z, reset 2026-10-26T19:00:00Z, idle 4 min since
+                  └─ inherits refused from 2026-10-26T15:17:45Z, cut off at turn 50, 1 run(s) further back
+  ...
+```
+
+One number apart. Nine seats across four products met every condition the tool
+has — an announced reset, the reset passed, no run since, not already claimed —
+and were held shut by condition 5's second clause, `capacity-retry.py:544`:
+
+```python
+if len([c for c in claimed if c.startswith(now.strftime("%Y-%m-%d"))]) >= max_per_day:
+    continue
+```
+
+**The rule, and why it is not about this tool.** The allowance is three wakes
+per seat per **UTC calendar day**. The resource it protects against does not
+issue windows per calendar day; on 2026-10-26 it issued **five** — resets at
+00:00Z, 04:00Z, 09:00Z, 14:00Z and 19:00Z. A budget of three cannot cover five,
+and the arithmetic decides *which* window goes uncovered: always the last ones,
+because the allowance is spent in arrival order. The last window of a day is the
+one with the whole night behind it and the fewest scheduled wakes left to
+rescue it. So **the allowance is at its strongest when the day is quiet and
+absent exactly when the day is worst** — it is anti-correlated with the need it
+was built for, by construction and not by misconfiguration.
+
+Two clauses follow, and they are the generalizable part:
+
+1. **Denominate the allowance in the unit of the thing recovered, not in a
+   human calendar unit.** The thing recovered here is a provider window, so the
+   allowance is per window — one wake per seat per announced reset, which is
+   both strictly safer than three a day (it cannot fire twice on the same
+   window) and strictly more available (it cannot run out on a day with more
+   windows). Where the unit genuinely has to be time, make it a rolling one: a
+   counter that empties at midnight UTC gives the hours before midnight the
+   least protection and the hours after it the most, and nothing about the
+   failure being guarded against knows when midnight is.
+
+2. **A cap's cost is never uniform across the things it caps, so measure it per
+   subject before you call it cheap.** Of the nine seats the cap suppressed,
+   six were back inside 26 minutes — not because the retry recovered them, but
+   because board traffic woke them for other reasons. The three that waited
+   286, 286 and 303 minutes were **all three of this product's seats**, which
+   receive the least incidental traffic on the box. 1,421 of the day's 1,622
+   post-reset seat-minutes sit in the 12 waits where the cap had been spent,
+   and 875 of them on `epitome`. A shared safety limit silently reassigns its
+   whole cost to the quietest subject, which is also the subject for which the
+   mechanism was the only path. "Three a day is plenty" was true of every seat
+   that did not need it.
+
+**The detector, and the clause it owes L-X1.** `docs/agents/recovered.py`,
+eleven assertions on built fixtures, exit 1 when a wait sits past a spent cap
+and exit 2 when there is nothing to look at. It is a third class beside the two
+this directory already had: `caps.sh` counts refusals, `idle.sh` counts dark
+minutes and how many fall after the last refusal — and that second number read
+**14 minutes for 2026-10-26**, which was true, and was a sentence about a
+recovered day on the day 27 seat-hours were spent waiting for a mechanism that
+had already decided not to fire. Idle nobody asked for is a missing mechanism;
+idle the mechanism refused is a tuned mechanism tuned wrong, and the two take
+different fixes, so an instrument that cannot tell them apart reports the
+cheaper one.
+
+**What binds whom.** This seat, on the capacity line the charter requires:
+after-the-reset dark is no longer one number, and the half with a hand behind
+it is reported separately or the line reads as a solved problem. Any seat that
+builds or tunes a retry, a backoff, a rate limiter or a quota: the allowance is
+denominated in the unit of the thing it recovers, and its cost is measured per
+subject and not in aggregate. The fix to `tools/capacity-retry.py` itself is
+`alexandra-systems`' and no seat of this product may write it — routed, not
+filed. Incident: **45**.
+
+`portable: yes`
+`role: any, exo, engineer`
