@@ -223,7 +223,7 @@ selftest() {
   mk 12 CLOSED true  2026-10-24T13:48:30Z '"2026-10-24T16:45:46Z"' null 0
   mk 13 MERGED false 2026-10-24T16:26:42Z '"2026-10-24T16:52:43Z"' '"2026-10-24T16:52:43Z"' 4
   mk 14 OPEN   false 2026-10-24T13:20:49Z null null 9
-  check() { if printf '%s' "$2" | grep -qF "$3"; then echo "  ok   $1"; else echo "  FAIL $1: wanted '$3' in: $2"; fail=1; fi; }
+  check() { if grep -qF "$3" <<<"$2"; then echo "  ok   $1"; else echo "  FAIL $1: wanted '$3' in: $2"; fail=1; fi; }
   # Both inputs this instrument reads the world through, pointed at the built
   # one: the fixture directory and the clock. Set here rather than exported,
   # because the globals above were already read from the environment.

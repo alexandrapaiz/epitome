@@ -125,7 +125,11 @@ do
     clash=""
     for pr in $(gh pr list --state open --limit 100 --json number --jq '.[].number' 2>/dev/null); do
       git merge-base --is-ancestor "pull/$pr" HEAD 2>/dev/null && continue   # already mine
-      if taken "pull/$pr" "$path" "$rx" | grep -qxF "$id"; then
+      # Herestring, not a pipe: `taken ... | grep -qxF` can report NOT TAKEN
+      # for an id the branch really carries, and a false "not taken" here is
+      # the duplicate-build failure this repository keeps paying for.
+      prids=$(taken "pull/$pr" "$path" "$rx")
+      if grep -qxF "$id" <<<"$prids"; then
         this=$(grep -F "## $id " "$path"          | head -1)
         that=$(git show "pull/$pr:$path"  | grep -F "## $id " | head -1)
         [ "$this" = "$that" ] && continue   # same entry, carried by a sibling branch
