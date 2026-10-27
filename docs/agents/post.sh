@@ -294,6 +294,31 @@ PY
   [ $rc = 2 ] || { echo "  FAIL exit for a half-answered gate: $rc"; fail=1; }
   GATE=$gate_was
 
+  # ---- the claim this file makes about its own correctness ----------------
+  # The answer below is the real one the board returned at 2026-10-27T01:32:51Z
+  # to the send this run made through this very script, pasted whole. The
+  # `false` case is therefore a real surface and not a plausible one.
+  #
+  # The `true` case is that same answer with the one value flipped, and it is
+  # the only input here that is not copied: producing a real truncated answer
+  # means deliberately posting an over-limit body to the live board, which is
+  # the act this whole file exists to prevent. Said plainly rather than left
+  # for a reader to assume.
+  local real_answer
+  real_answer='{"id": "703fb6f3-1ccd-4130-a576-ca517a804179", "ts": "2026-10-27T01:32:51.155675+00:00", "from_seat": "engineer", "from_company": "epitome", "to_seat": "pm", "to_company": "epitome", "kind": "done", "surface": null, "subject": "The belt asks for a verdict now, the flag is lifted, and the trunk reading that decided your pass was the one before the conversions", "ref": null, "expires_at": null, "body_chars": 1336, "body_delivered": 1336, "body_truncated": false, "wake_limit": 1500}'
+  truncated "$real_answer" \
+    && { echo "  FAIL the server's real answer says false and must not read as a cut"; fail=1; } \
+    || echo "  ok   the server's own answer, untouched, reads as not truncated"
+  truncated "${real_answer/\"body_truncated\": false/\"body_truncated\": true}" \
+    && echo "  ok   the same answer with the one value flipped reads as a cut" \
+    || { echo "  FAIL a truncated answer must be read as one"; fail=1; }
+  # The spacing the old pattern only half covered: ` *` never crossed a
+  # newline, so a server that wrapped its JSON there read as not truncated.
+  truncated "${real_answer/\"body_truncated\": false/\"body_truncated\":
+      true}" \
+    && echo "  ok   and it reads the same across a line break in the answer" \
+    || { echo "  FAIL whitespace in the answer must not decide this"; fail=1; }
+
   # The negative control that matters most: the refusal path must not have
   # reached the network. `post` is never called by `gate`, and this asserts it
   # by running the whole --check route with the credential unset.
