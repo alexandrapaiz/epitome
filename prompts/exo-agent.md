@@ -124,6 +124,25 @@ not (L31).
   differs from the unit lost, the mechanism substituted and the line says
   so. `bash docs/agents/caps.sh` prints the split and answers
   could-not-look for a window in which no slot finished (L62).
+  And **after the reset is two numbers, not one.** This clause as it
+  stands asks how much of the dark fell after capacity returned, and
+  that question has exactly one answer when nothing asks for the
+  resource and a different one when something asks and is refused by
+  its own budget. On 2026-10-26 the first number was **14 minutes**,
+  which was true, and was a sentence about a recovered day on a day
+  nine seats across four products were owed a wake at 19:03:53Z and
+  none was sent: `capacity-retry.py` answers *nothing owed* at
+  `--max-per-day 3` and *9 seat(s) owed* at 4, one integer apart, on a
+  day the provider gave five windows. Idle nobody asked for is a
+  missing mechanism; idle a working mechanism declined is a tuned one
+  tuned wrong, and the two take different fixes, so the line that
+  cannot tell them apart reports the cheaper one. `python3
+  docs/agents/recovered.py` is that second read, and the cost is
+  measured **per seat before it is totalled**, because a shared cap
+  lands its whole weight on the quietest inbox: of those nine, six were
+  back inside 26 minutes on traffic they did not plan and the three
+  that lost the evening were all three of this product's (L82,
+  incident 45).
 - **One branch per seat, and the number comes from the queue.** Start
   from your own newest open pull request, not from `main`, whenever you
   have one open; `main` is the single view guaranteed not to hold the
