@@ -792,15 +792,18 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [x] **ExO seat** — incident register live before the builders multiply.
   `.github/workflows/agent-exo.yml` live; docs/agents/incidents.md and
   lessons.md exist; PRs #2, #7 are its lesson syncs. Seat: exo.
-- [ ] **Market seat brief #1: pricing** — per-active-agent pricing vs.
-  roster tier; who pays today for Clerk/Fly/Trigger.dev glue and what do
-  they pay. Before any public pricing. Seat: market. *Rev 1 shipped
-  2026-09-18 (docs/market.md §3, "Positioning and pricing"). ADR-13's
-  buyer-2 (agent-maker/platform tier) pricing and the "as customer"
-  maker-map column shipped in rev 4, 2026-10-02 (docs/market.md,
-  "ADR-13: the agent-maker-as-customer column, and pricing buyer 2
-  separately") — usage-based per-mint/per-verify pricing recommended,
-  owner has not yet ruled one word on it.*
+- [x] **Market seat brief #1: pricing — ruled.** Per-active-agent
+  pricing vs. roster tier; who pays today for Clerk/Fly/Trigger.dev glue
+  and what do they pay. Seat: market. *Rev 1 shipped 2026-09-18
+  (docs/market.md §3, "Positioning and pricing"). ADR-13's buyer-2
+  (agent-maker/platform tier) pricing and the "as customer" maker-map
+  column shipped in rev 4, 2026-10-02, unchanged through rev 17. #299
+  (2026-10-24) tabled a proposed ruling in docs/decisions.md with a
+  48-hour owner-silence clock per standards/pm.md §22; the clock expired
+  2026-10-26T22:12:57Z with no owner edit or close on the paragraph, so
+  this pass (2026-10-27) ratifies it: usage-based buyer-2 pricing,
+  per-mint/per-verify, at or below the Clerk M2M comp. See
+  docs/decisions.md, ADR-13.*
 - [x] **Second integration verdict: Linear REJECTED** (owner,
   2026-09-18 — ADR-6: integrations are surfaces, never dependencies).
   Market re-justifies the ranking under ADR-6 in the 10-02 map

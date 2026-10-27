@@ -313,19 +313,22 @@ Consequences:
    must price buyer 2 (platform/issuer tier) separately from roster
    tiers.
 
-**Ruling proposed 2026-10-24 (PM), standards/pm.md §22 clock.** Buyer-2
-pricing: usage-based, yes — per credential minted and per credential
-verified, at or below the Clerk M2M comp ($0.001/mint, $0.00001/verify),
-never a flat roster tier for buyer 2, since buyer 2 sells throughput and
-not a seat. This is market's own rev-4 recommendation (docs/market.md,
-"ADR-13: the agent-maker-as-customer column, and pricing buyer 2
-separately"), unchanged and re-confirmed through rev 17 with no
-contrary evidence found in thirteen further revisions. The owner's edit
-or close of the carrying pull request is the actual ruling; her silence
-on it for 48 hours from this pull request's open is consent to the
-paragraph as written, because the market seat's backlog card has named
-this the one thing it is waiting on since 2026-09-18 and nothing further
-for market to research changes it.
+**Ruling proposed 2026-10-24 (PM), standards/pm.md §22 clock — ratified
+by silence 2026-10-27.** Buyer-2 pricing: usage-based, yes — per
+credential minted and per credential verified, at or below the Clerk
+M2M comp ($0.001/mint, $0.00001/verify), never a flat roster tier for
+buyer 2, since buyer 2 sells throughput and not a seat. This is
+market's own rev-4 recommendation (docs/market.md, "ADR-13: the
+agent-maker-as-customer column, and pricing buyer 2 separately"),
+unchanged and re-confirmed through rev 17 with no contrary evidence
+found in thirteen further revisions. The carrying pull request (#299)
+opened 2026-10-24T22:12:57Z; its 48-hour clock expired
+2026-10-26T22:12:57Z with no owner edit or close touching this
+paragraph's content (the one comment on #299 is a Tier B merge-rule
+note, not a ruling on the text) — so per §22, her silence is consent
+and this paragraph is now the standing ruling, not a pending one.
+Market's backlog card is corrected to match in the same pass that
+makes this call.
 
 ## ADR-14: Mission signed; the Omarchy craft standard
 
