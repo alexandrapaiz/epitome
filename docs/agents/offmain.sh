@@ -2,7 +2,12 @@
 # What this seat has written that no seat can read: register entries and
 # instruments that exist on a branch and on no `main` (L50).
 #
-#   bash docs/agents/offmain.sh        every run, before the standing counts
+#   bash docs/agents/offmain.sh         every run, before the standing counts
+#   bash docs/agents/offmain.sh --here  the branch you are standing on, whatever
+#                                       state its pull request is in: may you
+#                                       still commit here, and what have you
+#                                       already written that no main can read
+#   bash docs/agents/offmain.sh --self-test   fire every verdict on built input
 #
 # WHY THIS EXISTS. A register is the only memory a stateless seat has. Every
 # run of every seat here starts from a fresh clone of `main` and reads
@@ -37,8 +42,24 @@
 # absence claim about nothing else (L-A34). A branch nobody has opened a pull
 # request for is outside it and is named as outside it.
 #
-# Three answers and not two (L41): 0 nothing of this seat's is off `main`,
-# 1 findings, 2 could not look. Ends in a `data` block to paste (L33).
+# WHY --here EXISTS, and it is the one state the mode above cannot reach. The
+# scope sentence four paragraphs up — "this repository's own open queue" — and
+# the exclusion of this run's own branch from the counts are each a good rule,
+# and together they make exactly one case invisible: the branch this run is
+# committing to, whose pull request has already merged. Lifting the flag hands
+# the branch to a hand with its own clock, and on 2026-10-26 that clock answered
+# this seat in a median of **135 seconds** in the hour after capacity returned.
+# Twice in thirty-one minutes a run of this seat kept committing past it — L73's
+# text at 09:46:27Z, 63s after `#339` merged, and three commits from 10:15:45Z
+# to 10:17:11Z, up to 3m18s after `#343` merged — and each time the recovery was
+# a further pull request (incident 39, L76). A run cannot ask the default mode
+# about this, because by the time the question matters its pull request is not
+# in the open queue any more.
+#
+# So this mode asks about HEAD and not about the queue, and it asks before the
+# commit rather than after the discovery. Three answers and not two (L41):
+# 0 the branch is yours to commit to, 1 it is not or something on it is off
+# `main`, 2 could not look. Ends in a `data` block to paste (L33).
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 BASE=${BASE:-origin/main}
@@ -58,6 +79,115 @@ git fetch -q origin main 'refs/pull/*/head:refs/remotes/pull/*' 2>/dev/null \
   || { echo "could not look: the fetch of main and the pull refs failed" >&2; exit 2; }
 git rev-parse --verify -q "$BASE" >/dev/null \
   || { echo "could not look: no such base $BASE" >&2; exit 2; }
+
+# --here, and the verdict is a pure function of three facts so a test can fire
+# every branch of it on built input (L-X1 as amended: a repair without a
+# detector leaves the future as exposed as it was, and a detector with no
+# negative control is a belief).
+#
+# The readied-and-open verdict is deliberately a finding and not a note. L71
+# requires the flag off at the first artifact and the run keeps working after
+# it, so "still open" is the state in which the damage is still preventable —
+# it is the only moment at which cutting the next branch costs nothing. Once
+# the merge has happened the only honest thing left to print is the list of
+# commits nobody can read.
+here_verdict() {  # $1 = state (NONE|OPEN|MERGED|CLOSED), $2 = draft true/false, $3 = orphan count
+  case "$1" in
+    NONE)   printf 'ok\tno pull request names this branch, so no hand but yours holds it\n';;
+    OPEN)   if [ "$2" = true ]; then
+              printf 'ok\tyour pull request is a draft, so the merge button is refused to everyone (L-A32)\n'
+            else
+              printf 'finding\tthe flag is off, so a hand with its own clock may close this branch at any second — cut the next branch from this head BEFORE the next commit (L76)\n'
+            fi;;
+    MERGED) if [ "$3" -gt 0 ]; then
+              printf 'finding\tthis branch merged and %s commit(s) here are on no ancestor of main — nothing will carry them, and a merged pull request cannot be reopened (L76, incident 39)\n' "$3"
+            else
+              printf 'finding\tthis branch merged and holds nothing you have not shipped; the remote ref is gone by L-A59, so cut the next branch from main before the next commit\n'
+            fi;;
+    CLOSED) if [ "$3" -gt 0 ]; then
+              printf 'finding\tthis branch was closed unmerged and %s commit(s) here will not be read by a fresh run\n' "$3"
+            else
+              printf 'finding\tthis branch was closed unmerged and holds nothing; whatever it owed was re-declared somewhere else or was lost\n'
+            fi;;
+    *)      printf 'unread\tthe forge did not say what state this branch is in, which is never an ok\n';;
+  esac
+}
+
+here_mode() {
+  local branch sha state draft num orphans
+  branch=$(git rev-parse --abbrev-ref HEAD)
+  sha=$(git rev-parse --short HEAD)
+  local js; js=$(gh pr list --head "$branch" --state all --limit 5 \
+        --json number,state,isDraft,mergedAt --jq \
+        '.[] | [.number,.state,(.isDraft|tostring)] | @tsv' 2>/dev/null) \
+    || { echo "could not look: gh refused the pull request list for $branch" >&2; return 2; }
+  if [ -z "$js" ]; then num=-; state=NONE; draft=false
+  else
+    # Newest first is what gh gives; a branch with two pull requests on it is
+    # L75's shadow and the newest is the one a reader is looking at.
+    IFS=$'\t' read -r num state draft <<< "$(printf '%s\n' "$js" | head -1)"
+  fi
+  # Containment, never the forge's field (L70 clause 3).
+  orphans=$(git rev-list --count "$BASE".."HEAD" 2>/dev/null) || orphans=0
+  local v; v=$(here_verdict "$state" "$draft" "$orphans")
+  printf 'measured %s: branch %s at %s, pull request %s %s%s\n' \
+    "$(date -u +%FT%TZ)" "$branch" "$sha" \
+    "$([ "$num" = - ] && echo none || echo "#$num")" "$state" \
+    "$([ "$draft" = true ] && echo ' (draft)' || echo '')"
+  printf '  %s\n' "$(printf '%s' "$v" | cut -f2-)"
+  if [ "$orphans" -gt 0 ] && { [ "$state" = MERGED ] || [ "$state" = CLOSED ]; }; then
+    echo "  on no ancestor of $BASE:"
+    git log --format='    %h %ad %s' --date=format:'%H:%M:%SZ' "$BASE..HEAD" 2>/dev/null
+  fi
+  echo
+  echo '```data'
+  echo "measured_at: $(date -u +%FT%TZ)"
+  echo "branch: $branch"
+  echo "head: $sha"
+  echo "pull_request: $num"
+  echo "pull_request_state: $state"
+  echo "is_draft: $draft"
+  echo "commits_not_contained_in_main: $orphans"
+  echo "verdict: $(printf '%s' "$v" | cut -f1)"
+  echo '```'
+  [ "$(printf '%s' "$v" | cut -f1)" = ok ] && return 0
+  [ "$(printf '%s' "$v" | cut -f1)" = unread ] && return 2
+  return 1
+}
+
+self_test() {
+  local fail=0 got
+  check() {  # $1 = label, $2 = expected first word, $3.. = here_verdict args
+    local label=$1 want=$2; shift 2
+    got=$(here_verdict "$@" | cut -f1)
+    if [ "$got" = "$want" ]; then printf '  ok    %s\n' "$label"
+    else printf '  FAIL  %s: wanted %s, got %s\n' "$label" "$want" "$got"; fail=1; fi
+  }
+  # The three real rows of 2026-10-26 this mode was built for, and the two
+  # negative controls without which it would be a rule that only ever says yes.
+  check '#343 after its merge, three commits past it  (finding)' finding MERGED false 3
+  check '#339 after its merge, one commit past it     (finding)' finding MERGED false 1
+  check 'readied and open, the preventable moment     (finding)' finding OPEN   false 0
+  check 'a draft, which no hand can merge             (ok)'      ok      OPEN   true  2
+  check 'no pull request on this branch yet           (ok)'      ok      NONE   false 4
+  check '#320, closed unmerged                        (finding)' finding CLOSED false 1
+  check 'merged with nothing past it, the ref now gone (finding)' finding MERGED false 0
+  check 'closed unmerged and empty                     (finding)' finding CLOSED false 0
+  check 'the forge said nothing                       (unread)'  unread  ''     false 0
+  # And the thing the old reader would have said about all of them, which is
+  # nothing at all: the default mode walks the open queue, so MERGED and
+  # CLOSED are outside its population by construction. That is not a verdict
+  # this function can produce; it is why the function exists.
+  [ "$fail" = 0 ] && echo "  9/9" || echo "  self-test failed"
+  return $fail
+}
+
+case "${1-}" in
+  --self-test) self_test; exit $?;;
+  --here)      here_mode; exit $?;;
+  "")          ;;
+  *)           echo "unknown mode: $1" >&2; exit 2;;
+esac
 
 base_sha=$(git rev-parse --short "$BASE")
 self_sha=$(git rev-parse --short HEAD)

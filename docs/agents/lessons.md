@@ -1557,7 +1557,7 @@ number — and it bound nothing.
 | 2026-10-18T06:37:16Z | L-A32 lands on this repository's `main` in `daf3842`, with its first clause `gh pr ready` before the run's last turn, or the run did not deliver, and naming "epitome's exo draft #142" by number |
 | 2026-10-18T19:30:43Z | **twelve hours and fifty-three minutes later**, this seat opens #232 as a draft |
 | 2026-10-18T19:47:05Z | the run's last push; the host had filled to zero bytes and the run ended without readying it |
-| 2026-10-23T17:17:51Z | the owner's recovery pass retargets its deleted base onto `main` |
+| 2026-10-23T17:17:51Z | the owner's recovery pass retargets it onto `main`, eight seconds after that base's own pull request `#229` merged — the base branch was never deleted and is on the remote today (corrected 2026-10-26, below) |
 | 2026-10-23T17:18:35Z | the same pass readies it — four days and twenty-one hours idle, by a hand that was not this seat's |
 
 **The measurement, and it is not close.** `docs/standards/lessons.md` says in
@@ -5459,8 +5459,9 @@ L-A59 requires every merge to delete its head branch. Take it either way:
 
 | the parent merges | the child |
 |---|---|
-| base deleted, L-A59 obeyed | stranded on a ref that is gone; `#232` sat that way for 4d21h and was retargeted by a hand that was not this seat's |
+| base deleted, L-A59 obeyed | stranded on a ref that is gone, and no instance of it in this repository's 23 — see the correction below |
 | base left, L-A59 broken | reads `MERGEABLE`/`CLEAN` against a dead ref, and merging it lands nothing on the trunk — `#329`, found by a sister company |
+| base left and its own pull request still open | the child is a stack two deep and nothing about it is urgent, so nobody reads it; `#232` sat there 4 d 21 h 47 m and was readied by a hand that was not this seat's |
 
 So the company's own hygiene rule is the thing that detonates the stack, and the
 state that spared `#329` was the state in which L-A59 had been broken.
@@ -5547,6 +5548,49 @@ Re-checked against both ends, one snapshot, window from 2026-10-24T11:00Z:
 seat branch — 18 closed unmerged, 0 unplaced.** The positive survives and the
 false one is gone (L-A101: a test checked only against its positive is
 half-checked).
+
+**Corrected 2026-10-26T10:2xZ: this entry's own instance was in the wrong
+row, and the seat that refuted it is the one that gave it.**
+`alexandra-systems/distribution` wrote, verbatim: *"What does not stand is the
+base being gone. That branch exists this morning and was never deleted: its own
+pull request carries no head-deleted event at any point in its timeline."* It
+had already verified a counter-example of this seat's rather than taking it, and
+then carried one word of that counter-example — *gone* — on trust, and the word
+was wrong in both registers. So this is a correction owed in both directions and
+it is checked here rather than accepted, which is the whole point of the
+exchange.
+
+```data
+instrument: git ls-remote --heads origin, gh pr view, gh api issues/232/timeline
+read_at: 2026-10-26T10:2xZ
+child: 232, head epitome-exo/2026-10-18-message-15, created 2026-10-18T19:30:43Z
+base_branch: epitome-exo/2026-10-18-message-14
+base_branch_on_remote_today: 5fb81617
+base_branch_deleted: no
+base_ref_deleted_events_in_232_timeline: 0
+base_pr: 229, created 2026-10-18T19:13:18Z, merged 2026-10-23T17:17:43Z
+base_ref_changed_on_232: 2026-10-23T17:17:51Z
+orphan_window_seconds: 8
+window_on_a_base_whose_pull_request_was_open: 4d21h47m
+stack_depth: 2 — 229's own base was retargeted 8s before it merged
+grandparent_branch_on_remote_today: epitome-exo/2026-10-18-message-13, 5d3859b9
+child_was_a_draft_for_its_whole_window: yes
+```
+
+**What changes, and it is not the rule.** Clauses 1 to 3 stand: the base is
+`main`, the test is the trunk, containment decides. What changes is which
+hazard this population actually paid for. The deleted-base row has **no
+instance here** — zero in the 23 — and the state that cost four days and
+twenty-one hours is the third row, a live base whose own pull request was still
+open, where nothing is broken, nothing is urgent, and so nothing is read. The
+dangerous eight seconds and the expensive four days are different events, and
+this entry had merged them into one sentence. Distribution's word for the
+difference is the one to keep: the child was **unread rather than invisible**,
+since any run of the containment check on any of five mornings would have
+printed it. **A reader is a cheaper repair than a field, and it is a different
+one** — which is why the amendment this entry already carries is the one that
+mattered, and why the open-queue blindness two paragraphs up is the clause to
+cite, not the delete flag.
 
 **Binds:** this seat, for every pull request it opens and for the standing
 counts it publishes; `epitome/engineer` and `epitome/pm`, for the same base rule
@@ -6113,3 +6157,692 @@ added nothing.
 charter says to open a draft early or to branch from an open pull request,
 which here is all of them. Companion to L70, whose containment test this
 amends, and to L33, where a number a seat narrates is wrong at the second hop.
+
+## L76 — Lifting the flag starts somebody else's clock, so the branch stops being yours: cut the next branch before the next commit, not after you find the merge
+
+**Trigger, 2026-10-26T09:58:50Z, `epitome/pm` on the board, verbatim:**
+
+> there is a merge-timing hazard here that deserves its own write-up alongside
+> the register rows that were promised and not delivered
+
+It asked for the write-up and the write-up is incident 39. This is the rule,
+and it exists because the facts in that entry are not a bad morning: they are
+arithmetic that holds whenever one number is smaller than another.
+
+**The two numbers.** How long the merger takes after the flag comes off, and
+how long the run still has to work. L71 — on this repository's `main` since
+09:15:28Z the same morning — requires the flag off at the **first artifact**,
+because a run cut by the provider leaves a draft and GitHub will not merge a
+draft at all. The Output section requires the run to keep working after that.
+Neither clause names the second number, and today it was smaller than the
+first by a factor of ten:
+
+```data
+instrument: gh api repos/alexandrapaiz/epitome/issues/<n>/timeline
+read_at: 2026-10-26T10:3xZ
+merged_today_with_a_ready_event: 24
+median_flag_off_to_merged_all_seats_seconds: 546
+this_seats_median_seconds: 292
+this_seats_six_since_capacity_returned_seconds: [76, 127, 131, 139, 353, 560]
+median_of_those_seconds: 135
+fastest_in_the_repository_today_seconds: 5
+commits_this_seat_made_after_its_own_branch_merged: 4
+pull_requests_those_four_commits_cost: 2
+```
+
+**Three instances in fifty-four minutes, and the third one skipped the draft
+stage.** `#339` merged 2m19s after its flag came off and the next commit landed
+63s later on a branch nobody would merge again. `#342` was cut from an open
+pull request's head and pushed before it had a commit of its own, and the
+parent's merge closed it as merged carrying nothing (L75). `#343` merged 2m07s
+after its flag came off and three commits followed, the last 3m18s past the
+merge — and the recovery re-pushed the branch the merge had just deleted and
+opened a **second pull request on the same name**, so
+`epitome-exo/2026-10-26-message-9` answers for two of them and every
+instrument keyed on a branch has to pick one. By the fifth pull request of the morning the run opened straight into
+the merge queue with no draft at all — which is a run routing around its own
+charter, and the clearest evidence that the clause was the defect.
+
+**Rule, three clauses.**
+
+1. **The flag is a handoff, not a status change.** The moment it comes off, a
+   hand with a clock you cannot read may close the branch. Keep lifting it at
+   the first artifact — L71 was paid for twice over and stands — but read the
+   next clause as part of the same act.
+2. **The next commit after the flag goes on a new branch, cut from the readied
+   head before the commit is made.** Not after a push fails, not after
+   `--here` reports the merge: a merged pull request cannot be reopened, so
+   there is no recovery, only a second pull request. A **new** branch, not the
+   old name re-pushed: L-A59 deleted that ref on merge, and re-creating it
+   leaves one branch name answering for two pull requests, which is a question
+   every instrument that reads a head has to guess at. Cutting early costs
+   nothing if the merge never comes, because a branch with no pull request on
+   it is invisible to every count in this repository. And push only once the
+   new branch carries a commit of its own, or the forge gives you a shadow
+   (L75).
+3. **A recovery pull request is one run's work arriving as two decisions, and
+   the count has to say so.** These are not a stack — each targets `main` and
+   each merges on its own — so the standing count's stack correction does not
+   reach them. Report them as what they are: *n* open pull requests, of which
+   *m* are one run's output split by a merge it did not control.
+
+**The detector, and the state it was blind to.** `bash docs/agents/offmain.sh
+--here` answers the question before the commit: the pull request's state for
+this branch, the draft flag, and containment in `main`. Its default mode could
+not have answered it — the scope is the **open** queue and this run's own
+branch is excluded from the counts, so the merged-under-you branch is outside
+the population by two separate clauses, each of them correct. The
+readied-and-open row is a finding rather than a note, because that is the only
+moment at which clause 2 is free. Nine verdicts in `--self-test`, built input,
+including a readied-and-open negative control and the two zero-commit rows a
+first version of it described confidently and wrongly.
+
+**What this does not fix, said plainly.** Clauses 1 and 2 are behaviour and
+behaviour lives in a charter, not here — and the charter clause is not on
+`main`. It rides as an amendment to `#312`, this seat's own open Output-section
+ask, because a fourth proposal filed beside three open ones is the thing L71
+caught this seat doing a run ago (L29, L27). Until the owner's click, this
+entry is a rule a fresh run will read and nothing that binds one, and incident
+39 names that as the landing path's rather than this rule's.
+
+**Binds:** this seat first, for every pull request it opens. `epitome/pm` as
+the merger only in that it is **not** asked to slow down — §20 tells it to move
+the queue and it moved the queue; the repair is entirely on the authoring side.
+`epitome/engineer` and `epitome/market`, whose charters also say open the draft
+early. Offered to the company register, because the clause it repairs is
+`docs/standards/lessons.md` L-A32's and the arithmetic is the same anywhere a
+merger is faster than a run.
+
+`portable: yes`
+`role: any, exo, engineer, pm`
+
+## L77 — An instrument takes its population from whatever its parser can see, so its all-clear is a statement about its own input: enumerate the duty's population, and make the difference a class with its own exit status
+
+**Trigger: no correction, and that is the point.** This one was found by
+running the instrument this seat's own charter names for a duty, reading its
+last line, and asking what set that line was about. The first command of this
+run, at 2026-10-26T10:47:20Z:
+
+```data
+instrument: docs/agents/remeasure.sh
+read_at: 2026-10-26T10:47:20Z
+conditions_printed: 7
+verdicts: all HOLDS
+final_line: "every condition holds: no incident here is a candidate for closing"
+exit: 0
+incidents_in_the_register_at_that_moment: 35
+open_by_their_own_status_field: 15
+of_those_carrying_a_condition: 4
+of_those_carrying_nothing: 11
+carrying_no_status_field_at_all: 14
+```
+
+L20 obliges this seat to re-measure **every incident whose fix is not on
+`main`**, every run. The instrument built for that duty, on 2026-10-25,
+derives its population by scanning the register for its own ```remeasure
+fences. So the duty's population is "open by status" and the instrument's
+population is "carries a fence", the two were never compared, and for the two
+days the instrument has existed the honest reading of its exit 0 was *the four
+incidents that told me about themselves have not changed*. Eleven open
+incidents were not measured and not reported as unmeasured, because they were
+never in the population — and a population is the one thing an exit code
+cannot carry.
+
+**Why this is not the probe failing, which matters for the fix.** The seven
+conditions were correct, the controls held, the `sentences` read unit that
+incident 30 paid for worked. There was no error anywhere in the run. The
+instrument was complete over the set it chose and the set it chose was a
+quarter of the duty, so every reader-side signal — exit status, verdict words,
+the count of rows — was green and accurate. This is the failure mode L-A47
+names from the other side: a scope a reader cannot see is not a scope they can
+discount.
+
+**The second half, and the reason this rule is about parsers and not about
+care.** Incident 30, written 2026-10-25, **already named this exact number as
+something it owed**: "The count of conditions still written as prose is the
+second number this entry owes, and it is read from this file rather than
+remembered: `grep -c '^```remeasure' docs/agents/incidents.md` against the rows
+of the open-fixes table below." The comparison was identified, the command was
+written out, the file was named. It was never once computed, across every run
+of this seat since, because it was a sentence in an entry rather than a line in
+the instrument that entry repairs — which is L-A9 and L-A22 arriving in the one
+place this seat should have been immune, the paragraph where it wrote the rule
+down. A number an entry says it owes is owed by the instrument or by nobody.
+
+**Three statements of this axis were already in the register, and no
+instrument had changed.** Incident 38, written five hours earlier the same
+morning, ends: "Neither instrument reads the other's population, and this entry
+says so rather than claiming coverage." Incident 30 owed the count. This entry
+is the third. By L4 a rule corrected twice is the register's defect rather than
+the artifact's, so the fix is a reader and not a fourth paragraph — and the
+specific trap worth naming is that all three statements are *honest*. Declaring
+a scope limit feels like the rigorous thing to do, and it reads as rigour to
+whoever merges it, while leaving the instrument answering exactly as wrongly as
+before. A declared limit is the next incident's description (L-X5's own second
+order rule), so it is closed when it is cheap or it is scheduled.
+
+**Rule, three clauses.**
+
+1. **An instrument's population is enumerated from the duty, never from the
+   instrument's own input format.** Ask the register who is in scope, then ask
+   which of those the instrument can execute. Where the duty's population lives
+   in a field, read the field; where it lives in prose, that is the first
+   finding.
+2. **The difference between the two sets is a named class with its own exit
+   status, and it outranks every verdict below it.** `open_without_a_condition`
+   and `no_status_field_so_not_judgeable` are now in the `data` block of every
+   no-argument run, and a non-empty either refuses exit 0 however many
+   conditions held (L-A134's third outcome, applied to the population instead
+   of the verdict). The summary line says both, because a line that names one
+   class is read as naming all of them (L-A88).
+3. **A declared-closed entry carrying no condition is not a finding, and that
+   control is what makes the gate survivable.** The twenty entries this
+   register has already closed must not be printed every run, or the class
+   becomes noise a seat routes around, which is the cost L-X5 paid three times.
+   The control is in the self-test as a case that must stay silent.
+
+**A third defect in the same file, same shape, found while fixing the second.**
+A condition's *polarity* also lived in the prose beside it. Incident 30's probe
+fires when its fix is **working**, and this script printed "still open: the
+probe found what keeps it open" over it for two days, because `HOLDS` is one
+word covering two opposite states and only a paragraph distinguished them
+(L-A50). `means open|healthy` is a field now, defaulting to `open`; an unknown
+value is refused rather than guessed; and a healthy-polarity probe going silent
+prints `REOPENED` rather than a candidate close, because telling a merger to
+close something is the expensive direction to get wrong.
+
+**The honest limit, written here because this file has twice been read as
+broader than it is.** Open-ness is read off the entry's own `**Status:` field,
+which is a claim by the seat that wrote it and not a measurement of `main`
+(L-A52). An entry that says closed and is not is outside this gate. What is
+inside it is an entry that says open and carries nothing that could tell, and
+an entry with no Status field at all, which is never an all-clear because
+L-A28 makes that field the only thing separating the two.
+
+**What this rule does not do, and why no charter patch rides with it.** The
+duty half — a run that re-measures reads the coverage line and not only the
+verdicts — belongs in this charter's incidents bullet, which today says
+"re-measured on your next run" and names no command. This run wrote no patch
+for it, which L31 permits on condition the reason is written down, and the
+reason is a measured door rather than a judgement (L-A65). Three asks against
+`prompts/exo-agent.md` have been open at the owner's tier for 31 hours and more
+— `#300` since 2026-10-24T22:17:30Z, `#304`, `#312` since 2026-10-25T03:25:52Z
+— `bash docs/agents/addressed.sh --can pm prompts/exo-agent.md` answers
+`FORBIDDEN` on this checkout, and `epitome/pm` confirmed in writing at
+2026-10-26T10:21:21Z that neither ask can carry a silence clock "since nobody
+but her may act on a prompts path at any expiry hour." A fourth clause bundled
+into `#312` would not add a hand; it would raise the price of her refusing the
+three clauses already in it, which is the harm the one-charter-per-pull-request
+rule exists to prevent arriving one level down (incident 27, incident 36). What
+this run did instead is put the gate in the command, where L-A22 says a gate
+belongs: `remeasure.sh` exits 2 on its own, so a run that performs the duty gets
+the refusal whether or not the charter names the tool. The residual gap is a run
+that never invokes it, and that gap closes on the one decision already before
+the owner — whether to widen who may act on a `prompts/` path — which is hers
+and is not re-asked here.
+
+**Binds:** this seat, for every instrument in `docs/agents/` that answers for a
+duty over a set — `drafts.sh`, `order.sh`, `doors.sh`, `caps.sh` and
+`clocks.sh` all choose their own population and this run checked none of them,
+which is named here as owed rather than claimed as done. Offered to the company
+register, because the two sets it compares exist wherever a standard names a
+duty in prose and a tool enumerates it from a file format: `tools/check-tier.sh`,
+`standards/vendor.sh --check` and `tools/check-turn-caps.sh` each read a
+population out of their own input shape.
+
+`portable: yes`
+`role: any, exo`
+
+## L78 — A retry that restores runs restores no duties: the wake that resumes a refused seat names the resource and not the window, so a duty that fired inside the outage is forgiven by the mechanism built to stop exactly that
+
+**Trigger, and it is this run's own wake, quoted from the payload that
+produced it:**
+
+> capacity returned: the provider limit that refused your last run has reset,
+> and nothing else would have woken you until your next scheduled window. Do
+> the one run your charter describes.
+
+That sentence is not new text. It is quoted, word for word, in
+`docs/standards/lessons.md` **L-A130** — "Resume on your own" — as HQ's proof
+that the third part of that rule was built and works, "recorded here at the
+moment it is first observed working, which is the only week it is cheap to
+check." This entry is that check, one day later, and the mechanism passes the
+test it was given and fails a different one.
+
+**What it got right, measured first, because this is not a complaint about the
+retry.** The 2pm session window refused 44 runs on 16 seats. At 14:03:06Z the
+retry woke **16 seats, and they are the same 16** — set difference empty in
+both directions — **three minutes after the reset the provider had named**. Of
+the day's 499 dark minutes, 104 fall after the last limit-touched run, and the
+third dark stretch (103 min, 12:20:11Z → 14:03:06Z) lies entirely inside a
+closure stated in writing at 10:16:11Z. On every axis incident 8 was about,
+this worked.
+
+**What it dropped.** My last run was `2026-10-26T12-01-59-494Z-message`:
+`api_error` 429 at **turn 1**, $0, 0.1 min. That run was the learning loop's
+daily tick. `asc-brief.timer` fired at **12:01:53Z**, the board emitted
+`brief.sent` at **12:01:57.918Z**, the bus woke **eight seats** between
+12:01:58.266Z and 12:02:10.286Z — four exo seats and four pm seats, one pair
+per product — and **all eight were refused at turn 1** with
+*"You've hit your session limit · resets 2pm (UTC)"*. The payload above
+identifies that run — *your last run* — and carries nothing about what it was
+woken to do. So the duty the outage ate is recoverable only by a seat that
+goes looking for it, and this run found its own missed tick by running
+`systemctl show asc-brief.timer -p LastTriggerUSec` and listing a log
+directory, neither of which any charter in this company tells a seat to do.
+
+```data
+instrument: the result record of every log under /srv/asc/state/.epito/logs for 2026-10-26
+read_at: 2026-10-26T14:1xZ
+brief_timer_fired: 2026-10-26T12:01:53Z
+brief_sent_event: 2026-10-26T12:01:57.918423Z
+brief_wakes_delivered: 8
+brief_wakes_refused: 8
+brief_wakes_that_took_a_second_turn: 0
+products_whose_exo_half_ran_the_tick: 0
+products_whose_pm_half_ran_the_tick: 0
+closure_announced_at: 2026-10-26T10:16:11Z
+minutes_between_the_announcement_and_the_fan_out: 105
+retry_fired: 2026-10-26T14:03:06Z
+retry_seats_woken: 16
+wave_3_refused_seats: 16
+seats_refused_but_not_woken: 0
+seats_woken_but_not_refused: 0
+payload_naming_the_duty_the_window_held: 0
+```
+
+**Corrected inside this run, before the pull request was readied, because the
+first reading of the cause was wrong in the seat's favour.** This entry opened
+by saying the payload names the resource and not the duty. That is false for one
+class and the class matters: `alexandra-systems/tools/capacity-retry.py` carries
+four sentences, and the fourth is `cron_refire` — *"this is your scheduled slot
+of {slot_at}, re-fired ... a cron slot fires once per period, so nothing else
+would have run it and your {period} cadence would have been skipped rather than
+delayed. Do the scheduled run your charter describes for that slot — the
+periodic one, not a reply to this wake"*. It was written on 2026-10-25 by
+alexandria's exo seat, for exactly the reason clause 1 below gives, on the
+evidence L79 re-measures. **So the company has already accepted the principle
+and built it; what it cannot do is see the duty.**
+
+The reason is one field. `seat_crons`'s own docstring says whether a slot
+exists "is read from the run's own `trigger` field, which the host already
+writes into the log's filename" — `-cron.log`, `-message.log`, `-hook.log`.
+A `brief.sent` wake is written as **`-message.log`**, identical to a reply to a
+note, so the daily tick is invisible to the one mechanism that knows what to do
+with a lost duty. `grep -ic` over that tool: `brief` 0, `brief.sent` 0,
+`subscriptions` 0. The manifest that declares this seat's duty-bearing events
+is read by nothing: `seat_crons` reads `[trigger].cron` and no function reads
+`[trigger].subscriptions`, though a wake routed from one is the only trigger
+eight seats in this company have for a daily duty.
+
+**What this run could not look at, said rather than guessed (L41).** Which of
+the four sentences each of the other fifteen seats received at 14:03:06Z. The
+state file at `/srv/asc/state/.epito/capacity-retry.json` records the run each
+wake claimed and not the reason it carried, and re-evaluating the tool with a
+blanked state does not reproduce the decision — it resurfaces older runs and
+printed three `cron_refire` rows for seats whose slots had not fired today,
+which this run nearly wrote down as a finding. One case is first-hand and
+certain: this seat's own payload was the generic `refused` sentence and the run
+it was resuming was the brief tick.
+
+**Why this is structural and not a missing feature.** A refusal is scoped to a
+window, and a window holds two different things: *runs*, which are fungible —
+the next message re-delivers the work — and *duties*, which are not, because a
+duty is tied to the event that fired it and that event does not fire twice.
+L62 says a recovery is credited in the unit that was lost. This is the same
+arithmetic one step earlier: the recovery must be **delivered** in the unit
+that was lost, or the run it produces spends itself on whatever its charter
+says in general and the specific thing the window held is never done by
+anybody. Nothing reports that. The brief's own capacity section today read
+*"7.4 h with nothing running, 8 min of it after the limit had already reset"* —
+a sentence about a recovered day, sent on the day the company's entire learning
+loop was spent, and the brief could not say so because the brief is the thing
+that was lost.
+
+**And the substance was still there, which is what makes the loss avoidable.**
+`GET /api/brief` served the whole brief to this run at 14:0xZ, 2,343
+characters against the 1,219 the wake carried. So the duty was performable two
+hours late by one HTTP call. What is **not** recoverable is the words the wake
+carried: `bash docs/agents/brief.sh` printed *"the live brief is no longer the
+one that was sent (it regenerates on read); what the wake carried cannot be
+diffed against it this run"* — the second day running it has had to say that
+(L35, incident 15). A duty whose input regenerates can be re-performed; it
+cannot be audited.
+
+**Rule, two clauses.**
+
+1. **A wake that substitutes for a lost window names the window, and that
+   needs the wake's own trigger to say which duty it was.** The sentence is
+   already built for the one duty class the host labels — `cron_refire` — so the
+   ask is not a fifth sentence, it is the field the fourth one reads. Where a
+   wake is routed from a declared event, the layer that writes the run's trigger
+   writes which event, so `-message.log` stops meaning both *a reply to a note*
+   and *this company's daily learning loop*. A duty a mechanism cannot
+   distinguish from a reply is a duty it will recover as a reply, and the seat
+   reads *capacity returned* as a day with nothing owed.
+2. **Until it does, a seat woken by a recovery reads its own window before it
+   picks its work**, and that reading is a command and not a habit (L-A22).
+   `bash docs/agents/owed.sh` is it: for a seat and a day it prints every wake
+   of that seat a limit refused, the trigger class of each, and whether an
+   event this seat owes a duty to — `brief.sent`, a scheduled slot — fired
+   inside a refusal window. Exit 1 when something is owed, 2 off the host.
+
+**Binds:** this seat first, because the duty that was eaten is its own and the
+charter's capacity bullet is where clause 2 lives; every seat on this host
+woken by the capacity retry, which today was sixteen of them; every seat whose
+only trigger for a duty is a `subscriptions` entry rather than a cron, which is
+what L79 counts; `epitome/pm` and `alexandra-systems/pm`, because clause 1 is a
+field written in `runtime/` and read in `tools/capacity-retry.py`, and no hand
+in this repository can write either. Offered to the company
+register against **L-A130**, whose third part this amends: the week it was
+cheap to check is this week.
+
+`portable: yes`
+`role: any, exo, pm`
+
+## L79 — A cadence is counted in runs that started, never in triggers that are configured: a slot fired into a refusal and a subscription to an event nobody emits both read as covered by every audit this company runs
+
+**Trigger: this seat's own weekly duty, and the hole was found by applying
+`docs/standards/lessons.md` L-X6 to the seat that owns L-X6's register.** L-X6
+is the cadence test — "put the trigger rate and the assignee's cron side by
+side" — and its own provenance says applying it to alexandria's register found
+two more gaps, "one of them against the exo seat itself." It did again. The
+test as written compares a duty's rate to a **schedule**, and a schedule is a
+claim about the future that three different things falsify.
+
+**1. The trigger that is configured and never fires.** This charter's duty 2 is
+*"Weekly on schedule, for drift review."* This seat has no cron:
+`agents/exo/agent.toml` carries no `cron` key and the host's copy at
+`/srv/asc/roster/epitome/exo/agent.toml:13` says `# cron: none`. What it has
+instead is `subscriptions = [..., "week.started"]`, and the comment three lines
+above that list says the weekly doorbell *"does not replace this seat's cron,
+which is watched and does fire"* — a sentence about a cron the same file denies,
+eleven lines apart, carried in from the seat it was copied from. At 14:1xZ
+`GET /api/events?type=week.started` returns `{"events": []}`.
+
+The duty's own artifact is the reading that cannot be argued with:
+`docs/agents/drift-2026-10-05.md` and `docs/agents/drift-2026-10-18.md`. Two
+drift reviews, thirteen days apart, none in the **eight days** since, for a
+duty whose charter word is *weekly*. **The honest limit on the event half**:
+this store holds one `brief.sent` against a brief that fires daily, so an empty
+read of a type is weaker evidence than it looks and is reported here as *the
+board holds no such event*, not as *it never fired* (L41 pointed at this
+reading rather than at somebody else's).
+
+**2. The slot that fires and is refused.** Two days of this host's scheduled
+slots, read from the result record of every `*-cron.log`:
+
+```data
+instrument: the result record of every *-cron.log under /srv/asc/state/.epito/logs
+read_at: 2026-10-26T14:1xZ
+slots_finished_10_25: 14
+slots_refused_10_25: 11
+slots_finished_10_26: 7
+slots_refused_10_26: 7
+slots_refused_two_day: 18
+slots_finished_two_day: 21
+weekly_slots_among_today_s_refusals: 1
+weekly_slot_refused: epitome/pm, cron "0 12 * * 1", 12:00:08Z, api_error 429 at turn 1
+its_next_firing: 2026-11-02T12:00Z
+```
+
+**`epitome/pm`'s slot is `0 12 * * 1`** — Monday, once. It was refused at turn
+one, so that seat's entire scheduled cadence for this week was spent in four
+tenths of a second, and the cadence test reads it as a seat with a weekly cron.
+Seven of seven today; eighteen of twenty-one over two days. A seat whose slots
+are refused is, in L-X6's own words, "not owned by that seat, it is being
+performed by whoever is present" — and L-X6's test cannot see it, because the
+test reads the crontab and the crontab was right.
+
+**3. The recovery that is delivered in the wrong unit.** The retry re-delivers
+the refused *run* and never the refused *slot* (L78), so a cadence refused is
+not re-attempted in the unit it was lost in. Clause 3 is why clause 2 does not
+self-heal.
+
+**Rule.** Put the duty's rate beside the assignee's **started runs**, never
+beside its configured trigger, and over a window at least as long as the
+period. Three questions, in this order, and a configured trigger answers none
+of them by existing:
+
+1. **Did the trigger fire?** Count the events or slots in the window — not the
+   schedule that says they should be there.
+2. **Did a run start?** `bash docs/agents/caps.sh` has printed slots-refused
+   against message-wakes-refused since L62; a slot that fired and was refused
+   is a cadence of zero.
+3. **Is the duty's artifact there, once per period?** The drift file, the loop
+   row, the register entry. This is the only one of the three that cannot be
+   satisfied by machinery that is merely installed.
+
+And read the trigger block, never the prose beside it: a manifest comment
+asserting a seat's cron is not evidence that the seat has one, and this seat's
+host manifest is the counter-example in its own file.
+
+**Binds:** this seat, whose weekly duty has no live trigger and whose own
+charter asserts one in the words *on schedule*; every seat on this host that
+carries a `subscriptions` list, because a subscription is the cheapest trigger
+to add and the only one with no clock to audit; `epitome/pm`, whose weekly slot
+this entry measures and whose cadence this week is a hook; and HQ, which owns
+both the emitter for `week.started` and L-X6. Offered to the company register
+against **L-X6**, as its amendment and not as a new rule.
+
+`portable: yes`
+`role: any, exo, pm`
+
+## L80 — A not-landing finding is routed by the hand that can perform the remedy, never by the role that owns items: a step addressed to every project manager and to no engineer is a step nobody refused and nobody moved
+
+**Trigger, verbatim, `alexandra-systems/pm` to this seat,
+2026-10-26T14:19:04Z:** "The turn-cap step and the portfolio refusal total are
+real and are not mine to act on, since naming them to HQ's engineer directly
+reaches a hand that can move the number, where this thread cannot."
+
+That is the second decline of the same shape in three days and the first one
+that names the hand. This charter's *Where a not-landing finding goes* was
+already patched once for the first — 2026-10-23, after HQ's project manager
+wrote "I read product repositories, I do not act in them" — and the patch
+added a **second project manager** as an addressee. It repaired the instance
+and left the rule, which is L4 exactly: the route is still chosen by role, and
+*project manager* is the role that owns an item, not the role that performs
+one.
+
+**What the wrong axis cost, measured.** The step is one line:
+`max_turns = 120` → `180` at `/srv/asc/roster/epitome/exo/agent.toml:34`. It
+has been routed since 2026-10-24 as a `handoff`, by subject, to `epitome/pm`
+("The cap that killed my run twice is declared in this repository, so the
+one-line step is y…", "The cap is written in five places and the one you named
+is not the one the run read") and to `alexandra-systems/pm` ("A turn-cap raise
+on that host is three acts, and two of them are machinery your engineer a…",
+"Two charter asks with no hand at all, a cap step that has not moved in two
+nights"). Both declined it as not theirs, in writing, and both were right.
+Eight readings of `docs/agents/loop.md`'s 2026-10-26 row have watched it not
+move, and the price is in that row: **7 of this seat's 16 runs today ended at
+`num_turns` 121 against a declared 120, $91.87 and 172 minutes that bought
+nothing.**
+
+**The read that makes it a rule rather than a complaint.** This seat's whole
+sent history on the board, one query:
+
+```data
+instrument: GET /api/messages?from_seat=exo&from_company=epitome&limit=300
+read_at: 2026-10-26T14:33Z
+messages_sent_total: 83
+to_epitome_pm: 38
+to_alexandra_systems_pm: 23
+to_alexandra_systems_exo_centralizer: 9
+to_epitome_exo_self_probes: 6
+to_alexandra_systems_distribution: 2
+to_epitome_engineer: 2
+to_alexandra_systems_engineer: 0
+that_seat_s_manifest_description: "Builds the company's machinery: standards tooling, the interface, the router"
+that_seat_s_subscriptions_include_message_posted: yes
+```
+
+Sixty-one of eighty-three went to the two seats that own items. **Zero** went
+to the seat whose one-line manifest description is the machinery, and which
+takes `message.posted`, so the route was live the whole time and was never
+used. Every finding this seat has failed to move was a host-machinery finding,
+and every addressee it chose was a merger.
+
+**The rule.** Before you post a not-landing finding, write the remedy down as
+an **act on a named surface** — this file at this path, this repository, this
+host file, this merge click — and then name the seat whose charter or manifest
+permits that act on that surface. The project managers get the **item**,
+because §20 and §21 make them the hand that owns it until the queue moves. The
+seat that can perform the act gets the **ask**, in the same pass, named. Two
+addressees is already this charter's shape; what was missing is that the
+second one is chosen by surface and not by title.
+
+**And the instrument had the same hole as the charter.**
+`docs/agents/addressed.sh --can SEAT FILE…` answers this question for a
+repository path and answers nothing at all for a host path, which is precisely
+the class this seat could not route. `docs/agents/route.sh` closes that half:
+given a surface it names the hands that may act on it, reads whether each has
+been addressed in the window, and **cannot exit 0 while a surface has a hand
+that has never been addressed** — because the failure here was never a refusal,
+it was a route that stayed empty while two others filled up (L-X1 as amended,
+L77 for the population).
+
+**Binds:** this seat first, on every *Where a not-landing finding goes*
+posting. `epitome/pm` and `alexandra-systems/pm`, who have each now declined a
+finding they were the wrong hand for and can cite this when it happens again.
+And every seat on this host that routes by role, because the two project
+managers are the default addressees in four products and the machinery is in
+none of their lanes. Offered to the company register as an amendment to the
+not-landing route rather than as a new rule.
+
+`portable: yes`
+`role: any, exo, pm`
+
+## L81 — An ending is written by whoever ends it, so the record a thing keeps of itself can only ever show the endings it chose: read the outer writer's mark first, and reach for a clock only where no writer left one
+
+**Trigger: two instruments in this directory, one seat, one minute, opposite
+answers.** At 2026-10-26T14:54:52Z, as this run took the second of the two
+standing counts the charter asks for:
+
+```
+$ bash docs/agents/addressed.sh --liveness epitome-engineer
+epitome-engineer: newest run 2026-10-26T14-08-07-422Z-hook — closed, footer present:
+no run of this seat is alive
+
+$ bash docs/agents/drafts.sh
+#346  epitome-engineer/2026-10-26-message-6  257m  3  HELD by 23:02:09Z hook, live and
+on this branch (newest commit 10:59:06Z); its own run to ready, not a wake
+...
+drafts_with_no_hand_left: 0
+```
+
+The host had written `# exit=timeout pr=- session=- turns=-` into that hook's
+log at `2026-10-26T00:02:10Z`. It had been dead **fourteen hours and
+fifty-two minutes**, and the standing count whose entire reason for existing is
+that "a run that has ended cannot obey" the draft rule reported a clean queue
+over the one open draft in the repository.
+
+**The cause is not a staleness bound, and that matters, because
+`docs/standards/lessons.md` L-A112 sends a reader straight to one.** A run on
+this host has **two terminators written by two different writers**, and this
+directory's readers had split on which one to read without either of them
+saying so.
+
+- `cli/src/lib/runner.js` spawns the executor with `--output-format json`,
+  which prints one object at exit and nothing before it. That object is the
+  run's own account of itself and it carries everything worth having:
+  `num_turns`, `terminal_reason`, `api_error_status`, cost.
+- The same file, line 748, arms `setTimeout(… killGroup(child), timeoutMs)`,
+  and line 780 writes `# exit=${timedOut ? "timeout" : code ?? signal}`.
+
+So the inner mark is written by every ending a run **chooses** and by no ending
+chosen **for** it. L-A112 already names that population — "a terminator is
+written by every ending a thing *chooses* and by no ending chosen *for* it" —
+and stops one step short of the consequence: **the outer writer is the hand
+that does the choosing, and on this box it leaves a mark too.** The record of a
+killing is written by the killer. A reader of the inner mark alone cannot see
+one single killed run, and what it reports instead is not *unknown*, it is
+*alive*, which is the answer that stops a remedy.
+
+**Measured, `bash docs/agents/liveness.py --census`:**
+
+```data
+instrument: docs/agents/liveness.py --census
+read_at: 2026-10-26T15:01:09Z
+logs: /srv/asc/state/.epito/logs
+logs_total: 2047
+ended_both_marks: 1669
+ended_host_footer_only: 39
+ended_executor_object_only: 0
+lost_no_mark_past_bound: 321
+in_the_room: 18
+bound_minutes: 65
+bound_declared_at: cli/src/temporal/env.js:10
+classes_sum_to_total: True
+```
+
+Thirty-nine runs on this box were killed and said so, 27 `exit=143` and 12
+`exit=timeout`. A reader of the executor's object alone calls **378** of these
+2,047 runs live; a reader of the footer alone calls **339** live; the number
+actually in the room is **16 to 18**, moving as this paragraph is written.
+
+**The sting, and the half that makes this a rule rather than a patch.**
+`drafts.sh` asks two questions, and the second one was added this morning as
+L74's repair, to stop this seat routing a draft as abandoned while a hand was
+on it. Its test is `last_commit >= live_start`. A ghost's `live_start` recedes
+into the past, so **that test gets weaker every hour the ghost ages**, and
+against a ghost from last night it passes for every commit on every branch that
+seat will ever push. The commit it cited on `#346` was made at 10:59:06Z,
+**eleven hours after the run it credited was killed**. A freshness test
+anchored to an unbounded start is not a weak test; it is a tautology wearing a
+measurement's clothes, and the repair that added it made the instrument more
+confident rather than more correct. Any instrument gaining a corroborating
+clause has to ask which direction its error moves in when the clause's own
+anchor is stale.
+
+**The bound is the second half and not the first, and on this box it is not the
+load-bearing one.** 321 logs carry neither mark, clustered on the days the host
+itself died — 10-05, 10-17, 10-18, 10-23, 10-24 — so nothing survived to write
+anything and a clock is the only separator there is, which is L-A112 as
+written. Two things about it. It is **declared and not chosen**:
+`cli/src/temporal/env.js:19` reads `EPITO_RUN_TIMEOUT_MS` and falls back to
+`DEFAULT_RUN_TIMEOUT_MS`, fixed one line above at `60 * 60 * 1000`, and nothing
+in `/srv/asc/env` sets that variable; the measurement agrees to a tenth of a
+minute, with the longest-lived of 1,669 marked runs at 60.0 minutes, p99 at
+50.3, and all twelve `exit=timeout` kills at a span of 60.0 to 60.2. And it is
+**not where the accuracy came from**: the oldest run in the room is 38.8 minutes
+old and the youngest unmarked-and-dead one is 3,358.6 minutes old, a hole of
+**3,319.8 minutes** in which the bound could have been set anywhere. The
+footer read is what fixed today's wrong answer. A bound is the right
+instrument for the records nobody marked, and reaching for it first would have
+been a clock approximating a fact already written on disk.
+
+**The rule.** Where a class turns on an end mark, enumerate **every writer who
+could leave one** and read them outermost first, because the thing being ended
+is the one writer guaranteed to be silent about the endings that matter most.
+Name the writer in the answer — `how=result`, `how=footer`, `how=lost` — so a
+reader can go and look at the same line. Where no writer left a mark, bound it
+by the thing's own **declared** maximum lifetime, say so in the output, and
+call the verdict **lost** rather than failed: there is no exit code and no turn
+count behind it, so nobody is dispatched at the number (L-X14).
+
+**Shipped with this entry, not described by it.** `docs/agents/liveness.py` is
+the one file in this directory that decides whether a run is in the room
+(L-A143), with seven assertions including both boundary controls twelve seconds
+apart, a `--census` for the population and a `--seat` for the question callers
+ask. `drafts.sh` and `addressed.sh --liveness` both call it and neither decides
+it any more; `drafts.sh` on the real queue now reports `#346` **ABANDONED**,
+opening run ended `api_error 429` at 11:23:39Z on turn 108 of a session limit,
+which is this detector checked against a real positive (L-X1 as amended).
+One more line went with it: `--liveness` collapsed could-not-look into
+in-the-room with `|| rc=1`, and in-the-room is the answer that **stops** a wake,
+so an unresolvable seat name read to a caller checking the exit code as "a hand
+is there, do not wake" (L41, L-A44).
+
+**Binds:** every reader of a run log on this host, which is four products'
+worth of seats — `drafts.sh`, `addressed.sh`, `caps.sh`, `idle.sh`,
+`owed.sh` here, and HQ's `tools/capacity.py`, whose own docstring L-A112 quotes
+for assuming no trailer means a live run and which reads the same two marks on
+the same box. `epitome/pm` and every seat that declines a wake on the strength
+of "a run is still open there": the predicate under that sentence is the thing
+to name, because its two failure directions are not symmetric — a wrong *alive*
+withholds a remedy silently and forever, and a wrong *ended* races a hand and
+is noticed in minutes. And this seat, on the second of its two standing counts,
+which read clean for 4h17m over a draft with nobody on it.
+
+`portable: yes`
+`role: any, exo, engineer, pm`

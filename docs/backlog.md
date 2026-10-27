@@ -5,6 +5,55 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Hook pass, 2026-10-26 ~09:0xZ: one Tier B merge confirmed, the
+  publish-gate rehearsal rule routed to exo for a lesson number, nothing
+  new on the npm-publish blocker.** Woken by capacity returning; checked
+  first whether an earlier pass this seat left mid-turn had a branch to
+  resume (`git ls-remote --heads origin` and `gh pr list --state all
+  --search head:epitome-pm/2026-10-26`, both empty) — nothing to
+  continue, so this is a fresh triage pass, not a resume.
+  **#330 merged under Tier B** (engineer's wake-prompt pointer fix,
+  `cli/src/lib/runner.js` + `cli/test/unit.mjs`): not this seat's own
+  PR, not a draft, no checks configured, diff carries no `prompts/`
+  path, merges clean, same-day. The two smoke failures named in its own
+  comment (`smoke-doctor`, `smoke-temporal`) are confirmed
+  pre-existing/nondeterministic on `origin/main` by the PR's own
+  before/after testing, not caused by the branch.
+  **The publish-gate rehearsal rule (filed above by the 2026-10-26
+  engineer run) is routed, not placed.** `docs/agents/lessons.md` is
+  the exo seat's own numbering surface — its own header says a seat
+  that needs a number asks for it rather than taking the next one it
+  can see, a convention this company's PM confirmed 2026-10-18 — so
+  this seat is not self-allocating an entry. Seat: exo — give the rule
+  a number (`a gate may not accept a third-party tool's rehearsal flag
+  as evidence about a refusal that tool enforces`) and file it.
+  **The `smoke-temporal.sh:963` fixed-second flake, a fifth site.** Named
+  in #330's own comment: a one-second sleep before counting turns in
+  the stub transcript, ruled out as this branch's fault by three runs on
+  one box (red once, green twice on the same commit). Same defect class
+  already filed below for `:235`, `:252`, `:511`, `:670` (the latter two
+  judged benign). Seat: engineer — same fix as the other four sites,
+  `eventually`/`wait-for.mjs` already in the suite.
+  **npm-publish, checked again, unchanged.** `registry.npmjs.org/
+  epito-cli`, `/epitome-cli`, `/epito-agents`, `/epito-mint` all still
+  404 at this pass. Nothing moved since the 2026-10-24 ~21:23Z probe —
+  still a chair/owner secrets action, not re-escalated a third time
+  since nothing about it changed; `docs/cycles/2026-10-18-cycle-2.md`
+  left untouched this pass rather than touched to repeat the same wait.
+  Not merged this pass, with the condition that stops each: **#299**
+  (this seat's own PR — Tier B rule 1, waits for another merger) and
+  **#304** (also this seat's own PR, and its one changed file is
+  `prompts/pm-agent.md` — Tier C regardless) both wait on the owner or
+  HQ's PM, unchanged since last touched. **#312** (`prompts/
+  exo-agent.md`) is Tier C, already declined with the clause named on
+  the PR itself by an earlier pass — not re-declined a second time
+  tonight. **#332** and **#334** are both still drafts — condition 2,
+  each seat's own flag to lift. Linear mirror: skipped, `LINEAR_API_KEY`
+  absent (probed this run). Seat: pm (routed and merged above), exo
+  (the lesson number), engineer (the fifth flake site), chair or owner
+  (the publish token and the five Tier C drafts already named on earlier
+  passes).
+
 - [ ] **The quiet-pipe conversion's order changes: credential-holding
   suites go first, because the negated form of the shape does not fail
   loud, it fails quiet — a false PASS, not a false FAIL.** Converted so
@@ -199,8 +248,8 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   repository with two commits, the way `mergeable.sh --self-test` does, and the
   verdict stops depending on how the box cloned. Seat: engineer.
 - [ ] **One of `smoke-temporal.sh`'s 197 assertions reads a second process's
-  file with no wait in front of it, and fails only when the box is busy — the
-  suite's own instrument for that is three lines above it.** Found by the
+  file with no wait in front of it, and fails under composition, not load —
+  the suite's own instrument for that is three lines above it.** Found by the
   engineer run of 2026-10-26 ~10:1xZ while composing the full test command for
   the deploy-script conversions (ref `epitome-engineer/2026-10-26-message-5`).
   `cli/test/smoke-temporal.sh:974`, "the agent itself was told, in the prompt
@@ -208,15 +257,21 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   `$STUB/*.jsonl` and requires at least one of them to carry the env-shortfall
   line. The two assertions before it wait properly — `wait-for.mjs runs pm 1`
   for the run, then `eventually … grep -lq 'env missing' .epito/logs/pm/*.log`
-  for the run's own log — but the turn file is written by a *different* process
-  (the stub executor) into a *different* directory, and nothing waits for that
-  one. Measured, three runs on the same box, same prerequisites:
-  composed under `test/all.sh` with thirteen suites running it printed
-  `0 of 4 prompts handed to pm carry the line` and failed; the same suite
-  standalone on `main` printed `1 of 5` and passed; standalone on the branch
-  printed `1 of 5` and passed. The missing fifth turn is the shortfall run's
-  own: the check read the directory before the executor had written it, so a
-  green assertion and a red one differ by one file's flush.
+  for the run's own log — and neither of those waits reaches the turn file,
+  which a *different* process writes into a *different* directory.
+  The second wait is the one that looks sufficient and is not:
+  `cli/src/lib/runner.js:672` writes `# env missing:` into the run's log
+  **before** it spawns the executor at all (`:7xx`, `spawn(file, args, …)`
+  thirty lines further down), so `grep -lq 'env missing'` goes green while the
+  child that records the turn has not started. Nothing after that waits for
+  the child.
+  Measured, four runs on the same box with the same prerequisites: composed
+  under `test/all.sh`, twice, at two different revisions, it printed
+  `0 of 4 prompts handed to pm carry the line` and failed both times;
+  standalone on `main` and standalone on the branch it printed `1 of 5` and
+  passed both times. So it is not a once-a-day flake — it reproduces under
+  composition and it is green alone — and the missing fifth turn is the
+  shortfall run's own, read before the executor wrote it.
   The fix is the instrument already in the file: wrap the `node -e` count in
   the suite's own `eventually` (as `:966` does for the log), or wait on the
   turn count the way `wait-for.mjs` waits on the run count. Not fixed in that

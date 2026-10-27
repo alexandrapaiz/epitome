@@ -73,8 +73,41 @@ if [ "${1:-}" = "--self-test" ]; then
   out=$(bash "${BASH_SOURCE[0]}" --logs "$b" 2>&1); rc=$?
   [ "$rc" = 2 ] || { echo "caps.sh --self-test: a quoted record is not a finished run — expected exit 2, got $rc" >&2; ok=0; }
   case "$out" in *"none carried a finished run"*) ;; *) echo "caps.sh --self-test: expected the could-not-look sentence" >&2; ok=0 ;; esac
-  rm -rf "$a" "$b"
-  [ "$ok" = 1 ] && echo "caps.sh --self-test: both fixtures pass" && exit 0
+  # 3. An api_error that is not a limit. This is the real 2026-10-26 record
+  #    from seat `pm`: terminal_reason api_error, no api_error_status, and a
+  #    content refusal in `result`. It must leave the limit counts at zero.
+  c=$(mktemp -d); mkdir -p "$c/epitome-exo"
+  printf '%s\n' '{"duration_api_ms":1,"type":"result","subtype":"success","terminal_reason":"api_error","num_turns":2,"total_cost_usd":0.1,"duration_ms":60000,"result":"API Error: Sonnet 5 cant help with this. Start a new session to continue."}' \
+    > "$c/epitome-exo/${day}T06-10-22-059Z-message.log"
+  out=$(bash "${BASH_SOURCE[0]}" --logs "$c" 2>&1)
+  for want in 'limit_touched: 0' 'refused_before_a_turn: 0' 'api_error_that_is_not_a_limit: 1'; do
+    case "$out" in *"$want"*) ;; *) echo "caps.sh --self-test: an api error is not a limit — expected '$want'" >&2; ok=0 ;; esac
+  done
+  # 4. A run that COMPLETED and whose own final report quotes a refusal. This
+  #    is the real shape of `epitome-exo/2026-10-26T09-02-46-416Z-hook`, 118
+  #    turns, which documented incident 35 and so carries the provider's
+  #    sentence inside `result`. It is finished work and must leave the limit
+  #    counts at zero however much of a refusal its prose contains (L64).
+  d=$(mktemp -d); mkdir -p "$d/epitome-exo"
+  printf '%s\n' '{"duration_api_ms":1,"type":"result","subtype":"success","terminal_reason":"completed","num_turns":118,"total_cost_usd":10.0,"duration_ms":1524000,"result":"Charter read, run complete. The run at 06:04:46Z was cut: Youve hit your session limit · resets 9am (UTC)."}' \
+    > "$d/epitome-exo/${day}T09-02-46-416Z-hook.log"
+  out=$(bash "${BASH_SOURCE[0]}" --logs "$d" 2>&1)
+  for want in 'limit_touched: 0' 'hook_refused: 0' 'refusal_signature_in_text_only: 1'; do
+    case "$out" in *"$want"*) ;; *) echo "caps.sh --self-test: a report that quotes a refusal is not one — expected '$want'" >&2; ok=0 ;; esac
+  done
+  # 5. A 529 overload. Status is set, so the field test alone would call it a
+  #    quota refusal; it is not one, and the difference decides whether the
+  #    company's retry can ever wake the seat. Real record, `epitome-engineer`
+  #    2026-10-26T14-08-07-422Z, turn 31.
+  e=$(mktemp -d); mkdir -p "$e/epitome-exo"
+  printf '%s\n' '{"duration_api_ms":1,"type":"result","subtype":"success","terminal_reason":"api_error","api_error_status":529,"num_turns":31,"total_cost_usd":2.5,"duration_ms":600000,"result":"API Error: 529 Overloaded. This is a server-side issue, usually temporary."}' \
+    > "$e/epitome-exo/${day}T14-08-07-422Z-hook.log"
+  out=$(bash "${BASH_SOURCE[0]}" --logs "$e" 2>&1)
+  for want in 'limit_touched: 0' 'overloaded_529_no_reset_to_wait_for: 1' 'hook_refused: 0'; do
+    case "$out" in *"$want"*) ;; *) echo "caps.sh --self-test: an overload is not a quota — expected '$want'" >&2; ok=0 ;; esac
+  done
+  rm -rf "$a" "$b" "$c" "$d" "$e"
+  [ "$ok" = 1 ] && echo "caps.sh --self-test: all five fixtures pass" && exit 0
   exit 1
 fi
 
@@ -135,6 +168,8 @@ LIMIT  = re.compile(r'hit your [a-z]+ limit|"api_error_status":(?:429|529)|limit
 
 seats = collections.defaultdict(lambda: collections.defaultdict(list))
 text_only = []
+not_a_limit = []
+overloaded = []
 by_trigger = collections.defaultdict(lambda: collections.defaultdict(int))
 files = unparsed = 0
 for day in window:
@@ -167,8 +202,40 @@ for day in window:
         # so a run of this seat that merely wrote the refusal sentence down was
         # counted as refused: `epitome-exo/2026-10-18T13-07-01-011Z`, 98 turns,
         # $8.19, terminal_reason completed, documenting incident 8 (L64).
-        if r.get("terminal_reason") == "api_error" or r.get("api_error_status") in (429, 529):
+        # The discriminator is ONE field and no prose, including the result
+        # object's own `result`. Over all 1,633 finished runs in this host's
+        # history, `api_error_status in (429,529)` is exactly coextensive with
+        # the 397 limit refusals; reading `result` as well adds nothing but the
+        # trap L64 removed, and adding it back caught both of the two completed
+        # runs whose final report quotes a refusal — one of them this seat's own
+        # 09:02:46Z hook, 118 turns, which was briefly counted as the day's
+        # first refused hook inside the run that wrote this comment.
+        if r.get("api_error_status") == 429:
             sub = "refused"
+        elif r.get("api_error_status") == 529:
+            # An overload is not a quota. 429 says "you may not", 529 says "I
+            # cannot right now", and the difference is operational: a 429
+            # announces its own reset hour, which is the single fact the
+            # company's retry is built on (`capacity-retry.py` condition 2
+            # requires an announced reset), and a 529 announces nothing. So a
+            # 529-refused run is owed a wake that mechanism will never send.
+            # One such run exists in this host's 1,900 logs — `epitome-engineer`
+            # 2026-10-26T14-08-07-422Z, a hook, cut at turn 31 — and it arrived
+            # five minutes after the retry recovered sixteen seats, inside the
+            # run that split this class out. HQ's `capacity.py:refused_by`
+            # classes it `refused` on `terminal_reason` alone, so it reaches the
+            # brief as one of the day's provider refusals (incident 42).
+            sub = "overloaded"
+            overloaded.append(os.path.basename(path))
+        elif r.get("terminal_reason") == "api_error":
+            # An api_error that carries no limit status and no limit sentence is
+            # not a capacity refusal, and a column named for limits may not hold
+            # it (L-A88). 2026-10-26T06-10-22-059Z, seat `pm`, turn 2: "Sonnet 5
+            # can't help with this" with no `api_error_status` at all. Reading
+            # terminal_reason alone put it among that day's 99 limit-touched runs
+            # and the brief told the owner the provider had refused it.
+            sub = "api_error_not_a_limit"
+            not_a_limit.append(os.path.basename(path))
         elif LIMIT.search(text):
             # Named rather than dropped (L-A88): this is a log whose text says
             # limit and whose fields say the run finished its work.
@@ -247,6 +314,16 @@ if text_only:
           f"result object's fields, and are counted above as what they are — finished work. "
           f"The signature is in the run's own final report, which is the one place a seat that "
           f"documents refusals is guaranteed to write one (L64): {', '.join(sorted(text_only))}.")
+if overloaded:
+    print(f"{len(overloaded)} finished run(s) ended `api_error` with status 529 — the provider "
+          f"overloaded, not a quota — so they are NOT in the limit counts below. A 529 announces "
+          f"no reset hour, and an announced reset is the one fact the company's retry acts on, so "
+          f"these are owed a wake nothing will send: {', '.join(sorted(overloaded))}.")
+if not_a_limit:
+    print(f"{len(not_a_limit)} finished run(s) ended `api_error` with no limit status and no limit "
+          f"sentence of their own, so they are NOT in the limit counts below — an api error is not "
+          f"a capacity refusal and a column named for limits may not hold one (L-A88): "
+          f"{', '.join(sorted(not_a_limit))}.")
 print(f"{tot_r} finished run(s) on {len(rf_seats)} seat(s) were touched by a provider limit, "
       f"of which {tot_b} on {len(bf_seats)} seat(s) never took a second turn. "
       f"A limit-touched run and a refused-before-a-turn run are different facts and this is "
@@ -285,6 +362,8 @@ print(f"exhausted_seats: {findings}")
 print(f"exhausted_cost_usd: {tot_c:.2f}")
 print(f"exhausted_minutes: {tot_m:.0f}")
 print(f"refusal_signature_in_text_only: {len(text_only)}")
+print(f"api_error_that_is_not_a_limit: {len(not_a_limit)}")
+print(f"overloaded_529_no_reset_to_wait_for: {len(overloaded)}")
 for trig in sorted(by_trigger):
     d = by_trigger[trig]
     print(f"{trig}_attempted: {sum(d.values())}")
