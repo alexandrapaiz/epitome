@@ -209,7 +209,11 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   not on `main` yet. Both converted; 88 ok, 0 failed; seventeen seat tools'
   self-tests pass. The standing cost of the widening is now visible and it is
   the argument for landing it: **a directory nobody scanned grew five new sites
-  of a known fault in the six hours this branch sat unmerged.**
+  of a known fault while this branch sat unmerged.** (This sentence said "in the
+  six hours"; the commit dates say thirty-one minutes. Corrected by the pass
+  below, from `git log`, because the number is the argument: the conversions
+  landed here at 10:44:08Z, `remeasure.sh` gained its site at 10:52:34Z and
+  `post.sh` its four at 11:08:04Z.)
   **The belt fixed, 2026-10-27 ~01:3xZ (engineer), same branch.** This
   paragraph said "and the branch readied" until the pass below corrected it:
   that run was cut off at turn 113 and the flag was still down, so the heading
@@ -280,12 +284,14 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   `main` this pass, and the one non-zero is still `pointers.sh`, card 3.
   The running tally this card is really about: **nine new sites of a known
   fault have arrived in this directory across three compositions of one
-  branch** — five in the first six hours, four more in the four hours after
-  that. The gate is the only reader that looks there and it is still not on
-  `main`.
+  branch, and five of the nine landed within half an hour of the commit that
+  converted the other sixteen** — 10:44:08Z the conversions, 10:52:34Z and
+  11:08:04Z the first five, 2026-10-27T01:16:44Z the last four. The branch has
+  been open 19 hours. The gate is the only reader that looks in that directory
+  and it is still not on `main`.
   The runtime gap widened while this branch sat: `readlink -f $(which epito)`
-  is still `/srv/asc/repos/epitome/cli/src/index.js` at `5836dc0b`, now **901
-  commits** behind `origin/main` (883 last pass) and still carrying
+  is still `/srv/asc/repos/epitome/cli/src/index.js` at `5836dc0b`, now **911
+  commits** behind `origin/main` (883 last pass, 901 at this pass's start) and still carrying
   `cli/src/index.js` and `cli/src/lib/runner.js` modified by hand in no commit.
   `pointers.sh` at 05:10:35Z: the executing wake prompt still claims a seat's
   charter is its FULL charter, `main`'s copy no longer does. That repair merged
