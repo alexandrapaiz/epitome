@@ -96,7 +96,7 @@ gate() {  # $1 = payload path; 0 clean, 1 the gate refuses, 2 could not look
   # Belt, for the case where the gate stops setting an exit status it already
   # prints a verdict for: a verdict in the text and a clean exit disagree, and
   # the text wins because it is the half a reader checks.
-  if printf '%s' "$out" | grep -qE 'WOULD BE CUT|WOULD BE REFUSED'; then
+  if grep -qE 'WOULD BE CUT|WOULD BE REFUSED' <<<"$out"; then
     printf '\nREFUSED: the gate printed a refusal and exited clean, so the two disagree. Nothing was posted.\n'
     return 1
   fi
@@ -119,7 +119,7 @@ post() {  # $1 = payload path
     20*) ;;
     *) printf 'the board refused this and the gate did not predict it, which is a finding about the gate\n'; return 2 ;;
   esac
-  if printf '%s' "$resp" | grep -q '"body_truncated": *true'; then
+  if grep -q '"body_truncated": *true' <<<"$resp"; then
     printf '\nTHE GATE AND THE WRITE PATH DISAGREE: the gate passed this body and the server cut it.\n'
     printf 'Trust the server. Re-read the limit it reports and fix %s before the next send.\n' "$GATE"
     return 2
@@ -131,7 +131,7 @@ post() {  # $1 = payload path
 selftest() {
   local fail=0 out rc
   T=$(mktemp -d); trap "rm -rf $T" EXIT
-  check() { if printf '%s' "$2" | grep -qF "$3"; then echo "  ok   $1"; else echo "  FAIL $1: wanted '$3' in: $(printf '%s' "$2" | tail -3)"; fail=1; fi; }
+  check() { if grep -qF "$3" <<<"$2"; then echo "  ok   $1"; else echo "  FAIL $1: wanted '$3' in: $(tail -3 <<<"$2")"; fail=1; fi; }
 
   # The real 2026-10-26T11:02:58Z body: over the wake limit, disposition last.
   python3 - "$T" <<'PY'
@@ -176,7 +176,7 @@ PY
   out=$(gate "$T/cut.json"); rc=$?
   check "exit 3 is read as the wake cutting it, not as could-not-look" "$out" "REFUSED: the wake would cut this body"
   [ $rc = 1 ] || { echo "  FAIL exit for a wake-cut body: $rc"; fail=1; }
-  if printf '%s' "$out" | grep -q 'could not look'; then
+  if grep -q 'could not look' <<<"$out"; then
     echo "  FAIL a wake-cut body must not be reported as could-not-look"; fail=1
   fi
 

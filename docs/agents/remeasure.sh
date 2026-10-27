@@ -165,13 +165,17 @@ classify() {  # $1 = status text
 # how many can this script actually measure. Printed as a `data` block because
 # a count this charter tells a reader to paste must not need retyping (L33).
 coverage() {
-  local pop with without unjudge n cls st
+  local pop with without unjudge n cls st have
   pop=$(population)
   with=""; without=""; unjudge=""
+  # The incident numbers that carry an executable condition, read once. This was
+  # `blocks | cut -f1 | grep -qx` per incident: one quiet-pipe site, and one awk
+  # pass over the whole register for every open incident in the loop.
+  have=$(blocks | cut -f1 | sort -un)
   while IFS=$'\t' read -r n cls st; do
     [ -z "$n" ] && continue
     case "$cls" in
-      open)        if blocks | cut -f1 | grep -qx "$n"; then with="$with $n"; else without="$without $n"; fi ;;
+      open)        if grep -qx "$n" <<<"$have"; then with="$with $n"; else without="$without $n"; fi ;;
       unjudgeable) unjudge="$unjudge $n" ;;
     esac
   done <<< "$pop"
@@ -184,7 +188,7 @@ coverage() {
   printf 'read_at: %s\n' "$(date -u +%FT%TZ)"
   printf 'register: %s\n' "$FILE"
   printf 'incidents_in_register: %s\n' "$total"
-  printf 'conditions_executable: %s\n' "$(blocks | cut -f1 | sort -un | grep -c .)"
+  printf 'conditions_executable: %s\n' "$(grep -c . <<<"$have")"
   printf 'open_by_their_own_status: %s\n' "$((c_with + c_without))"
   printf 'open_with_a_condition: [%s]\n' "$(echo $with | tr ' ' ',')"
   printf 'open_without_a_condition: [%s]\n' "$(echo $without | tr ' ' ',')"
