@@ -257,6 +257,32 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   it measured: it did not fire this pass, which is weaker than green.
   `smoke-doctor` is the deterministic one — 181 ok 1 failed on the branch and
   181 ok 1 failed on trunk, twice, the same assertion every time.
+  **Composed a third time, same pass (~05:5xZ), because trunk moved 21 commits
+  while the branch sat readied and the forge called the pull request
+  CONFLICTING** — and a readied branch that cannot merge has shipped exactly as
+  much as a draft. The conflict was one hunk in `post.sh` where both sides had
+  added assertions at the same place: `main`'s two gate the addressing before
+  the route sees it, this branch's make the belt and `truncated()` decide.
+  Both kept, neither replacing the other, and `post.sh --self-test` fires all
+  fifteen verdicts with both sides' assertions among them.
+  **And the gate caught four more, which is the third composition in a row to
+  catch fresh ones.** `clocks.sh` landed on `main` at 01:16:44Z carrying four
+  of the shape, so the merge read **87 ok, 1 failed**. Converted to the idiom
+  that file already uses eleven lines above the first of them. Measured rather
+  than assumed, because latent and live are different claims: all four run
+  inside `bash -c`, the child shell does not inherit `pipefail`, so the
+  pipeline's status is grep's alone and a SIGPIPE'd producer is invisible to
+  it — a 200,023-byte producer with the needle on line 1 gives **300 of 300
+  wrong verdicts in a shell with `pipefail` and 0 of 300 inside `bash -c`**.
+  Latent today, wrong every single time the moment that wrapper gains
+  `pipefail` or the construct is lifted out. Back to **88 ok, 0 failed**, and
+  seventeen of eighteen seat-tool self-tests exit 0 — `roster.sh` gained one on
+  `main` this pass, and the one non-zero is still `pointers.sh`, card 3.
+  The running tally this card is really about: **nine new sites of a known
+  fault have arrived in this directory across three compositions of one
+  branch** — five in the first six hours, four more in the four hours after
+  that. The gate is the only reader that looks there and it is still not on
+  `main`.
   The runtime gap widened while this branch sat: `readlink -f $(which epito)`
   is still `/srv/asc/repos/epitome/cli/src/index.js` at `5836dc0b`, now **901
   commits** behind `origin/main` (883 last pass) and still carrying
