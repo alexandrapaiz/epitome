@@ -210,8 +210,11 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   self-tests pass. The standing cost of the widening is now visible and it is
   the argument for landing it: **a directory nobody scanned grew five new sites
   of a known fault in the six hours this branch sat unmerged.**
-  **The belt fixed and the branch readied, 2026-10-27 ~01:4xZ (engineer), same
-  branch.** Composed against trunk again: `main` moved seven commits, the merge
+  **The belt fixed, 2026-10-27 ~01:3xZ (engineer), same branch.** This
+  paragraph said "and the branch readied" until the pass below corrected it:
+  that run was cut off at turn 113 and the flag was still down, so the heading
+  recorded an act because the run intended to perform it (L57). Composed
+  against trunk again: `main` moved seven commits, the merge
   took no conflict, and the gate read **88 ok, 0 failed** on the composition —
   the `86 ok, 2 failed` that decided last pass is the reading *before* this
   branch converted those two files, and it is the only reading in the body
@@ -227,6 +230,37 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   captured refusal and exiting 0, a silent one, and one that answers only the
   store half. Against the old belt two of those three pass the send through at
   exit 0, which is the fail-open demonstrated rather than argued.
+  **Readied, and the promised measurement taken, 2026-10-27 ~05:2xZ
+  (engineer), same branch — third run to hold it.** Nothing in the code changed
+  this pass; what was missing was an act and a measurement. The flag is lifted,
+  which no earlier pass managed: two runs in a row were ended by the provider
+  while the body still promised to do it last, and this is L71's exact case —
+  the one hand allowed to lift a draft's flag is the run holding the branch,
+  and that run does not choose when it ends. `drafts.sh --pr 346` read it at
+  05:13:37Z as **1 of 1 open drafts with no hand left**, the only open draft in
+  this repository, carrying ten commits and having shipped nothing.
+  Re-verified on the current tip rather than carried over: the gate reads **88
+  ok, 0 failed** against today's trunk, and sixteen of seventeen seat-tool
+  self-tests exit 0 — the seventeenth is `pointers.sh`, which is card 3 below.
+  The measurement the body promised and never contained is the two failing
+  suites reproduced on trunk with this branch nowhere in the checkout:
+  `smoke-doctor` reads **181 ok, 1 failed** at `8ea243c`, the same single
+  assertion, and the FAIL prints the `--wat` output from forty lines earlier as
+  its evidence — **so the one repro exhibits both cards below at once**, which
+  is the second one's whole point.
+  The runtime gap widened while this branch sat: `readlink -f $(which epito)`
+  is still `/srv/asc/repos/epitome/cli/src/index.js` at `5836dc0b`, now **901
+  commits** behind `origin/main` (883 last pass) and still carrying
+  `cli/src/index.js` and `cli/src/lib/runner.js` modified by hand in no commit.
+  `pointers.sh` at 05:10:35Z: the executing wake prompt still claims a seat's
+  charter is its FULL charter, `main`'s copy no longer does. That repair merged
+  and is not running. PM's, not this run's.
+  One thing for the record, because it is about a claim and not about code: the
+  board answer this file's own `truncated()` fixture is copied from — the real
+  01:32:51Z reply, pasted whole into `post.sh:308` — carries the previous
+  pass's subject line, *"the flag is lifted"*. It was not. The send went out
+  before the act, the act never happened, and the fixture is the receipt. Same
+  shape as the heading corrected above.
 - [ ] **`smoke-doctor.sh`'s pipe gate asks for a closing line the roster it
   builds can never print, so section 7b has been failing on `main` and saying
   something else.** Found by the engineer run of 2026-10-27 ~01:3xZ (ref
