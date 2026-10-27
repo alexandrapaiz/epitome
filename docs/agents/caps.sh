@@ -137,21 +137,56 @@ seat_filter = os.environ["SEAT"] or None; root = os.environ["ROOT"]
 today = datetime.datetime.now(datetime.timezone.utc).date()
 window = [(today - datetime.timedelta(days=i)).isoformat() for i in range(days)]
 
-# The cap this product declares for each of its own seats. Two files carry it
-# and smoke-roster.sh asserts they agree, so reading either is reading both;
-# the manifest is the one a product seat may write (L-X9).
-caps = {}
+# The cap each of this product's seats is actually RUN under.
+#
+# This block used to read `agents/<seat>/agent.toml` alone, on the stated
+# ground that "two files carry it and smoke-roster.sh asserts they agree, so
+# reading either is reading both". Both halves were wrong by 2026-10-26.
+# `cli/test/smoke-roster.sh:193` compares the manifest to the *workflow*, and
+# `docs/agents/roster.sh:31` already said that check "has never fired"; the
+# file the executor reads is neither of them. It is the host roster at
+# /srv/asc/roster/<product>/<seat>/agent.toml, which `cli/src/lib/adapters.js`
+# turns into `--max-turns`. At 20:05:56Z on 2026-10-26 HQ raised exo there from
+# 120 to 180 and engineer from 150 to 225, at this seat's ask, and this
+# repository's manifests still read 120 and 150 — so the CAP column named a
+# number no run on this box had been executed under for four hours, and the
+# step sentence recommended a step that had already been taken (L82, incident
+# 45; L-X11, incident 9).
+#
+# So: the roster first, because it is the surface the run happens on, with the
+# manifest as the fallback and the disagreement printed rather than resolved.
+# A reader that silently picks one of two live numbers is the thing being fixed
+# here, so this one says which it read.
+PRODUCT = "epitome"
+ROSTER = os.environ.get("EPITO_ROSTER", "/srv/asc/roster")
+
+
+def _cap(path):
+    try:
+        m = re.search(r"^max_turns\s*=\s*(\d+)", open(path).read(), re.M)
+    except OSError:
+        return None
+    return int(m.group(1)) if m else None
+
+
+caps, cap_src, cap_split = {}, {}, []
 for f in glob.glob(os.path.join(root, "agents", "*", "agent.toml")):
     name = os.path.basename(os.path.dirname(f))
-    m = re.search(r"^max_turns\s*=\s*(\d+)", open(f).read(), re.M)
-    if m:
-        # Keyed by the host's seat name, which carries the product prefix.
-        # A bare `engineer` or `pm` on this host is another company's seat,
-        # and attributing this repository's cap to it is the same name
-        # collision that made the board's resolver answer for the wrong
-        # product (incident 23). Those seats report their cap as `-` and the
-        # step is read off the censored num_turns instead.
-        caps["epitome-" + name] = int(m.group(1))
+    declared = _cap(f)
+    executed = _cap(os.path.join(ROSTER, PRODUCT, name, "agent.toml"))
+    chosen = executed if executed is not None else declared
+    if chosen is None:
+        continue
+    # Keyed by the host's seat name, which carries the product prefix.
+    # A bare `engineer` or `pm` on this host is another company's seat,
+    # and attributing this repository's cap to it is the same name
+    # collision that made the board's resolver answer for the wrong
+    # product (incident 23). Those seats report their cap as `-` and the
+    # step is read off the censored num_turns instead.
+    caps[PRODUCT + "-" + name] = chosen
+    cap_src[PRODUCT + "-" + name] = "roster" if executed is not None else "manifest"
+    if declared is not None and executed is not None and declared != executed:
+        cap_split.append((PRODUCT + "-" + name, declared, executed))
 
 # The result object is a RECORD the executor writes on a line of its own, so
 # the pattern is anchored to one and the LAST of them is taken. It used to be
@@ -269,6 +304,7 @@ print()
 print(f"{'SEAT':<22}{'CAP':>5}{'RUNS':>6}{'EXHAUST':>9}{'REFUSED':>9}{'BEFORE':>7}{'$ BURNT':>9}{'MIN':>6}  NOTE")
 
 findings = 0
+caps_answered = 0
 tot_c = tot_m = 0.0
 tot_e = tot_r = tot_b = tot_runs = 0
 rf_seats, bf_seats = set(), set()
@@ -289,12 +325,28 @@ for s in sorted(seats):
         findings += 1
         tot_e += len(ex); tot_c += cost; tot_m += mins
         turns = sorted({x[1] for x in ex})
-        seen = cap if cap is not None else (turns[0] - 1 if turns and turns[0] else None)
-        step = int(seen * 3 / 2) if seen else None
+        # The cap these runs HIT, which is `num_turns - 1` and not whatever the
+        # cap is now. This used to prefer the declared cap, which was the same
+        # number for as long as a cap never moved inside a window. One moved on
+        # 2026-10-26 at 20:05:56Z and the line then read `8x at num_turns 121 —
+        # step 180 -> 270`: eight runs that died at 120 proposing a second step
+        # off the raise they had already earned. A step is read off the
+        # evidence, and the cap in force is a separate fact about whether the
+        # evidence has been answered (L-X3 as amended, L82).
+        hit = turns[0] - 1 if turns and turns[0] else None
+        step = int(hit * 3 / 2) if hit else None
         note = (f"EXHAUSTED {len(ex)}x at num_turns {','.join(str(t) for t in turns)} — "
-                f"peak censored; step {seen} -> {step} (L-X3)")
+                f"peak censored; step {hit} -> {step} (L-X3)")
+        if cap is not None and hit is not None and cap > hit:
+            caps_answered += 1
+            note += (f"; ALREADY ANSWERED — the cap in force is {cap}, raised after these "
+                     f"runs, so this is evidence about {hit} and not an open ask")
+        elif cap is not None and hit is not None and cap != hit:
+            note += (f"; the cap in force is {cap}, so these runs did not die at it")
         if cap is None:
             note += "; cap not declared in this repo's agents/"
+        elif cap_src.get(s) == "manifest":
+            note += "; cap read from this repo's agents/, not from the host roster"
     print(f"{s:<22}{(cap if cap is not None else '-')!s:>5}{runs:>6}{len(ex):>9}{len(rf):>9}"
           f"{len(bf):>7}{cost:>9.2f}{mins:>6.0f}  {note}")
     tot_r += len(rf); tot_b += len(bf); tot_runs += runs
@@ -308,6 +360,17 @@ if findings:
           f"of a peak and all of them are evidence about the cap (L-X3 as amended).")
 else:
     print(f"No seat exhausted its cap over {window[-1]}..{window[0]}, read from {finished} finished runs.")
+
+if cap_split:
+    # Not resolved here. A seat may not write the roster and the roster is what
+    # ran, so the CAP column above is the roster's number and this line is the
+    # repository saying something else — which is a finding about distribution
+    # and not a choice this instrument gets to make (L-X11, L-X13).
+    print(f"{len(cap_split)} seat(s) are run under a cap this repository does not declare. "
+          f"The CAP column above is the host roster at {ROSTER}/{PRODUCT}/<seat>/agent.toml, "
+          f"which `cli/src/lib/adapters.js` turns into `--max-turns`; agents/<seat>/agent.toml "
+          f"says otherwise and nothing in this repository compares the two: "
+          + ", ".join(f"{s} declares {d}, runs at {e}" for s, d, e in sorted(cap_split)))
 
 if text_only:
     print(f"{len(text_only)} log(s) carry a refusal signature in their text and in none of their "
@@ -361,6 +424,9 @@ print(f"exhausted: {tot_e}")
 print(f"exhausted_seats: {findings}")
 print(f"exhausted_cost_usd: {tot_c:.2f}")
 print(f"exhausted_minutes: {tot_m:.0f}")
+print(f"caps_read_from_roster: {sum(1 for v in cap_src.values() if v == 'roster')}")
+print(f"caps_repo_disagrees_with_roster: {len(cap_split)}")
+print(f"cap_findings_already_answered_by_a_raise: {caps_answered}")
 print(f"refusal_signature_in_text_only: {len(text_only)}")
 print(f"api_error_that_is_not_a_limit: {len(not_a_limit)}")
 print(f"overloaded_529_no_reset_to_wait_for: {len(overloaded)}")
