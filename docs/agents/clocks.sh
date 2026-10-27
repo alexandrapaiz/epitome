@@ -17,12 +17,30 @@
 # field. Both directions of that mistake cost something and only one of them is
 # loud, so the question stopped being a reading and became this.
 #
-# Four answers and never two (L41): 0 a clock is running in the field the law
-# names, 1 no clock is running, 2 could not look, 3 a deadline is enumerable in
-# `data` but is not that field. A prose clock answers 1 and says so in words,
-# because "nobody promised anything" and "I could not reach the board" are
-# different facts about the same silence. The 3 exists because a deadline
-# written in `data` is enumerable and is still not the field the law names.
+# Six answers and never two (L41): 0 a clock is running and is declared in all
+# three places `docs/standards/pm.md` §22 names, 1 no clock is running, 2 could
+# not look, 3 a deadline is enumerable in `data` but is not that field, 4 the
+# field is set and §22 is NOT satisfied — the verdict names which place is
+# missing, 5 the field was set and the hour has passed. A prose clock answers 1
+# and says so in words, because "nobody promised anything" and "I could not
+# reach the board" are different facts about the same silence. The 3 exists
+# because a deadline written in `data` is enumerable and is still not the field
+# the law names.
+#
+# WHY 4 AND 5 EXIST, AND THEY COST THIS COMPANY A CLOCK OF ITS OWN. Until
+# 2026-10-27 this file read exactly one of §22's three places — the field — and
+# answered 0 whenever it was set. Measured that night against every clock this
+# board has ever carried (3,657 messages, 720 hours, paged in splitting slices
+# rather than read at a limit): three real silence clocks, **none** declared in
+# all three places, each missing a different one, and this file answered
+# `clock running`, exit 0, on all three. On the expired one it printed
+# `-3h left` and still called it running, which is the one state a clock
+# instrument exists for: a clock that transfers authority does not miss noisily
+# at its deadline, it never fires at all (§22's own words). And the clock this
+# seat itself filed on 2026-10-26T05:10:06Z ran over two asks that had written
+# `silence_proceeds: false` into their own data thirty-one hours earlier — so a
+# fourth state was needed for *the field is set and nothing may be released on
+# it*, which is not the same answer as either yes or no (L85).
 #
 # `--writable` used to read the board's source and was wrong for two days, in
 # the direction that excused everybody (L67). It reported the field unsettable
@@ -207,11 +225,43 @@ case "${1:-}" in
  {"ts":"2026-10-24T14:00:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
   "to_company":"epitome","to_seat":"pm","subject":"no clock claimed at all",
   "body":"please merge this when you can","ref":"https://github.com/alexandrapaiz/epitome/pull/998",
-  "expires_at":null}
+  "expires_at":null},
+ {"ts":"2026-10-24T16:00:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"owner","subject":"the owner half, prose",
+  "body":"forty-eight hours of your silence and it proceeds as recommended",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/996","expires_at":null},
+ {"ts":"2026-10-24T16:01:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"the applier half, fielded",
+  "body":"the deadline for the ask above, in the field, addressed to the hand that applies it",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/996",
+  "expires_at":"2099-01-01T00:00:00+00:00"},
+ {"ts":"2026-10-24T17:00:00+00:00","kind":"ask","from_company":"epitome","from_seat":"pm",
+  "to_company":"epitome","to_seat":"owner","subject":"my own authority waits for your word",
+  "body":"I am not treating your silence as consent here",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/995","expires_at":null,
+  "data":{"pr":995,"silence_proceeds":false}},
+ {"ts":"2026-10-24T17:01:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"a clock over that refusal",
+  "body":"a clock in the field on the branch above",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/995",
+  "expires_at":"2099-01-01T00:00:00+00:00"},
+ {"ts":"2026-10-24T18:00:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"owner","subject":"declared and long expired, owner half",
+  "body":"forty-eight hours of your silence",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/994","expires_at":null},
+ {"ts":"2026-10-24T18:01:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"declared and long expired, applier half",
+  "body":"the deadline in the field for the ask above",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/994",
+  "expires_at":"2000-01-01T00:00:00+00:00"}
 ]}
 JSON
-  # 1 — the pull request whose ask carries the field: a clock is running.
-  check "field set -> clock running"        0 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 999
+  # 1 — the field alone is not a declared clock any more: #999's ask carries
+  #     the field and names an applier, and no ask on it ever reached an
+  #     owner, so §22's second party is missing and it answers 4 (L85).
+  check "field set, owner never shown -> 4" 4 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 999
+  check "and it says which place is missing" 0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'bash "$0" 999 2>&1 | grep -q "ever reached an owner"' "$0"
   # 2 — the pull request whose ask only says 48 hours: no clock.
   check "prose only -> no clock"           1 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 271
   # 3 — a pull request no ask names at all: no clock, and a different sentence.
@@ -231,6 +281,21 @@ JSON
   # 4c — a deadline written the one way a seat can write it is neither a clock
   #      in the law's field nor nothing, so it gets its own exit.
   check "deadline in data -> enumerable, not law" 3 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 997
+  # 4d — all three places, over two messages, which is the only shape that has
+  #      ever fired in this company (L85).
+  check "owner half + applier half -> running"  0 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 996
+  check "and it names the applier it was told to" 0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'bash "$0" 996 2>&1 | grep -q "all three places"' "$0"
+  # 4e — a clock filed over the item's own declared refusal releases nothing,
+  #      and the refusal is read from the field rather than the prose (L85).
+  check "clock over silence_proceeds:false -> 4" 4 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 995
+  check "and it quotes the field that refused"   0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'bash "$0" 995 2>&1 | grep -q "silence_proceeds"' "$0"
+  # 4f — expired is its own answer: the hour a clock exists for is the hour it
+  #      passes, and `running (-3h left)` was the old reading of exactly this.
+  check "declared and expired -> 5"             5 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 994
+  check "and it refuses to call that running"    0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'bash "$0" 994 2>&1 | grep -q "^EXPIRED on #994"' "$0"
   check "census with prose clocks -> 1"     1 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0"
   # 6 — could-not-look is its own answer and is never spelled like clean.
   check "unreadable board -> could not look" 2 env CLOCKS_FIXTURE="$tmp/nope.json" bash "$0" 271
@@ -278,9 +343,24 @@ REPO=${REPO:-$(basename -s .git "$(git remote get-url origin 2>/dev/null)" 2>/de
 PRODUCT=${PRODUCT:-$(awk -F': *' '/^product:/{print $2}' company.yaml 2>/dev/null)}
 REPO=${REPO:-epitome}; PRODUCT=${PRODUCT:-epitome}
 [ -z "$PR" ] || printf 'asked about %s#%s, pointers read from `ref` and `data` (L-A18)\n' "$REPO" "$PR"
-python3 - "$tmp/asks.json" "$PROSE" "${PR:-}" "$REPO" "$PRODUCT" <<'PY'
+
+# §22's second place is "`ref` pointing at the pull request the clock
+# releases", and a reference to a pull request that has already merged or
+# closed releases nothing however good the field is. The ADR-13 clock of
+# 2026-10-26T15:11:14Z pointed at a pull request that had merged ten minutes
+# earlier, so its release had to be written fresh by hand rather than applied
+# (L85). The state is read from the forge rather than inferred, and a read that
+# could not happen says so instead of passing (L-A134): `?` is a third answer
+# and never spelled like OPEN. A fixture run never asks the forge, because a
+# self-test that reaches the network tests the network.
+PR_STATE='?'
+if [ -n "$PR" ] && [ -z "${CLOCKS_FIXTURE:-}" ] && command -v gh >/dev/null 2>&1; then
+  PR_STATE=$(gh pr view "$PR" --json state --jq .state 2>/dev/null || echo '?')
+  [ -n "$PR_STATE" ] || PR_STATE='?'
+fi
+python3 - "$tmp/asks.json" "$PROSE" "${PR:-}" "$REPO" "$PRODUCT" "$PR_STATE" <<'PY'
 import json, re, sys, datetime
-path, prose, pr, repo, product = sys.argv[1:6]
+path, prose, pr, repo, product, pr_state = sys.argv[1:7]
 try:
     msgs = json.load(open(path))["messages"]
 except Exception as why:
@@ -351,15 +431,103 @@ if pr:
                 return v
         return None
 
-    real = [m for m in msgs if names(m, repo, product, pr) and m.get("expires_at")]
+    # The field is one of three places `docs/standards/pm.md` §22 requires, and
+    # it is the only one this file used to read. On 2026-10-27 all three of the
+    # real silence clocks this board has ever carried answered `clock running`
+    # here, each one missing a different one of the other two, and the expired
+    # one printed `-3h left` and still called itself running (L85). So the
+    # verdict now names the place it could not satisfy.
+    #
+    # The applier and the owner are two different parties and a board message
+    # has one recipient, so §22 cannot be satisfied by one message and is not
+    # read as if it could be: the question is whether the applier was told in
+    # its own inbox at all (L-A99, L-A111) and whether the party whose silence
+    # is being read was ever shown the words. The one clock in this company's
+    # history that fired was the one that was two messages.
+    def applier_recipient(m):
+        """Is this message's recipient a hand §21 authorises to merge here?"""
+        seat = (m.get("to_seat") or "").lower()
+        if seat.startswith("chair"):
+            return True
+        return seat == "pm" and (m.get("to_company") or product) == product
+
+    def is_owner(m):
+        return (m.get("to_seat") or "").lower() == "owner"
+
+    def refuses_silence(m):
+        """The item's own author declaring that silence releases nothing.
+
+        A field, because prose is advisory and the field decides (L-A45,
+        L-A98). This is the state L85 is about: an item with no clock is a gap
+        or a refusal, and only the first is a thing to fix."""
+        d = m.get("data") or {}
+        return isinstance(d, dict) and d.get("silence_proceeds") is False
+
+    named = [m for m in msgs if names(m, repo, product, pr)]
+    real = [m for m in named if m.get("expires_at")]
     if real:
+        newest = sorted(real, key=lambda x: x["expires_at"])[-1]
+        exp = datetime.datetime.fromisoformat(newest["expires_at"])
+        left = exp - now
+        hours = left.total_seconds() / 3600
+        told = [m for m in named if applier_recipient(m)]
+        shown = [m for m in named if is_owner(m)]
+        refused = [m for m in named if refuses_silence(m)]
         for m in sorted(real, key=lambda x: x["expires_at"]):
-            left = datetime.datetime.fromisoformat(m["expires_at"]) - now
-            print(f"clock running on #{pr}: expires {m['expires_at'][:19]}Z "
-                  f"({int(left.total_seconds()//3600)}h left), filed {m['ts'][:19]}Z "
-                  f"by {m.get('from_company')}/{m.get('from_seat')} "
+            print(f"#{pr} carries the field: expires {m['expires_at'][:19]}Z, "
+                  f"filed {m['ts'][:19]}Z by {m.get('from_company')}/{m.get('from_seat')} "
                   f"-> {m.get('to_company')}/{m.get('to_seat')}")
             print(f"  {m['subject'][:100]}")
+
+        missing = []
+        if refused:
+            for m in refused:
+                print(f"  REFUSED  {m['ts'][:19]}Z {m.get('from_company')}/{m.get('from_seat')}"
+                      f" -> {m.get('to_company')}/{m.get('to_seat')} wrote"
+                      f" `silence_proceeds: false` in its own data")
+            missing.append("the item's own ask declares that silence releases nothing, so a "
+                           "clock over it reverses a reservation rather than collecting consent "
+                           "(L85) — withdraw it, or take the evidence to the hand that holds "
+                           "the item (L-A66)")
+        if not told:
+            missing.append("no message names an applier §21 authorises to merge here: §22's "
+                           "third place is the recipient field, and a clock expires at an hour "
+                           "no run chose, so an applier nobody told is nobody woken")
+        if not shown:
+            missing.append("no ask on this item ever reached an owner, so the silence being "
+                           "read as consent is the silence of a party never shown the words")
+        if pr_state in ("MERGED", "CLOSED"):
+            missing.append(f"the `ref` points at a pull request that is {pr_state.lower()}, so "
+                           f"there is no merge left for the deadline to be: §22 asks the ask to "
+                           f"carry its change, and a release here has to be written fresh rather "
+                           f"than applied")
+        if missing:
+            print(f"NOT DECLARED on #{pr}: the field is set and §22 is not satisfied."
+                  f" Nothing may be released on this.")
+            for why in missing:
+                print(f"  - {why}")
+            if told:
+                print(f"  told: " + ", ".join(
+                    f"{m.get('to_company')}/{m.get('to_seat')} at {m['ts'][:19]}Z" for m in told))
+            if shown:
+                print(f"  shown her: " + ", ".join(f"{m['ts'][:19]}Z" for m in shown))
+            sys.exit(4)
+
+        if hours < 0:
+            print(f"EXPIRED on #{pr}: the hour passed {abs(int(hours))}h ago "
+                  f"({newest['expires_at'][:19]}Z) and this file cannot tell you whether "
+                  f"anybody acted — ask the pull request, not the board.")
+            print(f"  the applier §22 authorised: " + ", ".join(
+                f"{m.get('to_company')}/{m.get('to_seat')}" for m in told))
+            sys.exit(5)
+
+        vehicle = {"OPEN": "open", "?": "NOT CHECKED — no forge read, so this place is"
+                                        " unconfirmed rather than clear"}.get(pr_state, pr_state)
+        print(f"clock running on #{pr}: expires {newest['expires_at'][:19]}Z "
+              f"({int(hours)}h left), declared in all three places §22 names")
+        print(f"  the pull request the `ref` releases: {vehicle}")
+        print(f"  applier told: " + ", ".join(
+            f"{m.get('to_company')}/{m.get('to_seat')} at {m['ts'][:19]}Z" for m in told))
         sys.exit(0)
     interim = [m for m in msgs
                if names(m, repo, product, pr) and not m.get("expires_at") and data_deadline(m)]
