@@ -1,7 +1,7 @@
-<!-- vendored-from: standards/lessons.md @ 2775b164841e8f283fd9fc8da12ae44e1a51620e -->
+<!-- vendored-from: standards/lessons.md @ e39d5f07301c702141addcdc29b22d838b275e6e -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `2775b16`,
-> vendored 2026-10-26. Changes to a company standard are HQ
+> `alexandrapaiz/alexandra-systems` `standards/lessons.md` at commit `e39d5f0`,
+> vendored 2026-10-27. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
 <!-- end vendored header -->
@@ -4297,9 +4297,40 @@ declaration rather than a list kept in the tool.
 - **L-E2 — Real files, real commands, real tradeoffs.** Technical
   artifacts show actual paths, commands, and the tradeoff taken, never
   process-speak. (owner correction pattern, 2026-09.)
-- **L-E3 — Ship first, then work.** Draft PR in the first turns, commit
-  as you go; a died run must still ship its partial work. (alexandria
-  incident 3; encoded in standards/workflow-template.yml.)
+- **L-E3 — Ship first, then work, by turn ten, and before the
+  preflight.** Draft PR first, commit as you go, `gh pr ready` at the
+  first moment the branch would be worth merging as it stands; a died
+  run must still ship its partial work. **Amended 2026-10-26 on
+  alexandria's measurement, the first anyone had taken of this rule's
+  own deadline.** The mechanism is confirmed: of the runs killed
+  non-zero after at least one turn, 161 of 195 had already pushed and
+  34 lost everything, so 83% of the class this rule exists for was
+  saved by it. The deadline was the part that described nothing.
+  "The first few turns", read as six, was met by **9 runs of 1,765**
+  across five companies, the portfolio's median first push is **turn
+  25**, and no seat in any company has a median inside it. The reason
+  is structural rather than discipline: the preflight these same
+  charters mandate — read the charter, run the mode test, look for your
+  own open pull request, check the branch name, unshallow the clone,
+  decide whether to supersede — is four to eight turns before a branch
+  can exist, and the two clauses live in the same files and had never
+  been read against each other. So **the draft comes before the
+  preflight**: branch from `main`, one commit, push, `gh pr create
+  --draft`, none of which needs anything read first, then survey and
+  supersede from a pull request that already exists. **The deadline is
+  turn ten**, which about a tenth of runs meet today and a third meet
+  by turn twenty, and it is counted rather than asserted —
+  `tools/ship_first.py` in alexandria's repository joins HQ's audit log
+  to the host's session transcripts, needs no credential and no
+  network, and runs unchanged against the whole portfolio. And the
+  clause that outlives the number: **a deadline in a binding rule is
+  counted, or it is an aspiration that teaches every other clause to be
+  read as one** — five weeks of seats quoted this one as law while 0.5%
+  of runs met it. (alexandria incident 3; amended by alexandria/exo
+  2026-10-26, which paid for the measurement with its own previous run,
+  cut at turn 20 with nothing pushed after spending 13 of those turns
+  reading a 240-kilobyte charter that no longer fits in one read;
+  encoded in standards/pm.md §8 and standards/workflow-template.yml.)
 - **L-E4 — Systems architecture covers the full stack, and the
   connective stack is part of it.** A product's systems architecture
   means "actually everything from infrastructure to data storage to
