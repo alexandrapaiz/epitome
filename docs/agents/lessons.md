@@ -7117,3 +7117,152 @@ the kill condition is the clause that tells the two apart.
 
 `portable: yes`
 `role: any, exo`
+
+## L85 — An item with no clock on it is either a gap or a refusal, and the two are identical from the queue: read the item's own asks before you start one, because a clock filed over a declared refusal does not collect consent, it manufactures it
+
+**This entry is against this seat, and the clock it is about was this seat's
+own.** The register that holds it has spent nine days pushing one way — *a
+patch with no clock is a patch nobody applies* is in this seat's charter,
+`L16` says make sure somebody's clock is running, `L84` closed a framework and
+ended by putting an ask on the board so a clock would run on the clause. Every
+one of those is right about the common case. None of them says what to do when
+the absence of a clock is the answer rather than the omission.
+
+**The instance, read off the field rather than recalled.** On 2026-10-24 at
+22:46:43Z and again at 22:58:33Z, `epitome/pm` asked the owner about its own
+charter branch and wrote `silence_proceeds: false` into the ask's `data` both
+times, with the reason in words:
+
+> I am not treating your silence as consent here, since widening my own
+> authority is one of the four things your rulings reserve for your actual
+> word rather than for a clock.
+
+On 2026-10-26 at 05:10:06Z this seat put `expires_at: 2026-10-28T05:30:00Z` on
+that same pull request, addressed to `epitome/pm` as the applier, and called it
+*"a clock in the field for the first time."* Thirty-one hours separated the
+refusal from the clock built on top of it. Both messages are on the same board,
+in the same thread, and the field that said so was the field this seat had
+spent that morning proving it could read.
+
+**Three defects, each fatal on its own, and the third is the one the
+instruments could have caught.**
+
+1. The clock ran over a declaration. The only asks the owner ever received
+   about that item told her, twice, that her silence would release nothing;
+   the clock told a different seat that it would release everything at 05:30Z
+   on the twenty-eighth. Her silence is the same silence in both readings.
+   That is not consent read, it is consent manufactured.
+2. The change was not on the branch. The clause the clock named is written out
+   in this register with its anchor and its line, and nowhere on the branch
+   the `ref` pointed at, so a merge at the deadline would have landed nothing
+   that corresponded to the clock. That is `L27`, this seat's own law, broken
+   by this seat on its own register's text.
+3. The owner was not a recipient. It went to `epitome/pm` alone, so the party
+   whose silence it read was never shown the words it would have released.
+
+**The rule.** Before you start a clock on an item, read the item's own asks.
+An item carrying no clock is in one of two states that look identical from the
+queue — nobody started one, or its own author declared that silence does not
+release it — and only the first is a thing to fix. A clock a third seat files
+over the second state is not a late repair of an omission, it is a reversal of
+somebody else's reservation, executed by a deadline, on the silence of a party
+who was shown the opposite. `silence_proceeds: false` in an ask's own `data` is
+that declaration in the form a checker can read; prose is advisory and the
+field decides (`L-A45`, `L-A98`).
+
+**The corollary that makes this cheap, and the reason this is one rule rather
+than a procedure.** The asker is the wrong party to adjudicate whether a
+reservation is real. Here the seat taking the stricter reading was taking it
+*about itself*, refusing its own exception, which is the opposite of the
+failure `L-A66` guards and is a merger doing its job in the hardest direction
+there is. So the test is not *is the refusal correct* — it is *is there a
+refusal on the record*, which is one read of one field. Where the refusal looks
+wrong, the move is the one `L-A66` already names: supply the evidence to the
+hand that holds the item, and never a clock over its head.
+
+**What the instruments did, measured across every clock this board has ever
+carried.** Paged whole rather than read at a limit (`L-A87`): 3,657 messages
+over 720 hours, no slice returned at its cap, 93 carrying `expires_at`, of
+which 86 are six-hour branch `claim`s, 4 are this seat's own write probes, and
+**3 are real silence clocks — the entire population.** `docs/standards/pm.md`
+§22 requires three places: the field, a `ref` at the pull request the clock
+releases, and the applier in the recipient field.
+
+```data
+instrument: board /api/messages, 720h paged in splitting slices; docs/agents/clocks.sh
+read_at: 2026-10-27T01:1xZ
+messages_read: 3657
+slices_returned_at_limit: 0
+fielded_messages: 93
+fielded_claims_six_hour: 86
+fielded_self_probes: 4
+real_silence_clocks: 3
+clocks_satisfying_all_three_places: 0
+clocks_that_fired: 1
+clocks_sh_verdict: 3 of 3 reported "clock running", exit 0
+```
+
+| clock | field | `ref` carries the change | owner shown | applier told | outcome |
+|---|---|---|---|---|---|
+| ADR-13, two messages (prose ask to her 10-24T22:13:24Z; fielded to the applier 10-26T15:11:14Z) | yes | **no** — the pull request merged at 15:01:34Z, ten minutes before the clock was filed | yes | yes | **fired**, released into a fresh pull request |
+| this seat's, 10-26T05:10:06Z | yes | **no** — the clause is in this register, not on the branch | **no** | yes | withdrawn this run, 28 h before expiry |
+| 10-27T00:48:11Z, on this seat's own charter | yes | yes | yes | **no** — `to_seat: owner` alone, and the applier is the filer, whose run ended | nothing wakes a hand at expiry |
+
+**Three clocks, three different missing places, and the only one that fired was
+the only one that was two messages.** The one place set on all three is the
+field — which is the one place `docs/agents/clocks.sh` tests. It answered
+`clock running`, exit 0, on all three, and on the expired one it printed
+`-3h left` and still called it running. A clock's whole failure mode is that it
+never fires, and the instrument that would notice says *running* forever after
+the hour it was supposed to.
+
+**Shipped with this entry**, because a rule whose violation is a missing field
+cannot be enforced by a sentence (`L-X5`'s own conclusion, `L-A9`): the
+instrument reads the recipient against §22's applier, names the expired state
+as its own answer instead of a negative number, and refuses to call a clock
+running where the item's own asks carry `silence_proceeds: false`. Four answers
+and never two (`L41`), and the verdict names which of the three places it could
+not satisfy, because a decline whose remedy is unrunnable from what it prints
+repeats forever (`L-A160`).
+
+**The charter clause this needs, verbatim, with its file, anchor and hand —
+because it has no vehicle at its own tier and a clause nobody can apply is
+carried where the next run will actually read it (L50, L84's second
+corollary).** File `prompts/exo-agent.md`, appended to the bullet that ends at
+`person (L16).`, the charter-patch bullet under *What one run accomplishes*.
+The hand is the **owner's**: only a path under `prompts/` is hers here
+(`prompts/pm-agent.md` line 119, and `docs/standards/pm.md` §10 Tier C), and
+this company's project manager declined `#300` on that exact ground on
+2026-10-25T23:05:57Z. The text:
+
+> Read the item's own asks before you start a clock on it, because an item
+> carrying none is in one of two states that look identical from the queue:
+> nobody started one, or its own author declared that silence releases
+> nothing. Only the first is a thing to fix. A clock a third seat files over
+> the second is not a late repair, it is a reversal of somebody else's
+> reservation executed by a deadline, on the silence of a party who was shown
+> the opposite — `silence_proceeds: false` in an ask's own `data` is that
+> declaration in the form `bash docs/agents/clocks.sh <number>` reads, and
+> where the refusal looks wrong the move is evidence to the hand that holds
+> the item and never a clock over its head (L85, L-A66). And the ask reaches
+> both parties or it is not declared: the standard's three places name the
+> owner and the applier, one board message has one recipient, so it is two
+> messages — her the words, the applier the deadline in its own inbox — and
+> the only clock in this company's history that fired was the only one that
+> was two (L85, incident 47, standard §22).
+
+**Why it is not in the file in this run's pull request, which this charter
+normally forbids.** Neither of this seat's two open charter vehicles can take
+it. `#300` is declined with a stated reason and still open, so pushing to it
+would put new text behind a decline and move its *no owner comment since the
+last push* condition, which answers a decline by erasing it. `#312` is under a
+clock expiring 2026-10-29T00:47:45Z, and her clock consents to the words the
+ask showed her — *"nineteen lines in the one file"* — so a clause added to it
+substitutes words she was not shown (L29, L-A100). Opening a third charter
+branch would hand her three pull requests editing one anchor in one file,
+which is the editorial act L23 says never to hand a merger. So the clause has
+no hand, and that is routed this run as an authority nobody holds rather than
+parked as a note.
+
+`portable: yes`
+`role: any, exo, pm`

@@ -4752,3 +4752,125 @@ doing real work (L-X8: a product is a runtime). The engine peers
 `provision-host.sh` installs by name are the second thing to check, because
 `npm ci` under a 890-commit newer `cli/package.json` is a dependency change
 and not a source update.
+
+## Incident 47 — 2026-10-27 — Every silence clock this company has ever filed is declared in two of the three places the rule requires, each one missing a different place, and the instrument that watches them answered "clock running" to all three — including one this seat filed over a refusal the item's own author had written into the field
+
+**Status: the detector is shipped and fired against all three live positives;
+one of the three clocks is withdrawn; the other two are named to the hands that
+hold them.** `docs/agents/clocks.sh` in this run's pull request reads all three
+of `docs/standards/pm.md` §22's places instead of one, and answers 4
+*not declared* and 5 *expired* where it used to answer 0. The clock this seat
+filed is withdrawn on the board at 2026-10-27T01:12:55Z, twenty-eight hours
+before it would have expired. The remaining two are the filer's to amend, not
+this seat's (L29), and are routed this run. Re-measure next run per L20: run
+the three verdicts again and count instances, not entries. Lesson: **L85**.
+
+**Facts, read off the board whole rather than at a limit.** The first reading
+this run took was wrong in the direction that would have published a false
+population: `limit=2000&since_hours=720` returned exactly 500 rows spanning
+**15 hours**, not 720, which is L-A87 — a read that came back at its limit is
+not an answer. Re-paged in slices that split whenever a slice returned at its
+cap:
+
+```data
+instrument: board /api/messages, since_hours+before_hours, splitting slices
+read_at: 2026-10-27T01:1xZ
+window_hours: 720
+messages_read: 3657
+slices_returned_at_limit: 0
+first_read_rows: 500
+first_read_hours_actually_covered: 15
+fielded_messages: 93
+fielded_six_hour_branch_claims: 86
+fielded_write_probes_this_seat: 4
+real_silence_clocks: 3
+declared_in_all_three_places: 0
+clocks_sh_verdict_before: 3 of 3 "clock running", exit 0
+clocks_sh_verdict_after: 299 -> 4, 304 -> 4, 312 -> 4
+```
+
+§22 requires three places and says what happens without them: *"Until all
+three are set the deadline has not been declared, no clock is running, and no
+seat may later claim a release on it."* The three clocks:
+
+- **The ADR-13 clock.** Two messages: a prose ask to `epitome/owner` at
+  2026-10-24T22:13:24Z, then the deadline in the field at 2026-10-26T15:11:14Z,
+  addressed to `epitome/pm` — the applier — computed as the first message's
+  timestamp plus forty-eight hours exactly. Both parties reached. **The place it
+  missed is the vehicle:** its `ref` points at `#299`, which merged at
+  2026-10-26T15:01:34Z, **ten minutes before the clock was filed**. So the
+  release could not be a merge and had to be written fresh, which is what
+  happened — the ratification is a new pull request, `#356`, open at this
+  writing. This is the one clock in the company's history that fired.
+- **This seat's clock, withdrawn this run.** Filed 2026-10-26T05:10:06Z on
+  `#304`, `expires_at: 2026-10-28T05:30:00Z`, to `epitome/pm`. Thirty-one hours
+  earlier that seat had asked the owner about that same branch **twice** —
+  22:46:43Z and 22:58:33Z on the twenty-fourth — writing
+  `silence_proceeds: false` into the ask's own `data` both times and, in words,
+  *"I am not treating your silence as consent here."* Two further places also
+  failed: the clause the clock named is written out in `docs/agents/lessons.md`
+  and on no branch, so a merge at the deadline lands nothing matching the clock
+  (L27), and the owner was never a recipient.
+- **The clock on this seat's own charter.** Filed 2026-10-27T00:48:11Z on
+  `#312`, `expires_at: 2026-10-29T00:47:45Z`, `ref` at a live mergeable pull
+  request carrying its own change — the best-formed of the three on two places.
+  **The place it misses is the applier:** `to_seat: owner`, `to_company: None`,
+  and nothing in the prose names a hand either. The applier §21 provides is the
+  filer itself, whose run ended at 00:48, and nothing on this host wakes a seat
+  on a board message's expiry. §22 measured this exact shape — 30 of 40
+  clock-announcing asks addressed to an owner alone — and named the direction it
+  fails in: *"it never fires at all, and the owner's non-response becomes a
+  permanent hold instead, silently, in every report."*
+
+**Impact.** The two live clocks cover `prompts/pm-agent.md` and
+`prompts/exo-agent.md`, and with `#300` they are the three pull requests
+`epitome/pm`'s own 00:26:52Z pass lists as
+`queue_waiting_on_owner_charter_paths`. The oldest is three days old. On the
+readings above, none of the three would have been released by its deadline, and
+the one register entry that would have told a reader so said the opposite.
+
+**Root cause, in the system, and none of it is a seat.**
+
+*The rule asks one field to hold two parties.* §22's first paragraph says the
+ask is *"addressed to her"*; its third says *"the applier in the message's
+recipient field, not only in its prose."* A board message has one recipient. So
+the standard as written cannot be satisfied by one message, and each seat
+resolves the contradiction by choosing a party: choose the owner and no hand is
+woken, choose the applier and the words are never shown to the party whose
+silence is read. Both halves were satisfied exactly once each, by two different
+seats, on two different clocks, eighteen hours apart. The resolution is two
+messages and it is already in practice — the ADR-13 clock invented it — but it
+is in no charter and in no standard, so it is a habit one seat has.
+
+*The instrument read the one place every clock already had right.* A gate is
+judged by what it can see (L-A21), and this one saw `expires_at` and a pointer.
+Those are the two places all three clocks set. The place that decides whether
+anything happens is the one it never read, and it printed that place —
+`-> None/owner` — on the same line it returned exit 0.
+
+*And the register pushed one way only.* This seat's charter, L16 and L84 all
+say to make sure a clock is running; nothing said what to do when the absence
+of a clock is somebody's answer. That is the charter defect this run patches
+and it is L85.
+
+**Re-measurement owed to Incident 26, taken here.** That entry's test was: if
+the field has become settable the platform half closes and the number to watch
+becomes how many asks use it. It is settable and the platform half is closed.
+The adoption number, same 336-hour window as the original reading:
+
+```data
+reading: 2026-10-24T22:0xZ -> 2026-10-27T01:1xZ, 336h window both times
+asks_board_wide: 146 -> 194
+prose_clocks_board_wide: 36 -> 54
+fielded_clocks_board_wide: 0 -> 7 (4 of them this seat's write probes)
+asks_this_product: n/a -> 73
+prose_clocks_this_product: 20 -> 32
+real_fielded_clocks_this_product: 0 -> 3
+declared_in_all_three_places: 0 -> 0
+```
+
+Prose clocks rose by 18 board-wide and by 12 in this product in the three days
+after the field was proved writable, so the field becoming available moved
+adoption to 3 and moved nothing else. Incident 26 stays open on that number
+rather than on its original platform claim, which was already corrected in
+place on 2026-10-26.
