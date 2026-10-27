@@ -210,6 +210,60 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   self-tests pass. The standing cost of the widening is now visible and it is
   the argument for landing it: **a directory nobody scanned grew five new sites
   of a known fault in the six hours this branch sat unmerged.**
+  **The belt fixed and the branch readied, 2026-10-27 ~01:4xZ (engineer), same
+  branch.** Composed against trunk again: `main` moved seven commits, the merge
+  took no conflict, and the gate read **88 ok, 0 failed** on the composition —
+  the `86 ok, 2 failed` that decided last pass is the reading *before* this
+  branch converted those two files, and it is the only reading in the body
+  above that is not the current one. The belt itself is now fixed rather than
+  only converted: the herestring removed the measured 3-in-500 rate, but the
+  class survived it, because the belt still read *the absence of a complaint*
+  as a pass and absence is what every broken way of running a check produces.
+  It asks `addressed.sh` for its own pass verdict now — that gate prints two
+  positive lines on a pass, one per half of its job, unconditionally when that
+  half passes — and matches with `case` rather than `grep`, which removes the
+  second process from the deciding branch entirely. Three self-test branches
+  make the belt decide for the first time: a stub gate printing the real
+  captured refusal and exiting 0, a silent one, and one that answers only the
+  store half. Against the old belt two of those three pass the send through at
+  exit 0, which is the fail-open demonstrated rather than argued.
+- [ ] **`smoke-doctor.sh`'s pipe gate asks for a closing line the roster it
+  builds can never print, so section 7b has been failing on `main` and saying
+  something else.** Found by the engineer run of 2026-10-27 ~01:3xZ (ref
+  `epitome-engineer/2026-10-26-message-6`) and **reproduced on trunk at
+  `8ea243c` with that branch nowhere in the checkout** — `181 ok, 1 failed`,
+  the same single assertion, so it is not that branch's doing.
+  `cli/test/smoke-doctor.sh:533` asserts the piped human report still ends with
+  `Nothing was started`. `cli/src/doctor.js:781` prints that line inside `if
+  (refusals.length)` and nowhere else. The roster 7b builds is 80 copies of the
+  `plain` seat, which refuses for nothing, so the report leaves by the ✓ path
+  at `doctor.js:791` — and that path puts its verdict *first* and ends with an
+  aside, which means the assertion as written cannot pass on this roster no
+  matter how the pipe behaves. The gate's real question — does a report bigger
+  than a pipe buffer still arrive whole — is answered by the three assertions
+  above it, and all three pass.
+  Two fixes, and they are not the same fix: build the big roster out of a seat
+  that does refuse (`roaded`, which lacks a key) so the refusal path is the one
+  exercised, which is what the assertion was written for; or keep the ✓ path
+  and assert the line that path actually ends on. The first is closer to the
+  gate's intent, because the refusal path is the one whose verdict is last.
+  Seat: engineer.
+- [ ] **A failing assertion in `smoke-doctor.sh` prints whatever `$out` was
+  left holding, with no mark of how old it is, so the evidence under a FAIL can
+  belong to a different test.** Found the same run, chasing the card above.
+  `bad()` at `cli/test/smoke-doctor.sh:97` falls back to `$out` when it cannot
+  find a variable name in the test expression. The 7b assertion's expression
+  carries no `$VAR` — `$TMP` is expanded before `check` ever sees the string —
+  so the fallback fires and prints the `$out` set at line 496, forty lines
+  earlier by the *misspelled flag* test. The FAIL therefore reads as though
+  `epito doctor` had answered `has no --wat option` on a roster nobody passed
+  `--wat` to, which is a confident wrong answer in the one place a reader has
+  nothing else to go on, and it is what this run read first.
+  The fix is one line and the file already has the hook: `step()` clears `out`,
+  so the fallback can only ever show evidence from the step being reported. The
+  general case is worth saying once — **a diagnostic that falls back to a
+  variable nobody scoped is a diagnostic that can name the wrong cause** — and
+  this is its one known instance in the suite. Seat: engineer.
 - [ ] **`pointers.sh --self-test` exits 1 on a tool that is working, because its
   exit code reports the repository's state instead of the test's.** Found by the
   engineer run of 2026-10-27 ~00:1xZ (ref `epitome-engineer/2026-10-26-message-6`)
