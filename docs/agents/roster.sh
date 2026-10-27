@@ -6,8 +6,10 @@
 #   bash docs/agents/roster.sh --roster PATH    another box's loaded roster
 #   bash docs/agents/roster.sh --company NAME   the roster subdirectory to read
 #   bash docs/agents/roster.sh --agents PATH    another repository's manifests
+#   bash docs/agents/roster.sh --self-test     the reachability verdict, both ways
 #
-# Exit 0 nothing diverged, 1 a field diverged, 2 could not look (L41).
+# Exit 0 nothing diverged, 1 a field diverged OR the running binary is not
+# reachable from `origin/main`, 2 could not look (L41).
 #
 # WHY THIS EXISTS. `agents/<seat>/agent.toml` is this product's own dogfood:
 # it is the manifest `epito validate` reads and the thing the CLI exists to
@@ -33,6 +35,26 @@
 # `env`, `subscriptions` and `scopes` are not compared by anything and have
 # diverged on every seat of this product.
 #
+# WHAT THIS SCRIPT USED TO LEAVE OUT, AND WHY THAT ROW IS HERE NOW (L83,
+# incident 46). The first version printed `binary_commits_behind_main` and
+# nothing else about the running clone, so it measured a distance and implied
+# a repair: move the clone to `main`. On 2026-10-27 that repair would have
+# been destructive. `/srv/asc/repos/epitome` was detached at a 2026-09-23
+# commit, 890 behind `main` and 0 ahead of it, and carried 35 lines of
+# UNCOMMITTED hand hotfixes in two files — among them the eighteen lines that
+# POST every host run to the company board. Nothing on `main` does that from
+# the resident-daemon path, so `git reset --hard origin/main` would have
+# blinded every capacity instrument this company owns, and the behind-count
+# this script printed could not say so, because uncommitted work is not a
+# commit and `rev-list` will never count it.
+#
+# So the question is not how far behind the clone is. It is whether the
+# artifact the box executes exists anywhere a ref can be moved to. Three rows
+# answer that — the ref it is on, the commits it holds that `main` does not,
+# and the paths dirty in its working tree — and a `no` on the last of them is
+# a divergence with its own exit status, because it is the one field whose
+# silence turns the obvious fix into an outage.
+#
 # Reads only: it invokes nothing that writes, and `epito help` is the single
 # invocation it makes. No credential, no network.
 set -uo pipefail
@@ -41,12 +63,89 @@ cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 ROSTER=${EPITO_ROSTER:-/srv/asc/roster}
 COMPANY=${EPITO_COMPANY:-epitome}
 AGENTS=agents
+# --self-test fires the reachability verdict in BOTH directions against clones
+# it builds, because a branch nobody has seen take the other value is a second
+# thing written down (L-X1 as amended, L42). The positive is live on this box
+# and needs no fixture; the NEGATIVE is the one this script had no way to show,
+# so it is the one constructed here.
+#
+# The lever is `command -v epito`: the probe resolves the binary off PATH and
+# then asks git about the directory it lands in. So a shim on PATH, pointing
+# into a clone whose state we chose, exercises the real code path rather than a
+# re-implementation of it.
+self_test() {
+  local t rc fail=0 out
+  t=$(mktemp -d) || { echo "self-test: no scratch directory" >&2; return 2; }
+  trap 'rm -rf "$t"' RETURN
+
+  # A clean clone of this very checkout: nothing uncommitted, nothing ahead of
+  # origin/main. Must read `reachable: yes` and must not be the reason for a 1.
+  git clone --quiet --shared . "$t/clean" 2>/dev/null || { echo "self-test: clone failed" >&2; return 2; }
+  git -C "$t/clean" remote set-url origin "$(git remote get-url origin)" 2>/dev/null
+  git -C "$t/clean" fetch --quiet origin main 2>/dev/null
+  git -C "$t/clean" checkout --quiet FETCH_HEAD 2>/dev/null
+  # The shim has to RESOLVE INTO the clone, because the probe reads
+  # `dirname $(readlink -f $(command -v epito))` and asks git about that
+  # directory. Two consequences the first version of this fixture got wrong.
+  #
+  # It must be executable: `command -v` ignores a file that is not, and
+  # `cli/src/index.js` is mode 644 in this repository — it is 755 only on the
+  # box, by hand, which is itself one of the two dirty paths this check now
+  # reports. Symlinking straight at the tracked file therefore found nothing
+  # on PATH and the probe fell through to the real /usr/bin/epito, so the
+  # "clean" case was measuring the box and failed for the right reason.
+  #
+  # And it must not itself dirty the clone, which rules out `chmod +x` on the
+  # tracked file. So the stub is an UNTRACKED sibling — invisible to
+  # `status --untracked-files=no`, which is the read under test — that execs
+  # the real entry point, so `epito help` still answers for real.
+  stub() {  # $1 = clone dir, $2 = bin dir
+    mkdir -p "$2"
+    printf '#!/bin/sh\nexec node "%s/cli/src/index.js" "$@"\n' "$1" > "$1/cli/src/.roster-selftest-epito"
+    chmod +x "$1/cli/src/.roster-selftest-epito"
+    ln -sf "$1/cli/src/.roster-selftest-epito" "$2/epito"
+  }
+  stub "$t/clean" "$t/bin-clean"
+
+  # The same clone with one line of uncommitted work in a TRACKED file. Must
+  # read `reachable: no` and must exit 1 on that ground.
+  cp -a "$t/clean" "$t/dirty"
+  printf '\n// self-test scratch\n' >> "$t/dirty/cli/src/index.js"
+  stub "$t/dirty" "$t/bin-dirty"
+
+  check() {  # $1 label, $2 PATH prefix, $3 expected reachable, $4 expected-in-exit
+    out=$(PATH="$2:$PATH" bash "${BASH_SOURCE[0]}" 2>/dev/null); rc=$?
+    local got; got=$(printf '%s\n' "$out" | sed -n 's/^binary_reachable_from_main: //p')
+    if [ "$got" = "$3" ]; then printf 'ok   %-28s reachable=%s exit=%s\n' "$1" "$got" "$rc"
+    else printf 'FAIL %-28s reachable=%s want=%s exit=%s\n' "$1" "${got:-<absent>}" "$3" "$rc"; fail=1; fi
+  }
+  check "clean clone" "$t/bin-clean" yes
+  check "one uncommitted file"  "$t/bin-dirty" no
+
+  # And the exit status, on the dirty case, with the rest of the object held
+  # constant: both runs saw the same manifests and the same roster, so any
+  # difference in exit between them is this clause and nothing else.
+  PATH="$t/bin-clean:$PATH" bash "${BASH_SOURCE[0]}" >/dev/null 2>&1; local a=$?
+  PATH="$t/bin-dirty:$PATH" bash "${BASH_SOURCE[0]}" >/dev/null 2>&1; local b=$?
+  if [ "$b" = 1 ]; then printf 'ok   %-28s exit=1 (clean clone exited %s)\n' "dirty clone exits 1" "$a"
+  else printf 'FAIL %-28s exit=%s want=1\n' "dirty clone exits 1" "$b"; fail=1; fi
+  # NOTE on the clean run: this product's manifests diverge from the roster on
+  # four fields today, so the clean run exits 1 as well, on THOSE grounds. The
+  # assertion above is about the verdict row, which is the field under test;
+  # the exit comparison is printed rather than asserted because this box
+  # cannot currently supply an otherwise-clean object to assert against, and
+  # saying so is cheaper than an assertion that would pass for a second reason
+  # (L63 clause 2, this script's own rule).
+  return $fail
+}
+
 while [ $# -gt 0 ]; do
   case "$1" in
     --roster)  ROSTER=${2:?--roster needs a path};  shift 2 ;;
     --company) COMPANY=${2:?--company needs a name}; shift 2 ;;
     --agents)  AGENTS=${2:?--agents needs a path};  shift 2 ;;
     --help|-h) sed -n '2,/^[^#]/p' "${BASH_SOURCE[0]}" | sed -n 's/^# \{0,1\}//p'; exit 0 ;;
+    --self-test) self_test; exit $? ;;
     *) echo "roster.sh: unknown argument $1" >&2; exit 2 ;;
   esac
 done
@@ -65,6 +164,7 @@ done
 # would make this script a guard with a stated blind spot (L-X5's seventh
 # clause: a limit a guard declares is the next incident's description).
 BIN_PATH=; BIN_HEAD=; BIN_DATE=; BIN_BEHIND=; BIN_MISSING=; BIN_NOTE=
+BIN_REF=; BIN_AHEAD=; BIN_DIRTY=
 if command -v epito >/dev/null 2>&1; then
   BIN_PATH=$(readlink -f "$(command -v epito)" 2>/dev/null)
   bindir=$(dirname "$BIN_PATH" 2>/dev/null)
@@ -77,7 +177,17 @@ if command -v epito >/dev/null 2>&1; then
       BIN_NOTE="this clone is shallow, so the distance is could-not-look"
     else
       BIN_BEHIND=$(git rev-list --count "$BIN_HEAD..origin/main" 2>/dev/null)
+      BIN_AHEAD=$(git rev-list --count "origin/main..$BIN_HEAD" 2>/dev/null)
     fi
+    # The ref it sits on, because a carve-out in a deploy path is usually
+    # written as "that one is on its own branch" and nothing re-reads the
+    # claim. `rev-parse --abbrev-ref` answers the literal `HEAD` when the
+    # checkout is detached, which is what `provision-host.sh` leaves behind.
+    BIN_REF=$(git -C "$bindir" rev-parse --abbrev-ref HEAD 2>/dev/null)
+    # Uncommitted work in the executing clone. Read from the clone itself,
+    # never from this one: `git status` here says nothing about the box.
+    BIN_DIRTY=$(git -C "$bindir" status --porcelain --untracked-files=no 2>/dev/null \
+                 | awk '{print $NF}' | paste -sd, -)
   fi
   # Which commands this repository ships that the running binary does not list.
   # Asked of the binary rather than read off its source, because the source on
@@ -109,7 +219,8 @@ fi
 
 AGENTS="$AGENTS" ROSTER="$ROSTER" COMPANY="$COMPANY" \
 BIN_PATH="$BIN_PATH" BIN_HEAD="$BIN_HEAD" BIN_DATE="$BIN_DATE" \
-BIN_BEHIND="$BIN_BEHIND" BIN_MISSING="$BIN_MISSING" BIN_NOTE="$BIN_NOTE" python3 - <<'PY'
+BIN_BEHIND="$BIN_BEHIND" BIN_MISSING="$BIN_MISSING" BIN_NOTE="$BIN_NOTE" \
+BIN_REF="$BIN_REF" BIN_AHEAD="$BIN_AHEAD" BIN_DIRTY="$BIN_DIRTY" python3 - <<'PY'
 import os, re, sys, json, datetime
 
 agents, roster, company = os.environ["AGENTS"], os.environ["ROSTER"], os.environ["COMPANY"]
@@ -254,6 +365,15 @@ print()
 bp, bh = os.environ.get("BIN_PATH",""), os.environ.get("BIN_HEAD","")
 bd, bb = os.environ.get("BIN_DATE",""), os.environ.get("BIN_BEHIND","")
 bm, bn = os.environ.get("BIN_MISSING",""), os.environ.get("BIN_NOTE","")
+bref = os.environ.get("BIN_REF","")
+bahead = os.environ.get("BIN_AHEAD","")
+bdirty = [x for x in os.environ.get("BIN_DIRTY","").split(",") if x]
+# Reachable means: a ref can be moved to this artifact. An ahead-count or a
+# dirty working tree each make that false, and the dirty case is the one no
+# commit count can express.
+breach = None
+if bp and bh and (bahead != "" or bdirty):
+    breach = not (bdirty or (bahead.isdigit() and int(bahead) > 0))
 if bn and not bp:
     print(f"the binary: {bn}")
 elif bp:
@@ -272,6 +392,24 @@ elif bp:
                "above is not in the binary the box runs.")
     else:
         print("  it answers every command this repository ships")
+    if bref:
+        print(f"  its HEAD is on `{bref}`"
+              + (" — detached, so it is on no branch of its own"
+                 if bref == "HEAD" else ""))
+    if breach is False:
+        print( "  **and it is not reachable from `origin/main`**, so moving a ref there "
+               "does not reproduce it:")
+        if bahead.isdigit() and int(bahead) > 0:
+            print(f"    {bahead} commit(s) it holds that `origin/main` does not")
+        if bdirty:
+            print(f"    {len(bdirty)} file(s) uncommitted in its working tree: "
+                  + ", ".join(bdirty))
+        print( "    A `git reset --hard origin/main` on this clone deletes that work. "
+               "Diff each path against `origin/main` and say which side has it before "
+               "anyone routes an update; the behind-count above is the cheap direction "
+               "and this is the one that makes the repair destructive (L83).")
+    elif breach is True:
+        print("  it is reachable from `origin/main`: nothing uncommitted, nothing ahead")
 print()
 print("```data")
 print(f"instrument: docs/agents/roster.sh")
@@ -289,9 +427,17 @@ print(f"name_differences_expected: {expected}")
 print(f"binary_path: {bp or 'not found'}")
 print(f"binary_head: {bh[:8] if bh else 'could-not-look'}")
 print(f"binary_committed: {bd[:10] if bd else 'could-not-look'}")
+print(f"binary_ref: {bref or 'could-not-look'}")
 print(f"binary_commits_behind_main: {bb or 'could-not-look'}")
+print(f"binary_commits_ahead_main: {bahead if bahead != '' else 'could-not-look'}")
+print(f"binary_uncommitted: {json.dumps(bdirty)}")
+print(f"binary_reachable_from_main: "
+      f"{'could-not-look' if breach is None else ('yes' if breach else 'no')}")
 print(f"binary_commands_missing: {json.dumps(bm.split(',') if bm else [])}")
 print("```")
 
-sys.exit(1 if (findings or undeclared or absent) else 0)
+# An unreproducible running artifact is a divergence of this check's object,
+# not a footnote about it: it is the field whose silence turned the obvious
+# repair into an outage (L83, incident 46).
+sys.exit(1 if (findings or undeclared or absent or breach is False) else 0)
 PY
