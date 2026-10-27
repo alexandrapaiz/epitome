@@ -113,12 +113,24 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # make the count a matter of formatting. Both are counted so that neither file
 # can quietly grow one more.
 #
+# What the widening is worth, measured rather than argued: composing this
+# branch against trunk six hours after its conversions, this scan read 86 ok
+# and 2 FAILED, and both failures were new on main. post.sh arrived at
+# 11:08:04Z with four -- including a belt that FAILS OPEN, where a false
+# pipeline failure reads as "no refusal was printed" and the board message
+# goes out (measured on the real captured surface: 1018 bytes, needle at 528,
+# 3 of 500 wrong, every one PIPESTATUS `141 0`). And remeasure.sh grew one
+# back at 10:52:34Z, eight minutes after the commit here that converted that
+# file. Five new sites in a directory nobody scanned, in six hours. That is
+# the standing cost this gate is for, and nothing on main could have caught
+# either one, because this is the only reader that looks there.
+#
 # Converted and therefore absent, allowed none: smoke-validate.sh,
 # smoke-temporal.sh, smoke-roster.sh, all.sh, smoke-deploy.sh, smoke-doctor.sh,
 # smoke-langgraph.sh, smoke-bus.sh, pack.sh, both deploy scripts, and now the
-# eight seat tools -- brief.sh, check.sh, clocks.sh, idle.sh, mergeable.sh,
-# remeasure.sh, reread.sh, stage.sh -- every file this gate scans except the
-# three probes. A number may only be
+# nine seat tools -- brief.sh, check.sh, clocks.sh, idle.sh, mergeable.sh,
+# post.sh, remeasure.sh, reread.sh, stage.sh -- every file this gate scans
+# except the three probes. A number may only be
 # lowered by a branch that can see
 # its conversion land: a number that is too HIGH costs one advisory line, and a
 # number lowered for a conversion that does not land fails this gate on main.

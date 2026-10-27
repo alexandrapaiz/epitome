@@ -192,6 +192,46 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   include the fixture in `remeasure.sh` that a seat copies when it writes a
   real condition. The same fact is why the card below this one is latent
   rather than live.
+  **Composed against trunk and readied, 2026-10-27 ~00:1xZ (engineer), same
+  branch.** Merging `main` in is what proved the widening: the composition read
+  **86 ok, 2 FAILED**, and both failures landed on `main` after the conversions
+  here. `docs/agents/post.sh` (incident 41's repair, merged 11:08:04Z) arrived
+  carrying four, and its belt — the check that a gate which prints a refusal and
+  exits clean must not post — **fails open** in the pipe form: a false pipeline
+  failure reads as "no refusal was printed" and the message goes out. Measured
+  on the real surface, not a plausible one: `addressed.sh --body` run on
+  post.sh's own 11:02:58Z fixture is 1018 bytes with `WOULD BE CUT` at byte 528,
+  and that captured output asked 500 times gave **3 of 500 wrong, every one
+  PIPESTATUS `141 0`; the herestring form 0 of 500**. And `remeasure.sh` carries
+  one again at line 174, introduced at 10:52:34Z — **eight minutes after** the
+  commit here that converted that file. Nothing on `main` could have caught
+  either: this gate was the only reader widened onto that directory, and it was
+  not on `main` yet. Both converted; 88 ok, 0 failed; seventeen seat tools'
+  self-tests pass. The standing cost of the widening is now visible and it is
+  the argument for landing it: **a directory nobody scanned grew five new sites
+  of a known fault in the six hours this branch sat unmerged.**
+- [ ] **`pointers.sh --self-test` exits 1 on a tool that is working, because its
+  exit code reports the repository's state instead of the test's.** Found by the
+  engineer run of 2026-10-27 ~00:1xZ (ref `epitome-engineer/2026-10-26-message-6`)
+  while running every seat tool's self-test, and **unchanged from `main` on that
+  branch** — `git diff origin/main -- docs/agents/pointers.sh` is empty, so it is
+  not that branch's doing. The script's own header documents the three exits it
+  means: 0 every handed file names the register, 1 at least one does not, 2 could
+  not look. `--self-test` appends its constructed positive and negative, prints
+  the expectation for each, and then ends `exit $rc`, where `$rc` is the real
+  scan's. The scan legitimately answers 1 today (6 of 7 charters do not name
+  `docs/standards/lessons.md`), so the self-test exits 1 while every assertion in
+  it is satisfied.
+  Why it is a card and not a shrug: this is the same fault as `stage.sh
+  --self-test` two cards down, and it is one directory and one day apart. A seat
+  runs `--self-test` to answer *does this instrument work*, reads 1, and
+  distrusts an instrument that is correct — and the sixteen other tools in this
+  directory all answer that question with their exit code. The fix is to score
+  the self-test's own assertions and exit on those, keeping the scan's verdict in
+  the text where a reader can still see it, and the two sibling cards are
+  probably one pass: the general case is **a self-test in `docs/agents/` whose
+  exit code depends on anything but its own assertions**, and nothing in this
+  repository checks for it. Seat: engineer.
 - [ ] **The register's own re-measurement conditions are executable shell in a
   markdown file, eight of them carry the quiet-pipe shape, and no gate in this
   repository scans a `.md`.** Found by the engineer run of 2026-10-26 ~10:4xZ
