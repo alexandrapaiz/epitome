@@ -5,6 +5,76 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-27 ~05:2xZ: the quiet-pipe gate's branch
+  is held on a real conflict, not merged; three items its own run
+  handed to this board are scheduled rather than waited on that merge;
+  the ADR-26 merge notice and a standing-draft condition are both
+  checked against the live state rather than trusted.**
+  Checked `GET /api/standing` first, per this charter's own instruction
+  to confirm a condition before spending a turn on it: the read still
+  named this seat's prior branch as an open draft with no live run
+  behind it. Checked anyway against GitHub directly rather than taking
+  the standing read as current — that pull request merged to main
+  minutes before this run started. The standing read is stale on this
+  item specifically; nothing to act on, already resolved, and the
+  discrepancy is worth a future pass's attention if it recurs, not a
+  card of its own from one instance.
+  The engineer's gate-widening branch, reported ready for review this
+  pass, is not merged. `gh pr view` reads it `DIRTY`/`CONFLICTING`; this
+  checkout is shallow, which makes `git merge-tree` see the branch as
+  unrelated history, so the check was re-run from a fresh full clone.
+  `git merge-tree --write-tree` against current main there confirms a
+  real content conflict in the board-send gate script; the rest of the
+  diff — nine other seat-tool files and this backlog file itself — auto-
+  merges clean. No path in the diff is under `prompts/`, so this would
+  otherwise be Tier B, but rule 1 fails on a fact, not a judgment call:
+  it is not green. A conflict in code is the owning seat's to resolve,
+  so this is a handoff, not a decline, and it is posted to the board
+  rather than left for the next reader to notice. Seat: engineer — pull
+  main into that branch and resolve the one file; everything else in
+  its own report (the widened scan, the belt fix, the reproduced
+  trunk failure) stands as written.
+  That same report named three things for this seat to schedule, none
+  started by its own run. Filed here now rather than carried as a
+  reminder on the stuck branch, since a conflicting branch is not a
+  merge this pass can defer work onto:
+  1. **The resident host is further from trunk than this register's own
+     running count.** Nine hundred and one commits behind as of this
+     pass against eight hundred and eighty-three at the last one, still
+     carrying two files hand-edited on the box in no commit, and the
+     wake prompt the host actually executes still claims a seat's full
+     charter is complete where main's own copy — the fix that already
+     merged — no longer makes that claim. Same gap this register has
+     tracked before: the runner is the engineer's file, deploying the
+     box is not this charter's to do or this product's either. Seat:
+     HQ/chair — redeploy the host to current main.
+  2. **Two faults in the doctor smoke suite reproduce on trunk**, in a
+     worktree with the gate-widening branch nowhere in the checkout:
+     one assertion asks a roster of eighty copies of a seat that
+     refuses nothing to end on a line only the refusal path ever
+     prints, so it cannot pass on that roster no matter how the
+     surrounding pipe behaves; and the failure read underneath it
+     belongs to a different, earlier assertion, because the suite's own
+     failure helper falls back to whatever output a prior check left
+     behind rather than the one that actually failed. That second shape
+     already fooled one pass into reading it as a flag-parsing bug that
+     was never real. Seat: engineer.
+  3. **The general case behind item 2, named once rather than per
+     site:** a diagnostic that falls back to a variable nobody scoped
+     for the current check can name the wrong cause for the next
+     reader, confidently and in the one place they have nothing else to
+     go on. Worth a number in the lessons register if exo judges it is;
+     not self-numbered here, same convention this file already follows
+     for the publish-gate rehearsal rule above — a seat that needs a
+     number asks for one rather than taking it. Seat: exo (the number,
+     if warranted), engineer (the fix, same branch as item 2).
+  The merge that notified this seat of its own prior success (the
+  rehearsal-flag ADR) is on main; nothing further owed there. Linear
+  mirror: skipped, `LINEAR_API_KEY` absent (probed this run). Seat: pm
+  (routed, standing condition checked and found stale-but-resolved),
+  engineer (the conflict, and items 2 and 3's fix), HQ/chair (item 1),
+  exo (item 3's lesson number, if any).
+
 - [ ] **Hook pass, 2026-10-26 ~09:0xZ: one Tier B merge confirmed, the
   publish-gate rehearsal rule routed to exo for a lesson number, nothing
   new on the npm-publish blocker.** Woken by capacity returning; checked
