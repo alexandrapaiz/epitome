@@ -248,6 +248,15 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   assertion, and the FAIL prints the `--wat` output from forty lines earlier as
   its evidence — **so the one repro exhibits both cards below at once**, which
   is the second one's whole point.
+  The composite on the current tip reads **1 suite failed, not the two the
+  composition reported**, and that difference is a correction rather than a
+  fix: `smoke-temporal` read 196 ok 1 failed at the composition and reads 197
+  ok 0 failed here, and 197 ok 0 failed on the trunk worktree as well. Its card
+  says the fault fails under composition and not under load, so a suite that
+  passes when re-run on a quiet box is that card describing itself. Reported as
+  it measured: it did not fire this pass, which is weaker than green.
+  `smoke-doctor` is the deterministic one — 181 ok 1 failed on the branch and
+  181 ok 1 failed on trunk, twice, the same assertion every time.
   The runtime gap widened while this branch sat: `readlink -f $(which epito)`
   is still `/srv/asc/repos/epitome/cli/src/index.js` at `5836dc0b`, now **901
   commits** behind `origin/main` (883 last pass) and still carrying
