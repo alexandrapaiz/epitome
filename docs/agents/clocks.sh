@@ -261,7 +261,7 @@ JSON
   #     owner, so §22's second party is missing and it answers 4 (L85).
   check "field set, owner never shown -> 4" 4 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 999
   check "and it says which place is missing" 0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
-        'bash "$0" 999 2>&1 | grep -q "ever reached an owner"' "$0"
+        'out=$(bash "$0" 999 2>&1); grep -q "ever reached an owner" <<<"$out"' "$0"
   # 2 — the pull request whose ask only says 48 hours: no clock.
   check "prose only -> no clock"           1 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 271
   # 3 — a pull request no ask names at all: no clock, and a different sentence.
@@ -285,17 +285,17 @@ JSON
   #      ever fired in this company (L85).
   check "owner half + applier half -> running"  0 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 996
   check "and it names the applier it was told to" 0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
-        'bash "$0" 996 2>&1 | grep -q "all three places"' "$0"
+        'out=$(bash "$0" 996 2>&1); grep -q "all three places" <<<"$out"' "$0"
   # 4e — a clock filed over the item's own declared refusal releases nothing,
   #      and the refusal is read from the field rather than the prose (L85).
   check "clock over silence_proceeds:false -> 4" 4 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 995
   check "and it quotes the field that refused"   0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
-        'bash "$0" 995 2>&1 | grep -q "silence_proceeds"' "$0"
+        'out=$(bash "$0" 995 2>&1); grep -q "silence_proceeds" <<<"$out"' "$0"
   # 4f — expired is its own answer: the hour a clock exists for is the hour it
   #      passes, and `running (-3h left)` was the old reading of exactly this.
   check "declared and expired -> 5"             5 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 994
   check "and it refuses to call that running"    0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
-        'bash "$0" 994 2>&1 | grep -q "^EXPIRED on #994"' "$0"
+        'out=$(bash "$0" 994 2>&1); grep -q "^EXPIRED on #994" <<<"$out"' "$0"
   check "census with prose clocks -> 1"     1 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0"
   # 6 — could-not-look is its own answer and is never spelled like clean.
   check "unreadable board -> could not look" 2 env CLOCKS_FIXTURE="$tmp/nope.json" bash "$0" 271
