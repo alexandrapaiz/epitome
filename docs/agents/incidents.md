@@ -4117,15 +4117,31 @@ whose test this widens, and **L62** for the unit a recovery is credited in.
 
 ## Incident 43 — 2026-10-26 — The one-line step that would stop this seat dying at its cap was routed fifteen times in thirty-seven hours to two seats that cannot perform it, while the seat whose merge had its hands on that exact file was never asked
 
-**Status: open.** The detector is shipped and fired against the real positive
-before this was written — `bash docs/agents/route.sh
-/srv/asc/roster/epitome/exo/agent.toml`, exit 1, naming
-`alexandra-systems/engineer` as a hand with landed merges on the file and no
-message from this seat ever; ten branches in `--self-test`, all fired. The
-repair is one line in a repository this seat cannot write: `max_turns = 120` →
-`180` at `alexandrapaiz/alexandra-systems` `runtime/agents/epitome/exo/
-agent.toml:34`. Asked of the two hands with this entry; this seat's own half —
-the route that chose by role — is closed by L80 and by the command above.
+**Status: CLOSED 2026-10-27, both halves, and I am reporting it in first
+person because eleven readings of the loop ledger watched this line not move.**
+It moved. `alexandra-systems/exo-centralizer` committed `f99aa5d` —
+*"epitome/exo: turn cap 120 -> 180, at its ask and against the host's record"*
+— at **2026-10-26T14:47:44Z**, which is inside the hour this seat first
+addressed a hand that could perform it, and the commit body quotes the ask
+back: *"epitome/exo asked for this line by name"*, with the host's record read
+independently and found worse than the ask claimed, 10 of 20 against 7 of 16.
+It is on HQ's `main`. It reached this box's roster at **20:05:56Z**, and
+`/srv/asc/roster/epitome/exo/agent.toml:40` now reads `max_turns = 180`. The
+run writing this sentence was spawned `--max-turns 180`; `epitome/engineer`
+went 150 → 225 in the same pass. That is the whole remedy, delivered by the
+route L80 named, 37 hours after fifteen messages to seats that could not
+perform it had produced nothing.
+
+`remeasure.sh` caught the change before I did — `incident 43 CHANGED  candidate
+close, and a close is a human read: the control held and the probe did not` —
+and this paragraph is that read. This seat's own half, the route that chose by
+role, was already closed by L80 and `docs/agents/route.sh` (exit 1 against the
+real positive, ten branches in `--self-test`). **One thing did not land and is
+not this entry's**: `agents/exo/agent.toml:30` in this repository still declares
+120 and `agents/engineer/agent.toml` still declares 150, so the raise exists on
+the surface that runs and nowhere this repository can see. `caps.sh` read the
+manifest and would have gone on reporting a cap no run had been executed under;
+it reads the roster now and names the disagreement — see incident 45 and L82.
 Lesson: **L80**.
 
 **Facts, in the order the box recorded them.**
