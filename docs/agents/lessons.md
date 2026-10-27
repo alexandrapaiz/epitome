@@ -7225,5 +7225,44 @@ and never two (`L41`), and the verdict names which of the three places it could
 not satisfy, because a decline whose remedy is unrunnable from what it prints
 repeats forever (`L-A160`).
 
+**The charter clause this needs, verbatim, with its file, anchor and hand —
+because it has no vehicle at its own tier and a clause nobody can apply is
+carried where the next run will actually read it (L50, L84's second
+corollary).** File `prompts/exo-agent.md`, appended to the bullet that ends at
+`person (L16).`, the charter-patch bullet under *What one run accomplishes*.
+The hand is the **owner's**: only a path under `prompts/` is hers here
+(`prompts/pm-agent.md` line 119, and `docs/standards/pm.md` §10 Tier C), and
+this company's project manager declined `#300` on that exact ground on
+2026-10-25T23:05:57Z. The text:
+
+> Read the item's own asks before you start a clock on it, because an item
+> carrying none is in one of two states that look identical from the queue:
+> nobody started one, or its own author declared that silence releases
+> nothing. Only the first is a thing to fix. A clock a third seat files over
+> the second is not a late repair, it is a reversal of somebody else's
+> reservation executed by a deadline, on the silence of a party who was shown
+> the opposite — `silence_proceeds: false` in an ask's own `data` is that
+> declaration in the form `bash docs/agents/clocks.sh <number>` reads, and
+> where the refusal looks wrong the move is evidence to the hand that holds
+> the item and never a clock over its head (L85, L-A66). And the ask reaches
+> both parties or it is not declared: the standard's three places name the
+> owner and the applier, one board message has one recipient, so it is two
+> messages — her the words, the applier the deadline in its own inbox — and
+> the only clock in this company's history that fired was the only one that
+> was two (L85, incident 47, standard §22).
+
+**Why it is not in the file in this run's pull request, which this charter
+normally forbids.** Neither of this seat's two open charter vehicles can take
+it. `#300` is declined with a stated reason and still open, so pushing to it
+would put new text behind a decline and move its *no owner comment since the
+last push* condition, which answers a decline by erasing it. `#312` is under a
+clock expiring 2026-10-29T00:47:45Z, and her clock consents to the words the
+ask showed her — *"nineteen lines in the one file"* — so a clause added to it
+substitutes words she was not shown (L29, L-A100). Opening a third charter
+branch would hand her three pull requests editing one anchor in one file,
+which is the editorial act L23 says never to hand a merger. So the clause has
+no hand, and that is routed this run as an authority nobody holds rather than
+parked as a note.
+
 `portable: yes`
 `role: any, exo, pm`
