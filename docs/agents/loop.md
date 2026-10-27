@@ -1,4 +1,8 @@
-# Learning-loop ledger
+# Learning-loop ledger — **CLOSED 2026-10-27**
+
+> This file is ended by its own second kill condition. The reading and the
+> reason are in the last section; the table is kept as the record and takes
+> no further rows. Everything below this line describes the file as it ran.
 
 This seat's half of the company learning loop (owner directive, 2026-10-17,
 carried here as a handoff on the board; the standard's own text for it is not
@@ -57,103 +61,51 @@ passed, and whether the retry's own allowance was spent when it did (L82).
 | 2026-10-26 (**final, closed 2026-10-27T00:2xZ** on the capacity-return hook of the following day; ten readings through the day, superseded here, the trail recoverable from `#322`..`#353` — a closed day is one reading and this file's ceiling is 160 lines) | **475 logs, 470 finished, 5 without a result object** | not read: `caps.sh` does not sum turns and nothing else on this box does | **160 limit-touched across 22 seats, 90 of them before a second turn** — against the 98 and 56 the 15:0xZ reading closed on, because the day took a **fifth** session window after this seat stopped reading it. Five announced resets in one UTC day: 00:00Z, 04:00Z, 09:00Z, 14:00Z, 19:00Z, and that count is the whole of this tick's finding (L82). By trigger: **13 slots attempted and 12 refused**, 58 hooks and 0 refused, 404 message wakes and 148 refused (L62). The cap, the day's live refuser until 15:0xZ, closed at **50 exhaustions on 12 seats, $566.51 and 1,382 minutes**, 8 of them this seat at `num_turns` 121 — and **that is the last day it can be**: `exo-centralizer` committed 120 → 180 at 14:47:44Z and the roster took it at 20:05:56Z, so the eleven readings that watched this line not move are closed (incident 43) | **861 min of 1,440 (60%)**, three stretches of 182, 159 and 109 minutes; last limit-touched run 23:46:09Z and **only 14 minutes — 2% — fall after it**. That figure is true and this tick's finding is that it is not the story. `recovered.py` reads the day as **1,622 seat-minutes waited past a reset the provider had announced, 1,421 of them (88%) in the 12 waits where the retry's own daily cap was already spent** — idle something asked for and was refused, which neither `idle.sh` nor `caps.sh` has a column for | **Autonomy**, fourth naming | L64–L81, incidents 35–44, nine instruments; closing: the cap step landed by the route L80 named, 37 hours and fifteen misaddressed messages after it was first raised |
 | 2026-10-27 (read 00:2xZ, the capacity-return hook that woke this seat 5 h 4 m after the reset it was waiting for; the day is 25 minutes old) | 25 logs, **0 finished** | — | **could-not-look, and not a clean bill**: `caps.sh` read 19 logs and none carried a finished run, which is the honest answer 25 minutes into a day and is printed as one (L41). Nothing has been refused yet | 7 min dark of 8 elapsed at 00:07Z, **no run a limit touched today**, so every dark minute so far is idle capacity and not an outage | **Autonomy**, fifth naming, and the evidence moves from the watcher to the recovery. The last three namings were about instruments that could not see. This one is a mechanism that saw correctly and was forbidden to act: nine seats met every condition `capacity-retry.py` has at 19:03:53Z and the allowance was three a day against a day with five windows. Six of the nine were back inside 26 minutes on board traffic they did not plan; the three that lost the evening were all three of `epitome`'s, the quietest inboxes on the box. A company recovers by being busy, and the product that is not busy does not recover | L82, incident 45, `docs/agents/recovered.py`; `caps.sh` reading the cap the host ran rather than the one this repository declares; incident 43 **closed**; `#354` closed and re-declared; the three standing counts |
 
-## Tick of 2026-10-27
+## Closed 2026-10-27T00:5xZ by this file's own second kill condition
 
-**Read 00:2xZ on the capacity-return hook. The run before this one was cut off
-at turn 50 at 15:17:45Z yesterday and nothing completed for this seat since, so
-this tick closes 2026-10-26 as well as opening today.**
+**The condition, as this file wrote it on 2026-10-18 and measured today.**
+Seven ticks with no decision, handoff or merge **by another seat, a chair or
+the owner** citing a line of this file, counted from 2026-10-18, a citation by
+this seat not counting. Measured:
 
-**Observe.** The wake's payload is the evidence: *"capacity returned: the
-provider limit that refused your last run has reset, and nothing else would have
-woken you until your next scheduled window."* That reset passed at **19:00:00Z**
-and this run started at **00:03:53Z**, and in between `epitod` executed **109
-runs of twenty other seats**. Capacity was not scarce; this seat was not asked for.
-
-**Capacity, pasted from the three instruments (L33):**
 ```data
-measured_at: 2026-10-27T00:18:31Z
-window: 2026-10-26..2026-10-27
-logs_read: 498
-runs_finished: 474
-limit_touched: 160
-limit_touched_seats: 22
-refused_before_a_turn: 90
-exhausted: 50
-exhausted_seats: 12
-exhausted_cost_usd: 566.51
-exhausted_minutes: 1382
-exhausted_this_seat: 8 of 21 runs, $103.48, 198 min — under a cap since raised
-cron_attempted: 12 — refused: 12
-hook_attempted: 57 — refused: 0
-message_attempted: 401 — refused: 148
-dark_minutes_10_26: 861 of 1440 (60%)
-dark_after_last_limit_touched_run: 14 min (2%)
-seats_waiting_past_a_reset: 85
-seat_minutes_past_a_reset: 1622
-seats_past_the_cap: 12
-seat_minutes_past_the_cap: 1421
-days_with_more_windows_than_wakes: 1
-caps_repo_disagrees_with_roster: 2
+instrument: git log --since=2026-10-18 -- docs/agents/loop.md; board /api/messages
+read_at: 2026-10-27T00:56Z
+tick_rows: 7
+commits_to_this_file: 51
+commits_by_another_author: 0
+board_messages_scanned: 200 (240 h, every direction)
+citations_by_another_seat: 0
+ticks_elapsed: 11
+ticks_the_law_allows: 7
 ```
 
-**Orient. Autonomy, fifth naming**, and the attribute's evidence changes shape.
-Four namings were instruments that could not see; this is a mechanism that saw
-perfectly and was forbidden to act. Replayed on the day's real logs,
-`capacity-retry.py` at the 19:03:53Z tick answers *nothing owed a wake* at
-`--max-per-day 3` and *9 seat(s) owed a wake* at `--max-per-day 4` — one integer
-apart, same logs, same instant. Three wakes per seat per UTC calendar day against
-a day the provider gave **five** windows; arrival order decides which go
-uncovered, always the last, which are the ones with the night behind them. 27
-seat-days on this box have met more than three distinct windows, 15 of them
-yesterday. The half the aggregate hides: six of the nine suppressed seats were
-back inside 26 minutes, none by the retry — board traffic woke them for unrelated
-reasons — and the three that waited 286, 286 and 303 minutes were **all three of
-this product's**, the quietest inboxes here. A shared cap reassigns its whole
-cost to the subject that depended on it most.
+**Eleven ticks, fifty-one commits, one author, and nobody.** The previous tick
+named the cut owed and deferred it — *"named rather than taken, because that
+law logs the cut as a lesson against this seat and this run's lesson is spent;
+next run takes it or says why"* — and this is that next run. The deferral is
+not available twice: the same axis deferred twice is what L4 calls a register
+defect rather than a seat's omission, and the law's own words are *either one
+ends the file*.
 
-**Decide and act.** L82, incident 45, and `docs/agents/recovered.py` — eleven
-assertions on built fixtures, exit 1 on a wait past a spent cap, exit 2 when
-there is nothing to look at. A third class beside the two this directory had:
-`idle.sh` read **14 dark minutes after yesterday's last limit-touched run**,
-which was true, and was a sentence about a recovered day on a day that spent 27
-seat-hours waiting. The cap itself is one clause in `alexandra-systems` that no
-seat here may write, so it is routed and not filed. Also shipped: `caps.sh`
-reads the cap the host runs — the roster — after its own comment's premise
-("smoke-roster.sh asserts they agree") turned out to compare the manifest to a
-workflow and to have never fired.
+So it is ended here. **The table above stays as the record** — deleting the
+evidence that a framework did not pay for itself would be the worse act, and
+the seven rows are the only place some of those readings exist. What ends is
+the growth: no further rows, no tick working, no week's ideas section. The
+daily brief duty is untouched, because it was never this file: it is a board
+message to `alexandra-systems/exo-centralizer` and it goes on.
 
-**The three standing counts, pasted and not narrated.** `order.sh` 00:25:12Z
-against `c65e3b7b`: **6 open, 0 chain links, 6 independent decisions**, all 6
-landing in one pass, 0 needing a hand, oldest `#300` at **2 d 2 h 8 m** — and
-**0 of the 6 can be merged by any hand on this box**, three `prompts/` asks that
-are hers alone (`#300` `35a6968e`, `#304` `0e2c821f`, `#312` `a17bd59f`) and
-three drafts no merger may take. `drafts.sh` 00:24:48Z: **3 open, 1 with no hand
-left** — `#356`, `epitome/pm`'s, opening commit only, its run ended `completed`;
-a live run of that seat is in the room on another branch, so it is routed to
-that seat and not woken (L74, L81). `landed.sh` over 24 h: **36 merged, 1
-shadowed, 0 off-trunk, 4 closed unmerged**, spanning 14:43:33. The owner-as-seat
-count (L-X12) is **could-not-look** a second day: all 35 merges report
-`mergedBy: alexandrapaiz` because every seat merges under her token.
+**Where the capacity line goes, because the charter calls it the one number
+this file may never be missing.** Into the place that is already read on every
+run: the run's own pull request body and the board message that closes the
+pass, pasted from `caps.sh`, `idle.sh` and `recovered.py` exactly as it was
+pasted here. Nothing about the number changes; what changes is that it stops
+being carried by a file with one reader. **The charter clause that still
+points here is named verbatim in L84, with the file, the anchor and the hand
+that applies it, and an ask is on the board so a clock runs on it.** Until
+that clause moves, a run of this seat reads this section and does not reopen
+the table (L50: the register is the memory a stateless seat has).
 
-**Measure.** The cap step **moved** — the first thing on this list to move in
-eleven readings. `f99aa5d`, 2026-10-26T14:47:44Z, `alexandra-systems/exo-centralizer`,
-quoting the ask back; roster 20:05:56Z; this run spawned `--max-turns 180`.
-Incident 43 closed, both halves. `#300`, `#304`, `#312` **have not moved** at
-2 d 2 h, 2 d 1 h and 1 d 21 h, and why has not changed: they are `prompts/` and
-her hand is the only one, so this run adds no fourth and rides its charter clause
-onto `#312` as an amendment. The incident 35 payload line **has not moved**.
-**Kill condition: nine ticks counted from 2026-10-18 and nothing outside this
-seat has cited a line of this file, past the seven its own law allows.** The cut
-is owed. Named rather than taken, because that law logs the cut as a lesson
-against this seat and this run's lesson is spent; next run takes it or says why.
-
-## The week's ideas for the owner — sent 2026-10-24, none owed this tick
-
-One a week is the duty and three went to her on the board under the subject
-Ideas on 2026-10-24, each a paragraph with the smallest test that would prove
-it wrong. **Not re-stated here**: the board holds them whole in the words she
-was sent, and a paraphrase is a second version with no clock and no reader
-(L33, and this file's ceiling). Their subjects, so a later run can find them:
-*sell the off-host watcher, built with our own tool*; *give the brief a
-declared order, so a cut drops a section rather than a tail*; *charge each
-product for its share of the box*.
+**Logged as a lesson against this seat, as the law requires: L84.** Not against
+a reader who did not come. A framework earns its run-time or it is cut, and
+this one asked eleven ticks of a seat to produce a number nobody else read.
