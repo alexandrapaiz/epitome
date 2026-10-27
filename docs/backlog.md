@@ -960,40 +960,42 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   hand-wiring from alexandria. Seat: engineer.
 - [ ] **Dogfood migration, step 3** — write the before/after; this is
   the launch post. Seat: engineer + owner.
-- [ ] **A refusal is only proved by a command that performs the act, and
-  the publish gate was the one place this product rehearsed instead.**
-  From the engineer run of 2026-10-26 (ref the publish-preflight branch),
-  measured, not argued. Second instance of one fault, both on
-  `npm publish --dry-run`: the first measured 2026-10-17 and merged
-  2026-10-18, the second measured 2026-10-26. The first leaked
-  `npm_config_dry_run` into the gate's nested commands so both suites
-  skipped themselves and the gate passed with zero assertions made;
-  the second is that the dry run
-  cannot reach a `private` refusal at all — npm throws it as the first
-  statement of `libnpmpublish`'s publish function and calls that function
-  behind `if (!dryRun)`, so the rehearsal prints `+ epito-cli@0.1.0` and
-  exits 0 with the guard fully in place, the same output it prints with
-  the guard removed. Read on npm 10.9.8 on this box
+- [x] **A refusal is only proved by a command that performs the act, and
+  the publish gate was the one place this product rehearsed instead —
+  routed and placed.** From the engineer run of 2026-10-26 (ref the
+  publish-preflight branch), measured, not argued. Second instance of
+  one fault, both on `npm publish --dry-run`: the first measured
+  2026-10-17 and merged 2026-10-18, the second measured 2026-10-26. The
+  first leaked `npm_config_dry_run` into the gate's nested commands so
+  both suites skipped themselves and the gate passed with zero
+  assertions made; the second is that the dry run cannot reach a
+  `private` refusal at all — npm throws it as the first statement of
+  `libnpmpublish`'s publish function and calls that function behind
+  `if (!dryRun)`, so the rehearsal prints `+ epito-cli@0.1.0` and exits
+  0 with the guard fully in place, the same output it prints with the
+  guard removed. Read on npm 10.9.8 on this box
   (`libnpmpublish/lib/publish.js:15`, `lib/commands/publish.js:161`; the
   in-command copy at `:136` is guarded by `workspace &&` and publishing
-  `cli/` is not a workspace publish).
-  **Both instances are fixed and the general case is already the house
-  pattern everywhere else**, which is what makes this a card and not a
-  warning. Every other third party this product checks against is stubbed
-  and the act performed — `github-stub.mjs`, `cloudflare-stub.mjs`,
-  `git-http-stub.mjs`, `otlp-sink.mjs`, and now `registry-sink.mjs` for
-  the registry. And `epito`'s own four `--dry-run` paths (`token`,
-  `deploy`, `deploy --target cloudflare`, `run`) are all written the right
-  way around: validation and `permissionsFor` run *before* the branch and
-  each one names the refusal the real path would give, so our own commands
-  do not carry the fault. Checked this run, all four.
-  What is left is not a fix, it is a rule nobody wrote down: **a gate may
-  not accept a third-party tool's rehearsal flag as evidence about a
-  refusal that tool enforces.** The publish gate was the only one that
-  did, and it was the gate whose act is the one irreversible act this
-  product takes. Worth a line in the engineering standard, and the
-  question of where is the PM's. Seat: pm (route and place the rule),
-  then engineer if it wants an assertion anywhere else.
+  `cli/` is not a workspace publish). Both instances were already fixed
+  when this card was filed; every other third party this product checks
+  against is stubbed and the act performed (`github-stub.mjs`,
+  `cloudflare-stub.mjs`, `git-http-stub.mjs`, `otlp-sink.mjs`,
+  `registry-sink.mjs`), and `epito`'s own four `--dry-run` paths
+  (`token`, `deploy`, `deploy --target cloudflare`, `run`) already run
+  validation and `permissionsFor` before the branch.
+  **This pass: routed and placed.** The rule nobody had written down (a
+  gate may not accept a third-party tool's rehearsal flag as evidence
+  about a refusal that tool enforces only outside that flag's code
+  path) is now `docs/decisions.md` ADR-26. `engineering-artifacts.md`,
+  the HQ standard this gap belongs in, was never vendored into this
+  repo's `docs/standards/` — only cited by number from
+  `docs/agents/lessons.md` and `docs/standards/lessons.md` — so there is
+  no local copy to patch; ADR-26 is this product's decisions-file
+  record of the deviation per `documents.md`'s own clause, and the
+  actual HQ-file patch is `alexandra-systems`'s to make, not this seat's
+  to vendor-edit. Nothing further for engineer: both measured instances
+  are already fixed and `epito`'s own four `--dry-run` paths were
+  re-checked this run and already follow the rule. Seat: pm (closed).
 
 ## Next
 
@@ -1006,15 +1008,18 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 - [x] **ExO seat** — incident register live before the builders multiply.
   `.github/workflows/agent-exo.yml` live; docs/agents/incidents.md and
   lessons.md exist; PRs #2, #7 are its lesson syncs. Seat: exo.
-- [ ] **Market seat brief #1: pricing** — per-active-agent pricing vs.
-  roster tier; who pays today for Clerk/Fly/Trigger.dev glue and what do
-  they pay. Before any public pricing. Seat: market. *Rev 1 shipped
-  2026-09-18 (docs/market.md §3, "Positioning and pricing"). ADR-13's
-  buyer-2 (agent-maker/platform tier) pricing and the "as customer"
-  maker-map column shipped in rev 4, 2026-10-02 (docs/market.md,
-  "ADR-13: the agent-maker-as-customer column, and pricing buyer 2
-  separately") — usage-based per-mint/per-verify pricing recommended,
-  owner has not yet ruled one word on it.*
+- [x] **Market seat brief #1: pricing — ruled.** Per-active-agent
+  pricing vs. roster tier; who pays today for Clerk/Fly/Trigger.dev glue
+  and what do they pay. Seat: market. *Rev 1 shipped 2026-09-18
+  (docs/market.md §3, "Positioning and pricing"). ADR-13's buyer-2
+  (agent-maker/platform tier) pricing and the "as customer" maker-map
+  column shipped in rev 4, 2026-10-02, unchanged through rev 17. #299
+  (2026-10-24) tabled a proposed ruling in docs/decisions.md with a
+  48-hour owner-silence clock per standards/pm.md §22; the clock expired
+  2026-10-26T22:12:57Z with no owner edit or close on the paragraph, so
+  this pass (2026-10-27) ratifies it: usage-based buyer-2 pricing,
+  per-mint/per-verify, at or below the Clerk M2M comp. See
+  docs/decisions.md, ADR-13.*
 - [x] **Second integration verdict: Linear REJECTED** (owner,
   2026-09-18 — ADR-6: integrations are surfaces, never dependencies).
   Market re-justifies the ranking under ADR-6 in the 10-02 map

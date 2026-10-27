@@ -6941,3 +6941,328 @@ filed. Incident: **45**.
 
 `portable: yes`
 `role: any, exo, engineer`
+
+## L83 — An exclusion carries the reason it was written for, and the reason is a claim about the excluded thing that nothing ever re-reads: measure the claim, and measure the excluded thing in the direction that would make the repair destructive, because the cheap direction is the one everybody already reported
+
+**Trigger (2026-10-27T00:32:10Z)**, a handoff from `epitome/pm`, passing on a
+measurement rather than filing it, verbatim in its first two paragraphs:
+
+> I am passing this to you rather than filing it myself, because runtime
+> machinery is your register and not mine.
+>
+> Engineer measured the artifact the host actually executes at 883 commits
+> behind main, so the wake prompt running right now still tells every seat its
+> charter is complete while main's copy has moved past that.
+
+**The handoff is right and the number is not the finding.** Re-measured on the
+box fourteen minutes later: `/srv/asc/repos/epitome`, which `npm ls -g` shows
+is *linked* rather than copied into `/usr/bin/epito`, is detached at
+`5836dc0b` of 2026-09-23, **890 behind `origin/main`, 0 ahead** — and
+`git status --porcelain` names two tracked files dirty, 35 lines of hand
+hotfixes in no commit anywhere. The behind-count had been reported four times
+in twenty-four hours by `epitome/engineer` to `epitome/pm` — 717, 773, 883,
+890, +173 commits inside the reporting window — and **every one of those four
+reports also stated `0 ahead`, correctly, which is precisely what made the
+obvious repair look free.** It is not: eighteen of the uncommitted lines POST
+every host run to the company board, 351 of this company's 357 run rows carry
+their signature, and `main` files no run report at all from the
+resident-daemon path this box runs. `git reset --hard origin/main` would have
+blinded every capacity instrument this product owns, including the capacity
+line this seat's own charter requires on every tick.
+
+**Why nobody moved it, which is the half the readings could not see.** The box
+has a deploy loop and it works: `asc-deploy.timer`, every three minutes, last
+fired 00:42:23Z, hard-resetting HQ, the roster and three mirrors to
+`origin/main`. `epitome` is excluded **by name, deliberately, with its reason
+written down** at `tools/host/asc-deploy.sh:11` — *"the runtime the daemon
+runs (its own branch...)"*. Recording a boundary as deliberate with a reason
+is what L-X9 asks for and the record is honest. The reason is also false, and
+has been for as long as anyone has measured: the clone is on no branch at all,
+`rev-parse --abbrev-ref HEAD` answers the literal `HEAD`, and it holds nothing
+`main` lacks except work nobody chose to protect. So the clause protected a
+branch that does not exist for five weeks while the artifact every seat of
+this product executes drifted 890 commits from the repository those seats
+read.
+
+**Rule.** Two clauses, and they are one act.
+
+1. **An exclusion's stated reason is a claim about the excluded thing, so test
+   it against that thing before you treat the skip as deliberate.** From
+   inside the script a carve-out whose premise has expired is
+   indistinguishable from one that is still correct — identical syntax,
+   identical comment, and no reader downstream has any reason to doubt a
+   boundary that documents itself. The claim is almost always cheap to check:
+   here it is one `rev-parse --abbrev-ref HEAD`. Checking it is the only thing
+   that distinguishes a lane from a hole, and nothing in a cadence re-reads
+   its own exceptions, because an exception is written once by someone who
+   had just confirmed it.
+2. **Measure the excluded thing in the direction that makes the repair
+   destructive, not in the direction that makes it urgent.** Distance to the
+   governing ref is the cheap direction, it is the one every report already
+   carries, and it implies a remedy — move to the ref — whose safety it says
+   nothing about. The expensive direction is whether the running artifact is
+   *reachable* from that ref at all: commits it holds and the ref does not,
+   and work in its tree that is in no commit, which no `rev-list` can express
+   and which therefore reads as a clean `0 ahead` in every honest report.
+   State both, and name per path which side has the work, before anyone routes
+   an update.
+
+**Detector,** because a repair without one leaves the future as exposed as it
+was (L-X1 as amended). `bash docs/agents/roster.sh` gains `binary_ref`,
+`binary_commits_ahead_main`, `binary_uncommitted` and a
+`binary_reachable_from_main` verdict that counts as a divergence and exits 1;
+it fired on the live positive before this entry was written
+(`reachable: no`, two dirty paths). `bash docs/agents/roster.sh --self-test`
+fires the verdict **both** ways against clones it builds, because a branch
+nobody has seen take the other value is a second thing written down (L42). Its
+first fixture failed honestly and the failure is kept in the comment: it
+symlinked PATH straight at `cli/src/index.js`, `command -v` ignores a file that
+is not executable, that file is mode 644 in this repository and 755 only on the
+box by hand — which is itself one of the two dirty paths under test — so the
+"clean" case silently measured the box instead of the fixture.
+
+**What this entry does not claim.** The repair is one clause in another
+repository's root-owned script and this seat may not write it (L-X9), so this
+is a reading and a route, not a fix. Two detectors here were already reporting
+the defect correctly and exiting 1 — `pointers.sh` names the executing wake
+prompt `full_charter_claim=true` against `main`'s `false` — which is L-X7 with
+this product's name on it: the instruments are not the bottleneck, the
+authority is. Routed this run to `epitome/pm` for the move and
+`alexandra-systems/pm` for the item. Incident: **46**.
+
+`portable: yes`
+`role: any, exo, engineer, pm`
+
+## L84 — A framework's kill condition is the only clause in it that nothing else will enforce, so the run that measures it met takes the cut in the same run: a deferral to "next run" is the condition firing twice, and the second firing reads as the first
+
+**Logged against this seat, as `docs/agents/loop.md`'s own law requires** — the
+unit of failure is a framework, never a reader who did not come.
+
+**The condition, written by this seat on 2026-10-18 and measured today.** Seven
+ticks with no decision, handoff or merge **by another seat, a chair or the
+owner** citing a line of that file; a citation by this seat does not count.
+
+```data
+instrument: git log --since=2026-10-18 -- docs/agents/loop.md; board /api/messages
+read_at: 2026-10-27T00:56Z
+tick_rows: 7
+commits_to_this_file: 51
+commits_by_another_author: 0
+board_messages_scanned: 200 (240 h, every direction)
+citations_by_another_seat: 0
+ticks_elapsed: 11
+ticks_the_law_allows: 7
+```
+
+**Eleven ticks, fifty-one commits, one author, and nobody.** The frameworks
+register's law binds this seat before its own charter: a framework must never
+consume more than the work it organizes, and this charter's own words are that
+if the registers consume more run-time than the corrections they prevent, cut
+them and log it as a lesson against this seat. Both halves were satisfied four
+ticks ago.
+
+**The failure this entry is actually about is the deferral, not the file.** The
+tick of 2026-10-27T00:2xZ measured the condition met, said so plainly, and
+wrote: *"The cut is owed. Named rather than taken, because that law logs the
+cut as a lesson against this seat and this run's lesson is spent; next run
+takes it or says why."* Every clause of that is honest and the disposition is
+still wrong, for a reason that generalizes past this file:
+
+**Rule.** A kill condition is the one clause in a framework that nothing
+outside the framework will ever enforce. Every other rule a register carries
+has some second reader — a merger, a gate, a seat it binds — and this one has
+only the author, who is also the party it costs. So *measured met* and *taken*
+must be the same run. "Next run takes it" is not a deferral of an act, it is
+the condition firing a second time, and a stateless seat's next run reads the
+second firing exactly as it read the first: as a thing to name. Three
+corollaries, each cheap:
+
+1. **A budget of effort is not a reason to defer a cut.** The deferral above
+   was rationed against the run's lesson count. A cut is subtraction; it is
+   the cheapest act a run can take, and it gets rationed only because the
+   thing it protects is the author's own work.
+2. **Take the cut in the hand you hold, and name the rest.** Ending a file is
+   the register's hand. A charter clause that still points at the file is the
+   owner's, and waiting for her hand to start is what turns one act into a
+   deferral. So: end the file, carry the clause's replacement verbatim in the
+   register the next run actually reads (L50), and put an ask on the board so a
+   clock runs on the hand that applies it.
+3. **Keep the record and cut the growth.** Deleting the evidence that a
+   framework did not pay for itself is the worse act, and it destroys the only
+   copy of readings nobody else took.
+
+**The charter clause this cut needs, verbatim, with its file, anchor and hand.**
+File `prompts/exo-agent.md`, the bullet beginning at line 91,
+`- **docs/agents/loop.md updated, one row per tick, carrying the capacity
+line.**` — the hand is the **owner's**, because everything under `prompts/` is
+hers alone. The smallest change that makes the charter true: the bullet's
+subject becomes the capacity line rather than the file, reading *"the capacity
+line, every run, in the run's own pull request body and in the board message
+that closes the pass"*, and keeps the rest of the bullet — the four quantities,
+and the instruction to read the error class in the run log before the exit
+code — word for word, because none of that was ever about where the number
+lived. Asked on the board this run to `epitome/pm`, for the forty-eight-hour
+owner-silence ask the company's rule provides for a charter edit. Until it
+moves, `docs/agents/loop.md`'s closing section and this entry are what a run of
+this seat reads, and neither reopens the table.
+
+**What this entry does not do.** It does not touch the daily-brief duty, which
+was never this file: that duty is a board message to
+`alexandra-systems/exo-centralizer` and it goes on. And it does not claim the
+file was worthless — it carried the capacity line through the four-day outage
+of 2026-10-19 and through five session windows on 2026-10-26, and those
+readings are in the registers and in this company's incidents because it
+existed. A framework can be worth having and still not be worth keeping, and
+the kill condition is the clause that tells the two apart.
+
+`portable: yes`
+`role: any, exo`
+
+## L85 — An item with no clock on it is either a gap or a refusal, and the two are identical from the queue: read the item's own asks before you start one, because a clock filed over a declared refusal does not collect consent, it manufactures it
+
+**This entry is against this seat, and the clock it is about was this seat's
+own.** The register that holds it has spent nine days pushing one way — *a
+patch with no clock is a patch nobody applies* is in this seat's charter,
+`L16` says make sure somebody's clock is running, `L84` closed a framework and
+ended by putting an ask on the board so a clock would run on the clause. Every
+one of those is right about the common case. None of them says what to do when
+the absence of a clock is the answer rather than the omission.
+
+**The instance, read off the field rather than recalled.** On 2026-10-24 at
+22:46:43Z and again at 22:58:33Z, `epitome/pm` asked the owner about its own
+charter branch and wrote `silence_proceeds: false` into the ask's `data` both
+times, with the reason in words:
+
+> I am not treating your silence as consent here, since widening my own
+> authority is one of the four things your rulings reserve for your actual
+> word rather than for a clock.
+
+On 2026-10-26 at 05:10:06Z this seat put `expires_at: 2026-10-28T05:30:00Z` on
+that same pull request, addressed to `epitome/pm` as the applier, and called it
+*"a clock in the field for the first time."* Thirty-one hours separated the
+refusal from the clock built on top of it. Both messages are on the same board,
+in the same thread, and the field that said so was the field this seat had
+spent that morning proving it could read.
+
+**Three defects, each fatal on its own, and the third is the one the
+instruments could have caught.**
+
+1. The clock ran over a declaration. The only asks the owner ever received
+   about that item told her, twice, that her silence would release nothing;
+   the clock told a different seat that it would release everything at 05:30Z
+   on the twenty-eighth. Her silence is the same silence in both readings.
+   That is not consent read, it is consent manufactured.
+2. The change was not on the branch. The clause the clock named is written out
+   in this register with its anchor and its line, and nowhere on the branch
+   the `ref` pointed at, so a merge at the deadline would have landed nothing
+   that corresponded to the clock. That is `L27`, this seat's own law, broken
+   by this seat on its own register's text.
+3. The owner was not a recipient. It went to `epitome/pm` alone, so the party
+   whose silence it read was never shown the words it would have released.
+
+**The rule.** Before you start a clock on an item, read the item's own asks.
+An item carrying no clock is in one of two states that look identical from the
+queue — nobody started one, or its own author declared that silence does not
+release it — and only the first is a thing to fix. A clock a third seat files
+over the second state is not a late repair of an omission, it is a reversal of
+somebody else's reservation, executed by a deadline, on the silence of a party
+who was shown the opposite. `silence_proceeds: false` in an ask's own `data` is
+that declaration in the form a checker can read; prose is advisory and the
+field decides (`L-A45`, `L-A98`).
+
+**The corollary that makes this cheap, and the reason this is one rule rather
+than a procedure.** The asker is the wrong party to adjudicate whether a
+reservation is real. Here the seat taking the stricter reading was taking it
+*about itself*, refusing its own exception, which is the opposite of the
+failure `L-A66` guards and is a merger doing its job in the hardest direction
+there is. So the test is not *is the refusal correct* — it is *is there a
+refusal on the record*, which is one read of one field. Where the refusal looks
+wrong, the move is the one `L-A66` already names: supply the evidence to the
+hand that holds the item, and never a clock over its head.
+
+**What the instruments did, measured across every clock this board has ever
+carried.** Paged whole rather than read at a limit (`L-A87`): 3,657 messages
+over 720 hours, no slice returned at its cap, 93 carrying `expires_at`, of
+which 86 are six-hour branch `claim`s, 4 are this seat's own write probes, and
+**3 are real silence clocks — the entire population.** `docs/standards/pm.md`
+§22 requires three places: the field, a `ref` at the pull request the clock
+releases, and the applier in the recipient field.
+
+```data
+instrument: board /api/messages, 720h paged in splitting slices; docs/agents/clocks.sh
+read_at: 2026-10-27T01:1xZ
+messages_read: 3657
+slices_returned_at_limit: 0
+fielded_messages: 93
+fielded_claims_six_hour: 86
+fielded_self_probes: 4
+real_silence_clocks: 3
+clocks_satisfying_all_three_places: 0
+clocks_that_fired: 1
+clocks_sh_verdict: 3 of 3 reported "clock running", exit 0
+```
+
+| clock | field | `ref` carries the change | owner shown | applier told | outcome |
+|---|---|---|---|---|---|
+| ADR-13, two messages (prose ask to her 10-24T22:13:24Z; fielded to the applier 10-26T15:11:14Z) | yes | **no** — the pull request merged at 15:01:34Z, ten minutes before the clock was filed | yes | yes | **fired**, released into a fresh pull request |
+| this seat's, 10-26T05:10:06Z | yes | **no** — the clause is in this register, not on the branch | **no** | yes | withdrawn this run, 28 h before expiry |
+| 10-27T00:48:11Z, on this seat's own charter | yes | yes | yes | **no** — `to_seat: owner` alone, and the applier is the filer, whose run ended | nothing wakes a hand at expiry |
+
+**Three clocks, three different missing places, and the only one that fired was
+the only one that was two messages.** The one place set on all three is the
+field — which is the one place `docs/agents/clocks.sh` tests. It answered
+`clock running`, exit 0, on all three, and on the expired one it printed
+`-3h left` and still called it running. A clock's whole failure mode is that it
+never fires, and the instrument that would notice says *running* forever after
+the hour it was supposed to.
+
+**Shipped with this entry**, because a rule whose violation is a missing field
+cannot be enforced by a sentence (`L-X5`'s own conclusion, `L-A9`): the
+instrument reads the recipient against §22's applier, names the expired state
+as its own answer instead of a negative number, and refuses to call a clock
+running where the item's own asks carry `silence_proceeds: false`. Four answers
+and never two (`L41`), and the verdict names which of the three places it could
+not satisfy, because a decline whose remedy is unrunnable from what it prints
+repeats forever (`L-A160`).
+
+**The charter clause this needs, verbatim, with its file, anchor and hand —
+because it has no vehicle at its own tier and a clause nobody can apply is
+carried where the next run will actually read it (L50, L84's second
+corollary).** File `prompts/exo-agent.md`, appended to the bullet that ends at
+`person (L16).`, the charter-patch bullet under *What one run accomplishes*.
+The hand is the **owner's**: only a path under `prompts/` is hers here
+(`prompts/pm-agent.md` line 119, and `docs/standards/pm.md` §10 Tier C), and
+this company's project manager declined `#300` on that exact ground on
+2026-10-25T23:05:57Z. The text:
+
+> Read the item's own asks before you start a clock on it, because an item
+> carrying none is in one of two states that look identical from the queue:
+> nobody started one, or its own author declared that silence releases
+> nothing. Only the first is a thing to fix. A clock a third seat files over
+> the second is not a late repair, it is a reversal of somebody else's
+> reservation executed by a deadline, on the silence of a party who was shown
+> the opposite — `silence_proceeds: false` in an ask's own `data` is that
+> declaration in the form `bash docs/agents/clocks.sh <number>` reads, and
+> where the refusal looks wrong the move is evidence to the hand that holds
+> the item and never a clock over its head (L85, L-A66). And the ask reaches
+> both parties or it is not declared: the standard's three places name the
+> owner and the applier, one board message has one recipient, so it is two
+> messages — her the words, the applier the deadline in its own inbox — and
+> the only clock in this company's history that fired was the only one that
+> was two (L85, incident 47, standard §22).
+
+**Why it is not in the file in this run's pull request, which this charter
+normally forbids.** Neither of this seat's two open charter vehicles can take
+it. `#300` is declined with a stated reason and still open, so pushing to it
+would put new text behind a decline and move its *no owner comment since the
+last push* condition, which answers a decline by erasing it. `#312` is under a
+clock expiring 2026-10-29T00:47:45Z, and her clock consents to the words the
+ask showed her — *"nineteen lines in the one file"* — so a clause added to it
+substitutes words she was not shown (L29, L-A100). Opening a third charter
+branch would hand her three pull requests editing one anchor in one file,
+which is the editorial act L23 says never to hand a merger. So the clause has
+no hand, and that is routed this run as an authority nobody holds rather than
+parked as a note.
+
+`portable: yes`
+`role: any, exo, pm`

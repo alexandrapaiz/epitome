@@ -56,6 +56,22 @@ except Exception as e:
     print("PARSE\t%s" % e); raise SystemExit(0)
 if not isinstance(m, dict):
     print("PARSE\tthe payload is not a JSON object"); raise SystemExit(0)
+# A seat needs its company in its own field, not folded into the seat name
+# with a slash. `resolve_recipient` in the store refuses both by name, and
+# this gate ran `addressed.sh --body` without ever looking at either one, so
+# two handoffs passed it tonight and still came back 400 from the route.
+to_seat = (m.get("to_seat") or "").strip()
+if "/" in to_seat:
+    print("PARSE\t`to_seat` is %r, which has a slash in it — a seat name is "
+          "not an address; put the company in `to_company`" % to_seat)
+    raise SystemExit(0)
+if to_seat and to_seat.lower() not in ("owner", "chair") and not to_seat.lower().startswith("chair:"):
+    to_company = m.get("to_company")
+    if not isinstance(to_company, str) or not to_company.strip():
+        print("PARSE\tthe payload addresses `to_seat` %r with no `to_company` — "
+              "the store refuses this by name: \"a message to %r needs a company\""
+              % (to_seat, to_seat))
+        raise SystemExit(0)
 body = m.get("body")
 if not isinstance(body, str) or not body.strip():
     print("PARSE\tthe payload has no `body` string, so there is nothing to gate")
@@ -212,6 +228,12 @@ json.dump({"seat":"exo","company":"epitome","to_seat":"pm","to_company":"epitome
 json.dump({"seat":"exo","company":"epitome","kind":"note","subject":"no body here"},
           open(os.path.join(os.sys.argv[1],"nobody.json"),"w"))
 open(os.path.join(os.sys.argv[1],"notjson.json"),"w").write("{ this is not json")
+json.dump({"seat":"exo","company":"epitome","to_seat":"epitome/pm","kind":"handoff",
+           "subject":"a slash folded into the seat name","body":"one short paragraph, well under the limit."},
+          open(os.path.join(os.sys.argv[1],"slash.json"),"w"))
+json.dump({"seat":"exo","company":"epitome","to_seat":"pm","kind":"handoff",
+           "subject":"a seat with no company of its own","body":"one short paragraph, well under the limit."},
+          open(os.path.join(os.sys.argv[1],"nocompany.json"),"w"))
 PY
 
   out=$(gate "$T/long.json"); rc=$?
@@ -240,6 +262,13 @@ PY
   check "an unparseable payload is could-not-look, never a pass" "$out" "cannot gate this payload"
   [ $rc = 2 ] || { echo "  FAIL exit for an unparseable payload: $rc"; fail=1; }
 
+  out=$(gate "$T/slash.json" 2>&1); rc=$?
+  check "a slash in to_seat is refused before the route sees it" "$out" "is not an address"
+  [ $rc = 2 ] || { echo "  FAIL exit for a slash in the seat name: $rc"; fail=1; }
+
+  out=$(gate "$T/nocompany.json" 2>&1); rc=$?
+  check "to_seat with no to_company is refused before the route sees it" "$out" "needs a company"
+  [ $rc = 2 ] || { echo "  FAIL exit for an addressee with no company: $rc"; fail=1; }
   # ---- the belt's own branches, which until this run had never fired -------
   # The belt is the one assertion this file makes about the gate it runs, and
   # nothing here had ever made it decide anything: every fixture above reaches

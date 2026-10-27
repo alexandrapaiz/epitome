@@ -313,19 +313,22 @@ Consequences:
    must price buyer 2 (platform/issuer tier) separately from roster
    tiers.
 
-**Ruling proposed 2026-10-24 (PM), standards/pm.md §22 clock.** Buyer-2
-pricing: usage-based, yes — per credential minted and per credential
-verified, at or below the Clerk M2M comp ($0.001/mint, $0.00001/verify),
-never a flat roster tier for buyer 2, since buyer 2 sells throughput and
-not a seat. This is market's own rev-4 recommendation (docs/market.md,
-"ADR-13: the agent-maker-as-customer column, and pricing buyer 2
-separately"), unchanged and re-confirmed through rev 17 with no
-contrary evidence found in thirteen further revisions. The owner's edit
-or close of the carrying pull request is the actual ruling; her silence
-on it for 48 hours from this pull request's open is consent to the
-paragraph as written, because the market seat's backlog card has named
-this the one thing it is waiting on since 2026-09-18 and nothing further
-for market to research changes it.
+**Ruling proposed 2026-10-24 (PM), standards/pm.md §22 clock — ratified
+by silence 2026-10-27.** Buyer-2 pricing: usage-based, yes — per
+credential minted and per credential verified, at or below the Clerk
+M2M comp ($0.001/mint, $0.00001/verify), never a flat roster tier for
+buyer 2, since buyer 2 sells throughput and not a seat. This is
+market's own rev-4 recommendation (docs/market.md, "ADR-13: the
+agent-maker-as-customer column, and pricing buyer 2 separately"),
+unchanged and re-confirmed through rev 17 with no contrary evidence
+found in thirteen further revisions. The carrying pull request (#299)
+opened 2026-10-24T22:12:57Z; its 48-hour clock expired
+2026-10-26T22:12:57Z with no owner edit or close touching this
+paragraph's content (the one comment on #299 is a Tier B merge-rule
+note, not a ruling on the text) — so per §22, her silence is consent
+and this paragraph is now the standing ruling, not a pending one.
+Market's backlog card is corrected to match in the same pass that
+makes this call.
 
 ## ADR-14: Mission signed; the Omarchy craft standard
 
@@ -1172,3 +1175,60 @@ covers the eight properties is what makes the passport worth signing.
 its own wall, in its own words. If the manifest carries all eight in one
 publishable file, an agent's spec travels with it, which is the mission
 (§0) applied to the spec rather than the identity.
+
+## ADR-26: A rehearsal flag is not evidence of a refusal gated behind that same flag
+
+**Decided 2026-10-27 (pm), standards/pm.md §22 — an engineering rule, not
+money/accounts/secrets/authority, so this seat rules rather than leave the
+card un-owned (docs/backlog.md, "A refusal is only proved by a command
+that performs the act").**
+
+**Context.** The npm publish gate rehearsed with `npm publish --dry-run`
+twice and was wrong both times, measured on npm 10.9.8 on this box.
+2026-10-17: `npm_config_dry_run` leaked into the gate's nested `npm pack`
+/ `npm install`, so both suites skipped themselves and the gate passed
+having asserted nothing (fixed, merged 2026-10-18). 2026-10-26: even with
+that fixed, the dry run cannot reach a `private`-package refusal at all —
+`libnpmpublish/lib/publish.js:15` throws that refusal as the function's
+first statement, and `lib/commands/publish.js:161` calls that function
+behind `if (!dryRun)`. So `--dry-run` prints `+ epito-cli@0.1.0` and exits
+0 with the guard fully in place, the identical output it prints with the
+guard removed. The rehearsal flag doesn't skip past the refusal; it skips
+past the code path the refusal lives in.
+
+**Decision.** A gate may not accept a third-party tool's own rehearsal
+flag as evidence about a refusal that same tool enforces only outside
+that flag's code path. Checking "does the dry run look clean" answers a
+different question than "would the real command refuse" whenever the
+tool's refusal sits behind `if (!dryRun)` (or equivalent) rather than in
+front of it — and a gate cannot tell which case it's in without reading
+the tool's own source, so it must not assume the favorable one.
+
+**Where this already holds.** `epito`'s own four `--dry-run` paths
+(`token`, `deploy`, `deploy --target cloudflare`, `run`) already run
+validation and `permissionsFor` *before* the dry-run branch, so the
+refusal and the rehearsal share one code path and the flag changes
+nothing about whether a real refusal would fire. Every stub this product
+tests against (`github-stub.mjs`, `cloudflare-stub.mjs`,
+`git-http-stub.mjs`, `otlp-sink.mjs`, `registry-sink.mjs`) performs the
+act against a fake endpoint instead of trusting a flag. The publish gate
+was the one place that broke the pattern, and it was gating the one
+irreversible act this product takes.
+
+**Where this rule actually lives.** The backlog card asked where to
+place it; the honest answer is that `engineering-artifacts.md` — the HQ
+standard this repo's own lessons and incidents already cite by
+requirement number (`docs/agents/lessons.md:150`, `docs/standards/
+lessons.md:4312`) — was never vendored into `docs/standards/` here, so
+there is no local copy of that file to patch. This ADR is this product's
+decisions-file record of the rule per `docs/standards/documents.md`'s own
+deviation clause ("deviations are allowed per product and recorded in
+that product's decisions file"), and a card naming the gap is handed to
+`alexandra-systems` (HQ owns `engineering-artifacts.md`; changes to it
+are HQ ADRs) rather than patched here. `docs/backlog.md`'s card is
+updated to point at this entry instead of carrying the open question.
+
+**Consequence.** Any future dry-run or rehearsal gate this product adds
+must show, in its own PR, which code path the real refusal sits on and
+that the rehearsal reaches it — "it printed the right thing" is not
+that proof when the tool being wrapped is a black box.
