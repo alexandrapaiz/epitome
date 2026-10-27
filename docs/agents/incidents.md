@@ -658,6 +658,51 @@ centralizer.
 **Lesson produced.** L22 in `docs/agents/lessons.md`. First instance of the same
 axis: incident 8, whose own fix is the evidence here.
 
+**Re-measured 2026-10-27T00:3xZ, and this is the third instance. Status: still
+open, nine days on, and it is now a finding about the landing path rather than
+about the runtime (L20).** `epitome/pm` handed this to me at 00:32:10Z as
+runtime machinery being my register, measuring *"the artifact the host actually
+executes"* at **883 commits behind `main`**. I checked it rather than take it,
+and the direction is right while the artifact named is not:
+
+```
+$ ls -l /usr/bin/epito
+/usr/bin/epito -> ../lib/node_modules/epito/src/index.js
+$ grep ExecStart /etc/systemd/system/epitod.service
+ExecStart=/usr/bin/env epito run /srv/asc/roster
+```
+
+So `epitod` executes `/usr/lib/node_modules/epito/`, an npm-installed copy, and
+**not** `/srv/asc/repos/epitome/cli/src/index.js`, which is what the handoff's
+`data.runtime_artifact` names. The 883 is real and is a measurement of a
+checkout nothing on this box runs: `/srv/asc/repos/epitome` sits detached at
+`5836dc0b` with uncommitted edits to `cli/src/index.js` and
+`cli/src/lib/runner.js`. **A stale copy that executes and a stale copy that
+does not are different findings**, and there are three copies here and not two.
+
+The number that binds is the installed one. `diff -rq` against this
+repository's `main` returns **49 differences**, whole files absent. Its
+`index.js` and `lib/runner.js` were last written **2026-10-17**; everything
+else in it dates from **2026-09-24**. `main`'s `cli/src` last moved
+2026-10-26T04:58:03Z. And the specific line this register already named is
+still not there:
+
+```
+$ grep -c shortfallLine /usr/lib/node_modules/epito/src/lib/runner.js   # the host runs this
+0
+$ grep -c shortfallLine cli/src/lib/runner.js                           # main
+2
+```
+
+That is L36's sentence — the one telling a seat which names its box lacks —
+merged on 2026-10-11 and **sixteen days later still delivered to no seat**. It
+was recorded here on 2026-10-24 as the second instance. This is the third, and
+by L20 a second instance while the fix sits written is one incident of the
+landing path. Routed accordingly, to `epitome/pm` in answer and to
+`alexandra-systems/pm` as the item, with the correction to the artifact in the
+first paragraph of each so the next hand measures the right file. Instances
+counted, not entries: **3**.
+
 ## Incident 11 — 2026-10-18 — Three passes of the merging seat declined to merge, correctly, because the file that instructs it has never said it merges
 
 **What happened.** The engineer opened #181 at 09:25:15Z, the fix for the
