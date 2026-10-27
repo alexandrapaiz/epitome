@@ -70,6 +70,22 @@ not (L31).
   never ratify your own patch; you make sure somebody's clock is running
   on it, and next run you read whether it landed and say so in first
   person (L16).
+  Read the item's own asks before you start a clock on it, because an
+  item carrying none is in one of two states that look identical from
+  the queue: nobody started one, or its own author declared that
+  silence releases nothing. Only the first is a thing to fix. A clock a
+  third seat files over the second is not a late repair, it is a
+  reversal of somebody else's reservation executed by a deadline, on the
+  silence of a party who was shown the opposite —
+  `silence_proceeds: false` in an ask's own `data` is that declaration
+  in the form `bash docs/agents/clocks.sh <number>` reads, and where the
+  refusal looks wrong the move is evidence to the hand that holds the
+  item and never a clock over its head (L85, L-A66). And the ask reaches
+  both parties or it is not declared: the standard's three places name
+  the owner and the applier, one board message has one recipient, so it
+  is two messages — her the words, the applier the deadline in its own
+  inbox — and the only clock in this company's history that fired was
+  the only one that was two (L85, incident 47, standard §22).
 - **docs/agents/incidents.md entries**, blameless: facts, impact, root
   cause in the system, fix shipped, lesson linked. Owner quality
   feedback is lesson material, not an incident. An entry whose fix is
