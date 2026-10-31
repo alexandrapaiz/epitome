@@ -94,12 +94,55 @@ not (L31).
   breakage, and a day's numbers are neither, so they get their own file
   with its own ceiling and its own kill conditions. The one number that
   file may never be missing is capacity — how many runs the host
-  attempted, how many a resource refused, how long nothing ran, and how
-  much of that was after the resource came back — because every other
+  attempted, how many a resource refused, how long nothing ran, how much
+  of that was after the resource came back, and **how many of the
+  attempts were made after the resource had already named its return** —
+  because every other
   instrument this company has counts outcomes and none counts what the
   outcomes were paid for (L18, incident 8). Read the error class in the
   run log before the exit code: a refused run and a failed run carry the
   same exit, and counting them together hides the whole class.
+  Report both sides of the reset or neither. A resource that announces
+  when it comes back has announced that it is closed until then, and the
+  two halves have different owners: on 2026-10-25 the dark minutes after
+  the limit returned were down to **one**, which is the mechanism built
+  for incident 8 working, and **65 runs on 21 seats** were refused in the
+  fifteen hours before it, inside a closure the provider had stated in
+  writing at 03:00:04Z. A capacity line carrying only the first of those
+  reads as a solved problem on the day the second costs this company a
+  day, which is `docs/standards/lessons.md` L-A81 pointed at wakes
+  instead of bytes, as its own text says it must be (L59, L-A88).
+  And name the unit, because the sentence above is only half true as it
+  stands: that **one** dark minute is hours recovered, and on the same day
+  **11 of the 13 scheduled slots that finished were refused** against 59 of
+  143 message wakes, ten of them waiting on the reset the provider had
+  named. A message wake refused costs hours, since the next message
+  re-delivers the work; a slot refused costs that seat's whole cadence for
+  its period, and three of those eleven were their seat's only slot of the
+  week. So the line reports refusals by trigger, and a recovery is credited
+  in the unit that was lost or it is not credited: where the unit restored
+  differs from the unit lost, the mechanism substituted and the line says
+  so. `bash docs/agents/caps.sh` prints the split and answers
+  could-not-look for a window in which no slot finished (L62).
+  And **after the reset is two numbers, not one.** This clause as it
+  stands asks how much of the dark fell after capacity returned, and
+  that question has exactly one answer when nothing asks for the
+  resource and a different one when something asks and is refused by
+  its own budget. On 2026-10-26 the first number was **14 minutes**,
+  which was true, and was a sentence about a recovered day on a day
+  nine seats across four products were owed a wake at 19:03:53Z and
+  none was sent: `capacity-retry.py` answers *nothing owed* at
+  `--max-per-day 3` and *9 seat(s) owed* at 4, one integer apart, on a
+  day the provider gave five windows. Idle nobody asked for is a
+  missing mechanism; idle a working mechanism declined is a tuned one
+  tuned wrong, and the two take different fixes, so the line that
+  cannot tell them apart reports the cheaper one. `python3
+  docs/agents/recovered.py` is that second read, and the cost is
+  measured **per seat before it is totalled**, because a shared cap
+  lands its whole weight on the quietest inbox: of those nine, six were
+  back inside 26 minutes on traffic they did not plan and the three
+  that lost the evening were all three of this product's (L82,
+  incident 45).
 - **One branch per seat, and the number comes from the queue.** Start
   from your own newest open pull request, not from `main`, whenever you
   have one open; `main` is the single view guaranteed not to hold the
@@ -180,6 +223,35 @@ come back for it (L-A32). If you truly cannot ready it, say on the board
 what remains and what the next run should do; a draft carrying only the
 commit that opened it is not unfinished work, so close it and re-declare
 what it owed.
+
+The body is the report (L-A19), so it is written at the same first moment
+the flag is lifted and rewritten as the run learns more, never left as a
+note promising its own replacement. A placeholder that names the run's
+last turn as its deadline is a commitment to an instant the run does not
+control, and a merger reading it is right to decline: `epitome/pm` did,
+on `#305`, on 2026-10-25 (L57).
+
+And lifting that flag is a handoff, not a status change: the moment it
+comes off, a hand whose clock you cannot read may close the branch, and
+on 2026-10-26 that clock answered this seat in a median of 135 seconds
+in the hour after capacity returned. So keep lifting it at the first
+artifact, and put the next commit on a new branch, cut from the readied
+head **before** that commit is made — never after a push fails, because
+a merged pull request cannot be reopened and the only recovery left is a
+second pull request. Three such windows in fifty-four minutes cost three
+of five pull requests that morning, one of which carried nothing at all,
+and by the fifth the run had stopped opening drafts to get out of the
+way of its own charter. `bash docs/agents/offmain.sh --here` answers
+whether this branch is still yours, and answers it before the commit
+rather than after the discovery (L76, incident 39, L75).
+
+When a run's work does arrive as two pull requests, the first standing
+count says so in its own sentence. These are not a stack — each targets
+`main` and each merges on its own, so the chain correction above cannot
+see them: report how many of the open pull requests are one run's output
+split by a merge that run did not control, because otherwise one run's
+output reaches the merge button as several decisions with nothing
+marking it as one (L76).
 
 ## When a clock is running on words
 
