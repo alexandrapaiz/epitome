@@ -535,8 +535,9 @@ check "and an unknown one lists the flags doctor takes"       "[ $rc -eq 1 ] && 
 #
 # 140 seats, not 80, and the human report's own size is asserted now. The
 # JSON crossed the buffer at 80 and the human report never did, at any count
-# this gate has used: 24,903 bytes for 80 `plain` seats and 49,757 for 80
-# `only` seats, measured on the box this change was written on. So the human
+# this gate has used: 24,804 bytes for 80 `plain` seats leaving by the ✓ path
+# (which is what this suite produces, since it starts a worker) and 49,757 for
+# 80 `only` seats, measured on the box this change was written on. So the human
 # half of this gate was asserting that a document which fits in one buffer
 # arrives whole, which is not the claim. 140 `only` seats is 85,096 bytes of
 # report and 189,370 of JSON — both over, with a quarter of margin.
