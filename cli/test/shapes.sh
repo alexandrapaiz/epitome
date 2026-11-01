@@ -88,9 +88,18 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # and the allowance table below holds nothing else. 37 less 23 less 5 is 9,
 # and that is what this gate prints.
 #
-# A nine-line table is not the end of this work: see the banner below the
-# allowance for the twenty-one shell files under docs/agents/ that this gate
-# has never read, and the board card that holds them.
+# docs/agents/ joins this table's scope on this branch and leaves it with
+# nothing: the sixteen sites the widening found in eight of those twenty-one
+# files are converted in the same diff, so the table is back to its three
+# named exemptions. Eleven of the sixteen were LIVE and five were LATENT, and
+# the difference is one measured fact rather than a judgement: `pipefail` does
+# not cross `bash -c` (measured, 200 asks each -- a matching pipeline that
+# reported failure 200 of 200 times in the parent reported it 0 of 200 inside
+# `bash -c`). So a site in a file's own shell misfires today, and a site
+# inside a `bash -c` string misfires the day its runner turns pipefail on.
+# Both are converted: this scan cannot tell them apart, and the latent five
+# include the fixture in remeasure.sh that a seat copies when it writes a
+# real probe.
 #
 # Three lines here are not allowances but exemptions, and they are named rather
 # than hidden: probe-pipefail.sh carries five of the shape, probe-negated.sh
@@ -104,10 +113,24 @@ SHAPE='\|[[:space:]]*grep[[:space:]]+((-[A-Za-z]+|--[a-z-]+)[[:space:]]+)*(-[A-Z
 # make the count a matter of formatting. Both are counted so that neither file
 # can quietly grow one more.
 #
+# What the widening is worth, measured rather than argued: composing this
+# branch against trunk six hours after its conversions, this scan read 86 ok
+# and 2 FAILED, and both failures were new on main. post.sh arrived at
+# 11:08:04Z with four -- including a belt that FAILS OPEN, where a false
+# pipeline failure reads as "no refusal was printed" and the board message
+# goes out (measured on the real captured surface: 1018 bytes, needle at 528,
+# 3 of 500 wrong, every one PIPESTATUS `141 0`). And remeasure.sh grew one
+# back at 10:52:34Z, eight minutes after the commit here that converted that
+# file. Five new sites in a directory nobody scanned, in six hours. That is
+# the standing cost this gate is for, and nothing on main could have caught
+# either one, because this is the only reader that looks there.
+#
 # Converted and therefore absent, allowed none: smoke-validate.sh,
 # smoke-temporal.sh, smoke-roster.sh, all.sh, smoke-deploy.sh, smoke-doctor.sh,
-# smoke-langgraph.sh, smoke-bus.sh, pack.sh, and both deploy scripts here --
-# every file this gate scans except the three probes. A number may only be
+# smoke-langgraph.sh, smoke-bus.sh, pack.sh, both deploy scripts, and now the
+# nine seat tools -- brief.sh, check.sh, clocks.sh, idle.sh, mergeable.sh,
+# post.sh, remeasure.sh, reread.sh, stage.sh -- every file this gate scans
+# except the three probes. A number may only be
 # lowered by a branch that can see
 # its conversion land: a number that is too HIGH costs one advisory line, and a
 # number lowered for a conversion that does not land fails this gate on main.
@@ -132,14 +155,15 @@ bad() { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
 lines() { [ -f "$ROOT/$1" ] && grep -nE "$SHAPE" "$ROOT/$1" | grep -vE '^[0-9]+:[[:space:]]*#'; true; }
 count() { lines "$1" | grep -oE "$SHAPE" | wc -l; }
 
-# What this prints is what it read, and it has never read the whole repository:
-# FILES is cli/test/ and deploy/ only, and docs/agents/ holds twenty-one more
-# shell files -- the tools the seats run to decide things -- of which eight
-# carry this shape at fifteen sites. That is a card on the board, not a fact
-# this banner may round off: a gate that says "every" while scanning half is
-# how a blind spot gets read as a clean bill of health.
-printf '\n== cli/test/ and deploy/, scanned for the quiet-pipe shape (docs/agents/ is not scanned)\n'
-FILES="$( (cd "$ROOT" && ls cli/test/*.sh deploy/*.sh 2>/dev/null) )"
+# What this prints is now what the repository holds, which it was not until
+# this branch. FILES was cli/test/ and deploy/ only -- twenty files -- while
+# docs/agents/ held twenty-one more, the tools the seats run to DECIDE things,
+# and not one of them had ever been scanned. A gate that says "every" while
+# reading half is how a blind spot gets read as a clean bill of health, so the
+# glob is all three directories and the allowance below carries the sites that
+# widening found.
+printf '\n== cli/test/, deploy/ and docs/agents/, scanned for the quiet-pipe shape\n'
+FILES="$( (cd "$ROOT" && ls cli/test/*.sh deploy/*.sh docs/agents/*.sh 2>/dev/null) )"
 for f in $FILES; do
   n="$(count "$f")"
   allowed="$(printf '%s\n' "$ALLOWED" | awk -v f="$f" '$1==f {print $2}')"

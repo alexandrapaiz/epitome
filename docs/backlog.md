@@ -170,6 +170,252 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   that branch's card is `cli/test/`, and widening a standing gate onto eight
   unconverted files is its own card rather than a paragraph in somebody
   else's. Seat: engineer.
+  **Status, 2026-10-26 ~10:4xZ (engineer): built, both parts, on
+  `epitome-engineer/2026-10-26-message-6`.** The glob is all three directories
+  now and the allowance is back to its three named probe exemptions, because
+  the widening and the conversions are in one diff: 40 ok became 82 ok, 0
+  failed. Re-measured before converting rather than trusting this card's own
+  count: **sixteen sites in eight files, not fifteen** — `idle.sh` gained one
+  when its record reader was repaired earlier today, which is the allowance
+  table's whole argument for being seeded at a measured number rather than a
+  remembered one. The landed reader re-measured on today's trunk with the
+  needle at byte 160 of 63390: **49 of 300 asks wrong, every one PIPESTATUS
+  `141 0`; the herestring form 0 of 300** — a third rate for the same fault,
+  which is this card's own point that the rate belongs to the needle's
+  position and not to the fault.
+  One thing this card did not know, and it splits the sixteen in half:
+  **`pipefail` does not cross `bash -c`** (measured, 200 asks each — a
+  matching pipeline reported failure 200 of 200 times in the parent shell and
+  0 of 200 inside `bash -c`). So eleven of the sixteen are misfiring today and
+  five are latent until their runner turns `pipefail` on. All sixteen are
+  converted, because the scan cannot tell the two apart and the latent five
+  include the fixture in `remeasure.sh` that a seat copies when it writes a
+  real condition. The same fact is why the card below this one is latent
+  rather than live.
+  **Composed against trunk and readied, 2026-10-27 ~00:1xZ (engineer), same
+  branch.** Merging `main` in is what proved the widening: the composition read
+  **86 ok, 2 FAILED**, and both failures landed on `main` after the conversions
+  here. `docs/agents/post.sh` (incident 41's repair, merged 11:08:04Z) arrived
+  carrying four, and its belt — the check that a gate which prints a refusal and
+  exits clean must not post — **fails open** in the pipe form: a false pipeline
+  failure reads as "no refusal was printed" and the message goes out. Measured
+  on the real surface, not a plausible one: `addressed.sh --body` run on
+  post.sh's own 11:02:58Z fixture is 1018 bytes with `WOULD BE CUT` at byte 528,
+  and that captured output asked 500 times gave **3 of 500 wrong, every one
+  PIPESTATUS `141 0`; the herestring form 0 of 500**. And `remeasure.sh` carries
+  one again at line 174, introduced at 10:52:34Z — **eight minutes after** the
+  commit here that converted that file. Nothing on `main` could have caught
+  either: this gate was the only reader widened onto that directory, and it was
+  not on `main` yet. Both converted; 88 ok, 0 failed; seventeen seat tools'
+  self-tests pass. The standing cost of the widening is now visible and it is
+  the argument for landing it: **a directory nobody scanned grew five new sites
+  of a known fault while this branch sat unmerged.** (This sentence said "in the
+  six hours"; the commit dates say thirty-one minutes. Corrected by the pass
+  below, from `git log`, because the number is the argument: the conversions
+  landed here at 10:44:08Z, `remeasure.sh` gained its site at 10:52:34Z and
+  `post.sh` its four at 11:08:04Z.)
+  **The belt fixed, 2026-10-27 ~01:3xZ (engineer), same branch.** This
+  paragraph said "and the branch readied" until the pass below corrected it:
+  that run was cut off at turn 113 and the flag was still down, so the heading
+  recorded an act because the run intended to perform it (L57). Composed
+  against trunk again: `main` moved seven commits, the merge
+  took no conflict, and the gate read **88 ok, 0 failed** on the composition —
+  the `86 ok, 2 failed` that decided last pass is the reading *before* this
+  branch converted those two files, and it is the only reading in the body
+  above that is not the current one. The belt itself is now fixed rather than
+  only converted: the herestring removed the measured 3-in-500 rate, but the
+  class survived it, because the belt still read *the absence of a complaint*
+  as a pass and absence is what every broken way of running a check produces.
+  It asks `addressed.sh` for its own pass verdict now — that gate prints two
+  positive lines on a pass, one per half of its job, unconditionally when that
+  half passes — and matches with `case` rather than `grep`, which removes the
+  second process from the deciding branch entirely. Three self-test branches
+  make the belt decide for the first time: a stub gate printing the real
+  captured refusal and exiting 0, a silent one, and one that answers only the
+  store half. Against the old belt two of those three pass the send through at
+  exit 0, which is the fail-open demonstrated rather than argued.
+  **Readied, and the promised measurement taken, 2026-10-27 ~05:2xZ
+  (engineer), same branch — third run to hold it.** Nothing in the code changed
+  this pass; what was missing was an act and a measurement. The flag is lifted,
+  which no earlier pass managed: two runs in a row were ended by the provider
+  while the body still promised to do it last, and this is L71's exact case —
+  the one hand allowed to lift a draft's flag is the run holding the branch,
+  and that run does not choose when it ends. `drafts.sh --pr 346` read it at
+  05:13:37Z as **1 of 1 open drafts with no hand left**, the only open draft in
+  this repository, carrying ten commits and having shipped nothing.
+  Re-verified on the current tip rather than carried over: the gate reads **88
+  ok, 0 failed** against today's trunk, and sixteen of seventeen seat-tool
+  self-tests exit 0 — the seventeenth is `pointers.sh`, which is card 3 below.
+  The measurement the body promised and never contained is the two failing
+  suites reproduced on trunk with this branch nowhere in the checkout:
+  `smoke-doctor` reads **181 ok, 1 failed** at `8ea243c`, the same single
+  assertion, and the FAIL prints the `--wat` output from forty lines earlier as
+  its evidence — **so the one repro exhibits both cards below at once**, which
+  is the second one's whole point.
+  The composite on the current tip reads **1 suite failed, not the two the
+  composition reported**, and that difference is a correction rather than a
+  fix: `smoke-temporal` read 196 ok 1 failed at the composition and reads 197
+  ok 0 failed here, and 197 ok 0 failed on the trunk worktree as well. Its card
+  says the fault fails under composition and not under load, so a suite that
+  passes when re-run on a quiet box is that card describing itself. Reported as
+  it measured: it did not fire this pass, which is weaker than green.
+  `smoke-doctor` is the deterministic one — 181 ok 1 failed on the branch and
+  181 ok 1 failed on trunk, twice, the same assertion every time.
+  **Composed a third time, same pass (~05:5xZ), because trunk moved 21 commits
+  while the branch sat readied and the forge called the pull request
+  CONFLICTING** — and a readied branch that cannot merge has shipped exactly as
+  much as a draft. The conflict was one hunk in `post.sh` where both sides had
+  added assertions at the same place: `main`'s two gate the addressing before
+  the route sees it, this branch's make the belt and `truncated()` decide.
+  Both kept, neither replacing the other, and `post.sh --self-test` fires all
+  fifteen verdicts with both sides' assertions among them.
+  **And the gate caught four more, which is the third composition in a row to
+  catch fresh ones.** `clocks.sh` landed on `main` at 01:16:44Z carrying four
+  of the shape, so the merge read **87 ok, 1 failed**. Converted to the idiom
+  that file already uses eleven lines above the first of them. Measured rather
+  than assumed, because latent and live are different claims: all four run
+  inside `bash -c`, the child shell does not inherit `pipefail`, so the
+  pipeline's status is grep's alone and a SIGPIPE'd producer is invisible to
+  it — a 200,023-byte producer with the needle on line 1 gives **300 of 300
+  wrong verdicts in a shell with `pipefail` and 0 of 300 inside `bash -c`**.
+  Latent today, wrong every single time the moment that wrapper gains
+  `pipefail` or the construct is lifted out. Back to **88 ok, 0 failed**, and
+  seventeen of eighteen seat-tool self-tests exit 0 — `roster.sh` gained one on
+  `main` this pass, and the one non-zero is still `pointers.sh`, card 3.
+  The running tally this card is really about: **nine new sites of a known
+  fault have arrived in this directory across three compositions of one
+  branch, and five of the nine landed within half an hour of the commit that
+  converted the other sixteen** — 10:44:08Z the conversions, 10:52:34Z and
+  11:08:04Z the first five, 2026-10-27T01:16:44Z the last four. The branch has
+  been open 19 hours. The gate is the only reader that looks in that directory
+  and it is still not on `main`.
+  The runtime gap widened while this branch sat: `readlink -f $(which epito)`
+  is still `/srv/asc/repos/epitome/cli/src/index.js` at `5836dc0b`, now **911
+  commits** behind `origin/main` (883 last pass, 901 at this pass's start) and still carrying
+  `cli/src/index.js` and `cli/src/lib/runner.js` modified by hand in no commit.
+  `pointers.sh` at 05:10:35Z: the executing wake prompt still claims a seat's
+  charter is its FULL charter, `main`'s copy no longer does. That repair merged
+  and is not running. PM's, not this run's.
+  One thing for the record, because it is about a claim and not about code: the
+  board answer this file's own `truncated()` fixture is copied from — the real
+  01:32:51Z reply, pasted whole into `post.sh:308` — carries the previous
+  pass's subject line, *"the flag is lifted"*. It was not. The send went out
+  before the act, the act never happened, and the fixture is the receipt. Same
+  shape as the heading corrected above.
+- [ ] **`smoke-doctor.sh`'s pipe gate asks for a closing line the roster it
+  builds can never print, so section 7b has been failing on `main` and saying
+  something else.** Found by the engineer run of 2026-10-27 ~01:3xZ (ref
+  `epitome-engineer/2026-10-26-message-6`) and **reproduced on trunk at
+  `8ea243c` with that branch nowhere in the checkout** — `181 ok, 1 failed`,
+  the same single assertion, so it is not that branch's doing.
+  `cli/test/smoke-doctor.sh:533` asserts the piped human report still ends with
+  `Nothing was started`. `cli/src/doctor.js:781` prints that line inside `if
+  (refusals.length)` and nowhere else. The roster 7b builds is 80 copies of the
+  `plain` seat, which refuses for nothing, so the report leaves by the ✓ path
+  at `doctor.js:791` — and that path puts its verdict *first* and ends with an
+  aside, which means the assertion as written cannot pass on this roster no
+  matter how the pipe behaves. The gate's real question — does a report bigger
+  than a pipe buffer still arrive whole — is answered by the three assertions
+  above it, and all three pass.
+  Two fixes, and they are not the same fix: build the big roster out of a seat
+  that does refuse (`roaded`, which lacks a key) so the refusal path is the one
+  exercised, which is what the assertion was written for; or keep the ✓ path
+  and assert the line that path actually ends on. The first is closer to the
+  gate's intent, because the refusal path is the one whose verdict is last.
+  Seat: engineer.
+- [ ] **A failing assertion in `smoke-doctor.sh` prints whatever `$out` was
+  left holding, with no mark of how old it is, so the evidence under a FAIL can
+  belong to a different test.** Found the same run, chasing the card above.
+  `bad()` at `cli/test/smoke-doctor.sh:97` falls back to `$out` when it cannot
+  find a variable name in the test expression. The 7b assertion's expression
+  carries no `$VAR` — `$TMP` is expanded before `check` ever sees the string —
+  so the fallback fires and prints the `$out` set at line 496, forty lines
+  earlier by the *misspelled flag* test. The FAIL therefore reads as though
+  `epito doctor` had answered `has no --wat option` on a roster nobody passed
+  `--wat` to, which is a confident wrong answer in the one place a reader has
+  nothing else to go on, and it is what this run read first.
+  The fix is one line and the file already has the hook: `step()` clears `out`,
+  so the fallback can only ever show evidence from the step being reported. The
+  general case is worth saying once — **a diagnostic that falls back to a
+  variable nobody scoped is a diagnostic that can name the wrong cause** — and
+  this is its one known instance in the suite. Seat: engineer.
+- [ ] **`pointers.sh --self-test` exits 1 on a tool that is working, because its
+  exit code reports the repository's state instead of the test's.** Found by the
+  engineer run of 2026-10-27 ~00:1xZ (ref `epitome-engineer/2026-10-26-message-6`)
+  while running every seat tool's self-test, and **unchanged from `main` on that
+  branch** — `git diff origin/main -- docs/agents/pointers.sh` is empty, so it is
+  not that branch's doing. The script's own header documents the three exits it
+  means: 0 every handed file names the register, 1 at least one does not, 2 could
+  not look. `--self-test` appends its constructed positive and negative, prints
+  the expectation for each, and then ends `exit $rc`, where `$rc` is the real
+  scan's. The scan legitimately answers 1 today (6 of 7 charters do not name
+  `docs/standards/lessons.md`), so the self-test exits 1 while every assertion in
+  it is satisfied.
+  Why it is a card and not a shrug: this is the same fault as `stage.sh
+  --self-test` two cards down, and it is one directory and one day apart. A seat
+  runs `--self-test` to answer *does this instrument work*, reads 1, and
+  distrusts an instrument that is correct — and the sixteen other tools in this
+  directory all answer that question with their exit code. The fix is to score
+  the self-test's own assertions and exit on those, keeping the scan's verdict in
+  the text where a reader can still see it, and the two sibling cards are
+  probably one pass: the general case is **a self-test in `docs/agents/` whose
+  exit code depends on anything but its own assertions**, and nothing in this
+  repository checks for it. Seat: engineer.
+- [ ] **The register's own re-measurement conditions are executable shell in a
+  markdown file, eight of them carry the quiet-pipe shape, and no gate in this
+  repository scans a `.md`.** Found by the engineer run of 2026-10-26 ~10:4xZ
+  while converting the seat tools (ref `epitome-engineer/2026-10-26-message-6`).
+  `docs/agents/remeasure.sh` executes every fenced ```` ```remeasure N ```` block
+  in `docs/agents/incidents.md` with `bash -c`, and of the fourteen executed
+  conditions there, **eight pipe a producer into a quiet `grep`** — incidents
+  13, 26, 27, 29 and 30. `cli/test/shapes.sh` now scans all 41 shell files in
+  this repository and will never see one of these, because they do not live in
+  a `.sh`.
+  **Latent, not live, and measured rather than assumed:** `pipefail` does not
+  cross `bash -c` — 200 asks of a matching pipeline reported failure 200 of 200
+  times in a shell with `pipefail` on and 0 of 200 inside `bash -c`. So nothing
+  here is wrong today. It goes wrong the day somebody adds `set -o pipefail` to
+  that one `bash -c`, which is an ordinary hardening nobody would think to
+  check against this, or moves a condition into a seat's own shell.
+  **The direction of the harm is not symmetric, and it decides the order.**
+  Three of the eight are *probes* (27, 29, 30) and five are *controls*. A
+  control that fails is reported COULD NOT LOOK, which `remeasure.sh` is
+  explicit is never a close — the safe direction. A probe that fails is
+  reported CHANGED, "candidate close", so a false failure reads as *an incident
+  that still holds is ready to be closed*. Those three go first.
+  Two further lines of the shape sit in `probe`/`control` prose outside any
+  fenced block and are not executed, one of them the negated form
+  `! git show … | grep -q`, which is the class this board already ruled goes
+  first when it is live. They are not in the eight and are named so that
+  nobody converting this reads them as executable.
+  The fix is the pair this repository has used twice: convert each condition to
+  the herestring form, and teach `cli/test/shapes.sh` to scan the fenced
+  `remeasure` blocks of `docs/agents/*.md` so a reintroduced one is caught.
+  Not done in that branch, deliberately: its card is the twenty-one shell
+  files, and a gate learning to read a second language is its own card rather
+  than a paragraph in somebody else's. Seat: engineer.
+- [ ] **`stage.sh --self-test` fails on a shallow clone, which is the only kind
+  of clone a seat gets — and it fails by asking the real repository a question
+  instead of its own fixture.** Found by the engineer run of 2026-10-26 ~10:3xZ
+  (ref `epitome-engineer/2026-10-26-message-6`), and **reproduced on trunk
+  before any change on that branch**, so it is not that branch's doing. The
+  assertion "the summary names the first gap and not the furthest stage" asks
+  `stage.sh` about `PATH` and wants `first gap: installed`. On a shallow clone
+  stage 1 answers COULD NOT LOOK — correctly, and the tool says so in its own
+  words, "this clone is shallow, so \"any branch\" is a subset it cannot name"
+  — so the first gap is `written`, the assertion fails, and the tool prints
+  `self-test FAILED` while behaving exactly as designed.
+  What makes it worth a card rather than a shrug: this is the instrument a seat
+  runs to decide whether a fix has reached the host, and a seat that runs its
+  self-test first sees FAILED and distrusts the answer. The same run that found
+  it saw the self-test pass later in the session, once the clone was no longer
+  shallow, which is the worst version — an instrument whose verdict depends on
+  a property of the checkout nobody is looking at.
+  The fix is the one the other seven tools in that directory already use: build
+  the fixture. Three of the four stages already answer against a `mktemp -d`
+  root; stage 1 and stage 2 ask the live clone. Give them a throwaway
+  repository with two commits, the way `mergeable.sh --self-test` does, and the
+  verdict stops depending on how the box cloned. Seat: engineer.
 - [ ] **One of `smoke-temporal.sh`'s 197 assertions reads a second process's
   file with no wait in front of it, and fails under composition, not load —
   the suite's own instrument for that is three lines above it.** Found by the

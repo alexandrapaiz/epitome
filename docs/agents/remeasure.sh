@@ -165,13 +165,17 @@ classify() {  # $1 = status text
 # how many can this script actually measure. Printed as a `data` block because
 # a count this charter tells a reader to paste must not need retyping (L33).
 coverage() {
-  local pop with without unjudge n cls st
+  local pop with without unjudge n cls st have
   pop=$(population)
   with=""; without=""; unjudge=""
+  # The incident numbers that carry an executable condition, read once. This was
+  # `blocks | cut -f1 | grep -qx` per incident: one quiet-pipe site, and one awk
+  # pass over the whole register for every open incident in the loop.
+  have=$(blocks | cut -f1 | sort -un)
   while IFS=$'\t' read -r n cls st; do
     [ -z "$n" ] && continue
     case "$cls" in
-      open)        if blocks | cut -f1 | grep -qx "$n"; then with="$with $n"; else without="$without $n"; fi ;;
+      open)        if grep -qx "$n" <<<"$have"; then with="$with $n"; else without="$without $n"; fi ;;
       unjudgeable) unjudge="$unjudge $n" ;;
     esac
   done <<< "$pop"
@@ -184,7 +188,7 @@ coverage() {
   printf 'read_at: %s\n' "$(date -u +%FT%TZ)"
   printf 'register: %s\n' "$FILE"
   printf 'incidents_in_register: %s\n' "$total"
-  printf 'conditions_executable: %s\n' "$(blocks | cut -f1 | sort -un | grep -c .)"
+  printf 'conditions_executable: %s\n' "$(grep -c . <<<"$have")"
   printf 'open_by_their_own_status: %s\n' "$((c_with + c_without))"
   printf 'open_with_a_condition: [%s]\n' "$(echo $with | tr ' ' ',')"
   printf 'open_without_a_condition: [%s]\n' "$(echo $without | tr ' ' ',')"
@@ -307,11 +311,11 @@ probe   true
 \`\`\`
 ## Incident 5 — the same wrapped file read as sentences
 \`\`\`remeasure 5
-probe   sentences $t/charter.md | grep -qi "run last turn"
-control sentences $t/charter.md | grep -qi "one PR per run"
+probe   s=\$(sentences $t/charter.md); grep -qi "run last turn" <<<"\$s"
+control s=\$(sentences $t/charter.md); grep -qi "one PR per run" <<<"\$s"
 \`\`\`
 EOF
-  check() { if printf '%s' "$2" | grep -qF "$3"; then echo "  ok   $1"; else echo "  FAIL $1: wanted '$3' in: $2"; fail=1; fi; }
+  check() { if grep -qF "$3" <<<"$2"; then echo "  ok   $1"; else echo "  FAIL $1: wanted '$3' in: $2"; fail=1; fi; }
   FILE="$t/incidents.md"
   out=$(run 1); rc=$?
   check "a probe that fires is the incident still open" "$out" "HOLDS"

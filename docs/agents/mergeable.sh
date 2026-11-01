@@ -116,6 +116,10 @@ git fetch -q origin main '+refs/heads/*:refs/remotes/origin/*' 2>/dev/null
 printf 'measured %s   main %s %s\n\n' "$(date -u +%FT%TZ)" "$MAIN" "$(git rev-parse --short "$MAIN")"
 
 want=("$@")
+# Built once, matched as a herestring below: `printf '%s\n' "${want[@]}" |
+# grep -qxF` can report a requested number as not requested, and this one
+# `continue`s -- so the pull request drops out of the sweep silently.
+wantlist=$(printf '%s\n' "${want[@]}")
 mapfile -t rows < <(gh pr list --state open --limit 200 \
   --json number,isDraft,headRefOid,baseRefName,title --jq \
   '.[] | [.number, (if .isDraft then "draft" else "ready" end), .headRefOid[0:8], .baseRefName, .title] | @tsv' \
@@ -125,7 +129,7 @@ stacked=0; blocked_own=0; rc=0
 for row in "${rows[@]}"; do
   IFS=$'\t' read -r n draft sha baseref title <<<"$row"
   if [ ${#want[@]} -gt 0 ]; then
-    printf '%s\n' "${want[@]}" | grep -qxF "$n" || continue
+    grep -qxF "$n" <<<"$wantlist" || continue
   fi
   git fetch -q origin "refs/pull/$n/head:refs/remotes/pull/$n" 2>/dev/null
   base="origin/$baseref"
