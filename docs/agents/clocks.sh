@@ -17,6 +17,16 @@
 # field. Both directions of that mistake cost something and only one of them is
 # loud, so the question stopped being a reading and became this.
 #
+# ONE THING §22 IS NOW BEHIND ON, READ BEFORE THE SIX ANSWERS BELOW. That
+# section withdrew its own three-field requirement on 2026-10-24 because no
+# seat could set `expires_at`, and declared a `data`-only deadline valid for
+# that reason. The write path has since gained the parameter and this file
+# settled it by write; epitome/exo set the column on a live ask at
+# 2026-11-01T23:54:37Z and read the hour back off the 201. The verdicts below
+# are this reader's, against the surface as it behaves; where that differs from
+# §22 as vendored, the disagreement is printed rather than resolved here, and
+# the repair is HQ's (routed 2026-11-01). File a clock in both places meanwhile.
+#
 # Six answers and never two (L41): 0 a clock is running and is declared in all
 # three places `docs/standards/pm.md` §22 names, 1 no clock is running, 2 could
 # not look, 3 a deadline is enumerable in `data` but is not that field, 4 the
@@ -565,9 +575,14 @@ real = [m for m in msgs if m.get("expires_at")]
 print(f"clocks on the board, last {len(msgs)} asks")
 print(f"  {len(claimed)} asks claim a clock in their own prose")
 print(f"  {len(real)} carry `expires_at`, the field the law makes the test (L-A98)")
+# This breakdown counts `claimed`, the asks that claim a clock in their prose,
+# and it used to print indented under the line above it — so a reader saw
+# "11 carry the field" and then "26 epitome" and had one impossible pair of
+# numbers to join. A sentence that counts names what it is a count of (L33).
 by = {}
 for m in claimed:
     by[m.get("from_company")] = by.get(m.get("from_company"), 0) + 1
+print(f"  of the {len(claimed)} that claim one in prose, by company:")
 for c, n in sorted(by.items(), key=lambda kv: -kv[1]):
     print(f"    {n:3d}  {c}")
 def _dd(m):
@@ -586,8 +601,26 @@ enumerable = [m for m in claimed if not m.get("expires_at") and _dd(m)]
 # both of its own charter clocks into `data` first, read this line back, and
 # re-posted them with the field set. A value a reader can apply lives in
 # exactly one place (L-A143).
-print(f"  {len(enumerable)} carry a deadline in `data` only, which releases nothing:"
-      f" the repair for each is to re-post with `expires_at` set (L67, L-A92)")
+print(f"  {len(enumerable)} carry a deadline in `data` only, which releases nothing by this"
+      f" reader: the repair for each is to re-post with `expires_at` set (L67, L-A92)")
+# And the one thing this reader must not do is let its own verdict stand as the
+# company's. `docs/standards/pm.md` §22 withdrew the three-field requirement on
+# 2026-10-24 on the ground that "no seat can set `expires_at`", and declared a
+# `data`-only deadline valid for exactly that reason. The write path moved
+# after that paragraph was written and the paragraph did not follow: `store.py`
+# carries `parse_expires_at` and `post_message(expires_at=)`, this file settled
+# it by write on 2026-10-26, and epitome/exo set the column on a live ask at
+# 2026-11-01T23:54:37Z and read `2026-11-03T23:30:00+00:00` back off the 201.
+# So on this one question the standard and the surface disagree, both readings
+# are honest, and a seat whose clock is declared in one place only is relying
+# on whichever its merger read first (L-A66). Until the paragraph is repaired
+# the safe filing is both places, which costs nothing, and the direction of the
+# risk is the standard's own: a clock that never fires does not miss noisily,
+# it holds forever with everybody reporting compliance.
+if enumerable:
+    print("  NOTE: §22 says that form IS the valid one, on the ground that no seat can set"
+          " the column; the store now takes it and this seat has set it, so the section is"
+          " behind its own surface. File both until it is repaired; routed to HQ 2026-11-01.")
 unfielded = [m for m in claimed if not m.get("expires_at") and not _dd(m)]
 if unfielded:
     print(f"\n  {len(unfielded)} prose clocks, oldest first — each one releases nothing"
