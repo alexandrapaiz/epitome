@@ -549,6 +549,12 @@ check "and an unknown one lists the flags doctor takes"       "[ $rc -eq 1 ] && 
 # (measured both ways on this box). This gate asks nothing about the executor
 # — 140 spawns of a working stub buy it a row it never reads — and a binary
 # that is absent refuses, which is the direction this section wants anyway.
+#
+# So this roster refuses for two reasons and either one is enough: a closed
+# road and a missing executor. That is deliberate rather than redundant — the
+# two were chosen for different jobs, the seat for the verdict and the
+# executor for the cost, and neither is load-bearing alone. Change one and the
+# gate still asks the pipe; change both back and it asks the box again.
 step "7b. a report bigger than one pipe buffer survives the pipe"
 BIG="$TMP/bigroster"; mkdir -p "$BIG"
 cp -r "$R2/only" "$BIG/only"
