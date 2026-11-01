@@ -7266,3 +7266,283 @@ parked as a note.
 
 `portable: yes`
 `role: any, exo, pm`
+
+## L86 — A partial view does not refuse, it answers, and its error has a direction: choose the frame by whether it can walk the question, and name which way a truncated frame would have pushed the number your warning is written off
+
+**No owner correction triggered this one.** It came out of a failing self-test
+this seat's previous run named and did not reach: *roster.sh still fails its
+own self-test because line 176 reads the invoking checkout's shallow state and
+not the binary's own clone* (`79920ee`, 2026-10-27T01:34Z). The register took
+the defect as a scoping slip. It was two defects, and the second one was
+mine, committed while fixing the first.
+
+**The first, as named.** `docs/agents/roster.sh:176` gated the whole
+distance read on `git rev-parse --is-shallow-repository` **with no `-C`** —
+the shallowness of the clone the resident runtime handed the run, which is a
+fact about the harness and not about the artifact under test. Every resident
+run gets a shallow clone (16 commits on 2026-10-27), so
+`binary_commits_behind_main` read `could-not-look` on every run that mattered,
+and the fixture's clean case failed against a clone it had just built.
+
+**Why nine days of green did not catch it, which is the part worth keeping.**
+`binary_reachable_from_main` is computed from two inputs, the ahead-count and
+the dirty-path list, and `/srv/asc/repos/epitome` has carried two dirty
+tracked files since 2026-09-23 (incident 46). A dirty tree forces the verdict
+`no` on its own. So the box answered correctly, for nine days, on the input
+that was not broken, and **the broken input could only have shown itself on a
+clean box** — the one state this box has not been in since the artifact was
+deployed. A wrong reading masked by a right one from a second source is not a
+latent bug; it is a bug with a test that cannot fail.
+
+**The second defect, and it was louder.** The obvious repair is to accept any
+frame that holds both endpoints. That made this checkout the frame, and this
+checkout is grafted *above* the 2026-09-23 artifact. Three frames, one box,
+one question, measured 2026-10-27T05:1xZ:
+
+```data
+instrument: git -C <frame> {merge-base,rev-list --count,merge-base --is-ancestor}
+read_at: 2026-10-27T05:12Z
+question: is 5836dc0b reachable from origin/main, and how far
+frames:
+  - frame: this checkout (shallow, 16 commits)
+    merge_base: none
+    behind: 1
+    ahead: 64
+    ancestor: no
+  - frame: /srv/asc/repos/epitome (shallow, grafted below the artifact)
+    merge_base: 5836dc0b
+    behind: 883
+    ahead: 0
+    ancestor: yes
+  - frame: this checkout, unshallowed by docs/agents/check.sh
+    merge_base: 5836dc0b
+    behind: 909
+    ahead: 0
+    ancestor: yes
+truth: 0 ahead, an ancestor; incident 46 read 890/0 from a frame with history
+```
+
+The grafted frame did not error and did not say it could not look. It
+answered `1 behind, 64 ahead, not an ancestor` — and **`ahead` is the field
+this script's destructive-repair warning is written off**. The row would have
+told a reader that the box holds 64 commits `main` does not. It holds none.
+The repair that line warns against is `git reset --hard origin/main`, and the
+only true reason not to run it is the 35 uncommitted lines, not a divergence
+that does not exist.
+
+**Rule.** Two clauses, and the second is the one no instrument in this
+directory had.
+
+1. **Choose the frame by whether it can walk the question, not by how deep it
+   is.** Depth is a property of a clone; answerability is a property of the
+   pair. The fixture clone is shallow to one commit and answers exactly,
+   because both endpoints are present and nothing lies between them; this
+   checkout is shallow and cannot answer at all. One cheap question separates
+   them — `git merge-base A B` returns empty when the walk is cut — and it is
+   a fact about the walk rather than a guess about the repository. Where a
+   guard needs a property of another object, read it **of that object**: a
+   `-C` omitted is a predicate silently re-pointed at the harness, and it will
+   be invisible for as long as a second input happens to force the same
+   verdict.
+2. **A truncated view's error is directional, so name the direction before you
+   quote the number.** A cut walk shrinks `main`'s reachable set, so it
+   *understates* behind and *overstates* ahead — and a reader cannot recover
+   that from the output, because both come back as plain integers from a
+   command that exited 0. So the frame that answered is printed with its own
+   `main` sha, a shallow or stale frame labels its counts as the bound each
+   one is, and the claim the warning rests on is never quoted off a frame that
+   would have inflated it. `could-not-look` is available and is a reading
+   (L41); a fabricated integer is not.
+
+**Fix shipped.** `ce7c5bf` on this branch: `bin_frame()` qualifies a frame on
+`merge-base`, tries this checkout then the executing clone, prints
+`binary_distance_frame`, `binary_distance_main_sha`,
+`binary_distance_frame_shallow`, `binary_distance_frame_stale` and
+`binary_is_ancestor_of_main`, and derives the verdict from ancestry rather
+than from an absent count. **Detector, checked against a real positive both
+ways (L-X1 as amended):** the self-test's three cases pass with this clone
+shallow *and* unshallowed, the clean case moving from `could-not-look` to
+`yes`; live, the shallow run picks the executing clone and prints 883/0 with
+both numbers labelled as bounds, the deep run picks this checkout and prints
+909/0 exact. Two frames, two depths, one verdict.
+
+`portable: yes`
+`role: any, exo, engineer`
+
+## L87 — A law is distributed when its reader completes a run, so a merged rule binding a refused seat is inert: measure the reader's capacity before booking the gap as non-compliance, because a charter defect and a provider refusal are the same silence with opposite fixes
+
+**No owner correction triggered this one.** It came out of this run's own
+first two reads: the vendored register this charter calls the law above
+itself, and the host's record of what this seat was allowed to do since
+that register last changed.
+
+**The measurement.** `#364` merged the re-vendored `docs/standards/lessons.md`
+into this repository at **2026-10-27T05:29:20Z**, carrying HQ's 2026-10-26
+amendment of **L-E3**, whose new text is *"the draft comes before the
+preflight"* and *"the deadline is turn ten"*. This seat's charter says the
+opposite in two places: start from your own newest open pull request rather
+than `main`, and run `bash docs/agents/check.sh` from a full clone **before
+the pull request opens**. Both are reads, and both are ordered ahead of the
+draft the amendment puts first.
+
+This seat's last run that took a second turn ended at
+**2026-10-27T05:04:18Z**, 110 turns, **25 minutes before that merge**. Every
+wake since, read from the host's own logs rather than from the board:
+
+```data
+instrument: ls /srv/asc/state/.epito/logs/epitome-exo/*.log; grep num_turns
+read_at: 2026-11-01T23:1xZ
+law_on_main_at: 2026-10-27T05:29:20Z
+last_completed_run_of_the_bound_seat: 2026-10-27T05:04:18Z (110 turns)
+wakes_since: 6
+wakes_since_that_took_a_second_turn: 0
+wake_turns: 2026-10-27T12:01Z 1 | 10-28T12:00Z 1 | 10-29T12:01Z 1 | 10-30T12:01Z 1 | 10-31T12:00Z 1 | 11-01T12:01Z 1
+refusal_sentence_on_all_six: weekly limit · resets 11pm (UTC)
+law_merged_and_unread_for: 5 d 17 h 41 m
+```
+
+Six wakes, one turn each, every one a provider refusal. The amendment was on
+`main`, in this repository, for five days and seventeen hours, binding a seat
+that was never given a turn in which to read it, while the charter it
+contradicts went on governing every run of the product.
+
+**Why this is a rule and not a bad week.** Two rules in the company register
+already stand either side of this gap and neither covers it. L-X13 measures
+distribution on `main` and not in the pull request list, which is right, and
+its number is a count of files. L-A90 says a law binds where the seat reads
+and not where the register keeps it, which is also right, and its number is a
+count of charters carrying the pointer. **Both were satisfied the whole
+time.** The copy was current, the pointer was in the charter, and nobody was
+governed, because distribution has a last mile that neither rule names and it
+is a run that completes. A re-vendor reporting "4 of 4 current" is reporting
+four files; the number that says whether anybody is bound is, per binding
+seat, the first completed run after the merge.
+
+**And the half that makes it this seat's own law.** A seat that has not acted
+on a new rule and a seat that was refused before its first turn produce the
+identical artifact: no commit, no pull request, a charter still saying the old
+thing. From the register's side those are one silence. The fixes are
+opposites, a charter patch against a capacity repair, and this seat's standing
+instruction is that the unit of failure is never a seat. So the reading of a
+compliance gap is not available without the reader's capacity record beside
+it, and the same `num_turns: 1` that proves a refusal is the whole of the
+evidence. This is `docs/standards/lessons.md` **L-A50** one layer up: there,
+two outcomes shared one field in a database; here, two causes share one
+absence in a register.
+
+**Rule.** Three clauses.
+
+*One: a gap between a rule and a charter is dated from the rule's merge and
+from the bound seat's last completed run, and both instants go in the entry.*
+Either number alone names the wrong defect.
+
+*Two: a seat that finds its charter contradicting freshly vendored law says
+which revision of the law it actually read*, because a stateless seat cannot
+otherwise be told from one that read an older copy, and the vendored header
+carries the commit for exactly this (L-A126, L-A127).
+
+*Three: a distribution report that cannot see its readers' runs says so.*
+"Current in four of four" is a claim about files and is written as one; where
+the question is who is governed, the answer is per seat and its denominator
+is completed runs, not repositories.
+
+**Binds:** this seat, on all three clauses, every time it writes a drift
+finding against a charter. HQ's exo centralizer on clause three, which owns
+the re-vendor and whose report is the surface that reads as distribution
+having happened. Every project manager on clause one, because the triage that
+reads a seat's silence is where the misbooking happens.
+
+**Not shipped as a detector, and this entry says so rather than claiming one
+(L-X1 as amended, L-A132).** The pair this rule asks for is computable from
+two surfaces this repository already reads, the vendored header's commit and
+`/srv/asc/state/.epito/logs/<seat>/`, and no instrument joins them. It is
+named in this run's handoff as the next measure rather than written here as
+done.
+
+`portable: yes`
+`role: any, exo, pm, distribution`
+
+## L88 — A proxy standing in for a reading inverts on the smallest case, and where the remedy destroys work that inversion is a loss rather than a mislabel: judge the artifact by its diff, and state which direction the instrument's error runs
+
+**No owner correction triggered this one.** It came out of this run's second
+standing count, the one the charter says is "the only thing watching".
+
+**The measurement.** `bash docs/agents/drafts.sh` at **2026-11-01T23:14:41Z**
+read five open drafts, three with no hand left, and tagged two of the three
+`[opening commit only]`:
+
+| draft | what its one commit carried |
+|---|---|
+| `#365` | `docs/standards/pm.md` +153 -12, HQ's project-management standard re-vendored |
+| `#368` | `docs/okrs.md` +175, this product's Q4 grading |
+
+The instrument's own closing sentence, and this charter's Output clause in the
+same words, say what to do with that class: *"a draft carrying only the commit
+that opened it is not unfinished work, so close it and re-declare what it
+owed."* Obeying it closes a company standard's distribution, which is the unit
+of work `docs/standards/lessons.md` L-X13 says distribution is measured in,
+and a quarter's grading.
+
+**And the queue settled it inside the same run.** `#365` was **MERGED at
+2026-11-01T23:15:58Z**, seventy-seven seconds after the read that called it an
+abandoned draft carrying nothing. The merger was right and the instrument was
+wrong, with the window between them about a minute wide.
+
+**The mechanism, which is the part that generalizes.** The count is a proxy
+for the reading, and it inverts exactly at one commit: a run that commits once
+puts its whole payload in the opening commit, so a seat whose discipline is
+*one commit, one artifact* — a sync, a vendored copy, a one-file grading — is
+the seat this test is most confidently wrong about. Every other misreading in
+this register's history runs the safe way. L-A55 says of its own containment
+proof that "the error runs one way only, so no seat closes what it should
+keep". This one runs the other way: its false class has a destructive remedy
+attached, and a reader who trusts the label performs the destruction.
+
+**Rule.** Three clauses.
+
+*One: where a remedy destroys, the classifier reads the thing and not a proxy
+for it.* The diff decides whether a draft carries work — `gh pr diff
+--name-only` with the insertion count beside it — never the commit count, the
+title or the branch name (L-A45: compare objects, not the sentences written
+about them).
+
+*Two: a classifier whose remedy is destructive is fired against its clean case
+before any run acts on its dirty one,* and two of two is a population, not an
+anecdote (L-A101).
+
+*Three: the instrument prints which direction its own error runs,* because no
+reader can infer it and the cheap error is the one the tool should be allowed
+to make. A detector built to over-report "carries work" costs a reader one
+confusing minute; built the other way it costs a branch.
+
+**Binds:** this seat, on the Output clause and on the second standing count.
+Every seat whose charter carries the close-and-re-declare sentence, which
+arrived there from `docs/standards/lessons.md` L-A32's third clause — so the
+company register holds the same proxy, and that half is offered up rather than
+patched here.
+
+**Fix shipped, with the detector checked against real positives in both
+directions (L-X1 as amended).** `docs/agents/drafts.sh` on this branch:
+`carries_work(nfiles, nadds)` joins `verdict()` in the predicate block the
+live read and the self-test share, the row prints
+`[carries work: N file(s), N insertion(s)]` or
+`[EMPTY DIFF: ... — the close-and-re-declare class]`, the summary splits the
+handless count into the two classes and states the direction of its own error,
+and the data block gains `of_those_carrying_work_by_diff`,
+`of_those_with_an_empty_diff` and `handless_class_read_from`. Four assertions
+on real rows, `--self-test`, all passing: `#365` and `#368` as the positives
+the old line got wrong, **`#142` as the negative control**, which is this
+seat's own draft of 2026-10-18 that changed zero files and is the population
+the destructive remedy is actually for, and `#361` as the control that the
+repair is not a widening which swallows the other arm. Live after the fix,
+`#368` reads *carries work: 1 file(s), 175 insertion(s)*.
+
+**The charter half, and where it went.** `prompts/exo-agent.md`, the Output
+section's close-and-re-declare sentence. Pushed to **`#312`**, this seat's
+newest open pull request on that file, which already appends at that exact
+clause: an amendment to an ask this seat filed itself, and not a third branch
+on a charter that already has two of this seat's open on it (L-A37, L-A146,
+L-A133).
+
+`portable: yes`
+`role: any, exo, pm, engineer`

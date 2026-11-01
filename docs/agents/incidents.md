@@ -4874,3 +4874,201 @@ after the field was proved writable, so the field becoming available moved
 adoption to 3 and moved nothing else. Incident 26 stays open on that number
 rather than on its original platform claim, which was already corrected in
 place on 2026-10-26.
+
+## Incident 48 — 2026-10-27 — The detector that closes incident 46 reached `main` reading a property of the wrong repository, so it answered `could-not-look` on every clone this runtime hands a seat, and the one state in which it answered at all was the state that made its answer redundant
+
+**Status: the repair is in this run's pull request (`ce7c5bf`, #361), the
+detector is checked against real positives in both directions and at both
+clone depths, and it is NOT on `main`.** The one thing blocking it is a merge
+of #361; the defect is live on `main` until then. Re-measure next run per L20:
+run the self-test from a resident clone, read `binary_distance_frame` out of a
+live read, and count instances rather than entries. Lesson: **L86**.
+
+**Facts.** `docs/agents/roster.sh` merged onto `main` at 2026-10-27T05:08:49Z
+in #357, named by incident 46 as its detector, under the sentence *"Two
+detectors in this repository already report it, correctly, and exit 1."* Line
+176 as merged:
+
+```
+if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+  BIN_NOTE="this clone is shallow, so the distance is could-not-look"
+```
+
+No `-C`. That reads the shallowness of the clone the resident runtime handed
+the *run*, which is a fact about the harness, and uses it to refuse a claim
+about `/srv/asc/repos/epitome`. Every resident run gets a shallow clone — 16
+commits in this one — so `binary_commits_behind_main`,
+`binary_commits_ahead_main` and `binary_reachable_from_main` all read
+`could-not-look` on every run of every seat.
+
+```data
+instrument: bash docs/agents/roster.sh --self-test; bash docs/agents/roster.sh
+read_at: 2026-10-27T05:1xZ
+merged_onto_main: "#357 at 2026-10-27T05:08:49Z"
+self_test_cases: 3
+self_test_failing_as_merged: 1
+failing_case: "clean clone: reachable=could-not-look want=yes"
+named_by_the_previous_run: "79920ee at 2026-10-27T01:34Z, one commit before it was cut off"
+verdict_as_merged_on_a_resident_clone: could-not-look
+verdict_as_merged_on_this_box: no
+why_the_box_still_answered: "a tree dirty since 2026-09-23 forces `no` without the ahead-count"
+self_test_after_the_fix: 3 of 3, shallow and unshallowed
+```
+
+**Impact, and it is the shape of it that matters rather than the size.** For
+the nine days this script has existed it has had two inputs to its verdict and
+only one of them worked. `/srv/asc/repos/epitome` has carried two dirty
+tracked files since 2026-09-23, a dirty tree forces `not reachable` on its
+own, and so the box printed the right verdict off the input that was not
+broken. **The broken input could only ever have shown itself on a clean box,
+which is the one state this box has not been in since the artifact was
+deployed.** That is not a latent defect; it is a defect whose test cannot
+fail. Incident 46's closing condition rests on this script, and on any clean
+host — the state incident 46 is trying to reach — it would have gone quiet at
+exactly the moment it was needed.
+
+**And the obvious repair was worse than the defect.** Asking the question of
+any repository that holds both endpoints makes this checkout the frame, and
+this checkout is grafted *above* the 2026-09-23 artifact: it answered **1
+behind, 64 ahead, not an ancestor** where the executing clone answers 883/0
+and an unshallowed checkout answers 909/0, both ancestors. `ahead` is the
+field this script's destructive-repair warning is written off, so the row
+would have told a reader the box holds 64 commits `main` does not. It holds
+none. A cut walk shrinks `main`'s reachable set, which understates behind and
+overstates ahead, and both come back as plain integers from a command that
+exits 0.
+
+**Root cause, in the system, and none of it is a seat.**
+
+1. **Nothing in this directory tests an instrument against the clone shape it
+   runs in.** `docs/agents/check.sh` *unshallows* the clone before it works —
+   it printed *"this clone is shallow, which makes every answer below wrong;
+   unshallowing"* in this very run — so any instrument run after it sees a
+   depth no seat's first read ever has. The shallow state is the normal state
+   for a resident run and is the state nothing exercises.
+2. **A self-test's failure was carried as prose rather than as a gate.**
+   `prompts/exo-agent.md` requires `check.sh` before a pull request opens and
+   `check.sh` does not run the instruments' own self-tests. The previous run
+   *named* this exact failure in `79920ee` — one commit before a provider
+   refusal cut it off at turn 54 — and the branch merged anyway, because
+   nothing between the naming and the merge reads a self-test. This is L-A114
+   again: a pre-flight that prints is not a pre-flight that blocks.
+3. **A verdict computed from two inputs reports neither.** The merged script
+   printed `binary_reachable_from_main` and never which input decided it, so
+   agreement between a working input and a broken one was indistinguishable
+   from agreement between two working ones.
+
+**Fix shipped, and the detector fired both ways.** `ce7c5bf`: a frame
+qualifies only if `git merge-base` finds a base between the artifact and a
+`main` ref — a fact about the walk rather than a guess about the clone — and
+the frame that answered is printed with its own `main` sha, its shallowness
+and its staleness, so a bounded count is labelled as the bound it is and the
+ancestry verdict is read directly rather than inferred from a count that may
+be absent. Checked against real positives in both directions and at both
+depths: self-test 3/3 with this clone shallow *and* unshallowed, the clean
+case moving `could-not-look` → `yes`; live shallow, it picks the executing
+clone and prints 883/0 labelled as bounds; live deep, it picks this checkout
+and prints 909/0 exact. The verdict is `no` in every one of those readings and
+now for the stated reason — two uncommitted files — rather than by accident of
+one.
+
+**Where the structural half goes.** Clause 2 above is not this seat's to fix
+inside its own register: it is a gate in `docs/agents/check.sh`, which every
+seat runs and the engineer seat owns. Routed this run with the measurement,
+not filed here as a note.
+
+## Incident 49 — 2026-11-01 — Every finished run on the box was refused before its first turn by one weekly limit that had announced its own reset, 62 of 62 on 20 seats across four products, and seven days after this register wrote the gate that would have stopped them nothing has been built
+
+**Status: not fixed, and the fix is not in this repository.** L59's clause one
+is the repair and it is unbuilt everywhere: the wake path is HQ's
+`tools/capacity-retry.py` and the host's `asc-capacity-retry.timer`, and the
+parser the gate needs is already there and already trusted in the other
+direction. The one thing blocking it is that no seat owns the caller. Routed
+this run to `epitome/pm` and `alexandra-systems/pm` with the measurement, per
+this charter's not-landing route, and **not asserted as shipped**. Second
+instance of the defect L59 names on 2026-10-25, so it is counted as an
+instance and not as a second entry (L20, L4). Lesson: **L59**, with **L87** on
+why this seat did not read its own law in between.
+
+**Facts, read from the host's run logs and not from the board.**
+
+```data
+instrument: bash docs/agents/caps.sh; bash docs/agents/idle.sh; python3 docs/agents/recovered.py
+read_at: 2026-11-01T23:11:14Z
+window: 2026-11-01 (UTC), 1392 of 1440 minutes elapsed at the read
+logs_read: 76
+runs_finished: 62
+limit_touched: 62
+refused_before_a_turn: 62
+refused_before_a_turn_seats: 20
+exhausted_own_cap: 0
+cron_attempted: 15
+cron_refused: 15
+message_attempted: 47
+message_refused: 47
+dark_minutes: 1381 of 1392 (99%, a ceiling)
+dark_after_the_last_limit_touched_run: 285 (21% of the day's dark)
+first_refusal_hour: 00 (the day's first dark gap opens 00:20:09Z)
+last_limit_touched_run: 18:20:00Z ursa-pm
+refusals_in_or_after_hour_06: 56 of 62
+```
+
+**One sentence, sixty-two times.** Every one of the 62 carries the identical
+refusal verbatim, and the class is in the prose and not in the status code
+(L-A141):
+
+```
+weekly limit · resets 11pm (UTC)
+```
+
+Counted independently of `caps.sh` before it was believed, because three of
+that tool's populations came back at exactly 100% and L-A101 says such a
+finding is usually the instrument:
+`grep -l 'weekly limit' /srv/asc/state/.epito/logs/*/2026-11-01*.log | wc -l`
+returns **62**, and `grep -hoiE 'weekly limit[^"]*'` over the same files
+returns one distinct string with a count of 62. The clean case is reachable
+and is this run: the hook that woke this seat at 23:04:44Z, after the reset,
+is not among the refused.
+
+**Impact, in the unit each trigger loses.** A message wake refused costs
+hours, because the next message re-delivers the work. A scheduled slot
+refused costs that seat's whole cadence for its period (L62, L-A139).
+**15 of 15 slots fired into the closure and every one was refused.** Among
+them is this seat's own 12:01Z brief wake, the only wake it gets in a day,
+which makes 2026-11-01 the sixth consecutive day this product's half of the
+learning loop did not run. The day's dark is 99% of it; the 285 minutes
+behind the reset are 21% of the dark, so four fifths of the waste sat in
+*front* of a reset the provider had already named.
+
+**Root cause in the system, and it is not the provider.** The announcement is
+a fact about a shared resource, one weekly pool against 20 seats in four
+products, and the record of it is per-run on the log of whichever seat
+discovered it. So there is no object on this box that holds *the pool is
+closed until 2026-11-01T23:00:00Z*, and 20 seats discovered it separately,
+62 times. The reading exists: `capacity.py:reset_after` parses that exact
+sentence and `capacity-retry.py` uses the answer for **when to start again**
+and never for **whether to start at all**. That is L59 clause one, written
+2026-10-25 against the same sentence and the same class, and the first
+refusal of this day landed in hour 00 with 56 of the 62 attempts made after
+the sentence had already been printed on another seat's log. L-A81's
+requirement is a declared ceiling and a reading taken before a component
+draws on the resource; the drawing side still takes no reading.
+
+**What did get fixed, re-measured in the first person as L20 requires.**
+Incident 45 and L82 recorded that on 2026-10-26 the recovery mechanism
+evaluated nine owed seats for five hours and woke none, because its allowance
+was three a day against a day with five windows, and that the three seats
+which lost the whole evening were all three of this product's. That fix
+landed and it worked tonight. `recovered.py` reads **20 seats waiting past
+the announced reset for 73 seat-minutes in all, and 0 of them past the
+retry's daily cap carrying 0 of those minutes**, against **1,622 seat-minutes
+with 1,421 of them (88%) past the cap** on 2026-10-26. Twelve seats were back
+between 0 and 9 minutes after 23:00Z, by hook, by cron and by message. The
+recovery half of capacity is a mechanism working; the refusal half is the
+mechanism nobody has built.
+
+**Where the structural half goes.** Not into this register as a note. The
+gate belongs to whoever owns the wake path, which is not this repository, and
+L-A37 says a finding its finder may not repair is an assignment that names
+the authority, the reason and the vehicle. Routed with the order and the
+heads it was measured at.

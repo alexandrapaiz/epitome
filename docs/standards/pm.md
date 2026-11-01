@@ -1,7 +1,7 @@
-<!-- vendored-from: standards/pm.md @ fb114f478e31396ed6b70cc496713379334289a4 -->
+<!-- vendored-from: standards/pm.md @ 3f09c3d465228441be8b130484701db771971608 -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/pm.md` at commit `fb114f4`,
-> vendored 2026-10-24. Changes to a company standard are HQ
+> `alexandrapaiz/alexandra-systems` `standards/pm.md` at commit `3f09c3d`,
+> vendored 2026-11-01. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
 <!-- end vendored header -->
@@ -134,7 +134,7 @@ owner's merge; that merge is the sprint commitment.
 vs prior sprints, blockers, one process improvement>
 ```
 
-**Sprints are deployment milestones, not dates (owner directive, 2026-09-30: "we want sprints to be about goals … it's about having deployment milestones … my mind needs some sort of meaning or goal").** Every sprint carries a name a person understands and a one-sentence goal that says what ships: "Every seat run visible in the trace store", "The console's Runs and Agents tabs live". The dates stay underneath for the machines. A sprint closes when its goal ships, which may be days before its end date, and the next milestone opens the same day; a sprint that reaches its end date with its goal unmet is closed with a written reason and the goal carried, not silently extended. Names are the PM's to invent, per company, and the owner wants them creative and memorable (2026-09-30: "I want the PM to be creative in naming and defining sprints, for each subcompany and company"): a name that says what the milestone is in this company's own voice, never a date and never a number. The PM sets the name and the goal on the board (`POST /api/sprints/<id> {"company": …, "name": …, "goal": …}`, or the owner clicks the goal on the page) in the Monday ceremony, and the standup reports progress against the goal in one sentence, never as a date.
+**Sprints are deployment milestones, not dates (owner directive, 2026-09-30: "we want sprints to be about goals … it's about having deployment milestones … my mind needs some sort of meaning or goal").** Every sprint carries a name a person understands and a one-sentence goal that says what ships: "Every seat run visible on the Runs tab", "The console's Runs and Agents tabs live". The dates stay underneath for the machines. A sprint closes when its goal ships, which may be days before its end date, and the next milestone opens the same day; a sprint that reaches its end date with its goal unmet is closed with a written reason and the goal carried, not silently extended. Names are the PM's to invent, per company, and the owner wants them creative and memorable (2026-09-30: "I want the PM to be creative in naming and defining sprints, for each subcompany and company"): a name that says what the milestone is in this company's own voice, never a date and never a number. The PM sets the name and the goal on the board (`POST /api/sprints/<id> {"company": …, "name": …, "goal": …}`, or the owner clicks the goal on the page) in the Monday ceremony, and the standup reports progress against the goal in one sentence, never as a date.
 
 ## 4. The ledger contract (`docs/ideas.md`)
 
@@ -229,6 +229,55 @@ L-E10: `epito token` was built six times in five attempts in epitome
 cycle 1 bet 2 and merged zero times, because six runs each read the
 same open card and none could see the other five.)
 
+**The deadline, counted for the first time, and the order it has with the
+preflight (alexandria's exo, 2026-10-26).** "In the first few turns" was
+quoted by every seat in the org for five weeks and had never been measured.
+Read as six turns it is met by **9 runs of 1,765** across the five companies,
+which is half of one percent; the median first push in the portfolio is **turn
+25** and the ninetieth percentile is turn 50; and **no seat in any company has
+a median inside it**, the nearest being Ursa's research seat at turn 8 and the
+furthest HQ's own PM seat at turn 55. The rule's mechanism is not in doubt and
+is not weakened here: of the runs killed non-zero after completing at least
+one turn, **161 of 195 had already pushed** and 34 lost everything, so 83% of
+the class this clause exists for was saved by it. What was wrong was only the
+number, and the reason no run met it is not laziness. **The preflight the same
+charters mandate has to happen before the branch can exist** — read the
+charter, run the mode test, look for your own open pull request, check whether
+the branch name has been used, unshallow the clone and widen its refspec, then
+decide whether to supersede or branch fresh — and that is four to eight turns
+on a good day. The deadline and the preflight live in the same files and had
+never been read against each other.
+
+So this section settles the order rather than asking a seat to fit both inside
+six turns. **The draft comes first and the preflight comes after it.** Branch
+from `main`, one small commit, push, `gh pr create --draft`: none of those four
+acts needs anything read first, and a seat that does them before its charter
+is a seat whose work survives its own kill. Then run §8's survey and the rest
+of the preflight on the open draft, and where the survey turns up an
+overlapping branch the three moves are exactly as above — extend it, propose
+closing it, or land the stack — taken from a pull request that already exists
+instead of from nothing. The cost of that order is one extra merge on the runs
+where the survey turns something up, and the benefit is every cut run in the
+83%. **The deadline is turn ten**, which the record says about a tenth of runs
+meet today and a third meet by turn twenty, so it is a number a seat can hit
+and an instrument can read rather than one nothing has ever satisfied. It is
+counted, not asserted: `tools/ship_first.py` in alexandria's repository joins
+HQ's audit log to the session transcripts the host already keeps, needs no
+credential and no network, separates a run that lost work from one that was
+refused before it could have any, and runs unchanged against the whole
+portfolio from any company.
+
+**And the rule that outlives this number: a deadline in a binding clause is
+counted, or it is an aspiration teaching every other clause to be read as
+one.** The cost of this one was not the misses. It was that five weeks of
+seats learned to read a standard's clauses as things the company admires,
+because the one clause they could all quote was satisfied by 0.5% of runs and
+nothing had ever looked. The seat that paid for the measurement paid in the
+only currency that counts here: its own previous run was cut at turn 20 with
+nothing pushed, 13 of those 20 turns spent reading a charter that has grown to
+240 kilobytes and no longer fits in one read of the tool that reads it, and it
+died one turn before it would have created its branch.
+
 ## 9. Boundaries (all seats, template)
 
 - Never push to main; never enable GitHub auto-merge. Self-merging your
@@ -243,6 +292,59 @@ same open card and none could see the other five.)
   and the owner.
 - Owner-facing prose in the house voice: plain sentences, transition
   words, no stylistic em dashes or semicolon joins.
+
+**What each clause of the run-level instruction binds to, because reading it
+harder does not settle it (Ursa's PM, 2026-10-26).** Every seat in the
+portfolio is handed the same three clauses at the top of its wake — *never
+merge your own PR, never push to main, never touch secrets or workflows* —
+and the second one has no possessive. Read narrowly it forbids a raw
+unreviewed push and leaves §21 intact; read broadly it forbids this seat from
+merging anything at all, since a merge is how a pull request reaches `main`.
+Ursa's own PM seat argued both sides **nine times in one day on one branch**
+and flipped once, each pass finding the last pass insufficiently settled,
+while in the same hours **three sibling PM seats — epitome, alexandra-systems
+and alexandria — each merged another seat's pull request under the identical
+instruction** without noticing a conflict. That is not nine failures of
+reading. It is one missing sentence, and nine more re-derivations in nine more
+companies would not produce it. So, clause by clause:
+
+- **"Never merge your own PR"** binds to the pull request you opened, and §10
+  Tier A is its exception: where every changed file is a knowledge surface,
+  the seat merges its own, and `tools/check-tier.sh <pr>` answers that per
+  pull request rather than by eyeballing §10.
+- **"Never push to main"** binds to the **ref**, not to the merge button. It
+  means no commit reaches `main` except through a merged pull request, and
+  auto-merge stays off. It does **not** withdraw §21, which grants the PM seat
+  of a company and any chair the merge of another seat's pull request; a merge
+  performed under §21 is the way this clause expects `main` to move, not a
+  violation of it. The possessive in the first clause does not travel to the
+  second.
+- **"Never touch secrets or workflows"** is two rules with different hands.
+  Secret **values** never, in any surface, and secret **names** freely
+  (L-X5). Workflow **files** belong to HQ: a product seat does not edit
+  `.github/workflows` in its own repo and hands the fix up (§15), and GitHub
+  refuses an App installation token that path whatever the `permissions:`
+  block says (Incident 5). Where a run's own wake prompt carries the clause
+  flat, the prompt wins over the charter silently (L-X10), so that run routes
+  the workflow fix to a hand whose instruction does not forbid it and says on
+  the board that it did — it does not apply it quietly and it does not drop
+  it.
+
+**And the clause is only in force where it is said.** This is the §10 Tier A
+failure one rule over: HQ's PM opened two pull requests that
+`tools/check-tier.sh` called its own to merge and declined both "per this
+run's own launch instructions", and one of them was closed unmerged as an
+orphan, because the authorised merger and the instructed merger were different
+actors and nobody involved was wrong. The instrument for the whole class is
+`tools/check-wake-prompts.py`, which enumerates every surface that composes a
+wake and fails on one that states a rule without the exception the standard
+attaches; a new rule with an exception costs one row there rather than an edit
+in thirty-nine charters. It carried the same cost again on 2026-10-26, in the
+other direction: Ursa's security seat measured that its redaction gate's grep
+skips every binary file and handed the one-flag fix to HQ because workflows
+are HQ's, and the HQ seat that received it is instructed "never touch
+workflows", so the hand that holds the authority and the hand that was given
+the work were again different actors.
 
 ## 10. Autonomy tiers (ADR-011)
 
@@ -489,11 +591,40 @@ workflows." Every standup, before the dispatch criteria:
    this seat, same day (274 host runs, 67 refused, recorded in the same field
    with the same value as a seat whose work went wrong).*
 
-1. **List** the company's failed runs of the last 24 hours:
-   `gh run list --status failure --created ">=$(date -u -d '-24 hours' +%FT%TZ)" --json databaseId,workflowName,url,createdAt`.
-2. **Read** each one: `gh run view <id> --log-failed`, and the run's trace in
-   Langfuse (environment = this company, session = the run id) when the
-   failure is inside the model step.
+1. **List** the company's failed runs of the last 24 hours. **The host's own
+   run record first**, because since decision 054 the host daemon runs the
+   clock and the last `agent-<seat>.yml` run anywhere in the portfolio was
+   epitome's at 2026-10-18T19:47Z — a seat run no longer appears in Actions at
+   all, so a run list there answers "nothing failed" because nothing ran:
+
+   ```sh
+   asc turns --days 1 --company <yours>         # the seats and their caps
+   jq -c 'select(.action=="run.end" and .exit!=0)' /srv/asc/state/.epito/audit.jsonl | tail -40
+   ```
+
+   `/srv/asc/state/.epito/audit.jsonl` is one JSON line per run event since
+   2026-09-24 with `turns`, `exit`, `model`, `durationMs`, `trigger`,
+   `session` and `pr` on every `run.end`, and it needs no credential. Then
+   `gh run list --status failure --created ">=$(date -u -d '-24 hours' +%FT%TZ)" --json databaseId,workflowName,url,createdAt`
+   for the Actions side, which still holds a pull request's checks and a seat
+   run from before 2026-10-18. **Name which source answered** — the two are
+   partial in different directions and a count with no scope is not a count
+   (L-A47).
+2. **Read** each one: `gh run view <id> --log-failed` where the run is in
+   Actions, and the seat's own log on the host (`/srv/asc/state/.epito/`,
+   beside the record) where it is not.
+
+   **There is no trace to read.** This step used to send you to the run's
+   trace in Langfuse. Langfuse was removed from the resident host on
+   2026-10-23 for filling the only disk — the outage this company spent five
+   dark days inside — and the owner's standing condition is that it stays
+   stopped until it is rebuilt with a disk budget. Nothing answers at that
+   endpoint, in any company. Do not look for a replacement trace store and do
+   not treat its absence as a blocked step: the run's log and the record above
+   are the whole evidence a standup has, and the §11.7 counts are computed
+   from them. When tracing returns it will return on the host runtime and this
+   step will name it (`standards/runtime.md`, Phoenix; `docs/ideas.md`
+   2026-10-17).
 3. **Classify and act**, one line per run in the standup PR under
    `## Failures`, and the same lines as one `note` on the board (§15):
    - *Tripwire false alarm* (the run's PR exists): no rerun; note it, and if
@@ -716,9 +847,19 @@ The owner, back after eleven days away, read that epitome's whole cycle and Ursa
 
 **Who applies it, and where the change has to be.** The applier is §21's ordinary merger — the PM seat of the company the file belongs to, or any chair — and the ask names which one, so that at the hour the clock expires there is somebody the standard has already authorised to act and a release never lands with nobody able to apply it. For that merge to be the whole of the act, the ask has to *carry* its change rather than describe it: an open pull request against the file the clock releases — the charter, the standard, the workflow, the manifest itself — and not a proposal parked in a side folder for her to copy across by hand. Epitome's exo found this paragraph silent on both halves and fixed its own the same way, because a change written where the clock cannot reach it is not released by her silence: nothing in a side folder becomes true when forty-eight hours pass, and the only thing that can be is a merge.
 
-**Where the clock is recorded, and who is told. Naming the applier is not telling it (2026-10-24).** A deadline that moves authority is recorded in three places or it does not exist: `expires_at` on the board message, `ref` pointing at the pull request the clock releases, and the applier in the message's **recipient** field, not only in its prose. Until all three are set the deadline has not been declared, no clock is running, and no seat may later claim a release on it. The reason is the direction this failure takes. A clock that transfers authority does not miss noisily at its deadline; it never fires at all, and the owner's non-response — which this section exists to convert into consent — becomes a permanent hold instead, silently, in every report, with both seats describing their own state accurately the whole way through. Measured on the board over the fourteen days to 2026-10-24: **`expires_at` was set on 0 of 116 asks**, while 40 of those asks discussed a forty-eight hour clock in their own words, and **30 of those 40 were addressed to an owner alone**, so the one actor this section had already authorised to act at the deadline was never woken by it. `tools/check-silence-clocks.py` is the test, and it is one command rather than a grep over charter files: a clock the board cannot enumerate is a clock nothing can fire. Two seats found this independently the same morning from the charter side — Ursa's exo measured the asking seat's charter naming the clock four times and the acting seat's zero times in 390 lines, Ursa's pm found the same gap from the other end — and both reached for charter files because the surface that could answer was empty. Ursa's own release route, proposed 2026-10-18 and due 2026-10-20 at 12:30, was unapplied at 137 hours, 89 of them past expiry. A charter that assigns a seat the applier's duty should say so in that seat's own file, and that is good practice; it is not the test, because a charter is read at the start of a run and a clock expires at an hour no run chose.
+**Where the clock is recorded, and who is told. Naming the applier is not telling it (2026-10-24, amended the same evening).** A deadline that moves authority is recorded in three places or it does not exist: **`data.deadline`** on the board message, as a single ISO-8601 instant; `ref` pointing at the pull request the clock releases, or `data.pr` when the sender has more than one; and the applier in the message's **recipient** field, not only in its prose. A clock declared that way is running, and the hour it names is the hour it expires.
 
-**What a release lands, and what it does not. A silence release is scoped to the files the ask tabled (2026-10-24).** Her silence consents to the change she was shown, so the ask tables every file its merge would land and whose lane each belongs to, and silence releases exactly that list. A pull request that would land a file the ask never tabled is not released by silence on any part of it: the applier retargets or splits it, or re-asks with the true list and a new clock. The check is the one ADR-011 already runs on the centralizer's own autonomous merges — `gh pr diff --name-only` against the tabled list — and it is the same mechanism pointed at a wider class, which is what makes it cheap. Two products measured the gap on the same day without coordinating. Epitome's exo: seven files over two pull requests, two of them the charters the asks were about and five named in neither. Ursa's exo: twelve files and about 9,800 insertions on a single charter ask, where the charter itself was 1,040 lines — 11% of what the merge would have landed — with five of the twelve in another seat's lane entirely, including 3,500 lines of its PM's pending register, and 72 of the commits that seat's own. No boundary was crossed to get there, which is why neither seat predicted it: the files arrived as whole commits by their authors, through a register conflict whose only available resolution was to absorb another seat's unmerged branch. That last part compounds, and it is why this paragraph is a rule rather than a note. Every window merges to stay mergeable, every merge imports whatever the other branch carried, so **a decision that waits grows**: a two-file question on the eighteenth was a twelve-file question on the twenty-fourth. The freeze raises the cost of ending the freeze, which puts a positive feedback loop under every clock in the portfolio and makes the oldest pending decision always the most expensive one to take. The mechanical cure for the conflict itself is not a merge driver — `standards/lessons.md` L-A49 measured all three arms and GitHub honours none of them, and `union` destroys records where it does run — it is HQ's `tools/merge-register.py`, which merges entry by entry and takes `origin/main` into the branch rather than another seat's branch, and which **0 of the 4 product repositories have**.
+**What the morning version of this paragraph got wrong, named so no reader has to diff two sections (2026-10-24, evening).** Three sentences of it are dead. It required the deadline in `expires_at`, the board's own column; it said that until all three fields are set "no clock is running"; and it said "no seat may later claim a release on it." **No seat can set `expires_at`.** `runtime/board/store.py` `post_message` has no parameter for it and never had one: the column is filled by one hardcoded expression, `case when kind = 'claim' then now() + six hours`, so it is the claim's own lease and nothing else, which is what `runtime/board/schema.sql` has said in a comment — "claims only" — since the table was written. The rule therefore mandated a field the write path refuses, and it read **zero by construction** from the hour it merged rather than through anybody's non-compliance. Measured over the whole fourteen-day window on the board, divided into unsaturated pages the way this section's §15 requires: **19 of 19 claims carry `expires_at` and 0 of 1,638 non-claims do, including 0 of 124 asks.** Ursa's exo brought this back within four hours of the clause shipping, from a 500-row page that read 6 of 6 and 0 of 494; the page was saturated, the ratio was not publishable under §15, and dividing the window makes its case three times larger rather than smaller. Its project manager had already tried the column on a live ask, read it back null, and re-declared all five of its clocks in `data` before anyone wrote this paragraph. **So the clocks declared in `data` are valid, and the two sentences that voided them are withdrawn.** A seat that put its deadline in a key of its own invention was doing the only thing the board allowed; the defect was in this section, and the cost of the defect was carried by the seats that obeyed it.
+
+**One key, because the alternative has already forked (2026-10-24).** Thirty distinct `data` keys carry a deadline instant on the board, written by thirteen seats across six companies, and the plurality — `deadline`, 23 rows from seven seats — is the one named above. The rest are legacy: `silence_deadline` (17), `clock_expires` (10), `clock_first_expiry`, `clock_a_expires` through `clock_d_e_expires`, `owner_ask_expires`, `silence_expires`, `silence_expiry`, `expires`, `due`, and a tail of one-offs. This is §15's merge-claim key problem one field over, and it gets §15's answer rather than a new one: **a new message may use `deadline` and nothing else**, the measured spellings stay readable so that no clock already declared is lost, the list is closed, and a spelling outside it is *reported* by `tools/check-silence-clocks.py --audit-keys` rather than absorbed by the reader. A reader that accepts every new spelling is how `merged_7d: 67` became a claim on pull request 67, which is the mistake this closure exists to not repeat. The column is where this belongs in the end, and making it writable is one change on the write path, routed to HQ's engineer under §23; the convention is named in the field every seat can write **today**, through the MCP, the HTTP API and the chair alike, because a convention whose surface is not yet writable is the defect this paragraph is correcting.
+
+**And the rule that generalizes beyond clocks: a standard may not require a field until a seat has written one (2026-10-24).** Before a clause in any standard requires a value in a named field of a shared surface, its author writes one message carrying that value and reads it back. A clause that mandates an unwritable field is not a weak rule, it is an **unfalsifiable** one: every instrument reports total compliance failure, every seat is correctly obeying something else, and the measurement looks exactly like a discipline problem. This cost two seats a measurement each and one project manager a hand repair of five clocks. The probe is one write and one read, it is the same posture ADR-011's cross-repository reach already takes — verify by write probe, never by reads (Incident 2) — and this seat failed to take it on a surface it had just finished measuring. The reason is the direction this failure takes. A clock that transfers authority does not miss noisily at its deadline; it never fires at all, and the owner's non-response — which this section exists to convert into consent — becomes a permanent hold instead, silently, in every report, with both seats describing their own state accurately the whole way through. Measured on the board over the fourteen days to 2026-10-24: **`expires_at` was set on 0 of 116 asks**, while 40 of those asks discussed a forty-eight hour clock in their own words, and **30 of those 40 were addressed to an owner alone**, so the one actor this section had already authorised to act at the deadline was never woken by it. `tools/check-silence-clocks.py` is the test, and it is one command rather than a grep over charter files: a clock the board cannot enumerate is a clock nothing can fire. Two seats found this independently the same morning from the charter side — Ursa's exo measured the asking seat's charter naming the clock four times and the acting seat's zero times in 390 lines, Ursa's pm found the same gap from the other end — and both reached for charter files because the surface that could answer was empty. Ursa's own release route, proposed 2026-10-18 and due 2026-10-20 at 12:30, was unapplied at 137 hours, 89 of them past expiry. A charter that assigns a seat the applier's duty should say so in that seat's own file, and that is good practice; it is not the test, because a charter is read at the start of a run and a clock expires at an hour no run chose.
+
+**What a release lands, and what it does not. A silence release is scoped to the files the ask tabled (2026-10-24).** Her silence consents to the change she was shown, so the ask tables every file its merge would land and whose lane each belongs to, and silence releases exactly that list. A pull request that would land a file the ask never tabled is not released by silence on any part of it: the applier retargets or splits it, or re-asks with the true list and a new clock. The check is the one ADR-011 already runs on the centralizer's own autonomous merges — `gh pr diff --name-only` against the tabled list — and it is the same mechanism pointed at a wider class, which is what makes it cheap.
+
+**Which diff, in exact words, because the three readings of one branch differ by 198 files (2026-10-24).** The scope check reads the **merge-base** diff and nothing else: `gh pr diff <n> --name-only`, or locally `git diff --name-only <base>...<head>` with **three** dots, cross-checked against the merge the applier is about to perform, `git merge-tree --write-tree --name-only <base> <head>`. It is **never** `git diff --name-only <base> <head>` with two dots. Ursa's exo asked which one the morning clause meant, on its own pull request, which was that clause's worked example; measured on `ursa-exo/2026-10-24-message-6` at merge base `96e0513`: the merge-base diff is **12 files**, the written merge tree is **12 files**, and tip-to-tip is **210**. The 198 extra entries are 184 deletions that the branch does not perform — 186 paths under `docs/design` and 12 under `ursa-minor/`, a product stylesheet and three design-review directories — and every one of them survives the merge, which is checkable in the tree rather than arguable. They appear because two dots compare two tips, so everything `main` gained after the branch's merge base reads as something the branch removed. Nothing in the branch deletes a file. Note the direction of the error, because it is the same direction as every other failure in this section: a two-dot reading makes an applier refuse a release that is correct, and refuse it with a sentence about another seat's lane, so the clause written to stop a silent over-merge would have produced a silent permanent hold. And a stale branch is not an edge case here, it is what this section manufactures: the paragraph above says a decision that waits grows, so the longer a clock runs the further its branch falls behind its base and the larger the phantom-deletion count gets. The reading that does not drift with the wait is the merge base.
+
+**A measurement in the paragraph above was wrong, and the correction belongs in the same place as the claim (2026-10-24, evening).** That paragraph ends by saying HQ's `tools/merge-register.py` is what **0 of the 4 product repositories** have. The number is false. Ursa's engineer vendored it that morning at `tools/registers/merge-register.py`, 523 lines, sha256 `aead15d7def3…`, **byte for byte identical** to HQ's copy, verified here against the file rather than taken on report. The probe that produced the zero read the four default branches, so it could not see a tool sitting in an open pull request (Ursa #305), and it also matched one exact path, so it would have missed a vendored copy under a different directory even on `main`. Two consequences, and the second is the one that costs: a portfolio probe that reads default branches measures **what merged**, not what exists, and the merged subset is not a company's memory — alexandria's exo named that defect about registers the same day and Ursa's exo named it about charters, and neither expected to be naming it against this seat's own instrument. And on that false zero the centralizer routed work to HQ's PM and asked another company's engineer to stop building what it had in fact already adopted. **Any probe whose output commissions work reads open pull requests as well as default branches, and reports a filename rather than one path, or it says it could not look.** Two products measured the gap on the same day without coordinating. Epitome's exo: seven files over two pull requests, two of them the charters the asks were about and five named in neither. Ursa's exo: twelve files and about 9,800 insertions on a single charter ask, where the charter itself was 1,040 lines — 11% of what the merge would have landed — with five of the twelve in another seat's lane entirely, including 3,500 lines of its PM's pending register, and 72 of the commits that seat's own. No boundary was crossed to get there, which is why neither seat predicted it: the files arrived as whole commits by their authors, through a register conflict whose only available resolution was to absorb another seat's unmerged branch. That last part compounds, and it is why this paragraph is a rule rather than a note. Every window merges to stay mergeable, every merge imports whatever the other branch carried, so **a decision that waits grows**: a two-file question on the eighteenth was a twelve-file question on the twenty-fourth. The freeze raises the cost of ending the freeze, which puts a positive feedback loop under every clock in the portfolio and makes the oldest pending decision always the most expensive one to take. The mechanical cure for the conflict itself is not a merge driver — `standards/lessons.md` L-A49 measured all three arms and GitHub honours none of them, and `union` destroys records where it does run — it is HQ's `tools/merge-register.py`, which merges entry by entry and takes `origin/main` into the branch rather than another seat's branch, and which **0 of the 4 product repositories have**.
 
 **What the PM does meanwhile.** It does not stop. Work that does not depend on the decision continues; work that does is prepared so that the merge is one click on either side of the forty-eight hours.
 
@@ -744,7 +885,7 @@ The owner: "I want the HQ engineer to be able to review and propose the agentic 
 
 The owner, from her consulting work and the ExO model: "for the choreography there needs to be a team of agents that do OODAL. So far I'm dissatisfied with our ExO agents. Those must live in the orchestration and choreography layer with quite high autonomy. I expect exponential growth. I want ideas and fixes I hadn't even thought of."
 
-**The loop, not a seat.** The ExO is one loop run by a team: the product exo seats and HQ's centralizer. It lives on the bus and runs five phases on events, not on a clock. Observe: on every daily brief event, read the scorecard, the events feed, the runs and their traces, the Deliverables tab and every board; name the biggest drag and any anomaly in numbers. Orient: place the company and each product against the ten attributes of the ExO model, five that scale (staff on demand, community and crowd, algorithms, leveraged assets, engagement) and five that steer (interfaces, dashboards, experimentation, autonomy, social technologies), and against what Alexandria's library knows; name the weakest attribute this week. Decide: one experiment for the week with a hypothesis, a metric on the scorecard and a date, and three ideas the owner has not asked for, each scored against the attributes with the smallest test that would prove it. Act: ship the change yourself under the merge rule, a workflow, a tool, a standard, a model, a schedule, a seat created or switched under section 19, or an A/B across seats; hand products their parts. Learn: on the next brief event measure the delta, keep or revert, and write what held into the standard, not only into a register.
+**The loop, not a seat.** The ExO is one loop run by a team: the product exo seats and HQ's centralizer. It lives on the bus and runs five phases on events, not on a clock. Observe: on every daily brief event, read the scorecard, the events feed, the runs and their turn counts off the host's own record (`/srv/asc/state/.epito/audit.jsonl`, `asc turns`), the Deliverables tab and every board — not a trace store, which has been stopped since 2026-10-23 and stays stopped until it has a disk budget; name the biggest drag and any anomaly in numbers. Orient: place the company and each product against the ten attributes of the ExO model, five that scale (staff on demand, community and crowd, algorithms, leveraged assets, engagement) and five that steer (interfaces, dashboards, experimentation, autonomy, social technologies), and against what Alexandria's library knows; name the weakest attribute this week. Decide: one experiment for the week with a hypothesis, a metric on the scorecard and a date, and three ideas the owner has not asked for, each scored against the attributes with the smallest test that would prove it. Act: ship the change yourself under the merge rule, a workflow, a tool, a standard, a model, a schedule, a seat created or switched under section 19, or an A/B across seats; hand products their parts. Learn: on the next brief event measure the delta, keep or revert, and write what held into the standard, not only into a register.
 
 **Exponential means compounding.** A change counts when it is a lever: it applies to every seat and company at once, and it makes the next change cheaper. The loop reports its compounding ratio each week, how many seats and repositories each change touched, and the slope of throughput, and a week with a flat curve is reported as such with the next experiment.
 
