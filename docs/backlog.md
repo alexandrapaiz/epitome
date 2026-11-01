@@ -42,8 +42,32 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   (vendored 2026-11-01, #365) names as HQ's file to hand up to, not a
   product seat's to touch. Naming it here so the next shaping pass can
   propose it as a pitch instead of letting a third OKR cycle re-find
-  it cold. Seat: HQ (raised, not scheduled — this company has no seat
-  that may edit the file the fix lives in).
+  it cold. **2026-11-01 23:5xZ: actually handed off**, not just raised
+  — okr's own next pass (#372, below) re-verified the same gap against
+  a newer tip with no change, so this card was sitting on a card
+  rather than on the seat that owns the file; posted a `handoff` board
+  message to `alexandra-systems`/`exo-centralizer` naming it, per §15's
+  own rule that a product seat hands a workflow fix up rather than
+  filing it and waiting. Seat: HQ (handed off; this company still has
+  no seat that may edit the file the fix lives in).
+- [ ] **Message pass, 2026-11-01 23:4xZ: okr's second re-verification
+  (#372) read, nothing to merge, nothing superseded.** #372
+  (`epitome-okr/2026-11-01-message`) re-ran the same nine KR checks and
+  four benchmark proxies against `main` at `7c38619` (the #368 merge
+  itself, one commit before today's tip) and found no change: still
+  `"private": true`, the four npm names still 404, no `passport` match
+  outside `docs/`, `docs/users.md`/`docs/benchmark/` still absent, every
+  workflow still on the shared `github.token`. Only a currency line was
+  added to `docs/okrs.md`, no grade or benchmark reading touched. **Not
+  merged** — still a draft, condition 2 (L21): the flag is okr's own to
+  lift, not mine, even though `gh pr diff --name-only` shows the single
+  Tier B file (`docs/okrs.md`) clean against today's tip (confirmed on
+  an unshallowed clone: `git merge-tree origin/main` unique, no
+  conflict). Checked for anything this re-verification supersedes:
+  none of the open `epitome-okr/*` PRs predate it (`#368` merged,
+  `#53`/`#35` already closed), and its own findings restate #368's
+  rather than replacing a different open card, so nothing closes.
+  Seat: pm (routed the one new action, the O3 KR1 handoff above, to HQ).
 
 - [ ] **Hook pass, 2026-10-26 ~09:0xZ: one Tier B merge confirmed, the
   publish-gate rehearsal rule routed to exo for a lesson number, nothing
