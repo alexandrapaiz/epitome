@@ -72,9 +72,16 @@ stage_report() {
     printf '   COULD NOT LOOK  %s is not in this clone; fetch it rather than answering\n' "$MAIN_REF"
     rc=3; [ -z "$firstgap" ] && { firstgap=merged; gapact="fetch $MAIN_REF, then ask again"; }
   else
-    local on=0; local f
+    local on=0; local f; local blob
     for f in $(git log --first-parent --format=%H "$MAIN_REF" | head -600); do
-      if [ -n "$path" ]; then git show "$f:$path" 2>/dev/null | grep -qF -- "$id" && { on=1; land=$f; continue; }
+      # The herestring, not a pipe: `git show | grep -qF` answered NOT FOUND
+      # for a line main really holds 22 times in 300 asks, then 31 in 300 on a
+      # re-measure, every one of them PIPESTATUS `141 0` -- grep matched and
+      # exited, and git died writing the rest into the closed pipe. Under
+      # `pipefail` that death is the verdict. The herestring form: 0 of 300.
+      if [ -n "$path" ]; then
+        blob=$(git show "$f:$path" 2>/dev/null)
+        grep -qF -- "$id" <<<"$blob" && { on=1; land=$f; continue; }
       else git grep -qF -- "$id" "$f" >/dev/null 2>&1 && { on=1; land=$f; continue; }; fi
       break
     done
@@ -103,8 +110,14 @@ stage_report() {
   # 4. in effect — observable from inside a run. Only an environment-variable
   # shaped identifier can be answered here; anything else says so (L41).
   printf '4. in effect (this run)\n'
-  if printf '%s' "$id" | grep -qE '^[A-Z][A-Z0-9_]*$'; then
-    if env | grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' | tr -d = | grep -qx "$id"; then
+  if grep -qE '^[A-Z][A-Z0-9_]*$' <<<"$id"; then
+    # The credential-assertion class, which this repository's own card ruled
+    # goes first: a false ABSENT about a credential that IS present is believed.
+    # `env | grep -oE | tr -d = | grep -qx` closed the pipe on `tr`, which
+    # closed it on `grep -oE`, which closed it on `env`; one herestring at the
+    # end leaves only full-consumers upstream, which cannot be killed early.
+    local names; names=$(env | grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' | tr -d =)
+    if grep -qx "$id" <<<"$names"; then
       printf '   REACHED  %s is present in this run\n' "$id"
       reached="in effect"
     else
@@ -134,7 +147,7 @@ if [ "${1:-}" = --self-test ]; then
   # L42: the branch an instrument has never been made to hit is the one that
   # decides its answer on the day it hits. Each verdict below is built.
   t=$(mktemp -d); trap 'rm -rf "$t"' EXIT; fail=0
-  check() { if printf '%s' "$2" | grep -qF "$3"; then echo "  ok   $1"
+  check() { if grep -qF "$3" <<<"$2"; then echo "  ok   $1"
             else echo "  FAIL $1: wanted '$3' in:"; printf '%s\n' "$2" | sed 's/^/        /'; fail=1; fi; }
 
   mkdir -p "$t/pkg"; printf '{"name":"stub"}\n' > "$t/pkg/package.json"

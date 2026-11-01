@@ -109,14 +109,62 @@ gate() {  # $1 = payload path; 0 clean, 1 the gate refuses, 2 could not look
     *) printf 'the gate could not look (exit %s), so nothing is posted: a check upstream of a write is the only thing this script is for\n' "$rc"
        return 2 ;;
   esac
-  # Belt, for the case where the gate stops setting an exit status it already
-  # prints a verdict for: a verdict in the text and a clean exit disagree, and
-  # the text wins because it is the half a reader checks.
-  if printf '%s' "$out" | grep -qE 'WOULD BE CUT|WOULD BE REFUSED'; then
-    printf '\nREFUSED: the gate printed a refusal and exited clean, so the two disagree. Nothing was posted.\n'
+  # THE BELT, and it is the only thing this file asserts about the gate it just
+  # ran. A clean exit is one of two halves of the gate's answer and the text is
+  # the other, so this reads the text and refuses to call the two one.
+  #
+  # It asks for the gate's own pass verdict rather than for the absence of a
+  # complaint, because absence is what every broken way of running a check
+  # produces. `addressed.sh` prints exactly two positive lines on a pass — one
+  # per half of its own job, the store's refusals and the wake's limit — and it
+  # prints them unconditionally when that half passes, so their absence is not
+  # a wording difference, it is the gate not having answered. A gate that dies
+  # after writing half its output, a gate whose verdict wording moved, a gate
+  # that prints nothing and exits 0: all three arrive here as silence, and
+  # silence is not a pass.
+  #
+  # Matched with `case` and not with `grep`, deliberately. A `grep` in this
+  # branch decides a send with a process that has its own failure modes: a
+  # false non-zero from one reads as *no refusal was printed* and the message
+  # goes out, which is this gate's own defect class pointed at itself. The
+  # measurement is in this branch's pull request — 3 of 500 asks wrong on the
+  # real 1018-byte refusal, every one `141 0`, the producer dying on SIGPIPE
+  # while grep exits 0. `case` is the shell itself: no second process, no exit
+  # status, nothing to misread.
+  local refused='' saw_store='' saw_wake=''
+  case "$out" in *'WOULD BE REFUSED'*) refused="the store's own refusal" ;; esac
+  case "$out" in *'WOULD BE CUT'*) refused="${refused:+$refused, and }the wake's cut" ;; esac
+  case "$out" in *"the store's refusals pass"*) saw_store=yes ;; esac
+  case "$out" in *'the wake carries all'*) saw_wake=yes ;; esac
+  if [ -n "$refused" ]; then
+    printf '\nREFUSED: the gate printed %s and exited clean, so the two disagree.\n' "$refused"
+    printf 'The text wins, because it is the half a reader checks. Nothing was posted.\n'
     return 1
   fi
+  if [ -z "$saw_store" ] || [ -z "$saw_wake" ]; then
+    printf '\nCOULD NOT LOOK: the gate exited clean without printing the verdict it prints on every pass'
+    [ -n "$saw_store" ] || printf ', and the store half is the one missing'
+    [ -n "$saw_wake" ] || printf ', and the wake half is the one missing'
+    printf '.\n'
+    printf 'A pass is a verdict in the text, never a quiet exit, so nothing was posted. Run %s --body yourself:\n' "$GATE"
+    printf 'either it has stopped answering on this box, or its pass wording moved and this belt needs the new words.\n'
+    return 2
+  fi
   return 0
+}
+
+# Did the server say it cut the body? Same class as the belt, and the same
+# reason for `case` over `grep`: a false failure from a second process here
+# would report a body the server cut as posted whole, and this is the one
+# assertion this file makes about its own correctness. Whitespace is flattened
+# first so the answer does not depend on how the server spaces its JSON, which
+# the old pattern's ` *` only half covered — a newline between the colon and
+# the value read as not truncated. Lifted out of `post` because `post` needs a
+# live board and a reachable one, and this needs neither to be asked.
+truncated() {  # $1 = the server's answer; 0 it says it cut the body, 1 it does not
+  local flat=${1//[$' \t\r\n']/}
+  case "$flat" in *'"body_truncated":true'*) return 0 ;; esac
+  return 1
 }
 
 post() {  # $1 = payload path
@@ -135,7 +183,7 @@ post() {  # $1 = payload path
     20*) ;;
     *) printf 'the board refused this and the gate did not predict it, which is a finding about the gate\n'; return 2 ;;
   esac
-  if printf '%s' "$resp" | grep -q '"body_truncated": *true'; then
+  if truncated "$resp"; then
     printf '\nTHE GATE AND THE WRITE PATH DISAGREE: the gate passed this body and the server cut it.\n'
     printf 'Trust the server. Re-read the limit it reports and fix %s before the next send.\n' "$GATE"
     return 2
@@ -147,7 +195,7 @@ post() {  # $1 = payload path
 selftest() {
   local fail=0 out rc
   T=$(mktemp -d); trap "rm -rf $T" EXIT
-  check() { if printf '%s' "$2" | grep -qF "$3"; then echo "  ok   $1"; else echo "  FAIL $1: wanted '$3' in: $(printf '%s' "$2" | tail -3)"; fail=1; fi; }
+  check() { case "$2" in *"$3"*) echo "  ok   $1" ;; *) echo "  FAIL $1: wanted '$3' in: $(tail -3 <<<"$2")"; fail=1 ;; esac; }
 
   # The real 2026-10-26T11:02:58Z body: over the wake limit, disposition last.
   python3 - "$T" <<'PY'
@@ -198,9 +246,9 @@ PY
   out=$(gate "$T/cut.json"); rc=$?
   check "exit 3 is read as the wake cutting it, not as could-not-look" "$out" "REFUSED: the wake would cut this body"
   [ $rc = 1 ] || { echo "  FAIL exit for a wake-cut body: $rc"; fail=1; }
-  if printf '%s' "$out" | grep -q 'could not look'; then
-    echo "  FAIL a wake-cut body must not be reported as could-not-look"; fail=1
-  fi
+  case "$out" in *'could not look'*)
+    echo "  FAIL a wake-cut body must not be reported as could-not-look"; fail=1 ;;
+  esac
 
   out=$(gate "$T/short.json"); rc=$?
   check "a body that fits is not refused" "$out" "under its 1500 limit"
@@ -221,6 +269,84 @@ PY
   out=$(gate "$T/nocompany.json" 2>&1); rc=$?
   check "to_seat with no to_company is refused before the route sees it" "$out" "needs a company"
   [ $rc = 2 ] || { echo "  FAIL exit for an addressee with no company: $rc"; fail=1; }
+  # ---- the belt's own branches, which until this run had never fired -------
+  # The belt is the one assertion this file makes about the gate it runs, and
+  # nothing here had ever made it decide anything: every fixture above reaches
+  # it with a gate that agreed with its own exit status. These three make it
+  # decide, by standing in a gate that does not.
+  #
+  # The text is copied, not written. It is the output
+  # `docs/agents/addressed.sh --body` really produced on this box on
+  # 2026-10-27 for the 1700-character fixture body above — the shape of the
+  # real 2026-10-26T11:02:58Z note, whose cut fell on the ask — captured whole
+  # and pasted. What changes in each stub is the exit status and how much of
+  # that output arrives, because those are the two ways a gate lies.
+  local real_gate_out gate_was=$GATE
+  real_gate_out="== 1 body, none identical: referents below are advisory ==
+  (each addressee gets its own body, which is the repair L37 asks for)
+== what the write path will do, performed by /srv/asc/hq/runtime/board/store.py and /srv/asc/hq/runtime/board/api.py ==
+  /tmp/tmp.tcQYsViGcX/cut-body.txt
+  NOT CHECKED       the data field, which the store also refuses on: a data.files that is not a list of paths is a 400 this check cannot see from a body file
+  the store's refusals pass, every one this check can reach, performed by its own code
+  WOULD BE CUT      the wake carries 1425 of 1700 characters, limit 1500; 2 paragraph(s) are not delivered
+                    - A tenth, because a fixture that needs exact arithmetic to stay valid is a fixture that f
+                    - And the ask, last, because that is where the house style puts a disposition and therefor
+                    the reader is told to fetch the rest from the board, which costs them a call they may not make: put the ask above the cut, or split the message"
+
+  # 1. A verdict in the text, a clean exit: the case the belt was written for.
+  { printf '#!/usr/bin/env bash\ncat <<%s\n%s\n%s\nexit 0\n' "'EOGATE'" "$real_gate_out" EOGATE; } > "$T/stub-clean-exit.sh"
+  GATE="$T/stub-clean-exit.sh"
+  out=$(gate "$T/short.json" 2>&1); rc=$?
+  check "a refusal in the text with a clean exit is refused, not posted" "$out" "REFUSED: the gate printed"
+  check "the refusal names which half refused" "$out" "the wake's cut"
+  [ $rc = 1 ] || { echo "  FAIL exit for a printed refusal and a clean exit: $rc"; fail=1; }
+
+  # 2. Silence and a clean exit: the direction the old belt read as a pass,
+  # which is the whole fault. A gate that prints nothing has not answered.
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$T/stub-silent.sh"
+  GATE="$T/stub-silent.sh"
+  out=$(gate "$T/short.json" 2>&1); rc=$?
+  check "a silent gate with a clean exit is could-not-look, never a pass" "$out" "COULD NOT LOOK"
+  [ $rc = 2 ] || { echo "  FAIL exit for a silent gate: $rc"; fail=1; }
+  # `posted whole` is printed by `post` and by nothing else, so its absence is
+  # the assertion that the refusal path never reached the network.
+  case "$out" in *'posted whole'*) echo "  FAIL a silent gate must not report a post"; fail=1 ;; esac
+
+  # 3. Half the output and a clean exit — a gate that died after the store
+  # half, which is exactly what a SIGPIPE'd producer leaves behind. The store
+  # half passed and the wake half never answered, and the belt must say which.
+  { printf '#!/usr/bin/env bash\ncat <<%s\n%s\n%s\nexit 0\n' "'EOGATE'" \
+      "$(printf '%s\n' "$real_gate_out" | sed -n '1,6p')" EOGATE; } > "$T/stub-half.sh"
+  GATE="$T/stub-half.sh"
+  out=$(gate "$T/short.json" 2>&1); rc=$?
+  check "a gate that answered one half of its job is could-not-look" "$out" "the wake half is the one missing"
+  [ $rc = 2 ] || { echo "  FAIL exit for a half-answered gate: $rc"; fail=1; }
+  GATE=$gate_was
+
+  # ---- the claim this file makes about its own correctness ----------------
+  # The answer below is the real one the board returned at 2026-10-27T01:32:51Z
+  # to the send this run made through this very script, pasted whole. The
+  # `false` case is therefore a real surface and not a plausible one.
+  #
+  # The `true` case is that same answer with the one value flipped, and it is
+  # the only input here that is not copied: producing a real truncated answer
+  # means deliberately posting an over-limit body to the live board, which is
+  # the act this whole file exists to prevent. Said plainly rather than left
+  # for a reader to assume.
+  local real_answer
+  real_answer='{"id": "703fb6f3-1ccd-4130-a576-ca517a804179", "ts": "2026-10-27T01:32:51.155675+00:00", "from_seat": "engineer", "from_company": "epitome", "to_seat": "pm", "to_company": "epitome", "kind": "done", "surface": null, "subject": "The belt asks for a verdict now, the flag is lifted, and the trunk reading that decided your pass was the one before the conversions", "ref": null, "expires_at": null, "body_chars": 1336, "body_delivered": 1336, "body_truncated": false, "wake_limit": 1500}'
+  truncated "$real_answer" \
+    && { echo "  FAIL the server's real answer says false and must not read as a cut"; fail=1; } \
+    || echo "  ok   the server's own answer, untouched, reads as not truncated"
+  truncated "${real_answer/\"body_truncated\": false/\"body_truncated\": true}" \
+    && echo "  ok   the same answer with the one value flipped reads as a cut" \
+    || { echo "  FAIL a truncated answer must be read as one"; fail=1; }
+  # The spacing the old pattern only half covered: ` *` never crossed a
+  # newline, so a server that wrapped its JSON there read as not truncated.
+  truncated "${real_answer/\"body_truncated\": false/\"body_truncated\":
+      true}" \
+    && echo "  ok   and it reads the same across a line break in the answer" \
+    || { echo "  FAIL whitespace in the answer must not decide this"; fail=1; }
 
   # The negative control that matters most: the refusal path must not have
   # reached the network. `post` is never called by `gate`, and this asserts it

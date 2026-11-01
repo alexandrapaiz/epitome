@@ -35,7 +35,7 @@ if [ "${1:-}" = --self-test ]; then
   mk() { mkdir -p "$t/$1"; printf '%s\n# exit=%s pr=- session=- turns=%s\n' "$3" "$4" "$5" \
          > "$t/$1/2026-01-01T$2Z-message.log"; touch -d "2026-01-01T${2:0:2}:${2:3:2}:${2:6:2}Z" "$t/$1/2026-01-01T$2Z-message.log"; }
   fail=0
-  check() { if printf '%s' "$2" | grep -qF "$3"; then echo "  ok   $1"; else echo "  FAIL $1: wanted '$3' in: $2"; fail=1; fi; }
+  check() { if grep -qF "$3" <<<"$2"; then echo "  ok   $1"; else echo "  FAIL $1: wanted '$3' in: $2"; fail=1; fi; }
 
   mk a 00-00-00-000 'worked' 0 40
   out=$(ASC_LOG_DIR=$t bash "$0" 2026-01-01 2>&1)
@@ -59,7 +59,7 @@ if [ "${1:-}" = --self-test ]; then
   out=$(ASC_LOG_DIR=$t bash "$0" 2026-01-01 2>&1)
   check "a run that only WROTE about a limit is not the anchor" "$out" "01:00:00Z"
   anchor=$(printf '%s' "$out" | grep "^last run a limit touched")
-  if printf '%s' "$anchor" | grep -qE "02:00:00Z|\(2 runs"; then
+  if grep -qE "02:00:00Z|\(2 runs" <<<"$anchor"; then
     echo "  FAIL a completed run that quotes a refusal was counted: $anchor"; fail=1
   else
     echo "  ok   a completed run that quotes a refusal is neither anchor nor count"

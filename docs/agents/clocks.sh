@@ -261,7 +261,7 @@ JSON
   #     owner, so §22's second party is missing and it answers 4 (L85).
   check "field set, owner never shown -> 4" 4 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 999
   check "and it says which place is missing" 0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
-        'bash "$0" 999 2>&1 | grep -q "ever reached an owner"' "$0"
+        'out=$(bash "$0" 999 2>&1); grep -q "ever reached an owner" <<<"$out"' "$0"
   # 2 — the pull request whose ask only says 48 hours: no clock.
   check "prose only -> no clock"           1 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 271
   # 3 — a pull request no ask names at all: no clock, and a different sentence.
@@ -272,10 +272,10 @@ JSON
   #     sanctioned place for one.
   check "data pointer, prose only -> no clock" 1 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 260
   check "data pointer is actually matched"   0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
-        'bash "$0" 260 2>&1 | grep -q "1 ask(s) name it"' "$0"
+        'out=$(bash "$0" 260 2>&1); grep -q "1 ask(s) name it" <<<"$out"' "$0"
   # 4b — another repository's #271 is not this repository's #271 (L-A18).
   check "foreign repo #271 is not ours"      0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
-        'bash "$0" 271 2>&1 | grep -q "^no clock on #271: 1 ask(s) name it"' "$0"
+        'out=$(bash "$0" 271 2>&1); grep -q "^no clock on #271: 1 ask(s) name it" <<<"$out"' "$0"
   # 5 — the census exits non-zero while any claimed clock lacks its field,
   #     because a census that finds 44 breaches and exits 0 is not a gate.
   # 4c — a deadline written the one way a seat can write it is neither a clock
@@ -285,17 +285,17 @@ JSON
   #      ever fired in this company (L85).
   check "owner half + applier half -> running"  0 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 996
   check "and it names the applier it was told to" 0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
-        'bash "$0" 996 2>&1 | grep -q "all three places"' "$0"
+        'out=$(bash "$0" 996 2>&1); grep -q "all three places" <<<"$out"' "$0"
   # 4e — a clock filed over the item's own declared refusal releases nothing,
   #      and the refusal is read from the field rather than the prose (L85).
   check "clock over silence_proceeds:false -> 4" 4 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 995
   check "and it quotes the field that refused"   0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
-        'bash "$0" 995 2>&1 | grep -q "silence_proceeds"' "$0"
+        'out=$(bash "$0" 995 2>&1); grep -q "silence_proceeds" <<<"$out"' "$0"
   # 4f — expired is its own answer: the hour a clock exists for is the hour it
   #      passes, and `running (-3h left)` was the old reading of exactly this.
   check "declared and expired -> 5"             5 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 994
   check "and it refuses to call that running"    0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
-        'bash "$0" 994 2>&1 | grep -q "^EXPIRED on #994"' "$0"
+        'out=$(bash "$0" 994 2>&1); grep -q "^EXPIRED on #994" <<<"$out"' "$0"
   check "census with prose clocks -> 1"     1 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0"
   # 6 — could-not-look is its own answer and is never spelled like clean.
   check "unreadable board -> could not look" 2 env CLOCKS_FIXTURE="$tmp/nope.json" bash "$0" 271
@@ -324,7 +324,7 @@ PYEOF
         env BOARD_API_URL="http://127.0.0.1:1/x" CLOCKS_FIXTURE="$tmp/probed.json" bash "$0" --writable
   check "and it says so rather than claiming a write" 0 \
         env BOARD_API_URL="http://127.0.0.1:1/x" CLOCKS_FIXTURE="$tmp/probed.json" bash -c \
-        'bash "$0" --writable 2>&1 | grep -q "cited, not re-probed"' "$0"
+        'out=$(bash "$0" --writable 2>&1); grep -q "cited, not re-probed" <<<"$out"' "$0"
   exit $rc ;;
 esac
 
