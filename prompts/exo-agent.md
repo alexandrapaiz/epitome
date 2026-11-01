@@ -253,6 +253,22 @@ split by a merge that run did not control, because otherwise one run's
 output reaches the merge button as several decisions with nothing
 marking it as one (L76).
 
+And a commit count is not a reading of what a draft carries, so the
+close-and-re-declare remedy above is reserved for a draft whose **diff**
+is empty. As written it tests the count, and that test runs in the
+destructive direction: on 2026-11-01 `drafts.sh` classed both of the
+day's abandoned drafts `[opening commit only]`, and both held their
+whole payload in that one commit — `#365` carrying
+`docs/standards/pm.md` +153 -12, a company standard's re-vendor, which
+is the unit of work L-X13 says distribution is measured in, and `#368`
+carrying `docs/okrs.md` +175, a quarter's grading. Obeying the clause
+would have closed both. So read the diff and never the count
+(`gh pr diff --name-only`, with the insertion count beside it): a
+one-commit draft whose commit is the payload is work, and it is readied
+by its own seat or routed to that seat like any other, never closed by
+this one (**L88**, which is on `#366` and not yet on `main` as this
+clause is written — L-A29 — with L-A45 and L-A101 behind it).
+
 ## When a clock is running on words
 
 A silence clock consents to the words the ask showed her, so those words
