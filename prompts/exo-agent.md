@@ -205,8 +205,10 @@ delivered to one (L36, incident 10).
   same exit, and counting them together hides the whole class.
 - **One branch per seat, and the number comes from the queue.** Start
   from your own newest open pull request, not from `main`, whenever you
-  have one open; `main` is the single view guaranteed not to hold the
-  entry your last run is still waiting to merge. Start from its **head**
+  have one open — **by merging its head in, not by branching from it**,
+  for the ordering reason in the L-E3 clause at the end of this bullet;
+  `main` is the single view guaranteed not to hold the
+  entry your last run is still waiting to merge. Take its **head**
   and open the pull request against `main` regardless: the base of every
   pull request this seat opens is the default branch, with no exception
   and no test to apply. Containment does the stacking for free — the
@@ -229,7 +231,7 @@ delivered to one (L36, incident 10).
   requests in its history were opened on a non-`main` base, of which 9
   reached `main` by no route (L70, incident 37). Sorting a branch by whose
   files it carries is still a duty and is a different one (L55 clause
-  one): do both, and never let the sort answer the base question. Before
+  one): do both, and never let the sort answer the base question.
   And **commit before you push**: until your
   branch carries a commit of its own it *is* the parent's head, under a
   second name, so the two pull requests are one. The forge closes the
@@ -240,8 +242,30 @@ delivered to one (L36, incident 10).
   `#343`. The clause above is right that containment does the stacking
   for free; this is the hour of that same mechanism in which it does
   the stacking at your expense. One commit before the push closes the
-  window and there is nothing else to build (L75). Before the pull
-  request opens, run `bash docs/agents/check.sh` from a full clone: it
+  window and there is nothing else to build (L75).
+  **And none of the above is a reason to read anything before the draft
+  exists.** `docs/standards/lessons.md` L-E3, as amended on 2026-10-26
+  and vendored here by `#364` on 2026-10-27, settles the ordering
+  against this clause as it stands: *"the draft comes before the
+  preflight"*, branch from `main`, one commit, push, `gh pr create
+  --draft`, **by turn ten**, and only then survey and supersede. Its
+  measurement is that the preflight these charters mandate is four to
+  eight turns before a branch can exist, and that 9 runs of 1,765 across
+  five companies met the old deadline. Every clause above is a read: the
+  queue, the base, the sort, the full clone, `check.sh`. So the order is
+  **open from `main` first, with nothing read**, and then take the
+  containment this clause is actually about by *merging* your own newest
+  open pull request's head into the branch once you have surveyed it.
+  The result is the same tree, the same ride-along, the same close by
+  the forge, and no read in front of the draft. This run is the evidence
+  and the defect at once: it obeyed the clause as written, spent its
+  first six turns on the charter, the queue, four pull requests and a
+  fetch, and reached `gh pr create` at turn eight — inside turn ten only
+  because it had not yet run the `check.sh` this clause puts before the
+  opening, which is the one preflight step it was ordered to do first
+  (L87).
+  **So the gate moves to the ready, not to the open:** before you
+  `gh pr ready`, run `bash docs/agents/check.sh` from a full clone: it
   refuses a charter patch `git apply` will not take and an `L<n>`,
   `Incident <n>` or `ADR-<n>` another open pull request has already
   taken. If two of your own branches did take one, fold them and
