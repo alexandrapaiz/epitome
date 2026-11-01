@@ -381,25 +381,35 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   evidence block exists in `smoke-doctor.sh` alone, and the comment above it
   says why it was written ("each cost a run of archaeology to identify"). Carded
   below rather than done here.
-- [ ] **A FAIL in ten of this repository's twelve suites prints a label and no
+- [ ] **A FAIL in nine of this repository's twelve suites prints a label and no
   evidence, which is the cost `smoke-doctor.sh` paid three runs of archaeology
   to stop paying.** Found by the engineer run of 2026-11-01 ~23:4xZ (ref
   `epitome-engineer/2026-11-01-message`) while scanning for siblings of the card
-  above. Counted, not estimated: twelve files define a `bad()` —
-  `cli/test/{pack,smoke-bus,smoke-langgraph,stranger,shapes,smoke-validate,smoke-cloudflare,smoke-deploy,smoke-roster,smoke-temporal,smoke-doctor}.sh`
-  and `deploy/test-provision.sh` — and **ten of them are
-  `bad() { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }` exactly**, covering
-  **680 assertion sites**. Their `check()` does not even pass the test string to
-  `bad`, so the failing expression is not printed either.
-  Why it is work and not a nicety: that is the fault class this board has been
-  paying for all week. A random one-in-178 doctor failure took a run to
-  identify (#293), a `smoke-temporal.sh` flake took four runs on one box to
-  pin, and the comment above `smoke-doctor.sh:62` says plainly what the fix was
+  above. Counted per file, not estimated: twelve files define a `bad()`, and
+  nine of them are `bad() { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }`
+  exactly — `cli/test/smoke-temporal.sh` (143 assertion sites),
+  `smoke-validate.sh` (119), `smoke-roster.sh` (105), `pack.sh` (95),
+  `smoke-deploy.sh` (71), `deploy/test-provision.sh` (59), `stranger.sh` (31),
+  `smoke-cloudflare.sh` (20), `smoke-bus.sh` (15): **658 sites.** Their
+  `check()` does not even pass the test string to `bad`, so the failing
+  expression is not printed either.
+  The three that are not in the nine, so that nobody re-counts them as work:
+  `smoke-doctor.sh` has the evidence block this card wants spread;
+  `shapes.sh` needs none, because its failures put the measurement in the label
+  itself (`"$f carries $n of the quiet-pipe shape, and this gate allows it
+  $allowed"`); and `smoke-langgraph.sh` is the one described below.
+  Why it is work and not a nicety: this is the fault class the board has been
+  paying for all week, and the one suite that stopped paying is the one that
+  built the block. The comment above `smoke-doctor.sh:62` says what it was
   worth — "the only way to learn which of six rows was missing was to run the
-  suite again and hope to be unlucky in the same place". Every one of those
-  stories is in a suite that still prints nothing.
-  The twelfth, `cli/test/smoke-langgraph.sh:42`, is not in the ten and is not
-  clean either: it prints `head -c 400 "$OUT"` unconditionally, for every failing
+  suite again and hope to be unlucky in the same place" — and it was written
+  because three of that suite's assertions failed one at a time on a busy box,
+  each costing a run of archaeology (the random one-in-178, #293). The bill
+  since has come from the nine: the `smoke-temporal.sh:974` flake above took
+  four runs on one box at two revisions to pin down, in a suite whose FAIL
+  names the claim and never the output, and that card is still open.
+  `cli/test/smoke-langgraph.sh:42` is the third exception and it is not clean
+  either: it prints `head -c 400 "$OUT"` unconditionally, for every failing
   assertion, from one file every `pyrun` overwrites. It is honest today only
   because every assertion in that file happens to be about that file, and a
   step that runs no `pyrun` would print the previous step's output — the same
