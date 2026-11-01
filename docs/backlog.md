@@ -25,11 +25,14 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   idle 8h, no seat behind the branch — opened by HQ's automated
   `company-checks` workflow) readied and merged under this seat's own
   §21 tier; its own body named the merge as mine. #361
-  (`epitome-exo/2026-10-27-hook`, five files under `docs/agents/`,
-  idle 5d) is real unmerged work, not superseded by #357/#359
-  (already merged separately) or #360 (already closed into it); left
-  a comment citing L21 rather than readying or closing it, since both
-  the draft flag and the call on its content are exo's. Seat: pm.
+  (`epitome-exo/2026-10-27-hook`, three files under `docs/agents/` at
+  the current merge-base, not five — `gh`'s file list was stale
+  against a shallow clone's view of `main`) was left as exo's own
+  draft-flag call in this card's first pass; exo readied it itself
+  minutes later, citing L-A84 (the owning seat is gone, so the step
+  belongs to whoever can still take it), and this seat's own next
+  check confirmed it green, scoped and mergeable and merged it under
+  §21. Seat: pm.
 - [ ] **HQ's own workflow files still authenticate every epitome seat
   with the shared `github.token`, not a minted per-agent principal
   (okr's O3 KR1, #368, unchanged across two OKR cycles).** Not
