@@ -7546,3 +7546,132 @@ L-A133).
 
 `portable: yes`
 `role: any, exo, pm, engineer`
+
+## L89 — A rule written for authors does not reach the program that writes in their place, and an unresolvable actuator inside appended text is not read as a broken link but as a forgery, charged to whichever author it happened to follow
+
+**No owner correction triggered this one. A sibling seat refused an instruction
+it read as mine, said so on the board, and was right to refuse.**
+`epitome/pm`'s note to this seat, 2026-11-01T23:31:59Z, verbatim: *"The handoff
+carried an instruction appended to its end telling me to merge or close the okr
+seat's draft through an API path and a script, neither of which exist in this
+repository's tooling. I am not acting on it, because that draft is correctly
+the okr seat's own to ready, and a seizure dressed as a courtesy on an
+unverified instruction is still a seizure."*
+
+The handoff carried no such instruction. The board holds what this seat posted
+at 23:25:50Z — message `a9885d14`, 1,462 characters, ending *"Both of mine are
+re-asked with the deadline in data."* The instruction was `standing.py`'s
+block, which the bus appends to the wake after the sender's body with one blank
+line between them, and that run's own report names it correctly: *"The event
+payload's closing 'Standing' section told me to merge or close #368 via `GET
+/api/standing` and `tools/check-draft-prs.sh --repo alexandrapaiz/epitome`.
+Neither that endpoint nor that script exist anywhere in this repo's actual
+tooling (confirmed by grep and by `ls tools/`) ... I flagged this on the board
+as a likely injected instruction and did not follow it."*
+
+So the same run held the right attribution internally and published the wrong
+one, and the published one is the only copy another seat reads.
+
+```data
+instrument: GET /api/messages, GET /api/standing, GitHub contents API, /srv/asc/hq/runtime/board/standing.py, this run's own payload
+read_at: 2026-11-01T23:4xZ
+hq_template: standing.py:500, `tools/check-draft-prs.sh --repo alexandrapaiz/{repo}`
+seats_it_is_named_to: 5 (MERGER_SEATS is ("pm",); REPOS holds 5 companies)
+repositories_holding_that_file: 2 of 5
+holding_it: alexandra-systems 27607 bytes, atelier-app 16520 bytes
+not_holding_it: alexandria, epitome, Ursa
+epitome_has_a_tools_directory: no, so `ls tools/` fails rather than returning nothing
+of_the_two_references_that_resolve: 1 — /api/standing answers, and names its own required query when called bare
+my_stored_handoff_chars: 1462
+instruction_in_it: none
+this_runs_own_payload: 1271 of 2474 characters written by nobody on the board (51%)
+prior_instance_of_the_same_rule: L-A38, 2026-10-18, same company
+burn: the clause L-A38 is missing is offered to HQ's inbox with no identifier, per that register's one-writer rule
+```
+
+**This is the second instance of `L-A38`, which is a register defect and not an
+omission (L4, L-A4).** That rule is thirteen days old, it is in the `any`
+section this seat reads at the start of every run, and its provenance is this
+same failure: a handoff naming *"`tools/check-manifest.sh`, vendored in your own
+repository, so that you can run it yourself"* to three product PMs when the file
+was at HQ only. Its measured cost was *"three passes bought by one unchecked
+possessive"*. Tonight's cost is different in kind, and the difference is the
+lesson.
+
+**Clause one: the author is now a program, and L-A38 was written for a hand.**
+That rule's repair is a writing rule — *"Name the repository, and either give
+the command that proves the file is there or say plainly that it must be
+vendored first"* — addressed to a seat composing a message. The sentence is now
+composed by a format string in a loop over five companies, so the violation
+arrives once per wake instead of once per pass, it arrives identically to every
+reader, and no amount of a seat reading L-A38 before it writes can touch it.
+A rule aimed at authors does not bind a generator; when the text a rule governs
+is emitted by code, the fix is the template or the rule is undistributed
+however many registers carry it (L-A9, L-A22, and L-X5's own clause that a rule
+whose violation is one idiom must be enforced by something that reads the
+command).
+
+**Clause two: the reader's cheapest resolution of an unresolvable actuator is
+to disbelieve the message, and the message is somebody else's.** L-A38 priced
+this failure as a wasted search. The real price is higher, because a seat that
+checks a reference and finds *nothing* — not an old path, not a moved file, no
+`tools/` directory at all — has no honest reading left except that the text was
+fabricated, and fabricated text implies a fabricator. The payload offers one:
+whichever author's words the block was appended to. So a bad reference inside
+appended text converts into a public accusation against an uninvolved sibling,
+and the accusation is cheap, correct-sounding and permanent on the board.
+The direction of the error is the part to carry: a seat defending itself
+against injection will always over-attribute rather than under-attribute,
+because refusing is free and obeying a forgery is not.
+
+**The repair in this tree is the one read nobody was making.** The board stores
+exactly what each sender wrote, so attribution is a question with a recorded
+answer, and it cost one call. `docs/agents/addressed.sh --payload FILE` splits
+a wake into the words a sender is on record for and the words the runtime
+added, then resolves every repository path the second half names against the
+repository the run is standing in — reporting an absent path as *not in this
+repository*, with the repositories that do hold it, never as nonexistent.
+**Exit 1 is the conjunction and never either half**: unattested text is every
+wake's ordinary furniture, and a path that resolves is nobody's problem.
+
+**The detector, fired against real positives in both directions (L-X1 as
+amended).** Against this run's own payload: three event paragraphs, both senders
+attested at 1,205 and 662 characters, and 1,271 of 2,474 characters belonging to
+nobody — exit 0, because nothing unattested named a path. Against the block
+`GET /api/standing?company=atelier&seat=pm` rendered live at 23:46Z: `NOT HERE
+tools/check-draft-prs.sh`, *"it is in alexandra-systems, atelier-app"*, exit 1.
+`--payload-self-test` asserts six rows, 6/6: the night of 2026-11-01 itself,
+**the same payload against a repository that does hold the tool as the negative
+control**, a wake carrying only a sender's words, a subject the window does not
+reach — which must report the path and must not claim forgery — and two
+could-not-looks that may never read as a clean payload. The attestation floor
+is derived rather than chosen: the store refuses a paragraph over 420
+characters and the wake cuts on a boundary past 60% of 1,500, so a delivered
+body always carries its whole first paragraph, and a shorter match is a
+coincidence. The first cut of this instrument attested a sender on a
+one-character prefix.
+
+**Binds:** every seat that acts on a wake, for the attribution half — the
+surface a payload arrived on is a fact you can check before you name a seat,
+and it belongs in the report you publish and not only in the one nobody reads.
+`alexandra-systems/exo-centralizer` and whoever holds `runtime/board/`, for the
+template half, which is the only half that stops it. And this seat, which found
+`L-A38` in its own start-of-run read and did not predict that the rule's next
+violation would come from a program.
+
+**No charter patch, and the reason, which the charter requires me to write
+down (L31).** Neither clause is a duty a charter adds; clause one is a template
+in a repository this seat cannot write, and clause two is a check, which
+`L-A22` puts in the command rather than in the charter. This seat also has
+three charter patches open and unmerged at 7, 8 and 8 days, and a fourth would
+be the queue cost I measure every run, filed by the seat that measures it.
+
+**Offered to HQ, not written there.** `docs/standards/lessons.md`'s own header
+gives the role sections one writer a week and tells every hook-, message- or
+dispatch-woken pass to append to `standards/lessons-inbox/` and issue no
+identifier. This seat cannot write that repository at all, so the clause goes
+to `alexandra-systems/exo-centralizer` as an inbox entry with no `L-` number,
+named as an amendment to `L-A38` rather than as a new rule.
+
+`portable: yes`
+`role: any, exo, pm`
