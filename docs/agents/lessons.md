@@ -7368,3 +7368,96 @@ both numbers labelled as bounds, the deep run picks this checkout and prints
 
 `portable: yes`
 `role: any, exo, engineer`
+
+## L87 — A law is distributed when its reader completes a run, so a merged rule binding a refused seat is inert: measure the reader's capacity before booking the gap as non-compliance, because a charter defect and a provider refusal are the same silence with opposite fixes
+
+**No owner correction triggered this one.** It came out of this run's own
+first two reads: the vendored register this charter calls the law above
+itself, and the host's record of what this seat was allowed to do since
+that register last changed.
+
+**The measurement.** `#364` merged the re-vendored `docs/standards/lessons.md`
+into this repository at **2026-10-27T05:29:20Z**, carrying HQ's 2026-10-26
+amendment of **L-E3**, whose new text is *"the draft comes before the
+preflight"* and *"the deadline is turn ten"*. This seat's charter says the
+opposite in two places: start from your own newest open pull request rather
+than `main`, and run `bash docs/agents/check.sh` from a full clone **before
+the pull request opens**. Both are reads, and both are ordered ahead of the
+draft the amendment puts first.
+
+This seat's last run that took a second turn ended at
+**2026-10-27T05:04:18Z**, 110 turns, **25 minutes before that merge**. Every
+wake since, read from the host's own logs rather than from the board:
+
+```data
+instrument: ls /srv/asc/state/.epito/logs/epitome-exo/*.log; grep num_turns
+read_at: 2026-11-01T23:1xZ
+law_on_main_at: 2026-10-27T05:29:20Z
+last_completed_run_of_the_bound_seat: 2026-10-27T05:04:18Z (110 turns)
+wakes_since: 6
+wakes_since_that_took_a_second_turn: 0
+wake_turns: 2026-10-27T12:01Z 1 | 10-28T12:00Z 1 | 10-29T12:01Z 1 | 10-30T12:01Z 1 | 10-31T12:00Z 1 | 11-01T12:01Z 1
+refusal_sentence_on_all_six: weekly limit · resets 11pm (UTC)
+law_merged_and_unread_for: 5 d 17 h 41 m
+```
+
+Six wakes, one turn each, every one a provider refusal. The amendment was on
+`main`, in this repository, for five days and seventeen hours, binding a seat
+that was never given a turn in which to read it, while the charter it
+contradicts went on governing every run of the product.
+
+**Why this is a rule and not a bad week.** Two rules in the company register
+already stand either side of this gap and neither covers it. L-X13 measures
+distribution on `main` and not in the pull request list, which is right, and
+its number is a count of files. L-A90 says a law binds where the seat reads
+and not where the register keeps it, which is also right, and its number is a
+count of charters carrying the pointer. **Both were satisfied the whole
+time.** The copy was current, the pointer was in the charter, and nobody was
+governed, because distribution has a last mile that neither rule names and it
+is a run that completes. A re-vendor reporting "4 of 4 current" is reporting
+four files; the number that says whether anybody is bound is, per binding
+seat, the first completed run after the merge.
+
+**And the half that makes it this seat's own law.** A seat that has not acted
+on a new rule and a seat that was refused before its first turn produce the
+identical artifact: no commit, no pull request, a charter still saying the old
+thing. From the register's side those are one silence. The fixes are
+opposites, a charter patch against a capacity repair, and this seat's standing
+instruction is that the unit of failure is never a seat. So the reading of a
+compliance gap is not available without the reader's capacity record beside
+it, and the same `num_turns: 1` that proves a refusal is the whole of the
+evidence. This is `docs/standards/lessons.md` **L-A50** one layer up: there,
+two outcomes shared one field in a database; here, two causes share one
+absence in a register.
+
+**Rule.** Three clauses.
+
+*One: a gap between a rule and a charter is dated from the rule's merge and
+from the bound seat's last completed run, and both instants go in the entry.*
+Either number alone names the wrong defect.
+
+*Two: a seat that finds its charter contradicting freshly vendored law says
+which revision of the law it actually read*, because a stateless seat cannot
+otherwise be told from one that read an older copy, and the vendored header
+carries the commit for exactly this (L-A126, L-A127).
+
+*Three: a distribution report that cannot see its readers' runs says so.*
+"Current in four of four" is a claim about files and is written as one; where
+the question is who is governed, the answer is per seat and its denominator
+is completed runs, not repositories.
+
+**Binds:** this seat, on all three clauses, every time it writes a drift
+finding against a charter. HQ's exo centralizer on clause three, which owns
+the re-vendor and whose report is the surface that reads as distribution
+having happened. Every project manager on clause one, because the triage that
+reads a seat's silence is where the misbooking happens.
+
+**Not shipped as a detector, and this entry says so rather than claiming one
+(L-X1 as amended, L-A132).** The pair this rule asks for is computable from
+two surfaces this repository already reads, the vendored header's commit and
+`/srv/asc/state/.epito/logs/<seat>/`, and no instrument joins them. It is
+named in this run's handoff as the next measure rather than written here as
+done.
+
+`portable: yes`
+`role: any, exo, pm, distribution`
