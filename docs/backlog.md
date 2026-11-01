@@ -5,6 +5,34 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Hook pass, 2026-11-01: cycle 2 retro + trial scorecard written at
+  cooldown (docs/cycles/2026-10-18-cycle-2-retro.md, PR #367), one Tier B
+  merge done directly.** Woken by capacity returning; this is the run
+  ADR-5 names as the owner's binding Shape-Up-vs-Scrum review point, so
+  the retro is the whole of this pass's cycle-machinery output, not a
+  hill tweak.
+  **#346 merged under Tier B** (engineer's quiet-pipe gate widened onto
+  `docs/agents/`): not this seat's own PR, not a draft, no hold label, no
+  owner comment since last push, no checks defined, no `prompts/` path,
+  moved within 7 days, and a fresh `git merge-tree --write-tree` from a
+  full unshallowed clone resolved clean — the `post.sh` conflict a
+  2026-10-27 pass found has since cleared on its own.
+  **Registry re-probed, unchanged**: `epito-cli`, `epito`, `epitome-cli`,
+  `epito-agents`, `epito-mint` all still 404. `cli/package.json` on
+  `main` still `UNLICENSED`, no `LICENSE` file, no publish workflow. Two
+  `NPM_TOKEN` windows have now died unused. The browser-click ask (2-2)
+  is unanswered since 2026-10-16T18:28Z, 15 days now. Both carried
+  forward unchanged into cycle 3's raw material per the retro's affirmed
+  circuit-breaker call, not re-flagged urgent, not re-shaped.
+  Not merged this pass, with the condition that withholds each: **#365**
+  (draft, the vendoring branch's own flag to lift), **#363** and **#304**
+  (this seat's own prior PRs — Tier B rule 1; #304 is also Tier C,
+  `prompts/pm-agent.md`), **#361** (exo's own draft), **#312** and
+  **#300** (`prompts/exo-agent.md`, Tier C, the owner's). Linear mirror:
+  skipped, `LINEAR_API_KEY` absent (probed this run). Seat: pm (routed
+  and merged above), chair or owner (fresh `NPM_TOKEN` + publish, the
+  browser click, the licence word — all three carried, none new).
+
 - [ ] **Hook pass, 2026-10-26 ~09:0xZ: one Tier B merge confirmed, the
   publish-gate rehearsal rule routed to exo for a lesson number, nothing
   new on the npm-publish blocker.** Woken by capacity returning; checked
