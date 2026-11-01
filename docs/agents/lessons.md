@@ -7266,3 +7266,105 @@ parked as a note.
 
 `portable: yes`
 `role: any, exo, pm`
+
+## L86 — A partial view does not refuse, it answers, and its error has a direction: choose the frame by whether it can walk the question, and name which way a truncated frame would have pushed the number your warning is written off
+
+**No owner correction triggered this one.** It came out of a failing self-test
+this seat's previous run named and did not reach: *roster.sh still fails its
+own self-test because line 176 reads the invoking checkout's shallow state and
+not the binary's own clone* (`79920ee`, 2026-10-27T01:34Z). The register took
+the defect as a scoping slip. It was two defects, and the second one was
+mine, committed while fixing the first.
+
+**The first, as named.** `docs/agents/roster.sh:176` gated the whole
+distance read on `git rev-parse --is-shallow-repository` **with no `-C`** —
+the shallowness of the clone the resident runtime handed the run, which is a
+fact about the harness and not about the artifact under test. Every resident
+run gets a shallow clone (16 commits on 2026-10-27), so
+`binary_commits_behind_main` read `could-not-look` on every run that mattered,
+and the fixture's clean case failed against a clone it had just built.
+
+**Why nine days of green did not catch it, which is the part worth keeping.**
+`binary_reachable_from_main` is computed from two inputs, the ahead-count and
+the dirty-path list, and `/srv/asc/repos/epitome` has carried two dirty
+tracked files since 2026-09-23 (incident 46). A dirty tree forces the verdict
+`no` on its own. So the box answered correctly, for nine days, on the input
+that was not broken, and **the broken input could only have shown itself on a
+clean box** — the one state this box has not been in since the artifact was
+deployed. A wrong reading masked by a right one from a second source is not a
+latent bug; it is a bug with a test that cannot fail.
+
+**The second defect, and it was louder.** The obvious repair is to accept any
+frame that holds both endpoints. That made this checkout the frame, and this
+checkout is grafted *above* the 2026-09-23 artifact. Three frames, one box,
+one question, measured 2026-10-27T05:1xZ:
+
+```data
+instrument: git -C <frame> {merge-base,rev-list --count,merge-base --is-ancestor}
+read_at: 2026-10-27T05:12Z
+question: is 5836dc0b reachable from origin/main, and how far
+frames:
+  - frame: this checkout (shallow, 16 commits)
+    merge_base: none
+    behind: 1
+    ahead: 64
+    ancestor: no
+  - frame: /srv/asc/repos/epitome (shallow, grafted below the artifact)
+    merge_base: 5836dc0b
+    behind: 883
+    ahead: 0
+    ancestor: yes
+  - frame: this checkout, unshallowed by docs/agents/check.sh
+    merge_base: 5836dc0b
+    behind: 909
+    ahead: 0
+    ancestor: yes
+truth: 0 ahead, an ancestor; incident 46 read 890/0 from a frame with history
+```
+
+The grafted frame did not error and did not say it could not look. It
+answered `1 behind, 64 ahead, not an ancestor` — and **`ahead` is the field
+this script's destructive-repair warning is written off**. The row would have
+told a reader that the box holds 64 commits `main` does not. It holds none.
+The repair that line warns against is `git reset --hard origin/main`, and the
+only true reason not to run it is the 35 uncommitted lines, not a divergence
+that does not exist.
+
+**Rule.** Two clauses, and the second is the one no instrument in this
+directory had.
+
+1. **Choose the frame by whether it can walk the question, not by how deep it
+   is.** Depth is a property of a clone; answerability is a property of the
+   pair. The fixture clone is shallow to one commit and answers exactly,
+   because both endpoints are present and nothing lies between them; this
+   checkout is shallow and cannot answer at all. One cheap question separates
+   them — `git merge-base A B` returns empty when the walk is cut — and it is
+   a fact about the walk rather than a guess about the repository. Where a
+   guard needs a property of another object, read it **of that object**: a
+   `-C` omitted is a predicate silently re-pointed at the harness, and it will
+   be invisible for as long as a second input happens to force the same
+   verdict.
+2. **A truncated view's error is directional, so name the direction before you
+   quote the number.** A cut walk shrinks `main`'s reachable set, so it
+   *understates* behind and *overstates* ahead — and a reader cannot recover
+   that from the output, because both come back as plain integers from a
+   command that exited 0. So the frame that answered is printed with its own
+   `main` sha, a shallow or stale frame labels its counts as the bound each
+   one is, and the claim the warning rests on is never quoted off a frame that
+   would have inflated it. `could-not-look` is available and is a reading
+   (L41); a fabricated integer is not.
+
+**Fix shipped.** `ce7c5bf` on this branch: `bin_frame()` qualifies a frame on
+`merge-base`, tries this checkout then the executing clone, prints
+`binary_distance_frame`, `binary_distance_main_sha`,
+`binary_distance_frame_shallow`, `binary_distance_frame_stale` and
+`binary_is_ancestor_of_main`, and derives the verdict from ancestry rather
+than from an absent count. **Detector, checked against a real positive both
+ways (L-X1 as amended):** the self-test's three cases pass with this clone
+shallow *and* unshallowed, the clean case moving from `could-not-look` to
+`yes`; live, the shallow run picks the executing clone and prints 883/0 with
+both numbers labelled as bounds, the deep run picks this checkout and prints
+909/0 exact. Two frames, two depths, one verdict.
+
+`portable: yes`
+`role: any, exo, engineer`

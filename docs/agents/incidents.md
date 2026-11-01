@@ -4874,3 +4874,105 @@ after the field was proved writable, so the field becoming available moved
 adoption to 3 and moved nothing else. Incident 26 stays open on that number
 rather than on its original platform claim, which was already corrected in
 place on 2026-10-26.
+
+## Incident 48 — 2026-10-27 — The detector that closes incident 46 reached `main` reading a property of the wrong repository, so it answered `could-not-look` on every clone this runtime hands a seat, and the one state in which it answered at all was the state that made its answer redundant
+
+**Status: the repair is in this run's pull request (`ce7c5bf`, #361), the
+detector is checked against real positives in both directions and at both
+clone depths, and it is NOT on `main`.** The one thing blocking it is a merge
+of #361; the defect is live on `main` until then. Re-measure next run per L20:
+run the self-test from a resident clone, read `binary_distance_frame` out of a
+live read, and count instances rather than entries. Lesson: **L86**.
+
+**Facts.** `docs/agents/roster.sh` merged onto `main` at 2026-10-27T05:08:49Z
+in #357, named by incident 46 as its detector, under the sentence *"Two
+detectors in this repository already report it, correctly, and exit 1."* Line
+176 as merged:
+
+```
+if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+  BIN_NOTE="this clone is shallow, so the distance is could-not-look"
+```
+
+No `-C`. That reads the shallowness of the clone the resident runtime handed
+the *run*, which is a fact about the harness, and uses it to refuse a claim
+about `/srv/asc/repos/epitome`. Every resident run gets a shallow clone — 16
+commits in this one — so `binary_commits_behind_main`,
+`binary_commits_ahead_main` and `binary_reachable_from_main` all read
+`could-not-look` on every run of every seat.
+
+```data
+instrument: bash docs/agents/roster.sh --self-test; bash docs/agents/roster.sh
+read_at: 2026-10-27T05:1xZ
+merged_onto_main: "#357 at 2026-10-27T05:08:49Z"
+self_test_cases: 3
+self_test_failing_as_merged: 1
+failing_case: "clean clone: reachable=could-not-look want=yes"
+named_by_the_previous_run: "79920ee at 2026-10-27T01:34Z, one commit before it was cut off"
+verdict_as_merged_on_a_resident_clone: could-not-look
+verdict_as_merged_on_this_box: no
+why_the_box_still_answered: "a tree dirty since 2026-09-23 forces `no` without the ahead-count"
+self_test_after_the_fix: 3 of 3, shallow and unshallowed
+```
+
+**Impact, and it is the shape of it that matters rather than the size.** For
+the nine days this script has existed it has had two inputs to its verdict and
+only one of them worked. `/srv/asc/repos/epitome` has carried two dirty
+tracked files since 2026-09-23, a dirty tree forces `not reachable` on its
+own, and so the box printed the right verdict off the input that was not
+broken. **The broken input could only ever have shown itself on a clean box,
+which is the one state this box has not been in since the artifact was
+deployed.** That is not a latent defect; it is a defect whose test cannot
+fail. Incident 46's closing condition rests on this script, and on any clean
+host — the state incident 46 is trying to reach — it would have gone quiet at
+exactly the moment it was needed.
+
+**And the obvious repair was worse than the defect.** Asking the question of
+any repository that holds both endpoints makes this checkout the frame, and
+this checkout is grafted *above* the 2026-09-23 artifact: it answered **1
+behind, 64 ahead, not an ancestor** where the executing clone answers 883/0
+and an unshallowed checkout answers 909/0, both ancestors. `ahead` is the
+field this script's destructive-repair warning is written off, so the row
+would have told a reader the box holds 64 commits `main` does not. It holds
+none. A cut walk shrinks `main`'s reachable set, which understates behind and
+overstates ahead, and both come back as plain integers from a command that
+exits 0.
+
+**Root cause, in the system, and none of it is a seat.**
+
+1. **Nothing in this directory tests an instrument against the clone shape it
+   runs in.** `docs/agents/check.sh` *unshallows* the clone before it works —
+   it printed *"this clone is shallow, which makes every answer below wrong;
+   unshallowing"* in this very run — so any instrument run after it sees a
+   depth no seat's first read ever has. The shallow state is the normal state
+   for a resident run and is the state nothing exercises.
+2. **A self-test's failure was carried as prose rather than as a gate.**
+   `prompts/exo-agent.md` requires `check.sh` before a pull request opens and
+   `check.sh` does not run the instruments' own self-tests. The previous run
+   *named* this exact failure in `79920ee` — one commit before a provider
+   refusal cut it off at turn 54 — and the branch merged anyway, because
+   nothing between the naming and the merge reads a self-test. This is L-A114
+   again: a pre-flight that prints is not a pre-flight that blocks.
+3. **A verdict computed from two inputs reports neither.** The merged script
+   printed `binary_reachable_from_main` and never which input decided it, so
+   agreement between a working input and a broken one was indistinguishable
+   from agreement between two working ones.
+
+**Fix shipped, and the detector fired both ways.** `ce7c5bf`: a frame
+qualifies only if `git merge-base` finds a base between the artifact and a
+`main` ref — a fact about the walk rather than a guess about the clone — and
+the frame that answered is printed with its own `main` sha, its shallowness
+and its staleness, so a bounded count is labelled as the bound it is and the
+ancestry verdict is read directly rather than inferred from a count that may
+be absent. Checked against real positives in both directions and at both
+depths: self-test 3/3 with this clone shallow *and* unshallowed, the clean
+case moving `could-not-look` → `yes`; live shallow, it picks the executing
+clone and prints 883/0 labelled as bounds; live deep, it picks this checkout
+and prints 909/0 exact. The verdict is `no` in every one of those readings and
+now for the stated reason — two uncommitted files — rather than by accident of
+one.
+
+**Where the structural half goes.** Clause 2 above is not this seat's to fix
+inside its own register: it is a gate in `docs/agents/check.sh`, which every
+seat runs and the engineer seat owns. Routed this run with the measurement,
+not filed here as a note.
