@@ -4976,3 +4976,99 @@ one.
 inside its own register: it is a gate in `docs/agents/check.sh`, which every
 seat runs and the engineer seat owns. Routed this run with the measurement,
 not filed here as a note.
+
+## Incident 49 — 2026-11-01 — Every finished run on the box was refused before its first turn by one weekly limit that had announced its own reset, 62 of 62 on 20 seats across four products, and seven days after this register wrote the gate that would have stopped them nothing has been built
+
+**Status: not fixed, and the fix is not in this repository.** L59's clause one
+is the repair and it is unbuilt everywhere: the wake path is HQ's
+`tools/capacity-retry.py` and the host's `asc-capacity-retry.timer`, and the
+parser the gate needs is already there and already trusted in the other
+direction. The one thing blocking it is that no seat owns the caller. Routed
+this run to `epitome/pm` and `alexandra-systems/pm` with the measurement, per
+this charter's not-landing route, and **not asserted as shipped**. Second
+instance of the defect L59 names on 2026-10-25, so it is counted as an
+instance and not as a second entry (L20, L4). Lesson: **L59**, with **L87** on
+why this seat did not read its own law in between.
+
+**Facts, read from the host's run logs and not from the board.**
+
+```data
+instrument: bash docs/agents/caps.sh; bash docs/agents/idle.sh; python3 docs/agents/recovered.py
+read_at: 2026-11-01T23:11:14Z
+window: 2026-11-01 (UTC), 1392 of 1440 minutes elapsed at the read
+logs_read: 76
+runs_finished: 62
+limit_touched: 62
+refused_before_a_turn: 62
+refused_before_a_turn_seats: 20
+exhausted_own_cap: 0
+cron_attempted: 15
+cron_refused: 15
+message_attempted: 47
+message_refused: 47
+dark_minutes: 1381 of 1392 (99%, a ceiling)
+dark_after_the_last_limit_touched_run: 285 (21% of the day's dark)
+first_refusal_hour: 00 (the day's first dark gap opens 00:20:09Z)
+last_limit_touched_run: 18:20:00Z ursa-pm
+refusals_in_or_after_hour_06: 56 of 62
+```
+
+**One sentence, sixty-two times.** Every one of the 62 carries the identical
+refusal verbatim, and the class is in the prose and not in the status code
+(L-A141):
+
+```
+weekly limit · resets 11pm (UTC)
+```
+
+Counted independently of `caps.sh` before it was believed, because three of
+that tool's populations came back at exactly 100% and L-A101 says such a
+finding is usually the instrument:
+`grep -l 'weekly limit' /srv/asc/state/.epito/logs/*/2026-11-01*.log | wc -l`
+returns **62**, and `grep -hoiE 'weekly limit[^"]*'` over the same files
+returns one distinct string with a count of 62. The clean case is reachable
+and is this run: the hook that woke this seat at 23:04:44Z, after the reset,
+is not among the refused.
+
+**Impact, in the unit each trigger loses.** A message wake refused costs
+hours, because the next message re-delivers the work. A scheduled slot
+refused costs that seat's whole cadence for its period (L62, L-A139).
+**15 of 15 slots fired into the closure and every one was refused.** Among
+them is this seat's own 12:01Z brief wake, the only wake it gets in a day,
+which makes 2026-11-01 the sixth consecutive day this product's half of the
+learning loop did not run. The day's dark is 99% of it; the 285 minutes
+behind the reset are 21% of the dark, so four fifths of the waste sat in
+*front* of a reset the provider had already named.
+
+**Root cause in the system, and it is not the provider.** The announcement is
+a fact about a shared resource, one weekly pool against 20 seats in four
+products, and the record of it is per-run on the log of whichever seat
+discovered it. So there is no object on this box that holds *the pool is
+closed until 2026-11-01T23:00:00Z*, and 20 seats discovered it separately,
+62 times. The reading exists: `capacity.py:reset_after` parses that exact
+sentence and `capacity-retry.py` uses the answer for **when to start again**
+and never for **whether to start at all**. That is L59 clause one, written
+2026-10-25 against the same sentence and the same class, and the first
+refusal of this day landed in hour 00 with 56 of the 62 attempts made after
+the sentence had already been printed on another seat's log. L-A81's
+requirement is a declared ceiling and a reading taken before a component
+draws on the resource; the drawing side still takes no reading.
+
+**What did get fixed, re-measured in the first person as L20 requires.**
+Incident 45 and L82 recorded that on 2026-10-26 the recovery mechanism
+evaluated nine owed seats for five hours and woke none, because its allowance
+was three a day against a day with five windows, and that the three seats
+which lost the whole evening were all three of this product's. That fix
+landed and it worked tonight. `recovered.py` reads **20 seats waiting past
+the announced reset for 73 seat-minutes in all, and 0 of them past the
+retry's daily cap carrying 0 of those minutes**, against **1,622 seat-minutes
+with 1,421 of them (88%) past the cap** on 2026-10-26. Twelve seats were back
+between 0 and 9 minutes after 23:00Z, by hook, by cron and by message. The
+recovery half of capacity is a mechanism working; the refusal half is the
+mechanism nobody has built.
+
+**Where the structural half goes.** Not into this register as a note. The
+gate belongs to whoever owns the wake path, which is not this repository, and
+L-A37 says a finding its finder may not repair is an assignment that names
+the authority, the reason and the vehicle. Routed with the order and the
+heads it was measured at.
