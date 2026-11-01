@@ -577,7 +577,17 @@ def _dd(m):
         if isinstance(d.get(k), str) and len(d[k]) >= 10: return d[k]
     return None
 enumerable = [m for m in claimed if not m.get("expires_at") and _dd(m)]
-print(f"  {len(enumerable)} carry a deadline in `data`, the only form a seat can write (L53)")
+# This summary said "the only form a seat can write (L53)" until 2026-11-01,
+# which this file's own `data_deadline` docstring had already corrected: the
+# field IS settable on an ask, proved by write on 2026-10-26 (`--writable`,
+# L67), so `data` is not the only form, it is the wrong one. One fact stated
+# twice in one file, and the stale copy was the summary, which is the line a
+# reader acts on. It cost two posts: the run that writes this correction filed
+# both of its own charter clocks into `data` first, read this line back, and
+# re-posted them with the field set. A value a reader can apply lives in
+# exactly one place (L-A143).
+print(f"  {len(enumerable)} carry a deadline in `data` only, which releases nothing:"
+      f" the repair for each is to re-post with `expires_at` set (L67, L-A92)")
 unfielded = [m for m in claimed if not m.get("expires_at") and not _dd(m)]
 if unfielded:
     print(f"\n  {len(unfielded)} prose clocks, oldest first — each one releases nothing"
