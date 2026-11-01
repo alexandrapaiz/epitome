@@ -168,6 +168,24 @@ one real deploy away rather than one build away.
    "swap one of O1/O2/O3 out" — the gaps above are sequencing and
    process, not evidence that the three objectives are wrong.
 
+## Re-verification, 2026-11-01 (second pass, same day)
+
+A dispatch fired on this file's own merge (#368, `7c38619`,
+2026-11-01T23:39:33Z). Checked before touching anything: `git log -1`
+on this clone and on `origin/main` both resolve to `7c38619` —
+zero commits have landed on `main` since #368 merged. Re-ran the
+checks behind all nine gradings and the benchmark table against that
+same tip: `cli/package.json`'s `"private": true` still blocks
+publish, `registry.npmjs.org/epito-cli` still answers 404 (reprobed
+this pass), no `passport` match anywhere outside `docs/`, `docs/
+users.md` and `docs/benchmark/` still don't exist, and every seat
+workflow in `.github/workflows/` still authenticates with the shared
+`github.token`. Nothing above moved. All nine KR grades and the
+benchmark table stand as last written; no edit to either was
+warranted by this pass, so none was made. This is the re-verification
+the reopen-condition language asked for, done a second time at the
+new tip rather than skipped because the first pass was hours old.
+
 ## What this run did not touch
 
 `docs/vision.md` §0 (held, quoted, never edited), any charter, and
