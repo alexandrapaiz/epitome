@@ -98,6 +98,17 @@ def verdict(opening_end, live_start, last_commit):
     if live_start is not None and last_commit is not None and last_commit >= live_start:
         return "held"
     return "abandoned"
+
+def carries_work(nfiles, nadds):
+    """Does this draft carry work? Read the DIFF, never the commit count.
+       The count is a proxy and it inverts on the smallest case: a run that
+       commits once puts its whole payload in the opening commit, so
+       `ncommits == 1` reads "carries nothing" about exactly the branches
+       that carry the most per commit. This matters because the remedy on
+       the other class is destructive — close it and re-declare — so the
+       error has a direction and this predicate is built to over-report
+       carrying (L88, L-A45, L-A101, L-A9's fail-closed direction)."""
+    return int(nfiles) > 0 and int(nadds) > 0
 PY
 
 python_prelude() { printf '%s\n' "$VERDICT"; }
@@ -150,6 +161,40 @@ print("The reader before L81 returned held for the first, because it took a "
 print("%d of %d assertions failed." % (fails, len(rows)))
 print()
 print("liveness.py carries its own seven, including both boundary controls:")
+
+# The second predicate, on real rows, both arms, because the arm whose remedy
+# destroys work has to be seen to fire and the arm that saves it has to be
+# seen not to (L-X1 as amended, L-A109).
+print()
+print("== self-test: carries_work(), the diff rows the commit count got wrong ==")
+work = [
+    ("#365", 1, 153, 1, True,
+     "the case that proves it: `docs/standards/pm.md` +153 -12, a company "
+     "standard's re-vendor, one commit. The old line called it "
+     "[opening commit only], whose charter remedy is to close it. It was "
+     "MERGED at 2026-11-01T23:15:58Z, 77 seconds after this script read it"),
+    ("#368", 1, 175, 1, True,
+     "`docs/okrs.md` +175, a quarter's grading, one commit, same false class "
+     "on the same read"),
+    ("#142", 0, 0, 1, False,
+     "the negative control, and a real one: this seat's own draft of "
+     "2026-10-18 changed zero files, which is the population the "
+     "close-and-re-declare remedy is actually for (L-A32's own provenance)"),
+    ("#361", 18, 102, 18, True,
+     "many commits and work: unchanged by this repair, so the fix is not a "
+     "widening that swallows the other arm"),
+]
+for pr, nf, na, nc, want, note in work:
+    got = carries_work(nf, na)
+    ok = "ok  " if got == want else "FAIL"
+    if got != want:
+        fails += 1
+    print("  %s %-5s files=%-3s adds=%-5s commits=%-3s want=%-5s got=%s"
+          % (ok, pr, nf, na, nc, want, got))
+    print("       %s" % note)
+print()
+print("The reader before L88 answered 'carries nothing' for the first two, "
+      "on the commit count alone, and its remedy was to close them.")
 raise SystemExit(1 if fails else 0)
 PY
   } | python3
@@ -177,8 +222,8 @@ fi
 
 rows=
 for n in $nums; do
-  v=$(gh pr view "$n" --json number,headRefName,createdAt,isDraft,commits \
-        --jq '[.number,.headRefName,.createdAt,(.isDraft|tostring),(.commits|length),.commits[-1].committedDate]|@tsv') || {
+  v=$(gh pr view "$n" --json number,headRefName,createdAt,isDraft,commits,files \
+        --jq '[.number,.headRefName,.createdAt,(.isDraft|tostring),(.commits|length),.commits[-1].committedDate,(.files|length),([.files[].additions]|add//0)]|@tsv') || {
       echo "drafts.sh: could not read pull request $n (L41)" >&2; exit 2; }
   rows="$rows$v"$'\n'
 done
@@ -207,7 +252,7 @@ def why_ended(r):
                 "clock, so there is no exit code behind this" % liveness.WALL_MIN)
     return "?"
 
-bad = held = seen = unknown = alive = 0
+bad = held = seen = unknown = alive = carrying = 0
 print("open drafts on this repository, against the host run logs at %s" % logs)
 print("A run is in the room only while neither writer has marked its ending and it is "
       "inside the %g+%g min bound declared at cli/src/temporal/env.js:10 (docs/agents/liveness.py)."
@@ -217,7 +262,7 @@ print("%-6s%-40s%-7s%6s  %s" % ("PR", "BRANCH", "AGE", "CMTS", "WHOSE HAND"))
 for line in sys.stdin.read().splitlines():
     if not line.strip():
         continue
-    num, branch, created, isdraft, ncommits, lastcommit = line.split("\t")
+    num, branch, created, isdraft, ncommits, lastcommit, nfiles, nadds = line.split("\t")
     if isdraft != "true":
         continue
     seen += 1
@@ -266,17 +311,40 @@ for line in sys.stdin.read().splitlines():
             note += " / a run of %s is in the room since %s but has not touched this branch" % (
                 seat, live["start"].strftime("%H:%M:%SZ"))
         bad += 1
-        if int(ncommits) == 1:
-            note += " [opening commit only]"
+        # Judge the artifact by its diff, never by its commit count. The count
+        # is a proxy and it inverts on the smallest case: a seat whose run
+        # commits once — a standard re-vendor, a one-file grading — puts its
+        # whole payload in the opening commit, so `ncommits == 1` reads
+        # "carries nothing" about the branches that carry the most per commit.
+        # The remedy attached to this class is destructive (close it and
+        # re-declare), which is the only reason this is a loss rather than an
+        # untidy label: on 2026-11-01 this line called #365 (docs/standards/pm.md
+        # +153 -12, a company standard's re-vendor) and #368 (docs/okrs.md +175,
+        # a quarter's grading) opening-commit-only, and obeying it closes both
+        # (L88, L-A45, L-A101).
+        if not carries_work(nfiles, nadds):
+            note += " [EMPTY DIFF: %s file(s), %s insertion(s) — the close-and-re-declare class]" % (
+                nfiles, nadds)
+        else:
+            note += " [carries work: %s file(s), %s insertion(s) in %s commit(s) — ready or route, never close]" % (
+                nfiles, nadds, ncommits)
+            carrying += 1
     print("#%-5s%-40s%5.0fm%6s  %s" % (num, branch[:39], age, ncommits, note))
 
 print()
 if bad:
     print("%d of %d open draft(s) have no hand left. GitHub refuses to merge a "
-          "draft, so each of these has shipped nothing whatever its branch holds (L-A32). A "
-          "draft carrying only its opening commit is closed and re-declared; one carrying work "
-          "is readied by the seat that owns the branch, and no other hand may lift the flag."
-          % (bad, seen))
+          "draft, so each of these has shipped nothing whatever its branch holds (L-A32). "
+          "Which of them is which is read off the DIFF and never off the commit count: "
+          "%d carry work and are readied by the seat that owns the branch or routed to that "
+          "seat, never closed by a reader; %d have an empty diff and are the close-and-"
+          "re-declare class. A one-commit draft is usually the first kind, because a run that "
+          "commits once puts its whole payload in that commit (L88)."
+          % (bad, seen, carrying, bad - carrying))
+    print("The direction of this instrument's error, stated because no reader can infer it: "
+          "the remedy on the empty class DESTROYS work, so a wrong 'empty' costs a branch and "
+          "a wrong 'carries work' costs one reader a minute. It is built to over-report "
+          "carrying (L-A9's fail-closed direction, L-A101).")
 else:
     print("%d open draft(s) and not one of them is without a hand, read from %s." % (seen, logs))
 if held:
@@ -300,6 +368,9 @@ print("liveness_reader: docs/agents/liveness.py")
 print("bound_minutes: %g" % (liveness.WALL_MIN + liveness.GRACE_MIN))
 print("drafts_open: %d" % seen)
 print("drafts_with_no_hand_left: %d" % bad)
+print("of_those_carrying_work_by_diff: %d" % carrying)
+print("of_those_with_an_empty_diff: %d" % (bad - carrying))
+print("handless_class_read_from: diff (files and insertions), not the commit count (L88)")
 print("drafts_held_by_a_run_in_the_room: %d" % held)
 print("drafts_held_by_their_own_opening_run: %d" % alive)
 print("drafts_not_judgeable: %d" % unknown)

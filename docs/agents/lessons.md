@@ -7461,3 +7461,88 @@ done.
 
 `portable: yes`
 `role: any, exo, pm, distribution`
+
+## L88 — A proxy standing in for a reading inverts on the smallest case, and where the remedy destroys work that inversion is a loss rather than a mislabel: judge the artifact by its diff, and state which direction the instrument's error runs
+
+**No owner correction triggered this one.** It came out of this run's second
+standing count, the one the charter says is "the only thing watching".
+
+**The measurement.** `bash docs/agents/drafts.sh` at **2026-11-01T23:14:41Z**
+read five open drafts, three with no hand left, and tagged two of the three
+`[opening commit only]`:
+
+| draft | what its one commit carried |
+|---|---|
+| `#365` | `docs/standards/pm.md` +153 -12, HQ's project-management standard re-vendored |
+| `#368` | `docs/okrs.md` +175, this product's Q4 grading |
+
+The instrument's own closing sentence, and this charter's Output clause in the
+same words, say what to do with that class: *"a draft carrying only the commit
+that opened it is not unfinished work, so close it and re-declare what it
+owed."* Obeying it closes a company standard's distribution, which is the unit
+of work `docs/standards/lessons.md` L-X13 says distribution is measured in,
+and a quarter's grading.
+
+**And the queue settled it inside the same run.** `#365` was **MERGED at
+2026-11-01T23:15:58Z**, seventy-seven seconds after the read that called it an
+abandoned draft carrying nothing. The merger was right and the instrument was
+wrong, with the window between them about a minute wide.
+
+**The mechanism, which is the part that generalizes.** The count is a proxy
+for the reading, and it inverts exactly at one commit: a run that commits once
+puts its whole payload in the opening commit, so a seat whose discipline is
+*one commit, one artifact* — a sync, a vendored copy, a one-file grading — is
+the seat this test is most confidently wrong about. Every other misreading in
+this register's history runs the safe way. L-A55 says of its own containment
+proof that "the error runs one way only, so no seat closes what it should
+keep". This one runs the other way: its false class has a destructive remedy
+attached, and a reader who trusts the label performs the destruction.
+
+**Rule.** Three clauses.
+
+*One: where a remedy destroys, the classifier reads the thing and not a proxy
+for it.* The diff decides whether a draft carries work — `gh pr diff
+--name-only` with the insertion count beside it — never the commit count, the
+title or the branch name (L-A45: compare objects, not the sentences written
+about them).
+
+*Two: a classifier whose remedy is destructive is fired against its clean case
+before any run acts on its dirty one,* and two of two is a population, not an
+anecdote (L-A101).
+
+*Three: the instrument prints which direction its own error runs,* because no
+reader can infer it and the cheap error is the one the tool should be allowed
+to make. A detector built to over-report "carries work" costs a reader one
+confusing minute; built the other way it costs a branch.
+
+**Binds:** this seat, on the Output clause and on the second standing count.
+Every seat whose charter carries the close-and-re-declare sentence, which
+arrived there from `docs/standards/lessons.md` L-A32's third clause — so the
+company register holds the same proxy, and that half is offered up rather than
+patched here.
+
+**Fix shipped, with the detector checked against real positives in both
+directions (L-X1 as amended).** `docs/agents/drafts.sh` on this branch:
+`carries_work(nfiles, nadds)` joins `verdict()` in the predicate block the
+live read and the self-test share, the row prints
+`[carries work: N file(s), N insertion(s)]` or
+`[EMPTY DIFF: ... — the close-and-re-declare class]`, the summary splits the
+handless count into the two classes and states the direction of its own error,
+and the data block gains `of_those_carrying_work_by_diff`,
+`of_those_with_an_empty_diff` and `handless_class_read_from`. Four assertions
+on real rows, `--self-test`, all passing: `#365` and `#368` as the positives
+the old line got wrong, **`#142` as the negative control**, which is this
+seat's own draft of 2026-10-18 that changed zero files and is the population
+the destructive remedy is actually for, and `#361` as the control that the
+repair is not a widening which swallows the other arm. Live after the fix,
+`#368` reads *carries work: 1 file(s), 175 insertion(s)*.
+
+**The charter half, and where it went.** `prompts/exo-agent.md`, the Output
+section's close-and-re-declare sentence. Pushed to **`#312`**, this seat's
+newest open pull request on that file, which already appends at that exact
+clause: an amendment to an ask this seat filed itself, and not a third branch
+on a charter that already has two of this seat's open on it (L-A37, L-A146,
+L-A133).
+
+`portable: yes`
+`role: any, exo, pm, engineer`
