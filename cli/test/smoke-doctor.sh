@@ -100,7 +100,16 @@ bad()  {
   printf '%s\n' "$hay" | tail -n "$EVIDENCE_LINES" | sed 's/^/       | /'
 }
 check(){ if eval "$2"; then ok "$1"; else bad "$1" "$2"; fi; }
-step() { printf '\n== %s\n' "$1"; }
+# Clearing `out` here is what keeps `bad`'s fallback honest. The fallback fires
+# when a test expression carries no `$NAME` — section 7b's closing assertion is
+# one, because `$TMP` is expanded before `check` ever sees the string — and
+# before this line it printed whatever the last `run` ANYWHERE in the suite had
+# left in `out`. On 7b that was section 7's misspelled-flag output, forty lines
+# earlier, so a FAIL about a roster's closing line read as `epito doctor`
+# answering `has no --wat option`: a confident wrong cause, in the one place a
+# reader has nothing else to go on. Every section sets `out` before it asserts
+# on it, so the only thing this forgets is evidence from a different test.
+step() { out=""; printf '\n== %s\n' "$1"; }
 cleanup() { if [ -n "${EPITO_SMOKE_KEEP:-}" ]; then printf '\nkept: %s\n' "$TMP"; else rm -rf "$TMP"; fi; }
 trap cleanup EXIT
 mkdir -p "$TMP"
@@ -508,19 +517,31 @@ check "and an unknown one lists the flags doctor takes"       "[ $rc -eq 1 ] && 
 # Three seats is 5 KB and never crossed it, so the gate builds a roster that
 # does. Nothing here is slow: without --deep no seat is probed, and the extra
 # seats are copies of one manifest already in this roster.
+#
+# The copies are of `only` — section 4's stranded seat, whose single road needs
+# a key this box does not hold — and not of `plain`. The closing assertion
+# below asks for `Nothing was started`, which doctor.js prints on the REFUSAL
+# exit alone (`src/doctor.js`, inside `if (refusals.length)`); the ✓ exit puts
+# its verdict FIRST and ends on an aside. A roster of 80 `plain` seats refuses
+# for nothing of its own, so whether that line is the last line was decided by
+# the box: a laptop with no engine refused and the gate passed, and a host with
+# an engine and a worker polling left by the ✓ path and the gate failed with
+# nothing wrong. `only` refuses on this box and every other one, because the
+# key is unset for both invocations — so what the pipe did is the only thing
+# left that can move this verdict.
 step "7b. a report bigger than one pipe buffer survives the pipe"
 BIG="$TMP/bigroster"; mkdir -p "$BIG"
-cp -r "$R/plain" "$BIG/plain"
+cp -r "$R2/only" "$BIG/only"
 for n in $(seq 2 80); do
-  mkdir -p "$BIG/plain$n"
-  sed "s/^name = \"plain\"/name = \"plain$n\"/" "$R/plain/agent.toml" > "$BIG/plain$n/agent.toml"
+  mkdir -p "$BIG/only$n"
+  sed "s/^name = \"only\"/name = \"only$n\"/" "$R2/only/agent.toml" > "$BIG/only$n/agent.toml"
 done
 # Completeness is the claim, and it is asked of one invocation. Two
 # invocations are not comparable byte for byte: the worker row carries the age
 # of its evidence ("last polled 2s ago"), so a `cmp` between two runs of this
 # command would be a gate that fails for being right.
-$E doctor "$BIG" --json 2>&1 | cat > "$TMP/big-pipe.json" || true
-$E doctor "$BIG" 2>&1 | cat > "$TMP/big-human.txt" || true
+env -u DOCTOR_SMOKE_KEY $E doctor "$BIG" --json 2>&1 | cat > "$TMP/big-pipe.json" || true
+env -u DOCTOR_SMOKE_KEY $E doctor "$BIG" 2>&1 | cat > "$TMP/big-human.txt" || true
 SEATS=$(ls -d "$BIG"/*/ | wc -l)
 check "the piped report is over one pipe buffer, so this gate asks something" \
   "[ \$(wc -c < '$TMP/big-pipe.json') -gt 65536 ]"
@@ -529,7 +550,12 @@ check "and through the pipe it is valid JSON"                 \
 check "with every seat of the roster still in it"             \
   "node -e 'const r=JSON.parse(require(\"fs\").readFileSync(process.argv[1],\"utf8\"));process.exit(r.seats.length===Number(process.argv[2])?0:1)' '$TMP/big-pipe.json' $SEATS"
 # The human report leaves by the other two exits and loses its closing line
-# the same way — and that line is the whole verdict.
+# the same way — and that line is the whole verdict. Its own size is asserted
+# for the same reason the JSON's is: the two documents are not the same
+# document, and a human report that fits in one buffer would make the gate
+# below pass without ever crossing the thing it is about.
+check "the piped human report is over one pipe buffer too"    \
+  "[ \$(wc -c < '$TMP/big-human.txt') -gt 65536 ]"
 check "the human report, piped, still ends with its own verdict" \
   "grep -q 'Nothing was started' <<< \"\$(tail -1 '$TMP/big-human.txt')\""
 
