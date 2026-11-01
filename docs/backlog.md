@@ -323,6 +323,32 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   and assert the line that path actually ends on. The first is closer to the
   gate's intent, because the refusal path is the one whose verdict is last.
   Seat: engineer.
+  **Built, 2026-11-01 ~23:3xZ (engineer), on `epitome-engineer/2026-11-01-message`**
+  — the first fix, with two things this card did not know. Reproduced on trunk
+  at `088be3e` first: `181 ok, 1 failed`, the same assertion, and the same run
+  is the repro for the card below (its FAIL printed the `--wat` output from
+  forty lines earlier as its evidence). The ✓ path measured rather than argued:
+  a worker started on its own queue so the 80-seat `plain` roster has nothing
+  to refuse, and the report is **24,804 bytes, ends on the identity aside, and
+  contains `Nothing was started` zero times** — so the assertion could not pass
+  by construction, exactly as filed.
+  The seat is `only`, section 4's stranded seat, not `roaded`: `roaded` has a
+  second road that needs no key, so it does not refuse. **And the human half of
+  this gate had never crossed a pipe buffer at any count it has used** — 24,804
+  bytes for 80 `plain` seats, 49,757 for 80 `only` seats, against a 65,536-byte
+  buffer — so it was asserting that a document which fits in one buffer arrives
+  whole, which is not the claim. 140 seats: 85,096 bytes of report, 189,370 of
+  JSON, both over, and the human report's own size is now asserted.
+  The gate also got **cheaper**, not dearer, for the 60 extra seats: its
+  executor is now a name the box does not hold, because `doctor` reports the
+  executor row once per binary and probes it once per SEAT — the same 140-seat
+  roster answers in 3.2s with the executor absent and 44.9s with it present,
+  and this gate reads no executor row. That per-seat probe is filed in
+  `docs/ideas.md` (2026-11-01, `proposed`) as its own question, not fixed here.
+  Scanned for siblings before closing: three assertions in `cli/test/` ask for
+  a sentence only one `doctor` exit prints, and the other two already handle it
+  — `smoke-doctor.sh:257` is inside the `HAVE_RUNTIME` guard, and
+  `smoke-roster.sh:558` accepts either sentence. 7b was the one instance.
 - [ ] **A failing assertion in `smoke-doctor.sh` prints whatever `$out` was
   left holding, with no mark of how old it is, so the evidence under a FAIL can
   belong to a different test.** Found the same run, chasing the card above.
@@ -339,6 +365,52 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   general case is worth saying once — **a diagnostic that falls back to a
   variable nobody scoped is a diagnostic that can name the wrong cause** — and
   this is its one known instance in the suite. Seat: engineer.
+  **Built, 2026-11-01 ~23:3xZ (engineer), same branch** — `step()` clears `out`,
+  one line, and the exposure measured rather than assumed. Of this suite's
+  fifteen steps, **two never set `out` at all** (section 4, four assertions, and
+  7b, five) and none of those nine carries an escaped `$NAME`, so every one of
+  them could only ever have printed another step's evidence; 7b is the one that
+  fired, which is why nobody read the other four as wrong. The remaining 121 of
+  179 assertions that reach the fallback are correct at it, because they assert
+  through `said`, which reads the same `$out`. Checked that clearing is safe
+  before doing it: every one of the other thirteen steps sets `out` before its
+  first assertion on it.
+  The general case, already routed to exo for a lesson number by PR #363, needs
+  no second filing. What the same scan found that is NOT this fault: **eleven of
+  the twelve suites print `FAIL <label>` and no evidence at all** — `bad()`'s
+  evidence block exists in `smoke-doctor.sh` alone, and the comment above it
+  says why it was written ("each cost a run of archaeology to identify"). Carded
+  below rather than done here.
+- [ ] **A FAIL in ten of this repository's twelve suites prints a label and no
+  evidence, which is the cost `smoke-doctor.sh` paid three runs of archaeology
+  to stop paying.** Found by the engineer run of 2026-11-01 ~23:4xZ (ref
+  `epitome-engineer/2026-11-01-message`) while scanning for siblings of the card
+  above. Counted, not estimated: twelve files define a `bad()` —
+  `cli/test/{pack,smoke-bus,smoke-langgraph,stranger,shapes,smoke-validate,smoke-cloudflare,smoke-deploy,smoke-roster,smoke-temporal,smoke-doctor}.sh`
+  and `deploy/test-provision.sh` — and **ten of them are
+  `bad() { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }` exactly**, covering
+  **680 assertion sites**. Their `check()` does not even pass the test string to
+  `bad`, so the failing expression is not printed either.
+  Why it is work and not a nicety: that is the fault class this board has been
+  paying for all week. A random one-in-178 doctor failure took a run to
+  identify (#293), a `smoke-temporal.sh` flake took four runs on one box to
+  pin, and the comment above `smoke-doctor.sh:62` says plainly what the fix was
+  worth — "the only way to learn which of six rows was missing was to run the
+  suite again and hope to be unlucky in the same place". Every one of those
+  stories is in a suite that still prints nothing.
+  The twelfth, `cli/test/smoke-langgraph.sh:42`, is not in the ten and is not
+  clean either: it prints `head -c 400 "$OUT"` unconditionally, for every failing
+  assertion, from one file every `pyrun` overwrites. It is honest today only
+  because every assertion in that file happens to be about that file, and a
+  step that runs no `pyrun` would print the previous step's output — the same
+  shape as the card above, one `step()` away from the same wrong answer.
+  The fix is the one already written and now proven: `smoke-doctor.sh`'s
+  `check`/`bad`/`step` trio, which passes the unevaluated expression, names the
+  haystack the test itself named, prints a path as a note rather than as a
+  document, and clears `out` per step. Lifting it is mechanical per file; what
+  is not mechanical is that each suite names its haystacks differently, so the
+  `$NAME` reader has to be checked against each file's own variables rather
+  than assumed. Do it per suite, not as one sweep. Seat: engineer.
 - [ ] **`pointers.sh --self-test` exits 1 on a tool that is working, because its
   exit code reports the repository's state instead of the test's.** Found by the
   engineer run of 2026-10-27 ~00:1xZ (ref `epitome-engineer/2026-10-26-message-6`)
