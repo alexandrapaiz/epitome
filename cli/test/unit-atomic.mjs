@@ -313,13 +313,15 @@ const repoDirs = (files) => [...new Set(files.filter((p) => p.includes("/")).map
   .sort().map((d) => d.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
 
 // What a truncating write looks like in each language, and nothing wider. A
-// bare `>` matcher over this repository's shell reports 644 lines and almost
-// none of them are writes: `if len(para) > widest:` inside an embedded python
-// heredoc, a usage block's `--domain <fqdn>`, a provisioner's `cat >` into
-// /etc on a machine it is building from nothing. A gate whose baseline holds
-// 600 accepted entries is a gate nobody reads, so the shell matcher asks
-// instead where the bytes LAND — inside this repository's own tree or outside
-// it — and reads the answer set off `git ls-files` as well.
+// bare `>` matcher over the 28 shell files below reports 322 lines, and
+// almost none of them are writes: `if len(para) > widest:` inside an embedded
+// python heredoc, a usage block's `--domain <fqdn>`, a provisioner's `cat >`
+// into /etc on a machine it is building from nothing. A gate with 322
+// accepted entries is a gate nobody reads, so the shell matcher asks instead
+// where the bytes LAND — inside this repository's own tree or outside it —
+// and reads the answer set off `git ls-files` as well. It therefore does not
+// see a write into a path a variable this file cannot resolve holds, which is
+// the hole in it and is named here rather than left to be discovered.
 const matcherFor = (lang, src, dirs) => {
   if (lang === "js") {
     return /\b(?:writeFileSync|writeFile|createWriteStream)\s*\(|\bopenSync\s*\([^)]*["'](?:w|w\+|wx|wx\+)["']/;
@@ -444,8 +446,8 @@ test("the guard sees a planted truncating write in each language it covers", () 
       `the guard would not have seen this write in ${p}: ${src.split("\n").at(-1)}`);
   }
   // And does not see these, each one a real line out of this repository with
-  // the path it came from, because a gate that cries at 600 lines is a gate
-  // whose baseline becomes a rubber stamp.
+  // the path it came from, because a gate that cries at 322 lines is a gate
+  // whose accepted list becomes a rubber stamp.
   const quiet = [
     ["docs/agents/addressed.sh:487", "        if len(para) > widest:"],
     ["deploy/provision-host.sh:49", "  --domain <fqdn>      hostname Caddy serves the ingress on (TLS via ACME)"],
