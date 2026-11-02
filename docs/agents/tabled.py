@@ -23,7 +23,7 @@ request closed. Nothing reported anything: the ask is satisfied-looking from
 the board, the merge is clean from the forge, and the gap exists only in the
 join nobody computed.
 
-FOUR VERDICTS AND NEVER TWO (L41). 0 every tabled file is carried by its ref.
+FIVE VERDICTS AND NEVER TWO (L41). 0 every tabled file is carried by its ref.
 1 a tabled file is missing from the ref -- and a missing file on a *merged* ref
 is named LOST rather than NOT CARRIED, because those are two different acts
 owed: one is a push, the other is a new ask on a new pull request. 2 could not
@@ -31,6 +31,13 @@ look -- no `gh`, no board, or a window with no ask in it, which is a floor and
 not a clean bill (L77). 3 the ref carries a file the ask never tabled, which is
 section 22's own retarget-or-split case: silence would release more than it was
 shown.
+
+A LOST row is answered, never erased. A loss is repaired by a later ask that
+tables the same file on a ref that carries it, so the row reads REPAIRED and
+names the ask that repaired it. Without that, this instrument would report the
+same loss for the rest of the repository's life, and an instrument that is
+permanently red is one nobody reads — which is the failure it was built to
+catch, one level out.
 
 The direction of this instrument's error, stated because no reader can infer
 it: it reads the tabled list out of `data.files`, so an ask that tabled its
@@ -94,7 +101,7 @@ def tabled_of(data):
 
 
 def report(asks, blind, only_pr=None, facts=pr_facts):
-    rows, cls = [], {"carried": 0, "not_carried": 0, "lost": 0,
+    rows, cls = [], {"carried": 0, "not_carried": 0, "lost": 0, "repaired": 0,
                      "exceeds": 0, "untabled": 0, "unreadable": 0}
     for m in asks:
         if m.get("kind") != "ask":
@@ -105,6 +112,7 @@ def report(asks, blind, only_pr=None, facts=pr_facts):
             continue
         tabled = tabled_of(data)
         row = {"ts": m.get("ts"), "ref": ref, "subject": m.get("subject"),
+               "id": m.get("id"),
                "to": f"{m.get('to_company')}/{m.get('to_seat')}"}
         if tabled is None:
             row["verdict"] = "UNTABLED"
@@ -147,6 +155,41 @@ def report(asks, blind, only_pr=None, facts=pr_facts):
             cls["carried"] += 1
         rows.append(row)
 
+    # A loss stops being a finding when a later ask says it does, by name. The
+    # first cut of this inferred the repair from the file: any newer CARRIED ask
+    # tabling the same path cleared the loss. That is a proxy for a reading and
+    # it inverts on the case that matters — this seat's two open charter asks
+    # both table `prompts/exo-agent.md` and both carry it, and neither contains
+    # the clause the lost ask tabled, so a file-level repair would have reported
+    # the loss answered while the words stayed unwritten (L88: judge the
+    # artifact, and a proxy's inversion is a loss where the remedy is a
+    # clearance). So the repair is declared: a later ask carries `data.repairs`
+    # naming the lost ask's id or its timestamp, and its own ref must carry what
+    # it tabled. Nothing is inferred.
+    by_id = {}
+    for row in rows:
+        if row["verdict"] == "CARRIED":
+            for k in (row.get("id"), row.get("ts")):
+                if k:
+                    by_id[str(k)] = row["ts"]
+    declared = {}
+    for m in asks:
+        d = (m.get("data") or {})
+        tgt = d.get("repairs")
+        if tgt and str(tgt) in by_id:
+            declared[str(tgt)] = m.get("ts")
+    for row in rows:
+        if row["verdict"] != "LOST":
+            continue
+        for k in (row.get("id"), row.get("ts")):
+            if k and str(k) in declared:
+                row["verdict"] = "REPAIRED"
+                row["why"] = (f"the ask of {declared[str(k)]} declares it repaired "
+                              f"and its own ref carries what it tabled")
+                cls["lost"] -= 1
+                cls["repaired"] += 1
+                break
+
     print(f"asks naming a pull request: {len(rows)}"
           + (f"   filtered to #{only_pr}" if only_pr else ""))
     for r in rows:
@@ -176,7 +219,8 @@ def report(asks, blind, only_pr=None, facts=pr_facts):
     print("instrument: docs/agents/tabled.py")
     print(f"asks_naming_a_pull_request: {len(rows)}")
     print(f"windows_read_only_in_part: {len(blind)}")
-    for k in ("carried", "not_carried", "lost", "exceeds", "untabled", "unreadable"):
+    for k in ("carried", "not_carried", "lost", "repaired", "exceeds",
+              "untabled", "unreadable"):
         print(f"{k}: {cls[k]}")
     print(f"tabled_list_read_from: data.files (prose tables read as UNTABLED)")
     print(f"exit: {rc}")
@@ -232,6 +276,16 @@ def self_test():
                 [ask(357, ["prompts/exo-agent.md"])], 1)
     assert "LOST" in out, out
     assert "prompts/exo-agent.md" in out, out
+    check("a later carried ask on the same file does NOT clear a loss",
+          [ask(312, ["prompts/exo-agent.md"]),            # newer, carries it
+           ask(357, ["prompts/exo-agent.md"])], 1)        # older, still lost
+    repairer = ask(312, ["prompts/exo-agent.md"],
+                   {"repairs": "2026-10-27T00:58:29Z"})
+    check("a loss a later ask declares repaired, by name, reads repaired",
+          [repairer, ask(357, ["prompts/exo-agent.md"])], 0)
+    check("a declaration whose own ref carries nothing it tabled repairs nothing",
+          [ask(357, ["prompts/exo-agent.md"], {"repairs": "2026-10-27T00:58:29Z"}),
+           ask(357, ["prompts/exo-agent.md"])], 1)
     check("an open ref missing a tabled file is a push, not a loss",
           [ask(312, ["prompts/exo-agent.md", "docs/agents/lessons.md"])], 1)
     check("a ref carrying exactly its tabled list is clean",

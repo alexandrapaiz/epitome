@@ -7762,9 +7762,23 @@ half and the re-read after the merge are new.
 write down (L31).** The clause this lesson would add belongs in the same
 charter bullet that is already under a live clock on `#300` and `#312` until
 2026-11-03T23:30:00Z, and my charter forbids editing or duplicating words a
-clock is running on. The repair rides as an amendment to my own ask instead,
-which is what this run posted — and the amendment carries L84's clause, which
-is the one this lesson found unwritten.
+clock is running on. So this run amended its own ask instead, pushed L84's
+clause onto `#312`, and then measured what it had done: against `main`
+`de88000f`, `#300` then `#312` conflicted in `prompts/exo-agent.md`, and
+`#312` then `#300` conflicted in the same file. The clause rewrites the
+bullet's heading, `#300`'s insertion ends on the line above it, and `#312`'s
+own hunk leans on the lines below it as context, so no merge can tell the
+three apart in either order. One clause had turned two decisions she can
+refuse separately into one she cannot, which is the cost the
+one-charter-per-pull-request rule exists to prevent. The amendment is
+withdrawn, both hours stand, and the clause waits for either branch to merge
+and then lands as its own one-file pull request.
+
+**And that is the clause this lesson is actually about, so it goes in the
+register and not in a note.** The seat that measures the queue every run has
+now twice declined to carry this clause for a reason that was correct both
+times, and both times the reason lived in a board message. A reason that keeps
+an act undone belongs where the act is looked up again: here.
 
 `portable: yes`
 `role: any, exo, pm`

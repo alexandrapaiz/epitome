@@ -5217,9 +5217,11 @@ safe form is printed, and typed the unsafe form sixteen minutes later.
 ## Incident 52 — 2026-11-02 — The pull request that closed `loop.md` merged the same night a clock was filed for the charter clause that orders a row in it, and the clock's own pull request never contained the clause: six days later the charter still orders the row
 
 **Status: the detector is in the tree and fires on this as its first self-test
-case; the clause itself is unwritten and is now riding as an amendment to an
-existing ask rather than as a new proposal, because the words it repairs are
-under a live clock (`#312`, 2026-11-03T23:30:00Z).** Not closed. Lesson:
+case; the clause itself is still unwritten, and the amendment route this run
+tried was withdrawn forty minutes later because it made two independently
+clocked charter patches mutually unmergeable.** Not closed. The clause lands as
+its own one-file pull request once either charter patch merges
+(2026-11-03T23:30:00Z on both). Lesson:
 **L90**, with **L84** for the clause and **L27** for why a patch outside the
 file it changes has no click to be. Re-measure next run: read whether `#312`
 merged carrying both clauses, and re-run `python3 docs/agents/tabled.py`, which
@@ -5299,13 +5301,34 @@ window in slices and reports what it could not see whole, because one page of
 an ask out of the page's reach reads as an ask nobody filed, which is the
 loudest wrong answer an instrument looking for a hand can give (L86).
 
-**What is not claimed.** The clause is still unwritten; a detector is not a
-repair. The amendment this run posts puts it on `#312`'s branch, which is the
-only pull request that may carry it: my charter forbids editing or filing a
-second proposal beside words a clock is running on, and the bullet is inside
-`#312`'s diff. The cost of that route is measured rather than
-described: the clock on `#312` restarts, which moves its hour from
-2026-11-03T23:30:00Z to 2026-11-04T00:30:00Z — about one hour, because the
-clock it restarts was itself filed yesterday — and the alternative was a third
-charter pull request against the same bullet, which has no honest way to
-merge.
+**What is not claimed, and what this run got wrong inside the same hour.** The
+clause is still unwritten; a detector is not a repair.
+
+This run first put the clause on `#312`'s branch as an amendment to its own
+ask, on the reasoning that a charter forbids both editing words under a clock
+and filing a proposal beside them, so an amendment to the ask that owns those
+words was the only route left. It posted the amendment at 00:22:11Z with the
+hour moved to 2026-11-04T00:30:00Z, and **then** ran the ordering. Against
+`main` `de88000f`: `#300` then `#312` conflicted in `prompts/exo-agent.md`, and
+`#312` then `#300` conflicted in the same file. Before the amendment, the same
+two merged clean in that order.
+
+The geometry is the whole explanation. The clause rewrites the bullet's
+heading; `#300`'s insertion ends on the line directly above it; `#312`'s own
+hunk leans on the three lines directly below it as context. No three-way merge
+can separate those, in either order, so one clause had converted two decisions
+the owner can refuse separately into one she cannot — which is precisely what
+the one-charter-per-pull-request rule in this seat's charter exists to prevent,
+arriving as a conflict rather than as a bundled diff.
+
+So the amendment was withdrawn at 00:25:52Z, the commit reverted (`git diff
+2405e720 009e05f` is empty, so the branch shows byte for byte the words its ask
+showed), and both hours stand at 2026-11-03T23:30:00Z. **The order of those two
+acts is the finding: the ordering was measured after the push and not before,
+and my charter's instruction to take the measurement immediately before writing
+the handoff is what caught it — one step later and it would have been the
+merger who found it.** The clause now waits for either charter patch to merge
+and then lands as its own one-file pull request with its own clock, which is the
+second of the two repairs this seat's own note named on 2026-10-27 and did not
+perform. What is different is where it is written: here, and in L90, rather than
+in a board message's `data` field.
