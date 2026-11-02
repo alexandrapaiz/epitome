@@ -1076,6 +1076,24 @@ check "the run's own log says both, in one sentence" \
 check "a name the run MINTED for itself is not a name the box is short of" "! said \"\$(grep 'env missing' '$SHORTLOG')\" 'GH_TOKEN'"
 check "the operator watching journalctl hears it too" \
   "grep -qF 'pm: 2 names from [runtime].env are not what this box holds (SMOKE_NOT_HERE, SMOKE_HALF_FILLED)' '$WORKER_LOG'"
+# Wait for the artifact the NEXT assertion reads. `# env missing:` is written
+# into the run log by executeAgent before the child is spawned, and the stub
+# records its prompt while the child runs, so "the log mentions it" becomes true
+# a moment before the prompt exists to assert on. The gate above reads the log;
+# this one reads the file the assertion is about.
+#
+# Latent until 2026-11-02, when a branch that added one awaited POST per run to
+# `record` lost the race main had been winning: 0 of 4 pm prompts instead of 1
+# of 5, with nothing about the prompt changed. Same class as the clone-removal
+# wait at the top of this file — an assertion with a deadline is still an
+# assertion, and this one had none.
+for _ in $(seq 1 240); do
+  node -e 'const fs=require("fs");const d=process.argv[1];
+    const turns=fs.readdirSync(d).filter(f=>f.endsWith(".jsonl"))
+      .flatMap(f=>fs.readFileSync(d+"/"+f,"utf8").trim().split("\n").filter(Boolean).map(JSON.parse));
+    process.exit(turns.some(t=>/epito-pm-/.test(t.cwd||"")&&/SMOKE_NOT_HERE is not set on this box/.test(t.prompt||""))?0:1)' "$STUB" && break
+  sleep 0.25
+done
 check "the agent itself was told, in the prompt the child really received" "node -e '
 const fs=require(\"fs\");
 const turns=fs.readdirSync(\"$STUB\").filter(f=>f.endsWith(\".jsonl\"))
