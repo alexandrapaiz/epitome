@@ -1208,7 +1208,7 @@ test("a run killed at the bound leaves the account the run could not write", asy
   assert.equal(r.turns, null, "and it never printed a result object, so it gave no account of itself");
 
   const logged = readFileSync(r.log, "utf8");
-  assert.match(logged, /the 0\.0m run bound killed this run after 0\.0m — it is DEFAULT_RUN_TIMEOUT_MS in cli\/src\/temporal\/env\.js/,
+  assert.match(logged, /the 0\.0m run bound killed this run after 0\.0m — it is DEFAULT_RUN_TIMEOUT_MS in cli\/src\/temporal\/bounds\.js/,
     "the log names the bound that did this and the file that declares it");
   assert.match(logged, /what it had done when it died: 2 commits on stub-work-/,
     "and what the run had finished, read off the clone");
@@ -3521,9 +3521,32 @@ test("asking whether the engine is up pulls in no engine", async () => {
   // otherwise a future edit to temporal/env.js could quietly make the manifest
   // commands need the ~300 MB of engine that cli/package.json exists to avoid
   // shipping.
-  const env = readFileSync(fileURLToPath(new URL("../src/temporal/env.js", import.meta.url)), "utf8");
-  assert.ok(!/^import /m.test(env),
-    "src/temporal/env.js has grown an import — lib/engine.js reads the address from it, so an @temporalio import there would make `epito validate` need the engine");
+  //
+  // It used to be spelled "temporal/env.js has no imports at all", which was a
+  // proxy for the invariant and not the invariant: the run bound is now
+  // declared once, in temporal/bounds.js, because declaring it twice was how
+  // moving it moved nothing — and env.js has to read that one declaration. So
+  // the check follows the local import graph instead, which is the property
+  // that was always meant and is stronger than the proxy, since it also holds
+  // for whatever those modules import.
+  const closure = (start) => {
+    const seen = new Set();
+    const walk = (url) => {
+      const path = fileURLToPath(url);
+      if (seen.has(path)) return;
+      seen.add(path);
+      const text = readFileSync(path, "utf8");
+      for (const [, spec] of text.matchAll(/^import .*? from "([^"]+)"/gm)) {
+        assert.ok(spec.startsWith("node:") || spec.startsWith("."),
+          `${path.split("/cli/").pop()} imports ${spec}; everything \`epito validate\` reaches may import only node builtins and engine-free local modules`);
+        if (spec.startsWith(".")) walk(new URL(spec, url));
+      }
+    };
+    walk(start);
+    return seen;
+  };
+  const reached = closure(new URL("../src/temporal/env.js", import.meta.url));
+  assert.ok(reached.size >= 2, "the walk found env.js and at least the module it reads the bound from");
   const engine = readFileSync(fileURLToPath(new URL("../src/lib/engine.js", import.meta.url)), "utf8");
   for (const [, spec] of engine.matchAll(/^import .*? from "([^"]+)"/gm)) {
     assert.ok(spec.startsWith("node:") || spec.startsWith("."),
