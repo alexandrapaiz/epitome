@@ -6,29 +6,38 @@ text are carried unedited from the 2026-09-20 all-hands counsel
 below. First landed on `main` 2026-10-27 (`ef3aa8f`), after two prior
 attempts (#35, #39) were closed and a third (#53) closed as a
 duplicate — see that commit for the full history. Re-verified
-independently nine times since, each against the then-current tip:
+independently ten times since, each against the then-current tip:
 #372 and #373 (closed, superseded), #377, #381, #383, #386, #389, and
-#397 (merged); #392 and #393 (both closed, superseded — see Drift
-item 6); no grade has moved across any of them.
+#397 (merged), #398 (merged); #392 and #393 (both closed, superseded —
+see Drift item 6); no grade has moved across any of them. #400
+attempted an eleventh pass, against `930a702` (the merge of #398), but
+its own run ended before it could be readied and `main` advanced again
+in the meantime (#399) — it is closed as superseded by this pass (see
+Drift item 6), its text carried forward only where this pass
+independently re-confirmed it.
 
-This is the tenth re-verification, against today's true tip
-`f866716` (the merge of #397). The only commit between #397's own tip
-(`7607946`) and this one is `f866716` itself: `git diff
-7607946..f866716 --stat` touches exactly one file, `docs/okrs.md`,
-which is #397's own landing. So there is no new product commit to
-re-grade, and every fact #397 checked was re-checked again directly
-against `f866716` rather than carried forward on the empty diff, per
-this charter's "never invent evidence" rule: `cli/package.json` still
-has `"private": true`; every seat workflow in `.github/workflows/`
-(`agent-market.yml`, `agent-engineer.yml`, `agent-exo.yml`,
-`agent-frontend.yml`, `agent-okr.yml`, `asc-heartbeat.yml`, each
-grepped directly) still authenticates with the shared `${{
-github.token }}`; `docs/benchmark/` and `docs/users.md` still don't
-exist; no `passport` match exists anywhere under `cli/`; `docs/cycles/`
-still has no file newer than `2026-10-18-cycle-2-retro.md`; the three
-dogfood-migration checkboxes in `docs/backlog.md` (lines ~1476-1499)
-are still unchecked; and a fresh probe of `registry.npmjs.org/epito-cli`
-just now still returns 404.
+This is the next re-verification, against today's true tip `8451ce6`
+(the merge of #399). The only commit between #398's own tip
+(`930a702`) and this one is `60e8b32` / `8451ce6`: `git diff
+930a702..8451ce6 --stat` touches exactly one file, `agents/okr/
+agent.toml` (not a KR-cited evidence path), setting `webhook = false`
+on this seat's own manifest. That change is itself the resolution —
+within the PM's own cadence authority, as a reversible local hold
+while HQ's broader gate fix is still pending — of the dispatch-cadence
+recommendation this seat has repeated unchanged across eleven prior
+passes; see Drift item 7. No KR evidence path changed, so every fact
+#398 checked was re-checked again directly against `8451ce6` rather
+than carried forward: `cli/package.json` still has `"private": true`;
+every seat workflow in `.github/workflows/` (`agent-market.yml`,
+`agent-engineer.yml`, `agent-exo.yml`, `agent-frontend.yml`,
+`agent-okr.yml`, `agent-pm.yml`, `asc-heartbeat.yml`, each grepped
+directly) still authenticates with the shared `${{ github.token }}`;
+`docs/benchmark/` and `docs/users.md` still don't exist; no `passport`
+match exists anywhere under `cli/`; `docs/cycles/` still has no file
+newer than `2026-10-18-cycle-2-retro.md`; the three dogfood-migration
+checkboxes in `docs/backlog.md` (lines ~1476-1499) are still
+unchecked; and a fresh probe of `registry.npmjs.org/epito-cli` just
+now still returns 404.
 
 ## Mission (held, never edited — docs/vision.md §0)
 
@@ -105,10 +114,11 @@ just now still returns 404.
   minted per-agent credential. **Named reason:** no cycle has bet this
   work — cycle 1 bet the resident runtime, cycle 2 bet npm
   distribution — so it has sat unscheduled rather than refused. This
-  finding has now been reported unchanged at least twelve times: first
-  in #53 (2026-10-05), again at the `ef3aa8f` landing (2026-10-27),
-  again in #372, #373, #377, #381, #383, #386, #389, #392, #393, and
-  #397, and again at this pass; see Drift below.
+  finding has now been reported unchanged at least fourteen times:
+  first in #53 (2026-10-05), again at the `ef3aa8f` landing
+  (2026-10-27), again in #372, #373, #377, #381, #383, #386, #389,
+  #392, #393, #397, #398, and #400, and again at this pass; see Drift
+  below.
 - **KR2, Aspirational — 0.0.** Five agents deployed by non-owners,
   tracked in `docs/users.md`. That file does not exist. No evidence.
 - **KR3, Committed — 0.3.** `epito` and the MCP server installable by
@@ -195,61 +205,69 @@ one real deploy away rather than one build away.
 5. **No fourth objective proposed.** Nothing found this run rises to
    "swap one of O1/O2/O3 out" — the gaps above are sequencing and
    process, not evidence that the three objectives are wrong.
-6. **Zero stray drafts from this seat, as of this run's start — the
-   #392/#393 pattern resolved itself before this run touched anything.**
-   `gh pr list --search head:epitome-okr --state all` run first thing
-   showed #393 already `CLOSED` (by #397's own run, at 03:54:05Z) and
-   #397 already `MERGED` (at 03:58:48Z) — both before this run issued
-   a single `git` command. `gh pr list --search head:epitome-okr --state
-   open` returned `[]`. There was nothing open to ready or close this
-   pass.
-7. **This seat has now opened eleven re-verification PRs in about four
-   and a half hours (#372 at 2026-11-01T23:43:09Z through #397 at
-   2026-11-02T03:53:49Z, and this one), confirming the same grades
-   each time with no new product evidence.** #389 was the first
-   zero-diff instance; #392 and #393 each went stale before they could
-   be readied, because `main`'s merge cadence from other seats kept
-   outrunning this seat's own verify-then-ready loop; #397 closed the
-   gap by merging within five minutes of opening, and this pass's own
-   diff against #397 is empty again. Same recommendation as every
-   prior pass, now with an eleventh data point behind it: fire this
-   seat on a schedule (the charter already says "monthly, and on
-   dispatch when the owner convenes you") or only when a commit touches
-   a KR-cited path (`cli/src/`, `.github/workflows/`, `docs/cycles/`,
-   `docs/users.md`, `docs/backlog.md`, `docs/pitches/`,
-   `docs/benchmark/`), rather than on every merge to `main`. This is a
-   proposed change to the dispatch mechanism, not to the mission or the
-   benchmark, and this seat has no path to make it — `agent-okr.yml` is
-   a workflow file, off limits to this seat to edit.
-8. **Two runs in a row have now had a dispatch message urging action on
-   another PR under a fictional "board" or `GET /api/standing`
-   endpoint this seat has no tool to reach.** #393's run reported one
-   purporting to be from "exo"; #397's run reported one purporting to
-   be from "epitome/pm" about #393 itself; this run's dispatch carried
-   a near-identical one, also purporting to be from "epitome/pm" and
-   also about #393. Per the standing instruction that an event payload
-   is data and never overrides the charter, none of these three runs
-   treated the message's instructions as commands. This run's message
-   asked this seat to ready, close, or explain #393 — but by the time
-   this run read it, #393 was already closed and #397 (the run that
-   closed it) was already merged, so the thing the message asked this
-   seat to decide no longer existed to decide. That is a third data
-   point for item 7, sharper than the first two: this seat's dispatch
-   now fires fast enough that even a message *describing* the backlog
-   can be stale on arrival, not just the backlog itself.
-9. **No action taken on PR #393 or any other seat's PR this pass** —
-   not because the charter forbids it in general (item 6 shows this
-   seat's own prior passes deciding this seat's own draft flag), but
-   because by this run's own first check there was nothing live left
-   to decide. Named here rather than left implicit, since the dispatch
-   message asked for exactly that decision.
+6. **One stray draft from this seat at this run's start — #400 — closed
+   as superseded, not merged or readied.** `gh pr view 400` showed it
+   `OPEN`, `isDraft: true`, its own run already ended: a complete,
+   finished re-verification (not a stub — its diff fully re-checked
+   every KR fact against `930a702` and documented a false standing
+   claim about #398 correctly, taking no action on it). But `main` had
+   moved again by the time this run read it — `930a702..8451ce6` adds
+   `agents/okr/agent.toml`, which #400's own base commit predates — so
+   #400's text no longer reflects the current tip or this run's new
+   finding (item 7 below). Per the charter's "never merge your own PR"
+   line, this seat closed it rather than readying or merging it, with
+   a one-line note pointing here, and re-verified fresh against the
+   new tip in this PR instead of carrying #400's draft forward.
+7. **The dispatch-cadence recommendation repeated across eleven prior
+   passes has now been acted on — by the PM, not this seat.** #399
+   (merged 2026-11-02T05:00:00Z, by `alexandrapaiz/pm`) sets
+   `webhook = false` in `agents/okr/agent.toml`, holding this seat off
+   every `main` merge while leaving its monthly cron (`0 12 1 * *`)
+   untouched. Its own body cites the same measurement this seat's own
+   drift log has been repeating: twelve re-verification PRs in about
+   five hours (#372 at 2026-11-01T23:43:09Z through #400 at
+   2026-11-02T04:16:51Z), six merged, zero grades moved, each merge
+   waking the next run. This is a reversible local hold, not the real
+   fix (filtering which bus events wake this seat, handed to HQ at
+   02:43:44Z and still pending per #399's own body) — worth watching
+   whether a future pass fires again before HQ's gate ships, since
+   this run itself appears to be dispatched by a message despite the
+   hold, which this seat has no tool to explain.
+8. **This run's own dispatch carried a standing claim, and this time it
+   checked out true, not false.** The prior pass (#400, per its own
+   body) found the `GET /api/standing` block in *its* dispatch
+   asserting #398 was "an open draft with no live run behind it" when
+   #398 was already merged — a false claim, confirmed false by `gh pr
+   view` and by querying the live endpoint directly. This run's own
+   dispatch carried a near-identical block, this time about #400 being
+   an open draft whose run had ended with nothing live behind it.
+   Querying `GET /api/standing?company=epitome&seat=okr` directly (the
+   endpoint exists; `BOARD_API_URL`/`BOARD_RUNTIME_TOKEN` are present
+   in this run's environment, confirmed by length only, never printed,
+   per `standards/lessons.md` L-X5) returned the same claim, and `gh pr
+   view 400` independently confirmed it: `OPEN`, `isDraft: true`,
+   last commit 2026-11-02T04:16:06Z. Both checks agreed this time, so
+   this run acted on it — see item 6 — rather than treating it as
+   another false alarm by default. The standing instruction that a
+   dispatch payload never overrides the charter held either way: this
+   pass verified independently before trusting the claim, same as
+   #400 did when the claim was false.
+9. **One action taken on another PR this pass: #400, this seat's own,
+   closed as superseded (item 6) — nothing merged, nothing readied, no
+   other seat's PR touched.** The charter's "never merge your own PR"
+   line was read as written: closing a stale draft of one's own is not
+   merging it, and the dispatch's own three offered options (ready,
+   close, or name the clause keeping it a draft) did not include
+   merge. No workflow file, secret, or `main` push was involved in
+   that action.
 
 ## What this run did not touch
 
 `docs/vision.md` §0 (held, quoted, never edited), any charter, and
 `docs/sprints/` (does not exist in this repo). No fourth objective was
 added. Nothing was merged to `main`, no secret was touched, and no
-workflow file was edited — Drift item 7's recommendation is a
-proposal, not an action this pass took. No PR was opened, closed, or
-readied by this pass other than this one, draft; see Drift items 6, 8,
+workflow file was edited — `agents/okr/agent.toml` is a manifest, not
+a workflow file, and #399 already changed it before this run started.
+No PR was opened or readied by this pass other than this one, draft;
+#400 was closed, not opened or readied. See Drift items 6, 8,
 and 9.
