@@ -41,7 +41,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 SETTINGS = os.path.join(ROOT, ".claude", "settings.json")
 
 # The tools whose payload carries a file's new content rather than a command.
-# The matcher must not cover these; property 4 says why.
+# The matcher must not cover these; section 5 is the measurement that says why.
 FILE_TOOLS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
 
 pass_ = fail = 0
@@ -118,8 +118,11 @@ check("the hook names an absolute-resolvable script", True,
 check("the matcher covers Bash, which is the surface L-X5 names",
       True, "Bash" in matcher, f"matcher={matcher!r}")
 for tool in FILE_TOOLS:
-    check(f"the matcher does not cover {tool} (property 4)",
+    check(f"the matcher does not cover {tool} (section 5 says why)",
           False, tool in matcher, f"matcher={matcher!r}")
+check("the baseline the repository scan will read is in place",
+      True, os.path.exists(os.path.join(ROOT, "tools", "secret-print-baseline.txt")),
+      "tools/secret-print-baseline.txt holds this product's 34 accepted findings")
 
 
 def ask(payload, raw=None):
@@ -158,6 +161,10 @@ def bash(cmd):
     return {"tool_name": "Bash", "tool_input": {"command": cmd}}
 
 
+def write(path, content):
+    return {"tool_name": "Write", "tool_input": {"file_path": path, "content": content}}
+
+
 # ---------------------------------------------------------------- property 2
 print("\n== 2. it fails open: a guard that cannot look gets out of the way")
 case("stdin is not JSON", "allow", raw="not json, not even close")
@@ -174,9 +181,9 @@ print("\n== 3. it refuses the shapes that have printed a credential here")
 # a check that runs before the command does.
 case("the `:-` trap (Incident 4, and 2026-11-02's own two credentials)", "deny",
      bash('echo "BOARD_RUNTIME_TOKEN set: ${BOARD_RUNTIME_TOKEN:+yes}'
-          '${BOARD_RUNTIME_TOKEN:-NO}"'))
+          '${BOARD_RUNTIME_TOKEN:-NO}"'))  # L-X5-ALLOW: a test case for this shape; a string, never executed
 case("prefix-guessing redaction (Incident 3: the pattern missed github_pat_)", "deny",
-     bash("""echo "$EXO_TOKEN" | sed 's/gh[pous]_[A-Za-z0-9]*/REDACTED/'"""))
+     bash("""echo "$EXO_TOKEN" | sed 's/gh[pous]_[A-Za-z0-9]*/REDACTED/'"""))  # L-X5-ALLOW: a test case for this shape; a string, never executed
 case("a client told to transcribe its own request (Incident 21, curl -sv)", "deny",
      bash('curl -sv -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" "$BOARD_API_URL/api/standing"'))
 case("tracing with a credential in scope (Incident 18, set -x)", "deny",
@@ -219,6 +226,59 @@ case("this seat's ordinary work: running a suite", "allow",
 case("this seat's ordinary work: opening its own pull request", "allow",
      bash('gh pr create --draft --title "x" --body "y"'))
 
+# ---------------------------------------------------------------- property 5
+# WHY THE MATCHER STOPS AT `Bash`, asserted rather than argued.
+#
+# HQ registers the file tools too, and the checker supports them properly: its
+# edit_suppressions() honours `L-X5-ALLOW` markers and tools/secret-print-
+# baseline.txt on the edit path while deliberately honouring neither on the
+# command path, which is the right distinction — a command runs now and nothing
+# reviews it; a file's new content has a diff, a pull request and a scan.
+#
+# It cannot be registered here, and the blocker is one file. The hook scans an
+# edit's content whatever the file's suffix, while the repository scan skips
+# markdown on purpose, "because the registers quote these shapes on purpose —
+# a lint that fails on the register is a lint nobody keeps" (--help). So a
+# full-file write of docs/standards/lessons.md is denied: the vendored company
+# register that CARRIES L-X5 quotes every idiom it forbids, which is what a
+# register is for. Covering the file tools here would stop the exo seat
+# re-vendoring the rule this guard enforces, and no marker fixes it, because a
+# vendored copy may not be edited and a re-vendor would strip the markers.
+#
+# All four recorded incidents were commands typed at a shell, which is also the
+# only surface L-X5's clause names, so the command path is where the coverage
+# is. The rest belongs to the repository scan, which has the markdown exemption
+# and is handed to the project manager.
+#
+# WHEN THIS SECTION FAILS, HQ HAS FIXED IT: give the edit path the same
+# markdown exemption the scan has, then widen the matcher and move these cases
+# into a real edit-path section.
+print("\n== 5. why the matcher stops at Bash: the register cannot be rewritten")
+
+
+def write(path, content):
+    return {"tool_name": "Write",
+            "tool_input": {"file_path": path, "content": content}}
+
+
+LESSONS = os.path.join(ROOT, "docs", "standards", "lessons.md")
+if os.path.exists(LESSONS):
+    case("re-vendoring the register that carries L-X5 would be denied",
+         "deny", write("docs/standards/lessons.md", open(LESSONS).read()))
+else:
+    print("  ok   (no vendored register in this checkout to test against)")
+    pass_ += 1
+
+# This file is allowed, and that is the other half of the point: its five
+# shape-carrying lines each carry an `L-X5-ALLOW` marker with a reason, so the
+# suppression mechanism demonstrably works on the edit path. It is the vendored
+# register that cannot use it, because a vendored copy may not be edited.
+case("this very test file IS writable: its markers carry their reasons",
+     "allow", write("tools/tests/test-hook-wiring.py",
+                    open(os.path.abspath(__file__)).read()))
+case("the shapes themselves are still refused as commands, which is the point",
+     "deny", bash('echo "t: ${BOARD_RUNTIME_TOKEN:-none}"'))  # L-X5-ALLOW: a test case for this shape; a string, never executed
+
 # ---------------------------------------------------- the known upstream gap
 # This section asserts a DEFECT, on purpose, because a defect reported with no
 # detector is a defect nobody notices getting fixed (L-X1 as amended, read the
@@ -237,7 +297,7 @@ case("this seat's ordinary work: opening its own pull request", "allow",
 #
 # WHEN THIS SECTION FAILS, HQ HAS FIXED IT. Delete the section, re-vendor
 # tools/check-secret-print.py, and move the redirect case up into section 3.
-print("\n== 5. the upstream gap this installation knows it has")
+print("\n== 6. the upstream gap this installation knows it has")
 case("a redirect of the whole environment is NOT caught (HQ 9b0e9e4)",
      "allow", bash("env > /tmp/dump.txt"))
 case("...nor is `set` redirected", "allow", bash("set > /tmp/dump.txt"))
