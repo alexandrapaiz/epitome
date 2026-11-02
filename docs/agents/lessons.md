@@ -8669,3 +8669,181 @@ L90 already set.
 
 `portable: yes`
 `role: any, exo`
+
+## L102 — A bound that kills a run censors it out of every measurement including the one that would set the bound, and the turn cap is not the only such bound: the wall clock is one too, and it is worse, because an exhausted run still files a report and a killed run files nothing at all
+
+**No owner correction triggered this one.** It came out of a sentence
+another seat wrote about its own bus, and the measurement that contradicted
+it. At 05:57:09Z on 2026-11-02 `alexandra-systems/engineer` answered this
+seat's first ever message with the reason this seat's findings had never
+arrived: "the bus wakes me on machinery and on pull requests, so your
+findings reach me only when they arrive as one." That reading is false about
+its own bus, and the direction of the error is what makes this a lesson.
+**Six of that seat's seven runs on 2026-11-02 were `message` wakes, and the
+run that wrote the sentence was one of them.** What is true is worse and
+takes a different repair: three of those six message wakes were launched,
+held the box for an hour, wrote nothing at all, and were killed by the
+host's wall clock.
+
+**The rule, and it is L-X3's rule arriving through a second door.** L-X3 as
+amended says a turn cap that binds destroys the evidence that would correct
+it, because the run reports `num_turns` of cap+1 — a censored observation,
+not a peak — so exhaustion is itself the evidence and the response is a
+defined step rather than a measurement. Every clause of that is true of the
+**wall clock** and nobody had applied it there. So: **when a bound ends a
+run, ask whether the run can still file a report after being ended.** The
+turn cap lets it. The wall clock does not — `cli/src/lib/runner.js` kills the
+process group, and the executor runs under `--output-format json`, which
+prints one object at exit and nothing before it. A run killed at the bound
+therefore contributes no turns, no cost, no cause and no duration to any
+population, so the completed population cannot be asked where the bound
+should be. **The kill count is the whole of the evidence about the bound,
+and it is evidence only if something counts it separately.**
+
+**The censoring, measured, because the argument is only as good as this**
+(226 finished runs on this box, 2026-11-02):
+
+```data
+instrument: result objects' duration_ms over /srv/asc/state/.epito/logs/*/2026-11-02T*.log
+read_at: 2026-11-02T06:16Z
+finished_runs: 226
+median_min: 21.3
+p90_min: 40.5
+p95_min: 48.1
+p99_min: 54.9
+max_min: 56.7
+finished_over_55_min: 2
+finished_over_58_min: 0
+killed_at_the_bound: 15
+bound_min: 60.0
+bound_declared_at: cli/src/temporal/env.js
+```
+
+**Not one finished run of 226 ran longer than 58 minutes, and fifteen runs
+were killed at 60.0 to 61.1.** A distribution that stops dead one minute
+short of a bound is not a distribution that tells you the bound is
+comfortable. It is the shape of a bound doing the stopping, and it is the
+same shape L-X3 found in `num_turns` at cap+1.
+
+**Why no instrument here could name it.** A run has two terminators and two
+writers, which is L74's finding and `docs/agents/liveness.py`'s whole
+subject. Every count in this product's capacity line is read out of the
+result object — refusals, exhaustions, 529s, api errors that are not limits,
+turns, cost, minutes — and `docs/agents/caps.sh` put every log without one
+into a single number printed as "still open or without a result object". At
+06:15Z that number was **37, and it was 15 killed and 22 in the room**: two
+states with opposite acts under one name, where one will report in minutes
+and the other never will and its wake is already spent. Beside it,
+`message_refused: 0` read as a clean bill on the channel that lost fifteen
+wakes, and `message_attempted: 259` had been `222`, because the key named
+`attempted` had been counting the runs that *finished*.
+
+**The day, pasted and not retyped** (`caps.sh`, 2026-11-02T06:15:07Z):
+`runs_killed_before_a_result: 15`, `runs_killed_minutes: 906`,
+`message_killed_before_a_result: 15`, `cron_killed_before_a_result: 0`,
+`hook_killed_before_a_result: 0`. Ten seats in four companies. Five of the
+fifteen posted to the board inside their hour, so they were working when
+they were killed and nothing on disk records what they did. Against the
+box's whole 2,901-log history `liveness.py --census` reads 36 `exit=timeout`
+ever, so **42% of every wall-clock kill this box has recorded landed on one
+day**, which is the figure that says this is a live condition and not a
+background rate.
+
+**And the half-applied repair, which is why this is a rule about readers and
+not only about a bound.** The same day, the one file whose subject is *which
+writer marked the ending* could be fooled by a quotation: `liveness.py`'s
+result-object pattern was unanchored, dot-all and first-match — the exact
+prose reader L64 removed from `caps.sh`, left standing in its sibling in the
+same directory. Against `caps.sh`'s own second fixture, a log quoting a
+result object in a sentence and carrying `# exit=timeout` with no record of
+its own, it answered `how=result, cause=completed`: a killing reported as an
+ending its executor chose. One repair applied to one of two readers in one
+directory is L-X15 inside a single repository, and the unrepaired half is
+always the one that gets asked.
+
+**Binds:** this seat, on the capacity line the charter says may never be
+missing, and on any claim that a channel delivered. Any seat that reads this
+box's run logs to decide whether another seat is working, which today is
+`drafts.sh`, `addressed.sh --liveness` and `shipped.sh` through
+`liveness.py`. Any seat that sets or reports a bound on a run — a turn cap,
+a wall clock, a step timeout — which is L-X3's audience with one more bound
+in it. And any seat asked to accept another seat's account of its own
+runtime: L-A72 says a declaration in the repository is not a fact about the
+running system, and this is that rule one step in, because a seat's sentence
+about its own bus is not a fact about its own bus and the logs are two
+commands away.
+
+**Shipped, and what is not.** `caps.sh` splits the class by the host's own
+footer, counts it per trigger, prints the minutes, and takes the footer and
+the bound from `liveness.py` rather than re-declaring either (L-A143);
+`liveness.py` is anchored and carries a regression row. Both are under
+`docs/agents/`, a hand that merges today. **The bound itself and the
+buffering are `cli/`, which is not this seat's surface** — two separable
+remedies, a longer wall clock and a streamed record that survives a kill,
+and this run names both and prescribes neither, because the step L-X3 would
+take needs the hand that owns the file. Routed as incident 67 says.
+
+**Nothing is owed to a charter by this entry.** The gate is a command, which
+is where L-A22 puts a gate and what `check.sh`'s own fourth check did for the
+base rule hours earlier. The charter's capacity bullet still points at
+`docs/agents/loop.md`, closed 2026-10-27, and that clause is already named
+verbatim in L84 with its file, its anchor and its hand; this run adds no
+second proposal beside it (L31 answered by L84, not by silence).
+
+`portable: yes`
+`role: any, exo`
+
+## L103 — A gate may not refuse the act it prints as the remedy: when a check's own refusal text says "address that seat by name, in this pass", a message addressed to that seat is the remedy arriving, and a gate that blocks it has made its finding unfixable
+
+**No owner correction triggered this one.** It fired inside this run, on a
+gate this seat built and merged four hours earlier. At 06:19Z this run tried
+to send `alexandra-systems/engineer` the fifteen-kill measurement of L102,
+naming `cli/src/temporal/env.js` and `cli/src/lib/runner.js` as the surfaces.
+`docs/agents/post.sh` refused it: *"a surface in this handoff has a hand
+nobody asked — hand_addressed_but_not_about_this_surface
+engineer:cli/src/temporal/env.js. Address that seat by name, in this pass,
+with the same measurement."* The message in its hand was addressing that
+seat by name, in that pass, with that measurement.
+
+**The rule.** A gate that measures an omission has to exclude the act that
+ends the omission from the thing it measures. Concretely: the gate reads the
+board's history, the fix is a message that is not in the history yet because
+the gate is standing in front of it, and a check whose precondition is its
+own output is a precondition nothing can satisfy. So before a routing gate
+calls a hand unasked, it asks whether this message is the asking — and it
+exempts the addressee and nobody else. The third party stays refused, which
+is the whole of what incident 43 paid for: a handoff to a project manager
+naming a surface whose owning hand was never asked is still the duplicate
+that rule exists to stop.
+
+**And the same exemption covers the class read from the other end, because
+that one's refusal text already demanded it.** `hand_that_has_already
+_answered` prints *"the next ask is the act that answer names, addressed to
+that same hand"* — so a message to that same hand is the sentence being
+obeyed, and refusing it makes the gate contradict itself in its own words.
+Both classes exempt the addressee now, and the self-test asserts the pass and
+the third-party refusal for each, on a stub, because no live surface on this
+box carries a hard class naming exactly one seat and a live test could not
+have told the exemption from the order of the class list.
+
+**The shape to recognise, past this one gate.** It is L-A69 — a check that
+does not perform the act cannot answer for the act — inverted: this check
+performed the act's precondition correctly and then refused the act. Any
+gate that reads a *record of past messages* to decide whether something has
+been communicated has this defect latent in it, because the record is always
+one write behind the thing being judged. The question to ask of such a gate
+is not "is it right about the history" but "can anything it refuses ever
+become something it permits, and by what act". If the answer is the act it
+just refused, the gate is a wall.
+
+**Binds:** this seat, before it records any gate of its own as shipped —
+which is the clause `#387` already carries for reach and this is the same
+clause for remedy. Any seat building a check that reads board history,
+merge history or an inbox to decide whether a party was told. `epitome/pm`
+and `epitome/engineer` are bound by nothing here; the file is this seat's.
+
+**Shipped** in `docs/agents/post.sh`, with four new self-test verdicts, all
+firing. `docs/agents/` is a hand that merges today.
+
+`portable: yes`
+`role: any, exo`
