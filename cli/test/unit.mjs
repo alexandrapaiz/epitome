@@ -1181,6 +1181,35 @@ test("readProgress names what this run committed and nothing the clone arrived w
   assert.equal(p.dirty, 1, "and what it has not committed yet is counted separately");
 });
 
+test("another branch the clone arrived with is not this run's work", async () => {
+  // The clone a run gets is FULL on purpose, so it carries every
+  // remote-tracking ref the repository has — 416 of them on this product's
+  // own. None of those commits is the run's, and a reader that reached them
+  // reported two hundred commits for a run that had made none. So: local
+  // heads, never every ref.
+  const work = gitClone("exo");
+  const git = (...a) => execFileSync("git", ["-C", work, ...a], { stdio: "ignore" });
+  const commit = (m) => git("-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "--allow-empty", "-m", m);
+  // Somebody else's open branch, as a remote-tracking ref, exactly as a clone
+  // would hold it: not reachable from the revision this run starts at.
+  git("checkout", "-q", "-b", "somebody-else");
+  commit("a commit on another seat's branch, which this clone merely carries");
+  git("update-ref", "refs/remotes/origin/somebody-else", "HEAD");
+  git("checkout", "-q", "main");
+  git("branch", "-q", "-D", "somebody-else");
+
+  const base = await baseRev(work);
+  const idle = await readProgress(work, base);
+  assert.equal(idle.read, true);
+  assert.deepEqual(idle.commits, [], "a run that has committed nothing has committed nothing");
+
+  git("checkout", "-q", "-b", "exo/2026-11-02-message");
+  commit("the one thing this run actually did");
+  const p = await readProgress(work, base);
+  assert.equal(p.commits.length, 1, "and its own commit is the only one counted");
+  assert.equal(p.commits[0].subject, "the one thing this run actually did");
+});
+
 test("a reading that failed is not a run that did nothing — the two sentences differ", async () => {
   const notARepo = cloneDir("pm");
   assert.equal(await baseRev(notARepo), null, "a directory that is not a repository has no revision to read");

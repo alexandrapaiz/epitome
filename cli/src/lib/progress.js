@@ -48,10 +48,20 @@ export function progressEveryMs(env = process.env) {
   return Number.isFinite(asked) && asked > 0 ? asked : PROGRESS_EVERY_MS;
 }
 
-// One `git`, in the clone, with a short fuse. A progress reading is a comment
-// in a log file: it may never be the thing that holds a run open, so a git
-// that does not answer in two seconds is reported as unread rather than
-// waited for.
+// One `git`, in the clone, with a short fuse and a ceiling. A progress reading
+// is a comment in a log file, so it may never be the thing that holds a run
+// open or the thing that costs the daemon its memory:
+//
+//   two seconds — a git that does not answer inside that is reported as
+//   unread. The run is working; nothing about it waits on this.
+//   one megabyte — `git status --porcelain` in a clone where the agent has
+//   installed dependencies the repository does not ignore is tens of
+//   thousands of lines, and this runs every five minutes for every open
+//   window on the box. Everything read here is counted or truncated to a
+//   line, so a cut costs an approximate count and never a wrong one about
+//   whether there was work.
+const MAX_GIT_OUT = 1024 * 1024;
+
 function git(workDir, args, timeoutMs = 2_000) {
   return new Promise((res) => {
     let p;
@@ -60,19 +70,22 @@ function git(workDir, args, timeoutMs = 2_000) {
     } catch (e) { return res({ code: -1, out: e.message }); }
     let out = "", err = "";
     const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch {} }, timeoutMs);
-    p.stdout.on("data", (d) => (out += d));
-    p.stderr.on("data", (d) => (err += d));
+    p.stdout.on("data", (d) => {
+      if (out.length >= MAX_GIT_OUT) return;
+      out += d;
+    });
+    p.stderr.on("data", (d) => { if (err.length < 4096) err += d; });
     p.on("error", (e) => { clearTimeout(timer); res({ code: -1, out: e.message }); });
     p.on("close", (code) => { clearTimeout(timer); res({ code, out: code === 0 ? out : (err || out) }); });
   });
 }
 
-// Where the clone stood before the child was spawned. Every commit in the
-// clone that is not reachable from this revision was made by this run — which
-// is why the base is taken as a revision and not as a branch name or a clock:
-// a run that branches, commits, switches back and branches again is still
-// fully described by `--all --not <base>`, and a `--since` would also count
-// whatever the clone's own history happened to carry from the last hour.
+// Where the clone stood before the child was spawned. It is taken as a
+// REVISION and not as a branch name or a clock, because a run that branches,
+// commits, switches back and branches again is still fully described by "what
+// is on a local branch here and was not reachable from this revision", while a
+// `--since` would also count whatever the clone's own history happened to
+// carry from the last hour.
 export async function baseRev(workDir, run = git) {
   const r = await run(workDir, ["rev-parse", "HEAD"]);
   const rev = r.code === 0 ? r.out.trim() : "";
@@ -86,7 +99,14 @@ export async function baseRev(workDir, run = git) {
 export async function readProgress(workDir, base, run = git) {
   if (!workDir) return { read: false, why: "this run has no work directory" };
   if (!base) return { read: false, why: "the clone's revision was not read when the run started, so there is nothing to compare against" };
-  const log = await run(workDir, ["log", "-n", "200", "--format=%cI%x1f%s", "--all", "--not", base]);
+  // `--branches HEAD`, never `--all`. The clone is full on purpose, so
+  // `--all` reaches every remote-tracking ref it came with — 416 of them on
+  // this product's own repository — and not one of those commits is this
+  // run's. Measured before this line was written that way: against a clone of
+  // this repository, `--all --not HEAD` reported two hundred commits for a run
+  // that had made none. Local heads are where a run's own work can be, and
+  // HEAD is named beside them so a detached checkout still answers.
+  const log = await run(workDir, ["log", "-n", "200", "--format=%cI%x1f%s", "--branches", "HEAD", "--not", base]);
   if (log.code !== 0) {
     return { read: false, why: `git could not be asked what this run committed (${log.out.trim().split("\n")[0] || `exit ${log.code}`})` };
   }
