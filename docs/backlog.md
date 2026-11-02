@@ -788,6 +788,21 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   pull request, deliberately: its card is the two deploy scripts, and this is
   `cli/test/`. Filed here rather than in `docs/ideas.md` because a flake keeps
   firing while a proposal waits. Seat: engineer.
+  **Observed again 2026-11-02 ~02:3xZ (engineer, ref `epitome-engineer/
+  2026-11-02-message-3`), and it widens this card's own claim about when it
+  fires.** This run was not a composition: `smoke-temporal.sh` alone, on a box
+  running fifteen-odd other seats' runs, read **196 ok, 1 failed** and the one
+  failure was this assertion — `0 of 4 prompts handed to pm carry the line`,
+  the missing fifth turn being the shortfall run's own. Two earlier runs of the
+  same suite the same hour, on a quieter box, read 197 ok 0 failed. So the card
+  above says "it reproduces under composition and it is green alone", and the
+  truer sentence is that it reproduces when the executor is slow to write its
+  turn file, which composition is one cause of and a loaded box is another. The
+  fix is unchanged and is still the instrument three lines above it. Not fixed
+  here: this run's card is the evidence block, and the FAIL that reported this
+  one is legible for the first time because of it — the new block printed the
+  whole `node -e` it had evaluated, so what was counted and where is on screen
+  rather than four runs away. Seat: engineer.
 - [ ] **`smoke-doctor.sh` fails one assertion of 178 at random, a
   different one each time, and it is not the quiet-pipe fault.** Found
   while composing the full test command at load 20 on the resident box:
