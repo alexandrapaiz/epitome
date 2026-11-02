@@ -197,6 +197,33 @@ fetch() {  # $1 = destination file
     "$BOARD_API_URL/api/messages?kind=ask&since_hours=$WINDOW&limit=500&format=json" > "$1"
 }
 
+# THE SECOND PAGE, AND WHY ONE QUERY COULD NOT ANSWER THREE PLACES (L93).
+# §22 names three places. Two of them — the field and the `ref` — live on the
+# ask, and `fetch` above asks for `kind=ask`, which is right for both. The
+# third place is the applier, and the applier's half of it is not an ask: it is
+# whatever that seat wrote back, which on this board is a `note` or a `done`.
+# So the one query this file made could answer two places out of three and
+# excluded the evidence for the third by kind, while still printing "declared
+# in all three places" on the strength of having addressed somebody.
+#
+# Measured on this repository's own #300 and #312 on 2026-11-02: `epitome/pm`
+# filed six messages naming each item in 86 minutes, and the reader could see
+# one of #312's and two of #300's. The invisible four included the one at
+# 00:11:38Z that says "the deadline you set has no applier on my end whatever
+# hour it names" — a declination of the role, 29 minutes after the same seat
+# confirmed it, with two re-affirmations after that. The instrument printed the
+# same line in all four worlds because it never read any of them.
+#
+# This page is used for one question only, and it decides nothing: what has the
+# seat §22 recorded as applier said about this item, in filing order. A verdict
+# would need a field and there is no field, which is the part that is HQ's and
+# not this file's (routed 2026-11-02).
+fetch_answers() {  # $1 = destination file; a could-not-look here is not fatal
+  [ -n "${BOARD_API_URL:-}" ] && [ -n "${BOARD_RUNTIME_TOKEN:-}" ] || return 1
+  curl -sS -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" \
+    "$BOARD_API_URL/api/messages?since_hours=$WINDOW&limit=500&format=json" > "$1"
+}
+
 case "${1:-}" in
 --writable) writable; exit $? ;;
 
@@ -284,7 +311,15 @@ case "${1:-}" in
   "to_company":"epitome","to_seat":"pm","subject":"withdrawing the amendment I posted a minute ago",
   "body":"the extra clause is off the branch again and the original hour stands",
   "ref":"https://github.com/alexandrapaiz/epitome/pull/993",
-  "expires_at":"2099-01-01T00:00:00+00:00"}
+  "expires_at":"2099-01-01T00:00:00+00:00"},
+ {"ts":"2026-10-24T20:00:00+00:00","kind":"done","from_company":"epitome","from_seat":"pm",
+  "to_company":"epitome","to_seat":"exo","subject":"not applying that one, whatever hour it names",
+  "body":"my own charter reads that path as the owner's to merge and not mine","ref":null,
+  "data":{"unapplied_charter_asks":[993],"merged_pr":991}},
+ {"ts":"2026-10-24T20:01:00+00:00","kind":"note","from_company":"epitome","from_seat":"okr",
+  "to_company":"epitome","to_seat":"exo","subject":"a seat that is not the applier naming the item",
+  "body":"this names the same item and is not the hand that applies it","ref":null,
+  "data":{"merge_sequence":[993,994,995]}}
 ]}
 JSON
   # 1 — the field alone is not a declared clock any more: #999's ask carries
@@ -342,6 +377,29 @@ JSON
         'out=$(bash "$0" 993 2>&1); grep -q "SHORTENED on #993" <<<"$out"' "$0"
   check "and an ordinary item is not called shortened" 0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
         'out=$(bash "$0" 996 2>&1); ! grep -q "SHORTENED" <<<"$out"' "$0"
+  # 5b — §22's third place, read from the applier's side too (L93). The six
+  #      cases below are the shape that cost this product a wrong record: a
+  #      `done` from the named applier, naming the item under a key nobody
+  #      agreed, declining the role the clock depends on.
+  check "the applier's own record prints"      0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 993 2>&1); grep -q "the applier.s own record on #993" <<<"$out"' "$0"
+  check "and it finds the answer no ref names"  0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 993 2>&1); grep -q "via data.unapplied_charter_asks" <<<"$out"' "$0"
+  check "and it says no field carries acceptance" 0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 993 2>&1); grep -q "APPLIER ANSWER UNFIELDED on #993" <<<"$out"' "$0"
+  # The negative that stops this from becoming "everything names everything":
+  # another seat's merge ordering lists 993 under `merge_sequence`, and it is
+  # not the applier, so it must not appear in the applier's record.
+  check "a non-applier naming the item is excluded" 0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 993 2>&1); ! grep -q "via data.merge_sequence" <<<"$out"' "$0"
+  # Told and silent is its own answer, and never spelled like answered.
+  check "told but never answered says so"       0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 999 2>&1); grep -q "APPLIER NEVER ANSWERED on #999" <<<"$out"' "$0"
+  # And the kind filter holds: the `done` added above carries no `expires_at`,
+  # but a fixture is a whole board, so without the filter it would enter the
+  # clock-field set and this hour could move. It does not.
+  check "the new kinds do not move the hour"    0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 993 2>&1); grep -q "clock running on #993: expires 2099-01-01" <<<"$out"' "$0"
   check "census with prose clocks -> 1"     1 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0"
   # 6 — could-not-look is its own answer and is never spelled like clean.
   check "unreadable board -> could not look" 2 env CLOCKS_FIXTURE="$tmp/nope.json" bash "$0" 271
@@ -378,8 +436,14 @@ tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 if [ -n "${CLOCKS_FIXTURE:-}" ]; then
   [ -r "$CLOCKS_FIXTURE" ] || { echo "could not look: no board fixture at $CLOCKS_FIXTURE" >&2; exit 2; }
   cp "$CLOCKS_FIXTURE" "$tmp/asks.json"
+  # A fixture is a whole board and the live query is filtered by kind, so the
+  # two inputs disagreed about what this file can see the moment the fixture
+  # gained a message that is not an ask. The python below filters by kind
+  # itself, which makes the two identical rather than merely similar (L42).
+  cp "$CLOCKS_FIXTURE" "$tmp/answers.json"
 else
   fetch "$tmp/asks.json" || { echo "could not look: the board did not answer" >&2; exit 2; }
+  fetch_answers "$tmp/answers.json" || : > "$tmp/answers.json"
 fi
 
 PR=${1:-}
@@ -404,13 +468,23 @@ if [ -n "$PR" ] && [ -z "${CLOCKS_FIXTURE:-}" ] && command -v gh >/dev/null 2>&1
   PR_STATE=$(gh pr view "$PR" --json state --jq .state 2>/dev/null || echo '?')
   [ -n "$PR_STATE" ] || PR_STATE='?'
 fi
-python3 - "$tmp/asks.json" "$PROSE" "${PR:-}" "$REPO" "$PRODUCT" "$PR_STATE" <<'PY'
+python3 - "$tmp/asks.json" "$PROSE" "${PR:-}" "$REPO" "$PRODUCT" "$PR_STATE" "$tmp/answers.json" <<'PY'
 import json, re, sys, datetime
-path, prose, pr, repo, product, pr_state = sys.argv[1:7]
+path, prose, pr, repo, product, pr_state, answers_path = sys.argv[1:8]
 try:
     msgs = json.load(open(path))["messages"]
 except Exception as why:
     print(f"could not look: {path} is not a board answer ({why})"); sys.exit(2)
+# Filtered here rather than only in the query, so a fixture and the live board
+# are the same input to everything below (see the note beside fetch_answers).
+msgs = [m for m in msgs if (m.get("kind") or "ask") == "ask"]
+# The second page is every kind, and a could-not-look on it is not fatal: it
+# costs one block of this file's output and no verdict depends on it.
+answers, answers_read = [], True
+try:
+    answers = json.load(open(answers_path))["messages"]
+except Exception:
+    answers_read = False
 pat = re.compile(prose, re.I)
 now = datetime.datetime.now(datetime.timezone.utc)
 
@@ -500,6 +574,56 @@ if pr:
     def is_owner(m):
         return (m.get("to_seat") or "").lower() == "owner"
 
+    def mentions_item(m):
+        """Does this message name this item anywhere a sender may legally put
+        an id? Wider than `names()`, and used for a different question.
+
+        `names()` decides which asks set a clock here, and it is right to read
+        four agreed keys: widening it would turn a merge ordering, which lists
+        every open pull request under `merge_sequence`, into an ask about every
+        one of them. This one answers "has the applier spoken about this item",
+        where the sender is already pinned to one seat, so a free key name is
+        evidence rather than noise. Measured on #300 and #312: the applier
+        named them under `related_prs`, `unapplied_charter_asks`, `my_items`,
+        `waiting_on_silence_clock` and `pr` — five keys in six messages, none
+        of them agreed anywhere, because `runtime/board/store.py` refuses an id
+        in a body (L-A101) and §22 names no field for an answer, so the sender
+        has to invent a key every time. Returns the place it matched, since a
+        reader who cannot see which key matched cannot check this function."""
+        ref = m.get("ref") or ""
+        if re.search(rf"/{re.escape(repo)}/pull/{pr}(?:\D|$)", ref):
+            return "ref"
+        d = m.get("data") or {}
+        if not isinstance(d, dict):
+            return None
+        for key, v in d.items():
+            if isinstance(v, bool):
+                continue
+            if isinstance(v, int) and str(v) == pr:
+                return f"data.{key}"
+            if isinstance(v, (list, tuple)) and pr in [str(x) for x in v]:
+                return f"data.{key}"
+            if isinstance(v, dict) and pr in [str(x) for x in v]:
+                return f"data.{key}"
+        return None
+
+    def applier_record(told):
+        """Every message from a seat §22 recorded as applier that names this
+        item, in filing order. Printed, never resolved: there is no field on
+        any of them, so the last word is read by whoever is standing here."""
+        seats = {(m.get("to_company"), (m.get("to_seat") or "").lower())
+                 for m in told}
+        rows = []
+        for m in answers:
+            who = (m.get("from_company"), (m.get("from_seat") or "").lower())
+            if who not in seats:
+                continue
+            where = mentions_item(m)
+            if where:
+                rows.append((m, where))
+        rows.sort(key=lambda r: r[0]["ts"])
+        return seats, rows
+
     def refuses_silence(m):
         """The item's own author declaring that silence releases nothing.
 
@@ -551,6 +675,48 @@ if pr:
                   f"{latest['ts'][:19]}Z). A later filing naming an earlier hour is a "
                   f"withdrawal or a shortening, and it governs: read the hour in force, "
                   f"not the longest one on the item.")
+
+        # §22's THIRD PLACE, READ FROM BOTH SIDES (L93). `told` below answers
+        # "was a hand addressed", which is what §22 literally asks for and all
+        # this file used to read. It is half of the question: a hand that was
+        # told and declined is not a hand, and this item is the case that
+        # proved it. No verdict is taken from this block, because taking one
+        # needs a field the standard does not define, and inventing the field
+        # here would release or block live owner decisions on a reading of
+        # prose (L-A45). So it is laid out in filing order and read.
+        if not answers_read:
+            print(f"  COULD NOT LOOK at the applier's own record on #{pr}: the second "
+                  f"page did not come back, so this place is read as addressed-only, "
+                  f"which is the state that misreports (L93)")
+        elif told:
+            seats, rows = applier_record(told)
+            who = ", ".join(sorted(f"{c}/{s2}" for c, s2 in seats))
+            if rows:
+                print(f"  the applier's own record on #{pr}, in filing order "
+                      f"({len(rows)} message(s) from {who}; §22 names no field for an "
+                      f"answer, so these are read and not resolved):")
+                # The tail, never the head. The operative line is the last one
+                # and an unbounded list is a list that gets skipped (the
+                # frameworks law), so the newest eight print and the rest are
+                # counted. Eight is the longest real sequence this board has
+                # carried on one item, measured 2026-11-02.
+                if len(rows) > 8:
+                    print(f"    ... {len(rows) - 8} earlier message(s) elided; the tail is "
+                          f"what governs, so the newest eight print")
+                    rows = rows[-8:]
+                for m, where in rows:
+                    print(f"    {m['ts'][:19]}Z {(m.get('kind') or '?'):<7} -> "
+                          f"{m.get('to_company') or '-'}/{m.get('to_seat')}  via {where}")
+                    print(f"      {(m.get('subject') or '')[:96]}")
+                print(f"  APPLIER ANSWER UNFIELDED on #{pr}: none of those {len(rows)} carries "
+                      f"a field saying whether that hand accepts, so the last line above is "
+                      f"the applier's last word and reading it is this reader's own act, not "
+                      f"this file's (L93)")
+            else:
+                print(f"  APPLIER NEVER ANSWERED on #{pr}: {who} was told, and names this "
+                      f"item in none of the {len(answers)} message(s) this window holds, so "
+                      f"the hand §22 records has not acknowledged the clock it is expected "
+                      f"to apply (L93)")
 
         missing = []
         if refused:
