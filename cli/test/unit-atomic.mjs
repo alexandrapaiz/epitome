@@ -19,7 +19,7 @@
 //                 write`, syscall `write`, errno -28.
 //   mode 0500 directory — a real EACCES through the whole failure path,
 //                 which is how the composed message is asserted.
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
@@ -32,7 +32,27 @@ import { fileURLToPath } from "node:url";
 import { writeFileAtomic, WriteRefused, deviceSaid } from "../src/lib/atomic.js";
 
 const CLI = dirname(dirname(fileURLToPath(import.meta.url)));
-const work = () => mkdtempSync(join(tmpdir(), "epito-atomic-"));
+
+// Every directory this suite makes is removed at the end whether its test
+// passed, failed or threw. The first draft removed them at the end of each
+// test body, which is the one place that does not run when an assertion
+// fails, and ten of them were still on a box at 100% full an hour later —
+// which is the same class of fault as everything else in this file.
+const made = [];
+const work = () => {
+  const d = mkdtempSync(join(tmpdir(), "epito-atomic-"));
+  made.push(d);
+  return d;
+};
+after(() => {
+  for (const d of made) {
+    // A test that closed a directory to write in it has to reopen it, or the
+    // removal is refused for the same reason the write was.
+    try { chmodSync(d, 0o700); } catch { /* already gone */ }
+    for (const sub of ["closed"]) { try { chmodSync(join(d, sub), 0o700); } catch { /* not every test makes one */ } }
+    rmSync(d, { recursive: true, force: true });
+  }
+});
 const ORIGINAL = "IMPORTANT ORIGINAL CONTENT\n";
 
 // Runs one line of node under RLIMIT_FSIZE 0, where every write(2) to a
