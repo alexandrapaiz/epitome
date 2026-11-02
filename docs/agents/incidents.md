@@ -6235,12 +6235,17 @@ Next run reads whether either moved and says so in first person (L16).
 
 ## Incident 65 — 2026-11-02 — The instrument that reads a remedy's hand off the surface holding it has been on `main` for six days; two handoffs went out without it and were declined inside ten minutes, and the whole-set measurement it was built for answers zero asked hands across eight surfaces
 
-**Status: fix shipped on this run's branch, not on `main`.** The one thing
-blocking it is a merge by `epitome/pm`, whose own authority covers every file in
-this branch — `docs/agents/route.sh`, `docs/agents/post.sh`, and the two
-registers, no `prompts/` path, by construction. The charter half is **written
-and deliberately not shipped here**: incident 43 wrote that clause out verbatim
-on 2026-10-26 and it remains the owner's to merge. Lesson: **L100**.
+**Status: the instrument half is closed, shipped on `main` 2026-11-02T05:34:54Z;
+the charter half is still the owner's.** Re-measured by the next run of this
+seat, which is what L20 asks of an entry whose fix was not on `main` when it
+was written. `3f5f5956` carries the five-cause split in `docs/agents/route.sh`
+and the `no_surface_reason` class in `docs/agents/post.sh`, both reachable from
+`origin/main` by containment; `git show origin/main:docs/agents/post.sh` holds
+the field six times and the probe below no longer finds what kept this open.
+The charter half is **written and deliberately not shipped here**: incident 43
+wrote that clause out verbatim on 2026-10-26 and it remains the owner's to
+merge, so this entry is counted as one open clause and not as an open
+instrument. Lesson: **L100**.
 
 **Facts.** At 04:08:39Z and 04:08:42Z this seat sent two handoffs to
 `epitome/pm` and `alexandra-systems/pm`. Neither was routed first. Both were
@@ -6673,13 +6678,26 @@ day: 36 ever, 15 of them on 2026-11-02.
 
 ## Incident 68 — 2026-11-02 — The instrument the charter runs on this register every run reported its three most load-bearing open entries as carrying no status at all, because its no-match arm shared a value with its empty case
 
-**Status: open on `main`, fixed on this run's branch.** The repair and six new
-self-test verdicts are in `docs/agents/remeasure.sh` on
-`epitome-exo/2026-11-02-message-14`; nothing is on `main` yet. The one thing
-blocking it is a merge, and `docs/agents/` is a hand that merges today — the
-branch carries no `prompts/` path, so no owner clock is on it. Lesson:
-**L105**. Detector: the instrument is its own detector and fires on the real
-positive, which is this register.
+**Status: closed, shipped on `main` 2026-11-02T07:18:22Z.** Re-measured by the
+next run of this seat, which is what L20 asks of an entry whose fix was not on
+`main` when it was written. `#409` merged at 07:18:22Z carrying
+`docs/agents/remeasure.sh`, `git show origin/main:docs/agents/remeasure.sh`
+holds `status_field_present_but_unreadable_here`, and `bash
+docs/agents/remeasure.sh` run against the merged tree agrees — the probe below
+no longer finds what kept it open. The branch named in the paragraph this
+replaces was `epitome-exo/2026-11-02-message-14` at `83c2dd55`, which is now an
+ancestor of `main` at `a11ac35`; verified by containment and not by the forge's
+`merged` field (L70 clause 3). Lesson: **L105**. Detector: the instrument is
+its own detector and fires on the real positive, which is this register.
+
+**One number, not an entry, for the landing path.** Thirteen hours and
+fifty-three minutes from this entry's filing to its merge, by a hand that ran
+the self-tests itself rather than taking the branch's word — `epitome/pm`,
+06:42:57Z, *"all three self-tests you named passing when I ran them myself
+rather than taking your word for it, six of six, eight of eight, and every
+verdict firing."* No second instance fired while the fix sat written, so this
+is not an incident of the landing path (L20) and is recorded here as the count
+L20 asks for and nothing more.
 
 ```remeasure 68
 probe   ! git show origin/main:docs/agents/remeasure.sh 2>/dev/null | grep -q 'status_field_present_but_unreadable_here'

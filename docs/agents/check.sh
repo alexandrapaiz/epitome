@@ -16,6 +16,11 @@
 #    reserved path is this run's choice or inherited from its base (L55 clause
 #    one, L-A133). Added 2026-11-02 after four pull requests in one session
 #    handed the owner nineteen files she had not been asked about.
+# 4. This branch's NAME is free across every pull request this repository has
+#    ever had, and not just across the live remote -- the same allocation that
+#    check 2 performs for an identifier, for the same reason (L106). Added
+#    2026-11-02 by the run whose own branch collided with a pull request that
+#    had merged six hours earlier and taken its name out of existence.
 #
 # Needs a full clone (git clone --depth 1 makes check 2 silently empty) and gh.
 set -uo pipefail
@@ -296,6 +301,78 @@ if git clone -q --no-local --no-hardlinks --depth 1 --branch "$(git rev-parse --
   rm -rf "$(dirname "$crip")"
 else
   echo "  could not decide: could not build the depth-1 fixture"
+fi
+
+echo
+echo "== this branch's NAME has never carried another pull request =="
+# Check 2 above allocates an identifier from the whole queue rather than from
+# main, on the ground that a number free on main is duplicated by the time
+# anyone merges. A branch name is allocated the same way and nothing was doing
+# it (L106). L-A59 deletes a head branch on merge, so the name goes free on the
+# remote; a run told to suffix its branch "if it exists" tests the live remote
+# and takes a name a merged pull request already has. 59 of this repository's
+# 416 pull requests sat under a reused name on 2026-11-02, 23 names, every
+# seat, and this check was written by the run that did it to itself.
+#
+# WHY IT MATTERS WHEN THE BRANCH ITSELF IS GONE: `origin/<name>` is the key
+# L24's refutation clause hands a reader -- "the eight characters of the head
+# you measured it at, so a seat you have described wrongly can refute you with
+# one git rev-parse". That rev-parse answers about whichever pull request the
+# clone fetched last and says nothing about the other one.
+#
+# ONE REMEDY, AND THE SECOND ONE IS A TRAP THIS CHECK'S AUTHOR WALKED INTO.
+# The first draft of these lines said a branch with an open pull request on it
+# could be renamed through the forge, `gh api -X POST .../branches/{b}/rename`,
+# on the documented behaviour that open pull requests follow a renamed branch.
+# Performed on `epitome-exo/2026-11-02-message` at 2026-11-02T07:33Z it
+# renamed the branch to `-17` and **closed `#415`**: `.head.ref` still read the
+# old name, `.state` read `closed`, and the pull request was not retargeted.
+# Same class as the base-deletion defect `epitome/pm` named an hour earlier,
+# arriving through the rename door. So:
+#
+#   before the push      git branch -m <name>-<n+1>, and this is the whole fix
+#   after a pull request is open   do NOT rename. The name is spent. Carry
+#                        number@sha in every reference (L106) and let the next
+#                        run's copy of this check refuse the name. If the pull
+#                        request carries only the commit that opened it, the
+#                        charter's own clause applies -- close it and re-declare
+#                        what it owed -- which is what this run did, once, after
+#                        the forge had already closed it.
+#
+# A gate may not print as its remedy an act that destroys the work (L103's
+# shape: the remedy a gate names is part of the gate).
+if ! command -v gh >/dev/null; then
+  echo "  could not decide: no gh, so the full queue cannot be read (L41)"
+else
+  nbranch=$(git rev-parse --abbrev-ref HEAD)
+  if [ "$nbranch" = HEAD ] || [ "$nbranch" = main ]; then
+    echo "  not on a seat branch ($nbranch), so there is no name to allocate"
+  elif ! allprs=$(gh pr list --state all --limit 500 \
+        --json number,headRefName,headRefOid,state,createdAt 2>/dev/null); then
+    echo "  could not decide: could not list pull requests (L41)"
+  else
+    taken=$(BRANCH="$nbranch" python3 -c '
+import json, os, sys
+prs = json.load(sys.stdin)
+b = os.environ["BRANCH"]
+for p in sorted((p for p in prs if p["headRefName"] == b), key=lambda p: p["createdAt"]):
+    print("%s\t%s\t%s\t%s" % (p["number"], p["state"], p["headRefOid"][:8], p["createdAt"]))
+' <<<"$allprs")
+    n=$(printf '%s' "$taken" | grep -c . || true)
+    if [ "$n" -le 1 ]; then
+      echo "  $nbranch has carried $n pull request(s), so the name is still a key"
+      [ "$n" = 1 ] && printf '%s\n' "$taken" | awk '{printf "    #%-5s %-7s %s  created %s\n", $1, $2, $3, $4}'
+    else
+      echo "  REFUSES: $nbranch has carried $n pull requests --"
+      printf '%s\n' "$taken" | awk '{printf "    #%-5s %-7s %s  created %s\n", $1, $2, $3, $4}'
+      echo "  Nothing pushed yet:  git branch -m <name>-<n+1>  — and that is the whole fix."
+      echo "  A pull request already OPEN on it: do not rename. A forge-side rename"
+      echo "  closed #415 at 07:33Z on 2026-11-02 rather than retargeting it. The name"
+      echo "  is spent: carry number@sha in every reference (L106) and let the next"
+      echo "  run's copy of this check refuse the name."
+      fail=1
+    fi
+  fi
 fi
 
 echo
