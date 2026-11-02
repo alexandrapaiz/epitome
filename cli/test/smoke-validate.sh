@@ -59,8 +59,78 @@ E="node $CLI/src/index.js"
 
 pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
-bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
-check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# How many lines of the haystack a failing gate prints: enough to carry a
+# validate verdict and its fix lines, not the whole document.
+EVIDENCE_LINES="${EPITO_SMOKE_EVIDENCE_LINES:-24}"
+# A failing gate says what it looked at. Lifted from smoke-doctor.sh, which
+# paid three runs of archaeology for it: `FAIL <label>` names the claim and
+# never the output the claim was made against, so the only way to learn which
+# line of a verdict was missing is to run the suite again. On failure only -- a
+# green run's output is byte for byte what it was.
+#
+# This file's haystacks are easier than that suite's: seventy-five of its
+# assertions name `$OUT`, which is `validate`'s own captured output, and the
+# handful that do not name a document of their own (`$SOUT`, `$NROUT`, `$ERR`,
+# `$COL`). So the first `$NAME` in the UNEVALUATED expression is the document
+# nearly every time -- `check` is handed its test as a string, so the name
+# survives to here. A name whose value holds no newline is a path, a directory
+# or an exit code, and it is printed as the note it is; a file named in the
+# expression is read as the document it is, which is what the two `[ -f ]`
+# assertions and section 8's `find` leave behind.
+bad()  {
+  fail=$((fail+1)); printf '  FAIL %s\n' "$1"
+  [ -n "${2:-}" ] || return 0
+  printf '       the test: %s\n' "$2"
+  local rest="$2" name val w seen
+  local -a notes=() docs=() files=()
+  # Matched in the shell, not through `grep ... | head -1`: that is a producer
+  # piped into a reader that exits on its first line, the shape this
+  # repository has spent a week converting out of every suite in here, and the
+  # failure path is the last place to introduce one.
+  while [[ "$rest" =~ [$]\{?([A-Za-z_][A-Za-z0-9_]*) ]]; do
+    name="${BASH_REMATCH[1]}"; rest="${rest#*"${BASH_REMATCH[0]}"}"
+    val="${!name:-}"; [ -n "$val" ] || continue
+    if [ "${val#*$'\n'}" != "$val" ]; then
+      seen=""; for w in ${docs[@]+"${docs[@]}"}; do [ "$w" = "$name" ] && seen=1; done
+      [ -n "$seen" ] || docs+=("$name")
+    else
+      seen=""; for w in ${notes[@]+"${notes[@]}"}; do [ "$w" = "$name" ] && seen=1; done
+      [ -n "$seen" ] || notes+=("$name")
+    fi
+  done
+  for name in ${notes[@]+"${notes[@]}"}; do printf '       $%s is %s\n' "$name" "${!name}"; done
+  if [ ${#docs[@]} -eq 0 ]; then
+    # The expression's own tokens, with its quoting flattened. A needle that
+    # happens to look like a path is not a risk, because only a token that
+    # names a readable file is kept.
+    local blob="${2//[\'\"]/ }"; blob="${blob//$'\n'/ }"
+    local -a words=(); read -ra words <<<"$blob"
+    for w in ${words[@]+"${words[@]}"}; do
+      [ -f "$w" ] && [ -r "$w" ] || continue
+      seen=""; for name in ${files[@]+"${files[@]}"}; do [ "$name" = "$w" ] && seen=1; done
+      [ -n "$seen" ] || files+=("$w")
+    done
+    local shown=0
+    for w in ${files[@]+"${files[@]}"}; do
+      printf '       %s, last %s lines:\n' "$w" "$EVIDENCE_LINES"
+      tail -n "$EVIDENCE_LINES" -- "$w" | sed 's/^/       | /'
+      shown=$((shown+1)); [ "$shown" = 2 ] && break
+    done
+    [ "$shown" -gt 0 ] && return 0
+    docs=(OUT)
+  fi
+  # Two, because the one assertion in this repository whose claim is a
+  # comparison between two documents (`[ "$before" = "$after" ]`) is unreadable
+  # with one of them, and no assertion here names three.
+  local shown=0
+  for name in "${docs[@]}"; do
+    val="${!name:-}"; [ -n "$val" ] || continue
+    printf '       $%s, %s bytes, last %s lines:\n' "$name" "${#val}" "$EVIDENCE_LINES"
+    printf '%s\n' "$val" | tail -n "$EVIDENCE_LINES" | sed 's/^/       | /'
+    shown=$((shown+1)); [ "$shown" = 2 ] && break
+  done
+}
+check(){ if eval "$2"; then ok "$1"; else bad "$1" "$2"; fi; }
 # `said <captured output> [grep flags] <pattern>` — the one way this suite
 # looks inside a command's output, and it contains no pipe. That is the whole
 # point of it.
@@ -75,7 +145,15 @@ check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 # a gate crying wolf about once in five runs, and a gate nobody believes is not
 # a gate. A herestring has no pipe and no second process to kill.
 said() { local hay="$1"; shift; grep -q "$@" <<<"$hay"; }
-step() { printf '\n== %s\n' "$1"; }
+# Clearing `OUT` here is what keeps `bad`'s last fallback honest: without it the
+# fallback prints whatever the previous section's `validate` left behind, and
+# this suite runs twelve sections over the same variable. Four of them (2, 6, 7
+# and 8) assert on documents of their own and never read `OUT`, so before this
+# line a failure there cited a verdict from a section up to a hundred lines
+# earlier -- the fault that printed a misspelled-flag answer under a roster
+# assertion in smoke-doctor.sh (#369). Every section that does assert on `OUT`
+# sets it after its own `step`.
+step() { OUT=""; printf '\n== %s\n' "$1"; }
 STUB_PID=""
 cleanup() {
   [ -n "$STUB_PID" ] && kill "$STUB_PID" 2>/dev/null

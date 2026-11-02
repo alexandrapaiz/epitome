@@ -125,8 +125,8 @@ bad()  {
   fail=$((fail+1)); printf '  FAIL %s\n' "$1"
   [ -n "${2:-}" ] || return 0
   printf '       the test: %s\n' "$2"
-  local rest="$2" name val docname="" doc="" w seen
-  local -a notes=() files=()
+  local rest="$2" name val w seen
+  local -a notes=() docs=() files=()
   # Matched in the shell, not through `grep ... | head -1`: that is a producer
   # piped into a reader that exits on its first line, the shape this
   # repository has spent a week converting out of every suite in here, and the
@@ -135,39 +135,44 @@ bad()  {
     name="${BASH_REMATCH[1]}"; rest="${rest#*"${BASH_REMATCH[0]}"}"
     val="${!name:-}"; [ -n "$val" ] || continue
     if [ "${val#*$'\n'}" != "$val" ]; then
-      [ -n "$docname" ] || { docname="$name"; doc="$val"; }
+      seen=""; for w in ${docs[@]+"${docs[@]}"}; do [ "$w" = "$name" ] && seen=1; done
+      [ -n "$seen" ] || docs+=("$name")
     else
-      seen=""
-      for w in ${notes[@]+"${notes[@]}"}; do [ "$w" = "$name" ] && seen=1; done
+      seen=""; for w in ${notes[@]+"${notes[@]}"}; do [ "$w" = "$name" ] && seen=1; done
       [ -n "$seen" ] || notes+=("$name")
     fi
   done
   for name in ${notes[@]+"${notes[@]}"}; do printf '       $%s is %s\n' "$name" "${!name}"; done
-  if [ -z "$doc" ]; then
-    # The expression's own tokens, with its quoting flattened: a needle that
-    # happens to look like a path is not a risk, because only tokens that name
-    # a readable file are kept.
+  if [ ${#docs[@]} -eq 0 ]; then
+    # The expression's own tokens, with its quoting flattened. A needle that
+    # happens to look like a path is not a risk, because only a token that
+    # names a readable file is kept.
     local blob="${2//[\'\"]/ }"; blob="${blob//$'\n'/ }"
     local -a words=(); read -ra words <<<"$blob"
     for w in ${words[@]+"${words[@]}"}; do
       [ -f "$w" ] && [ -r "$w" ] || continue
-      seen=""
-      for name in ${files[@]+"${files[@]}"}; do [ "$name" = "$w" ] && seen=1; done
+      seen=""; for name in ${files[@]+"${files[@]}"}; do [ "$name" = "$w" ] && seen=1; done
       [ -n "$seen" ] || files+=("$w")
     done
-    # Two is the cap, because an assertion that reads more files than that is
-    # reporting about a set and the first two are the ones a reader starts on.
+    local shown=0
     for w in ${files[@]+"${files[@]}"}; do
       printf '       %s, last %s lines:\n' "$w" "$EVIDENCE_LINES"
       tail -n "$EVIDENCE_LINES" -- "$w" | sed 's/^/       | /'
-      [ "$w" = "${files[1]:-}" ] && break
+      shown=$((shown+1)); [ "$shown" = 2 ] && break
     done
-    [ ${#files[@]} -gt 0 ] && return 0
-    docname=out; doc="${out:-}"
+    [ "$shown" -gt 0 ] && return 0
+    docs=(out)
   fi
-  [ -n "$doc" ] || return 0
-  printf '       $%s, %s bytes, last %s lines:\n' "$docname" "${#doc}" "$EVIDENCE_LINES"
-  printf '%s\n' "$doc" | tail -n "$EVIDENCE_LINES" | sed 's/^/       | /'
+  # Two, because the one assertion in this repository whose claim is a
+  # comparison between two documents (`[ "$before" = "$after" ]`) is unreadable
+  # with one of them, and no assertion here names three.
+  local shown=0
+  for name in "${docs[@]}"; do
+    val="${!name:-}"; [ -n "$val" ] || continue
+    printf '       $%s, %s bytes, last %s lines:\n' "$name" "${#val}" "$EVIDENCE_LINES"
+    printf '%s\n' "$val" | tail -n "$EVIDENCE_LINES" | sed 's/^/       | /'
+    shown=$((shown+1)); [ "$shown" = 2 ] && break
+  done
 }
 check(){ if eval "$2"; then ok "$1"; else bad "$1" "$2"; fi; }
 # `said <captured output> [grep flags] <pattern>` — the one way this suite looks
