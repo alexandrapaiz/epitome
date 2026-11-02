@@ -464,49 +464,58 @@ docs/agents/brief.sh 3
 docs/agents/caps.sh 6
 docs/agents/check.sh 2
 docs/agents/clocks.sh 2
-docs/agents/doors.sh 2
+docs/agents/doors.sh 1
 docs/agents/drafts.sh 1
 docs/agents/executing.sh 2
 docs/agents/idle.sh 1
-docs/agents/mergeable.sh 3
+docs/agents/mergeable.sh 2
 docs/agents/order.sh 1
 docs/agents/owed.sh 7
 docs/agents/pointers.sh 1
 docs/agents/post.sh 3
 docs/agents/remeasure.sh 1
 docs/agents/reread.sh 2
-docs/agents/reverted.sh 2
+docs/agents/reverted.sh 1
 docs/agents/scratch.sh 1
 docs/agents/stage.sh 1
 docs/agents/x5probe.sh 1
 "
-# Counted on `main` at 2026-11-02, 6e05157: 44 sites in 20 files, every one of
-# them under `docs/agents/`. The two this gate found in its own lane -- a
-# scratch directory unchecked in `cli/test/selftests.sh`, which inits a
-# repository under it and then runs every instrument against that with
-# `git -C`, and one in `cli/test/probe-readers.sh` -- are guarded in this same
-# diff, so those files are absent here and allowed none. `deploy/` holds none:
-# `test-provision.sh:297` writes `cat > /tmp/hash.env`, and that line is inside
-# a `<<\047IN_CONTAINER\047` heredoc that runs in a throwaway docker container,
-# where /tmp belongs to that container and to nothing else on this box. It is
-# excluded by the heredoc rule below rather than by a forgiven line, which is
-# the distinction the whole section turns on.
+# Counted on `main` at 2026-11-02, dc971e2: 41 sites in 20 files, every one of
+# them under `docs/agents/`, and 8 writing `git -C` calls still standing behind
+# an unchecked assignment. Both numbers were higher when this scan was written
+# six hours earlier -- 44 sites and 44 writing calls -- and the difference is
+# the repair for incident 69 landing on main while this branch was open:
+# `mergeable.sh`, `reverted.sh` and `doors.sh` guarded their scratch
+# directories, which took 36 of the 44 writing calls out at three lines. Those
+# three rows are lowered here rather than left stale, because this branch can
+# see the conversion land: it is in this branch's own merge-base.
 #
-# Two rows deserve reading before the rest. `docs/agents/mergeable.sh:195` is
-# the one that fired: one unchecked assignment, and the twenty writing
-# `git -C "$work"` calls below it. `docs/agents/brief.sh:69` and `:70` are the
-# second spelling, live, in a tool every seat on this box runs -- two curls
-# into `/tmp/brief-live.json` and `/tmp/brief-events.json`, fixed names under
-# the shared directory, read back by an embedded python four lines later. That
-# is the fault that took a pull request body at 07:07Z, still standing.
+# `cli/test/` and `deploy/` hold none, and the two reasons are different. The
+# two this scan found in its own lane -- a scratch directory unchecked in
+# `cli/test/selftests.sh`, which inits a repository under it and then runs
+# every instrument against that with `git -C`, and one in
+# `cli/test/probe-readers.sh` -- are guarded in this same diff, so both files
+# are absent from this table and allowed none. `deploy/` was clean already:
+# `test-provision.sh:297` does write `cat > /tmp/hash.env`, and that line sits
+# inside a `<<\047IN_CONTAINER\047` heredoc that runs in a throwaway docker
+# container, where /tmp belongs to the container and to nothing else on this
+# box. It is excluded by the heredoc rule below rather than by a forgiven line,
+# which is the distinction this whole section turns on.
 #
-# A branch guarding three of these files -- mergeable.sh, reverted.sh and
-# doors.sh, which hold six of the writing `git -C` calls -- was open and
-# unmerged while this was written, so their rows are left at the number `main`
-# holds. A ceiling that is too HIGH costs one advisory line; a ceiling lowered
-# for a conversion that has not landed fails this gate on main. The stale
-# direction is the safe one, and this table will trail by a pass for the same
-# reason the two above it do.
+# The loudest row left is the second spelling, and it is live in a tool every
+# seat on this box runs: `docs/agents/brief.sh:69` and `:70` curl the board
+# into `/tmp/brief-live.json` and `/tmp/brief-events.json` -- fixed names under
+# the shared directory -- and an embedded python reads them back four lines
+# later. Two concurrent runs of `brief.sh` read each other. That is the fault
+# that took a pull request body at 07:07Z, still standing, and it is a
+# behaviour change to a shared instrument rather than a guard, so it is a row
+# in docs/backlog.md and handed to the project manager rather than a rider on
+# this gate.
+#
+# A ceiling that is too HIGH costs one advisory line; a ceiling lowered for a
+# conversion that has not landed fails this gate on main. The stale direction
+# is the safe one, and this table will trail by a pass for the same reason the
+# two above it do.
 #
 # A number may never rise. If one has to, the pull request says why.
 unowned() {
