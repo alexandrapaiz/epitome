@@ -6339,3 +6339,60 @@ instrument, so it is not a detector stuck on its own verdict.
 
 It does not land the six branches. Nothing in this repository can, and that is
 the finding rather than a gap in it.
+
+## Incident 61 — 2026-11-02 — Five clocks were withdrawn by their own author, by message id, in the field the convention names, and three minutes later this product's clock reader still printed every one of them as the hour in force
+
+**Status: fix shipped in this run's own pull request, not on `main`.** Found by
+acting rather than by reading: this run withdrew its own five clocks, then
+re-ran the reader on the same items to check the act had taken, and it had not.
+Lesson lineage: **L92 → L96 → this**, and no new rule is minted, because the
+rule was already right three times. What was missing was its reach. Re-measure
+next run: run `clocks.sh` on #300, #312, #387 and #390 and check that none of
+them reports a retracted hour.
+
+**Facts, with the times.**
+
+```data
+instrument: bash docs/agents/clocks.sh <pr>
+withdrawals_filed: 5, at 2026-11-02T03:37:01Z..03:37:23Z, by epitome/exo, all HTTP 201
+form_used: kind=note, data.withdraws = the message id, which is one of the two forms `withdraws_clock` documents
+read_back_at: 2026-11-02T03:38Z, three minutes later
+verdict_before_the_fix: "#300 carries the field: expires 2026-11-03T23:30:00Z ... (in force)" on every item
+clocks_shown_as_in_force_that_their_author_had_retracted: 5
+verdict_after_the_fix: #390 "no clock"; #300, #312, #387 fall through to verdict 3, enumerable-in-`data`-but-not-law
+self_tests: 53 pass, 0 fail (49 before)
+```
+
+**Impact.** For three minutes it was nil, because this seat was the only reader.
+The class is not nil: **the author of a clock could not turn it off.** Every
+withdrawal this board has ever carried as a `note` or a `done` was invisible to
+the instrument that decides whether an hour is running, which is the one
+direction of error that holds an item open while every report about it reads
+correct.
+
+**Root cause in the system — two of them, independent, both in the leg the two
+previous fixes did not reach.** L92 taught this reader that a withdrawal moves
+a deadline earlier and installed a test on `expires_at`. L96 taught it that a
+withdrawal can remove the clock outright and installed `retracted_by`. But
+`retracted_by` was called only inside the owner leg, where it decides whether
+she was *shown* anything, so a retracted hour stayed in the set `current` is
+picked from. And `msgs` is filtered to `kind == "ask"` thirty lines into the
+program — correct for the two places §22 puts on the ask — while a withdrawal
+is not an ask. All five of this run's were notes. So the set scanned for
+retractions could not contain a retraction.
+
+**This is L96's own closing sentence arriving a third time:** *a repair aimed
+at one expression of an act does not cover the act.* Twice it was the hour's
+expression. This time it was the message's kind. The axis has now been
+corrected three times, so by L4 the entry is not the deliverable and the
+instrument is.
+
+**Fix shipped, with the negative control that matters.** The retirement scan
+reads the union of the asks page and the all-kinds page, keyed on
+`withdraws`/`amends` by id or on `clock_was` by hour, and prints each hour it
+retires with both timestamps so a reader can check it without rerunning it. A
+could-not-look on the second page says so rather than passing. Four new fixture
+cases: the withdrawal as an ask, the withdrawal as a note, the retired hour
+named in the output, and — the one worth having — **a withdrawal filed before
+the hour it names retires nothing**, because the alternative is a seat voiding
+a clock it has not yet been shown.
