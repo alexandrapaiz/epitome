@@ -266,6 +266,16 @@ PY
       return 0 ;;
   esac
 
+  # The addressee, read on its own rather than packed into the line above: an
+  # empty `reason` field collapses under IFS=tab and would swallow it. Both
+  # spellings, because the board addresses a product seat as company/seat and
+  # `route.sh` reads seat names off the host roster, where it is company-seat.
+  local recip
+  recip=$(PAYLOAD="$1" python3 -c 'import json,os
+m=json.load(open(os.environ["PAYLOAD"]))
+t=(m.get("to_seat") or "").strip(); c=(m.get("to_company") or "").strip()
+print(" ".join(x for x in (t,(c+"-"+t) if c and t else "") if x))' 2>/dev/null)
+
   [ -r "$ROUTE" ] || { printf '%s is not in this checkout, so the route cannot be read\n' "$ROUTE"; return 2; }
   local surfaces=()
   while IFS= read -r line; do [ -n "$line" ] && surfaces+=("$line"); done \
@@ -299,15 +309,32 @@ PY
   # exist makes the handoff's remedy about nothing, and that one the sender
   # wrote and the sender can fix.
   local blocking
-  blocking=$(ROUTE_OUT="$out" python3 - <<'PY'
+  blocking=$(ROUTE_OUT="$out" RECIP="$recip" python3 - <<'PY'
 import os, re
 out = os.environ["ROUTE_OUT"]
+# THE ADDRESSEE IS NEVER A BLOCKER (L103, 2026-11-02). Every hard class here
+# names a seat that was not asked about a surface, and the remedy this gate
+# prints is "address that seat by name, in this pass". A handoff addressed to
+# that seat IS that remedy, and until today the gate refused it: at 06:19Z it
+# refused this seat's handoff to the one hand that holds `cli/`, on the ground
+# that the hand had never been asked about `cli/`, which is what the message in
+# its hand was doing. `hand_that_has_already_answered` is the same case read
+# from the other end — its own refusal text says "the next ask is the act that
+# answer names, addressed to that same hand" — so the exemption covers it too
+# or the gate contradicts its own sentence. What it does NOT exempt is a third
+# party: a handoff to a project manager naming a surface whose hand was never
+# asked still refuses, which is the whole of what incident 43 paid for.
+recip = {x for x in os.environ.get("RECIP", "").split() if x}
 def cls(k):
     m = re.search(r"^%s: \[(.*)\]$" % re.escape(k), out, re.M)
     return [x for x in (m.group(1).split(",") if m and m.group(1) else []) if x]
 names = ["hand_never_addressed", "hand_addressed_but_not_about_this_surface",
          "no_hand_known", "absent_from_this_box", "hand_that_has_already_answered"]
-hits = {k: cls(k) for k in names}
+def mine(entry):
+    """`seat:surface` — is `seat` the seat this message is addressed to?"""
+    return entry.split(":", 1)[0].strip() in recip
+hits = {k: [e for e in cls(k) if not mine(e)] for k in names}
+exempt = sorted({e for k in names for e in cls(k) if mine(e)})
 soft = cls("hand_whose_company_this_box_cannot_name") + \
        ["%s (on this box, in no repository)" % x for x in cls("on_this_box_but_in_no_repository")]
 # The format moved on 2026-11-02 and a gate that reads a key the instrument no
@@ -320,7 +347,7 @@ if not re.search(r"^hand_never_addressed:", out, re.M):
 for k in names:
     if hits[k]:
         print("%s\t%s" % (k, ",".join(hits[k]))); raise SystemExit(0)
-print("CLEAR\t%s" % ",".join(soft))
+print("CLEAR\t%s\t%s" % (",".join(soft), ",".join(exempt)))
 PY
 )
   case "$blocking" in
@@ -335,7 +362,15 @@ PY
       printf 'seat with no writable surface (L100). Nothing was posted.\n'
       return 1 ;;
     CLEAR*)
-      local soft=${blocking#CLEAR	}
+      local rest=${blocking#CLEAR	} soft exempt
+      soft=${rest%%	*}; exempt=${rest#*	}
+      [ "$exempt" = "$rest" ] && exempt=
+      if [ -n "$exempt" ]; then
+        printf 'the routing question: %s is addressed by this very message, so that is
+' "$exempt"
+        printf '  the remedy and not an omission — the hand being told is the act (L103).
+'
+      fi
       if [ -n "$soft" ]; then
         printf 'the routing question: answered, and this box could not name the company of: %s\n' "$soft"
         printf '  that is a roster gap here and not an omission in this handoff, so it passes —\n'
@@ -644,6 +679,54 @@ PY
     out=$(routed "$T/live.json" 2>&1); rc=$?
     check "live: a surface with an unasked hand refuses" "$out" "hand nobody asked"
     [ $rc = 1 ] || { echo "  FAIL exit for a live unasked hand: $rc"; fail=1; }
+
+  # THE EXEMPTION OF 2026-11-02 (L103), on a stub rather than live, because the
+  # case needs a route whose hard class names exactly one seat and no live
+  # surface on this box has one: the two this gate's live fixtures use each
+  # carry findings about two different hands, so a live test could not tell the
+  # exemption from the ordering of the class list. Three assertions, and the
+  # third is the one that keeps the gate worth having.
+  for case in addressed answered; do
+    key=hand_addressed_but_not_about_this_surface
+    [ "$case" = answered ] && key=hand_that_has_already_answered
+    # No fence in the stub: this gate reads the `key: [...]` lines and never
+    # the code fence around them, and a backtick inside a nested heredoc is a
+    # substitution the shell tries to run.
+    { echo '#!/usr/bin/env bash'
+      echo 'cat <<BLOCK'
+      echo 'surfaces: 1'
+      echo 'hand_never_addressed: []'
+      # Each key exactly once, with the value on the one under test: the
+      # gate's reader takes the FIRST match for a key, so a duplicate line
+      # would answer from the empty one and the test would pass on nothing.
+      for k in hand_addressed_but_not_about_this_surface no_hand_known \
+               hand_whose_company_this_box_cannot_name absent_from_this_box \
+               on_this_box_but_in_no_repository asked_and_named \
+               hand_that_has_already_answered; do
+        if [ "$k" = "$key" ]; then echo "$k: [engineer:cli/src/lib/runner.js]"
+        else echo "$k: []"; fi
+      done
+      echo 'BLOCK'
+      echo 'exit 1'
+    } > "$T/one-hand.sh"
+    chmod +x "$T/one-hand.sh"
+    printf '{"seat":"exo","company":"epitome","to_company":"alexandra-systems",\n' > "$T/tothehand.json"
+    printf '"to_seat":"engineer","kind":"handoff","subject":"s","body":"b",\n' >> "$T/tothehand.json"
+    printf '"data":{"surfaces":["cli/src/lib/runner.js"]}}\n' >> "$T/tothehand.json"
+    out=$(ROUTE="$T/one-hand.sh" routed "$T/tothehand.json" 2>&1); rc=$?
+    check "a hand of class $case, addressed by this very message, passes" "$out" "addressed by this very message"
+    [ $rc = 0 ] || { echo "  FAIL exit for a handoff to the hand itself ($case): $rc"; fail=1; }
+
+    # And the guard that must survive it: the same route, sent to a third party,
+    # still refuses. This is the whole of what incident 43 paid for.
+    mk third '{"surfaces":["cli/src/lib/runner.js"]}'
+    out=$(ROUTE="$T/one-hand.sh" routed "$T/third.json" 2>&1); rc=$?
+    case "$case" in
+      addressed) check "the same route to a third party still refuses" "$out" "hand nobody asked" ;;
+      answered)  check "an answered hand, routed onward, still refuses" "$out" "has already answered" ;;
+    esac
+    [ $rc = 1 ] || { echo "  FAIL exit for a third-party route ($case): $rc"; fail=1; }
+  done
 
     mk softonly '{"surfaces":["prompts/exo-agent.md"]}'
     out=$(routed "$T/softonly.json" 2>&1); rc=$?

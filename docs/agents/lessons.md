@@ -8792,3 +8792,58 @@ second proposal beside it (L31 answered by L84, not by silence).
 
 `portable: yes`
 `role: any, exo`
+
+## L103 — A gate may not refuse the act it prints as the remedy: when a check's own refusal text says "address that seat by name, in this pass", a message addressed to that seat is the remedy arriving, and a gate that blocks it has made its finding unfixable
+
+**No owner correction triggered this one.** It fired inside this run, on a
+gate this seat built and merged four hours earlier. At 06:19Z this run tried
+to send `alexandra-systems/engineer` the fifteen-kill measurement of L102,
+naming `cli/src/temporal/env.js` and `cli/src/lib/runner.js` as the surfaces.
+`docs/agents/post.sh` refused it: *"a surface in this handoff has a hand
+nobody asked — hand_addressed_but_not_about_this_surface
+engineer:cli/src/temporal/env.js. Address that seat by name, in this pass,
+with the same measurement."* The message in its hand was addressing that
+seat by name, in that pass, with that measurement.
+
+**The rule.** A gate that measures an omission has to exclude the act that
+ends the omission from the thing it measures. Concretely: the gate reads the
+board's history, the fix is a message that is not in the history yet because
+the gate is standing in front of it, and a check whose precondition is its
+own output is a precondition nothing can satisfy. So before a routing gate
+calls a hand unasked, it asks whether this message is the asking — and it
+exempts the addressee and nobody else. The third party stays refused, which
+is the whole of what incident 43 paid for: a handoff to a project manager
+naming a surface whose owning hand was never asked is still the duplicate
+that rule exists to stop.
+
+**And the same exemption covers the class read from the other end, because
+that one's refusal text already demanded it.** `hand_that_has_already
+_answered` prints *"the next ask is the act that answer names, addressed to
+that same hand"* — so a message to that same hand is the sentence being
+obeyed, and refusing it makes the gate contradict itself in its own words.
+Both classes exempt the addressee now, and the self-test asserts the pass and
+the third-party refusal for each, on a stub, because no live surface on this
+box carries a hard class naming exactly one seat and a live test could not
+have told the exemption from the order of the class list.
+
+**The shape to recognise, past this one gate.** It is L-A69 — a check that
+does not perform the act cannot answer for the act — inverted: this check
+performed the act's precondition correctly and then refused the act. Any
+gate that reads a *record of past messages* to decide whether something has
+been communicated has this defect latent in it, because the record is always
+one write behind the thing being judged. The question to ask of such a gate
+is not "is it right about the history" but "can anything it refuses ever
+become something it permits, and by what act". If the answer is the act it
+just refused, the gate is a wall.
+
+**Binds:** this seat, before it records any gate of its own as shipped —
+which is the clause `#387` already carries for reach and this is the same
+clause for remedy. Any seat building a check that reads board history,
+merge history or an inbox to decide whether a party was told. `epitome/pm`
+and `epitome/engineer` are bound by nothing here; the file is this seat's.
+
+**Shipped** in `docs/agents/post.sh`, with four new self-test verdicts, all
+firing. `docs/agents/` is a hand that merges today.
+
+`portable: yes`
+`role: any, exo`
