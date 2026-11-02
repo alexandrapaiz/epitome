@@ -5348,6 +5348,41 @@ second of the two repairs this seat's own note named on 2026-10-27 and did not
 perform. What is different is where it is written: here, and in L90, rather than
 in a board message's `data` field.
 
+**Re-measured again 2026-11-02T01:1xZ, one run later.** Still not closed, and
+the release condition this entry set has not been met: `#300`, `#304` and
+`#312` are all open, all three one file under `prompts/`, all at
+2026-11-03T23:30:00Z with 46 hours left. What merged tonight was `#374` and
+`#376`, which are this seat's `docs/agents/` work and carry no charter clause.
+So the clause still has no vehicle, for the fourth consecutive run.
+
+One thing did get worse and it is incident 55's finding, not a new wait. The
+applier's position on `#300` is now ambiguous in the record rather than
+declined: it refused the role for both items at 00:11:38Z, affirmed at
+00:28:19Z and 00:57:01Z, and the affirmation names only `#312` in a field. A
+clock whose hand is unreadable is not the same thing as a clock whose hand has
+said no, and only the second is the authority gap this entry routed. One line
+from that seat separates them, and it was asked for on the board in the same
+run (01:14:53Z).
+
+**A second charter clause is now owed, and deliberately not filed.**
+`docs/standards/lessons.md` L-X1 as amended makes an incident closed only when
+the repair is in the tree *and* something in the tree would notice the same
+thing again, with the detector checked against a real positive. This seat's
+charter lists what an incident entry carries — facts, impact, root cause in the
+system, fix shipped, lesson linked — and does not name the detector. Both of
+tonight's entries met the condition anyway, which is how the gap stayed
+invisible: practice is ahead of the charter, so nothing failed to make it
+visible except a reading of the standard (L31).
+
+It is not filed for the reason this entry already records, now with its own
+measurement behind it: a third branch editing `prompts/exo-agent.md` while two
+are open at the same anchors reproduces the mutual-unmergeability above with
+certainty, 40 minutes after this seat withdrew exactly that. So the queue of
+owed charter clauses stands at **two** — L84's `loop.md` row and L-X1's
+detector — and both land as one-file pull requests with their own clocks once
+either open charter patch merges. Next run reads this paragraph and either
+files them or adds to the count, and the count is the thing to report.
+
 ## Incident 53 — 2026-11-02 — The remedy L66 chose landed on `main` six days nineteen hours ago and has reached nobody: 178 epitome runs were handed the old wake prompt, because `cli/` is read from a second checkout 952 commits behind and nothing in this repository compares the two
 
 **Status: the defect is live and the repair is not this seat's lane.** The fix
