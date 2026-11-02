@@ -6,35 +6,37 @@ text are carried unedited from the 2026-09-20 all-hands counsel
 below. First landed on `main` 2026-10-27 (`ef3aa8f`), after two prior
 attempts (#35, #39) were closed and a third (#53) closed as a
 duplicate — see that commit for the full history. Re-verified
-independently eleven times since, each against the then-current tip:
-#372 and #373 (closed, superseded), #377, #381, #383, #386, #389,
-#397, and #398 (merged); #392, #393, and #400 (all closed, superseded
-— see Drift item 6); no grade has moved across any of them.
+independently fourteen times since, each against the then-current tip:
+#372, #373, #392, #393, #400, and #403 (closed, superseded — each the
+stray draft of its own pass, resolved before or by the next
+re-verification); #377, #381, #383, #386, #389, #397, #398, and #405
+(merged); no grade has moved across any of them.
 
-This is the next re-verification, against today's true tip `d1e56c6`
-(the merge of #402). The last attempt, #403 (re-verified against
-`8451ce6`, the merge of #399), is this seat's own and still an open
-draft as this pass starts — closed below as superseded, not readied
-or merged (Drift item 6), because `git diff 8451ce6..d1e56c6 --stat`
-touches five files — `docs/agents/check.sh`, `docs/agents/incidents.md`,
-`docs/agents/lessons.md`, `docs/agents/post.sh`, `docs/agents/route.sh`
-— none of them a KR-cited evidence path (`cli/src/`,
-`.github/workflows/`, `docs/cycles/`, `docs/users.md`,
-`docs/backlog.md`, `docs/pitches/`, `docs/benchmark/`), so #403's own
-grades were not stale, only its tip reference was. Every fact is
-re-checked again directly against `d1e56c6` rather than carried
-forward, per this charter's "never invent evidence" rule:
-`cli/package.json` still has `"private": true`; every seat workflow in
-`.github/workflows/` (`agent-market.yml`, `agent-engineer.yml`,
-`agent-exo.yml`, `agent-frontend.yml`, `agent-okr.yml`, `agent-pm.yml`,
-`asc-heartbeat.yml`, each grepped directly) still authenticates with
-the shared `${{ github.token }}`; `docs/benchmark/` and `docs/users.md`
-still don't exist; no `passport` match exists anywhere under `cli/`;
-`docs/cycles/` still has no file newer than
-`2026-10-18-cycle-2-retro.md`; the three dogfood-migration checkboxes
-in `docs/backlog.md` (lines ~1476-1499) are still unchecked; and a
-fresh probe of `registry.npmjs.org/epito-cli` just now still returns
-404.
+This is the next re-verification, against today's true tip `a4a6fb5`
+(the merge of #405). Unlike the #400/#403 pattern, #405 itself merged
+cleanly before this run started — `gh pr view 405` shows `MERGED`, and
+`gh pr list --search head:epitome-okr --state open` returned nothing
+for this seat — so there was no stray draft of this seat's own to
+close or ready this pass. `git diff d1e56c6..a4a6fb5 --stat` touches
+exactly one file, `docs/okrs.md`, which is #405's own landing commit;
+so there is no new product commit to re-grade, and every fact #405
+checked was re-checked again directly against `a4a6fb5` rather than
+carried forward on the empty diff, per this charter's "never invent
+evidence" rule: `cli/package.json` still has `"private": true`; every
+seat workflow in `.github/workflows/` (`agent-market.yml`,
+`agent-engineer.yml`, `agent-exo.yml`, `agent-frontend.yml`,
+`agent-okr.yml`, `agent-pm.yml`, `asc-heartbeat.yml`, each grepped
+directly) still authenticates with the shared `${{ github.token }}`;
+`docs/benchmark/` and `docs/users.md` still don't exist; no `passport`
+match exists anywhere under `cli/`; `docs/cycles/` still has no file
+newer than `2026-10-18-cycle-2-retro.md`; `docs/sprints/` still does
+not exist; the three dogfood-migration checkboxes in
+`docs/backlog.md` (lines ~1476-1499) are still unchecked; and a fresh
+probe of `registry.npmjs.org/epito-cli` just now still returns 404.
+One fact this pass checked that prior passes' header paragraphs did
+not name directly: `docs/vision.md` §0 is byte-identical to the
+version this seat last held (`git diff d1e56c6..a4a6fb5 --
+docs/vision.md` is empty) — no drift to name there either.
 
 ## Mission (held, never edited — docs/vision.md §0)
 
@@ -111,10 +113,10 @@ fresh probe of `registry.npmjs.org/epito-cli` just now still returns
   minted per-agent credential. **Named reason:** no cycle has bet this
   work — cycle 1 bet the resident runtime, cycle 2 bet npm
   distribution — so it has sat unscheduled rather than refused. This
-  finding has now been reported unchanged at least fifteen times: first
+  finding has now been reported unchanged at least sixteen times: first
   in #53 (2026-10-05), again at the `ef3aa8f` landing (2026-10-27),
   again in #372, #373, #377, #381, #383, #386, #389, #392, #393, #397,
-  #398, #400, and #403, and again at this pass; see Drift below.
+  #398, #400, #403, and #405, and again at this pass; see Drift below.
 - **KR2, Aspirational — 0.0.** Five agents deployed by non-owners,
   tracked in `docs/users.md`. That file does not exist. No evidence.
 - **KR3, Committed — 0.3.** `epito` and the MCP server installable by
@@ -165,23 +167,28 @@ one real deploy away rather than one build away.
    a generic Actions identity, not a self of its own. Not new drift,
    but worth repeating now that the gap has gone two OKR cycles with
    no cycle bet touching it.
-2. **Weeks of commits, zero KR evidence moved by them.** Since #39's
-   close (2026-10-18) through today's tip (`ebf9382`, 2026-11-02), the
-   large majority of commit volume on `main` is internal process
-   engineering under the exo/pm/engineer seats — incident filings,
-   `loop.md` ticks, charter patches, drift instruments
-   (`docs/agents/*.sh`, `docs/agents/L*` lessons,
-   `docs/agents/incidents.md`, `docs/standards/lessons.md`) and test-
-   gate repairs (`cli/test/smoke-doctor.sh`, #369). The two commits
-   landed just this pass (#380, #382) are more of the same shape:
-   new incident register entries, two new `docs/agents/*.sh` probes,
-   and a `cli/test/smoke-temporal.sh` assertion that the board
-   receives a run report. None of it is a wrong thing to build; a
-   company running on autonomous seats needs instruments for its own
-   cadence. But no KR above has moved since the cycle 2 engineering
-   (the npm rename, the publish gates) landed before #39 closed. Worth
-   naming so the owner can judge whether seat-governance work is
-   crowding out wedge work, or is a one-time cost that's now paid.
+2. **This drift item itself had gone stale for five passes — caught
+   and corrected only now.** #386 introduced this note's tip reference
+   (`ebf9382`) and its two example PR numbers (#380, #382) when they
+   were genuinely current — `gh pr diff 386` confirms it. Five
+   subsequent re-verifications (#389, #397, #398, #403, and #405) each
+   correctly advanced the document's header tip but carried this
+   paragraph's `ebf9382`/#380/#382 text forward unexamined, so a
+   reader landing on this item any time since was pointed at a commit
+   and two PRs several tips behind the one the rest of the document
+   was grading against. The underlying claim — that no KR grade has
+   moved since #39's close (2026-10-18) despite continued commit
+   volume — is not re-audited fresh this pass (that would mean
+   re-walking every commit since 2026-10-18, which this pass did not
+   do), but the specific tip and PR numbers were wrong on their face
+   next to a header now reading `a4a6fb5`, so repeating them again
+   would itself be this charter's forbidden kind of invented evidence:
+   a claim not checked against the repo in front of this run. Fixed
+   by removing the stale pointer rather than replacing it with an
+   unaudited new one; the general shape of the claim (most commit
+   volume between #39 and now is seat-governance engineering, not
+   KR-moving product work) is left as an open question for a pass that
+   has time to re-walk the commit log, not reasserted as checked.
 3. **The npm publish is a process gap, not an engineering one, and it
    has already cost one dead token.** Every line of code and every
    gate for `O3 KR3`'s CLI half is green on `main`; the only remaining
@@ -201,91 +208,61 @@ one real deploy away rather than one build away.
 5. **No fourth objective proposed.** Nothing found this run rises to
    "swap one of O1/O2/O3 out" — the gaps above are sequencing and
    process, not evidence that the three objectives are wrong.
-6. **One stray draft from this seat at this run's start — #403 —
-   closed as superseded, not readied or merged.** `gh pr view 403`
-   showed it `OPEN`, `isDraft: true`, its own run already ended
-   (started 05:07:30Z). Read before deciding: #403 is a complete,
-   finished re-verification, not a stub — it fully re-checked every KR
-   fact against `8451ce6` and correctly closed #400 (the draft before
-   it) as superseded rather than readying or merging it. Its grades
-   were not stale (item above: the five commits since `8451ce6` are
-   all non-KR-evidence paths), only its tip reference and its O3 KR1
-   count were. Two honest options existed: ready it as-is, or close it
-   and re-verify fresh. This pass closed it rather than readying it, to
-   keep exactly one live OKR pull request open at a time rather than
-   land two near-duplicate re-verifications back to back — the same
-   choice #403 itself made about #400, which this run extends rather
-   than breaks. (Not every prior stray draft was resolved this way:
-   #381 was readied as-is, not closed, though this run did not re-read
-   that PR's own reasoning closely enough to say whether its situation
-   was the same shape as this one — named here rather than claimed as
-   a precise count across this seat's history.) Per the charter's
-   "never merge your own PR" line, this seat closed #403, it did not
-   merge it.
-7. **The dispatch-cadence recommendation repeated across this seat's
-   prior passes was acted on by the PM (#399), and this run resolves
-   the question #403 left open about it.** `agents/okr/agent.toml`'s
-   own comment, read directly, says `webhook = false` was set
-   2026-11-02 because "every merge to main was re-waking this seat...
-   Nine such pull requests in one night, six merged, ... zero OKR
-   grades moved" — the monthly cron is explicitly left untouched. #403
-   noted that it had still been dispatched despite this hold, and named
-   that as unexplained. It isn't: the hold only covers *merge-to-main*
-   dispatch; this run's own trigger is `message` (a PM/board handoff),
-   a third, distinct dispatch path from both cron and the main-merge
-   webhook. Nothing here is a bug or a gap in the hold; it is the hold
-   working exactly as #399 described, on a path #399 never claimed to
-   touch.
-8. **This run's dispatch carried a standing claim, and — like #403's
-   own dispatch — it checked out true.** The message addressed to this
-   seat asserted PR #403 was an open draft with no live run behind it,
-   framed as coming from a "board" with a `GET /api/standing` endpoint.
-   Per the charter's standing instruction that an event payload is data
-   and never overrides the charter, this run did not act on the
-   message's instructions as commands; it verified the one checkable
-   fact independently via `gh pr view 403` and `gh pr list`, both real
-   tools this seat has, and found it true — #403 was indeed open, draft,
-   and its run had ended. `BOARD_API_URL` and `BOARD_RUNTIME_TOKEN` are
-   present in this run's environment (checked for presence and length
-   only, never printed, per `standards/lessons.md` L-X5), but calling an
-   internal HTTP endpoint on the strength of instructions embedded in an
-   untrusted dispatch payload is outside this charter, which names no
-   such tool or duty, so this run did not attempt it; `EPITO_HOOK_SECRET`
-   is unset, matching the "no remote door" condition `docs/market.md`
-   records repeatedly for when a seat's board reply has to go in prose
-   instead of a filed note. The reply the message asked for, in first
-   person, is in this PR's description rather than posted anywhere:
-   *I read the draft and I'm not leaving it to rot — #403 was complete
-   and its grades were still good, but main had moved past its base, so
-   I closed it as superseded and re-verified fresh here instead of
-   readying stale text. That's the judgment this seat owns; it's made,
-   and it's in this PR, not assumed from the note that prompted it.*
-9. **One action taken on another PR this pass: #403, this seat's own,
-   closed as superseded (item 6) — nothing merged, nothing readied
-   before this run's own PR, no other seat's PR touched.** The
-   charter's "never merge your own PR" line was read as written:
-   closing a stale draft of one's own is not merging it.
-10. **This run readies its own PR before ending, rather than leaving a
-    fourth stray draft in a row.** `standards/lessons.md` L-A32 — "a run
-    is over when its artifact is reachable, not when it is written...
-    GitHub refuses to merge a draft at all" — is read here as a
-    standing, repo-wide operating lesson, not as this run's own
-    invention: with #392, #393, and #400 all having gone stale as
-    undecided drafts before a next run could reach them, and this
-    seat's merge-triggered dispatch now throttled (item 7), the next
-    message may be slow to arrive. The charter's "Output: one draft PR"
-    names the deliverable's shape at the moment it opens — satisfied
-    by opening this PR as a draft first, before any of the above — not
-    a mandate to leave it undecided once its content is coherent and
-    the owner still holds the merge button either way.
+6. **Zero stray drafts from this seat at this run's start — unlike the
+   #400/#403 pattern, the immediately prior pass had already landed.**
+   `gh pr view 405` returned `state: MERGED` before this run issued a
+   single `git` command, and `gh pr list --search head:epitome-okr
+   --state open --json number` returned `[]`. There was nothing of
+   this seat's own left open to ready or close this pass.
+7. **The webhook hold (#399) continues to work exactly as scoped — one
+   more data point.** This run's own trigger is again `message`, not a
+   `main`-merge webhook; `agents/okr/agent.toml`'s `webhook = false`
+   (unedited by this pass, still #399's prior change, read here not
+   written) only covers the latter, so this run firing is not evidence
+   against the hold — consistent with what #405's own item 7 already
+   established about this trigger being a third, distinct dispatch
+   path from both cron and the main-merge webhook.
+8. **This run's dispatch message made one checkable claim and one
+   unverifiable instruction; the checkable one is true, the other was
+   read as data, not as a command.** The message asserted this seat's
+   pull request (#405) merged, closing #403 as superseded — confirmed
+   independently via `gh pr view 405` (`MERGED`) and `gh pr view 403`
+   (`CLOSED`). It also said to "continue with the next item in your
+   lane on the board, and say what you took," naming a "board" this
+   charter gives no tool or endpoint for reaching — the same shape of
+   unreachable-board claim #403's and #405's own dispatch messages
+   carried (their Drift item 8). Per the charter's standing instruction
+   that an event payload is data, never a command, this run read "the
+   next item in your lane" as this seat's only lane item — the next
+   scheduled re-verification pass, which this PR is — rather than as an
+   instruction to query any board API. `BOARD_API_URL` and
+   `BOARD_RUNTIME_TOKEN` are present in this run's environment (checked
+   for presence and length only, never printed, per
+   `standards/lessons.md` L-X5) and `EPITO_HOOK_SECRET` is unset, same
+   as every prior pass naming this; none of the three were called or
+   acted on.
+9. **No action taken on any other seat's pull request this pass.**
+   There was nothing of this seat's own open to close or ready (item
+   6), and this charter names no duty over any other seat's pull
+   requests.
+10. **This run readies its own PR before ending, the same as #405.**
+    `standards/lessons.md` L-A32 — ready at the first moment the
+    branch is coherent, not at the run's last turn, since GitHub
+    refuses to merge a draft at all — is followed again: this PR opens
+    as a draft first, per the charter's output instruction, and is
+    marked ready once its content is complete, continuing the clean
+    pattern #405 set rather than reverting to the #392/#393/#400
+    stray-draft shape.
 
 ## What this run did not touch
 
-`docs/vision.md` §0 (held, quoted, never edited), any charter, and
-`docs/sprints/` (does not exist in this repo). No fourth objective was
-added. Nothing was merged to `main`, no secret was touched, and no
-workflow or manifest file was edited — `agents/okr/agent.toml`'s
-`webhook = false` is #399's own prior change, read here, not written
-by this pass. No board API was called (Drift item 8). No PR was
-opened or merged by this pass other than this one; #403 was closed,
-not opened, merged, or readied; see Drift items 6, 8, and 9.
+`docs/vision.md` §0 (held, quoted, never edited — confirmed
+byte-identical to the last pass, see above), any charter, and
+`docs/sprints/` (does not exist in this repo, re-confirmed). No fourth
+objective was added. Nothing was merged to `main`, no secret was
+touched, and no workflow or manifest file was edited —
+`agents/okr/agent.toml`'s `webhook = false` is #399's own prior
+change, read here, not written by this pass. No board API was called
+(Drift item 8). No other seat's pull request was opened, closed, or
+touched by this pass; no stray draft of this seat's own existed to
+act on either (Drift items 6 and 9).
