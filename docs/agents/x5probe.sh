@@ -32,6 +32,18 @@ set -uo pipefail
 cd "$(git rev-parse --show-toplevel)" || { echo "could not look: not in a git repository" >&2; exit 2; }
 
 CHECKER=${X5PROBE_CHECKER:-tools/check-secret-print.py}
+# Emptied before the flag is read, which is what the three other seat tools
+# that hold their self-test in a variable already do (owed.sh:49,
+# pointers.sh:83, drafts.sh:66). Here it is not a convention, it is the thing
+# that stops this file forking without bound: the self-test below re-invokes
+# this script, so a `SELFTEST=1` inherited from the ENVIRONMENT selects the
+# self-test in the child as well, and in its child. Measured by running
+# `SELFTEST=1 bash docs/agents/x5probe.sh` once on 2026-11-02: it reached a
+# thousand processes and load average 1091 on this box before it was killed.
+# `--self-test` never did this, because a flag is not inherited -- which is
+# why the usage line above documents the flag and this line makes it the only
+# way in.
+SELFTEST=
 while [ $# -gt 0 ]; do
   case "$1" in
     --checker) CHECKER=$2; shift 2 ;;
@@ -49,11 +61,21 @@ ask_command() {            # 0 = the checker DENIES this command, 1 = allows
 }
 
 ask_hook() {               # 0 = the checker DENIES this edit, 1 = allows
-  python3 - "$1" "$2" <<'PY' | python3 "$CHECKER" --hook 2>/dev/null | grep -q '"permissionDecision": "deny"'
+  # Three steps rather than one pipeline, because the last stage used to be
+  # `| grep -q`: quiet grep exits on its first match, the checker whose pipe it
+  # just closed dies writing into it, and `pipefail` carries that death as the
+  # verdict -- so this probe could report ALLOWED for an edit the checker
+  # DENIED. `cli/test/shapes.sh` caught it the day after this file landed
+  # (#388) and it is the one site that put that gate in the red on `main`.
+  local payload verdict
+  payload="$(python3 - "$1" "$2" <<'PY'
 import json, sys
 print(json.dumps({"tool_name": "Write",
                   "tool_input": {"file_path": sys.argv[1], "content": sys.argv[2]}}))
 PY
+)"
+  verdict="$(printf '%s\n' "$payload" | python3 "$CHECKER" --hook 2>/dev/null)"
+  grep -q '"permissionDecision": "deny"' <<<"$verdict"
 }
 
 # The self-test is a negative control, not a smoke test. Every probe above
@@ -62,7 +84,7 @@ PY
 # upstream would, and the probes are run against it: four FIXED and exit 0. A
 # detector nobody has seen answer the other way is a second thing written down
 # (L-X1 as amended).
-if [ "${SELFTEST:-}" = 1 ]; then
+if [ "$SELFTEST" = 1 ]; then
   tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
   cat > "$tmp/fixed.py" <<'STUB'
 import json, re, sys
@@ -95,7 +117,10 @@ if "--command" in argv:
 sys.exit(0)
 STUB
   echo "== negative control: the probes against a stub that behaves as FIXED =="
-  X5PROBE_CHECKER="$tmp/fixed.py" bash "$0" --checker "$tmp/fixed.py" > "$tmp/out" 2>&1
+  # `env -u SELFTEST` as well as the emptying above: the child is the half
+  # that must not re-enter this branch, and saying so at the call site is what
+  # a reader of this line needs to see.
+  env -u SELFTEST X5PROBE_CHECKER="$tmp/fixed.py" bash "$0" --checker "$tmp/fixed.py" > "$tmp/out" 2>&1
   rc=$?
   sed -n '/^  F[0-9]/p' "$tmp/out" | sed 's/^/  /'
   n=$(grep -c 'FIXED' "$tmp/out")
