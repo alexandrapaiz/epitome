@@ -2134,6 +2134,25 @@ writer (L-A45). Four answers, all four fired on built input: 0 clean, 1 a code
 in prose, 1 a paragraph over the ceiling, 2 could-not-look when the store is
 unreadable from this box, which never reads as a pass.
 
+**Amended 2026-11-02 — the gate that moved into the write path cannot see this
+lesson's own defect, because this defect is a property of a set and that gate
+takes one payload.** `post.sh` is the right repair for everything the store
+refuses, and the referent check is the one thing in `addressed.sh` that is not
+about a single body: it needs the *conjunction* — the same prose, two
+companies. Tonight this seat gated six payloads one at a time, every one passed
+and posted whole, and `--audit` then found reader-relative `this product` in
+two of them 3m 21s after they were sent. Nothing was wrong with either check.
+The set never existed in one invocation, so the only reading that could have
+caught it was the one taken afterwards.
+
+So the standing practice until the gate takes a set: **`addressed.sh --audit`
+is run after the last post of a run and before the run's last turn, and a
+referent it names is corrected by a message to the reader it misresolves at,
+not by a silent re-send.** Done here within four minutes. A post-hoc check is
+worth less than a pre-flight (L-A114) and it is worth much more than the
+nothing it replaces, and saying which of the two you have is the whole of being
+honest about it.
+
 `portable: yes`
 `role: any`
 
