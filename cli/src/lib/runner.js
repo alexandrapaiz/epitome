@@ -799,13 +799,19 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     // it can honestly be until the executor streams; a wedge detector that
     // reads the child's own progress is the next piece and is not this one.
     let ticking = false;
+    // The child is gone but the run is not settled yet: the close handler is
+    // still asking the code host about the pull request. A reading already in
+    // flight when that starts would write "still running" about a run that has
+    // stopped, which is one word of fiction in the one file somebody reads to
+    // find out what happened.
+    let over = false;
     const tick = async () => {
-      if (ticking || settled) return;
+      if (ticking || over || settled) return;
       ticking = true;
       try {
         const now = Date.now();
         const p = await readProgress(workDir, base);
-        if (settled) return;
+        if (over || settled) return;
         write(`${progressSays(p, { elapsedMs: now - spawnedAt, bytes, now })}\n`);
         onOutput?.();
       } catch (e) {
@@ -821,6 +827,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
       // because GitHub was slow to answer about it.
       clearTimeout(timer);
       clearInterval(ticker);
+      over = true;
       const stoppedAt = Date.now();
       const exit = timedOut ? "timeout" : (code ?? signal);
       // The window first, because a result object pretty-printed across lines

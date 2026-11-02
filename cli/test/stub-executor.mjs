@@ -48,6 +48,17 @@
 //                    that kept its scratch across a resumed run from a fresh
 //                    one. `EPITO_STUB_SCRATCH_WAIT_MS` widens the window
 //                    between the write and the read.
+//   EPITO_STUB_COMMITS
+//                    make this many commits in the clone it was given, on a
+//                    branch of its own, BEFORE it says anything — which is
+//                    what a working run looks like to everything outside it
+//                    while `--output-format json` holds its words back.
+//   EPITO_STUB_SLEEP_MS
+//                    then sleep this long. A run that is killed during this
+//                    sleep never reaches the result object below, so the log
+//                    it leaves is the one a run killed at the bound leaves:
+//                    a header, a footer, and whatever the runtime wrote
+//                    itself.
 //   EPITO_STUB_ECHO_TOKEN
 //                    print the GH_TOKEN this child was handed, in its result.
 //                    The identity slice's whole claim is about which
@@ -98,6 +109,23 @@ if (refuse && process.env.ANTHROPIC_BASE_URL === refuse) {
   }) + "\n");
   process.exit(1);
 }
+
+// Work, before words. The commits are the only thing that leaves this process
+// before it exits, which is exactly the asymmetry the runtime now reads.
+const commits = Number.parseInt(process.env.EPITO_STUB_COMMITS ?? "0", 10);
+if (Number.isFinite(commits) && commits > 0) {
+  const { execFileSync } = await import("node:child_process");
+  const git = (...a) => execFileSync("git", a, { cwd: process.cwd(), stdio: "ignore" });
+  git("checkout", "-q", "-b", `stub-work-${sessionId.slice(0, 8)}`);
+  for (let i = 1; i <= commits; i++) {
+    writeFileSync(join(process.cwd(), `work-${i}.txt`), `turn ${i}\n`);
+    git("add", "-A");
+    git("-c", "user.name=stub", "-c", "user.email=stub@example.invalid", "commit", "-q", "-m", `the ${i} of ${commits} things this run finished`);
+  }
+}
+
+const sleepMs = Number.parseInt(process.env.EPITO_STUB_SLEEP_MS ?? "0", 10);
+if (Number.isFinite(sleepMs) && sleepMs > 0) await new Promise((r) => setTimeout(r, sleepMs));
 
 const prior = existsSync(transcript) ? readFileSync(transcript, "utf8").trim().split("\n").filter(Boolean) : [];
 writeFileSync(transcript, [...prior, JSON.stringify({ ts: new Date().toISOString(), cwd: process.cwd(), resumed: Boolean(resume), prompt })].join("\n") + "\n");
