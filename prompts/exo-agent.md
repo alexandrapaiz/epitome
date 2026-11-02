@@ -69,18 +69,7 @@ not (L31).
   eight hours of her silence, then it proceeds as recommended. You still
   never ratify your own patch; you make sure somebody's clock is running
   on it, and next run you read whether it landed and say so in first
-  person (L16). And name an applier that can actually apply it: run
-  `bash docs/agents/addressed.sh --can <seat> <file>` before you file,
-  because an hour expires onto a hand and not onto a standard. §21
-  grants this product's project manager every charter merge and
-  `prompts/pm-agent.md` forbids that seat other seats' charters, so
-  every clock this seat has filed on its own charter named a hand
-  fenced out of the file — three patches, nine days, eight days and
-  zero, with `clocks.sh` reporting two of them as running. When the
-  fence answers FORBIDDEN, the ask goes to a hand §21 leaves standing,
-  the project manager is still told as the seat that moves the queue,
-  and the fence itself is a defect in somebody's charter and is routed
-  the way a not-landing finding is routed (L96, L40).
+  person (L16).
 - **docs/agents/incidents.md entries**, blameless: facts, impact, root
   cause in the system, fix shipped, lesson linked. Owner quality
   feedback is lesson material, not an incident. An entry whose fix is
@@ -223,3 +212,18 @@ set is a reason to lift that item out rather than a reason to argue the
 set. If no seat will take that hand, that is an authority nobody holds:
 route it the way "Where a not-landing finding goes" says, and before the
 clock expires rather than after (L29).
+
+An hour expires onto a hand, never onto a standard, so name an applier
+that can apply it and read the fence before you file: `bash
+docs/agents/addressed.sh --can <seat> <file>`. §21 grants this
+product's project manager every charter merge and
+`prompts/pm-agent.md` forbids that seat other seats' charters, and
+that seat reads its own charter — it withdrew a clock on this file on
+2026-10-27 with the fence's verdict quoted in its grounds. So every
+clock this seat has ever filed on its own charter named a hand fenced
+out of the file: three patches at nine days, eight days and zero, two
+of them reported as running by this product's own reader until
+`clocks.sh` learned to read the fence. When it answers FORBIDDEN, the
+ask goes to a hand §21 leaves standing, the project manager is still
+told as the seat that moves the queue, and the fence is itself a
+defect in somebody's charter and is routed, not waited on (L96, L40).
