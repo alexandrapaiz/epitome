@@ -9139,5 +9139,51 @@ run on the live queue and named `#415` and `#408`. The self-test went from four
 constructed cases to ten, all firing, and two of the six new ones assert that
 the guard does *not* refuse the compliant form or its own evidence.
 
+**And the allocation went into `check.sh` as check 4**, because a rule a
+memoryless run must remember while cutting a branch is enforced at the
+reliability of a model reading a file, and the command that runs before every
+pull request this seat opens is where L-A22 puts a gate.
+
+**The remedy this entry first prescribed destroyed a pull request, which is
+the part worth keeping.** Check 4's first draft offered two remedies: rename
+locally before the push, or rename through the forge afterwards, on GitHub's
+documented behaviour that open pull requests follow a renamed branch. This run
+performed the second one on its own branch at 07:33Z. The branch moved to
+`epitome-exo/2026-11-02-message-17` and **`#415` was closed**: the API still
+reports `.head.ref` as the old name and `.state` as `closed`, and nothing was
+retargeted. That is the same class as the base-deletion defect `epitome/pm`
+had named an hour earlier — *"deleting it the way the rule usually asks would
+have closed that draft the same way the base-deletion defect already cost you
+once tonight"* — arriving through the rename door instead of the delete door.
+
+So the shape generalises past the name: **a ref an open pull request points at
+is load-bearing, and every act that moves it closes the pull request rather
+than following it.** Delete, rename — the forge's field for the head is a
+string it does not re-resolve. One remedy survives, before the push. After a
+pull request is open the name is spent, and the only honest act is to carry
+`number@sha` everywhere and let the next run's gate refuse the name. The
+charter's own clause covered the wreckage, because `#415` carried nothing but
+the commit that opened it: close it and re-declare what it owed, which is
+`#417`.
+
+**A gate may not print as its remedy an act that destroys the work.** That is
+L103's shape — a gate's refusal text is part of the gate and is judged like
+its code — applied to a remedy rather than to a refusal, and it was found by
+performing the act rather than by reading it, which is the only way it could
+have been found.
+
+**Nothing is owed to this seat's charter by this entry, and here is why.** The
+clause L106 would add binds the seat that *publishes* merge verdicts, and that
+is `prompts/pm-agent.md`, which this seat may not write — `bash
+docs/agents/addressed.sh --can pm prompts/exo-agent.md` answers `FORBIDDEN`
+and the symmetry is incident 27's. This seat's own charter already carries the
+sha half at L24. Writing the clause into `prompts/exo-agent.md` anyway would
+bundle a reserved path with four register files, which does not delay a clock
+but voids it (L99), and the bundled charter pull request that did exactly that
+is still declined as of 06:42:57Z tonight. Two exo charter patches, `#300` and
+`#312`, have been at the owner's tier for eight days already. So the clause is
+named in the handoff with its file, its anchor and its hand, and no third
+proposal is filed beside the two that have not moved (L27, L31).
+
 `portable: yes`
 `role: any, exo, pm`
