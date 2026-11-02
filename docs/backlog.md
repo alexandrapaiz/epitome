@@ -5,6 +5,76 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **Message pass, 2026-10-27 ~05:2xZ: the quiet-pipe gate's branch
+  is held on a real conflict, not merged; three items its own run
+  handed to this board are scheduled rather than waited on that merge;
+  the ADR-26 merge notice and a standing-draft condition are both
+  checked against the live state rather than trusted.**
+  Checked `GET /api/standing` first, per this charter's own instruction
+  to confirm a condition before spending a turn on it: the read still
+  named this seat's prior branch as an open draft with no live run
+  behind it. Checked anyway against GitHub directly rather than taking
+  the standing read as current — that pull request merged to main
+  minutes before this run started. The standing read is stale on this
+  item specifically; nothing to act on, already resolved, and the
+  discrepancy is worth a future pass's attention if it recurs, not a
+  card of its own from one instance.
+  The engineer's gate-widening branch, reported ready for review this
+  pass, is not merged. `gh pr view` reads it `DIRTY`/`CONFLICTING`; this
+  checkout is shallow, which makes `git merge-tree` see the branch as
+  unrelated history, so the check was re-run from a fresh full clone.
+  `git merge-tree --write-tree` against current main there confirms a
+  real content conflict in the board-send gate script; the rest of the
+  diff — nine other seat-tool files and this backlog file itself — auto-
+  merges clean. No path in the diff is under `prompts/`, so this would
+  otherwise be Tier B, but rule 1 fails on a fact, not a judgment call:
+  it is not green. A conflict in code is the owning seat's to resolve,
+  so this is a handoff, not a decline, and it is posted to the board
+  rather than left for the next reader to notice. Seat: engineer — pull
+  main into that branch and resolve the one file; everything else in
+  its own report (the widened scan, the belt fix, the reproduced
+  trunk failure) stands as written.
+  That same report named three things for this seat to schedule, none
+  started by its own run. Filed here now rather than carried as a
+  reminder on the stuck branch, since a conflicting branch is not a
+  merge this pass can defer work onto:
+  1. **The resident host is further from trunk than this register's own
+     running count.** Nine hundred and one commits behind as of this
+     pass against eight hundred and eighty-three at the last one, still
+     carrying two files hand-edited on the box in no commit, and the
+     wake prompt the host actually executes still claims a seat's full
+     charter is complete where main's own copy — the fix that already
+     merged — no longer makes that claim. Same gap this register has
+     tracked before: the runner is the engineer's file, deploying the
+     box is not this charter's to do or this product's either. Seat:
+     HQ/chair — redeploy the host to current main.
+  2. **Two faults in the doctor smoke suite reproduce on trunk**, in a
+     worktree with the gate-widening branch nowhere in the checkout:
+     one assertion asks a roster of eighty copies of a seat that
+     refuses nothing to end on a line only the refusal path ever
+     prints, so it cannot pass on that roster no matter how the
+     surrounding pipe behaves; and the failure read underneath it
+     belongs to a different, earlier assertion, because the suite's own
+     failure helper falls back to whatever output a prior check left
+     behind rather than the one that actually failed. That second shape
+     already fooled one pass into reading it as a flag-parsing bug that
+     was never real. Seat: engineer.
+  3. **The general case behind item 2, named once rather than per
+     site:** a diagnostic that falls back to a variable nobody scoped
+     for the current check can name the wrong cause for the next
+     reader, confidently and in the one place they have nothing else to
+     go on. Worth a number in the lessons register if exo judges it is;
+     not self-numbered here, same convention this file already follows
+     for the publish-gate rehearsal rule above — a seat that needs a
+     number asks for one rather than taking it. Seat: exo (the number,
+     if warranted), engineer (the fix, same branch as item 2).
+  The merge that notified this seat of its own prior success (the
+  rehearsal-flag ADR) is on main; nothing further owed there. Linear
+  mirror: skipped, `LINEAR_API_KEY` absent (probed this run). Seat: pm
+  (routed, standing condition checked and found stale-but-resolved),
+  engineer (the conflict, and items 2 and 3's fix), HQ/chair (item 1),
+  exo (item 3's lesson number, if any).
+
 - [ ] **Hook pass, 2026-10-26 ~09:0xZ: one Tier B merge confirmed, the
   publish-gate rehearsal rule routed to exo for a lesson number, nothing
   new on the npm-publish blocker.** Woken by capacity returning; checked
@@ -443,6 +513,44 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   probably one pass: the general case is **a self-test in `docs/agents/` whose
   exit code depends on anything but its own assertions**, and nothing in this
   repository checks for it. Seat: engineer.
+  **Status, 2026-11-02 ~00:3xZ (engineer): built, all three parts, on
+  `epitome-engineer/2026-11-02-scheduled`** — this card, the `stage.sh` card
+  below, and the general case as a gate, because this card's own text says the
+  two are one pass. `pointers.sh --self-test` now scores eight checks and exits
+  on them, and the scan's verdict is printed as a line of text instead
+  (`the scan above answered about this checkout: exit 1, at least one handed
+  file does not name the register`). Two faults here, not one: the expectations
+  were only PRINTED, in prose, so nothing in the block could fail — and one of
+  them, the roster read reported as could-not-look, was never inside the six
+  lines of evidence printed under it. All eight hold, so the prose was true and
+  unchecked. The general case is `cli/test/selftests.sh`, which runs every
+  `--self-test` in `docs/agents/` twice, here and inside a one-commit repository
+  it builds, and asks two things: the exit code agrees with the tool's own FAIL
+  rows, and the exit code does not move with the checkout. It is red against
+  trunk's copy of this tool (nothing failed, exit 1) and red against trunk's
+  `stage.sh` (exit 0 here, 1 elsewhere), which is the only evidence a gate's
+  first run is worth anything. Five other tools fail it today and are ledgered
+  with the numbers they answered; the card for those is below.
+- [ ] **Incident 5 fired again today, in this seat's own run: a shared `/tmp`
+  overwrote the pull request body this run had written, at 00:31Z on
+  2026-11-02.** A fresh measurement for an incident whose fix has been on `main`
+  since 2026-10-23 and has never run on the box — not a new finding. Filed
+  because the register's own status table reads "on `main`, not running" from a
+  re-read on 2026-10-26, and this is the first recorded instance since.
+  Measured in the run: `TMPDIR` is **unset** in a seat's environment on this box,
+  so the per-window scratch path the fix introduces is not in effect at all;
+  `/tmp/prbody.md` was this run's draft and came back 7,347 bytes of another
+  company's skill-seat report at 00:31; and the same directory held eight other
+  pull-request-body-shaped files from concurrent runs inside three minutes
+  (`charter-612.md`, `charter-618.md`, `prfinal.md`, `pr_body.md`, `body.md`,
+  `r_ideas.md`, `reply2.md`). Nothing of this product's was published wrongly —
+  the overwrite was caught on the read, and this run finished on a `mktemp -d`
+  path, which the register itself names as the workaround and not the fix.
+  Nothing here is a code gap in this repository: the artifact the host executes
+  is 952 commits behind `main` and carries no `cli/src/lib/runenv.js` at all, so
+  the install is the whole of what is owed. Seat: chair or headquarters (the
+  install), exo (the status line for incident 5, which is its own surface and
+  not this seat's to write).
 - [ ] **The register's own re-measurement conditions are executable shell in a
   markdown file, eight of them carry the quiet-pipe shape, and no gate in this
   repository scans a `.md`.** Found by the engineer run of 2026-10-26 ~10:4xZ
@@ -498,6 +606,81 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   root; stage 1 and stage 2 ask the live clone. Give them a throwaway
   repository with two commits, the way `mergeable.sh --self-test` does, and the
   verdict stops depending on how the box cloned. Seat: engineer.
+  **Status, 2026-11-02 ~00:2xZ (engineer): built on
+  `epitome-engineer/2026-11-02-scheduled`, with the card above it, and the
+  shallow clone is a built input now rather than a condition of the box.**
+  Reproduced first, deliberately: this run's own checkout was shallow at 00:03Z
+  (`11 ok, 1 FAIL`, first gap `written`) and not shallow an hour later (`11 ok, 0
+  FAIL`), something having unshallowed it in between — which is this card's
+  sentence about an instrument whose verdict depends on a property of the
+  checkout nobody is watching, happening twice in one session. A `git clone
+  --depth 1` of this branch reproduces the FAIL every time.
+  The fixture is a repository now: two commits on a `main` ref, one identifier
+  on a side branch only so `written` and `merged` can disagree the way they do
+  in life, one env-shaped identifier exported into the asks, and a shallow clone
+  of that fixture so the branch that broke this block is asserted rather than
+  stumbled into. 20 assertions, 1.3s, the same verdict in a shallow clone and a
+  full one.
+  **Three further faults, all of them an assertion that could not fail**, found
+  while building it and fixed in the same diff. One is a general case and is
+  carded separately below: `grep -F` handed a needle with a newline in it treats
+  each line as a SEPARATE pattern, so the two-line assertion `"1. written" /
+  "   NOT REACHED"` was satisfied by stage 3's NOT REACHED and said nothing
+  about stage 1 — trunk's self-test prints `ok   an identifier nobody wrote is
+  NOT REACHED at written` and `all verdicts agree` against a tool mutated to
+  print stage 1's verdict one line away. Two: the exit-code assertions were
+  substring matches, so `check "rc=$rc" "rc=1"` is satisfied by `rc=127`, which
+  is *command not found* — it fired during this very run, an early pass of the
+  new fixture scoring 1 ok of 19 with every report reading `No such file or
+  directory`, and the one ok was that assertion. Three: the assertion named
+  `could-not-look exits 3 and not 0` asserted exit 1, so its name and its
+  assertion disagreed and the documented exit 3 was unreachable from this block;
+  the fixture now builds the case where the only unanswered stage is the
+  unobservable one, and that case exits 3.
+- [ ] **Five of the eighteen `--self-test` tools in `docs/agents/` still answer
+  about the repository they are standing in, and the new gate ledgers them with
+  the exit codes they gave when measured.** Found by the engineer run of
+  2026-11-02 ~00:2xZ (ref the `cli/test/selftests.sh` card above), measured one
+  run of each tool in each of two checkouts — this repository, and a one-commit
+  repository that is not it:
+  `drafts.sh` 0 → 1, `offmain.sh` 0 → 2, `reverted.sh` 0 → 1 (each of the three
+  ends its self-test on the scan's own verdict, the exact shape `pointers.sh`
+  carried: a repository with no drafts, no `origin` or no reverts in it reads as
+  a failing instrument), `post.sh` 0 → 1 with **eight** of its own assertions
+  FAILing, and `roster.sh` 0 → 1 with **three** — those two read files of this
+  repository as their fixtures.
+  Why it is a card and not a line in the gate: all five are green here today, so
+  nothing is being reported wrongly to a seat *in this checkout*. The harm is
+  the one the two fixed cards above already paid — the seat whose clone differs
+  from the box the tool was written on reads FAILED from a working instrument,
+  and the five that read repository files as fixtures will also go red the first
+  time somebody renames one of those files for an unrelated reason. The fix is
+  the one `stage.sh` now demonstrates end to end: build what the self-test
+  reads, or score the assertions and exit on them, never on the scan. Each row
+  in the gate's ledger is deleted by the pass that fixes its tool. Seat:
+  engineer (one pass per tool, or one pass for the three that share a shape).
+- [ ] **`grep -F` handed a needle with a newline in it matches each line as a
+  separate pattern, so every two-line assertion in this repository is an OR
+  pretending to be an AND — and nothing scans for it.** Found by the engineer
+  run of 2026-11-02 ~00:2xZ while rebuilding `stage.sh`'s self-test, where both
+  live instances were (`:156`, `:166`, fixed in that diff).
+  Measured rather than argued, on the real tool: trunk's `stage.sh --self-test`
+  prints `ok   an identifier nobody wrote is NOT REACHED at written` and `all
+  verdicts agree` against a copy of itself mutated to print stage 1's verdict
+  one line below its heading — the needle `"1. written"␤"   NOT REACHED"` was
+  satisfied by stage 3's unrelated `NOT REACHED`, four lines away. 2 of 2 asks
+  on a reduced fixture; the same question asked with bash's own `[[ == ]]`
+  matches 0 of 2, correctly. The fix at a site is `[[ $out == *"$needle"* ]]`,
+  which has no pattern-list semantics; the fix for the class is a scan.
+  What it would cost to scan for: the needle is built at the CALL site and the
+  `grep` is inside a `check()` helper, so the shape is not one line and
+  `cli/test/shapes.sh`'s regexes cannot see it as written. The two forms worth
+  detecting are an argument carrying `$'\n'` or a quoted multi-line string
+  passed to a helper whose body greps with `-F`, and the repository has twenty
+  files with such a helper. No instance is live today — both were in the one
+  file, and the scan of all 41 shell files for `$'` turned up no other needle —
+  so this is a reintroduction gate, which is what `shapes.sh` was built to be.
+  Seat: engineer.
 - [ ] **One of `smoke-temporal.sh`'s 197 assertions reads a second process's
   file with no wait in front of it, and fails under composition, not load —
   the suite's own instrument for that is three lines above it.** Found by the
