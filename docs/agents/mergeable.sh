@@ -192,8 +192,20 @@ selftest() {
   # inputs, built here rather than borrowed from the queue, so this passes or
   # fails the same way on any clone.
   local work root rc=0
-  root=$(pwd); work=$(mktemp -d)
-  git init -q "$work"; git -C "$work" config user.email x@x; git -C "$work" config user.name x
+  root=$(pwd)
+# A SCRATCH DIRECTORY IS A FIXTURE'S ONLY ISOLATION, SO IT IS CHECKED (L41,
+# L-A71). `mktemp -d` fails on a full disk -- this box stood at 507M free of
+# 45G on 2026-11-02 -- and an unchecked failure leaves the variable EMPTY,
+# which is not "nowhere". `git -C ""` operates on the current directory and
+# exits 0 doing it, measured directly, so every write below lands in the
+# repository the seat is standing in. It did: at 07:35Z this file's own
+# fixture renamed a live run's branch to `trunk` and destroyed it, created
+# `parent`, `child` and `rogue` beside it, and moved HEAD, in the checkout the
+# run was working in. Four commits survived only because they had been pushed
+# (L-A30).
+  work=$(mktemp -d) || { echo "could not look: no scratch directory" >&2; return 2; }
+  git init -q "$work" || { echo "could not look: could not init $work" >&2; return 2; }
+  git -C "$work" config user.email x@x; git -C "$work" config user.name x
   echo base > "$work/f"; git -C "$work" add f; git -C "$work" commit -q -m base
   git -C "$work" branch -M trunk
   # A stack: parent diverges from trunk in one file, child adds an untouched one.

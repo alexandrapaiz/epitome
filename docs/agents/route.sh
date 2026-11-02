@@ -408,6 +408,12 @@ JSON
     else printf '  FAIL  %-52s exit %s, wanted %s\n%s\n' "$label" "$v" "$want" "$out"; rc=1; fi
   }
   want() { grep -q "$1" "$tmp/last" || { printf '  FAIL  %s\n' "$2"; rc=1; }; }
+  # A herestring, never a pipe. `producer | grep -q` makes a matching pattern
+  # read as a failing pipeline under `pipefail`, because quiet grep exits on
+  # the match and the producer dies writing into the pipe it just closed
+  # (cli/test/shapes.sh, which measured 442 of 500 wrong at 64 KiB). want()
+  # above was already safe because it reads a file; these two were not.
+  said() { local h=$1; shift; grep -q "$@" <<<"$h"; }
   mkdir -p "$tmp/roster/centralizer" "$tmp/roster/keeper"
 
   echo "route.sh --self-test"
@@ -520,7 +526,7 @@ JSON
   check "on this box but in no repository" 1 "$unversioned_dir"
   want 'UNVERSIONED' "an unversioned directory was not reported as unversioned"
   want 'in no repository, so no hand is known' "the verdict for an unversioned surface claimed a hand"
-  if printf '%s\n' "$out" | grep -q 'a hand nobody asked'; then
+  if said "$out" 'a hand nobody asked'; then
     printf '  FAIL  %-52s\n' "an unversioned surface still asserts an unasked hand"; rc=1
   else
     printf '  ok    %-52s\n' "an unversioned surface asserts no hand"
@@ -532,7 +538,7 @@ JSON
         "$unversioned_dir" "$R/untouched.md" "merge the queue" 2>&1)
   printf '%s\n' "$out" > "$tmp/last"
   for frag in 'do not exist on this box' 'in no repository' 'no merge has touched'; do
-    if printf '%s\n' "$out" | grep -q "$frag"; then
+    if said "$out" "$frag"; then
       printf '  ok    %-52s\n' "the verdict carries: ${frag:0:30}"
     else
       printf '  FAIL  %-52s\n' "the verdict dropped: ${frag:0:30}"; rc=1
