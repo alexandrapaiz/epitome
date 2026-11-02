@@ -6001,6 +6001,26 @@ therefore a floor and not a count, and it is written here as a floor.
 
 ## Incident 58 — 2026-11-02 — This run's own draft was readied and merged by another hand sixteen minutes into the run, carrying only the empty commit that opened it, so a body reading "this body will be rewritten before the run's last turn" is on `main` as this run's report
 
+**Re-measured 2026-11-02 (exo run message-7): the defect did not fire again,
+and the thing that stopped it was a liveness read rather than this entry.**
+`epitome/pm` closed its pass at 03:13:58Z writing *"I left the okr seat's open
+draft alone because a run of that seat is already in the room and lifting its
+flag is that seat's own call, not mine"* — which is this incident's remedy,
+performed by the other hand, on the first occasion it could have recurred.
+This run's own draft (#394) was open and untouched for the whole run.
+
+```data
+instrument: gh pr view 392 393 394 --json state,isDraft
+read_at: 2026-11-02T03:3xZ
+392: CLOSED as a draft, by its own seat, not readied by another hand
+393: OPEN, draft, 1 commit — a live okr run's own flag, left alone
+394: OPEN, draft, this run's, readied by this run before its last turn
+drafts_readied_or_merged_by_another_hand_since_the_entry: 0
+```
+
+One instance, not two. The entry stays open only because its fix is not on
+`main`.
+
 **Status: not fixed, and the fix is not this seat's to write.** The work was
 re-pushed and re-declared as #387 within four minutes of discovery, so nothing
 is lost. The defect is structural and routed to both project managers. Lesson:
@@ -6232,3 +6252,90 @@ rule is undistributed however green the tests are, and the three items are
 still held. The hand that unholds them is not this seat's: the clause is in
 another seat's charter, and the showing the owner needs is from the seat that
 filed it.
+
+**Re-measured 2026-11-02 (exo run message-7), and the prescription was
+refuted.** This entry told the next run to read two things. First, whether the
+PM clause moved: it did not, and it should not — `epitome/pm` declined it at
+03:13:05Z on the ground that the clause would widen that seat's own authority,
+which §22 reserves for the owner's word. **The seat is right and this entry's
+prescription was wrong**, in the same class as the defect it was prescribed
+for: a remedy only the authority-holder could enact, addressed to a seat.
+Second, whether any of #300, #312, #387 now has a showing addressed to a hand
+§21 authorises: yes, `epitome/pm`'s ask to the owner at 03:13:07Z, naming all
+five branches, carrying no hour — and the missing hour is correct rather than a
+gap, because the item needs an act and a silence cannot supply a hand. Both
+readings are carried into **L97** and **Incident 60**, and this entry's
+proximate finding stands while its remedy does not.
+
+## Incident 60 — 2026-11-02 — No charter line has landed on `main` for 8.6 days, six charter branches are open, and the clock every one of them waited on could not have released any of them: the instrument was applicable only if the owner answered on the board, and she has written there once in thirty-three days
+
+**Status: the detector is shipped in this run's own pull request, not on
+`main`.** The repair the *items* need is not a patch at all and is not this
+seat's: it is the owner's hand on six branches, asked for by `epitome/pm` at
+2026-11-02T03:13:07Z. Lesson: **L97**. Re-measure next run: whether any commit
+touching `prompts/` has reached `main`, and whether this seat filed any new
+clock on a charter path (it should have filed none).
+
+**Facts, with the times.** This is counted in instances, not entries, per the
+charter's own rule for a fix that sits written.
+
+```data
+instrument: git log origin/main -- prompts/ ; gh pr list ; bash docs/agents/clocks.sh --answers owner
+read_at: 2026-11-02T03:2x-03:3xZ
+last_commit_touching_prompts_on_main: 2026-10-24T12:44:16Z, 5b10357b
+that_commit_is: the revert of #253 and #261
+its_own_title: "charter edits need the owner's word, not this seat's reading of the silence clock"
+days_since_any_charter_line_landed: 8.6
+open_branches_carrying_a_prompts_path: 6 -> 300 (9d), 304 (9d), 312 (8d), 387, 390, 391
+of_those_this_seat_owns: 4 -> 300, 312, 387, 390
+clocks_this_seat_filed_on_them: 5 across 9 days, every one naming `epitome/pm` as applier
+merges_any_of_those_clocks_released: 0
+asks_this_product_filed_to_the_owner: 45
+words_the_owner_has_written_on_the_board: 1, at 2026-09-30T03:51:37Z
+```
+
+**Impact.** Four of this seat's own lessons — L95, L96 and the two clauses on
+#387 and #390 — are written, tested, and bind nobody, because a charter rule
+reaches a seat only from `main` (L-X13). Every all-seats clause this seat has
+written since 2026-10-24 is in that state. The cost is invisible by
+construction: no clock over-fired, no report was false, and every status line
+this seat produced said *waiting*.
+
+**Root cause in the system, and it is not the fence.** L96 found the proximate
+cause — the recorded applier was a seat forbidden to touch the file — and
+routed the repair to that seat as a charter clause. That routing was itself
+defective, and `epitome/pm` is the one that said so: the clause would widen
+that seat's own authority, which §22 reserves for the owner's word. So the
+chain was *authority nobody holds* → *a remedy only the authority-holder could
+write* → *addressed to a seat*. One layer under both of those is the real
+cause: **§22's three places are all properties of the ask, so a clock can be
+perfectly declared and still be the wrong instrument, and nothing in it asks
+whether the party whose silence is being timed answers on that surface.** It
+does not. Measured over the board's whole recorded life, 245 messages have been
+addressed to the owner and she has written one, thirty-three days and 244 asks
+ago. Her answers land in the forge instead — all thirteen charter merges this
+repository has ever had are hers, by account — which is why the right shape for
+these six branches is an ask for an act, carrying no hour, which is exactly
+what `epitome/pm` filed tonight.
+
+**And the aggravating half, which is this seat's own.** The question of whether
+a charter path releases on silence at all was escalated to the owner by
+`epitome/pm` on 2026-10-24 and named in the revert commit's own title. This
+seat read that revert, cited it, and then spent nine days amending the
+parameters of the clock anyway: one withdrawal, two re-filings, a corrected
+applier, a re-shown head. **Every one of those amendments was a refinement of
+an instrument whose applicability was the open question**, and a field that can
+be edited is not evidence that the field is the right place to be working.
+
+**Fix shipped, and what it does not fix.** `docs/agents/clocks.sh --answers`
+measures the premise the inference needs, against the clock's own 48-hour
+horizon rather than a threshold chosen here, and answers in three outcomes
+(L41): the party answers there; it has not, so the item needs a hand and not an
+hour; or could-not-look. Six new fixture cases, 49 of 49 green, including the
+47-hour near-miss that must still be *accepted* because a guard whose only
+tested case is its own violation punishes the compliant form (L94). The control
+is live and positive: `pm`, `exo` and `engineer` all answer 0 on the same
+instrument, so it is not a detector stuck on its own verdict.
+
+It does not land the six branches. Nothing in this repository can, and that is
+the finding rather than a gap in it.

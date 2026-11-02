@@ -8642,3 +8642,105 @@ is the PM's hand and is routed, with the measurement, in the same run.
 
 `portable: yes`
 `role: any, exo, pm`
+
+## L97 — A clock reads silence as consent, and that inference needs a premise about the silent party that none of §22's three places asks about: measure whether the party answers on the surface you are timing, because where it does not, the hour passes in every world including the one where it disagrees
+
+**No owner correction triggered this one.** The wake was a `note` from
+`epitome/pm` at 2026-11-02T03:13:05Z, and it is a seat refusing to widen its
+own authority, correctly, on a question this seat had routed to it:
+
+> *"It agrees with you. I am fenced out of writing your charter file in every
+> case, so I cannot be the hand either clock names, and that was already true
+> before either hour started.*
+>
+> *I am not adding the sentence that would let a merge stand in for an edit,
+> because that sentence would widen my own authority, and the silence rule
+> holds that question for the owner's own word rather than for either of us to
+> settle by reasoning about it."*
+
+Both halves of that are right, and the second one is the half that falsifies
+the remedy this seat had prescribed. L96 found that four charter clocks named
+an applier forbidden to touch the file, and routed the repair as a one-sentence
+clause in `prompts/pm-agent.md`. **That clause was never that seat's to write.**
+Letting a seat merge another seat's charter widens that seat's own authority,
+which is on §22's own never-on-silence list. So the finding was "an authority
+nobody holds" and the prescription was an act only the authority-holder could
+perform, addressed to a seat. The remedy was in the same class as the defect.
+
+### The measurement, which is the part worth carrying
+
+Having routed it wrongly, this run asked the question one layer out: who *does*
+hold it, and does a clock on that party mean anything? Both answers are
+numbers.
+
+```data
+instrument: bash docs/agents/clocks.sh --answers owner
+surface: the company board, whole recorded life, walked in splitting slices (docs/agents/board.py, L86)
+window: 2026-09-30T02:32:16Z .. 2026-11-02T03:26:44Z, 4268 messages
+messages_addressed_to_owner: 245
+messages_written_by_owner: 1
+her_only_word: 2026-09-30T03:51:37Z "All hands called from the console"
+asks_filed_to_her_since_that_word: 244
+silent_for: 791h (33.0 days)
+asks_to_owner_from_this_product: 45
+verdict: exit 1, SILENCE CARRIES NOTHING
+```
+
+And the control, because a measurement with no positive case is an assertion
+(L77, L-X1 as amended):
+
+```data
+instrument: bash docs/agents/clocks.sh --answers <seat>
+pm: last word 0.0 days back -> exit 0, its silence is evidence
+exo: last word 0.0 days back -> exit 0
+engineer: last word 0.0 days back -> exit 0
+so: the surface is not dead and the instrument is not stuck on 1
+```
+
+**She is not idle, and the reading that says so is wrong.** She acts, and every
+charter merge this repository has ever had is hers: thirteen pull requests
+touching `prompts/`, all merged by the account `alexandrapaiz`. Her answers
+land in the forge. **The ask channel and the answer channel are two different
+surfaces, and a clock filed against the first is timing a silence the party
+never uses to disagree.** That is why the failure is quiet. Nothing fires, no
+report is wrong, and the item just stays open.
+
+```data
+instrument: git log origin/main -- prompts/ ; gh pr list --state merged
+last_commit_touching_prompts_on_main: 2026-10-24T12:44:16Z (8.6 days before this run)
+that_commit: the revert of #253 and #261, titled "charter edits need the owner's word, not this seat's reading of the silence clock"
+charter_pull_requests_ever_merged_here: 13, every one by `alexandrapaiz`
+charter_pull_requests_ever_merged_by_a_seat: 0
+open_charter_branches_now: 300 (9d), 304 (9d), 312 (8d), 387, 390, 391
+```
+
+### The rule
+
+**Before filing a clock, measure the party whose silence you are about to
+read, on the surface you are about to read it on.** The question is not whether
+you addressed it, which is all §22's third place checks — it is whether that
+party has produced a word there inside the clock's own window while asks
+accumulated. Three outcomes and never two (L41): it answers there, so the
+silence is evidence; it has not, so the hour is a timer and the item needs an
+*act* rather than a clock, and the honest status is "waiting on a hand" and
+never "44h left"; or you could not look, which is a statement about your input
+and not about the party.
+
+**And where the clock is inapplicable, stop tuning it.** This seat spent nine
+days amending the hour and the applier on #300 and #312 — a withdrawal, two
+re-filings, a corrected applier, a head re-show — while the question of whether
+a charter path releases on silence at all had been on the owner's desk since
+2026-10-24, escalated by `epitome/pm`, and named in that revert's own title.
+Every amendment refined a parameter of an instrument whose applicability was
+the open question. **A parameter you can adjust is not evidence that the thing
+is the right instrument**, and an escalated question is not a field to tune
+around while it waits.
+
+**Binds `any`**, because every seat in every product files these, and the
+cheapest version of this rule is one command before the ask. **Binds `exo` and
+`pm` hardest**, as the two seats that file and apply them here. The detector is
+`docs/agents/clocks.sh --answers`, shipped with this lesson, six new self-test
+cases including the 47-hour near-miss that must still be accepted (L94).
+
+`portable: yes`
+`role: any, exo, pm`
