@@ -45,7 +45,7 @@ import {
   closeSync, fchmodSync, fstatSync, fsyncSync, lstatSync, openSync, realpathSync, renameSync, statSync,
   unlinkSync, writeSync,
 } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
 
 // What the device said, in this product's words rather than errno's. The
@@ -99,6 +99,12 @@ export function writeFileAtomic(path, data, { mode, what, fix } = {}) {
   try { if (lstatSync(path).isSymbolicLink()) target = realpathSync(path); }
   catch { /* nothing there, or a dangling link: write the path we were given */ }
   const dir = dirname(target) || ".";
+  // The reader has to be able to go and look at the device, and `.` does not
+  // say which one — a real refusal printed "no space left on the device
+  // holding .." in this repository's own deploy suite, with the dot of the
+  // path and the dot of the sentence next to each other. Resolved, so the
+  // message names a place.
+  const where = resolve(dir);
   // A `rename` publishes the temporary file's mode, where `writeFileSync`
   // would have left an existing file's mode alone. So an existing target's
   // mode is carried across unless the caller names one.
@@ -145,8 +151,8 @@ export function writeFileAtomic(path, data, { mode, what, fix } = {}) {
       ? `${target} is unchanged and still holds its ${before.size} bytes, because epito writes beside a file and renames: a write that runs out of room never truncates what was there.`
       : `Nothing was written and nothing was left behind.`;
     throw new WriteRefused(
-      `could not write ${target}${what ? ` — ${what}` : ""}: ${deviceSaid(e, dir)}. ${kept}` +
-      ` Fix: ${fix ?? `make room on the device holding ${dir} and run the command again`}.`,
+      `could not write ${target}${what ? ` — ${what}` : ""}: ${deviceSaid(e, where)}. ${kept}` +
+      ` Fix: ${fix ?? `make room on the device holding ${where} and run the command again`}.`,
       { code: e?.code, path, cause: e },
     );
   }

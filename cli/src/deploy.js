@@ -208,7 +208,7 @@ function writeKey(name, pem, dir = ".") {
   writeFileAtomic(path, pem.endsWith("\n") ? pem : pem + "\n", {
     mode: 0o600,
     what: `"${name}"'s GitHub App private key, which GitHub will not show again`,
-    fix: `make room on the device holding ${keysDir} and run this deploy again`,
+    fix: `make room on the device holding ${resolve(keysDir)} and run this deploy again`,
   });
   return path;
 }

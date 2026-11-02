@@ -46,7 +46,7 @@ export function pkcs8Beside(name, dir = ".") {
   writeFileAtomic(out, pem, {
     mode: 0o600,
     what: `the PKCS#8 copy of "${name}"'s App key that the Worker needs`,
-    fix: `make room on the device holding ${join(dir, KEYS_DIR)} and run this deploy again`,
+    fix: `make room on the device holding ${resolve(dir, KEYS_DIR)} and run this deploy again`,
   });
   return out;
 }
@@ -107,7 +107,7 @@ export async function deployCloudflare({ name, path, manifest, outArg, dryRun, c
   for (const f of files) {
     writeFileAtomic(join(out, f.path), f.contents, {
       what: `part of the Worker bundle for "${name}"`,
-      fix: `make room on the device holding ${out} and run this deploy again`,
+      fix: `make room on the device holding ${resolve(out)} and run this deploy again`,
     });
   }
   // deploy's own rule, for the same reason the GitHub target has it: this
