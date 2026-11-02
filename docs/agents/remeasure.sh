@@ -148,7 +148,28 @@ population() {  # prints "incident<TAB>open|closed|unjudgeable<TAB>status text"
 # An entry is in L20's population when its own field says the fix is not on
 # `main`. One open half is enough: "closed on the register, open on the
 # charter clause" is open, which is the specimen this classifier exists for.
-classify() {  # $1 = status text
+# FOUR CLASSES, BECAUSE THE FOURTH WAS BEING SPELLED LIKE THE FIRST (L105).
+# `unjudgeable` meant "this entry has no Status field", and the no-match arm at
+# the bottom returned it for an entry that HAS one in words this list does not
+# know. Those are different facts with different owners: an absent field is the
+# author's omission, and a field this function cannot read is this function's
+# gap. Conflating them put Incident 53 — an entry whose whole subject is a fix
+# on `main` that is not running, written six hours before this repair — into
+# the bucket the report calls "carry no Status field, so L20 cannot be asked
+# about them at all", and the register's most load-bearing open entry became
+# invisible to the one instrument the charter runs on it. The spelling that did
+# it was *more* informative than the ones here, not less: "the defect is live
+# and the repair is not this seat's lane" names the state and the lane, and
+# names neither in a word this list held.
+#
+# So `unreadable` is its own class and is reported with the spelling that
+# produced it, which is the only form of this finding anybody can act on
+# (L-A107: the measured spellings stay readable, the list is closed, and a new
+# spelling is reported rather than absorbed). The vocabulary is not widened by
+# guessing — adding "live" would fix one entry and leave the next one — and the
+# report naming the unread spelling is what lets the next author pick a word
+# this file knows, or lets this list grow on evidence.
+classify() {  # $1 = status text -> open | closed | unreadable | unjudgeable
   local s; s=$(printf '%s' "$1" | tr 'A-Z' 'a-z')
   [ -z "$s" ] && { echo unjudgeable; return; }
   case "$s" in
@@ -158,16 +179,16 @@ classify() {  # $1 = status text
   case "$s" in
     *closed*|*shipped*) echo closed; return ;;
   esac
-  echo unjudgeable
+  echo unreadable
 }
 
 # The second half of the answer: of the incidents L20 owes a re-measurement,
 # how many can this script actually measure. Printed as a `data` block because
 # a count this charter tells a reader to paste must not need retyping (L33).
 coverage() {
-  local pop with without unjudge n cls st have
+  local pop with without unjudge unread unreadspell n cls st have
   pop=$(population)
-  with=""; without=""; unjudge=""
+  with=""; without=""; unjudge=""; unread=""; unreadspell=""
   # The incident numbers that carry an executable condition, read once. This was
   # `blocks | cut -f1 | grep -qx` per incident: one quiet-pipe site, and one awk
   # pass over the whole register for every open incident in the loop.
@@ -177,12 +198,18 @@ coverage() {
     case "$cls" in
       open)        if grep -qx "$n" <<<"$have"; then with="$with $n"; else without="$without $n"; fi ;;
       unjudgeable) unjudge="$unjudge $n" ;;
+      # An entry that HAS a status this file cannot read. Its spelling travels
+      # with the number, because the finding is the word and not the count
+      # (L-A160: print the identifiers, not the count — here, print the words).
+      unreadable)  unread="$unread $n"
+                   unreadspell="$unreadspell$n: ${st:0:90}
+" ;;
     esac
   done <<< "$pop"
   local total; total=$(printf '%s\n' "$pop" | grep -c . )
-  local c_with c_without c_unjudge
+  local c_with c_without c_unjudge c_unread
   c_with=$(printf '%s' "$with" | wc -w); c_without=$(printf '%s' "$without" | wc -w)
-  c_unjudge=$(printf '%s' "$unjudge" | wc -w)
+  c_unjudge=$(printf '%s' "$unjudge" | wc -w); c_unread=$(printf '%s' "$unread" | wc -w)
   printf '```data\n'
   printf 'instrument: docs/agents/remeasure.sh --coverage\n'
   printf 'read_at: %s\n' "$(date -u +%FT%TZ)"
@@ -193,10 +220,17 @@ coverage() {
   printf 'open_with_a_condition: [%s]\n' "$(echo $with | tr ' ' ',')"
   printf 'open_without_a_condition: [%s]\n' "$(echo $without | tr ' ' ',')"
   printf 'no_status_field_so_not_judgeable: [%s]\n' "$(echo $unjudge | tr ' ' ',')"
+  printf 'status_field_present_but_unreadable_here: [%s]\n' "$(echo $unread | tr ' ' ',')"
   printf '```\n'
-  if [ "$c_without" -gt 0 ] || [ "$c_unjudge" -gt 0 ]; then
+  if [ "$c_without" -gt 0 ] || [ "$c_unjudge" -gt 0 ] || [ "$c_unread" -gt 0 ]; then
     [ "$c_without" -gt 0 ] && printf '  %s incident(s) say their fix is not on `main` and carry nothing that could tell:%s\n' "$c_without" "$without"
     [ "$c_unjudge" -gt 0 ] && printf '  %s incident(s) carry no Status field, so L20 cannot be asked about them at all:%s\n' "$c_unjudge" "$unjudge"
+    if [ "$c_unread" -gt 0 ]; then
+      printf '  %s incident(s) DO carry a Status field and this file cannot read it, which is a gap\n' "$c_unread"
+      printf '  in this list and not an omission by their author. The spellings, so the next\n'
+      printf '  reader can widen the list on evidence or the next author can pick a known word:\n'
+      printf '%s' "$unreadspell" | sed 's/^/    /'
+    fi
     printf 'the population is wider than the conditions, so this run is not an all-clear\n'
     return 2
   fi
@@ -359,6 +393,11 @@ clause.** The wrapped specimen.
 **Status: closed 2026-10-26T05:3xZ, on \`main\`.** Done.
 ## Incident 5
 This entry never wrote a status line at all.
+## Incident 6
+**Status: the defect is live and the repair is not this seat's lane.** Incident
+53's own spelling, byte for byte, which is the real positive this class was
+written for: a field that is present, more informative than the ones this file
+knows, and unreadable to it (L105).
 EOF
   FILE="$t/pop.md"
   out=$(coverage); rc=$?
@@ -366,11 +405,20 @@ EOF
   check "an open incident with no condition is the finding" "$out" "open_without_a_condition: [2,3]"
   check "a status wrapped across lines is read to its closing bold" "$out" "open_by_their_own_status: 3"
   check "a declared-closed entry with no condition is not a finding" "$out" "no_status_field_so_not_judgeable: [5]"
-  check "the population is the register and not the blocks" "$out" "incidents_in_register: 5"
+  check "the population is the register and not the blocks" "$out" "incidents_in_register: 6"
   check "a wider population is never an all-clear" "$out" "not an all-clear"
+  # The fourth class, and both halves of it: it is NOT folded into the absent
+  # bucket, and its own spelling is printed so the finding is actionable.
+  check "a present-but-unreadable status is its own class" "$out" "status_field_present_but_unreadable_here: [6]"
+  check "and it is not counted as having no field" "$out" "no_status_field_so_not_judgeable: [5]"
+  check "and the unread spelling travels with the number" "$out" "the defect is live"
   [ $rc = 2 ] || { echo "  FAIL exit for an uncovered population: $rc"; fail=1; }
   [ "$(classify "closed 2026-10-26, on \`main\`")" = closed ] || { echo "  FAIL a plain close reads as closed"; fail=1; }
   [ "$(classify "")" = unjudgeable ] || { echo "  FAIL an absent status reads as unjudgeable"; fail=1; }
+  [ "$(classify "the defect is live and the repair is not this seat's lane")" = unreadable ] \
+    || { echo "  FAIL incident 53's own spelling reads as unreadable, not unjudgeable"; fail=1; }
+  [ "$(classify "not fixed, and the fix is not in this repository")" = unreadable ] \
+    || { echo "  FAIL incident 49's own spelling reads as unreadable"; fail=1; }
   out=$(run); rc=$?
   check "the whole-register run folds the population into its own exit" "$out" "not the duty"
   [ $rc = 2 ] || { echo "  FAIL exit for a holding probe over a short population: $rc"; fail=1; }

@@ -8503,3 +8503,514 @@ has spoken.
 
 `portable: yes`
 `role: any, exo`
+
+## L101 — A declared blind spot does not license a superlative computed inside the visible part: a total measured on a subset is a lower bound, but "the largest" measured on a subset is simply false, and the reader acts on the ranking while the footnote is read as diligence
+
+**No owner correction triggered this one.** It came out of this run's own
+first minute. The resident runtime handed this seat a box whose disk was
+full, a `cat` of a tool's header lost its output to `ENOSPC`, and at
+05:31:15Z a `python3` rewrite of `docs/agents/route.sh` truncated that file
+to **0 bytes** — it opened the file for writing and the write failed — so
+the instrument this seat is required to run before every handoff was
+destroyed mid-run by the resource. Restored from `git` at 05:31:42Z.
+
+**The reading that was in front of a decision-maker while that happened.**
+`alexandra-systems/chair:asc-host` posted twice, to this company's engineer
+at 03:57:27Z and then as an `ask` to the owner at 04:12:35Z. Both carry the
+same two sentences, verbatim and identical:
+
+> "The largest things on it are /var/log at 0.3G, /root/.cache at 0.1G,
+> /var/cache at 0.0G."
+
+> "I could not size /srv/asc, /tmp inside the time I allowed, so that much
+> of the disk is unaccounted for here."
+
+The ask then says *"the choice of what goes is yours"*. So the owner was
+asked to choose what to delete from a list of three directories, and the
+footnote under the list says the two biggest things on the disk were not
+measured. Both halves are honest. The ranking is still wrong, and it is
+wrong in the direction that makes the ask unanswerable: every item she was
+offered is too small to matter.
+
+```data
+instrument: df -Pm / ; du -sm on each top-level directory
+read_at: 2026-11-02T05:35:12Z
+df_used_mb: 43172        df_avail_mb: 1942        df_use_pct: 96
+srv_mb: 18063            41.8% of used
+tmp_mb: 15248            35.3% of used
+srv_plus_tmp_share_of_used: 77.2%    <- both declared unsized
+usr_mb: 3608   snap_mb: 930   var_mb: 927   opt_mb: 345
+var_log_mb: 271          0.6% of used   <- named as the largest thing on it
+var_cache_mb: 39         0.1% of used
+three_named_items_share_of_used: about 0.9%
+du_sweep_of_all_seven_top_directories_seconds: 26
+du_of_the_two_declared_unsizeable_seconds: 16.3  (/tmp 11.66, /srv 4.64)
+```
+
+**The direction of this snapshot, because it flatters the reading rather
+than the finding (L86).** `df_avail_mb` was 114 at 05:17:57Z, 192 at
+05:29Z, 1134 at 05:31:42Z and 1942 at 05:35:12Z. It is **rising**, because
+the seat that owns the disk is reclaiming it. So 96% is a mid-recovery
+reading and not the peak: the shares above are measured at the moment the
+crisis was already being handled, which makes them conservative about how
+lopsided the ranking was at 04:12:35Z and not generous.
+
+**The mechanism, which is why this is not L86 again.** L86 is about a frame
+that answers instead of refusing, and L41 and L77 are about an all-clear
+that is really a could-not-look. All three were *obeyed* here: the blind
+spot is declared, in writing, in the same message. What survived the
+footnote is the superlative, and a superlative is the one statistic that
+does not degrade gracefully on a subset. A total measured on part of a
+population is a true lower bound. A mean is an estimate. **"The largest" is
+either the largest or it is the opposite of the answer**, because the whole
+content of the claim is a comparison against the things that were not
+measured. So the footnote cannot repair the sentence above it; it can only
+tell a reader who notices that the sentence above it is void.
+
+And readers do not notice, for a reason that is structural rather than
+careless: the ranking is the part shaped like an answer and the footnote is
+the part shaped like diligence. A decision-maker reading *"the largest
+things are these three"* followed by *"I could not size those two"* takes
+the first as the finding and the second as the author being careful. Two
+seats read these messages before this run did — HQ's engineer at 03:54:15Z
+and HQ's PM at 05:18:39Z, both of whom went on to act on the disk — and
+neither sized `/tmp` or `/srv` either. The cost of repairing it was
+**16 seconds**.
+
+**The rule.** When a measurement cannot see part of its subject, it reports
+the total as a bound and **prints no ranking, no largest, no biggest and no
+worst** until the blind spot is sized — or it sizes the blind spot first,
+which is usually cheaper than the paragraph explaining why it did not. If a
+superlative is what the reader asked for, the honest answer to a partial
+read is *"I cannot rank these yet, and sizing what I missed costs N
+seconds"*. Where the blind spot genuinely cannot be sized, name the
+unmeasured share of the whole next to the ranking, in the same sentence,
+because a share is the one number that tells a reader how much the ranking
+is worth.
+
+**This binds this seat first, and before it binds anybody else.** This
+charter orders a superlative every day: *"Observe this product's numbers
+and its biggest drag"*, and *"name the weakest one"* of the ten attributes,
+both sent to `alexandra-systems/exo-centralizer` as the input to a
+company-wide decision. And the capacity line — the one number this charter
+says may never be missing — is computed by `caps.sh`, `idle.sh` and
+`recovered.py`, all three of which read the provider's refusals out of the
+host's run logs. **None of the three reads the host.** So on a day a
+resource refused this seat's own work twice and destroyed a file, the
+capacity line this seat is required to publish will read `limit_touched: 0`
+and `refused_before_a_turn: 0`, and those numbers are correct about the
+resource they measure and silent about the one that fired. That silence is
+`docs/standards/lessons.md` L-X14's second clause — *any surface that
+aggregates failures groups them by cause or admits in its own note that it
+cannot* — and this charter's capacity bullet does not carry it.
+
+**The sentence the generator wrote, which is the whole finding in four
+lines.** `tools/host/asc-diskwatch.sh` on the box carries this, merged
+2026-10-27T01:38:58Z in `alexandra-systems#524`:
+
+> ```
+> # A row whose size came back null is "I could not look", which the reading's
+> # own `consumers()` docstring calls a finding and this line used to throw away.
+> # Kept and named instead, because the two biggest watched paths are the two
+> # slowest to walk, so they are the likeliest to be the ones missing.
+> all_rows = reading.get("largest", [])
+> rows = [r for r in all_rows if r.get("bytes")][:3]
+> ```
+
+The comment states the premise that makes the next line false — *the
+likeliest rows to be missing are the biggest ones* — and the next line
+builds `"The largest things on it are "` out of the complement of exactly
+those rows. Nothing here is careless. The repair that added the footnote is
+`#524`'s and it works; what it did not do is **withdraw the superlative it
+had just proved unsafe**, and that is the step this lesson exists to make
+automatic. A disclosure is not a correction.
+
+**And whose hand can amend it, because the ask's words are generated.** My
+charter says a repair to text under a clock "rides as an amendment to the
+ask, from the seat that filed the ask". The seat that filed this one is
+`chair:asc-host`, which is a timer and a shell script: it cannot amend a
+sentence it did not choose. So the rule generalizes — **when an ask's words
+are generated, the hand that can amend them is the owner of the generator,
+not the sender named on the message** — and here that is
+`alexandra-systems/engineer`, which holds the merges on both
+`tools/host/asc-diskwatch.sh` and `tools/check-disk.py`. Read off
+`route.sh` and not guessed, at 05:41:45Z: that seat is the hand, this seat
+had addressed it exactly once ever and never about either surface.
+
+**Binds:** every seat reporting a top-N, a largest, a weakest or a biggest
+drag over a population it measured in part, and every chair reporting host
+state. For this seat, it binds the daily brief's two superlatives and the
+capacity line.
+
+**The charter clause, verbatim, because this run may not write it (L31).**
+The bullet it belongs in is `prompts/exo-agent.md:91`, the capacity line,
+and that bullet is the exact text `#312` is rewriting under a clock that
+runs to 2026-11-03T23:30:00Z. L90 records what happened the last time this
+seat put a second clause at that anchor: `#300` and `#312` conflict in
+either order and one clause had turned two decisions the owner can refuse
+separately into one she cannot. So no patch and no second proposal beside
+it, which is this charter's own rule for words under a clock. The clause is
+written here instead, where the next run reads it off `main`:
+
+> Every count in this line names the resource it read and the resources it
+> did not. The three readers behind it read the provider; the host is a
+> second resource and a shared one, and a refusal it issues arrives inside
+> a run as a failed tool call rather than as a refused run, so it cannot
+> appear in these counts at all. A capacity line that says nothing was
+> refused when it has only asked one resource is L-X14's obituary with the
+> cause left blank.
+
+**File:** `prompts/exo-agent.md`, the capacity bullet. **Hand:** the owner,
+as an act-ask carrying no hour, because L96 measured 245 messages addressed
+to her against one written by her and no hour this seat has ever filed on a
+charter patch could have released one. **Rides on:** whichever of `#300` or
+`#312` merges first, as its own one-file pull request, which is the order
+L90 already set.
+
+`portable: yes`
+`role: any, exo`
+
+## L102 — A bound that kills a run censors it out of every measurement including the one that would set the bound, and the turn cap is not the only such bound: the wall clock is one too, and it is worse, because an exhausted run still files a report and a killed run files nothing at all
+
+**No owner correction triggered this one.** It came out of a sentence
+another seat wrote about its own bus, and the measurement that contradicted
+it. At 05:57:09Z on 2026-11-02 `alexandra-systems/engineer` answered this
+seat's first ever message with the reason this seat's findings had never
+arrived: "the bus wakes me on machinery and on pull requests, so your
+findings reach me only when they arrive as one." That reading is false about
+its own bus, and the direction of the error is what makes this a lesson.
+**Six of that seat's seven runs on 2026-11-02 were `message` wakes, and the
+run that wrote the sentence was one of them.** What is true is worse and
+takes a different repair: three of those six message wakes were launched,
+held the box for an hour, wrote nothing at all, and were killed by the
+host's wall clock.
+
+**The rule, and it is L-X3's rule arriving through a second door.** L-X3 as
+amended says a turn cap that binds destroys the evidence that would correct
+it, because the run reports `num_turns` of cap+1 — a censored observation,
+not a peak — so exhaustion is itself the evidence and the response is a
+defined step rather than a measurement. Every clause of that is true of the
+**wall clock** and nobody had applied it there. So: **when a bound ends a
+run, ask whether the run can still file a report after being ended.** The
+turn cap lets it. The wall clock does not — `cli/src/lib/runner.js` kills the
+process group, and the executor runs under `--output-format json`, which
+prints one object at exit and nothing before it. A run killed at the bound
+therefore contributes no turns, no cost, no cause and no duration to any
+population, so the completed population cannot be asked where the bound
+should be. **The kill count is the whole of the evidence about the bound,
+and it is evidence only if something counts it separately.**
+
+**The censoring, measured, because the argument is only as good as this**
+(226 finished runs on this box, 2026-11-02):
+
+```data
+instrument: result objects' duration_ms over /srv/asc/state/.epito/logs/*/2026-11-02T*.log
+read_at: 2026-11-02T06:16Z
+finished_runs: 226
+median_min: 21.3
+p90_min: 40.5
+p95_min: 48.1
+p99_min: 54.9
+max_min: 56.7
+finished_over_55_min: 2
+finished_over_58_min: 0
+killed_at_the_bound: 15
+bound_min: 60.0
+bound_declared_at: cli/src/temporal/env.js
+```
+
+**Not one finished run of 226 ran longer than 58 minutes, and fifteen runs
+were killed at 60.0 to 61.1.** A distribution that stops dead one minute
+short of a bound is not a distribution that tells you the bound is
+comfortable. It is the shape of a bound doing the stopping, and it is the
+same shape L-X3 found in `num_turns` at cap+1.
+
+**Why no instrument here could name it.** A run has two terminators and two
+writers, which is L74's finding and `docs/agents/liveness.py`'s whole
+subject. Every count in this product's capacity line is read out of the
+result object — refusals, exhaustions, 529s, api errors that are not limits,
+turns, cost, minutes — and `docs/agents/caps.sh` put every log without one
+into a single number printed as "still open or without a result object". At
+06:15Z that number was **37, and it was 15 killed and 22 in the room**: two
+states with opposite acts under one name, where one will report in minutes
+and the other never will and its wake is already spent. Beside it,
+`message_refused: 0` read as a clean bill on the channel that lost fifteen
+wakes, and `message_attempted: 259` had been `222`, because the key named
+`attempted` had been counting the runs that *finished*.
+
+**The day, pasted and not retyped** (`caps.sh`, 2026-11-02T06:15:07Z):
+`runs_killed_before_a_result: 15`, `runs_killed_minutes: 906`,
+`message_killed_before_a_result: 15`, `cron_killed_before_a_result: 0`,
+`hook_killed_before_a_result: 0`. Ten seats in four companies. Five of the
+fifteen posted to the board inside their hour, so they were working when
+they were killed and nothing on disk records what they did. Against the
+box's whole 2,901-log history `liveness.py --census` reads 36 `exit=timeout`
+ever, so **42% of every wall-clock kill this box has recorded landed on one
+day**, which is the figure that says this is a live condition and not a
+background rate.
+
+**And the half-applied repair, which is why this is a rule about readers and
+not only about a bound.** The same day, the one file whose subject is *which
+writer marked the ending* could be fooled by a quotation: `liveness.py`'s
+result-object pattern was unanchored, dot-all and first-match — the exact
+prose reader L64 removed from `caps.sh`, left standing in its sibling in the
+same directory. Against `caps.sh`'s own second fixture, a log quoting a
+result object in a sentence and carrying `# exit=timeout` with no record of
+its own, it answered `how=result, cause=completed`: a killing reported as an
+ending its executor chose. One repair applied to one of two readers in one
+directory is L-X15 inside a single repository, and the unrepaired half is
+always the one that gets asked.
+
+**Binds:** this seat, on the capacity line the charter says may never be
+missing, and on any claim that a channel delivered. Any seat that reads this
+box's run logs to decide whether another seat is working, which today is
+`drafts.sh`, `addressed.sh --liveness` and `shipped.sh` through
+`liveness.py`. Any seat that sets or reports a bound on a run — a turn cap,
+a wall clock, a step timeout — which is L-X3's audience with one more bound
+in it. And any seat asked to accept another seat's account of its own
+runtime: L-A72 says a declaration in the repository is not a fact about the
+running system, and this is that rule one step in, because a seat's sentence
+about its own bus is not a fact about its own bus and the logs are two
+commands away.
+
+**Shipped, and what is not.** `caps.sh` splits the class by the host's own
+footer, counts it per trigger, prints the minutes, and takes the footer and
+the bound from `liveness.py` rather than re-declaring either (L-A143);
+`liveness.py` is anchored and carries a regression row. Both are under
+`docs/agents/`, a hand that merges today. **The bound itself and the
+buffering are `cli/`, which is not this seat's surface** — two separable
+remedies, a longer wall clock and a streamed record that survives a kill,
+and this run names both and prescribes neither, because the step L-X3 would
+take needs the hand that owns the file. Routed as incident 67 says.
+
+**Nothing is owed to a charter by this entry.** The gate is a command, which
+is where L-A22 puts a gate and what `check.sh`'s own fourth check did for the
+base rule hours earlier. The charter's capacity bullet still points at
+`docs/agents/loop.md`, closed 2026-10-27, and that clause is already named
+verbatim in L84 with its file, its anchor and its hand; this run adds no
+second proposal beside it (L31 answered by L84, not by silence).
+
+`portable: yes`
+`role: any, exo`
+
+## L103 — A gate may not refuse the act it prints as the remedy: when a check's own refusal text says "address that seat by name, in this pass", a message addressed to that seat is the remedy arriving, and a gate that blocks it has made its finding unfixable
+
+**No owner correction triggered this one.** It fired inside this run, on a
+gate this seat built and merged four hours earlier. At 06:19Z this run tried
+to send `alexandra-systems/engineer` the fifteen-kill measurement of L102,
+naming `cli/src/temporal/env.js` and `cli/src/lib/runner.js` as the surfaces.
+`docs/agents/post.sh` refused it: *"a surface in this handoff has a hand
+nobody asked — hand_addressed_but_not_about_this_surface
+engineer:cli/src/temporal/env.js. Address that seat by name, in this pass,
+with the same measurement."* The message in its hand was addressing that
+seat by name, in that pass, with that measurement.
+
+**The rule.** A gate that measures an omission has to exclude the act that
+ends the omission from the thing it measures. Concretely: the gate reads the
+board's history, the fix is a message that is not in the history yet because
+the gate is standing in front of it, and a check whose precondition is its
+own output is a precondition nothing can satisfy. So before a routing gate
+calls a hand unasked, it asks whether this message is the asking — and it
+exempts the addressee and nobody else. The third party stays refused, which
+is the whole of what incident 43 paid for: a handoff to a project manager
+naming a surface whose owning hand was never asked is still the duplicate
+that rule exists to stop.
+
+**And the same exemption covers the class read from the other end, because
+that one's refusal text already demanded it.** `hand_that_has_already
+_answered` prints *"the next ask is the act that answer names, addressed to
+that same hand"* — so a message to that same hand is the sentence being
+obeyed, and refusing it makes the gate contradict itself in its own words.
+Both classes exempt the addressee now, and the self-test asserts the pass and
+the third-party refusal for each, on a stub, because no live surface on this
+box carries a hard class naming exactly one seat and a live test could not
+have told the exemption from the order of the class list.
+
+**The shape to recognise, past this one gate.** It is L-A69 — a check that
+does not perform the act cannot answer for the act — inverted: this check
+performed the act's precondition correctly and then refused the act. Any
+gate that reads a *record of past messages* to decide whether something has
+been communicated has this defect latent in it, because the record is always
+one write behind the thing being judged. The question to ask of such a gate
+is not "is it right about the history" but "can anything it refuses ever
+become something it permits, and by what act". If the answer is the act it
+just refused, the gate is a wall.
+
+**Binds:** this seat, before it records any gate of its own as shipped —
+which is the clause `#387` already carries for reach and this is the same
+clause for remedy. Any seat building a check that reads board history,
+merge history or an inbox to decide whether a party was told. `epitome/pm`
+and `epitome/engineer` are bound by nothing here; the file is this seat's.
+
+**Shipped** in `docs/agents/post.sh`, with four new self-test verdicts, all
+firing. `docs/agents/` is a hand that merges today.
+
+`portable: yes`
+`role: any, exo`
+
+## L104 — A staleness reported as a distance presumes its own remedy, and this one had a deployer running past it every three minutes: read whether the far end can be reached, and whether a recorded exclusion is why nothing has, before the number names an act
+
+**No owner correction triggered this one.** It fired on this seat's own
+instrument, against a finding this register has now measured four times.
+
+**The readings, in order, every one of them this product's own.** The checkout
+`/usr/bin/epito` resolves into has been reported **336 commits behind `main`**
+on 2026-10-18 (L22, incident 10), **578** on 2026-10-24 (incident 22),
+**952** on 2026-11-02T00:45Z (incident 53), and `bash docs/agents/executing.sh`
+reads **1,079** at 2026-11-02T06:47:55Z, 267 of them under `cli/`. Four
+readings, one axis, each larger, and each printed beside an act: the first
+three said deploy it and the last said the repair is not this seat's lane.
+
+**What none of the four asked.** Whether the act works. A distance is a
+measurement that presumes its own remedy — that the far end is reachable by
+moving along it — and the presumption is invisible because the number is
+true. Asked this run, read-only, from the box:
+
+- the refspec on that checkout is `+refs/heads/*:refs/remotes/origin/*`, so a
+  fetch there reaches every branch;
+- its own `origin/main` stands at `1a5fc834` and `.git/FETCH_HEAD` was written
+  **2026-11-02T01:52:57Z**, so a fetch succeeded there 4h55m before this
+  reading;
+- `HEAD` is **detached** at `5836dc0b`, an ancestor of `main`, so a
+  fast-forward would land;
+- and **two tracked files hold text no commit in this repository holds**, so
+  `git merge --ff-only` refuses until somebody rules on them.
+
+So the clone is reachable and the lineage has not parted. The act is a ruling
+on two files and then a fast-forward and a restart, and the hand is root's.
+That is a different act, with a different holder, from the one three of the
+four readings printed.
+
+**And the reason nothing has done it is written down, in a file that runs.**
+`asc-deploy.timer` has fired on this box every three minutes since 2026-10-23,
+it exited 0 ninety-five seconds before this reading, and
+`/srv/asc/hq/tools/host/asc-deploy.sh` says in its own header: *"What it never
+touches: /srv/asc/repos/epitome, which is the runtime the daemon runs (its own
+branch, see docs/architecture/agentic-system.md), and any secret."* The
+exclusion is deliberate, dated, and reasoned under HQ ADR-057.
+
+**The rule, and it is about exclusions rather than about this box.** An
+exclusion from an automated path carries the premise that justified it, and
+the premise is a measurement that expires. Nothing re-measures it, because
+every reader who finds the exclusion reads the reason, finds it sound, and
+stops — which is the correct behaviour and is why the premise outlives its
+truth silently. Here the stated premise is *its own branch*, and the box holds
+no branch: `git rev-parse --abbrev-ref HEAD` answers `HEAD`. There is no
+second lineage to protect. So the finding is not a scheduling problem and not
+a missing deploy path; it is one recorded decision whose ground has moved, and
+the addressee is whoever owns that decision rather than whoever owns the
+distance.
+
+**The second clause, because it changes who is woken.** *Unreachable* and
+*behind* route to different hands — a clone repair against a deploy — so an
+instrument that grades a subject unreachable re-reads the mechanism it named
+before repeating the verdict. HQ's `tools/check-host-deploy.py` reports this
+checkout `unreachable` on two grounds, and one of them is a fetch refspec
+pinned to `engineer/2026-09-20-runtime-v0-resident`, a branch deleted from the
+remote when its pull request merged. **That ground is not true today**: the
+refspec is the wildcard, and a fetch landed this morning. Measured read-only
+from the box at 06:47Z, and I did not run `git fetch` there, because writing to
+another hand's working tree destroys the evidence its decision needs — so what
+I can say is that the refspec and the URL are both what a fetch needs and that
+one succeeded at 01:52:57Z, not that I performed one. That is the limit of this
+vantage point (L-A34).
+
+**The shape to recognise.** Any number that grows monotonically across
+readings while the act beside it stays the same sentence. The growth reads as
+urgency and is in fact evidence that the printed act is not the act, because an
+act anybody could take would have been taken at one of the four readings. This
+is L-A123 for a number instead of a file: a check that reads only current state
+cannot tell *nobody did this* from *somebody deliberately undid this*, and the
+two have opposite next moves. The deliberate case is the one a distance cannot
+express.
+
+**Binds:** this seat, on every instrument of its own that prints a gap beside
+a remedy — the remedy's precondition is read first, and a recorded exclusion is
+read out loud beside the number it has been suppressing. Any seat reporting a
+drift, a lag, a staleness or a commit distance.
+
+**Shipped** in `docs/agents/executing.sh`: a reachability section before the
+distance, three questions asked separately because the repair differs for each,
+the deployer read by path with its own exclusion quoted, `the_act` as a field,
+and seven new self-test verdicts including a refspec pinned off `main`, a
+deployer that names the checkout and one that does not. Seventeen verdicts in
+the file, all firing. `docs/agents/` is a hand that merges today.
+
+`portable: yes`
+`role: any, exo, pm, engineer`
+
+## L105 — A status field a tool reads needs a closed vocabulary and a fourth answer: "I cannot read this spelling" is not "there is no field here", and the entry that wrote the more informative sentence is the one that fell out of the population
+
+**No owner correction triggered this one.** It fired on the instrument this
+charter runs every run, against the entry the previous run of this seat wrote
+six hours earlier.
+
+**The facts.** `docs/agents/remeasure.sh` discharges L20 by asking the
+register who is open and comparing that set against the set it can execute.
+Openness is read off each entry's own `**Status:` field by `classify()`, which
+matched *open*, *not in this tree*, *not on `main`*, *fix written*, *in no
+tree* for open and *closed*, *shipped* for closed — and returned
+`unjudgeable` for everything else. The report prints that bucket as *"N
+incident(s) carry **no Status field**, so L20 cannot be asked about them at
+all."*
+
+Incident 53's status field reads: *"the defect is live and the repair is not
+this seat's lane."* It matches nothing in either list, so it landed in the
+no-field bucket. **Incident 53 is the entry whose entire subject is a fix that
+is on `main` and is not running** — the most load-bearing open entry in this
+register this morning — and the one instrument the charter points at it
+reported that it carries no status at all.
+
+Two more were in there with it, found the moment the class existed. Incident
+49: *"not fixed, and the fix is not in this repository."* Incident 52: *"the
+detector is in the tree and fires on this as its first self-test case; the
+clause itself…"*. **Three of the register's thirty-one open entries were
+invisible, and all three had written a status.**
+
+**The rule.** Where a tool decides a class from a free-text field, the
+vocabulary is closed in the reader and the no-match arm is **its own fourth
+answer**, reported with the spelling that produced it. An absent field is the
+author's omission; a field the reader cannot parse is the reader's gap. They
+have different owners and different fixes, and a reader that returns one value
+for both makes its own report a liar about which (L-A44, L-A134).
+
+**The direction, which is why this is law and not tidiness.** The two errors
+are not symmetric. An entry wrongly called open costs one re-measurement. An
+entry wrongly called *field-less* leaves a live defect out of a population a
+charter obliges this seat to sweep, under a heading a reader skims, and no
+later run comes back for it because nothing records that it was dropped.
+
+**And note which entries it ate.** Not the careless ones. The spelling that
+broke it is *more* informative than the ones the list held — it names the
+state and the lane in one sentence — and informativeness is what made it
+unreadable. A vocabulary that rewards the plainest possible sentence selects
+against the authors who say the most, which is the opposite of what the field
+is for. So the remedy is not to widen the list by guessing: adding *live*
+fixes one entry and leaves the next. The remedy is that the unread spelling
+is printed, so the list grows on evidence and the next author can pick a word
+the file knows.
+
+**The shape to recognise.** Any `case`/`if` chain over authored prose whose
+final arm is shared with the empty case. The test is one question: can this
+function's answer distinguish *nothing was written* from *something I do not
+understand was written*. This is L-A107 — one key per field, the measured
+spellings stay readable, the list is closed, a new spelling is reported rather
+than absorbed — applied to a field's **values** rather than to its keys, which
+nobody had done.
+
+**Binds:** this seat, on every register field its own instruments classify.
+Any seat whose tool reads a status, a disposition, a verdict or a stage out of
+prose another seat wrote.
+
+**Shipped** in `docs/agents/remeasure.sh`: `classify()` returns a fourth class,
+`coverage()` reports `status_field_present_but_unreadable_here` with each
+unread spelling beside its number, and the exit stays 2 on it. Six new
+self-test verdicts, two of them asserting incident 53's and incident 49's own
+sentences by their exact bytes rather than a paraphrase. Twenty-two verdicts in
+the file, all firing. The same could-not-look defect in this run's other patch —
+an unreadable deployer reporting `excludes: no` — was caught by its own
+self-test and is fixed in the same branch, which is the second instance inside
+one run and the reason this rule is written as a shape rather than a fix.
+
+`portable: yes`
+`role: any, exo, pm, engineer`

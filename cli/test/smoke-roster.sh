@@ -50,8 +50,198 @@ E="node $CLI/src/index.js"
 
 pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
-bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
-check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# How many lines of a haystack a failing gate prints: enough to carry a
+# verdict table and its closing line, not a whole 7 KB report.
+EVIDENCE_LINES="${EPITO_SMOKE_EVIDENCE_LINES:-24}"
+# A failing gate says what it looked at. Lifted from smoke-doctor.sh, which
+# paid three runs of archaeology to write it, and from smoke-temporal.sh,
+# which rewrote its reader; adapted here to the one thing this suite does
+# differently from all three. `FAIL <label>` names the claim and never the
+# output the claim was made against, so the only way to learn which of five
+# rows was missing is to run the suite again and hope to be unlucky in the
+# same place -- and this suite runs against the real roster, so "unlucky in
+# the same place" means on the same box with the same five manifests.
+#
+# What is different here: the other three suites capture every command into
+# one `out`, cleared per step, which gives their `bad` an honest fallback for
+# an assertion that names no haystack. This suite captures a DIFFERENT
+# variable per command -- `$vout`, `$dout`, `$eout`, `$tout`, `$pout`,
+# `$rout`, `$fout2`.. -- and `out` is set in section 1 alone, by the per-seat
+# validate loop. A fallback to it would print the last seat's validate output
+# under a failing env or doctor assertion two hundred lines later: the exact
+# wrong-cause fault smoke-doctor.sh's 7b gate was fixed for (#369). So there
+# is no fallback in here. An assertion that can name no document says so, and
+# the assertions that could not name one have been given a name to pass.
+#
+# Three readers, in the order the answer is most likely to be the document:
+#   1. a `$NAME` in the UNEVALUATED expression whose value holds a newline
+#   2. a haystack named by the caller as a third argument -- a variable name
+#      or a path -- which is how the exit-code assertions (`[ $rc -eq 0 ]`,
+#      where the caller expanded `$rc` to a digit before `check` saw it) name
+#      the output whose exit code they are about
+#   3. any token of the expression that is a readable file, which is how the
+#      twenty-odd `grep -q '<needle>' '$AGENTS/<seat>/agent.toml'` assertions
+#      name a manifest
+# A `$NAME` with no newline in it is a seat name, a count or a path, and it is
+# printed as the note it is rather than as a document.
+
+# Print one haystack under a failing gate. Both ends rather than a tail: a
+# `epito doctor` report is 6 KB and the row an assertion is about sits in the
+# verdict table near the TOP, so a tail shows per-seat asides about nothing
+# the test asked. The count between the ends is what tells a reader to re-run
+# with EPITO_SMOKE_EVIDENCE_LINES set.
+evidence() {
+  local heading="$1" body="$2"
+  # An empty haystack is an answer -- a command that printed nothing is
+  # usually THE answer -- but it is not a document, and `mapfile` on it gives
+  # a one-element array that would read as `all 1 lines` and a blank.
+  [ -n "$body" ] || { printf '       %s is empty\n' "$heading"; return 0; }
+  local -a lines=(); mapfile -t lines <<<"$body"
+  local n=${#lines[@]} head_n=$((EVIDENCE_LINES / 2)) i
+  if [ "$n" -le "$EVIDENCE_LINES" ]; then
+    printf '       %s, %s bytes, all %s lines:\n' "$heading" "${#body}" "$n"
+    for ((i = 0; i < n; i++)); do printf '       | %s\n' "${lines[i]}"; done
+    return 0
+  fi
+  local tail_n=$((EVIDENCE_LINES - head_n))
+  printf '       %s, %s bytes, first %s and last %s of %s lines:\n' \
+    "$heading" "${#body}" "$head_n" "$tail_n" "$n"
+  for ((i = 0; i < head_n; i++)); do printf '       | %s\n' "${lines[i]}"; done
+  printf '       | … %s lines elided; EPITO_SMOKE_EVIDENCE_LINES raises this …\n' \
+    "$((n - EVIDENCE_LINES))"
+  for ((i = n - tail_n; i < n; i++)); do printf '       | %s\n' "${lines[i]}"; done
+}
+# A one-line haystack is printed whole UNLESS its name says it may hold a
+# credential, in which case what is printed is the presence-and-length form
+# L-X5 asks for. A failing assertion is the one place a suite prints a value
+# nobody chose to print, by name, out of this process's own environment, and
+# `tools/check-secret-print.py` reports the line because it cannot resolve an
+# indirect expansion to tell whether this one is safe. The words are the
+# checker's own list, and its label-suffix exemption is deliberately not
+# copied: a haystack named `$KEY_FILE` losing its path from a FAIL line costs
+# a reader one `echo`, and the other direction costs a credential.
+may_hold_credential() {
+  local n w
+  n=$(printf '%s' "$1" | tr '[:lower:]' '[:upper:]')
+  for w in TOKEN TOKENS SECRET SECRETS PASSWORD PASSWD PASS KEY APIKEY PAT \
+           WEBHOOK CREDENTIAL CREDENTIALS COOKIE BEARER AUTH; do
+    case "_${n}_" in *_"$w"_*) return 0 ;; esac
+  done
+  return 1
+}
+# `bad <label> [unevaluated test] [haystack ...]`
+bad()  {
+  fail=$((fail+1)); printf '  FAIL %s\n' "$1"
+  local label="$1"; shift
+  [ $# -gt 0 ] || return 0
+  local test="$1"; shift
+  [ -z "$test" ] || printf '       the test: %s\n' "$test"
+  local rest="$test" name val w seen shown_any=0
+  local -a notes=() docs=() files=() cfiles=()
+  # Matched in the shell, not through `grep ... | head -1`: that is a producer
+  # piped into a reader that exits on its first line, the shape this
+  # repository has spent a week converting out of every suite in here, and
+  # the failure path is the last place to introduce one.
+  while [[ "$rest" =~ [$]\{?([A-Za-z_][A-Za-z0-9_]*) ]]; do
+    name="${BASH_REMATCH[1]}"; rest="${rest#*"${BASH_REMATCH[0]}"}"
+    val="${!name:-}"; [ -n "$val" ] || continue
+    if [ "${val#*$'\n'}" != "$val" ]; then
+      seen=""; for w in ${docs[@]+"${docs[@]}"}; do [ "$w" = "$name" ] && seen=1; done
+      [ -n "$seen" ] || docs+=("$name")
+    else
+      seen=""; for w in ${notes[@]+"${notes[@]}"}; do [ "$w" = "$name" ] && seen=1; done
+      [ -n "$seen" ] || notes+=("$name")
+    fi
+  done
+  for name in ${notes[@]+"${notes[@]}"}; do
+    val="${!name}"
+    if may_hold_credential "$name"; then
+      printf '       $%s is set, %s characters — its name says it may be a credential, so this line prints presence and length and never the value (L-X5)\n' "$name" "${#val}"
+    else
+      printf '       $%s is %s\n' "$name" "$val"
+    fi
+    shown_any=1
+  done
+  # The caller's own haystacks, after the expression's because an assertion
+  # that names a document in its test is about that document; a third
+  # argument is for the assertions whose document was expanded away before
+  # `check` ever saw the string.
+  for w in "$@"; do
+    if [[ "$w" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] && [ -v "$w" ]; then
+      # Declared and empty is kept rather than skipped: `[ -z "$verr" ]`
+      # failing means stderr had something, and the three `exit 0` assertions
+      # that name a captured output want "it printed nothing" said out loud
+      # when that is what happened.
+      docs+=("$w")
+    elif [ -f "$w" ] && [ -r "$w" ]; then
+      cfiles+=("$w")
+    else
+      printf '       %s: named as this assertion'"'"'s haystack, and there is nothing there to read\n' "$w"
+      shown_any=1
+    fi
+  done
+  local shown=0
+  # Two, because the assertions that compare one document against another are
+  # unreadable with one of them, and none here names three.
+  for name in ${docs[@]+"${docs[@]}"}; do
+    val="${!name:-}"; [ -n "$val" ] || { evidence "\$$name" ""; shown=$((shown+1)); [ "$shown" = 2 ] && return 0; continue; }
+    evidence "\$$name" "$val"
+    shown=$((shown+1)); [ "$shown" = 2 ] && return 0
+  done
+  for w in ${cfiles[@]+"${cfiles[@]}"}; do
+    evidence "$w" "$(cat -- "$w")"
+    shown=$((shown+1)); [ "$shown" = 2 ] && return 0
+  done
+  # The expression's own tokens, with its quoting flattened -- and only when
+  # nothing above answered. A needle that happens to look like a path is not a
+  # risk, because only a token that names a readable file is kept; a file that
+  # is merely MENTIONED beside a document is, which is why this never fills
+  # the second slot. `said "$vout" ... && [ -f "$AGENTS/README.md" ]` names
+  # one haystack and one file, and the file is a hundred lines of prose about
+  # the roster rather than the verdict the assertion is about.
+  if [ "$shown" -eq 0 ]; then
+    local blob="${test//[\'\"]/ }"; blob="${blob//$'\n'/ }"
+    local -a words=(); read -ra words <<<"$blob"
+    for w in ${words[@]+"${words[@]}"}; do
+      { [ -f "$w" ] || [ -d "$w" ]; } && [ -r "$w" ] || continue
+      seen=""; for name in ${files[@]+"${files[@]}"}; do [ "$name" = "$w" ] && seen=1; done
+      [ -n "$seen" ] || files+=("$w")
+    done
+    for w in ${files[@]+"${files[@]}"}; do
+      # A directory is read as its listing. One assertion in here says a dry
+      # run created no `.epito/` at all, and when that fails the answer is
+      # which paths are in it -- a `cat` of a directory is an error message
+      # and `(names no document)` is a shrug.
+      if [ -d "$w" ]; then evidence "$w/ (listing)" "$(find "$w" -print 2>/dev/null | sort)"
+      else evidence "$w" "$(cat -- "$w")"; fi
+      shown=$((shown+1)); [ "$shown" = 2 ] && return 0
+    done
+  fi
+  # A single-line haystack printed as a note above IS the answer, so the line
+  # below fires only when nothing at all was said -- which is honest. Measured,
+  # by forcing all 158 assertions in this file to fail at once: 4 of them say
+  # it. Three are the dry-run assertions that a path was NOT created
+  # (`[ ! -e .epito/audit.jsonl ]`, `[ ! -d .epito ]`) and one is
+  # `[ -z "$verr" ]`. And that census OVERSTATES the silence for all four,
+  # because a forced failure is not a real one: when `[ ! -d .epito ]` fails
+  # for real the directory is there to list, and when `[ -z "$verr" ]` fails
+  # for real stderr has something in it to print. The `untouched` assertions
+  # are not in the four -- they name $EPITO_BEFORE and $EPITO_AFTER.
+  [ "$shown" -gt 0 ] || [ "$shown_any" = 1 ] \
+    || printf '       (this assertion names no document; what it looked at is in the test above)\n'
+}
+check(){ if eval "$2"; then ok "$1"; else bad "$@"; fi; }
+# Report that a file carries a value the assertion says is absent, by line
+# number and never by line. The three assertions in section 3 that say a
+# secret is not printed back are the one place where printing the haystack
+# would be printing the thing the assertion exists to keep off the screen, so
+# they get the line numbers and the reader gets one `sed -n` to run.
+leak_site() {
+  local file="$1" needle="$2" n
+  n=$(grep -cF -- "$needle" "$file" 2>/dev/null || true)
+  printf '       %s carries it on %s of its %s lines — not printed here, which is the point of the assertion; `grep -nF` it in %s\n' \
+    "$(basename "$file")" "${n:-0}" "$(wc -l <"$file" | tr -d ' ')" "$file"
+}
 # `said <captured output> [grep flags] <pattern>` — the one way this suite looks
 # inside a command's output, and it contains no pipe. That is the whole point of
 # it.
@@ -103,7 +293,12 @@ epito_fingerprint() {
   done
 }
 EPITO_BEFORE="$(epito_fingerprint)"
-untouched() { [ "$(epito_fingerprint)" = "$EPITO_BEFORE" ]; }
+# The reading is kept rather than compared and thrown away: these four
+# assertions are the only ones in this suite whose claim IS a comparison
+# between two documents, and `FAIL epito env wrote no .epito/` with neither
+# side on screen says a directory changed and not what changed in it.
+EPITO_AFTER=""
+untouched() { EPITO_AFTER="$(epito_fingerprint)"; [ "$EPITO_AFTER" = "$EPITO_BEFORE" ]; }
 if [ "$EPITO_BEFORE" = absent ]; then
   WROTE_NOTHING="wrote no .epito/ into the repository"
 else
@@ -130,11 +325,14 @@ step "1. every seat in the real roster is a valid manifest, strictly"
 for s in $SEATS; do
   [ -f "$AGENTS/$s/agent.toml" ] || { bad "$s has an agent.toml"; continue; }
   out="$(cd "$AGENTS/$s" && $E validate 2>&1)"; rc=$?
-  check "$s validates (exit 0)" "[ $rc -eq 0 ]"
-  check "$s is an agent, not a skill" "said \"\$(printf '%s' '$out')\" '✓ $s is an agent'"
+  check "$s validates (exit 0)" "[ \$rc -eq 0 ]" out
+  # `said "$out"` rather than the `said "$(printf '%s' '$out')"` this used to
+  # be: the old form inlined the whole document into the string `check` evals,
+  # which named no haystack for a FAIL to print and would have broken outright
+  # on a validate output carrying a single quote.
+  check "$s is an agent, not a skill" "said \"\$out\" '✓ $s is an agent'"
   sout="$(cd "$AGENTS/$s" && $E validate --for-runtime 2>&1)"; src=$?
-  check "$s passes the strict gate --for-runtime" "[ $src -eq 0 ]"
-  [ -n "$sout" ] || true
+  check "$s passes the strict gate --for-runtime" "[ \$src -eq 0 ]" sout
 done
 
 step "2. the ✓ is clean: no note about a charter that IS committed"
@@ -181,7 +379,7 @@ check "a charter in a repo the manifest does NOT name is not evidence" "said \"\
 
 step "3. the roster loads whole, and matches the workflows it came from"
 rout="$($E routes "$AGENTS" 2>&1)"; rrc=$?
-check "epito routes reads the whole roster (exit 0)" "[ $rrc -eq 0 ]"
+check "epito routes reads the whole roster (exit 0)" "[ \$rrc -eq 0 ]" rout
 for s in $SEATS; do
   check "routes names $s" "said \"\$rout\" '^$s '"
 done
@@ -191,7 +389,7 @@ done
 wf() { grep -o -- "--max-turns [0-9]*" "$ROOT/.github/workflows/agent-$1.yml" | head -1 | awk '{print $2}'; }
 for s in $SEATS; do
   w="$(wf "$s")"; m="$(grep -E '^max_turns' "$AGENTS/$s/agent.toml" | grep -o '[0-9]*' || true)"
-  if [ -n "$w" ]; then check "$s max_turns=$m matches its workflow's --max-turns $w" "[ \"$m\" = \"$w\" ]"; fi
+  if [ -n "$w" ]; then check "$s max_turns=$m matches its workflow's --max-turns $w" "[ \"\$m\" = \"\$w\" ]"; fi
 done
 # The open road, which is the one thing this roster could not express until
 # spec v0.2 (agents/README.md, "the open road"). A seat whose workflow has an
@@ -242,11 +440,14 @@ if [ -n "$routed_seat" ]; then
   rsrc=$?
   if [ $rsrc -eq 0 ] && grep -q "^$routed_seat .* takes open" "$TMP/routes-set.txt"
     then ok   "with both secrets on the box, $routed_seat takes the open road (exit 0)"
-    else bad  "with both secrets on the box, $routed_seat takes the open road (exit 0) [exit $rsrc]"
+    else bad  "with both secrets on the box, $routed_seat takes the open road (exit 0) [exit $rsrc]" \
+              "[ \$rsrc -eq 0 ] && grep -q '^$routed_seat .* takes open' '$TMP/routes-set.txt'" \
+              "$TMP/routes-set.txt"
   fi
   if grep -qF 'at $OPENROUTE_BASE_URL' "$TMP/routes-set.txt" && ! grep -qF "$SECRET_URL" "$TMP/routes-set.txt"
     then ok   'the endpoint is read back as $OPENROUTE_BASE_URL, never as its value'
     else bad  'the endpoint is read back as $OPENROUTE_BASE_URL, never as its value'
+         leak_site "$TMP/routes-set.txt" "$SECRET_URL"
   fi
 
   # The third outcome: set, and set wrong. The seat still runs on the floor, and
@@ -255,20 +456,26 @@ if [ -n "$routed_seat" ]; then
   rbrc=$?
   if [ $rbrc -eq 1 ]
     then ok  "an endpoint set to a non-URL exits 1 rather than falling through in silence"
-    else bad "an endpoint set to a non-URL exits 1 rather than falling through in silence [exit $rbrc]"
+    else bad "an endpoint set to a non-URL exits 1 rather than falling through in silence [exit $rbrc]" \
+             "[ \$rbrc -eq 1 ]" "$TMP/routes-bad.txt"
   fi
   if grep -q 'configured and configured wrongly' "$TMP/routes-bad.txt" \
      && grep -q 'Fix: set OPENROUTE_BASE_URL' "$TMP/routes-bad.txt"
     then ok  "...and the refusal names the variable and the fix"
-    else bad "...and the refusal names the variable and the fix"
+    else bad "...and the refusal names the variable and the fix" \
+             "grep -q 'configured and configured wrongly' '$TMP/routes-bad.txt' && grep -q 'Fix: set OPENROUTE_BASE_URL' '$TMP/routes-bad.txt'" \
+             "$TMP/routes-bad.txt"
   fi
   if grep -q "^$routed_seat .* takes subscription" "$TMP/routes-bad.txt"
     then ok  "...while the seat still has a road, so nothing stops running"
-    else bad "...while the seat still has a road, so nothing stops running"
+    else bad "...while the seat still has a road, so nothing stops running" \
+             "grep -q '^$routed_seat .* takes subscription' '$TMP/routes-bad.txt'" \
+             "$TMP/routes-bad.txt"
   fi
   if ! grep -qF "gw-smoke-$$.invalid" "$TMP/routes-bad.txt"
     then ok  "...and even the wrong value is not printed back"
     else bad "...and even the wrong value is not printed back"
+         leak_site "$TMP/routes-bad.txt" "gw-smoke-$$.invalid"
   fi
   # Blank is the third outcome's quieter half, and the one an env file invites:
   # `OPENROUTE_API_KEY=` with nothing after it. It closes the road exactly like
@@ -279,11 +486,15 @@ if [ -n "$routed_seat" ]; then
   rblrc=$?
   if [ $rblrc -eq 1 ] && grep -q 'holds nothing' "$TMP/routes-blank.txt"
     then ok  "a key set to nothing is a line to fix, not a road this box never had"
-    else bad "a key set to nothing is a line to fix, not a road this box never had [exit $rblrc]"
+    else bad "a key set to nothing is a line to fix, not a road this box never had [exit $rblrc]" \
+             "[ \$rblrc -eq 1 ] && grep -q 'holds nothing' '$TMP/routes-blank.txt'" \
+             "$TMP/routes-blank.txt"
   fi
   if ! grep -q 'OPENROUTE_API_KEY is not set on this machine' "$TMP/routes-blank.txt"
     then ok  "...and is never described as unset, which is a different box"
-    else bad "...and is never described as unset, which is a different box"
+    else bad "...and is never described as unset, which is a different box" \
+             "! grep -q 'OPENROUTE_API_KEY is not set on this machine' '$TMP/routes-blank.txt'" \
+             "$TMP/routes-blank.txt"
   fi
   unset OPENROUTE_API_KEY
 fi
@@ -323,7 +534,7 @@ else
   # directory is a git checkout somebody is working in.
   cp -r "$AGENTS" "$TMP/agents"
   dout="$(cd "$TMP" && $E run agents --dry-run 2>&1)"; drc=$?
-  check "the dry run exits 0 (it used to exit 1: unknown command \"run\")" "[ $drc -eq 0 ]"
+  check "the dry run exits 0 (it used to exit 1: unknown command \"run\")" "[ \$drc -eq 0 ]" dout
   check "it does NOT print the unknown-command error" "! said \"\$dout\" 'unknown command'"
   # Every cron'd seat is accounted for, as a create OR as already-registered.
   # This used to demand four "would create" lines, which quietly assumed the
@@ -334,7 +545,7 @@ else
   # side of the diff a seat lands on is the engine's state, not the roster's.
   planned=$(printf '%s' "$dout" | grep -c 'would create seat:')
   settled=$(printf '%s' "$dout" | grep -oE '[0-9]+ unchanged' | grep -oE '[0-9]+' | tail -1)
-  check "it plans a schedule for every seat with a cron (created ${planned:-0} + already registered ${settled:-0} = 4)" "[ \$(( ${planned:-0} + ${settled:-0} )) -eq 4 ]"
+  check "it plans a schedule for every seat with a cron (created ${planned:-0} + already registered ${settled:-0} = 4)" "[ \$(( ${planned:-0} + ${settled:-0} )) -eq 4 ]" dout
   check "and names the presence-only seat instead of silently skipping it" "said \"\$dout\" 'presence-only (no \[trigger\].cron, so no schedule): exo'"
   check "it says in words that it wrote nothing" "said \"\$dout\" 'dry run: nothing was registered'"
   # The bug: four `schedule.create` lines in an append-only ledger, for four
@@ -345,12 +556,20 @@ fi
 
 step "5. token and deploy agree with the manifests, and refuse cleanly"
 tout="$(cd "$TMP" && $E token pm "$AGENTS/pm" --dry-run 2>&1)"; trc=$?
-check "token --dry-run on the real pm manifest exits 0" "[ $trc -eq 0 ]"
+check "token --dry-run on the real pm manifest exits 0" "[ \$trc -eq 0 ]" tout
 check "it maps the pm seat's three scopes, issues included" "said \"\$tout\" 'issues: write'"
 check "and says there is no App on this machine rather than inventing one" "said \"\$tout\" 'no App on this machine yet'"
-check "the other seats do not get issues: write" "! said \"\$(cd '$TMP' && $E token market '$AGENTS/market' --dry-run 2>&1)\" 'issues: write'"
+# Captured first, for the same reason the --template assertion below is: run
+# inside the string `check` evals, this expression named no variable and its
+# only readable token was `$CLI/src/index.js`, so a FAIL printed 386 lines of
+# the product's entry point under a claim about `epito token market`. Measured
+# by forcing every assertion in this file to fail -- it was one of two sites
+# that answered with the wrong document, and the only way to find them was to
+# make each one answer once.
+mtout="$(cd "$TMP" && $E token market "$AGENTS/market" --dry-run 2>&1)"
+check "the other seats do not get issues: write" "! said \"\$mtout\" 'issues: write'"
 pout="$(cd "$TMP" && $E deploy pm "$AGENTS/pm" --dry-run 2>&1)"; prc=$?
-check "deploy --dry-run on the real pm manifest exits 0" "[ $prc -eq 0 ]"
+check "deploy --dry-run on the real pm manifest exits 0" "[ \$prc -eq 0 ]" pout
 check "it would install on the repository the manifest names" "said \"\$pout\" 'installed on alexandrapaiz/epitome'"
 check "the App name is derived from the manifest, not invented" "said \"\$pout\" 'pm-alexandrapaiz'"
 check "deploy wrote no ledger either, being a dry run" "[ ! -e '$TMP/.epito/audit.jsonl' ]"
@@ -369,7 +588,7 @@ step "6. the roster has one command that says yes, and it needs no engine"
 # probe would assert that a function agrees with itself.
 vout="$($E validate "$AGENTS" 2>"$TMP/validate.err")"; vrc=$?
 verr="$(cat "$TMP/validate.err")"
-check "epito validate agents exits 0 on the real roster" "[ $vrc -eq 0 ]"
+check "epito validate agents exits 0 on the real roster" "[ \$vrc -eq 0 ]" verr vout
 check "it says nothing on stderr when the roster is clean" "[ -z \"\$verr\" ]"
 # This used to assert the output never said "temporal" or "7233", which read as
 # "no engine required" and was the reason the ✓ below could claim `epito run`
@@ -377,7 +596,7 @@ check "it says nothing on stderr when the roster is clean" "[ -z \"\$verr\" ]"
 # invariant worth holding is that it ANSWERS, in full, whatever the box is
 # doing — the counts and the per-seat lines below are that assertion, and they
 # run unconditionally.
-check "it answers whether or not this box has an engine" "[ $vrc -eq 0 ]"
+check "it answers whether or not this box has an engine" "[ \$vrc -eq 0 ]" vout
 nseats=$(printf '%s ' $SEATS | wc -w | tr -d ' ')
 check "it counts every seat in agents/" "said \"\$vout\" '$nseats of $nseats manifests are agents'"
 for s in $SEATS; do
@@ -398,7 +617,7 @@ check "...and reports the same seats under --for-runtime" "said \"\$svout\" '$ns
 if engine_answers; then
   check "with an engine up, it says run would refuse nothing here" "said \"\$vout\" 'nothing here .epito run'"
   check "...and names the engine it looked at" "said \"\$vout\" \"${TEMPORAL_ADDRESS:-127.0.0.1:7233} is answering\""
-  check "...and the strict gate passes on the real roster too" "[ $svrc -eq 0 ]"
+  check "...and the strict gate passes on the real roster too" "[ \$svrc -eq 0 ]" svout
 else
   # The case every previous run of this suite was in, and the one the ✓ got
   # wrong: five good manifests, no engine, and a tick that spoke for `epito
@@ -407,7 +626,7 @@ else
   check "with no engine, it does not claim run would refuse nothing" "! said \"\$vout\" 'nothing here .epito run .* would refuse'"
   check "...it says the manifests are ready and the engine is not" "said \"\$vout\" 'every manifest is ready; the engine is not'"
   check "...and carries the fix for the half that is missing" "said \"\$vout\" 'temporal server start-dev'"
-  check "...and the strict gate refuses, because \`epito run\` would" "[ $svrc -eq 1 ]"
+  check "...and the strict gate refuses, because \`epito run\` would" "[ \$svrc -eq 1 ]" svout
   check "...naming the engine and not the files as the problem" "said \"\$svout\" 'The manifests are not the problem'"
 fi
 # Each seat reads identically whether asked one at a time or as a roster. The
@@ -418,7 +637,7 @@ for s in $SEATS; do
   fromroster="$(printf '%s\n' "$vout" | sed -n "s/^✓ $s  *//p")"
   check "$s reads the same one-at-a-time as in the roster" "[ -n \"\$single\" ] && [ \"\$single\" = \"\$fromroster\" ]"
 done
-check "validate $WROTE_NOTHING" "untouched"
+check "validate $WROTE_NOTHING" "untouched" EPITO_BEFORE EPITO_AFTER
 # agents/README.md is in that directory and is not a seat. findManifests looks
 # for the filename, so it cannot be fooled — but the count above is what would
 # have caught it, and this suite has already been bitten once by `ls`.
@@ -443,7 +662,7 @@ NAMES="$(sed -nE 's/^env = \[(.*)\]$/\1/p' "$AGENTS"/*/agent.toml | tr -d '" ' |
 check "the roster declares at least one name for the box to hold" "[ -n \"\$NAMES\" ]"
 
 eout="$($BARE node "$CLI/src/index.js" env "$AGENTS" 2>&1)"; erc=$?
-check "epito env reads the whole roster (exit 0 on a box that holds none of it)" "[ $erc -eq 0 ]"
+check "epito env reads the whole roster (exit 0 on a box that holds none of it)" "[ \$erc -eq 0 ]" eout
 for n in $NAMES; do
   check "it names $n, and says this box does not have it" \
     "said \"\$eout\" '$n .*not set here'"
@@ -457,7 +676,7 @@ check "every seat short of a name is named, with its count" "said \"\$eout\" '! 
 # --complete is the operator asserting what the manifest cannot say.
 $BARE node "$CLI/src/index.js" env "$AGENTS" --complete >"$TMP/env-complete.txt" 2>&1
 ecrc=$?
-check "--complete refuses a box short of a name (exit 1)" "[ $ecrc -eq 1 ]"
+check "--complete refuses a box short of a name (exit 1)" "[ \$ecrc -eq 1 ]" "$TMP/env-complete.txt"
 check "...and the refusal lists them and names the template" \
   "grep -q 'does not: BOARD_API_URL' '$TMP/env-complete.txt' && grep -q -- '--template' '$TMP/env-complete.txt'"
 
@@ -474,18 +693,23 @@ check "--template says what it is and where it goes" "said \"\$tmpl\" 'systemd E
 FULL="env -i PATH=$PATH HOME=$TMP"
 for n in $NAMES; do FULL="$FULL $n=smoke-value-$$"; done
 fout="$($FULL node "$CLI/src/index.js" env "$AGENTS" 2>&1)"; frc=$?
-check "a box that holds every name is told so (exit 0)" "[ $frc -eq 0 ]"
+check "a box that holds every name is told so (exit 0)" "[ \$frc -eq 0 ]" fout
 check "...in one line, naming the runtime's own names as not counted" \
   "said \"\$fout\" 'holds every name' && said \"\$fout\" 'CLAUDE_CODE_OAUTH_TOKEN'"
 check "...and no value it read is printed back" "! said \"\$fout\" 'smoke-value-$$'"
+# Captured first rather than run inside the string `check` evals. In the
+# inlined form the expression named no variable at all and its only readable
+# token was `$CLI/src/index.js`, so a FAIL here would have printed the
+# product's own entry point as though it were the haystack.
+ftmpl="$($FULL node "$CLI/src/index.js" env "$AGENTS" --template 2>&1)"
 check "a held name is commented out in the template, so pasting cannot blank it" \
-  "said \"\$($FULL node '$CLI/src/index.js' env '$AGENTS' --template)\" '^# SLACK_WEBHOOK_URL='"
+  "said \"\$ftmpl\" '^# SLACK_WEBHOOK_URL='"
 
 # Set, and set to nothing: the env-file line somebody half filled in. The box
 # HAS this one and has it wrong, so it refuses — the same split `epito routes`
 # makes between a road this box never had and a road it has wrong.
 eout2="$($BARE SLACK_WEBHOOK_URL= node "$CLI/src/index.js" env "$AGENTS" 2>&1)"; e2rc=$?
-check "a name set to nothing exits 1 rather than reading as absent" "[ $e2rc -eq 1 ]"
+check "a name set to nothing exits 1 rather than reading as absent" "[ \$e2rc -eq 1 ]" eout2
 check "...and a seat's line tells an empty name apart from an absent one" \
   "said \"\$eout2\" 'SLACK_WEBHOOK_URL arrives empty'"
 check "...named, with both ways to fix it" \
@@ -494,7 +718,7 @@ check "...named, with both ways to fix it" \
 ejson="$($BARE node "$CLI/src/index.js" env "$AGENTS" --json 2>&1)"
 check "--json is JSON, with a row per name and a row per seat" \
   "printf '%s' \"\$ejson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); process.exit(r.names.length>0 && r.seats.length===$nseats && r.missing.length===r.names.length ? 0 : 1)'"
-check "epito env $WROTE_NOTHING" "untouched"
+check "epito env $WROTE_NOTHING" "untouched" EPITO_BEFORE EPITO_AFTER
 
 # --file is the other half of this command, and the reason it exists is an
 # outage: the file `epito env --template` writes is a systemd EnvironmentFile,
@@ -503,7 +727,7 @@ check "epito env $WROTE_NOTHING" "untouched"
 # resident host; no value in it is real.
 FIX="$CLI/test/fixtures/envfile/box.env"
 fout2="$($BARE node "$CLI/src/index.js" env --file "$FIX" 2>&1)"; f2rc=$?
-check "env --file refuses a file whose lines two readers disagree about (exit 1)" "[ $f2rc -eq 1 ]"
+check "env --file refuses a file whose lines two readers disagree about (exit 1)" "[ \$f2rc -eq 1 ]" fout2
 check "...naming every one of them" \
   "said \"\$fout2\" 'PASSWORD_HASH, WITH_SPACE, BACKTICK, SUBST'"
 check "...and what the shell does to the first, with the line it is on" \
@@ -524,21 +748,21 @@ check "...single-quoting is reported as the quoting both readers agree on" \
 # A file every reader agrees about: the shape provision-host.sh actually writes.
 printf 'EPITO_PORT=4747\n# a note\nTEMPORAL_ADDRESS=127.0.0.1:7233\n' > "$TMP/clean.env"
 fout3="$($BARE node "$CLI/src/index.js" env --file "$TMP/clean.env" 2>&1)"; f3rc=$?
-check "env --file passes a file both readers read alike (exit 0)" "[ $f3rc -eq 0 ]"
+check "env --file passes a file both readers read alike (exit 0)" "[ \$f3rc -eq 0 ]" fout3
 check "...saying so in one line" "said \"\$fout3\" 'reads the same whether systemd or a shell reads it'"
 
 fout4="$($BARE node "$CLI/src/index.js" env --file "$TMP/not-a-file.env" 2>&1)"; f4rc=$?
-check "env --file names a path it cannot read, and the reason" "[ $f4rc -eq 1 ] && said \"\$fout4\" 'ENOENT'"
+check "env --file names a path it cannot read, and the reason" "[ \$f4rc -eq 1 ] && said \"\$fout4\" 'ENOENT'"
 fout5="$($BARE node "$CLI/src/index.js" env --file 2>&1)"; f5rc=$?
 check "env --file with no path says which path it wants" \
-  "[ $f5rc -eq 1 ] && said \"\$fout5\" 'EnvironmentFile='"
+  "[ \$f5rc -eq 1 ] && said \"\$fout5\" 'EnvironmentFile='"
 fout6="$($BARE node "$CLI/src/index.js" env --flie "$FIX" 2>&1)"; f6rc=$?
 check "a near-miss on the flag is refused by name, never ignored" \
-  "[ $f6rc -eq 1 ] && said \"\$fout6\" 'Did you mean --file'"
+  "[ \$f6rc -eq 1 ] && said \"\$fout6\" 'Did you mean --file'"
 fjson="$($BARE node "$CLI/src/index.js" env --file "$FIX" --json 2>&1)"
 check "env --file --json carries the verdicts and no values" \
   "printf '%s' \"\$fjson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); const bad=r.names.filter(n=>n.diverges.length).map(n=>n.name).join(\",\"); process.exit(bad===\"PASSWORD_HASH,WITH_SPACE,BACKTICK,SUBST\" && !JSON.stringify(r).includes(\"hello world\") ? 0 : 1)'"
-check "env --file $WROTE_NOTHING" "untouched"
+check "env --file $WROTE_NOTHING" "untouched" EPITO_BEFORE EPITO_AFTER
 
 step '8. would a run of THIS roster start on this box? (epito doctor)' 
 # The dogfood question, asked by the product about the product's own seats.
@@ -565,7 +789,7 @@ check "--json carries one verdict per seat and a refusals list" \
 # absent, and not one of them may appear as a reason a run would refuse.
 check "a bare box is short of every name, and that refuses nothing" \
   "printf '%s' \"\$djson\" | node -e 'const r=JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")); const names=r.seats.flatMap(s=>s.names.missing); process.exit(names.length>0 && !r.refusals.some(x=>/set to nothing|not set/.test(x.says)) ? 0 : 1)'"
-check "and doctor $WROTE_NOTHING" "untouched"
+check "and doctor $WROTE_NOTHING" "untouched" EPITO_BEFORE EPITO_AFTER
 # And the question this product is FOR, asked of its own seats: who does each
 # one act as on a box? The answer today is nobody — no seat in this roster has
 # a GitHub App anywhere, and not one of them names GH_TOKEN in [runtime].env,
@@ -589,9 +813,19 @@ check "epito env carries the identity block for this roster too" \
 step "rule 1: nothing personal in the roster"
 # The manifests are published with the repository. A credential in one would
 # be a leak, and `epito validate`'s tripwires only know three shapes.
-check "no private key material anywhere in agents/" "! grep -rqE 'BEGIN [A-Z ]*PRIVATE KEY' '$AGENTS'"
-check "no github token shapes" "! grep -rqE 'gh[pousr]_[A-Za-z0-9]{20,}' '$AGENTS'"
-check "no api key shapes" "! grep -rqE 'sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}' '$AGENTS'"
+# Asked as `grep -rlE` into a variable rather than as `! grep -rqE` inline,
+# which is the same question and gives a failing one something to say: the
+# haystack of these three is a DIRECTORY, so neither the `$NAME` reader nor
+# the file reader could name anything, and `FAIL no github token shapes`
+# across a five-seat roster is the blindest line in this file. `-l` prints
+# paths and never the matching line, which is required and not incidental
+# here: the match is the credential (L-X5).
+keyhits="$(grep -rlE 'BEGIN [A-Z ]*PRIVATE KEY' "$AGENTS" 2>/dev/null || true)"
+check "no private key material anywhere in agents/" "[ -z \"\$keyhits\" ]" keyhits
+ghhits="$(grep -rlE 'gh[pousr]_[A-Za-z0-9]{20,}' "$AGENTS" 2>/dev/null || true)"
+check "no github token shapes" "[ -z \"\$ghhits\" ]" ghhits
+akhits="$(grep -rlE 'sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}' "$AGENTS" 2>/dev/null || true)"
+check "no api key shapes" "[ -z \"\$akhits\" ]" akhits
 
 # The "smoke:" prefix is what test/all.sh greps for to tally a suite
 # (run_suite in test/all.sh); without it this suite reports "nothing asserted".

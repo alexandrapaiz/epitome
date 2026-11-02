@@ -38,6 +38,17 @@
 #    peak to double. The response is a defined step up — half again — and the
 #    cap for this product's seats is read out of `agents/<seat>/agent.toml`
 #    rather than remembered.
+# 4. **A killing, which the killed run cannot report** (L102, incident 67).
+#    Everything above is read out of the result object the executor prints at
+#    exit, so a run the host killed first is in none of it. Until 2026-11-02
+#    those runs shared one number with the runs still working, called "still
+#    open or without a result object", and the two take opposite acts: one
+#    reports in a few minutes, the other never will and its wake is spent. On
+#    the day this was written that number was 37, and it was 15 and 22. All
+#    fifteen were `message` wakes killed at the declared wall clock, five of
+#    them had posted to the board inside their hour, and `message_refused: 0`
+#    read as a clean bill on the channel that lost them. The footer and the
+#    bound are read from `docs/agents/liveness.py`, which owns both.
 #
 # Reads only. No credential, no network.
 set -uo pipefail
@@ -106,8 +117,37 @@ if [ "${1:-}" = "--self-test" ]; then
   for want in 'limit_touched: 0' 'overloaded_529_no_reset_to_wait_for: 1' 'hook_refused: 0'; do
     case "$out" in *"$want"*) ;; *) echo "caps.sh --self-test: an overload is not a quota — expected '$want'" >&2; ok=0 ;; esac
   done
-  rm -rf "$a" "$b" "$c" "$d" "$e"
-  [ "$ok" = 1 ] && echo "caps.sh --self-test: all five fixtures pass" && exit 0
+  # 6. The class with no record of its own (L102, incident 67). Three logs in
+  #    one directory: a run that reported, a run the host killed at its wall
+  #    clock with nothing behind the footer, and a run started a moment ago
+  #    with neither mark. Before 2026-11-02 the last two were one number called
+  #    "still open or without a result object", and the two take opposite acts:
+  #    one will report in a few minutes, the other never will and its wake is
+  #    spent. The killed row is the shape of all fifteen of 2026-11-02 — the
+  #    host's footer, no result object, a `message` trigger.
+  f=$(mktemp -d); mkdir -p "$f/epitome-exo"
+  printf '%s\n' '{"duration_api_ms":1,"type":"result","subtype":"success","terminal_reason":"completed","num_turns":40,"total_cost_usd":3.0,"duration_ms":600000}' \
+    > "$f/epitome-exo/${day}T00-10-00-000Z-message.log"
+  printf '%s\n' '# epito run epitome-exo' '# trigger=message' '---' '' '---' \
+                '# exit=timeout pr=- session=- turns=-' \
+    > "$f/epitome-exo/${day}T01-00-00-000Z-message.log"
+  printf '%s\n' '# epito run epitome-exo' '# trigger=message' '$ claude -p <prompt>' \
+    > "$f/epitome-exo/$(date -u +%Y-%m-%dT%H-%M-%S)-000Z-message.log"
+  # One finished slot, so the slot/wake sentence fires and both its
+  # denominators are under test rather than only the data keys.
+  printf '%s\n' '{"duration_api_ms":1,"type":"result","subtype":"success","terminal_reason":"completed","num_turns":12,"total_cost_usd":1.0,"duration_ms":300000}' \
+    > "$f/epitome-exo/${day}T00-20-00-000Z-cron.log"
+  out=$(bash "${BASH_SOURCE[0]}" --logs "$f" 2>&1)
+  for want in 'runs_finished: 2' 'runs_killed_before_a_result: 1' 'runs_in_the_room: 1' \
+              'runs_unmarked_unplaceable: 0' 'message_attempted: 3' \
+              'message_killed_before_a_result: 1' 'limit_touched: 0'; do
+    case "$out" in *"$want"*) ;; *) echo "caps.sh --self-test: a killed run is not an open one — expected '$want'" >&2; ok=0 ;; esac
+  done
+  # And the denominator: a wake the host spent is a wake, whether or not it
+  # reported, so `attempted` counts launches and never reports.
+  case "$out" in *"0 of 1 scheduled slot(s) were refused, against 0 of 3 message wake(s)"*) ;; *) echo "caps.sh --self-test: the wake denominator must be launches, not reports" >&2; ok=0 ;; esac
+  rm -rf "$a" "$b" "$c" "$d" "$e" "$f"
+  [ "$ok" = 1 ] && echo "caps.sh --self-test: all six fixtures pass" && exit 0
   exit 1
 fi
 
@@ -201,11 +241,51 @@ for f in glob.glob(os.path.join(root, "agents", "*", "agent.toml")):
 RESULT = re.compile(r'^\{"duration_api_ms".*"type":"result".*\}$', re.M)
 LIMIT  = re.compile(r'hit your [a-z]+ limit|"api_error_status":(?:429|529)|limit (?:reached|exceeded)')
 
+# THE CLASS WITH NO RECORD OF ITS OWN (L102, incident 67). Until 2026-11-02
+# every log with no result object behind it was one number, `unparsed`, printed
+# as "still open or without a result object". That is two states with opposite
+# remedies under one name, which is L-A44 in this script's own output and the
+# same defect this file fixed for refusals and for 529s. A run still in the room
+# will report its own numbers in a few minutes and must not be counted as a
+# loss. A run the host killed will never report anything: its wake is spent, its
+# cost and turns are unknowable, and the only mark on it was written by the
+# killer. On the day this was written the two were 20 and 15.
+#
+# The bound and the footer are not re-declared here. `docs/agents/liveness.py`
+# owns both — it is the file whose subject is which writer marked an ending, it
+# reads the wall clock off `cli/src/temporal/env.js` rather than choosing one,
+# and a second copy of either value in this file is the thing L-A143 forbids.
+# What is NOT borrowed from it is the result-object test: this file's `RESULT`
+# is anchored to a record because of L64, and the two were allowed to disagree
+# about one log until 2026-11-02, when `liveness.py` took the same anchor.
+import importlib.util as _ilu
+_lv_path = os.path.join(root, "docs", "agents", "liveness.py")
+try:
+    _spec = _ilu.spec_from_file_location("_liveness", _lv_path)
+    _lv = _ilu.module_from_spec(_spec)
+    _spec.loader.exec_module(_lv)
+    FOOTER, WALL_MIN, GRACE_MIN = _lv.FOOTER, _lv.WALL_MIN, _lv.GRACE_MIN
+except Exception as e:
+    # A could-not-look, never a guess at the bound (L41). Without the bound this
+    # script can still tell a killed run from an open one whenever the host left
+    # a footer, and it says plainly which half it lost.
+    FOOTER, WALL_MIN, GRACE_MIN = re.compile(r"^# exit=(\S+)", re.M), None, None
+    print(f"caps.sh: could not read the wall clock from {_lv_path} ({e}) — a log "
+          f"with neither mark is reported as unmarked rather than placed, because "
+          f"the bound is that file's to declare and not this one's to assume.")
+
+NAME = re.compile(r"(\d{4}-\d\d-\d\d)T(\d\d)-(\d\d)-(\d\d)-\d{3}Z-(.+)\.log")
+now = datetime.datetime.now(datetime.timezone.utc)
+
 seats = collections.defaultdict(lambda: collections.defaultdict(list))
 text_only = []
 not_a_limit = []
 overloaded = []
 by_trigger = collections.defaultdict(lambda: collections.defaultdict(int))
+attempted = collections.defaultdict(int)       # every log, finished or not
+killed = []                                    # (seat, file, trigger, footer word, minutes)
+in_room = []                                   # (seat, file, trigger, minutes so far)
+unmarked = []                                  # neither writer's mark, and no bound to place it
 files = unparsed = 0
 for day in window:
     for path in glob.glob(os.path.join(logs, "*", day + "*.log")):
@@ -213,19 +293,46 @@ for day in window:
         if seat_filter and s != seat_filter and s != "epitome-" + seat_filter:
             continue
         files += 1
+        base = os.path.basename(path)
+        # The trigger is read for every log and not only for finished ones.
+        # `<trig>_attempted` used to be the count of FINISHED runs with that
+        # trigger, which is the one thing its name does not say: on 2026-11-02
+        # it printed `message_attempted: 219` on a day the host launched 234
+        # message wakes and killed 15 of them at the wall clock, so the key the
+        # charter's capacity duty reads as "how many runs the host attempted"
+        # was short by exactly the class that bought nothing (L-A107, L-A88).
+        trig = re.sub(r"\.log$", "", base).rsplit("-", 1)[-1]
+        attempted[trig] += 1
         text = open(path, errors="replace").read()
         found = RESULT.findall(text)
         m = found[-1] if found else None
         if not m:
-            # No result object: the run is still open, or it died before the
-            # executor returned one. Either way it is not a finished run and
-            # it is counted as unparsed rather than as a success.
+            # No result object. Which of the three it is comes from the outer
+            # writer, because the executor cannot describe its own killing.
             unparsed += 1
+            foot = FOOTER.search(text)
+            nm = NAME.match(base)
+            start = (datetime.datetime.fromisoformat(
+                "%sT%s:%s:%s+00:00" % nm.group(1, 2, 3, 4)) if nm else None)
+            span = ((os.path.getmtime(path) - start.timestamp()) / 60.0
+                    if start else 0.0)
+            if foot:
+                killed.append((s, base, trig, foot.group(1), span))
+            elif start is not None and WALL_MIN is not None and \
+                    (now - start).total_seconds() / 60.0 > WALL_MIN + GRACE_MIN:
+                # Past the declared wall clock with no mark from either writer:
+                # nothing wrote a cause, so nobody is dispatched at it (L-X14).
+                killed.append((s, base, trig, "lost", (now - start).total_seconds() / 60.0))
+            elif start is not None and WALL_MIN is not None:
+                in_room.append((s, base, trig, (now - start).total_seconds() / 60.0))
+            else:
+                unmarked.append((s, base, trig))
             continue
         try:
             r = json.loads(m)
         except ValueError:
             unparsed += 1
+            unmarked.append((s, base, trig))
             continue
         sub = r.get("subtype") or "?"
         # The class of an ending is in the result object's own fields, and the
@@ -287,7 +394,6 @@ for day in window:
         # since it was written (line 264) and prints it in none of its 24
         # output keys, so two seats measured the split by hand on one night
         # and the brief has never carried it (L62).
-        trig = re.sub(r"\.log$", "", os.path.basename(path)).rsplit("-", 1)[-1]
         by_trigger[trig][sub] += 1
 
 finished = sum(len(v) for d in seats.values() for v in d.values())
@@ -299,7 +405,9 @@ if finished == 0:
     sys.exit(2)
 
 print(f"read {files} log(s) over {window[-1]}..{window[0]} from {logs}: "
-      f"{finished} finished, {unparsed} still open or without a result object")
+      f"{finished} finished, {len(killed)} killed before the executor reported, "
+      f"{len(in_room)} still in the room"
+      + (f", {len(unmarked)} unmarked and unplaceable" if unmarked else ""))
 print()
 print(f"{'SEAT':<22}{'CAP':>5}{'RUNS':>6}{'EXHAUST':>9}{'REFUSED':>9}{'BEFORE':>7}{'$ BURNT':>9}{'MIN':>6}  NOTE")
 
@@ -399,16 +507,45 @@ print(f"{tot_r} finished run(s) on {len(rf_seats)} seat(s) were touched by a pro
 # and minutes reads a day as recovered on the day its cadences were spent.
 slots = by_trigger.get("cron", {})
 slot_ref = slots.get("refused", 0)
-slot_all = sum(slots.values())
+# The denominator is what the host LAUNCHED with that trigger, not what
+# reported. A run killed before it reported was still a slot or a wake spent,
+# and leaving it out of the denominator makes the refusal rate read low by
+# exactly the class that bought nothing.
+slot_all = attempted.get("cron", 0)
 if slot_all:
     print(f"{slot_ref} of {slot_all} scheduled slot(s) were refused, against "
-          f"{by_trigger['message'].get('refused', 0)} of {sum(by_trigger['message'].values())} "
+          f"{by_trigger['message'].get('refused', 0)} of {attempted.get('message', 0)} "
           f"message wake(s). A slot fires once per period and is the whole of that seat's "
           f"cadence for it, so these are not the same loss and only this line says which "
           f"one the day took (L62).")
 else:
     print("No scheduled slot finished in this window, so the slot column is "
           "could-not-look and not a clean bill (L41).")
+
+# The kills, in the unit they were paid in. Every line above this one is read
+# out of a result object, so a run that never wrote one is absent from all of
+# them — and absent from a refusal count reads as a channel that was fine.
+if killed:
+    byt = collections.Counter(k[2] for k in killed)
+    byw = collections.Counter(k[3] for k in killed)
+    mins = sum(k[4] for k in killed)
+    print(f"{len(killed)} run(s) the host killed before the executor reported: "
+          + ", ".join(f"{n} {w}" for w, n in sorted(byw.items(), key=lambda x: -x[1]))
+          + ", by trigger "
+          + ", ".join(f"{n} {t}" for t, n in sorted(byt.items(), key=lambda x: -x[1]))
+          + f", {mins:.0f} minutes of wall clock between them. None of these is in any "
+          f"count above, because every one of those is read out of a result object and "
+          f"these have none: no turns, no cost, no cause, and a wake that is spent "
+          f"whatever the run had done by the time it died (L102). A killed run is not a "
+          f"refused run and is not a run still working — the three take opposite acts and "
+          f"the first two are invisible to a reader that counts only what reported.")
+    for s_, b_, t_, w_, mn in sorted(killed, key=lambda k: -k[4])[:8]:
+        print(f"    {s_:<22} {b_}  exit={w_} at {mn:.1f} min")
+    if len(killed) > 8:
+        print(f"    ... and {len(killed) - 8} more")
+else:
+    print("No run in this window was killed before the executor reported, read from the "
+          "host's own footer and not from the absence of a result object (L102).")
 print()
 print("```data")
 print(f"measured_at: {datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}")
@@ -416,6 +553,12 @@ print(f"window: {window[-1]}..{window[0]}")
 print(f"logs_read: {files}")
 print(f"runs_finished: {finished}")
 print(f"runs_open_or_without_a_result: {unparsed}")
+print(f"runs_killed_before_a_result: {len(killed)}")
+print(f"runs_killed_minutes: {sum(k[4] for k in killed):.0f}")
+print(f"runs_in_the_room: {len(in_room)}")
+print(f"runs_unmarked_unplaceable: {len(unmarked)}")
+print(f"wall_clock_bound_minutes: {('%g' % (WALL_MIN + GRACE_MIN)) if WALL_MIN is not None else 'could-not-look'}")
+print(f"wall_clock_bound_declared_at: docs/agents/liveness.py")
 print(f"limit_touched: {tot_r}")
 print(f"limit_touched_seats: {len(rf_seats)}")
 print(f"refused_before_a_turn: {tot_b}")
@@ -430,10 +573,13 @@ print(f"cap_findings_already_answered_by_a_raise: {caps_answered}")
 print(f"refusal_signature_in_text_only: {len(text_only)}")
 print(f"api_error_that_is_not_a_limit: {len(not_a_limit)}")
 print(f"overloaded_529_no_reset_to_wait_for: {len(overloaded)}")
-for trig in sorted(by_trigger):
+kt = collections.Counter(k[2] for k in killed)
+for trig in sorted(set(attempted) | set(by_trigger)):
     d = by_trigger[trig]
-    print(f"{trig}_attempted: {sum(d.values())}")
+    print(f"{trig}_attempted: {attempted.get(trig, 0)}")
+    print(f"{trig}_finished: {sum(d.values())}")
     print(f"{trig}_refused: {d.get('refused', 0)}")
+    print(f"{trig}_killed_before_a_result: {kt.get(trig, 0)}")
 print("```")
 sys.exit(1 if findings else 0)
 PY

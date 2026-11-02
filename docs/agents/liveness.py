@@ -38,6 +38,15 @@ not a remainder: on this box, measured by `--census`, 39 logs carry the host's
 footer with no result object behind it, 27 of them `exit=143` and 12
 `exit=timeout`.
 
+Re-read 2026-11-02T06:07:49Z, because that count is the thing to watch and not a
+fact to remember: **62 logs, 26 `exit=143` and 36 `exit=timeout`, and 15 of the
+36 were killed on 2026-11-02 alone** — 42% of every wall-clock kill in this
+box's 2,901-log history, in one day, every one of the fifteen a `message` wake,
+at a span of 60.0 to 61.1 minutes. Five of the fifteen posted to the board
+inside their hour, so they were working when they were killed and nothing
+records what they did. That is the class `caps.sh` could not name until the same
+day (L102, incident 67).
+
 The sting, and the reason this is a rule and not a patch. `drafts.sh` asks two
 questions: did the opening run end, and is a later run of the same seat on this
 branch *now*. The second was added on 2026-10-26 as L74's repair, to stop this
@@ -61,7 +70,9 @@ is L-A112 as written. The bound is **declared and not chosen**:
 in `/srv/asc/env` sets that variable. The measurement agrees to a tenth of a
 minute: across 1,666 logs that carry both marks the longest-lived run is 60.0
 minutes, p99 is 50.3, and all twelve `exit=timeout` runs were killed at a span
-of 60.0 to 60.2. The split in the no-mark class is not a judgement call either
+of 60.0 to 60.2 — 60.0 to 61.1 across the 36 of them on 2026-11-02, so the
+bound has held through three times the population. The split in the no-mark
+class is not a judgement call either
 — 17 of the 338 started in the last thirty minutes and the next oldest is
 3,349 minutes, a hole of two and a third days with nothing in it.
 
@@ -87,7 +98,17 @@ import sys
 WALL_MIN = 60.0
 GRACE_MIN = 5.0
 
-RESULT = re.compile(r'\{"duration_api_ms".*?"type":"result".*?\}', re.S)
+# The executor's object is a RECORD on a line of its own, so the pattern is
+# anchored to one and the LAST of them is taken. It was unanchored, dot-all and
+# first-match until 2026-11-02, which is the prose reader `docs/agents/caps.sh`
+# removed for L64 and left standing here — the same repair applied to one of
+# two readers in one directory, which is L-X15 inside a single repository.
+# Measured against `caps.sh`'s own second self-test fixture, a log that quotes a
+# result object in a sentence and carries the host's `# exit=timeout` footer and
+# no record of its own: this file answered `how=result, cause=completed`, which
+# is a killed run reported as an ending its executor chose, in the one file
+# whose whole subject is which writer marked the ending (L102, incident 67).
+RESULT = re.compile(r'^\{"duration_api_ms".*"type":"result".*\}$', re.M)
 FOOTER = re.compile(r"^# exit=(\S+)", re.M)
 NAME = re.compile(r"(\d{4}-\d\d-\d\d)T(\d\d)-(\d\d)-(\d\d)-\d{3}Z-(.+)\.log")
 
@@ -119,11 +140,16 @@ def ending(text, start, mtime, now, wall_min=WALL_MIN, grace_min=GRACE_MIN):
     first, because the inner one cannot describe its own killing.
     """
     foot = FOOTER.search(text)
-    m = RESULT.search(text)
+    # The LAST record, not the first: a run that quotes an earlier run's object
+    # and then ends in its own is described by its own, and `caps.sh` has taken
+    # the last since L64. One reader taking the first and the other the last is
+    # two answers about one log.
+    found = RESULT.findall(text)
+    m = found[-1] if found else None
     obj = None
     if m:
         try:
-            obj = json.loads(m.group(0))
+            obj = json.loads(m)
         except ValueError:
             obj = {"terminal_reason": "unparsable result object"}
     if obj is not None:
@@ -193,8 +219,19 @@ def self_test():
         "\n---\n# exit=1 pr=- session=4cf1009d turns=31\n")
     BARE = ("# epito run epitome-engineer 2026-10-05T23-29-11-986Z-message\n"
             "# trigger=message model=claude-opus-5\n$ claude -p <prompt>\n")
+    # The row the anchored pattern of 2026-11-02 is for. A killed run whose
+    # own prose quotes a result object, which is `caps.sh`'s second fixture and
+    # the shape L64 was written about. Against the unanchored dot-all read this
+    # file shipped until that date it answers `result/completed`: a killing
+    # reported as an ending the executor chose (L102, incident 67).
+    QUOTER = (
+        "# epito run epitome-exo 2026-11-02T01-00-00-000Z-message\n"
+        "# trigger=message model=claude-opus-5\n$ claude -p <prompt>\n---\n"
+        'documenting it here: {"duration_api_ms":1,"type":"result",'
+        '"terminal_reason":"completed","num_turns":5}\n'
+        "\n---\n# exit=timeout pr=- session=- turns=-\n")
 
-    print("== self-test: seven real rows of 2026-10-26, through ending() ==")
+    print("== self-test: eight real rows through ending() ==")
     fails = 0
     fails += row(
         "the ghost on #346", GHOST, "2026-10-25T23:02:09Z", "2026-10-26T00:02:10Z",
@@ -226,6 +263,12 @@ def self_test():
         "lost", None,
         "a real one: the host died under it on 10-05, so no writer survived to "
         "mark either end. 321 logs on this box are this class")
+    fails += row(
+        "a killed run quoting an object", QUOTER, "2026-11-02T01:00:00Z",
+        "2026-11-02T02:00:30Z", "footer", "timeout",
+        "the quotation is not this run's record, so the host's footer is the "
+        "only mark: before 2026-11-02 this answered result/completed",
+        nowish=parse("2026-11-02T06:30:00Z"))
 
     # The row that matters to the caller, and the one that fails against the
     # reader this file replaces: the ghost excluded flips #346's verdict.
@@ -250,7 +293,7 @@ def self_test():
           "23:02:09Z start however dead it is")
 
     print()
-    print("%d of 7 assertions failed." % fails)
+    print("%d of 8 assertions failed." % fails)
     return 1 if fails else 0
 
 
