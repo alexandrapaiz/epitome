@@ -4,20 +4,27 @@
 // 2026-11-02 this box ran out of space while a seat's run was writing a
 // tracked file in its own checkout. The write did not fail and leave the file
 // alone: it left the file at **zero bytes**. `open(path, "w")` truncates
-// before it writes a byte, so a write that cannot finish has already
-// destroyed what it was replacing, and the process that was going to report
-// the error never got to — the kernel's own refusal arrives after the
-// truncation, and under `RLIMIT_FSIZE` it arrives as a signal, so no `catch`
-// in this repository would have run.
+// before it writes a byte, so by the time the device refuses anything, what
+// the write was replacing is already gone. The error that arrives is a real,
+// catchable error and it is too late to be any use: there is no handler that
+// can put the bytes back.
 //
 // Reproduced here, on a real filesystem, with the kernel doing the refusing
-// (cli/test/unit-atomic.mjs):
+// (cli/test/unit-atomic.mjs). `ulimit -f 0` makes every write(2) to a regular
+// file fail, which is the same shape of refusal as a full device and does not
+// need one:
 //
-//   $ printf 'IMPORTANT ORIGINAL CONTENT\n' > victim.txt   # 27 bytes
-//   $ (ulimit -f 0; node -e 'require("fs").writeFileSync("victim.txt","x")')
-//   File size limit exceeded (core dumped)
+//   $ printf 'ORIGINAL 27 BYTES OF CONTENT\n' > victim.txt    # 28 bytes
+//   $ (ulimit -f 0; node prog.mjs >/dev/null 2>&1)             # catches EFBIG
 //   $ wc -c victim.txt
 //   0 victim.txt
+//
+// One detail from that measurement, because it is why "just handle the error"
+// is not a fix: with stdout pointed at a regular file on the same exhausted
+// device, the attempt to PRINT the failure is refused too, and that one does
+// arrive as a signal — `File size limit exceeded (core dumped)`, nothing
+// printed, nothing in the file. A full device can take the report of its own
+// fullness with it.
 //
 // So the fix cannot be a better error message around the write. It has to be
 // that the write never touches the file it is replacing: write the bytes to a
