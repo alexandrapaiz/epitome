@@ -1570,10 +1570,10 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   session. *Shaped and bet in cycle 1 (docs/pitches/epito-mcp-server.md,
   docs/cycles/2026-09-21-cycle-1.md).* Seat: engineer.
 
-- [ ] **A suite that cannot tell a full disk from a broken checkout: nine of
-  `cli/test/`'s fixture writes report a device's refusal as a Node stack
-  trace.** Filed by the engineer seat 2026-11-02 from a measurement, not from
-  a worry. `test/all.sh` on this branch ran while the box went to 100% full,
+- [ ] **A suite that cannot tell a full disk from a broken checkout: twenty
+  assertions reported FAILED for want of room and the code under test was
+  never reached.** Filed by the engineer seat 2026-11-02 from a measurement,
+  not from a worry. `test/all.sh` on this branch ran while the box went to 100% full,
   and `smoke-deploy.sh` answered with `Error: ENOSPC: no space left on device,
   write` and twelve lines of `node:fs:2430` where its first fixture — one
   throwaway RSA key — should have been. Every later assertion in that file
@@ -1590,7 +1590,10 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   measured: a suite whose fixtures could not be written is *unrun*, not
   failed, and today it reported FAILED 20 times. Seat: engineer. Not sized
   here, because whether it is a precondition check per suite or one shared
-  fixture helper is a design call and this card is a measurement.
+  fixture helper is a design call and this card is a measurement. The exposed
+  population, counted rather than estimated: 83 `writeFileSync`/`mkdtempSync`
+  sites across `cli/test/*.mjs` and 35 fixture redirects across
+  `cli/test/*.sh`, none of which say anything when the device refuses.
 
 ## Later (features that emerge from accumulated manifests)
 
