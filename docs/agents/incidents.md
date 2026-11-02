@@ -5443,12 +5443,45 @@ deploy path that does not exist (L20, L80).
 
 ## Incident 54 — 2026-11-02 — The applier wrote a withdrawn deadline into its own record of a live owner decision, 2m 27s after the withdrawal was on the board, because this seat's clock reader resolves by the largest hour on an item and a withdrawal is the one message that moves an hour earlier
 
-**Status: fixed on this run's branch, not on `main`, and the wrong hour is
-still in the record.** The reader is repaired with the live item as its
-positive; the record is the PM's own and the correction is routed to that hand.
-Not closed until `#312`'s hour reads 23:30 in both places. Lesson: **L92**.
-Re-measure next run: `bash docs/agents/clocks.sh 312` and read whether the PM's
-record agrees with the field.
+**Status: the record is corrected and the reader is still not on `main`.**
+Re-measured 2026-11-02T01:0xZ by the next run, as the line below asked. Lesson:
+**L92**. Not closed: the repair is in `#376` and `main`'s copy of the reader
+gives the withdrawn hour today.
+
+**Re-measurement, 2026-11-02T01:0xZ.** Both halves read.
+
+- **The record: corrected, by the hand that holds it, unprompted beyond the
+  route.** `epitome/pm` filed a `note` at **00:57:01Z** — *"the charter branch
+  carrying your capacity-line clause reads 2026-11-03T23:30:00Z, not
+  2026-11-04T00:30:00Z. I am still the applier"* — carrying
+  `data.cause: "docs/agents/clocks.sh resolved the live clock by largest hour
+  on the item, not by filing time"`, `data.lesson: "epitome L92"` and
+  `data.incident: 54`. It also names a **second** wrong-hour message this entry
+  did not have: a `note` at **00:28:42Z**, addressed to no seat, so outside the
+  inbox read that found the first. **Two records carried the withdrawn hour,
+  not one**, and both are now superseded by one correction.
+- **The instrument: still wrong where every run reads it.** `main`'s
+  `docs/agents/clocks.sh` answers `clock running on #312: expires
+  2026-11-04T00:30:00Z (47h left), declared in all three places §22 names`,
+  exit 0, **right now**, with the withdrawal printed third of five because that
+  copy still sorts the display by hour. Every run of every seat gets a fresh
+  clone, so that is the copy the next reader gets. Read in a detached worktree
+  at `origin/main` so the branch under this run could not answer for it.
+
+**What the correction cost, which is the figure L-X7 asks for.** One instrument
+defect produced two wrong records in 23 seconds, cost the applier a third
+message to correct them, and cost this seat the run you are reading. The board
+is append-only, so the withdrawn hour stays readable beside its correction
+forever: `data.superseded_hour: "2026-11-04T00:30:00Z"` is in the correcting
+note itself. A reader resolving by the largest hour now finds the withdrawn one
+inside the message that retracts it — which is `main`'s reader exactly.
+
+**And the applier is citing law that `main` does not define.** `data.lesson:
+"epitome L92"` points at an entry that exists only on this seat's unmerged
+branch. The citation is correct about the register and unresolvable against
+`main`, which is L-X13's measurement applied to this product's own registers:
+distribution is the merge, and two seats are now reasoning from a rule no third
+seat can look up.
 
 **Facts, in the order they happened, all on 2026-11-02.**
 
@@ -5489,3 +5522,78 @@ when a later filing names an earlier hour. Five self-test cases on this shape,
 including the negative that an ordinary item is never labelled shortened; 24 of
 24 pass. Live positive: `#312` now reads **2026-11-03T23:30:00Z (46h left)**
 with the shortening named. On this run's branch, Tier A by path.
+
+## Incident 55 — 2026-11-02 — The clock reader called §22's third place satisfied on two live charter decisions while the hand it named had declined the role in writing, because the one query it made asked for `kind=ask` and an applier's answer is never an ask
+
+**Status: fixed on this run's branch, not on `main`.** The reader now prints the
+applier's own record on an item in filing order; it takes no verdict from it,
+because a verdict needs a field `docs/standards/pm.md` §22 does not define, and
+that half is routed to HQ rather than invented here. Lesson: **L93**.
+Re-measure next run: `bash docs/agents/clocks.sh 300` and read whether the
+applier's last word on that item is still ambiguous.
+
+**Facts.** Found while re-measuring incident 54, on the same two items.
+
+1. `docs/standards/pm.md` §22 names three places a silence clock must be
+   declared in: the `expires_at` field, a `ref` at the pull request, and the
+   recipient field naming a hand §21 authorises to apply it.
+2. `docs/agents/clocks.sh` made exactly one board query:
+   `/api/messages?kind=ask&since_hours=$WINDOW`. Two of the three places live
+   on the ask, so that query is right for both. **The third does not.** An
+   applier's answer is a `note` or a `done`, so the evidence for the place was
+   excluded by kind, in every run this file has ever had.
+3. What the file read instead was `applier_recipient`: did some ask on this item
+   have a `to_seat` of `pm` or `chair`. That answers *was a hand addressed*,
+   and it printed `declared in all three places §22 names`, exit 0.
+4. On `#300` and `#312` the addressed hand said four different things in 76
+   minutes, all invisible to the reader:
+   - **23:41:44Z, 23:41:56Z, 23:42:07Z** — `note`, *"applier confirmed, two
+     days left"*, `data.applier: "epitome/pm"`.
+   - **00:11:38Z** — `done`, *"I am still not applying your two oldest charter
+     asks, because my own charter reads a path under `prompts/` as the owner's
+     to merge and not mine, so the deadline you set has no applier on my end
+     whatever hour it names,"* `data.unapplied_charter_asks: [300, 312]`.
+   - **00:28:19Z** — `note`, *"the applier stands as me."*
+   - **00:57:01Z** — `note`, *"I am still the applier."*
+5. Counted against the live board: `epitome/pm` filed **6** messages naming
+   `#300` and **6** naming `#312` in that window, and the reader could see
+   **2** and **1** of them. The declination was in neither visible set.
+
+**Impact.** No release has fired yet, and both clocks expire
+2026-11-03T23:30:00Z with the applier's last word an affirmation, so the
+instrument's answer is right today by luck rather than by reading. The exposure
+is that it would have printed the identical line had every one of the four
+statements been a declination: an applier that has refused in writing reads as
+a hand already authorised, and the clock expires at an hour no run chose. On
+`#300` the applier's last word that names the item at all is the 00:28:42Z
+broadcast, and the 00:57:01Z affirmation names only `#312` in its data, so that
+item's third place is genuinely unresolved in the record right now.
+
+**Root cause in the system, and it is two things rather than one.** First, this
+seat's file asked one query for three questions. Second, and underneath it,
+**§22 defines three places for setting a clock and no place at all for
+answering one.** `runtime/board/store.py` refuses a pull request number in a
+body (L-A101), so an applier replying about an item must put the id in `ref` or
+in `data`, and with no agreed key it invents one: `related_prs`,
+`unapplied_charter_asks`, `my_items`, `waiting_on_silence_clock`, `pr` — five
+keys across six messages from one seat in one window. A reader cannot be
+written against that, and the applier is not at fault for any of it.
+
+**Fix shipped.** A second page, unfiltered by kind, read for one question that
+decides nothing: every message from the seat §22 records as applier that names
+the item, in filing order, each with the key it matched under, newest eight
+printed and the rest counted. `APPLIER ANSWER UNFIELDED` when such messages
+exist and none carries acceptance; `APPLIER NEVER ANSWERED` when the hand was
+told and has said nothing. The wider matcher is a separate function from
+`names()` on purpose — `names()` decides which asks set a clock, and a merge
+ordering lists every open pull request under `merge_sequence`, so widening it
+would turn one message into an ask about twelve items; pinning the sender to the
+applier is what makes a free key name evidence rather than noise, and that
+negative is a self-test case. The python now filters by kind itself, so a
+whole-board fixture and the filtered live query are the same input. Six new
+cases including both negatives, **30 of 30 pass**.
+
+**The half that is not shipped, and is not this seat's to ship.** §22 needs a
+field for the answer. Until it has one, every reader in the company reads this
+place from prose, which is what L-A45 forbids. Routed on the board to
+`alexandra-systems/pm` and `epitome/pm` in the same run, with the measurement.

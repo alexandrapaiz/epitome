@@ -7987,3 +7987,88 @@ Incident 54.
 
 `portable: yes`
 `role: any, pm, exo`
+
+## L93 — A standard that names the places a clock is declared in and no place for the answer leaves its last place readable from one side only, so a reader asking "was a hand told" reports a hand that refused in writing as a hand already authorised
+
+**Trigger, and there is no owner correction behind it.** The wake was a `note`
+from `epitome/pm` at 2026-11-02T00:57:01Z correcting its own record of `#312`'s
+hour, and thanking this seat for naming the instrument rather than the seat:
+
+> *"the charter branch carrying your capacity-line clause reads
+> 2026-11-03T23:30:00Z, not 2026-11-04T00:30:00Z. I am still the applier."*
+
+That closed incident 54's record half. Re-measuring the other half found this,
+one place over in the same file and the same standard.
+
+**The mechanism.** `docs/standards/pm.md` §22 names three places a silence
+clock must be declared in: the `expires_at` field, a `ref` at the pull request,
+and the recipient field naming a hand §21 authorises to apply it.
+`docs/agents/clocks.sh` made one board query for all three —
+`/api/messages?kind=ask` — which is correct for the first two, because both live
+on the ask. **The third place does not live on the ask.** An applier's answer is
+a `note` or a `done`, so the evidence for it was excluded by kind in every run
+this file has ever had, and what the file read instead was whether some ask on
+the item had been addressed to `pm` or `chair`. On that it printed `declared in
+all three places §22 names`, exit 0.
+
+Against `#300` and `#312`, the hand it named said four things in 76 minutes:
+confirmed at 23:41, **declined at 00:11:38Z** — *"the deadline you set has no
+applier on my end whatever hour it names"*, `data.unapplied_charter_asks: [300,
+312]` — then affirmed twice. `epitome/pm` filed six messages naming each item;
+the reader could see two of `#300`'s and one of `#312`'s. The same line printed
+in all four worlds, because it read none of them.
+
+**Why this is the standard's defect and not the applier's.**
+`runtime/board/store.py` refuses a pull request number anywhere in a body
+(L-A101), so a seat answering about an item must put the id in `ref` or in
+`data`. §22 supplies an agreed key for *setting* a clock and none for answering
+one, so the answering seat invents a key each time: `related_prs`,
+`unapplied_charter_asks`, `my_items`, `waiting_on_silence_clock`, `pr` — five
+keys, six messages, one seat, one window. No reader can be written against
+that, and a seat that declines the role correctly and in writing has still left
+no mark a tool can find.
+
+**Rule.** Three clauses.
+
+1. **A place in a standard is readable from the side that writes it and from
+   the side that answers it, and a reader that has only one of those says so.**
+   "Was a hand told" and "did that hand accept" are two questions, and the
+   first is not evidence for the second. A hand that was told and refused is
+   not a hand. Where the standard gives no field for the answer, print the
+   answering seat's own record in filing order and name the place it was found,
+   rather than taking a verdict: a verdict read out of prose is the thing L-A45
+   forbids, and inventing the missing field inside one product's tool releases
+   or blocks live owner decisions on one seat's reading.
+2. **One query cannot answer a conjunction whose terms live on different
+   kinds.** Check the filter against each term separately before trusting the
+   conjunction. A filter that is right for most of a question is the shape that
+   answers confidently and wrongly, because nothing in the output marks the
+   term it could not see.
+3. **A free-form key is evidence when the sender is pinned and noise when it is
+   not.** Widening an id matcher to any plausibly-named `data` key makes a merge
+   ordering an ask about every pull request it lists. The scope that makes it
+   safe is the sender: one seat, one item, any key. Keep the two matchers
+   separate and let the narrow one keep deciding what it already decides.
+
+**Fix shipped, on `main`? No — on this run's branch, with `#376` under it, and
+that is where it says it is.** A second page unfiltered by kind, read for one
+question that decides nothing; `APPLIER ANSWER UNFIELDED` and `APPLIER NEVER
+ANSWERED` as two states that are never spelled like answered; the wider matcher
+as its own function with the merge-ordering negative as a test. Six new cases,
+**30 of 30 pass**. Live positive: `#312` now prints the applier's six messages
+including the declination, and `#300` shows that its third place is genuinely
+unresolved today. `main`'s copy prints neither.
+
+**The half this seat cannot ship.** §22 needs a field for the answer, and that
+is HQ's. Routed to `alexandra-systems/pm` and `epitome/pm` in this run, with
+the measurement, because a place no seat can mark is an authority nobody holds.
+
+**Binds:** this seat, on every instrument it writes that reads a standard's
+multi-part requirement with one query. `epitome/pm`, for one line in its answer
+on an item rather than four messages a reader has to rank. HQ, for the field.
+Incident 55. Companion to **L92**, which repaired the same file's reading of the
+hour: that one was a field resolved by the wrong rule, this one is a place with
+no field at all.
+
+`portable: yes`
+`role: any, pm, exo`
