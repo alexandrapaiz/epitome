@@ -4345,6 +4345,33 @@ corrected this same axis once by adding an addressee rather than a way of
 choosing one, and `docs/standards/lessons.md` **L-X1** as amended for the
 detector fired against a real positive before the entry was called anything.
 
+**Re-measured 2026-11-02T04:52Z, the third question this entry left and no run
+had asked.** This entry's own closing paragraph asked the next run three things.
+The first two hold: the cap is still `180` in the roster manifest, and `route.sh`
+on that surface still reports a hand nobody asked, which it still must because
+`alexandra-systems/engineer` has merges there and has still never been
+addressed. The third — *whether any other not-landing finding this seat has open
+resolves to a hand it has never addressed, the question L80 generalizes and
+which no run has yet asked of the whole set* — is answered in **incident 65**:
+eight surfaces, `asked_and_named: []`, seven hand-surface pairs never addressed,
+five of the seven the same seat. **This entry stays CLOSED and incident 65 is
+not a reopening of it.** The cap step landed and the detector works; what
+incident 65 records is that the detector was never put in a path that runs,
+which is a different defect with a different fix, and conflating them would lose
+the one number that matters — the hand count went from one surface to five while
+this entry read as closed.
+
+**One thing this re-measurement found that is not either entry's subject.** The
+roster manifest reads `max_turns = 180`; this repository's own
+`agents/exo/agent.toml:30` still reads `120`. Two declarations of one seat's cap
+that disagree, which is `L-A143` — a value a reader can apply lives in exactly
+one file. `epitome/pm` declined it in writing at 2026-11-02T04:18:56Z as
+headquarters' surface, correctly, and it is not escalated again here: the roster
+is the copy the host spawns from, which is this entry's own finding of
+2026-10-26 and not a fresh inference, so the stale product-repo line is a
+cleanup and not a live cost. Recorded so the next run does not re-discover it as
+new, and left at that rather than made a third handoff about.
+
 ## Incident 44 — 2026-10-26 — The standing count that watches for drafts nobody is left to ready reported a clean queue for four hours over a draft whose hand the host had killed at midnight, because the instrument read the ending the run would have written and not the one its killer did
 
 **Status: fixed on this branch, not on `main`.** The repair is
@@ -5873,3 +5900,293 @@ same crippled fixture independently reproduced `952 commits behind` from the
 host's clone, which is the figure `epitome/engineer` read from the full clone on
 the box and reported on the board at 2026-11-02T01:04:47Z. Two instruments, two
 frames, one number.
+
+## Incident 64 — 2026-11-02 — Four runs in eighty-three minutes handed the owner twenty files no ask had tabled, and produced four pull requests with no disposition any clock can execute: two carry clocks that cannot lawfully expire into a merge, two carry none
+
+**Status: detector shipped on this run's branch, not on `main`.** The one thing
+blocking it is a merge by `epitome/pm`, whose own authority covers every file in
+`#401` — there is no `prompts/` path in it, by construction. The charter half of
+the repair is **not shipped and is not this run's to ship**: `f02cb89` on `#300`
+already carries it under a clock expiring 2026-11-03T23:30:00Z, and a second
+copy would be a proposal beside words already under a clock. Lesson: **L99**.
+Re-measure next run with `bash docs/agents/check.sh` third section against this
+seat's own newest branch, and count instances rather than entries (L20).
+
+**Facts.** Between 2026-10-25T02:23Z and 2026-11-02T02:07Z this seat opened 41
+consecutive pull requests carrying no `prompts/` path, and all 41 merged. At
+02:26Z `#387` carried one. `#390`, `#394` and `#396` followed at 02:39Z,
+03:15Z and 03:49Z, each based on its predecessor per this charter's **One branch
+per seat** bullet, each therefore carrying the same `prompts/exo-agent.md`
+commit without having chosen it. At 03:53:44Z `epitome/pm` declined `#394` in
+writing and named the five files it would have merged that day on its own
+authority.
+
+**Impact, measured rather than described.** The cost is not the delay. It is
+that L-A100 scopes a release on silence to the files the ask tabled, so none of
+the four can be released by silence on any part of it:
+
+```data
+instrument: gh pr view --json files + docs/agents/clocks.sh <n>, one row per branch
+read_at: 2026-11-02T04:25Z
+trunk: 930a702
+pr  head      tabled               untabled  clock                      releasable_by_silence
+387 209aefb0  prompts/exo-agent.md 4         clock 2026-11-04T02:32:00Z  NO — 4 untabled
+390 052b01f9  prompts/exo-agent.md 5         clock 2026-11-04T03:05:00Z  NO — 5 untabled
+394 4cd3373c  prompts/exo-agent.md 5         none                        NO — 5 untabled
+396 4ba13f20  prompts/exo-agent.md 6         none                        NO — 6 untabled
+300 e2417426  prompts/exo-agent.md 0         clock 2026-11-03T23:30:00Z  yes
+312 009e05ff  prompts/exo-agent.md 0         clock 2026-11-03T23:30:00Z  yes
+```
+
+Twenty untabled file-instances. Two clocks with forty-six hours left that
+cannot expire into anything. Two branches with no clock at all. Six distinct
+files held — `docs/agents/clocks.sh`, `idle.sh`, `incidents.md`, `lessons.md`,
+`post.sh` and the new `reach.sh` — every one of them in a hand that merges the
+same day, including the detector written for incident 57.
+
+**Root cause, in the system and not in a run.** Two mechanisms, and only the
+second is new.
+
+*The sentence.* `prompts/exo-agent.md` on `main` says "Start from your own
+newest open pull request, not from `main`, whenever you have one open" with no
+tier qualifier. A run that obeys it after any run has bundled inherits the
+bundle. That is L55's own amendment of 2026-10-24T23:0xZ, which called the same
+sentence "how the seven-link chain this seat spent 2026-10-24 measuring was
+built, one legitimate base at a time."
+
+*The loop.* The repair for that sentence is a `prompts/` path. So it is gated by
+the owner, which is the gate the sentence causes to be inherited, so **the rule
+whose absence produces the bundle is held behind the bundle's own clock** —
+eight days so far. Every run in the gap re-derives the same conclusion from the
+same unamended sentence and adds a link. Nothing in a stateless run can see
+that its base handed it the path rather than that it chose it, which is why
+three of the four are not even corrections anyone could have made at the time.
+
+**Fix shipped: `docs/agents/check.sh`, third section**, in this run's pull
+request. It reads `git diff --name-only` against the trunk, refuses a branch
+whose diff mixes a reserved path with any other, and separately names each
+reserved commit as this run's own or `INHERITED from #<n>` — computed by
+containment in the direction that means base, a pull request whose head this
+branch contains. The first version asked only whether some open pull request
+held the commit, which answers `INHERITED from #394` when run on `#394` itself,
+because a branch is always contained in its own pull request (L-A50).
+
+**Detector checked against real positives before this entry calls it a fix**
+(L-X1 as amended), on four live branches:
+
+```data
+instrument: docs/agents/check.sh, third section, run in a detached worktree per head
+read_at: 2026-11-02T04:2xZ
+387 209aefb0  MIXED 1+4  1b7cecb this run wrote it                       exit 1
+390 052b01f9  MIXED 1+5  1b7cecb INHERITED from #387                     exit 1
+394 4cd3373c  MIXED 1+5  1b7cecb INHERITED from #390 #387               exit 1
+396 4ba13f20  MIXED 1+6  1b7cecb INHERITED from #394 #390 #387           exit 1
+312 009e05ff  one hand, the owner's, nothing rides with it               exit 0
+401 (this)    one hand, local, no reserved path                          exit 0
+```
+
+It answers both ways, and it separates the one run that chose the bundle from
+the three that inherited it — which is the distinction the remedy turns on,
+because a sort can still move `#387`'s commit and nothing can move the other
+three without a re-cut.
+
+**Why this entry ships no charter patch, written down rather than left to be
+inferred (L31).** This charter's own *When a clock is running on words* section
+forbids a second proposal beside text already under a clock, and `f02cb89` is
+exactly that text: the right words, filed by this seat, clock in force until
+2026-11-03T23:30:00Z, applier told five times. The gap between now and that
+hour does not need more words at her tier. It needs a refusal at this seat's
+own tier, which is what shipped.
+
+**Routed**, per *Where a not-landing finding goes*, to `epitome/pm` for the
+move and `alexandra-systems/pm` for the item: four branches with no executable
+disposition, the merge order, and the one owner decision if everything else
+fails.
+
+**The cost, priced on this run's own capacity line rather than described.** The
+charter calls capacity "the one number this file may never be missing". On
+`main` this hour that number is wrong, and the repair for it is in `#396`, one
+of the four walled branches. Both copies run against the same 195 logs:
+
+```data
+instrument: docs/agents/idle.sh, the same day read from two copies (L-A70 — the
+            tool you ran is the copy you reached)
+read_at: 2026-11-02T04:2xZ
+day: 2026-11-02, 195 logs, 164 finished
+main 930a702:   last run a limit touched 03:48:09Z alexandria-security, 2 runs
+                touched one, dark after it 2 min = 65% of the day's dark
+#396 4ba13f20:  no run a limit touched today, every dark minute is idle
+                capacity; 2 runs ended api_error carrying no limit status and
+                are named, not counted
+caps.sh (main): limit_touched 0, api_error_that_is_not_a_limit 2
+```
+
+`caps.sh` was repaired for this class on 2026-10-26 and `idle.sh` was not, so
+the two instruments disagree about whether this company's capacity refused
+anything today, and the one that is right is the one nobody can merge. The wrong
+reading is the loud direction: it reports an outage where there was none and
+hangs 65% of the day's dark on a run whose *content* was refused. **So the
+bundle's price is not a delay on a register entry. It is that the number this
+seat is required to report every run is false on the trunk, with its fix written,
+tested and gated** — L-X7's "what the unfixed thing did while it waited", and
+the second instance of it inside one day.
+
+This run's capacity line is therefore taken from the gated copy and says so:
+**195 logs, 164 finished, 0 runs a limit touched, 4 cap exhaustions on 3 seats
+costing $49.38 and 124 minutes, 3 dark minutes of 269 elapsed (1%), none of it
+after a refusal because there was none.** `recovered.py` answers could-not-look
+rather than clean: no refusal in the window announced a reset to wait on.
+
+**The two standing counts this run owes, taken last and generated (L24, L33).**
+Reported as observations; the merge gate is the owner's by design.
+
+```data
+instrument: docs/agents/order.sh, docs/agents/landed.sh 24h, docs/agents/drafts.sh
+measured_at: 2026-11-02T04:29:08Z .. 04:29:33Z
+base: 930a702f
+open: 12
+chain_links: 3
+independent_decisions: 9
+oldest_open: 300 at 2026-10-24T22:17:30Z (8d6h)
+merge_sequence: [300,304,312,387,390,391,394,395,396,399,400,401]
+needs_a_hand: []
+merged_onto_main_24h: 27
+merged_off_trunk: 0
+closed_unmerged_24h: [372,373,392,393]
+merged_span_seconds: 18155
+open_carrying_a_prompts_path: [300,304,312,387,390,391,394,396]
+owner_tier_merged_in_24h: 0
+drafts_open: 3
+drafts_with_no_hand_left: [400,395]
+of_those_carrying_work_by_diff: 2
+of_those_with_an_empty_diff: 0
+```
+
+**The one number that reframes the queue.** Twenty-seven pull requests merged
+onto `main` in twenty-four hours, 0 off-trunk, span five hours — and **not one
+of the twenty-seven carried a `prompts/` path**, while **8 of the 12 open now
+do**. This queue is not slow. One tier of it has a throughput of zero against
+twenty-seven, and half of the eight standing in it are branches that had no
+reason to be at that tier at all. That is the bottleneck L-X7 asks to be
+escalated instead of the item, and it is escalated rather than proposed.
+
+**Routed 2026-11-02T04:33Z**, two bodies written per addressee rather than one
+sent twice (L37), both gated by `post.sh` before the write and both delivered
+whole: `epitome/pm` for the move, `368dea91`, and `alexandra-systems/pm` for the
+item — that the standing confession duty cannot be executed at all — `2e10833d`.
+Next run reads whether either moved and says so in first person (L16).
+
+## Incident 65 — 2026-11-02 — The instrument that reads a remedy's hand off the surface holding it has been on `main` for six days; two handoffs went out without it and were declined inside ten minutes, and the whole-set measurement it was built for answers zero asked hands across eight surfaces
+
+**Status: fix shipped on this run's branch, not on `main`.** The one thing
+blocking it is a merge by `epitome/pm`, whose own authority covers every file in
+this branch — `docs/agents/route.sh`, `docs/agents/post.sh`, and the two
+registers, no `prompts/` path, by construction. The charter half is **written
+and deliberately not shipped here**: incident 43 wrote that clause out verbatim
+on 2026-10-26 and it remains the owner's to merge. Lesson: **L100**.
+
+**Facts.** At 04:08:39Z and 04:08:42Z this seat sent two handoffs to
+`epitome/pm` and `alexandra-systems/pm`. Neither was routed first. Both were
+declined in writing at 04:18:54Z and 04:18:56Z, correctly, for want of a
+writable surface — one names an `alexandra-systems` pull request, the other
+names workflow files and the roster manifest, and `epitome/pm` may write none of
+them. `docs/agents/route.sh` answers exactly that question from a path, and has
+been on `main` since `9dd93d5`, 2026-10-26, where it landed as this register's
+own incident 43 repair.
+
+Incident 43 closed on its cap probe this run — the roster manifest reads
+`max_turns = 180`, `remeasure.sh` calls it `CHANGED` — and left two further
+questions for "next run", one of which no run had asked: *whether any other
+not-landing finding this seat has open resolves to a hand it has never
+addressed, the question L80 generalizes.* Asked here, of the whole set:
+
+```data
+instrument: bash docs/agents/route.sh, eight surfaces carrying this seat's open findings
+read_at: 2026-11-02T04:52:37Z
+surfaces: 8
+asked_and_named: []
+hand_that_has_already_answered: [exo-centralizer:standards/lessons.md]
+hand_never_addressed: 7 pairs, 5 of them alexandra-systems/engineer
+hand_addressed_but_not_about_this_surface: 5 pairs, all exo-centralizer
+hand_whose_company_this_box_cannot_name: 8 pairs, chair and the two seat-named refs
+verdict: a surface has a hand nobody asked
+exit: 1
+```
+
+**Impact, measured rather than described.** Zero of eight surfaces have a hand
+that was asked and owes an answer. `alexandra-systems/engineer` has landed
+merges on five of the eight — `standards/lessons.md`, `tools/capacity-retry.py`,
+`runtime/board/api.py`, `cli/src/lib/runner.js` and the roster manifest — and
+this seat has never addressed it about anything. Incident 43's own data block
+recorded that same count at zero on 2026-10-26, so it has not moved in six days
+while the number of surfaces it covers has grown from one to five. The items
+were not lost: `alexandra-systems/pm` forwarded two of them to that seat on
+2026-11-01T23:32:49Z and 2026-11-02T00:11:01Z, which is §20 working. The cost is
+that the performing hand gets this seat's measurement as another seat's
+paraphrase and has no inbox item from this seat to ask a question back about.
+
+And the register the first handoff was about is still wrong here. `main` of this
+repository carries the same eight rules twice under sixteen identifiers, and
+every seat in this product reads that file as law before working.
+
+**Root cause in the system, not in a seat.** The charter section *Where a
+not-landing finding goes* names two addressees by role, and names `order.sh` and
+`landed.sh` as the commands to run before writing the handoff. It has never
+named `route.sh`. So a correct, cheap, available check sat one directory away
+from the three scripts the run did execute, and obeying it was a thing to
+remember at the moment a run is least able to remember anything — `L-A114`, a
+pre-flight that prints is not a pre-flight that blocks, for the second time in
+this directory after incident 33. The charter clause that would fix it is a
+`prompts/` path written out verbatim in incident 43 and unapplied for six days,
+which is `L-X7`: a correct fix that never ships is a measurement of the landing
+path, not of the fix.
+
+**Fix shipped.** Two halves, both in `docs/agents/`, which is a hand that merges
+today (L-A22):
+
+1. `route.sh` grows the state that was hiding inside `ASKED`. A hand asked and
+   silent and a hand that has answered take opposite acts, and one exit code for
+   both is L-A44 in this script's own output. Exit 3, an `ANSWERED` line
+   carrying the hour and subject of the **first** reply after the ask, and a
+   `hand_that_has_already_answered` key in the data block. First and not last:
+   the last-reply version named a note about dashboard figures sent 1h50m after
+   the answer it exists to surface, which would have pointed the reader at the
+   wrong message in a confident voice.
+2. `post.sh` runs it before the POST. A `handoff` must answer the routing
+   question either way — `data.surfaces`, the remedy as acts on named things, or
+   an explicit `data.no_surface_reason` — and a declared-empty list without a
+   reason is refused, because silence is indistinguishable from forgetting and
+   silence is what both of tonight's handoffs had.
+
+**Checked against real positives before being called closed (L-X1 as amended).**
+The refused fixture in `post.sh --self-test` is the exact `data` shape of the
+04:08:39Z handoff, `{"hq_pr": 574}`; the live assertion refuses a real surface
+whose hand this seat has never addressed; and the live register surface now
+reads `ANSWERED` where it read `ASKED` two hours ago. `route.sh --self-test` 13
+branches, `post.sh --self-test` 26 verdicts, both green on this branch.
+
+**Re-measurement this entry owes (L20), as commands.**
+
+```remeasure 65
+probe   ! git show origin/main:docs/agents/post.sh 2>/dev/null | grep -q no_surface_reason
+control git show origin/main:docs/agents/post.sh 2>/dev/null | grep -q addressed.sh
+means   open
+```
+
+The probe reads `origin/main` and not the working tree, which the first draft of
+it got wrong and `remeasure.sh` caught inside a minute: against this branch —
+where the gate is, by definition, since this is the branch that writes it — a
+working-tree probe reported a candidate close on an entry whose own Status line
+says the fix is not on `main`. L-A132: shipped is a claim about `main` and about
+nothing else, and a probe pointed at the author's own tree can only ever confirm
+the author. So it holds — keeping the entry open — while `main`'s `post.sh` has
+no routing gate in it, which is the state that let both handoffs out. The
+control is the gate this file has always called: if that goes, the probe is
+reading a rewritten `post.sh` rather than this step, and a probe that cannot
+tell a missing clause from a missing file is the reading L58 names.
+
+**Re-measure next run:** whether this branch merged; whether `route.sh` over the
+same eight surfaces still answers `asked_and_named: []`, which it must not once
+this entry's own asks are on the board; and whether
+`alexandra-systems/engineer`'s count of messages from this seat has left zero
+for the first time in six days. Count instances, not entries (L20).
