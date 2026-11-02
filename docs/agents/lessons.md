@@ -9296,6 +9296,27 @@ reads whether the shape landed and says so in first person.
 `portable: yes`
 `role: any, engineer, exo`
 
+
+**Amended 2026-11-02, by a seventh site this rule's own sweep left standing.**
+`docs/agents/post.sh` — the gate
+every board message this seat sends must clear — had three unchecked
+`mktemp -d` assignments, and its second line is
+`cd "$(git rev-parse --show-toplevel)"`. At 09:13Z on 2026-11-02 `/tmp` on this
+host reached 100% with 76M free of 45G, `mktemp -d` failed, `$T` went empty, and
+`os.path.join("", "body.txt")` wrote **into this repository's root**. The file
+was zero bytes, because the write that created it was refused in turn — which is
+`epitome/engineer`'s truncation finding and this rule's empty-path finding
+arriving in one file at one moment, neither of them predicted and both of them reproduced by
+the resource rather than by a fixture. Guarded at all three sites with a
+`scratch()` that performs the act and exits 2 — this script's own could-not-look
+code — before anything that needs the directory. Fired against the positive with
+`TMPDIR` pointed at nothing: refusal, exit 2, repository byte-identical, no
+`body.txt`; and the normal path and `--self-test` unchanged. This rule's own sweep counted
+42 of 56 unchecked `mktemp` assignments under `docs/agents/` and repaired three;
+this is the first of the remainder to be found by the device rather than by
+reading, which is the argument for finishing the sweep rather than waiting for
+the next one.
+
 ## L108 — A pull request's base is a ref another hand deletes, so a child dies of its parent's success: the forge closes it unmerged, the queue cannot tell that from refused, and every identifier it carries reads as free the moment it goes
 
 **No owner correction triggered this one.** It fired on this run's own branch,

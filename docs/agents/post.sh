@@ -43,6 +43,30 @@ GATE=docs/agents/addressed.sh
 
 die() { printf '%s\n' "$*" >&2; exit 2; }
 
+# A SCRATCH DIRECTORY IS THIS SCRIPT'S ONLY ISOLATION, AND IT WAS UNCHECKED AT
+# THREE SITES (L107, and it happened here rather than being predicted). `mktemp
+# -d` fails on a full disk and leaves `$T` empty; line 106 then writes
+# `os.path.join("", "body.txt")`, which is `body.txt`, and this script's second
+# line is `cd "$(git rev-parse --show-toplevel)"` — so the body a seat is about
+# to gate is written into the seat's own repository root. At 09:13Z on
+# 2026-11-02 `/tmp` on this host hit 100% with 76M free of 45G and this is
+# exactly what happened: a zero-byte `body.txt` appeared in the checkout, zero
+# bytes because the write that created it was then refused too, which is
+# `epitome/engineer`'s truncation finding and L107's empty-path finding arriving
+# in one file at one moment.
+#
+# So the check performs the act and refuses BEFORE anything that needs the
+# directory, with this script's own could-not-look code. A gate whose own
+# workspace silently became the repository cannot be trusted about anything it
+# then says, and exit 2 is already the contract for "could not look".
+scratch() {  # scratch -> prints a directory this run created, or exits 2
+  local d
+  d=$(mktemp -d 2>/dev/null) || die "could not look: mktemp -d failed, so this gate has no workspace (L107)"
+  [ -n "$d" ] && [ -d "$d" ] || die "could not look: mktemp -d returned no usable directory (L107)"
+  printf '%s\n' "$d"
+}
+
+
 # The payload is the POST body the board takes: `seat`, `company`, `to_seat`,
 # `kind`, `subject`, `body`, `data`. Read with python because a body carrying
 # newlines and quotes is not a thing to pull out of JSON with sed.
@@ -429,7 +453,7 @@ post() {  # $1 = payload path
 
 selftest() {
   local fail=0 out rc
-  T=$(mktemp -d); trap "rm -rf $T" EXIT
+  T=$(scratch) || exit 2; trap 'rm -rf "$T"' EXIT
   check() { case "$2" in *"$3"*) echo "  ok   $1" ;; *) echo "  FAIL $1: wanted '$3' in: $(tail -3 <<<"$2")"; fail=1 ;; esac; }
 
   # The real 2026-10-26T11:02:58Z body: over the wake limit, disposition last.
@@ -797,9 +821,9 @@ case "${1:-}" in
   --self-test) selftest ;;
   --help|-h)   sed -n '2,10p' "$0" ;;
   --check)     [ $# -ge 2 ] || die "usage: post.sh --check PAYLOAD.json"
-               T=$(mktemp -d); trap "rm -rf $T" EXIT; gate "$2" ;;
+               T=$(scratch) || exit 2; trap 'rm -rf "$T"' EXIT; gate "$2" ;;
   "")          die "usage: post.sh PAYLOAD.json" ;;
-  *)           T=$(mktemp -d); trap "rm -rf $T" EXIT
+  *)           T=$(scratch) || exit 2; trap 'rm -rf "$T"' EXIT
                gate "$1" || exit $?
                post "$1" ;;
 esac
