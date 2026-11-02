@@ -300,7 +300,8 @@ function has_counter(t,   c) {
     else if ($0 ~ /^[ \t]*done([ \t]|$|;)/) { depth--; if (depth < 0) depth = 0 }
   }
 
-  b = $0; gsub(/2>&1/, "", b); gsub(/1>&2/, "", b); gsub(/&&/, "", b)
+  b = $0; gsub(/[0-9]*>&[0-9-]/, "", b); gsub(/&&/, "", b)
+  gsub(/"[^"]*"/, "", b); gsub(/\047[^\047]*\047/, "", b)
   if (b ~ /&/) {
     s = $0
     while (match(s, /[^0-9>]>>?[ \t]*"?[^ \t">|&)]+"?/)) {
@@ -362,6 +363,326 @@ for f in $FILES; do
   if [ "$LIST" = 1 ] && [ "$n" != 0 ]; then
     printf '%s\n' "$sites" | sed 's/^/       /'
   fi
+done
+
+
+# ---------------------------------------------------------------------------
+# The third shape: a write through a path this run does not own.
+#
+# `git -C ""` is not a refusal. It operates on the CURRENT directory and exits
+# zero, printing nothing. Measured on this box, git 2.43.0, against a throwaway
+# repository — cli/test/probe-unowned-path.sh runs it:
+#
+#   branch before: precious
+#   git -C "" branch -m renamed-by-an-empty-path   ->  rc 0, no output
+#   branch after : renamed-by-an-empty-path
+#
+# So the only thing standing between a scratch-directory write and the caller's
+# own checkout is that the variable holding the path is not empty. `mktemp -d`
+# fails — a full device is the ordinary cause, and this box stood at 507M free
+# of 45G at 07:35Z — and an unchecked failure leaves the variable SET, to the
+# empty string. `set -u` cannot see that, and none of the instruments this file
+# scans uses `set -e`: they are `set -uo pipefail`, which is the right choice
+# for a reader that must report rather than die, and is exactly why the check
+# has to be written by hand.
+#
+# It fired. At 07:35:24Z on 2026-11-02, inside a pre-flight run from the
+# repository root, `mergeable.sh --self-test` renamed the branch of the run
+# that called it to `trunk` and destroyed it, created `parent`, `child` and
+# `rogue` beside it, and moved HEAD. The tool exited 1 — it reported the
+# failure AFTER writing in the caller's repository. Four commits survived
+# because they had been pushed (incident 69).
+#
+# THE SECOND SPELLING IS THE SAME DEFECT. Three hours later the same run lost
+# its pull request body: it had written 12312 characters to a fixed name under
+# the shared temp directory, another seat's run wrote 46 bytes of its own to
+# that name, and the forge published the 46 bytes and reported success. Several
+# seats run on this box as one unix user by design, so two runs reaching for
+# one name is the expected case and not the unlucky one. `mktemp` is therefore
+# not a convenience for uniqueness; it is the only thing that makes a path
+# belong to one run. An unchecked `mktemp` and a hardcoded shared path are one
+# fault with two spellings, and this scan counts them into one number.
+#
+# WHAT IS COUNTED IS THE LINE SOMEBODY HAS TO CHANGE, which is why the number
+# below is not the one that was handed to this seat. The measurement routed
+# here was 40 writing `git -C "$var"` calls across six files taking an
+# unchecked variable as their only isolation, and that count is right and this
+# scan prints it — but 20 of the 40 are in one file and one guarded assignment
+# fixes all 20. A ceiling on uses charges a file for having many callers of a
+# single missing line, and then falls by 20 for one commit, which makes the
+# number unreadable as progress. So the ceiling is on the assignment, and the
+# uses it feeds are printed beside it as the blast radius, because that is what
+# makes a line urgent rather than untidy.
+#
+# WHAT IS NOT COUNTED, with the reason, because a gate with a long accepted
+# list is a gate nobody reads (that is this file's own lesson, one section up):
+#
+#   - A READ of a shared path. Running another seat's cached binary or parsing
+#     its leftover JSON is a real fault with a different fix, and
+#     docs/agents/scratch.sh already censuses it with `--self-test` behind it.
+#     This scan is about the write that DESTROYS.
+#   - A shared path in prose, in a captured fixture, or in a specimen handed to
+#     a checker to see whether it gets caught. All three are descriptions of
+#     this defect rather than instances, and a scan that cannot tell them apart
+#     gets switched off. They are excluded by WHERE THE BYTES GO rather than by
+#     a list of forgiven lines: a redirect is a finding only when its `>` sits
+#     outside every quote on the line and outside any heredoc body. That is
+#     what drops `x5probe.sh:181` — `ask_command 'env > /tmp/x5probe-env.txt'`,
+#     a string passed to the credential checker as `--command` and never run —
+#     and `post.sh:560`, a real board reply pasted whole inside a multi-line
+#     double-quoted fixture, and `smoke-langgraph.sh:159`, two lines of advice
+#     telling a reader what to type.
+#   - A name a run invented. `mktemp`, `XXXXXX`, `$$`, `$RANDOM`, `$(date` and
+#     `$BASHPID` anywhere in a path's resolution make it this run's, which is
+#     the whole rule this scan exists to write down.
+#
+# A target held in a variable is resolved back through that variable's
+# assignments, so `LIVE=${BRIEF_LIVE:-/tmp/brief-live.json}` and the
+# `curl ... > "$LIVE"` four lines later are one finding reported at the write.
+#
+# THE HOLES, named here rather than left to be found. A test that appears
+# anywhere in the file counts as the guard for an assignment, and this scan
+# cannot tell a test that runs BEFORE the write from one that runs after it —
+# so a file that checks its scratch directory too late reads clean. And a
+# target assembled across lines, or reached through two variables, is invisible
+# to the resolution above. Both are the forgiving direction, which is the wrong
+# one for a gate; they are the price of a count a reader will still act on.
+#
+# The fix at a call site is one line, and it is the same line every time:
+#
+#   -  tmp=$(mktemp -d)
+#   +  tmp=$(mktemp -d) || { echo "could not look: no scratch directory" >&2; return 2; }
+#
+# and, for the second spelling, a directory this run made rather than a name it
+# chose:
+#
+#   -  LIVE=${BRIEF_LIVE:-/tmp/brief-live.json}
+#   +  LIVE=${BRIEF_LIVE:-$RUNDIR/live.json}      # RUNDIR=$(mktemp -d) || exit 2
+UNOWNED="
+docs/agents/addressed.sh 2
+docs/agents/brief.sh 3
+docs/agents/caps.sh 6
+docs/agents/check.sh 2
+docs/agents/clocks.sh 2
+docs/agents/doors.sh 2
+docs/agents/drafts.sh 1
+docs/agents/executing.sh 2
+docs/agents/idle.sh 1
+docs/agents/mergeable.sh 3
+docs/agents/order.sh 1
+docs/agents/owed.sh 7
+docs/agents/pointers.sh 1
+docs/agents/post.sh 3
+docs/agents/remeasure.sh 1
+docs/agents/reread.sh 2
+docs/agents/reverted.sh 2
+docs/agents/scratch.sh 1
+docs/agents/stage.sh 1
+docs/agents/x5probe.sh 1
+"
+# Counted on `main` at 2026-11-02, 6e05157: 44 sites in 20 files, every one of
+# them under `docs/agents/`. The two this gate found in its own lane -- a
+# scratch directory unchecked in `cli/test/selftests.sh`, which inits a
+# repository under it and then runs every instrument against that with
+# `git -C`, and one in `cli/test/probe-readers.sh` -- are guarded in this same
+# diff, so those files are absent here and allowed none. `deploy/` holds none:
+# `test-provision.sh:297` writes `cat > /tmp/hash.env`, and that line is inside
+# a `<<\047IN_CONTAINER\047` heredoc that runs in a throwaway docker container,
+# where /tmp belongs to that container and to nothing else on this box. It is
+# excluded by the heredoc rule below rather than by a forgiven line, which is
+# the distinction the whole section turns on.
+#
+# Two rows deserve reading before the rest. `docs/agents/mergeable.sh:195` is
+# the one that fired: one unchecked assignment, and the twenty writing
+# `git -C "$work"` calls below it. `docs/agents/brief.sh:69` and `:70` are the
+# second spelling, live, in a tool every seat on this box runs -- two curls
+# into `/tmp/brief-live.json` and `/tmp/brief-events.json`, fixed names under
+# the shared directory, read back by an embedded python four lines later. That
+# is the fault that took a pull request body at 07:07Z, still standing.
+#
+# A branch guarding three of these files -- mergeable.sh, reverted.sh and
+# doors.sh, which hold six of the writing `git -C` calls -- was open and
+# unmerged while this was written, so their rows are left at the number `main`
+# holds. A ceiling that is too HIGH costs one advisory line; a ceiling lowered
+# for a conversion that has not landed fails this gate on main. The stale
+# direction is the safe one, and this table will trail by a pass for the same
+# reason the two above it do.
+#
+# A number may never rise. If one has to, the pull request says why.
+unowned() {
+  [ -f "$ROOT/$1" ] || return 0
+  awk '
+# Is any token in t one a run invented, rather than one a seat typed?
+function invented(t) {
+  return (t ~ /mktemp/ || t ~ /XXXXXX/ || t ~ /\$\$/ || t ~ /\$RANDOM/ ||
+          t ~ /\$\(date/ || t ~ /\$BASHPID/ || t ~ /\$EPOCHSECONDS/)
+}
+# Does t name a fixed place in the directory every seat on this box shares?
+function shared(t) {
+  return (t ~ /^\/tmp\// || t ~ /^\$\{?TMPDIR\}?\// || t ~ /^"?\$\{TMPDIR[:-]/)
+}
+# Resolve a redirect target to a shared literal, directly or through one
+# variable. Returns the literal, or "" when it is not a shared fixed path.
+function resolve(p,   v, k, vals, j) {
+  if (shared(p)) return invented(p) ? "" : p
+  if (p !~ /^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?(\/|$)/) return ""
+  v = p; sub(/^\$\{?/, "", v); sub(/[}\/].*$/, "", v)
+  if (!(v in assign)) return ""
+  k = split(assign[v], vals, "\n")
+  for (j = 1; j <= k; j++)
+    if (vals[j] != "" && shared(vals[j]) && !invented(vals[j])) return vals[j]
+  return ""
+}
+{
+  raw = $0
+
+  # ----- heredoc bodies are not code this file runs -------------------------
+  if (hd != "") { if (raw ~ ("^[ \t]*" hd "[ \t]*$")) hd = ""; next }
+  if (match(raw, /<<-?[ \t]*\047?"?[A-Za-z_][A-Za-z0-9_]*\047?"?[ \t]*$/)) {
+    hd = substr(raw, RSTART, RLENGTH); gsub(/[<\047" \t-]/, "", hd)
+  }
+
+  # ----- one walk, two readings of the line --------------------------------
+  # `code` has every quoted span blanked, because a `>` inside quotes is a
+  # character in a string and not a redirect this file performs — that is what
+  # drops a specimen handed to a checker. `txt` keeps the quotes and stops at
+  # an unquoted `#`, because the variable names everything else matches on live
+  # inside them. Quote state is per line, deliberately: a shell line that opens
+  # a string and closes it on the next is rare here, and carrying the state
+  # across lines means one unbalanced apostrophe blanks the rest of the file.
+  # Nothing is lost by it — the three specimens this scan must not report are
+  # excluded because they are not redirects at all, or are quoted on one line.
+  code = ""; txt = ""; ins = 0; ind = 0
+  for (i = 1; i <= length(raw); i++) {
+    c = substr(raw, i, 1)
+    if (c == "\\" && !ins) { code = code "  "; txt = txt c substr(raw, i+1, 1); i++; continue }
+    if (c == "\047" && !ind) { ins = !ins; code = code " "; txt = txt c; continue }
+    if (c == "\"" && !ins) { ind = !ind; code = code " "; txt = txt c; continue }
+    if (!ins && !ind && c == "#" && (i == 1 || substr(raw, i-1, 1) ~ /[ \t;]/)) break
+    code = code ((ins || ind) ? " " : c)
+    txt = txt c
+  }
+  if (txt ~ /^[ \t]*$/) next
+  cl++        # the ordinal of this line among the lines that are CODE. The
+              # window below is measured in these rather than in line numbers,
+              # so that writing the reason for a check above it instead of
+              # beside it cannot push the check out of its own window.
+
+  # ----- what each variable is ever assigned -------------------------------
+  s = txt
+  while (match(s, /[A-Za-z_][A-Za-z0-9_]*=[^ \t;|&)]+/)) {
+    t = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+    eq = index(t, "="); n = substr(t, 1, eq - 1); val = substr(t, eq + 1)
+    gsub(/^"|"$/, "", val)
+    if (val ~ /^\$\{[A-Za-z_][A-Za-z0-9_]*:?-/) sub(/^\$\{[A-Za-z_][A-Za-z0-9_]*:?-/, "", val)
+    sub(/\}$/, "", val)
+    assign[n] = assign[n] "\n" val
+  }
+
+  # ----- spelling one: a scratch directory nothing checked -----------------
+  s = txt
+  while (match(s, /[A-Za-z_][A-Za-z0-9_]*="?\$\(mktemp/)) {
+    t = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+    eq = index(t, "="); v = substr(t, 1, eq - 1)
+    mkvar[v] = 1
+    mk[++nmk] = v "\t" NR "\t" cl
+    # A same-line `||` that LEAVES is the check. `|| v=` is not one: it makes
+    # the emptiness explicit and hands the problem to a test, which has to be
+    # there — `pointers.sh:112` and `roster.sh:264` both write it that way and
+    # both test on the very next line.
+    if (txt ~ /\|\|/ && txt ~ /(exit|return)([ \t]|$|;|\})/) left[v "\t" NR] = 1
+  }
+  # An emptiness or directory test on a variable, recorded WITH ITS LINE. The
+  # line matters: eight of these instruments reuse the name `tmp` for every
+  # scratch directory they make, so a test keyed by name alone lets one
+  # guarded assignment forgive every unguarded one in the same file. Measured:
+  # addressed.sh reads 0 under that rule and 2 under this one.
+  s = txt
+  while (match(s, /\[\[?[ \t]+-[nzd][ \t]+"?\$\{?[A-Za-z_][A-Za-z0-9_]*\}?/)) {
+    t = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+    sub(/.*\$\{?/, "", t); sub(/[}"].*/, "", t); tested[t "\t" cl] = 1
+  }
+  if (match(txt, /\$\{[A-Za-z_][A-Za-z0-9_]*:\?/)) {
+    t = substr(txt, RSTART + 2); sub(/:\?.*/, "", t); tested[t "\t" cl] = 1
+  }
+
+  # ----- the blast radius: a writing git -C through such a variable --------
+  s = txt
+  WR = "add|am|apply|branch|checkout|cherry-pick|clean|clone|commit|config|fetch|gc|init|merge|mv|notes|prune|pull|push|rebase|remote|replace|reset|restore|rm|stash|switch|symbolic-ref|tag|update-ref|worktree"
+  while (match(s, /git[ \t]+-C[ \t]+"?\$\{?[A-Za-z_][A-Za-z0-9_]*\}?[^ \t]*[ \t]+[a-z-]+/)) {
+    t = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+    v = t; sub(/.*git[ \t]+-C[ \t]+"?\$\{?/, "", v); sub(/[}"\/ \t].*/, "", v)
+    cmd = t; sub(/^.*[ \t]/, "", cmd)
+    if (cmd ~ ("^(" WR ")$")) { writes[v]++; if (!(v in firstwrite)) firstwrite[v] = NR }
+  }
+
+  # ----- spelling two: a write into a name no run invented -----------------
+  # Redirects only, and only those whose `>` is outside every quote.
+  for (i = 1; i <= length(code); i++) {
+    if (substr(code, i, 1) != ">") continue
+    if (substr(code, i-1, 1) ~ /[0-9>&-]/) continue
+    j = i; while (substr(code, j, 1) == ">") j++
+    while (substr(txt, j, 1) ~ /[ \t]/) j++
+    # The target is read out of `txt` and not out of `code`, at the index
+    # `code` found the redirect at: the two are kept the same length on
+    # purpose, and a target like `> "$LIVE"` is entirely inside the quotes
+    # `code` blanked. The `>` decides from `code`, the name from `txt`.
+    tgt = ""
+    while (j <= length(txt) && substr(txt, j, 1) !~ /[ \t|&;)<]/) { tgt = tgt substr(txt, j, 1); j++ }
+    gsub(/"/, "", tgt)
+    if (tgt == "" || tgt ~ /^\/dev\//) continue
+    lit = resolve(tgt)
+    if (lit != "") { sh[++nsh] = NR "\t" tgt "\t" lit }
+    i = j
+  }
+}
+END {
+  for (k = 1; k <= nmk; k++) {
+    split(mk[k], a, "\t"); v = a[1]; ln = a[2]; cn = a[3]
+    if ((v "\t" ln) in left) continue
+    guarded = 0
+    for (d = 0; d <= 3; d++) if ((v "\t" (cn + d)) in tested) guarded = 1
+    if (guarded) continue
+    n = (v in writes) ? writes[v] : 0
+    if (n > 0)
+      printf "%s\tmktemp\t$%s is the only isolation for %d writing git -C call(s), the first at :%d\n", ln, v, n, firstwrite[v]
+    else
+      printf "%s\tmktemp\t$%s is a scratch path nothing checks, so an empty one means \"here\"\n", ln, v
+  }
+  for (k = 1; k <= nsh; k++) {
+    split(sh[k], a, "\t")
+    if (a[2] == a[3]) printf "%s\tshared\ta write into %s, a name another seat picks too\n", a[1], a[3]
+    else printf "%s\tshared\ta write into %s, which resolves to %s\n", a[1], a[2], a[3]
+  }
+}
+' "$ROOT/$1"
+}
+
+printf '\n== the same files, scanned for a write through a path this run does not own\n'
+for f in $FILES; do
+  sites="$(unowned "$f")"
+  n="$(printf '%s' "$sites" | grep -c . )"
+  allowed="$(printf '%s\n' "$UNOWNED" | awk -v f="$f" '$1==f {print $2}')"
+  allowed="${allowed:-0}"
+  if [ "$n" -gt "$allowed" ]; then
+    bad "$f writes through $n path(s) this run does not own, and this gate allows it $allowed"
+    printf '       An empty path is not nowhere, it is HERE: `git -C ""` works on the current\n'
+    printf '       directory and exits 0. A fixed name under a shared directory is the same\n'
+    printf '       fault spelled differently — another seat picks it too, and wins.\n'
+    printf '       Fix: `tmp=$(mktemp -d) || { echo "could not look: no scratch directory" >&2; return 2; }`\n'
+    printf '       and write under a directory this run made, never a name it chose.\n'
+    printf '%s\n' "$sites" | while IFS="$(printf '\t')" read -r ln kind why; do
+      [ -n "$ln" ] || continue
+      printf '       %s:%s  %s\n' "$f" "$ln" "$why"
+    done
+  elif [ "$n" -lt "$allowed" ]; then
+    ok "$f writes through $n — its allowance of $allowed is stale now, lower it to $n"
+  elif [ "$n" = 0 ]; then
+    ok "$f has none"
+  else
+    ok "$f carries $n, its allowance, unchanged"
+  fi
+  [ "$LIST" = 1 ] && [ "$n" != 0 ] && printf '%s\n' "$sites" | sed 's/^/       /'
 done
 
 printf '\n-----------------------------------------------\n'
