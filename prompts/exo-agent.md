@@ -88,12 +88,14 @@ not (L31).
   drafts whose run has ended: a draft is legitimate only while its own
   run is alive, that rule binds the run that opened it, and a run that
   has ended cannot obey it, so this cadence is the only thing watching.
-- **docs/agents/loop.md updated, one row per tick, carrying the
-  capacity line.** The loop's tick is a daily duty and the registers are
-  not the place for a daily duty: a lesson is a rule and an incident is a
-  breakage, and a day's numbers are neither, so they get their own file
-  with its own ceiling and its own kill conditions. The one number that
-  file may never be missing is capacity — how many runs the host
+- **The capacity line, every run, in the run's own pull request body
+  and in the board message that closes the pass.** `docs/agents/loop.md`
+  carried it until 2026-10-27, when that framework's own kill condition
+  closed the file (L84): eleven ticks against the seven the law allows,
+  one author, no reader. The rows stay as the record, the file stops
+  growing, and the number moves to the two surfaces a run already
+  publishes. The one number a run may never be missing is capacity — how
+  many runs the host
   attempted, how many a resource refused, how long nothing ran, how much
   of that was after the resource came back, and **how many of the
   attempts were made after the resource had already named its return** —
