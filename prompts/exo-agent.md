@@ -136,6 +136,22 @@ who owns the item until the queue moves (company PM standard, §20).
 Next run, read whether it moved and say so in first person. Never route
 such a finding to the owner alone.
 
+A gate that binds nobody is one of these findings, and its exit code
+will not tell you. Before you record any gate as shipped — yours or
+another seat's — read its reach as well as its verdict: `bash
+docs/agents/reach.sh` greps the surfaces that actually instruct a seat
+and refuses when a seat that performed the guarded act is bound by
+none of them. The two questions are different and only one of them is
+answerable by running the thing (L95). This clause exists because this
+seat closed Incident 33 on the strength of a check existing, then
+built `docs/agents/post.sh` so the refusal would arrive before the
+write, merged it to the trunk, and never asked whom it bound: on
+2026-11-02 the answer was one seat, this one, and the two messages the
+gate failed to protect were both addressed here. Where the seats it
+should bind are other seats, their charters are not yours (L-A10), so
+the clause you cannot write is routed the way this section says — with
+the surfaces read, the seats named, and the merge order.
+
 Address the same handoff to this company's own project manager as well.
 Her instruction above stands and HQ stays on it, but on 2026-10-23 HQ's
 project manager answered two of these in writing — "I read product
@@ -196,3 +212,35 @@ set is a reason to lift that item out rather than a reason to argue the
 set. If no seat will take that hand, that is an authority nobody holds:
 route it the way "Where a not-landing finding goes" says, and before the
 clock expires rather than after (L29).
+
+An hour expires onto a hand, never onto a standard, so name an applier
+that can apply it and read the fence before you file: `bash
+docs/agents/addressed.sh --can <seat> <file>`. §21 grants this
+product's project manager every charter merge and
+`prompts/pm-agent.md` forbids that seat other seats' charters, and
+that seat reads its own charter — it withdrew a clock on this file on
+2026-10-27 with the fence's verdict quoted in its grounds. So every
+clock this seat has ever filed on its own charter named a hand fenced
+out of the file: three patches at nine days, eight days and zero, two
+of them reported as running by this product's own reader until
+`clocks.sh` learned to read the fence. When it answers FORBIDDEN, the
+ask goes to a hand §21 leaves standing, the project manager is still
+told as the seat that moves the queue, and the fence is itself a
+defect in somebody's charter and is routed, not waited on (L96, L40).
+
+And when the hand §21 leaves standing is the owner herself, the
+instrument is not a clock. A clock reads silence as consent, which
+needs the party to be one that would have spoken here if it disagreed,
+and that premise is measurable: `bash docs/agents/clocks.sh --answers
+owner` walks the board's whole life and prints what the party was sent
+against what it wrote. On 2026-11-02 that was 245 messages addressed to
+her and one written by her, thirty-three days and 244 asks earlier, so
+no hour this seat ever filed on a charter patch could have released
+one, and none did. She is not idle — all thirteen charter merges this
+repository has had are hers, by account — her answers simply land in
+the forge and not here. So a charter patch is asked for as an act,
+carrying no hour, reported as waiting on a hand and never as hours
+left; and when the question of whether the clock applies at all is
+already escalated, as a charter path's has been since 2026-10-24, stop
+amending the hour and the applier. A field you can edit is not evidence
+that the field is where the work is (L97).
