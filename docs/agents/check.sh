@@ -16,6 +16,11 @@
 #    reserved path is this run's choice or inherited from its base (L55 clause
 #    one, L-A133). Added 2026-11-02 after four pull requests in one session
 #    handed the owner nineteen files she had not been asked about.
+# 4. This branch's NAME is free across every pull request this repository has
+#    ever had, and not just across the live remote -- the same allocation that
+#    check 2 performs for an identifier, for the same reason (L106). Added
+#    2026-11-02 by the run whose own branch collided with a pull request that
+#    had merged six hours earlier and taken its name out of existence.
 #
 # Needs a full clone (git clone --depth 1 makes check 2 silently empty) and gh.
 set -uo pipefail
@@ -296,6 +301,62 @@ if git clone -q --no-local --no-hardlinks --depth 1 --branch "$(git rev-parse --
   rm -rf "$(dirname "$crip")"
 else
   echo "  could not decide: could not build the depth-1 fixture"
+fi
+
+echo
+echo "== this branch's NAME has never carried another pull request =="
+# Check 2 above allocates an identifier from the whole queue rather than from
+# main, on the ground that a number free on main is duplicated by the time
+# anyone merges. A branch name is allocated the same way and nothing was doing
+# it (L106). L-A59 deletes a head branch on merge, so the name goes free on the
+# remote; a run told to suffix its branch "if it exists" tests the live remote
+# and takes a name a merged pull request already has. 59 of this repository's
+# 416 pull requests sat under a reused name on 2026-11-02, 23 names, every
+# seat, and this check was written by the run that did it to itself.
+#
+# WHY IT MATTERS WHEN THE BRANCH ITSELF IS GONE: `origin/<name>` is the key
+# L24's refutation clause hands a reader -- "the eight characters of the head
+# you measured it at, so a seat you have described wrongly can refute you with
+# one git rev-parse". That rev-parse answers about whichever pull request the
+# clone fetched last and says nothing about the other one.
+#
+# Two remedies, not interchangeable, so the message names both: a branch with
+# no pull request on it yet is renamed locally, and one that already has an
+# open pull request is renamed through the forge so the pull request follows
+# it, which is the act this check's author performed rather than opening a
+# second pull request for the same run.
+if ! command -v gh >/dev/null; then
+  echo "  could not decide: no gh, so the full queue cannot be read (L41)"
+else
+  nbranch=$(git rev-parse --abbrev-ref HEAD)
+  if [ "$nbranch" = HEAD ] || [ "$nbranch" = main ]; then
+    echo "  not on a seat branch ($nbranch), so there is no name to allocate"
+  elif ! allprs=$(gh pr list --state all --limit 500 \
+        --json number,headRefName,headRefOid,state,createdAt 2>/dev/null); then
+    echo "  could not decide: could not list pull requests (L41)"
+  else
+    taken=$(BRANCH="$nbranch" python3 -c '
+import json, os, sys
+prs = json.load(sys.stdin)
+b = os.environ["BRANCH"]
+for p in sorted((p for p in prs if p["headRefName"] == b), key=lambda p: p["createdAt"]):
+    print("%s\t%s\t%s\t%s" % (p["number"], p["state"], p["headRefOid"][:8], p["createdAt"]))
+' <<<"$allprs")
+    n=$(printf '%s' "$taken" | grep -c . || true)
+    if [ "$n" -le 1 ]; then
+      echo "  $nbranch has carried $n pull request(s), so the name is still a key"
+      [ "$n" = 1 ] && printf '%s\n' "$taken" | awk '{printf "    #%-5s %-7s %s  created %s\n", $1, $2, $3, $4}'
+    else
+      echo "  REFUSES: $nbranch has carried $n pull requests --"
+      printf '%s\n' "$taken" | awk '{printf "    #%-5s %-7s %s  created %s\n", $1, $2, $3, $4}'
+      echo "  rename it. Nothing pushed yet:  git branch -m <name>-<n+1>"
+      echo "  A pull request already open on it:"
+      echo "    gh api -X POST repos/alexandrapaiz/epitome/branches/$nbranch/rename \\"
+      echo "      -f new_name=<name>-<n+1>"
+      echo "  which retargets the open pull request instead of opening a second one."
+      fail=1
+    fi
+  fi
 fi
 
 echo
