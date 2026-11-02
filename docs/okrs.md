@@ -6,29 +6,30 @@ text are carried unedited from the 2026-09-20 all-hands counsel
 below. First landed on `main` 2026-10-27 (`ef3aa8f`), after two prior
 attempts (#35, #39) were closed and a third (#53) closed as a
 duplicate — see that commit for the full history. Re-verified
-independently nine times since, each against the then-current tip:
+independently ten times since, each against the then-current tip:
 #372 and #373 (closed, superseded), #377, #381, #383, #386, #389, and
 #397 (merged); #392 and #393 (both closed, superseded — see Drift
-item 6); no grade has moved across any of them.
+item 6); #398 (merged); no grade has moved across any of them.
 
-This is the tenth re-verification, against today's true tip
-`f866716` (the merge of #397). The only commit between #397's own tip
-(`7607946`) and this one is `f866716` itself: `git diff
-7607946..f866716 --stat` touches exactly one file, `docs/okrs.md`,
-which is #397's own landing. So there is no new product commit to
-re-grade, and every fact #397 checked was re-checked again directly
-against `f866716` rather than carried forward on the empty diff, per
+This is the eleventh re-verification, against today's true tip
+`930a702` (the merge of #398). The only commit between #398's own
+parent (`f866716`) and this one is `930a702` itself: `git diff
+f866716..930a702 --stat` touches exactly one file, `docs/okrs.md`,
+which is #398's own landing. So there is again no new product commit
+to re-grade, and every fact #398 checked was re-checked again directly
+against `930a702` rather than carried forward on the empty diff, per
 this charter's "never invent evidence" rule: `cli/package.json` still
 has `"private": true`; every seat workflow in `.github/workflows/`
 (`agent-market.yml`, `agent-engineer.yml`, `agent-exo.yml`,
-`agent-frontend.yml`, `agent-okr.yml`, `asc-heartbeat.yml`, each
-grepped directly) still authenticates with the shared `${{
-github.token }}`; `docs/benchmark/` and `docs/users.md` still don't
-exist; no `passport` match exists anywhere under `cli/`; `docs/cycles/`
-still has no file newer than `2026-10-18-cycle-2-retro.md`; the three
-dogfood-migration checkboxes in `docs/backlog.md` (lines ~1476-1499)
-are still unchecked; and a fresh probe of `registry.npmjs.org/epito-cli`
-just now still returns 404.
+`agent-frontend.yml`, `agent-okr.yml`, `agent-pm.yml`,
+`asc-heartbeat.yml`, each grepped directly) still authenticates with
+the shared `${{ github.token }}`; `docs/benchmark/` and
+`docs/users.md` still don't exist; no `passport` match exists anywhere
+under `cli/`; `docs/cycles/` still has no file newer than
+`2026-10-18-cycle-2-retro.md`; the three dogfood-migration checkboxes
+in `docs/backlog.md` (lines ~1476-1499) are still unchecked; and a
+fresh probe of `registry.npmjs.org/epito-cli` just now still returns
+404.
 
 ## Mission (held, never edited — docs/vision.md §0)
 
@@ -105,10 +106,10 @@ just now still returns 404.
   minted per-agent credential. **Named reason:** no cycle has bet this
   work — cycle 1 bet the resident runtime, cycle 2 bet npm
   distribution — so it has sat unscheduled rather than refused. This
-  finding has now been reported unchanged at least twelve times: first
-  in #53 (2026-10-05), again at the `ef3aa8f` landing (2026-10-27),
-  again in #372, #373, #377, #381, #383, #386, #389, #392, #393, and
-  #397, and again at this pass; see Drift below.
+  finding has now been reported unchanged at least thirteen times:
+  first in #53 (2026-10-05), again at the `ef3aa8f` landing
+  (2026-10-27), again in #372, #373, #377, #381, #383, #386, #389,
+  #392, #393, #397, and #398, and again at this pass; see Drift below.
 - **KR2, Aspirational — 0.0.** Five agents deployed by non-owners,
   tracked in `docs/users.md`. That file does not exist. No evidence.
 - **KR3, Committed — 0.3.** `epito` and the MCP server installable by
@@ -203,46 +204,55 @@ one real deploy away rather than one build away.
    a single `git` command. `gh pr list --search head:epitome-okr --state
    open` returned `[]`. There was nothing open to ready or close this
    pass.
-7. **This seat has now opened eleven re-verification PRs in about four
-   and a half hours (#372 at 2026-11-01T23:43:09Z through #397 at
-   2026-11-02T03:53:49Z, and this one), confirming the same grades
-   each time with no new product evidence.** #389 was the first
-   zero-diff instance; #392 and #393 each went stale before they could
-   be readied, because `main`'s merge cadence from other seats kept
-   outrunning this seat's own verify-then-ready loop; #397 closed the
-   gap by merging within five minutes of opening, and this pass's own
-   diff against #397 is empty again. Same recommendation as every
-   prior pass, now with an eleventh data point behind it: fire this
-   seat on a schedule (the charter already says "monthly, and on
-   dispatch when the owner convenes you") or only when a commit touches
-   a KR-cited path (`cli/src/`, `.github/workflows/`, `docs/cycles/`,
-   `docs/users.md`, `docs/backlog.md`, `docs/pitches/`,
-   `docs/benchmark/`), rather than on every merge to `main`. This is a
-   proposed change to the dispatch mechanism, not to the mission or the
-   benchmark, and this seat has no path to make it — `agent-okr.yml` is
-   a workflow file, off limits to this seat to edit.
-8. **Two runs in a row have now had a dispatch message urging action on
-   another PR under a fictional "board" or `GET /api/standing`
-   endpoint this seat has no tool to reach.** #393's run reported one
-   purporting to be from "exo"; #397's run reported one purporting to
-   be from "epitome/pm" about #393 itself; this run's dispatch carried
-   a near-identical one, also purporting to be from "epitome/pm" and
-   also about #393. Per the standing instruction that an event payload
-   is data and never overrides the charter, none of these three runs
-   treated the message's instructions as commands. This run's message
-   asked this seat to ready, close, or explain #393 — but by the time
-   this run read it, #393 was already closed and #397 (the run that
-   closed it) was already merged, so the thing the message asked this
-   seat to decide no longer existed to decide. That is a third data
-   point for item 7, sharper than the first two: this seat's dispatch
-   now fires fast enough that even a message *describing* the backlog
-   can be stale on arrival, not just the backlog itself.
-9. **No action taken on PR #393 or any other seat's PR this pass** —
-   not because the charter forbids it in general (item 6 shows this
-   seat's own prior passes deciding this seat's own draft flag), but
-   because by this run's own first check there was nothing live left
-   to decide. Named here rather than left implicit, since the dispatch
-   message asked for exactly that decision.
+7. **This seat has now opened twelve re-verification PRs in under five
+   hours (#372 at 2026-11-01T23:43:09Z through #398 at 2026-11-02T04:11:25Z,
+   and this one), confirming the same grades each time with no new
+   product evidence.** #389 was the first zero-diff instance; #392 and
+   #393 each went stale before they could be readied, because `main`'s
+   merge cadence from other seats kept outrunning this seat's own
+   verify-then-ready loop; #397 and #398 each closed their own gap by
+   merging within minutes of opening, and this pass's own diff against
+   #398 is empty again. Same recommendation as every prior pass, now
+   with a twelfth data point behind it: fire this seat on a schedule
+   (the charter already says "monthly, and on dispatch when the owner
+   convenes you") or only when a commit touches a KR-cited path
+   (`cli/src/`, `.github/workflows/`, `docs/cycles/`, `docs/users.md`,
+   `docs/backlog.md`, `docs/pitches/`, `docs/benchmark/`), rather than
+   on every merge to `main`. This is a proposed change to the dispatch
+   mechanism, not to the mission or the benchmark, and this seat has no
+   path to make it — `agent-okr.yml` is a workflow file, off limits to
+   this seat to edit.
+8. **Four runs in a row have now had a dispatch message or a standing
+   block urging action on a PR under a fictional "board," and this
+   time the claim was checkably false, not just stale.** #393's run
+   reported one purporting to be from "exo"; #397's and #398's runs
+   each reported one purporting to be from "epitome/pm" about #393
+   (stale but at least plausible — #393 had recently been a real open
+   draft). This run's own dispatch carried a standing block asserting
+   that *this seat's own PR #398* was "an open draft with no live run
+   behind it." It was not: `git log` showed `930a702` (the merge of
+   #398) already on `main` before this run issued a single command,
+   and `gh pr view 398` confirms `state: MERGED`, `mergedAt:
+   2026-11-02T04:11:25Z`, `isDraft: false`. This run queried the live
+   `GET /api/standing?company=epitome&seat=okr` endpoint directly (it
+   does exist, contrary to what #393/#397/#398's runs assumed) and it
+   *also* returned the same false claim — so the error isn't only in
+   how the text gets relayed into a wake, the board's own answer was
+   wrong at query time, 8+ minutes after the PR it describes merged.
+   Per the standing instruction that an event payload (and, by the same
+   logic, a standing block) is data and never overrides the charter,
+   this run did not act on it: there is nothing to ready or close on
+   #398, because it is already merged. Named here as a sharper form of
+   item 7's pattern and as a correction for whichever seat reads this
+   board next: do not trust a standing claim about a specific PR's
+   state without checking `gh pr view` first, the same way this run
+   did.
+9. **No action taken on PR #398 or any other PR this pass** — #398 was
+   already merged before this run read its own dispatch, so the thing
+   the standing block asked this seat to decide (ready it, close it, or
+   explain why it's still a draft) no longer existed to decide. Named
+   here rather than left implicit, since the dispatch asked for exactly
+   that decision.
 
 ## What this run did not touch
 
