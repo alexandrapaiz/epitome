@@ -26,6 +26,52 @@
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
+# THE CONTAINMENT TEST BELOW NEEDS A MERGE BASE, NOT JUST THE OBJECT, AND ONLY
+# ONE OF THOSE IS FETCHABLE BY SHA. `contained()` already fetches a sha it does
+# not hold and calls a failed fetch "could not look", which is right as far as
+# it goes. It does not go far enough: in a shallow clone the fetch SUCCEEDS,
+# the object is present, the could-not-look arm never fires, and
+# `git merge-base --is-ancestor` then exits 1 for want of common history --
+# which this script reads as `off-trunk`. Measured on a 60-commit fixture,
+# same sha, same command, an ancestor of `main` by construction:
+#
+#   full clone     --is-ancestor -> 0   contained        (the truth)
+#   depth-1 clone  --is-ancestor -> 1   NOT contained    (with the object in hand)
+#
+# So every pull request that really did merge reads as merged-but-off-trunk,
+# which is this script's loudest class, in the one tool the exo charter sends a
+# seat to for what left the queue. The error runs one way only: never a false
+# landing, always a false off-trunk, and the clone the resident runtime hands
+# every run is depth 1. This is L86's second instance and L-A55's rule, and the
+# guard goes before the first measurement rather than beside the command that
+# needs it.
+if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+  echo "landed.sh: this clone is shallow, which makes every containment answer below wrong in the off-trunk direction; unshallowing" >&2
+  git fetch -q --unshallow origin 2>/dev/null || {
+    echo "landed.sh: could not look — this clone is shallow and could not be deepened, so a merge that is on the trunk would be reported off it. Refusing rather than answering wrongly." >&2
+    exit 2; }
+fi
+
+# DEPTH WAS HALF OF IT. The runtime's clone is also SINGLE-BRANCH, so
+# `refs/remotes/origin/main` is absent or frozen at whenever somebody last
+# fetched it by hand (L-A18 clause four, L-A39), and every comparison on this
+# script's three `origin/main` lines then resolves to nothing. Unshallowing does
+# not create the ref. Measured in the same fixture, after a successful
+# `--unshallow`: 13 of 13 merged pull requests still read `off-trunk`, and the
+# header printed `against origin/main ` with the sha BLANK -- the script already
+# had the tell and published it beside the wrong answer rather than stopping on
+# it. So the ref is fetched, and a ref that still will not resolve is
+# could-not-look with its own exit, never a blank in a header (L41).
+# The refspec is explicit because this clone's own is not. A single-branch
+# clone configures `remote.origin.fetch` for its one branch, so `git fetch
+# origin main` puts the commits in FETCH_HEAD and creates no
+# `refs/remotes/origin/main` at all -- the fetch succeeds and the ref stays
+# absent, which is the quietest version of this failure.
+git fetch -q origin '+refs/heads/main:refs/remotes/origin/main' 2>/dev/null || true
+MAINSHA=$(git rev-parse --verify --quiet origin/main) || {
+  echo "landed.sh: could not look — this clone has no resolvable origin/main, so every containment test would exit non-zero and every merge would be reported off-trunk. Refusing rather than answering wrongly." >&2
+  exit 2; }
+
 since=${1:-$(date -u +%FT00:00:00Z)}
 case "$since" in
   *[hd]) n=${since%[hd]}; u=${since: -1}
@@ -48,7 +94,7 @@ esac
 
 git fetch -q origin main 2>/dev/null
 now=$(date -u +%FT%TZ)
-printf 'measured %s against origin/main %s\n' "$now" "$(git rev-parse --short origin/main)"
+printf 'measured %s against origin/main %s\n' "$now" "${MAINSHA:0:8}"
 printf 'window   %s .. %s\n\n' "$since" "$now"
 
 # One query for both outcomes: a pull request that was closed unmerged left the
@@ -103,7 +149,7 @@ contained() {   # contained <sha> -> 0 on trunk, 1 off trunk, 2 could not look
     || git fetch -q origin "$1" 2>/dev/null \
     || return 2
   git cat-file -e "$1^{commit}" 2>/dev/null || return 2
-  git merge-base --is-ancestor "$1" origin/main 2>/dev/null && return 0
+  git merge-base --is-ancestor "$1" "$MAINSHA" 2>/dev/null && return 0
   return 1
 }
 
@@ -194,7 +240,7 @@ json_list() { local a=("$@"); printf '['; local i; for i in "${!a[@]}"; do
   [ "$i" -gt 0 ] && printf ','; printf '%s' "${a[$i]}"; done; printf ']'; }
 printf '\ndata, for the message that carries this (paste it; do not retype it):\n'
 printf '{"measured_at":"%s","main":"%s","window_from":"%s","merged_onto_main":%s,"merged_off_trunk":%s,"shadowed_by_a_shared_head":%s,"closed_unmerged":%s,"could_not_place":%s,"merged_span_seconds":%d,"merged_first":"%s","merged_last":"%s","open_now":%s}\n' \
-  "$now" "$(git rev-parse --short origin/main)" "$since" \
+  "$now" "${MAINSHA:0:8}" "$since" \
   "$(json_list "${merged[@]}")" "$(json_list "${offtrunk[@]}")" \
   "$(json_list "${shadow[@]}")" \
   "$(json_list "${closed[@]}")" "$(json_list "${unknown[@]}")" \
