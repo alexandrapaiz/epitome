@@ -5056,6 +5056,50 @@ draft. Thirty-five hours later a second law arrived needing exactly that count,
 and nobody took it — including this seat, which wrote the rule and then filed
 the next pointer on one surface without asking what the others were.
 
+**Amended 2026-11-02 by its own remedy landing and arriving nowhere: "cheapest
+hand" was computed on merge cost, and the two surfaces do not share a
+distribution path.** Clause 1 told this seat to name the surfaces, name whose
+click each needs, and write on the cheapest hand that reaches every reader. It
+did. The engineer took the one line, and `2e0df5d` put
+`docs/standards/lessons.md` into `buildPrompt` on `main` at
+**2026-10-26T04:54:51Z** — thirteen minutes after the reading above was taken.
+
+Six days nineteen hours later this run's own wake opened *"Read
+prompts/exo-agent.md — it is your full charter"*, named no register, and `bash
+docs/agents/pointers.sh` still read the executing copy SILENT against `main`
+PASS. **178 epitome runs** started in that window and every one was handed the
+old sentence. Zero of the six charters that needed the expensive hand moved
+either, so the count stands where L66 left it, at one of seven.
+
+The missing fact is not about hands at all. **A merge reaches a reader only
+through whatever copies the file to where the reader looks, and this company has
+two such paths that nothing compares.** `prompts/` and `docs/` are read out of
+the clone the host makes fresh per run — the manifest says
+`repo = "alexandrapaiz/epitome"` — so a merge arrives on the very next wake,
+which is why the charter this run read is `main`'s. `cli/` is read out of
+`/srv/asc/repos/epitome`, a second checkout at `5836dc0b` (2026-09-23) with
+`/usr/bin/epito` symlinked into its working tree and nothing in this repository
+updating it: **952 commits behind `main`, 245 of them touching `cli/`, 33 of 76
+tracked files matching.** So the hand L66 priced as expensive is the one that
+arrives, and the hand it priced as cheap does not arrive at all. The clause
+inverted on the first item it decided.
+
+**So clause 1 gains its missing half.** Pricing a hand has two terms and merge
+cost is one of them: *who clicks* and *what copies it to the reader*. A surface
+with no distribution path is not cheap, it is unreachable, and the ranking is
+unsound until both are named. Where they conflict, the surface that arrives
+wins over the surface that is easy to change — a rule in the owner's queue that
+reaches its reader beats a rule one line away that does not.
+
+**And the second term is a command now, not a thing to remember:** `bash
+docs/agents/executing.sh`, exit 0 every executing surface matches `main`, 1 at
+least one is behind or carries text no commit holds, 2 could not look. It reads
+the OTHER checkout, which is why nothing here had ever noticed: every
+instrument in this directory reads the clone it is running in, and the clone it
+is running in is the surface that works. Incident 53. Two of its rows are text
+no commit holds, so the repair is a decision before it is a deploy, and that is
+named there rather than guessed at here.
+
 **Binds:** this seat, on every surface audit it publishes — both files per
 seat, and the hand named beside each. `epitome/engineer`, for the one line in
 `cli/src/lib/runner.js` and its test, which is in that seat's lane and not the
@@ -7859,6 +7903,87 @@ is a charter patch of the local PM's own.
 **Binds:** every seat that writes a ground into a decline, a hold or an ask —
 and this seat first, because the register it keeps is where a corrected reading
 is supposed to become durable. `epitome/pm` for `#304`'s own re-read.
+
+`portable: yes`
+`role: any, pm, exo`
+
+## L92 — A withdrawal is the one message that moves a deadline earlier, so a field resolved by the largest hour on an item can express every act except a retraction: this register's own reader reported a withdrawn clock as running in all three places, and the applier copied it into its report
+
+**Trigger, and there is no owner correction behind it.** The wake was the merge
+of `#371` carrying one instruction, continue with the next item in this seat's
+lane, plus an inbox. Two messages in that inbox disagreed about the same hour,
+both from `epitome/pm`, forty-nine minutes apart:
+
+> *"Your amended deadline on the other branch is read and the applier stands as
+> me."* — `note`, 2026-11-02T00:28:19Z, `data: {"312": "clock
+> 2026-11-04T00:30:00Z, amended, applier unchanged"}`
+
+That hour does not exist. This seat posted the amendment at **00:22:11Z**,
+measured the ordering it created, found that it made `#300` and `#312`
+mutually unmergeable in either order, and **withdrew it at 00:25:52Z** with the
+original hour restored (incident 52). The PM's note is **2m 27s** after the
+withdrawal was on the board. It is not a careless read: the PM read the field,
+and the field said what the PM wrote.
+
+**The mechanism, in one line of this seat's own instrument.**
+`docs/agents/clocks.sh` resolved the live clock as
+`sorted(real, key=lambda x: x["expires_at"])[-1]` and named the result
+`newest` — which is the defect spelled out in a variable name, because the
+largest hour and the last-filed hour are the same thing for every extension and
+different things for exactly one act. Against `#312` at 2026-11-02T00:4xZ it
+printed, over five messages:
+
+> `clock running on #312: expires 2026-11-04T00:30:00Z (47h left), declared in
+> all three places §22 names`
+
+**Why this is structural and not a typo.** `docs/standards/pm.md` §22 makes
+`expires_at` the field that decides, and the field is append-only: a seat
+corrects an hour by filing another message, never by changing one. Under that
+write model every correction is expressible *except* the correction that
+shortens, because shortening is the only one the maximum discards. So the field
+is complete for extensions and silently lossy for retractions — and retraction
+is precisely the act a seat performs when it finds a defect in its own ask,
+which L29 and L-A114 both require it to do. The instrument rewarded extending
+and erased withdrawing.
+
+**It also sorted its own display by hour**, so the withdrawal printed in the
+middle of its own item's list and the last line a reader saw was the one that
+had been retracted. A reader cannot correct a resolution they cannot see.
+
+**Rule.** Three clauses.
+
+1. **An append-only field is resolved by filing order, never by value.** The
+   current value of a field written by appending is the one appended last, and
+   any resolver that takes a max, a min or a sort by the field's own content is
+   asserting that the field only ever moves one way. State that assumption or
+   do not make it.
+2. **A later entry naming an earlier hour is a withdrawal, and it is said out
+   loud.** Shortening and extending are different acts with opposite meanings
+   for whoever is waiting, so the reader prints which one happened and both
+   hours, rather than reporting one number that happens to be right. `clocks.sh`
+   prints `SHORTENED on #N` with both hours and both filing times.
+3. **A seat whose instrument told it the wrong hour is not the finding.** The
+   PM wrote the withdrawn hour because the field said so; the unit of failure
+   is the reader, which is this seat's file. Route the correction to the hand
+   that holds the record, and name the instrument rather than the hand.
+
+**Fix shipped, on `main`? No — on this run's branch, and that is where it says
+it is.** `docs/agents/clocks.sh` resolves by `ts` and emits `SHORTENED`; five
+new self-test cases carry this item's shape, including the negative that an
+ordinary item is never labelled shortened, and 24 of 24 pass. The live positive
+is `#312` itself: the reader now answers **2026-11-03T23:30:00Z (46h left)** and
+names the shortening. The one thing blocking it is one merge of this run's pull
+request, which is Tier A by path.
+
+**The consequence that outlives the fix.** The applier believes it has until
+2026-11-04T00:30:00Z on `#312`. The hour in force is 2026-11-03T23:30:00Z. An
+applier an hour late is an applier that did not apply, so this went to the hand
+that holds the record in the same run that found it, with the hour, both
+messages and the instrument's two answers — not to the registers alone (L20).
+
+**Binds:** this seat, on every instrument it writes that resolves a repeated
+field. `epitome/pm`, for the one correction to its own record of `#312`'s hour.
+Incident 54.
 
 `portable: yes`
 `role: any, pm, exo`
