@@ -77,6 +77,30 @@ EVIDENCE_LINES="${EPITO_SMOKE_EVIDENCE_LINES:-24}"
 # or an exit code, and it is printed as the note it is; a file named in the
 # expression is read as the document it is, which is what the two `[ -f ]`
 # assertions and section 8's `find` leave behind.
+# Print one haystack under a failing gate. Why a middle rather than a tail:
+# measured on this suite's own `$docout`, which is 6,049 bytes of `epito
+# doctor` report, the row an assertion is usually about sits in the verdict
+# table near the TOP and `tail` showed twenty-four lines of per-seat identity
+# asides from the bottom -- true, bounded, and about nothing the test asked.
+# Both ends and a count of what is between them is the honest version, and the
+# count is what tells a reader to re-run with EPITO_SMOKE_EVIDENCE_LINES set.
+evidence() {
+  local heading="$1" body="$2"
+  local -a lines=(); mapfile -t lines <<<"$body"
+  local n=${#lines[@]} head_n=$((EVIDENCE_LINES / 2)) i
+  if [ "$n" -le "$EVIDENCE_LINES" ]; then
+    printf '       %s, %s bytes, all %s lines:\n' "$heading" "${#body}" "$n"
+    for ((i = 0; i < n; i++)); do printf '       | %s\n' "${lines[i]}"; done
+    return 0
+  fi
+  local tail_n=$((EVIDENCE_LINES - head_n))
+  printf '       %s, %s bytes, first %s and last %s of %s lines:\n' \
+    "$heading" "${#body}" "$head_n" "$tail_n" "$n"
+  for ((i = 0; i < head_n; i++)); do printf '       | %s\n' "${lines[i]}"; done
+  printf '       | … %s lines elided; EPITO_SMOKE_EVIDENCE_LINES raises this …\n' \
+    "$((n - EVIDENCE_LINES))"
+  for ((i = n - tail_n; i < n; i++)); do printf '       | %s\n' "${lines[i]}"; done
+}
 bad()  {
   fail=$((fail+1)); printf '  FAIL %s\n' "$1"
   [ -n "${2:-}" ] || return 0
@@ -99,6 +123,7 @@ bad()  {
     fi
   done
   for name in ${notes[@]+"${notes[@]}"}; do printf '       $%s is %s\n' "$name" "${!name}"; done
+  local shown=0
   if [ ${#docs[@]} -eq 0 ]; then
     # The expression's own tokens, with its quoting flattened. A needle that
     # happens to look like a path is not a risk, because only a token that
@@ -110,10 +135,8 @@ bad()  {
       seen=""; for name in ${files[@]+"${files[@]}"}; do [ "$name" = "$w" ] && seen=1; done
       [ -n "$seen" ] || files+=("$w")
     done
-    local shown=0
     for w in ${files[@]+"${files[@]}"}; do
-      printf '       %s, last %s lines:\n' "$w" "$EVIDENCE_LINES"
-      tail -n "$EVIDENCE_LINES" -- "$w" | sed 's/^/       | /'
+      evidence "$w" "$(cat -- "$w")"
       shown=$((shown+1)); [ "$shown" = 2 ] && break
     done
     [ "$shown" -gt 0 ] && return 0
@@ -122,11 +145,9 @@ bad()  {
   # Two, because the one assertion in this repository whose claim is a
   # comparison between two documents (`[ "$before" = "$after" ]`) is unreadable
   # with one of them, and no assertion here names three.
-  local shown=0
   for name in "${docs[@]}"; do
     val="${!name:-}"; [ -n "$val" ] || continue
-    printf '       $%s, %s bytes, last %s lines:\n' "$name" "${#val}" "$EVIDENCE_LINES"
-    printf '%s\n' "$val" | tail -n "$EVIDENCE_LINES" | sed 's/^/       | /'
+    evidence "\$$name" "$val"
     shown=$((shown+1)); [ "$shown" = 2 ] && break
   done
 }
