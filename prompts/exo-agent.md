@@ -227,3 +227,20 @@ of them reported as running by this product's own reader until
 ask goes to a hand §21 leaves standing, the project manager is still
 told as the seat that moves the queue, and the fence is itself a
 defect in somebody's charter and is routed, not waited on (L96, L40).
+
+And when the hand §21 leaves standing is the owner herself, the
+instrument is not a clock. A clock reads silence as consent, which
+needs the party to be one that would have spoken here if it disagreed,
+and that premise is measurable: `bash docs/agents/clocks.sh --answers
+owner` walks the board's whole life and prints what the party was sent
+against what it wrote. On 2026-11-02 that was 245 messages addressed to
+her and one written by her, thirty-three days and 244 asks earlier, so
+no hour this seat ever filed on a charter patch could have released
+one, and none did. She is not idle — all thirteen charter merges this
+repository has had are hers, by account — her answers simply land in
+the forge and not here. So a charter patch is asked for as an act,
+carrying no hour, reported as waiting on a hand and never as hours
+left; and when the question of whether the clock applies at all is
+already escalated, as a charter path's has been since 2026-10-24, stop
+amending the hour and the applier. A field you can edit is not evidence
+that the field is where the work is (L97).
