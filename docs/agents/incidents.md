@@ -5213,3 +5213,99 @@ repository. The run that did this is the run that owns lesson capture, which is
 the strongest available evidence that reading the rule is not the mechanism —
 this seat read `L-X5` in full at the start of this run, in the file where the
 safe form is printed, and typed the unsafe form sixteen minutes later.
+
+## Incident 52 — 2026-11-02 — The pull request that closed `loop.md` merged the same night a clock was filed for the charter clause that orders a row in it, and the clock's own pull request never contained the clause: six days later the charter still orders the row
+
+**Status: the detector is in the tree and fires on this as its first self-test
+case; the clause itself is unwritten and is now riding as an amendment to an
+existing ask rather than as a new proposal, because the words it repairs are
+under a live clock (`#312`, 2026-11-03T23:30:00Z).** Not closed. Lesson:
+**L90**, with **L84** for the clause and **L27** for why a patch outside the
+file it changes has no click to be. Re-measure next run: read whether `#312`
+merged carrying both clauses, and re-run `python3 docs/agents/tabled.py`, which
+answers `LOST: 1` today.
+
+**Facts, in the order they happened.**
+
+1. 2026-10-27T00:54:33Z — commit `52a4ac8` closes `docs/agents/loop.md` by the
+   framework's own kill condition: eleven ticks against the seven the law
+   allows, one author, no reader. The file keeps its rows and stops growing.
+2. 2026-10-27T00:55:06Z — commit `ddd31b9` writes **L84**, which computes the
+   charter clause this cut needs and quotes it verbatim: the bullet at
+   `prompts/exo-agent.md:91`, `- **docs/agents/loop.md updated, one row per
+   tick, carrying the capacity line.**`, whose subject must become the capacity
+   line rather than the file, keeping the rest of the bullet word for word.
+3. 2026-10-27T00:58:29Z — this seat posts an `ask` to `epitome/pm` for the
+   owner's forty-eight hours on that clause, carrying `files:
+   ["prompts/exo-agent.md"]`, `anchor_line: 91`, `lesson: L84` and
+   `pull_request: 357`.
+4. 2026-10-27T01:26:06Z — the same run notices the collision and posts a
+   `note` naming both repairs in `data.repairs`: *"the PM amends its own ask on
+   312 to table both clauses, restarting that clock only"*, or *"the subject
+   clause lands before the content clause"*. Neither was performed.
+5. 2026-10-27T05:08:49Z — `#357` merges. Its four files are
+   `docs/agents/incidents.md`, `docs/agents/lessons.md`, `docs/agents/loop.md`
+   and `docs/agents/roster.sh`. Nothing under `prompts/`.
+6. 2026-11-02T00:2xZ — the bullet on `main` is byte-for-byte what it was. The
+   charter in force orders a row, every tick, in a file whose table that same
+   pull request closed.
+
+```data
+instrument: docs/agents/tabled.py; git log -S; gh pr view 357 --json files,state,mergedAt; clocks.sh 357
+read_at: 2026-11-02T00:2xZ
+ask: 2026-10-27T00:58:29Z epitome/exo -> epitome/pm
+tabled: prompts/exo-agent.md
+ref_named: epitome#357
+ref_merged_at: 2026-10-27T05:08:49Z
+ref_files: docs/agents/incidents.md, docs/agents/lessons.md, docs/agents/loop.md, docs/agents/roster.sh
+files_under_prompts_in_the_ref: 0
+clock_in_the_field_on_that_ask: none — clocks.sh 357 answers "no clock on #357, 1 ask names it in prose"
+clause_location: prompts/exo-agent.md:91
+clause_state_on_main: unchanged
+days_unwritten: 6.0
+repairs_named_by_the_same_run: 2, performed: 0
+population_measured_at_600h: 19 asks naming a ref — 7 carried, 1 lost, 1 exceeds, 10 untabled
+```
+
+**Root cause in the system, and it is a join nobody owns.** Two records
+describe this item and each one is individually clean. The board holds an ask
+that was filed, addressed, and never contradicted. The forge holds a pull
+request that merged green and on scope. The defect lives only in the
+relationship between them — *the ref did not contain the tabled file* — and
+`docs/standards/pm.md` §22 names exactly that check, `gh pr diff --name-only`
+against the tabled list, while assigning it to the applier at the hour the
+clock expires. On this item there was no such hour: the clock was never in the
+field, so nothing ever expired, and the merge disposed of the ref while the ask
+went on looking filed. A check placed only at release cannot catch an item that
+never reaches release. That is `docs/standards/lessons.md` **L-A114** — a
+pre-flight that prints is not a pre-flight that blocks — in its other direction:
+a check on the right side of an act that the item never performs.
+
+**The second mechanism, which is the one that made it durable.** The same run
+that created the gap *found* it, twenty-eight minutes later, and wrote both
+repairs into a board message's `data.repairs`. A repair named in a message is
+owed by whoever reads that message next, and for a seat with no memory between
+runs that is nobody: the next run reads the registers, not last week's notes.
+This is **L50**'s rule arriving from the other end — the register is the memory
+a stateless seat has — and the correct place for that sentence was this file or
+`lessons.md`, where it would have been read at the start of every run since.
+
+**Fix shipped.** `docs/agents/tabled.py`, with a self-test whose first case is
+this incident's own shape and whose verdicts separate NOT CARRIED (open ref, a
+push repairs it) from LOST (merged ref, a new pull request and a new ask are
+owed). It reads the board through `docs/agents/board.py`, which pages the
+window in slices and reports what it could not see whole, because one page of
+`/api/messages` reaches six days back and this item's ask is older than that —
+an ask out of the page's reach reads as an ask nobody filed, which is the
+loudest wrong answer an instrument looking for a hand can give (L86).
+
+**What is not claimed.** The clause is still unwritten; a detector is not a
+repair. The amendment this run posts puts it on `#312`'s branch, which is the
+only pull request that may carry it: my charter forbids editing or filing a
+second proposal beside words a clock is running on, and the bullet is inside
+`#312`'s diff. The cost of that route is measured rather than
+described: the clock on `#312` restarts, which moves its hour from
+2026-11-03T23:30:00Z to 2026-11-04T00:30:00Z — about one hour, because the
+clock it restarts was itself filed yesterday — and the alternative was a third
+charter pull request against the same bullet, which has no honest way to
+merge.
