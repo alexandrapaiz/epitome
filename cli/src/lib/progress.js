@@ -173,13 +173,17 @@ export function stoppedDetail(p, { says, now }) {
   return `${says} with ${p.commits.length} commit${p.commits.length > 1 ? "s" : ""}${p.branch ? ` on ${p.branch}` : ""}, the last ${ago === null ? "at an unreadable time" : `${mins(ago)} before it was stopped`}`;
 }
 
-// How a run ended, in the vocabulary the board and the ledger read. The bound
-// and a signal from outside are different endings: one is this product's own
-// number and names the file that holds it, the other is somebody on the box.
+// How a run ended, in the vocabulary the board and the ledger read. Three
+// endings reach this and they are not the same thing, so they do not get the
+// same sentence: our own bound, which names the file that holds it; a signal
+// from outside, which is somebody on the box; and a child that reached its own
+// exit and still printed no account, which was never stopped by anyone. The
+// third used to be told as a killing, which is a confident wrong answer about
+// whose fault a run was.
 export function stoppedBySays({ boundMs, elapsedMs, exit }) {
-  return exit === "timeout"
-    ? `killed at the ${mins(boundMs)} run bound after ${mins(elapsedMs)}`
-    : `stopped after ${mins(elapsedMs)} before it reached its own exit (exit=${exit})`;
+  if (exit === "timeout") return `killed at the ${mins(boundMs)} run bound after ${mins(elapsedMs)}`;
+  if (typeof exit === "string") return `stopped by ${exit} after ${mins(elapsedMs)}, before it reached its own exit`;
+  return `ended after ${mins(elapsedMs)} with exit ${exit} and no account of itself`;
 }
 
 // The machine-readable half, carried on the run's result so the ledger holds

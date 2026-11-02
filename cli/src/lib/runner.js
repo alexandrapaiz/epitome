@@ -888,7 +888,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
         progress = await readProgress(workDir, base);
         const says = stoppedBySays({ boundMs: timeoutMs, elapsedMs: stoppedAt - spawnedAt, exit });
         if (timedOut) write(`${boundSays(timeoutMs, stoppedAt - spawnedAt)}\n`);
-        else write(`# this run was ${says}\n`);
+        else write(`# this run ${says}\n`);
         for (const l of stoppedSays(progress, { bytes, now: stoppedAt, adapter: adapter.name, format: outputFormat(args) })) write(`${l}\n`);
         // Onto the ledger and the board, where it can be counted rather than
         // grepped: the bound cannot be read off the runs that finished, so the

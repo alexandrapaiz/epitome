@@ -1269,6 +1269,33 @@ test("a silent run says what it has done every tick, before anything kills it", 
   assert.ok(beats >= ticks.length, `every tick beats as well as writes (${beats} beats for ${ticks.length} ticks)`);
 });
 
+test("a child that reached its own exit is not told as a killing", async () => {
+  const work = gitClone("market");
+  const dir = tmpDir();
+  const cwd = process.cwd();
+  process.chdir(dir);
+  let r;
+  try {
+    // /bin/false: it exits 1 at once and prints nothing, so it lands in the
+    // same population as a killed run — no result object — by a completely
+    // different route. Nobody stopped it, and the account must not say so.
+    r = await executeAgent({
+      agent: seat("market", { runtime: { model: "m", entry: "e", repo: "acme/roster" } }),
+      trigger: "cron", runId: "exited-market", workDir: work, timeoutMs: 30_000, log: () => {},
+      executor: "/bin/false",
+    });
+    r = { ...r, log: join(dir, r.log) };
+  } finally { process.chdir(cwd); }
+  assert.equal(r.exit, 1);
+  assert.equal(r.turns, null, "it printed no result object, which is what puts it in this population");
+  const logged = readFileSync(r.log, "utf8");
+  assert.match(logged, /# this run ended after 0\.0m with exit 1 and no account of itself/);
+  assert.doesNotMatch(logged, /run bound killed this run/, "no bound did this");
+  assert.doesNotMatch(logged, /stopped by/, "and nobody signalled it");
+  assert.match(r.detail, /^ended after 0\.0m with exit 1 and no account of itself with nothing committed$/,
+    "the ledger gets the same sentence, and it is about an ending rather than a killing");
+});
+
 test("a refused run spoke, so it is not given a killed run's account", async () => {
   const work = gitClone("okr");
   const r = await killRun("okr", {
