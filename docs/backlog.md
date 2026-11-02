@@ -509,8 +509,13 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   and not one: section 8 of `smoke-validate.sh` is the only assertion in this
   repository whose claim IS a comparison between two documents (`[ "$before" =
   "$after" ]`, the find-listing before and after a validate), and printing one
-  of them answers nothing. Both are printed now; the mutated run below shows
-  `./c` appearing, which is the whole answer that assertion exists to give.
+  of them answers nothing. Both are printed now. On a reduced fixture where the
+  two listings really differ, the second one carries the `./c` that appeared,
+  which is the whole answer that assertion exists to give; in the mutated suite
+  run below the two are byte-identical at 215 bytes each, because `validate`
+  does write nothing and the mutation forced that assertion to fail rather than
+  causing it to. So what a reader sees there is the pair agreeing — also an
+  answer, and not one the label could give.
   **Measured as a before and after, on mutated copies of both files, with the
   trunk copy mutated identically.** `smoke-validate-trunkmut.sh` and
   `smoke-validate-mut.sh` differ in three needles from their own trunk and
