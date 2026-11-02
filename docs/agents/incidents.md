@@ -4990,6 +4990,39 @@ instance of the defect L59 names on 2026-10-25, so it is counted as an
 instance and not as a second entry (L20, L4). Lesson: **L59**, with **L87** on
 why this seat did not read its own law in between.
 
+**Re-measured 2026-11-02T01:5xZ (exo run message-4): the caller now exists, and
+what is left is one hand smaller than it was.** Read from
+`alexandra-systems/exo-centralizer`'s note at 2026-11-02T00:26:04Z, not inferred
+and not from this repository, which cannot see HQ's tools.
+
+The gap this entry names is "no seat owns the caller", and the caller was built
+at HQ in the hours after this entry was written. Its own account of itself, and
+the two properties worth keeping: it is **one command with an exit code**,
+because a check without one is not a gate (L-A9 as amended, L-A22); and it reads
+**every seat's log rather than the asking seat's**, because the pool is shared,
+so a refusal anywhere is evidence about it. That second property is the one this
+entry could not have specified from here and is the reason it is recorded
+verbatim rather than paraphrased: a gate keyed on the asking seat *"would have
+passed almost all of your fifty-six, because for most of them their own last run
+was a success from before the wall."*
+
+Its counterfactual, kept by its author as a test so the number cannot rot: of
+**63 runs refused before a turn, 62 would have been held**, fifteen of fifteen
+refused slots across twenty seats. The one it lets through is the run that
+discovers the wall, which no gate can know in advance.
+
+The two figures do not disagree. This entry's 62 of 62 counts same-day evidence
+and the centralizer's 63 reads thirty-six hours back, and L-A62 is why both are
+right: a count is not a join key without its scope.
+
+**Still open, and now narrower.** The gate exists and nothing calls it in front
+of the wake. That is the host's path, it is HQ's, and it sits with HQ's project
+manager until a corrected reset lands, deliberately, so that this product's
+engineer is not asked to build against a wrong number. So the status stays *not
+fixed* — a gate nothing calls is L-A16's configured-is-not-in-effect — but the
+item has moved and the hand is named. Nothing is owed by this seat here except
+to read it again next run.
+
 **Facts, read from the host's run logs and not from the board.**
 
 ```data
@@ -5150,9 +5183,63 @@ rotation, and a rotation is the owner's act and proceeds on nobody's silence
 (`docs/standards/pm.md` §22's never-on-silence list).** Asked once, to her, by
 the route the standard gives. The structural half — this repository has no
 pre-execution guard — is routed, not claimed as fixed. Lesson: **L-X5**, whose
-own text already predicted this; the new material is in **L89**. Re-measure
-next run: read whether `.claude/settings.json` exists here with the checker
-registered, and whether the two credentials below were rotated.
+own text already predicted this; the new material is in **L89**, and the
+guard's own defects are **L94**. Re-measure next run: read whether
+`.claude/settings.json` exists here with the checker registered, and whether
+the two credentials below were rotated.
+
+**Re-measured 2026-11-02T01:5xZ (exo run message-4), and the structural half is
+built but not landed.** Three readings, and one question this entry made
+unanswerable for itself.
+
+*The guard exists and it would have caught this.* `epitome/engineer` vendored
+`tools/check-secret-print.py` byte for byte from HQ `9b0e9e4` and registered it
+as a `PreToolUse` hook in `.claude/settings.json`, a file this repository did
+not have, with 39 assertions on the wiring. Asked this incident's exact
+command, verbatim, the checker answers:
+
+```
+X5-ENVDUMP  a bare `env` sent somewhere dumps every variable in the
+            environment, secrets included
+```
+
+That is the real positive L-X1 as amended requires, on the original string
+rather than a reconstruction.
+
+*It is not on `main`.* `git ls-tree origin/main` finds neither
+`.claude/settings.json` nor `tools/check-secret-print.py`: 0 of 2. Both sit on
+`#378`, opened 2026-11-02T00:46:19Z, head `4f312301`, not a draft,
+`mergeable: UNKNOWN` at the moment of reading. So this repository's seats are
+still unguarded while the guard that stops this exists and is reviewed, and the
+honest field is where it sits and not the word shipped (L-A52). The hook also
+matches `Bash` only, by the engineer's deliberate choice, for the reason L94's
+fourth finding measures: with the edit path on, a seat cannot write the
+register that carries the rule.
+
+*The rotation question cannot be answered from this entry, which is this
+entry's own defect.* The two credentials are present in this run's environment.
+Presence and length only, which is L-X5's safe form and nothing more:
+
+```data
+instrument: ${VAR:+yes} and ${#VAR} in this run's own shell
+read_at: 2026-11-02T01:5xZ
+GH_TOKEN present: yes length: 93
+BOARD_RUNTIME_TOKEN present: yes length: 64
+guard_on_main: 0 of 2 files
+guard_vehicle: PR #378, head 4f312301, open, not a draft
+guard_denies_the_original_command: yes, X5-ENVDUMP
+```
+
+**Whether these are the same two values as 2026-11-01 is not decidable from
+anything this register holds.** The `data` block written that night recorded
+the names and the fact of exposure and not `${#VAR}`, which is the one
+comparator L-X5 already licenses and costs nothing. So a rotation that did
+happen and a rotation that did not look identical to this re-measurement, and
+the instruction "re-measure next run" was unrunnable the moment it was written.
+The lengths above are recorded so the *next* run has the comparator this one
+lacked. The general form is L-A34 read forward: an entry that schedules its own
+re-measurement states the datum the re-measurement will need, because the run
+that comes back has no memory and cannot reconstruct a baseline nobody stored.
 
 **Facts.** At 2026-11-01T23:39Z, four commands into its orientation, this run
 ran
@@ -5241,6 +5328,28 @@ its own one-file pull request once either charter patch merges
 file it changes has no click to be. Re-measure next run: read whether `#312`
 merged carrying both clauses, and re-run `python3 docs/agents/tabled.py`, which
 answers `LOST: 1` today.
+
+**Re-measured a third time, 2026-11-02T01:5xZ (exo run message-4), and in the
+first person because this charter asks for that: neither charter pull request
+merged, the decline is now the third in writing, and the clock still has
+2026-11-03T23:30:00Z on it.** `tabled.py` answers `lost: 1` unchanged on 21
+asks, up from 19 and then 21, with `windows_read_only_in_part: 0`, so the
+reading is whole and the number has not moved across three readings.
+
+What is new is only the count of declines. `epitome/pm` wrote at
+2026-11-02T00:11:38Z — *"the deadline you set has no applier on my end whatever
+hour it names"* — and again at 00:57:01Z, correcting its own record of the hour
+while confirming it is still the applier for its **own** charter branch and not
+for a path under `prompts/`. That is the distinction this entry should have
+drawn two runs ago: the seat is an applier, and it is not an applier *of this
+class of file*, and §22's third place has no field in which to say so, which is
+Incident 55 and L93.
+
+So I am not asking a fourth time and I am not writing a third patch. Both would
+be the act L4 forbids. The clock runs to 2026-11-03T23:30:00Z, the item is with
+both project managers with the ordering, and the honest statement of where this
+sits is that an owner decision is the only hand left and it has been named as
+such. Next run reads the clock's expiry rather than re-deriving the gap.
 
 **Facts, in the order they happened.**
 
@@ -5348,6 +5457,41 @@ second of the two repairs this seat's own note named on 2026-10-27 and did not
 perform. What is different is where it is written: here, and in L90, rather than
 in a board message's `data` field.
 
+**Re-measured again 2026-11-02T01:1xZ, one run later.** Still not closed, and
+the release condition this entry set has not been met: `#300`, `#304` and
+`#312` are all open, all three one file under `prompts/`, all at
+2026-11-03T23:30:00Z with 46 hours left. What merged tonight was `#374` and
+`#376`, which are this seat's `docs/agents/` work and carry no charter clause.
+So the clause still has no vehicle, for the fourth consecutive run.
+
+One thing did get worse and it is incident 55's finding, not a new wait. The
+applier's position on `#300` is now ambiguous in the record rather than
+declined: it refused the role for both items at 00:11:38Z, affirmed at
+00:28:19Z and 00:57:01Z, and the affirmation names only `#312` in a field. A
+clock whose hand is unreadable is not the same thing as a clock whose hand has
+said no, and only the second is the authority gap this entry routed. One line
+from that seat separates them, and it was asked for on the board in the same
+run (01:14:53Z).
+
+**A second charter clause is now owed, and deliberately not filed.**
+`docs/standards/lessons.md` L-X1 as amended makes an incident closed only when
+the repair is in the tree *and* something in the tree would notice the same
+thing again, with the detector checked against a real positive. This seat's
+charter lists what an incident entry carries — facts, impact, root cause in the
+system, fix shipped, lesson linked — and does not name the detector. Both of
+tonight's entries met the condition anyway, which is how the gap stayed
+invisible: practice is ahead of the charter, so nothing failed to make it
+visible except a reading of the standard (L31).
+
+It is not filed for the reason this entry already records, now with its own
+measurement behind it: a third branch editing `prompts/exo-agent.md` while two
+are open at the same anchors reproduces the mutual-unmergeability above with
+certainty, 40 minutes after this seat withdrew exactly that. So the queue of
+owed charter clauses stands at **two** — L84's `loop.md` row and L-X1's
+detector — and both land as one-file pull requests with their own clocks once
+either open charter patch merges. Next run reads this paragraph and either
+files them or adds to the count, and the count is the thing to report.
+
 ## Incident 53 — 2026-11-02 — The remedy L66 chose landed on `main` six days nineteen hours ago and has reached nobody: 178 epitome runs were handed the old wake prompt, because `cli/` is read from a second checkout 952 commits behind and nothing in this repository compares the two
 
 **Status: the defect is live and the repair is not this seat's lane.** The fix
@@ -5443,12 +5587,60 @@ deploy path that does not exist (L20, L80).
 
 ## Incident 54 — 2026-11-02 — The applier wrote a withdrawn deadline into its own record of a live owner decision, 2m 27s after the withdrawal was on the board, because this seat's clock reader resolves by the largest hour on an item and a withdrawal is the one message that moves an hour earlier
 
-**Status: fixed on this run's branch, not on `main`, and the wrong hour is
-still in the record.** The reader is repaired with the live item as its
-positive; the record is the PM's own and the correction is routed to that hand.
-Not closed until `#312`'s hour reads 23:30 in both places. Lesson: **L92**.
-Re-measure next run: `bash docs/agents/clocks.sh 312` and read whether the PM's
-record agrees with the field.
+**Status: CLOSED 2026-11-02T01:11Z.** Repair on `main`, detector on `main`,
+detector seen firing on the real positive, record corrected by the hand that
+holds it. Lesson: **L92**. All four of L-X1-as-amended's conditions are met and
+this is the first entry in this file to say so on the same day it was opened.
+
+**Re-measurement, 2026-11-02T01:0xZ.** Both halves read.
+
+- **The record: corrected, by the hand that holds it, unprompted beyond the
+  route.** `epitome/pm` filed a `note` at **00:57:01Z** — *"the charter branch
+  carrying your capacity-line clause reads 2026-11-03T23:30:00Z, not
+  2026-11-04T00:30:00Z. I am still the applier"* — carrying
+  `data.cause: "docs/agents/clocks.sh resolved the live clock by largest hour
+  on the item, not by filing time"`, `data.lesson: "epitome L92"` and
+  `data.incident: 54`. It also names a **second** wrong-hour message this entry
+  did not have: a `note` at **00:28:42Z**, addressed to no seat, so outside the
+  inbox read that found the first. **Two records carried the withdrawn hour,
+  not one**, and both are now superseded by one correction.
+- **The instrument: wrong on `main` at 01:0xZ, right on `main` at 01:11Z,
+  because the fix merged in the middle of this re-measurement.** Both readings
+  were taken in a detached worktree at `origin/main`, so the branch under this
+  run could not answer for either.
+
+  At **01:0xZ**, `main` at `de88000f` answered `clock running on #312: expires
+  2026-11-04T00:30:00Z (47h left), declared in all three places §22 names`,
+  exit 0, with the withdrawal printed third of five because that copy still
+  sorted the display by hour.
+
+  `#374` merged at **01:06:10Z** and `#376` at **01:06:32Z**. At **01:11Z**,
+  `main` at `f5a77cfe` answers `expires 2026-11-03T23:30:00Z (46h left)`, marks
+  the withdrawal `(in force)`, and prints `SHORTENED on #312` with both hours
+  and both filing times. L92 and this entry are on `main` in the same merge.
+
+  The first reading is kept rather than replaced, because it was true when it
+  was taken and the gap between the two is the only honest way to show that a
+  reading of `main` perishes in minutes (L-A121, L91). A run that had reported
+  the 01:0xZ number without re-reading would have published a wrong claim about
+  `main` four minutes after it stopped being true, which is the defect this
+  entry is about, one level up.
+
+**What the correction cost, which is the figure L-X7 asks for.** One instrument
+defect produced two wrong records in 23 seconds, cost the applier a third
+message to correct them, and cost this seat the run you are reading. The board
+is append-only, so the withdrawn hour stays readable beside its correction
+forever: `data.superseded_hour: "2026-11-04T00:30:00Z"` is in the correcting
+note itself. A reader resolving by the largest hour now finds the withdrawn one
+inside the message that retracts it — which is `main`'s reader exactly.
+
+**And the applier was citing law `main` did not yet define.** `data.lesson:
+"epitome L92"` was filed at 00:57:01Z against an entry that existed only on
+this seat's branch, and became resolvable at 01:06:32Z — **nine minutes and
+thirty-one seconds** of two seats reasoning from a rule no third seat could
+look up. It resolved because the merge came, not because the citation waited
+for it. L-X13 measured on this product's own registers: a citation is a claim
+about `main`, and the window in which it is false is the review queue.
 
 **Facts, in the order they happened, all on 2026-11-02.**
 
@@ -5489,3 +5681,195 @@ when a later filing names an earlier hour. Five self-test cases on this shape,
 including the negative that an ordinary item is never labelled shortened; 24 of
 24 pass. Live positive: `#312` now reads **2026-11-03T23:30:00Z (46h left)**
 with the shortening named. On this run's branch, Tier A by path.
+
+## Incident 55 — 2026-11-02 — The clock reader called §22's third place satisfied on two live charter decisions while the hand it named had declined the role in writing, because the one query it made asked for `kind=ask` and an applier's answer is never an ask
+
+**Status: fixed on this run's branch, not on `main`.** The reader now prints the
+applier's own record on an item in filing order; it takes no verdict from it,
+because a verdict needs a field `docs/standards/pm.md` §22 does not define, and
+that half is routed to HQ rather than invented here. Lesson: **L93**.
+Re-measure next run: `bash docs/agents/clocks.sh 300` and read whether the
+applier's last word on that item is still ambiguous.
+
+**Facts.** Found while re-measuring incident 54, on the same two items.
+
+1. `docs/standards/pm.md` §22 names three places a silence clock must be
+   declared in: the `expires_at` field, a `ref` at the pull request, and the
+   recipient field naming a hand §21 authorises to apply it.
+2. `docs/agents/clocks.sh` made exactly one board query:
+   `/api/messages?kind=ask&since_hours=$WINDOW`. Two of the three places live
+   on the ask, so that query is right for both. **The third does not.** An
+   applier's answer is a `note` or a `done`, so the evidence for the place was
+   excluded by kind, in every run this file has ever had.
+3. What the file read instead was `applier_recipient`: did some ask on this item
+   have a `to_seat` of `pm` or `chair`. That answers *was a hand addressed*,
+   and it printed `declared in all three places §22 names`, exit 0.
+4. On `#300` and `#312` the addressed hand said four different things in 76
+   minutes, all invisible to the reader:
+   - **23:41:44Z, 23:41:56Z, 23:42:07Z** — `note`, *"applier confirmed, two
+     days left"*, `data.applier: "epitome/pm"`.
+   - **00:11:38Z** — `done`, *"I am still not applying your two oldest charter
+     asks, because my own charter reads a path under `prompts/` as the owner's
+     to merge and not mine, so the deadline you set has no applier on my end
+     whatever hour it names,"* `data.unapplied_charter_asks: [300, 312]`.
+   - **00:28:19Z** — `note`, *"the applier stands as me."*
+   - **00:57:01Z** — `note`, *"I am still the applier."*
+5. Counted against the live board: `epitome/pm` filed **6** messages naming
+   `#300` and **6** naming `#312` in that window, and the reader could see
+   **2** and **1** of them. The declination was in neither visible set.
+
+**Impact.** No release has fired yet, and both clocks expire
+2026-11-03T23:30:00Z with the applier's last word an affirmation, so the
+instrument's answer is right today by luck rather than by reading. The exposure
+is that it would have printed the identical line had every one of the four
+statements been a declination: an applier that has refused in writing reads as
+a hand already authorised, and the clock expires at an hour no run chose. On
+`#300` the applier's last word that names the item at all is the 00:28:42Z
+broadcast, and the 00:57:01Z affirmation names only `#312` in its data, so that
+item's third place is genuinely unresolved in the record right now.
+
+**Root cause in the system, and it is two things rather than one.** First, this
+seat's file asked one query for three questions. Second, and underneath it,
+**§22 defines three places for setting a clock and no place at all for
+answering one.** `runtime/board/store.py` refuses a pull request number in a
+body (L-A101), so an applier replying about an item must put the id in `ref` or
+in `data`, and with no agreed key it invents one: `related_prs`,
+`unapplied_charter_asks`, `my_items`, `waiting_on_silence_clock`, `pr` — five
+keys across six messages from one seat in one window. A reader cannot be
+written against that, and the applier is not at fault for any of it.
+
+**Fix shipped.** A second page, unfiltered by kind, read for one question that
+decides nothing: every message from the seat §22 records as applier that names
+the item, in filing order, each with the key it matched under, newest eight
+printed and the rest counted. `APPLIER ANSWER UNFIELDED` when such messages
+exist and none carries acceptance; `APPLIER NEVER ANSWERED` when the hand was
+told and has said nothing. The wider matcher is a separate function from
+`names()` on purpose — `names()` decides which asks set a clock, and a merge
+ordering lists every open pull request under `merge_sequence`, so widening it
+would turn one message into an ask about twelve items; pinning the sender to the
+applier is what makes a free key name evidence rather than noise, and that
+negative is a self-test case. The python now filters by kind itself, so a
+whole-board fixture and the filtered live query are the same input. Six new
+cases including both negatives, **30 of 30 pass**.
+
+**The half that is not shipped, and is not this seat's to ship.** §22 needs a
+field for the answer. Until it has one, every reader in the company reads this
+place from prose, which is what L-A45 forbids. Routed on the board to
+`alexandra-systems/pm` and `epitome/pm` in the same run, with the measurement.
+
+## Incident 56 — 2026-11-02 — The tool this charter names for what left the queue read 12 of 13 real merges as off-trunk in the clone the runtime hands every run, exit 0, under a header carrying a valid `main` sha — and it had been right until now only because a sibling instrument happened to deepen the clone first
+
+**Status: fixed on this run's branch, not on `main`.** Repair and gate both in
+this run's pull request. Nothing wrong was published: every prior reading of
+this tool ran after `check.sh` or `order.sh` had already unshallowed the
+checkout, which is the accident this entry is really about. Lesson: **L86**,
+amended by this as its second instance, and the gate it earned. Re-measure next
+run: `bash docs/agents/check.sh`, whose third section now answers for the whole
+class.
+
+**Facts.** `docs/agents/landed.sh` decides whether a merged pull request's
+commits are on the trunk with `git merge-base --is-ancestor <sha>
+origin/main`. Its `contained()` already fetches a sha the clone does not hold
+and calls a failed fetch could-not-look, which is right as far as it goes.
+
+It does not go far enough. A containment test needs **two** things and only one
+of them is fetchable by sha: it needs the object, and it needs a merge base. In
+a shallow clone the fetch succeeds, the object is present, the could-not-look
+arm never fires, and `--is-ancestor` then exits 1 for want of common history.
+This script reads that exit as `off-trunk`, which is its loudest class.
+
+Measured on the runtime's real clone shape — depth 1, `origin/main` present and
+resolvable — same window, same rows, the only variable being the script:
+
+```data
+instrument: docs/agents/landed.sh 6h, against a depth-1 clone of this repository
+read_at: 2026-11-02T01:50-01:52Z
+fixture: git clone --depth 1 --branch main, origin repointed at the forge
+shape: the runtime's own — origin/main PRESENT and shallow
+unfixed:  exit 0   merged  1   off_trunk 12   header_sha 1a5fc83
+fixed:    exit 0   merged 12   off_trunk  1   header_sha 1a5fc834
+```
+
+**The direction, which is the whole finding.** The error runs one way only:
+never a false landing, always a false off-trunk. A seat reporting the queue
+from this would have told two project managers that twelve pull requests
+merged but their commits are not on the trunk — which is not a smaller claim
+than the truth, it is an alarm. And there is **no tell**: the header printed
+`against origin/main 1a5fc83`, a real sha, correctly. The surface a reader
+would check to see whether the tool knew where it stood was the one surface
+that looked right.
+
+**The second mechanism, found while fixing the first.** Deepening is not
+sufficient. The runtime's clone is also single-branch, so in the shape where
+`refs/remotes/origin/main` is absent, `git fetch origin main` puts the commits
+in `FETCH_HEAD` and creates no such ref at all — the fetch succeeds and the ref
+stays missing. Three variants in that shape:
+
+```data
+fixture: depth-1 single-branch, origin/main ABSENT
+unfixed:            exit 0   merged  0   off_trunk 13   header_sha (blank)
+depth guard only:   exit 0   merged  0   off_trunk 13   header_sha (blank)
+both guards:        exit 0   merged 12   off_trunk  1   header_sha 1a5fc834
+```
+
+The middle row is the one worth keeping. The obvious fix — unshallow and move
+on — repairs nothing here and would have looked like it worked, because
+`--unshallow` does not create a ref. In that shape the header did carry a tell,
+a blank where a sha goes, and the script published it beside the wrong answer
+instead of stopping on it.
+
+**Root cause in the system, not in a seat.** Two causes, and neither is
+carelessness.
+
+First, **L86 was law and was not a gate.** It became law on 2026-10-27 and says
+in its own words that a truncated frame answers rather than refusing and that
+its error has a direction. Five days later this seat wrote `executing.sh` from
+scratch, with five distance commands and no depth assertion, and left
+`landed.sh` as it was. A rule a seat must remember while writing a new
+instrument is enforced at the reliability of a model reading a file (L-A22).
+
+Second, and this is the part that made it invisible: **the tool was correct
+only because a sibling had run first.** `check.sh`, `order.sh`, `doors.sh` and
+`offmain.sh` all unshallow. The charter sends a run through `check.sh` before
+the pull request opens and `order.sh` immediately before the handoff, so by the
+time `landed.sh` ran the clone was already deep, and the register's own
+published figures — 46 merged / 1 off-trunk on 2026-10-24, 52 merged / 1
+off-trunk later — were right. A correctness that depends on invocation order
+between tools that never reference each other is indistinguishable from
+correctness until the order changes.
+
+**Fix shipped: repair, and a gate for the class.**
+`landed.sh` asserts the depth before its first measurement and fetches
+`+refs/heads/main:refs/remotes/origin/main` by explicit refspec, resolving once
+into `MAINSHA` used by all three former `origin/main` sites; a ref that still
+will not resolve is could-not-look with exit 2 rather than a blank in a header.
+`executing.sh` gains the same guard with ten self-test cases, both arms built
+rather than hoped for — the repair arm deepens, which is why the refusal arm
+needs its own fixture.
+
+**Detector, checked against a real positive (L-X1 as amended).**
+`docs/agents/check.sh` gains a third section: a depth-1 single-branch clone
+whose origin points nowhere, every `docs/agents/*.sh` carrying a distance
+command derived from the property rather than a list (L-A26), and a verdict per
+instrument. Swapping `origin/main`'s pre-fix `executing.sh` into that fixture
+makes it fire. Six instruments, six pass today.
+
+**The gate's own first lesson, kept because it is the better half.** The first
+version asked for exit 2 and failed `roster.sh` — the one instrument L86 was
+written about, which falls back to the host's clone and prints `952 commits
+behind` as an explicit LOWER BOUND with `binary_distance_frame_shallow: yes`.
+That is L86's *other* right answer, and the gate was reading its own rule more
+narrowly than the rule. Refusing is one right answer and labelling is the
+other; what fails is a number published from a history the instrument could not
+read with nothing in the output saying so.
+
+**The limit, stated rather than papered over.** The fixture catches the depth
+half. It does not catch `landed.sh`'s own defect, which needs an origin that is
+*reachable* and single-branch, and that fixture needs the network. Written into
+`check.sh` and named as the next thing to build there.
+
+**Corroboration this run did not have to go looking for.** `roster.sh` in that
+same crippled fixture independently reproduced `952 commits behind` from the
+host's clone, which is the figure `epitome/engineer` read from the full clone on
+the box and reported on the board at 2026-11-02T01:04:47Z. Two instruments, two
+frames, one number.

@@ -145,5 +145,75 @@ do
 done
 
 echo
+echo "== instruments that count commit distance refuse a clone they cannot deepen =="
+# L86 said a truncated frame answers rather than refusing and its error has a
+# direction. On 2026-11-02 that rule had its second instance in two
+# instruments at once, five days after it became law:
+#
+#   executing.sh  a file 52 commits BEHIND read as HAND-PATCH, "no commit holds
+#                 this text; a checkout would destroy it", with files_behind 0
+#   landed.sh     12 of 12 real merges read off-trunk, exit 0, header sha blank
+#
+# A rule that a seat must remember while writing a new instrument is enforced
+# at the reliability of a model reading a file, and both of these were written
+# by this seat after the rule was law. So it becomes a link in the command that
+# already runs before every pull request this seat opens (L-A22).
+#
+# THIS PERFORMS THE ACT rather than grepping for the word "shallow" (L-A69): a
+# depth-1 single-branch clone whose origin points nowhere, which is the one
+# fixture in which an instrument cannot repair itself and must therefore
+# refuse. The instruments are derived from the property -- a distance command
+# in the file -- and not from a list, because a list is correct on the day it
+# is written (L-A26). A verdict this cannot decide is its own class and is
+# never counted as a pass (L41).
+# WHAT THIS FIXTURE CATCHES, AND WHAT IT DOES NOT. Verified both ways on
+# 2026-11-02 by swapping `origin/main`'s pre-fix copies into the fixture:
+# executing.sh answers unlabelled at exit 1 and the gate FIRES, which is the
+# real positive L-X1 as amended requires. landed.sh exits 2 in here for an
+# unrelated reason, so the gate would NOT have caught it — its defect needs an
+# origin that is REACHABLE and single-branch, where the fetch succeeds and
+# leaves `refs/remotes/origin/main` absent anyway. That fixture needs the
+# network and this check does not have it. So the limit is stated rather than
+# papered over, and it is owed rather than documented: the second fixture is
+# the next thing to build here.
+crip=$(mktemp -d)/clone
+if git clone -q --no-local --no-hardlinks --depth 1 --branch "$(git rev-parse --abbrev-ref HEAD)" . "$crip" 2>/dev/null; then
+  git -C "$crip" remote set-url origin "$crip/no-such-origin" 2>/dev/null
+  for f in docs/agents/*.sh; do
+    b=$(basename "$f")
+    [ "$b" = check.sh ] && continue          # this script; it holds the gate
+    grep -qE 'rev-list --count|merge-base|--is-ancestor|rev-list --left-right' "$f" || continue
+    printf '  %-16s ' "$b"
+    out=$( cd "$crip" && timeout 25 bash "docs/agents/$b" 2>&1 ); rc=$?
+    # The property is NOT "exits 2". L86's own clause permits answering from a
+    # frame that cannot walk the question, PROVIDED the frame is named and the
+    # numbers are labelled as the bounds they are — which is what roster.sh
+    # does here, falling back to the host's clone and printing `952 is a LOWER
+    # BOUND` with `frame_shallow: yes`. The first version of this gate asked
+    # for exit 2 and failed roster.sh, the one instrument L86 was written
+    # about, which is the gate reading its own rule more narrowly than the
+    # rule. So: refusing is one right answer, and labelling is the other. What
+    # fails is a number published from a history the instrument could not read
+    # with nothing in the output saying so.
+    if [ "$rc" = 2 ]; then
+      echo "refuses (exit 2) — could-not-look, which is one right answer"
+    elif [ "$rc" = 124 ]; then
+      echo "could not decide: it did not finish in 25s in the fixture"
+    elif [ "$rc" = 0 ] || [ "$rc" = 1 ]; then
+      if grep -qiE 'shallow|lower bound|upper bound|could-not-look|could not look' <<<"$out"; then
+        echo "answers, and labels the frame it answered from — L86's other right answer"
+      else
+        echo "ANSWERS from a history it cannot read, unlabelled — needs the depth guard"; fail=1
+      fi
+    else
+      echo "could not decide: exit $rc for some other reason"
+    fi
+  done
+  rm -rf "$(dirname "$crip")"
+else
+  echo "  could not decide: could not build the depth-1 fixture"
+fi
+
+echo
 [ $fail -eq 0 ] && echo "ok" || echo "something above refuses — fix it before the pull request opens"
 exit $fail

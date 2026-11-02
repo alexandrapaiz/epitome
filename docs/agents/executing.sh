@@ -64,7 +64,86 @@ if [ "${1:-}" = "--self-test" ]; then
         'out=$(bash "$0" 2>&1); grep -q "no commit holds" <<<"$out"' "$0"
   # Could-not-look is its own answer and is never spelled like clean (L41).
   check "no such checkout -> could not look"  2 env EXECUTING_HOSTREPO="$tmp/nope" bash "$0"
+
+  # The shallow positive, built rather than hoped for, because this is the
+  # clone the runtime actually hands the seat. A depth-1 clone of this
+  # repository, a host checkout 20 commits behind its tip, and the same script
+  # run from inside the shallow one: it must not answer, and it must not answer
+  # `files_behind: 0`. Deepening is local here, so the guard's repair arm is
+  # exercised too, which is the arm that runs on the box.
+  if git clone -q --no-local --no-hardlinks --depth 1 --branch "$MAIN" . "$tmp/shal" 2>/dev/null \
+     && git clone -q --no-local --no-hardlinks --branch "$MAIN" . "$tmp/behind" 2>/dev/null \
+     && back=$(git -C "$tmp/behind" rev-parse "$MAIN~20" 2>/dev/null) \
+     && git -C "$tmp/behind" checkout -q "$back" 2>/dev/null; then
+    mkdir -p "$tmp/shal/docs/agents" && cp "$0" "$tmp/shal/docs/agents/executing.sh"
+    check "the clone the runtime hands us reads shallow" 0 \
+          bash -c '[ "$(git -C "$1" rev-parse --is-shallow-repository)" = true ]' _ "$tmp/shal"
+    check "from a shallow clone it repairs, then counts"  1 \
+          env EXECUTING_HOSTREPO="$tmp/behind" EXECUTING_BIN="$tmp/behind/cli/src/index.js" \
+          bash -c 'cd "$1" && bash docs/agents/executing.sh' _ "$tmp/shal"
+    check "and never reports a behind file as no-commit"  0 \
+          env EXECUTING_HOSTREPO="$tmp/behind" EXECUTING_BIN="$tmp/behind/cli/src/index.js" \
+          bash -c 'cd "$1"; out=$(bash docs/agents/executing.sh 2>&1)
+                   ! grep -q "files_hand_patched_no_commit_holds: [1-9]" <<<"$out"' _ "$tmp/shal"
+    # The distance is a number, not `?`. `main~20` walks first parents and
+    # `rev-list --count` counts every reachable commit, so the figure is larger
+    # than 20 and the assertion is on its kind rather than its value.
+    check "and the distance is a number, never a \`?\`"   0 \
+          env EXECUTING_HOSTREPO="$tmp/behind" EXECUTING_BIN="$tmp/behind/cli/src/index.js" \
+          bash -c 'cd "$1"; out=$(bash docs/agents/executing.sh 2>&1)
+                   grep -qE "commits_on_main_since_executing_head: [1-9][0-9]*$" <<<"$out"' _ "$tmp/shal"
+    check "and at least one file reads behind"            0 \
+          env EXECUTING_HOSTREPO="$tmp/behind" EXECUTING_BIN="$tmp/behind/cli/src/index.js" \
+          bash -c 'cd "$1"; out=$(bash docs/agents/executing.sh 2>&1)
+                   grep -qE "files_behind: [1-9][0-9]*$" <<<"$out"' _ "$tmp/shal"
+    # The other arm: shallow and undeepenable. On the box the objects are local
+    # and the repair always wins, so the refusal is only ever reachable in a
+    # fixture — which is exactly why it is tested here rather than trusted.
+    # A second shallow clone, because the case above DEEPENED the first one —
+    # which is itself the proof that the repair arm ran rather than being
+    # skipped.
+    if git clone -q --no-local --no-hardlinks --depth 1 --branch "$MAIN" . "$tmp/shal2" 2>/dev/null; then
+      mkdir -p "$tmp/shal2/docs/agents" && cp "$0" "$tmp/shal2/docs/agents/executing.sh"
+      git -C "$tmp/shal2" remote set-url origin "$tmp/no-such-origin" 2>/dev/null
+      check "shallow and undeepenable -> could not look" 2 \
+            env EXECUTING_HOSTREPO="$tmp/behind" EXECUTING_BIN="$tmp/behind/cli/src/index.js" \
+            bash -c 'cd "$1" && bash docs/agents/executing.sh' _ "$tmp/shal2"
+    fi
+  else
+    printf '  SKIP  %-46s could not build the shallow fixture\n' "shallow-clone cases"
+  fi
   exit $rc
+fi
+
+# A SHALLOW CLONE MAKES EVERY ANSWER BELOW WRONG, AND WRONG IN THE REASSURING
+# DIRECTION. The runtime hands this seat a clone grafted at `main`'s tip, and in
+# one of those the executing commit is simply absent, so `git rev-list --count`
+# cannot resolve the range and every blob of a file that is merely BEHIND
+# matches no commit this clone holds. Measured on a 60-commit fixture whose
+# checkout sits 52 behind, full clone against shallow, same script, same input:
+#
+#   full     an ancestor of main   behind 52   files_behind 1   no_commit_holds 0
+#            BEHIND       cli/src/lib/runner.js (the executing blob is a commit)
+#   shallow  unknown to this clone behind  ?   files_behind 0   no_commit_holds 1
+#            HAND-PATCH   cli/src/lib/runner.js (no commit holds this text;
+#                                                a checkout would destroy it)
+#
+# Both wrong statements point away from the repair. `files_behind: 0` is the
+# all-clear, and the HAND-PATCH line tells the reader a `git checkout` would
+# destroy work when the text is an ordinary older commit — so the one hunk this
+# instrument exists to find becomes indistinguishable from 952 commits of
+# ordinary staleness. epitome/engineer named the direction on the board at
+# 2026-11-02T01:04:47Z, about this very checkout: "a wrong small number here
+# reads as 'nearly current', which is the most reassuring possible way to be
+# wrong." So the depth is checked before the first measurement, not beside the
+# command that needs it (L-A55), repaired where it can be, and refused where it
+# cannot — "I could not look" and "nothing is wrong" are different answers and
+# only one is safe to act on (L-A18 clause four, L41).
+if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+  echo "this clone is shallow, which makes every distance below wrong; unshallowing" >&2
+  git fetch -q --unshallow origin 2>/dev/null || {
+    echo "could not look: this clone is shallow and could not be deepened, so a file that is behind would be reported as text no commit holds — refusing rather than answering wrongly" >&2
+    exit 2; }
 fi
 
 [ -d "$HOSTREPO/.git" ] || { echo "could not look: no git checkout at $HOSTREPO" >&2; exit 2; }
