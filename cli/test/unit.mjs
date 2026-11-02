@@ -1127,6 +1127,41 @@ const killRun = async (name, { work, timeoutMs, env = {}, onOutput } = {}) => {
   }
 };
 
+test("the bound a run is stopped at is declared in exactly one place", () => {
+  // The repair's own detector. Before this, `temporal/env.js` declared
+  // DEFAULT_RUN_TIMEOUT_MS and `temporal/workflows.js` wrote the same hour out
+  // again as the fallback for a run that arrived without one — so moving the
+  // declaration moved the bound for the runs that carry it in their input and
+  // for no others, silently. A repair with no detector leaves the next pass as
+  // exposed as this one was.
+  const src = join(repoRoot(new URL("../", import.meta.url).pathname) ?? "", "cli", "src");
+  const hours = [];
+  const walk = (d) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const at = join(d, e.name);
+      if (e.isDirectory()) { walk(at); continue; }
+      if (!e.name.endsWith(".js")) continue;
+      const text = readFileSync(at, "utf8");
+      // A line that holds an hour AND names a bound. Not every hour in this
+      // tree is a declaration of one — refusal.js and runlogs.js convert hours
+      // to milliseconds, which is arithmetic and not a policy — so the test is
+      // the conjunction, which is also what a second declaration would look
+      // like however it was spelled.
+      for (const line of text.split("\n")) {
+        if (/^\s*(\/\/|\*)/.test(line)) continue;
+        const hour = /\b(60\s*\*\s*)?60\s*\*\s*60\s*\*\s*1000\b|\b3_?600_?000\b/.test(line);
+        const bound = /timeout|TIMEOUT|window|WINDOW|bound/i.test(line);
+        if (hour && bound) hours.push(`${at}: ${line.trim()}`);
+      }
+    }
+  };
+  walk(src);
+  const files = [...new Set(hours.map((h) => h.slice(0, h.indexOf(":")).split("/").pop()))].sort();
+  assert.deepEqual(files, ["bounds.js"],
+    `a bound measured in hours is declared outside bounds.js:\n${hours.join("\n")}`);
+  assert.equal(hours.length, 2, `bounds.js declares the run bound and the window bound and nothing else:\n${hours.join("\n")}`);
+});
+
 test("readProgress names what this run committed and nothing the clone arrived with", async () => {
   const work = gitClone("pm");
   const git = (...a) => execFileSync("git", ["-C", work, ...a], { stdio: "ignore" });

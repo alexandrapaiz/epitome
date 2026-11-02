@@ -7,8 +7,11 @@
 // on their first line, so a misconfigured host is visible immediately instead
 // of after a silent day of writing to the wrong namespace.
 
-export const DEFAULT_RUN_TIMEOUT_MS = 60 * 60 * 1000;
-export const DEFAULT_WINDOW_MS = 4 * 60 * 60 * 1000;
+// The bounds themselves live in bounds.js, which a workflow can import and
+// this file cannot be: one declaration, reachable from both sides. Re-exported
+// here because this is where every caller learned to find them.
+import { DEFAULT_RUN_TIMEOUT_MS, DEFAULT_WINDOW_MS } from "./bounds.js";
+export { DEFAULT_RUN_TIMEOUT_MS, DEFAULT_WINDOW_MS };
 export const DEFAULT_PORT = 4747;
 
 export function temporalEnv(env = process.env) {

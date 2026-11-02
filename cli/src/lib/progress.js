@@ -134,7 +134,7 @@ export function progressSays(p, { elapsedMs, bytes, now }) {
 // killed run points at the file somebody has to change. No line number: this
 // sentence is read months later and a line number rots quietly.
 export function boundSays(boundMs, elapsedMs) {
-  return `# the ${mins(boundMs)} run bound killed this run after ${mins(elapsedMs)} — it is DEFAULT_RUN_TIMEOUT_MS in cli/src/temporal/env.js, and $EPITO_RUN_TIMEOUT_MS on a box that sets one`;
+  return `# the ${mins(boundMs)} run bound killed this run after ${mins(elapsedMs)} — it is DEFAULT_RUN_TIMEOUT_MS in cli/src/temporal/bounds.js, and $EPITO_RUN_TIMEOUT_MS on a box that sets one`;
 }
 
 // The account of a killing, written by the killer, because nobody else is left
