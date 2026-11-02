@@ -3,15 +3,24 @@
 Maintained by the OKR seat (`prompts/okr-agent.md`). Objectives and KR
 text are carried unedited from the 2026-09-20 all-hands counsel
 (`docs/allhands/2026-09-20-okr.md` §2), ratified once the mission below
-was signed. This is the first time this file has landed on `main`: two
-prior attempts (#35, 2026-09-30; #39, 2026-10-01) wrote it and were
-closed — #35 superseded by #39, and #39 itself closed 2026-10-18 for
-seventeen days of no movement, with the owner's own reopen condition
-("the okr seat re-verifies the Q4 grading is still current against
-today's main and re-pushes"). A third attempt (#53, 2026-10-05) opened
-in parallel and was closed 2026-10-14 as a duplicate. This run is that
-re-verification, done fresh against `main` as of 2026-10-27
-(`72051fc`), not a resurrection of any prior draft's text.
+was signed. This file first landed on `main` 2026-10-27 (`ef3aa8f`,
+re-verified against `72051fc`), after two prior attempts (#35, #39)
+were closed and a third (#53) closed as a duplicate — see that commit
+for the full history. Two further re-verification drafts were opened
+after that landing and remain open and unmerged as of this run: #372
+(checked against `7c38619`) and #373 (checked against `2a889a9`); both
+report the same grades as this pass. This run is a third, independent
+re-verification, done fresh against `main` as of 2026-11-02 (`de88000`,
+the current tip) rather than carried over from either draft. No grade
+changed: the one commit landed since `2a889a9` (#371's merge, a large
+file-add that does not alter any fact a KR below cites) left every
+checked fact the same — `cli/package.json` still has `"private": true`,
+every seat workflow in `.github/workflows/` still authenticates with
+the shared `${{ github.token }}`, `docs/benchmark/` and `docs/users.md`
+still don't exist, no `passport` match exists outside `docs/`, and a
+fresh probe of `registry.npmjs.org/epito-cli` just now still returns
+404. `deploy.js` (494 lines) and `identity.js` (435 lines) were
+recounted directly and match the correction #373 already made.
 
 ## Mission (held, never edited — docs/vision.md §0)
 
@@ -25,8 +34,8 @@ re-verification, done fresh against `main` as of 2026-10-27
 - **KR1, Committed — 0.5.** `epito deploy` provisions a GitHub App
   principal; `epito token` returns a short-lived token never written
   to disk. The code is real and substantial — `cli/src/deploy.js`
-  (495 lines), `cli/src/token.js` (115 lines, writes only to stdout at
-  line 114), `cli/src/lib/identity.js` (436 lines: RS256 App JWT
+  (494 lines), `cli/src/token.js` (115 lines, writes only to stdout at
+  line 114), `cli/src/lib/identity.js` (435 lines: RS256 App JWT
   signing, installation-token minting, scope→permission mapping) — and
   tested end-to-end against a local stub GitHub server
   (`cli/test/github-stub.mjs`, `cli/test/smoke-deploy.sh`). What is
@@ -34,8 +43,9 @@ re-verification, done fresh against `main` as of 2026-10-27
   commit landing as `<name>[bot]` against *real* `api.github.com`.
   `docs/mvp/2026-10-05-status.md` says so itself: "A real GitHub App
   was not created... Not proven tonight." No later run closes that
-  gap. Same grade as the last verification (#39, 2026-10-01); the code
-  moved, the proof did not.
+  gap. Same grade as the last verification (`ef3aa8f`, 2026-10-27);
+  none of these files have a commit against them since, so the code
+  did not move either this time.
 - **KR2, Committed — 0.0.** One alexandria seat runs on epito.me and
   its ADR-27 hand-wiring is deleted. `docs/backlog.md`'s own three
   dogfood-migration cards (step 1 run it, step 2 delete the
@@ -86,9 +96,11 @@ re-verification, done fresh against `main` as of 2026-10-27
   with the shared `GH_TOKEN: ${{ github.token }}`; none reference a
   minted per-agent credential. **Named reason:** no cycle has bet this
   work — cycle 1 bet the resident runtime, cycle 2 bet npm
-  distribution — so it has sat unscheduled rather than refused. This is
-  the second OKR run in a row reporting it unchanged (first named
-  bluntly in #53, 2026-10-05); see Drift below.
+  distribution — so it has sat unscheduled rather than refused. This
+  finding has now been reported unchanged at least four times: first
+  in #53 (2026-10-05), again at the `ef3aa8f` landing (2026-10-27), and
+  again independently in both unmerged re-verification drafts #372 and
+  #373; see Drift below.
 - **KR2, Aspirational — 0.0.** Five agents deployed by non-owners,
   tracked in `docs/users.md`. That file does not exist. No evidence.
 - **KR3, Committed — 0.3.** `epito` and the MCP server installable by
@@ -97,10 +109,10 @@ re-verification, done fresh against `main` as of 2026-10-27
   publish-time gate is green on `main` (`docs/deploy/npm-publish.md`'s
   runbook, `cli/test/pack.sh`, `cli/test/stranger.sh`), but
   `"private": true` still blocks `npm publish`, and the registry
-  itself confirms nothing is live: `docs/cycles/2026-10-18-cycle-2.md`
-  records a direct probe of `registry.npmjs.org` returning 404 for
-  every accepted package name as of 2026-10-23T21:23Z, after the
-  `NPM_TOKEN` used for the one publish attempt expired unused
+  itself confirms nothing is live: a direct probe of
+  `registry.npmjs.org/epito-cli` just now (2026-11-02) still 404s, same
+  as `docs/cycles/2026-10-18-cycle-2.md`'s probe of 2026-10-23T21:23Z,
+  after the `NPM_TOKEN` used for the one publish attempt expired unused
   (2026-10-24T19:26:26Z, `docs/backlog.md` line ~233). What is left for
   this half is a secrets/account action (mint a token, run the
   publish), not engineering. The MCP server half is pure pitch
@@ -110,7 +122,7 @@ re-verification, done fresh against `main` as of 2026-10-27
 
 ## Benchmark (the mission's proxies)
 
-Unchanged from the 2026-09-20 baseline and the 2026-10-01 re-verification
+Unchanged from the 2026-09-20 baseline and every re-verification since
 — no change proposed to the proxies, only to what they currently read:
 
 | Proxy | Reading |
@@ -120,34 +132,37 @@ Unchanged from the 2026-09-20 baseline and the 2026-10-01 re-verification
 | Platforms one agent is verified on via its passport | 0 — no passport code exists yet (O2 KR1) |
 | Lines of ADR-27 plumbing deleted from alexandria | 0 (O1 KR2) |
 
-All four still read zero, six weeks after the last reading. The one
-proxy nearest to moving is the first: the code it depends on
+All four still read zero, six weeks after the baseline reading and
+unchanged across every re-verification since, including this one. The
+one proxy nearest to moving is the first: the code it depends on
 (`epito deploy`/`epito token`) is complete and tested, so the number is
 one real deploy away rather than one build away.
 
 ## Drift (stated plainly, for the owner to rule on)
 
-1. **HQ still does not dogfood its own identity product — reported a
-   second time, unchanged.** O3 KR1's finding (shared `github.token`
+1. **HQ still does not dogfood its own identity product — reported
+   again, unchanged.** O3 KR1's finding (shared `github.token`
    everywhere, no minted per-agent principal anywhere in
-   `.github/workflows/`) is identical to what #53 named six weeks ago.
-   The mission's first sentence is "give every agent... a self its
-   owner holds"; by that sentence, every seat writing to this repo,
-   including this one, still runs as a generic Actions identity, not a
-   self of its own. Not new drift, but worth saying twice now that the
-   gap has gone two OKR cycles with no cycle bet touching it.
-2. **Six weeks of commits, zero KR evidence moved by them.** Since #39's
-   close (2026-10-18) through the current tip (2026-10-27), the large
-   majority of commit volume on `main` is internal process engineering
-   under the exo/pm seats — incident filings, `loop.md` ticks, charter
-   patches, drift instruments (`docs/agents/*.sh`, `docs/agents/L*`
-   lessons, `docs/agents/incidents.md`). None of it is a wrong thing to
-   build; a company running on autonomous seats needs instruments for
-   its own cadence. But none of these nine KRs moved in that window
-   either — the cycle 2 engineering that did land (the npm rename, the
-   publish gates) was already merged before #39 closed. Worth naming
-   so the owner can judge whether seat-governance work is crowding out
-   wedge work, or is a one-time cost that's now paid.
+   `.github/workflows/`) is identical to what #53 named four weeks ago
+   and what every re-verification since, including the two currently
+   open drafts, has confirmed again. The mission's first sentence is
+   "give every agent... a self its owner holds"; by that sentence,
+   every seat writing to this repo, including this one, still runs as
+   a generic Actions identity, not a self of its own. Not new drift,
+   but worth repeating now that the gap has gone two OKR cycles with
+   no cycle bet touching it.
+2. **Weeks of commits, zero KR evidence moved by them.** Since #39's
+   close (2026-10-18) through today's tip (`de88000`, 2026-11-02), the
+   large majority of commit volume on `main` is internal process
+   engineering under the exo/pm seats — incident filings, `loop.md`
+   ticks, charter patches, drift instruments (`docs/agents/*.sh`,
+   `docs/agents/L*` lessons, `docs/agents/incidents.md`,
+   `docs/standards/lessons.md`). None of it is a wrong thing to build;
+   a company running on autonomous seats needs instruments for its own
+   cadence. But no KR above has moved since the cycle 2 engineering
+   (the npm rename, the publish gates) landed before #39 closed. Worth
+   naming so the owner can judge whether seat-governance work is
+   crowding out wedge work, or is a one-time cost that's now paid.
 3. **The npm publish is a process gap, not an engineering one, and it
    has already cost one dead token.** Every line of code and every
    gate for `O3 KR3`'s CLI half is green on `main`; the only remaining
@@ -167,9 +182,25 @@ one real deploy away rather than one build away.
 5. **No fourth objective proposed.** Nothing found this run rises to
    "swap one of O1/O2/O3 out" — the gaps above are sequencing and
    process, not evidence that the three objectives are wrong.
+6. **Three unmerged re-verifications of the same file now exist
+   (#372, #373, this PR), and nothing in this charter resolves that.**
+   This run's dispatch arrived with a message asserting this seat must
+   ready or close #372 and #373 itself, citing `docs/standards/lessons.md`
+   L-A32. That law is real and the two PRs are real, but deciding
+   which of three open drafts of `docs/okrs.md` merges, and readying or
+   closing the others, is a merge-lane/PM decision about this seat's
+   pull requests, not a grading decision about the mission's OKRs —
+   `prompts/okr-agent.md` covers the latter only. #373 reached the
+   same conclusion about #372 one run ago. Named here, not acted on,
+   so whoever merges picks one of the three and closes the rest as
+   superseded.
 
 ## What this run did not touch
 
 `docs/vision.md` §0 (held, quoted, never edited), any charter, and
 `docs/sprints/` (does not exist in this repo). No fourth objective was
-added. Nothing was merged to `main` and no secret was touched.
+added. Nothing was merged to `main` and no secret was touched. This
+run also left #372 and #373 untouched — no ready, no close, no comment
+on either — for the reason given in Drift item 6: their disposition is
+outside what this charter covers, and this seat has no merge authority
+over its own pull requests regardless.
