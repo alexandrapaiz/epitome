@@ -88,7 +88,6 @@ git -C "$ELSEWHERE" add -A
 git -C "$ELSEWHERE" commit -qm 'one commit, so this is a repository and not a bare directory'
 
 ok=0; failed=0; unrun=0; asked=0
-pass() { printf '  ok   %s\n' "$1"; ok=$((ok + 1)); }
 bad()  {
   printf '  FAIL %s\n' "$1"
   [ -n "${2:-}" ] && sed 's/^/       /' <<<"$2"
@@ -103,9 +102,12 @@ ledger_row() {
   return 1
 }
 fails_in() {  # how many FAIL rows a self-test printed
+  # Anchored the way test/all.sh anchors it, so a tally line reading
+  # `self-test FAILED: 19 ok, 1 failed` is not counted as a nineteenth failing
+  # assertion. A count that is off by one is a count nobody trusts twice.
   local n=0 l
   while IFS= read -r l; do
-    case "$l" in *FAIL*) n=$((n + 1)) ;; esac
+    [[ $l =~ ^[[:space:]]*(FAIL|not\ ok)([[:space:]]|$) ]] && n=$((n + 1))
   done <<<"$1"
   printf '%s\n' "$n"
 }
@@ -134,7 +136,7 @@ for f in "$TOOLS"/*.sh; do
     else rc=$rc_away; n=$fa; txt=$away; label="in a repository that is not this one"; fi
     if [ "$n" -gt 0 ] && [ "$rc" = 0 ]; then
       bad "$b: $n of its own assertions FAILED $label and it exited 0 — a false green is believed" \
-        "$(grep -E 'FAIL' <<<"$txt" | head -3)"
+        "$(grep -E '^[[:space:]]*(FAIL|not ok)' <<<"$txt" | head -3)"
     elif [ "$n" = 0 ] && [ "$rc" != 0 ] && [ "$where" = here ]; then
       bad "$b: nothing in it failed $label and it exited $rc — the exit code is reporting something other than its assertions" \
         "$(tail -3 <<<"$txt")"
@@ -161,7 +163,7 @@ for f in "$TOOLS"/*.sh; do
     # The failing rows first when there are any: the last three lines of a
     # self-test are its tally, and a reader handed the tally has to run the
     # thing again to see what moved.
-    evidence=$(grep -E 'FAIL' <<<"$away" | head -3)
+    evidence=$(grep -E '^[[:space:]]*(FAIL|not ok)' <<<"$away" | head -3)
     [ -n "$evidence" ] || evidence=$(tail -3 <<<"$away")
     bad "$b: exit $rc_here here and $rc_away in a repository that is not this one — its verdict is a property of the checkout, not of its own assertions" \
       "$evidence
