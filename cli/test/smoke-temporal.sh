@@ -73,6 +73,7 @@ SLACK_PRODUCT_PORT="${EPITO_TEST_SLACK2_PORT:-47473}"
 GRPC_PORT="${EPITO_TEST_TEMPORAL_PORT:-47811}"
 GH_PORT="${EPITO_TEST_GITHUB_PORT:-47474}"
 OTLP_PORT="${EPITO_TEST_OTLP_PORT:-47476}"
+BOARD_PORT="${EPITO_TEST_BOARD_PORT:-47479}"
 # Two endpoints that stand in for an open provider (ADR-19). Nothing listens on
 # either: the stub executor decides what a route does by reading the endpoint it
 # was pointed at, which is how one process can be a provider that refuses and a
@@ -85,6 +86,11 @@ SECRET="smoke-secret-not-a-real-one"
 SLACK_HQ="$ROOT/slack-hq.log"; SLACK_PRODUCT="$ROOT/slack-product.log"
 GH_LOG="$ROOT/github-requests.jsonl"
 SPANS="$ROOT/spans.jsonl"
+# Every run this suite's runtime files to the COMPANY board, which is the owner's
+# Runs tab. The token is what the sink must see in the Authorization header and
+# must not see in any payload.
+BOARD_RUNS="$ROOT/board-runs.jsonl"
+BOARD_TOKEN="board-runtime-token-not-a-real-one"
 # The credential the box has today, and which an agent's own must beat.
 SHARED_TOKEN="shared-operator-token-not-a-real-one"
 STUB_TOKEN="ghs_STUBTOKEN0000000000000000000000000000"
@@ -96,7 +102,7 @@ STUB_TOKEN="ghs_STUBTOKEN0000000000000000000000000000"
 # start once today -- these counters are what makes a second start safe instead
 # of a note asking whoever adds it to remember. test/shapes.sh's second scan is
 # the gate; test/probe-stub-restart.sh is the race, measured.
-GH_STARTS=0; OTLP_STARTS=0; WORKER_STARTS=0
+GH_STARTS=0; OTLP_STARTS=0; WORKER_STARTS=0; BOARD_STARTS=0
 pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
 bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
@@ -189,7 +195,7 @@ eventually() { # <label> <predicate> [seconds] [what-to-print-if-it-never-became
 }
 
 cleanup() {
-  for pid in ${INGRESS_PID:-} ${WORKER_PID:-} ${SINK1_PID:-} ${SINK2_PID:-} ${GH_PID:-} ${OTLP_PID:-} ${SERVER_PID:-}; do
+  for pid in ${INGRESS_PID:-} ${WORKER_PID:-} ${SINK1_PID:-} ${SINK2_PID:-} ${BOARD_PID:-} ${GH_PID:-} ${OTLP_PID:-} ${SERVER_PID:-}; do
     kill "$pid" 2>/dev/null
   done
   sleep 1
@@ -386,6 +392,18 @@ write_manifest ghost ""          ""
 write_manifest badkey ""         ""
 write_langgraph_manifest
 write_routed_manifests
+# The company these runs file under, at the root of the roster's repository
+# rather than in the roster — which is where `findCompanyFile` climbs to look
+# and where this repository's own lives. Without it `companyFor` answers null,
+# nothing is filed, and every assertion below would pass vacuously against an
+# empty file. `company:` and `product:` differ on purpose: the board files a
+# run under the PRODUCT, and a reader that took the first plausible field would
+# be wrong in a way nobody notices until two companies' rows collide.
+cat > "$ROOT/company.yaml" <<'YAML'
+company: acme-holdings
+product: acme
+posture: venture
+YAML
 echo "  clock (cron * * * * *), pm (its own GitHub App), okr (own webhook), ghost (no charter), badkey (an App it cannot sign with)"
 echo "  graphs (adapter = \"langgraph\", its own App too) — standing in for it: $LG_KIND"
 echo "  routed (open road refuses -> subscription), cheap (a closed road, then an open one that works)"
@@ -423,6 +441,11 @@ node "$CLI/test/slack-sink.mjs" "$SLACK_PRODUCT_PORT" "$SLACK_PRODUCT" > "$ROOT/
 # than against a product (ADR-18).
 OTLP_STARTS=$((OTLP_STARTS+1)); OTLP_LOG="$ROOT/otlp-$OTLP_STARTS.log"
 node "$CLI/test/otlp-sink.mjs" "$OTLP_PORT" "$SPANS" > "$OTLP_LOG" 2>&1 & OTLP_PID=$!
+# The company board, which is the owner's Runs tab. Same shape as the two slack
+# sinks: a process on localhost that writes down what it was sent.
+BOARD_STARTS=$((BOARD_STARTS+1)); BOARD_LOG="$ROOT/board-sink-$BOARD_STARTS.log"
+node "$CLI/test/board-sink.mjs" "$BOARD_PORT" "$BOARD_RUNS" > "$BOARD_LOG" 2>&1 & BOARD_PID=$!
+for _ in $(seq 1 60); do grep -q 'board sink on' "$BOARD_LOG" 2>/dev/null && break; sleep 0.2; done
 for _ in $(seq 1 60); do grep -q 'otlp sink on' "$OTLP_LOG" 2>/dev/null && break; sleep 0.2; done
 cd "$STATE"
 export TEMPORAL_ADDRESS="127.0.0.1:$GRPC_PORT" TEMPORAL_NAMESPACE="$NS" \
@@ -438,7 +461,8 @@ export TEMPORAL_ADDRESS="127.0.0.1:$GRPC_PORT" TEMPORAL_NAMESPACE="$NS" \
        SMOKE_HALF_FILLED="" \
        OTEL_EXPORTER_OTLP_ENDPOINT="http://127.0.0.1:$OTLP_PORT" \
        SLACK_WEBHOOK_URL="http://127.0.0.1:$SLACK_HQ_PORT/hook" \
-       SLACK_WEBHOOK_URL_EPITOME="http://127.0.0.1:$SLACK_PRODUCT_PORT/hook"
+       SLACK_WEBHOOK_URL_EPITOME="http://127.0.0.1:$SLACK_PRODUCT_PORT/hook" \
+       BOARD_API_URL="http://127.0.0.1:$BOARD_PORT" BOARD_RUNTIME_TOKEN="$BOARD_TOKEN"
 # Before the worker: the engine is up, the namespace exists, and nothing is
 # doing the work. That is the state a box whose epitod-worker died is in, and
 # until this run nothing in the product reported it — every row of the
@@ -928,6 +952,87 @@ console.log(\"   \", (ex.attrs||{})[\"epito.route\"], (ex.attrs||{})[\"epito.mod
 process.exit((ex.attrs||{})[\"epito.route\"]===\"subscription\"&&(ex.attrs||{})[\"epito.model\"]===\"claude-sonnet-5\"?0:1)'"
 check "no span carries a route's key either" "! grep -qF '$OPEN_KEY' '$SPANS'"
 
+step "5 (the OTHER board): every run on this box reaches the owner's Runs tab, once"
+# Why this step did not exist until 2026-11-02, and what its absence cost.
+#
+# The company board is the Runs tab of an owner who runs more than one product,
+# and this runtime has filed to it since 2026-10-18. test/unit-runreport.mjs
+# asserts `lib/runreport.js` and the `record` activity against a server of its
+# own. What nothing asserted was the WIRING: that a run this runtime actually
+# PERFORMED arrives there. This suite is the one that drives a real engine, real
+# windows and a real worker — and it set no BOARD_API_URL, so the entire
+# company-board path was dark in the only test that could have lit it.
+#
+# A dark path is not a neutral gap. On 2026-11-02 a seat reading the trunk found
+# the run report only in the Temporal activity path, concluded that host WINDOW
+# runs therefore file none, and held back a pull of the host's stale CLI
+# checkout rather than trade the owner's Runs tab for it. Nothing was being
+# traded: SeatWindow performs each of its runs as a SeatRun child, SeatRun calls
+# `record` for every one, and `record` is what files the report. But that answer
+# took reading four files to reach, nothing in the repository could state it, and
+# a pull that was never blocked sat for six days while 178 runs took stale code.
+# What follows is that sentence, mechanically, so the next reader asks the suite.
+reports() { cat "$BOARD_RUNS"; }
+printf '  the Runs tab received %s report(s)\n' "$(wc -l < "$BOARD_RUNS" | tr -d ' ')"
+check "the daemon said at startup which company these runs file under" "grep -qF 'runs of this roster file to the company board as \"acme\"' '$ROOT/ingress.log'"
+check "the Runs tab is not empty, and every row is a POST to /api/runs" "reports | node -e '
+const rows=require(\"fs\").readFileSync(0,\"utf8\").trim().split(\"\\n\").map(JSON.parse);
+console.log(\"    \", rows.map(r=>r.body.seat+\" \"+r.body.trigger).join(\"; \"));
+process.exit(rows.length>=4 && rows.every(r=>r.method===\"POST\"&&r.url===\"/api/runs\")?0:1)'"
+# The product, not the owning company: company.yaml says acme-holdings owns
+# acme, and a reader that took the first plausible field would file this
+# roster's runs under a name nobody chose.
+check "every row is filed under the PRODUCT, and the repo rides beside it" "reports | node -e '
+const rows=require(\"fs\").readFileSync(0,\"utf8\").trim().split(\"\\n\").map(JSON.parse);
+process.exit(rows.every(r=>r.body.company===\"acme\"&&r.body.repo===\"acme/roster\")?0:1)'"
+# THE ASSERTION THIS STEP EXISTS FOR. A window is where a host seat does its
+# work, and the question that cost six days was whether its runs file a report.
+check "a WINDOW run files one — the opening run and the message inside it both" "reports | node -e '
+const rows=require(\"fs\").readFileSync(0,\"utf8\").trim().split(\"\\n\").map(JSON.parse).map(r=>r.body);
+const pm=rows.filter(r=>r.seat===\"pm\");
+console.log(\"     pm:\", pm.map(r=>r.trigger+\"=\"+(r.exit===0?\"ok\":r.exit)).join(\"; \"));
+process.exit(pm.some(r=>r.trigger===\"window\") && pm.some(r=>r.trigger===\"message\")?0:1)'"
+check "and so does a run the SCHEDULE fired, on its own clock" "reports | node -e '
+const rows=require(\"fs\").readFileSync(0,\"utf8\").trim().split(\"\\n\").map(JSON.parse).map(r=>r.body);
+process.exit(rows.some(r=>r.seat===\"clock\"&&r.trigger===\"cron\"&&r.exit===0)?0:1)'"
+# ONE report per RUN, which is the whole reason the report is filed from the
+# `record` activity and not from the executor's close handler: `routed` took two
+# roads in one run (the open provider refused, the subscription answered), and
+# the close-handler placement — the shape the hand patch on this company's host
+# still carries — passes through that handler once per road.
+check "a run that took two roads is ONE row, not one per road" "reports | node -e '
+const rows=require(\"fs\").readFileSync(0,\"utf8\").trim().split(\"\\n\").map(JSON.parse).map(r=>r.body);
+const routed=rows.filter(r=>r.seat===\"routed\");
+console.log(\"     routed:\", routed.length, \"row(s):\", routed.map(r=>r.model).join(\"; \"));
+process.exit(routed.length===1 && routed[0].model===\"claude-sonnet-5\"?0:1)'"
+check "and no two rows are the same run: run_url is the key, one per run" "reports | node -e '
+const rows=require(\"fs\").readFileSync(0,\"utf8\").trim().split(\"\\n\").map(JSON.parse).map(r=>r.body);
+const urls=rows.map(r=>r.run_url);
+process.exit(new Set(urls).size===urls.length?0:1)'"
+# The row text is what the Runs tab renders, so it says what `epito board` says.
+check "a seat that could not mint reads as \"mint\" on the Runs tab, not as an exit code" "reports | node -e '
+const rows=require(\"fs\").readFileSync(0,\"utf8\").trim().split(\"\\n\").map(JSON.parse).map(r=>r.body);
+const e=rows.find(r=>r.seat===\"badkey\");
+console.log(\"     \", JSON.stringify(e&&e.report));
+process.exit(e && /badkey · window · mint/.test(e.report) && e.exit===1?0:1)'"
+# A resident host has no Actions run page, so run_url is this run's own log —
+# the artifact an operator on that box actually wants. A host that publishes its
+# logs sets EPITO_RUN_URL_BASE and the same rows become clickable.
+check "run_url addresses this run's own log, since a resident host has no run page" "reports | node -e '
+const rows=require(\"fs\").readFileSync(0,\"utf8\").trim().split(\"\\n\").map(JSON.parse).map(r=>r.body);
+process.exit(rows.every(r=>/^file:\\/\\/.*\\.epito\\/logs\\/.+\\.log$/.test(r.run_url))?0:1)'"
+# The token belongs in the header. The sink keeps both so this can be asked.
+check "the board was asked with the bearer token, and no row carries it" "reports | node -e '
+const rows=require(\"fs\").readFileSync(0,\"utf8\").trim().split(\"\\n\").map(JSON.parse);
+process.exit(rows.every(r=>r.auth===\"Bearer $BOARD_TOKEN\")?0:1)'"
+check "...and no run report anywhere carries a credential of any kind" "reports | node -e '
+const rows=require(\"fs\").readFileSync(0,\"utf8\").trim().split(\"\\n\").map(JSON.parse);
+const bodies=JSON.stringify(rows.map(r=>r.body));
+const secrets=[\"$BOARD_TOKEN\",\"$STUB_TOKEN\",\"$SHARED_TOKEN\",\"$OPEN_KEY\"];
+const leaked=secrets.filter(x=>bodies.indexOf(x)!==-1);
+console.log(\"     leaked:\", leaked.length?leaked.join(\",\"):\"none\");
+process.exit(leaked.length?1:0)'"
+
 step "10: THE NAMES THIS BOX DID NOT HOLD — the rehearsal, the run log, and the agent's own prompt"
 # A box is short of a name in two ways, and this one is short in both: it has
 # never heard of SMOKE_NOT_HERE, and its env block sets SMOKE_HALF_FILLED to
@@ -971,6 +1076,24 @@ check "the run's own log says both, in one sentence" \
 check "a name the run MINTED for itself is not a name the box is short of" "! said \"\$(grep 'env missing' '$SHORTLOG')\" 'GH_TOKEN'"
 check "the operator watching journalctl hears it too" \
   "grep -qF 'pm: 2 names from [runtime].env are not what this box holds (SMOKE_NOT_HERE, SMOKE_HALF_FILLED)' '$WORKER_LOG'"
+# Wait for the artifact the NEXT assertion reads. `# env missing:` is written
+# into the run log by executeAgent before the child is spawned, and the stub
+# records its prompt while the child runs, so "the log mentions it" becomes true
+# a moment before the prompt exists to assert on. The gate above reads the log;
+# this one reads the file the assertion is about.
+#
+# Latent until 2026-11-02, when a branch that added one awaited POST per run to
+# `record` lost the race main had been winning: 0 of 4 pm prompts instead of 1
+# of 5, with nothing about the prompt changed. Same class as the clone-removal
+# wait at the top of this file — an assertion with a deadline is still an
+# assertion, and this one had none.
+for _ in $(seq 1 240); do
+  node -e 'const fs=require("fs");const d=process.argv[1];
+    const turns=fs.readdirSync(d).filter(f=>f.endsWith(".jsonl"))
+      .flatMap(f=>fs.readFileSync(d+"/"+f,"utf8").trim().split("\n").filter(Boolean).map(JSON.parse));
+    process.exit(turns.some(t=>/epito-pm-/.test(t.cwd||"")&&/SMOKE_NOT_HERE is not set on this box/.test(t.prompt||""))?0:1)' "$STUB" && break
+  sleep 0.25
+done
 check "the agent itself was told, in the prompt the child really received" "node -e '
 const fs=require(\"fs\");
 const turns=fs.readdirSync(\"$STUB\").filter(f=>f.endsWith(\".jsonl\"))
