@@ -12,7 +12,7 @@ out of `.claude/settings.json`, never to a command retyped here, because the
 thing that can be wrong is the registration and a test that retypes the
 command cannot see a registration that is wrong.
 
-So it asserts four properties, in the order they can hurt:
+So it asserts these properties, in the order they can hurt:
 
 1. REGISTERED AND RESOLVABLE. `.claude/settings.json` names a `PreToolUse`
    hook, and the interpreter and script it names resolve from a seat's own
@@ -27,11 +27,21 @@ So it asserts four properties, in the order they can hurt:
    is not a nicety: L-X5's safe snippet is only learnable if the guard that
    teaches it is still installed, and a guard that denies the engineer seat's
    ordinary work is uninstalled by the first seat it blocks.
+5. THE REPOSITORY SCAN RUNS AND IS GREEN, and the documents name the script
+   rather than printing an invocation. The hook covers what a seat is about to
+   run; the scan covers what is already committed, which is the only thing that
+   catches a shape that arrived before the hook existed. It is asserted here
+   because the invocation used to be a comment, and a command in a comment
+   drifted from the sentence beside it until the two disagreed by exit code.
+6. WHAT COVERING THE FILE TOOLS WOULD COST, as a measured list of files rather
+   than an argument, so the day HQ changes the edit path the acts this
+   installation would lose are printed instead of re-reasoned.
 
 exit 0 = the wiring holds    1 = a property above is broken    2 = could not look
 """
 
 import json
+import re
 import os
 import shlex
 import subprocess
@@ -39,6 +49,9 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SETTINGS = os.path.join(ROOT, ".claude", "settings.json")
+BASELINE = os.path.join(ROOT, "tools", "secret-print-baseline.txt")
+SCAN = os.path.join(ROOT, "tools", "scan-secret-print.sh")
+README = os.path.join(ROOT, ".claude", "README.md")
 
 # The tools whose payload carries a file's new content rather than a command.
 # The matcher must not cover these; section 5 is the measurement that says why.
@@ -121,8 +134,13 @@ for tool in FILE_TOOLS:
     check(f"the matcher does not cover {tool} (section 5 says why)",
           False, tool in matcher, f"matcher={matcher!r}")
 check("the baseline the repository scan will read is in place",
-      True, os.path.exists(os.path.join(ROOT, "tools", "secret-print-baseline.txt")),
-      "tools/secret-print-baseline.txt holds this product's 34 accepted findings")
+      True, os.path.exists(BASELINE),
+      "tools/secret-print-baseline.txt holds this product's accepted findings")
+check("the repository scan is a script and not a comment (section 6 runs it)",
+      True, os.path.exists(SCAN),
+      "tools/scan-secret-print.sh is the scan; a printed invocation drifts from "
+      "the claim beside it, which is how this product shipped a header whose "
+      "command gave exit 1 under the sentence saying it gives exit 0")
 
 
 def ask(payload, raw=None):
@@ -235,24 +253,42 @@ case("this seat's ordinary work: opening its own pull request", "allow",
 # command path, which is the right distinction — a command runs now and nothing
 # reviews it; a file's new content has a diff, a pull request and a scan.
 #
-# It cannot be registered here, and the blocker is one file. The hook scans an
-# edit's content whatever the file's suffix, while the repository scan skips
-# markdown on purpose, "because the registers quote these shapes on purpose —
-# a lint that fails on the register is a lint nobody keeps" (--help). So a
-# full-file write of docs/standards/lessons.md is denied: the vendored company
-# register that CARRIES L-X5 quotes every idiom it forbids, which is what a
-# register is for. Covering the file tools here would stop the exo seat
-# re-vendoring the rule this guard enforces, and no marker fixes it, because a
-# vendored copy may not be edited and a re-vendor would strip the markers.
+# It cannot be registered here. A full-file write of docs/standards/lessons.md
+# is denied: the vendored company register that CARRIES L-X5 quotes every idiom
+# it forbids, which is what a register is for. Covering the file tools here
+# would stop the exo seat re-vendoring the rule this guard enforces, and no
+# marker fixes it, because a vendored copy may not be edited and a re-vendor
+# would strip the markers.
+#
+# THE PREDICATE IS NOT THE SUFFIX, and this comment said it was until the deny
+# set was measured instead of reasoned about. "The repository scan skips
+# markdown on purpose" (--help) is true and is no use here: on main at ebf9382,
+# writing each of eighteen real files back at the hook denied six, and only two
+# of the six were markdown. The others were a `.txt` — this product's own
+# baseline, the file an exemption is WRITTEN IN — two `.sh` seat tools, and
+# `cli/src/lib/runner.js`, product source, where the one genuine credential
+# print in this repository lives. A markdown exemption would have unblocked the
+# register and left the baseline, the detector and the CLI denied, so it was
+# never the condition to wait for.
+#
+# Three of those six are allowed now, and section 8 asserts it: this branch
+# accepted their lines in the baseline, which the edit path honours. That is
+# the mechanism, and it reduces the problem to the three files no entry can
+# reach — the vendored register, the vendored checker, and the baseline itself,
+# whose entries ARE the quotations, which is why a full-file write of it is
+# refused by eleven findings that are all its own accepted lines. The
+# mechanism therefore gets harder to use in exact proportion to how much it
+# has been used, and that is the shape of the thing to hand HQ.
 #
 # All four recorded incidents were commands typed at a shell, which is also the
 # only surface L-X5's clause names, so the command path is where the coverage
-# is. The rest belongs to the repository scan, which has the markdown exemption
-# and is handed to the project manager.
+# is. The rest belongs to the repository scan, which section 6 runs, and the
+# CI gate that runs it on a schedule is a workflow and so the PM's.
 #
-# WHEN THIS SECTION FAILS, HQ HAS FIXED IT: give the edit path the same
-# markdown exemption the scan has, then widen the matcher and move these cases
-# into a real edit-path section.
+# WHEN THIS SECTION FAILS, HQ HAS FIXED IT: honour `L-X5-ALLOW` markers and the
+# baseline for a vendored file on the edit path — or whatever the fix is, read
+# section 7's measurement before widening the matcher, because the number it
+# prints is the list of acts this installation would be taking away.
 print("\n== 5. why the matcher stops at Bash: the register cannot be rewritten")
 
 
@@ -301,6 +337,115 @@ print("\n== 6. the upstream gap this installation knows it has")
 case("a redirect of the whole environment is NOT caught (HQ 9b0e9e4)",
      "allow", bash("env > /tmp/dump.txt"))
 case("...nor is `set` redirected", "allow", bash("set > /tmp/dump.txt"))
+# Of the two, the redirect is the worse one and the help claims both. A pipe
+# shows matching lines in a transcript somebody has to read; a redirect writes
+# every variable in the environment to a file on disk, under a name chosen by
+# whoever typed it, where nothing expires it. Reported to HQ in that order.
+
+# ---------------------------------------------------------------- property 7
+# THE SCAN RUNS, AND IT IS THE SCAN THE DOCUMENTS NAME.
+#
+# This is the half of the guard the hook does not cover: the hook reads what a
+# seat is about to run, and the scan reads what is already committed, which is
+# the only thing that can catch a shape that arrived before the hook existed.
+#
+# It is asserted here because of how it failed. The invocation used to be a
+# COMMENT at the top of the baseline, printed beside the sentence "it exits 0
+# today, so the gate can be added without fixing anything first". The exo seat
+# copied that line on 2026-11-02 and got 40 findings and exit 1, because the
+# printed command omitted `--baseline`; and with the flag added it was still
+# exit 1, because the printed glob list had never covered `docs/agents/stage.sh`
+# or any of `cli/src/`. Both halves of the claim were wrong and neither could
+# have been noticed, because a command in a comment is run by nothing.
+#
+# So the two assertions are: the scan exits 0, and no document in this
+# directory prints a checker invocation a reader could copy instead.
+print("\n== 7. the repository scan, run rather than quoted")
+
+scan = subprocess.run(["bash", SCAN], capture_output=True, text=True, cwd=ROOT, timeout=300)
+check("tools/scan-secret-print.sh exits 0 over the committed tree",
+      0, scan.returncode,
+      f"{scan.stdout.strip()[-600:]}\n{scan.stderr.strip()[-600:]}\n"
+      "each finding is either a real print — rewrite it — or one this product "
+      "accepts, which goes in tools/secret-print-baseline.txt with a reason")
+check("...and says how much it looked at, so a green scan of nothing is visible",
+      True, "tracked file(s)" in scan.stdout, scan.stdout[-300:])
+
+scan_self = subprocess.run(["bash", SCAN, "--self-test"], capture_output=True,
+                           text=True, cwd=ROOT, timeout=300)
+check("the scan's own three answers fire on built input", 0, scan_self.returncode,
+      scan_self.stdout.strip()[-600:])
+
+# The copyable-command check. `python3 tools/check-secret-print.py` followed by
+# a path is an invocation; the same string followed by `--command` or `--help`
+# is a one-liner for inspecting a single line, which is what .claude/README.md
+# tells a seat to run when it thinks the guard is wrong, and that one does not
+# drift because it takes no surfaces and no baseline.
+INVOCATION = re.compile(
+    r"check-secret-print\.py(?!\s*(?:--command|--help|--hook|`|$))[^\n]*", re.M)
+for path, label in ((BASELINE, "tools/secret-print-baseline.txt"),
+                    (README, ".claude/README.md")):
+    if not os.path.exists(path):
+        continue
+    hits = [m.group(0).strip() for m in INVOCATION.finditer(open(path).read())]
+    check(f"{label} names the script instead of printing an invocation",
+          [], hits,
+          "a printed invocation is a command nothing executes, so it drifts "
+          "from the claim next to it; say `bash tools/scan-secret-print.sh`")
+
+# ---------------------------------------------------------------- property 8
+# WHAT COVERING THE FILE TOOLS WOULD COST, as a number rather than an argument.
+# Section 5 says the matcher stops at Bash; this is the measurement it rests
+# on, and it is here so that the day HQ changes the edit path, the list of acts
+# that would be taken away is printed rather than re-reasoned.
+#
+# These are real files in this checkout, written back at the hook unchanged, so
+# every denial below is an edit somebody would have to make to maintain this
+# guard and could not.
+print("\n== 8. the edit-path deny set, measured on this checkout")
+
+DENIED = {
+    "docs/standards/lessons.md": "the vendored register that CARRIES L-X5, quoting every idiom it forbids",
+    ".claude/README.md": "the document that explains the guard, quoting what it refuses",
+    "tools/secret-print-baseline.txt": "the file an exemption is written IN: its own entries are the quotations, so it is the one file the baseline cannot unblock",
+}
+# These three were denied on main at ebf9382 and are allowed here, and the
+# difference is not a change to the checker: it is the three baseline entries
+# this branch added. That is the suppression mechanism working on the edit
+# path, and it is asserted rather than described because it is the reason the
+# deny set is three files and not six.
+UNBLOCKED = {
+    "docs/agents/x5probe.sh": "the detector's probe inputs, accepted as KIND THREE",
+    "docs/agents/stage.sh": "the seat tool's assertion tally, accepted with the other 12",
+    "cli/src/lib/runner.js": "the git credential helper, accepted as KIND ONE",
+}
+ALLOWED = ("docs/backlog.md", "README.md", "docs/agents/lessons.md",
+           "prompts/engineer-agent.md", "cli/test/smoke-temporal.sh",
+           "docs/agents/post.sh", "docs/agents/addressed.sh", "docs/agents/board.py",
+           ".claude/settings.json", "cli/src/lib/runreport.js",
+           "deploy/provision-host.sh", "tools/tests/test-hook-wiring.py",
+           "tools/scan-secret-print.sh")
+
+for rel, why in DENIED.items():
+    p = os.path.join(ROOT, rel)
+    if not os.path.exists(p):
+        print(f"  ok   (no {rel} in this checkout)")
+        pass_ += 1
+        continue
+    case(f"a full-file write of {rel} is denied — {why}", "deny",
+         write(rel, open(p, encoding="utf-8", errors="replace").read()))
+for rel, why in UNBLOCKED.items():
+    p = os.path.join(ROOT, rel)
+    if not os.path.exists(p):
+        continue
+    case(f"{rel} is writable BECAUSE of a baseline entry — {why}", "allow",
+         write(rel, open(p, encoding="utf-8", errors="replace").read()))
+for rel in ALLOWED:
+    p = os.path.join(ROOT, rel)
+    if not os.path.exists(p):
+        continue
+    case(f"...and {rel} needed no entry at all", "allow",
+         write(rel, open(p, encoding="utf-8", errors="replace").read()))
 
 print(f"\nhook-wiring: {pass_} ok, {fail} failed")
 sys.exit(1 if fail else 0)
