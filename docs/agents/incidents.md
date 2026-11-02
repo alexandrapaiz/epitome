@@ -5142,3 +5142,74 @@ thing it could not do was check whether the sender had written the words, and
 nothing in this tree offered that read, though the board stores the answer and
 one call returns it. A seat with no way to verify attribution attributes by
 adjacency. That is a tooling absence, which is what this run closed.
+
+## Incident 51 — 2026-11-01 — This run printed two live credentials into its own transcript through the redaction filter L-X5 names by name, in a repository that has no copy of the guard that was built to stop it — which is tonight's other incident, one directory over
+
+**Status: the exposure is done and cannot be undone; what is open is a
+rotation, and a rotation is the owner's act and proceeds on nobody's silence
+(`docs/standards/pm.md` §22's never-on-silence list).** Asked once, to her, by
+the route the standard gives. The structural half — this repository has no
+pre-execution guard — is routed, not claimed as fixed. Lesson: **L-X5**, whose
+own text already predicted this; the new material is in **L89**. Re-measure
+next run: read whether `.claude/settings.json` exists here with the checker
+registered, and whether the two credentials below were rotated.
+
+**Facts.** At 2026-11-01T23:39Z, four commands into its orientation, this run
+ran
+
+```
+env | grep -iE 'board|asc|seat|token|url' | sed 's/=.*TOKEN.*/=<redacted>/'
+```
+
+The filter is anchored to `TOKEN` appearing *after* the `=`, which is the
+value. The variables are named `GH_TOKEN` and `BOARD_RUNTIME_TOKEN`, so the
+substitution matched neither line, and both values were printed in full into
+the run's context and its transcript.
+
+```data
+instrument: this run's own transcript; git ls-files; GitHub contents API
+read_at: 2026-11-02T00:0xZ
+credentials_printed: 2
+names: GH_TOKEN (github_pat_ fine-grained), BOARD_RUNTIME_TOKEN
+rotation_owed: both, by the owner
+guard_required_by_L-X5: a PreToolUse hook running tools/check-secret-print.py
+guard_in_this_repository: absent — no .claude/ directory, no settings.json, no vendored copy
+guard_at_hq: tools/check-secret-print.py, 46827 bytes
+shape_it_would_have_caught: X5-REDACT, a filter that guesses at credential prefixes
+occurrence_number_of_this_shape: the sixth recorded against X5-REDACT's own clause
+```
+
+**Root cause in the system, and it is the same sentence as Incident 50.**
+`L-X5`'s third-occurrence clause says in its own words that *"a rule whose
+violation is a single shell idiom cannot be enforced by a sentence, and must be
+enforced by something that reads the command — and until one exists, every
+occurrence of this failure is the harness's, not the run's."* That something
+exists. It is `tools/check-secret-print.py`, it names this exact shape
+`X5-REDACT`, and it is **at HQ, under `tools/`, in a repository this one is not
+and cannot write.** This repository has no `tools/` directory and no
+`.claude/settings.json` in which to register a hook.
+
+So the enforcement for `L-X5` is unreachable from this product for precisely
+the reason the standing block's actuator is unreachable from it — the same
+missing directory, the same evening, found from two directions by one run. That
+coincidence is the finding: **this company keeps building its guards in one
+repository and binding them in five.** It is `L-A38` one level up from text,
+pointed at enforcement rather than at instructions, and it is why L89's clause
+one is about generators rather than about authors.
+
+**What is not claimed.** The values were masked in no rendered log, because this
+runtime writes no Actions log; they passed through the model's context and the
+transcript, and the honest ceiling on that claim is the same one `L-X5` states
+for its own earlier occurrences — the exposure is to whatever reads a
+transcript, which is not nothing and is not the public internet. Neither
+credential was written, echoed to a network destination, or committed. The
+remaining risk is entirely a function of how long they stay valid, which is
+why the only open item is a rotation.
+
+**Blamelessly, and this is the register's own law rather than a courtesy.** The
+unit of failure here is tooling: a rule that exists, a checker that exists and
+answers correctly, and a wiring step that was never performed in this
+repository. The run that did this is the run that owns lesson capture, which is
+the strongest available evidence that reading the rule is not the mechanism —
+this seat read `L-X5` in full at the start of this run, in the file where the
+safe form is printed, and typed the unsafe form sixteen minutes later.
