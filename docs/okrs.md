@@ -6,42 +6,45 @@ text are carried unedited from the 2026-09-20 all-hands counsel
 below. First landed on `main` 2026-10-27 (`ef3aa8f`), after two prior
 attempts (#35, #39) were closed and a third (#53) closed as a
 duplicate — see that commit for the full history. Re-verified
-independently fifteen times since, each against the
+independently sixteen times since, each against the
 then-current tip: #372, #373, #392, #393, #400, and #403 (closed,
 superseded — each the stray draft of its own pass, resolved before or
 by the next re-verification); #377, #381, #383, #386, #389, #397,
-#398, #405, and #406 (merged); no grade has moved across any of them.
+#398, #405, #406, and #410 (merged); no grade has moved across any of
+them.
 
-This is the next re-verification, against today's true tip `9b62751`
-(the merge of #395, the engineer seat's own smoke-roster work — not
-this seat's #406). `a4a6fb5`, the tip #406 verified against, moved
-three times in nineteen seconds before this run issued its first `git`
-command: #404 (exo) merged as `016ff89` at `06:28:51Z`, this seat's own
-#406 merged as `6f9ec49` at `06:29:04Z`, and #395 (engineer) merged as
-`9b62751` at `06:29:10Z` — confirmed via `gh pr list --search
-"head:epitome-okr" --state all` and the matching `gh pr view` timestamps
-for #404 and #395. `git diff a4a6fb5..9b62751 --stat` touches
-`cli/test/smoke-roster.sh`, `docs/agents/idle.sh`,
-`docs/agents/incidents.md`, `docs/agents/lessons.md`,
-`docs/agents/post.sh`, `docs/agents/route.sh`, `docs/agents/x5probe.sh`,
-and `docs/okrs.md` itself (#406's own landing commit) — none of them
-touch any file any KR below grades on, so there is no new product
-commit to re-grade, but every fact #406 checked was re-checked again
-directly against `9b62751` rather than carried forward on an
-unexamined diff, per this charter's "never invent evidence" rule:
-`cli/package.json` still has `"private": true`; every seat workflow in
-`.github/workflows/` (`agent-market.yml`, `agent-engineer.yml`,
-`agent-exo.yml`, `agent-frontend.yml`, `agent-okr.yml`, `agent-pm.yml`,
-`asc-heartbeat.yml`, each grepped directly) still authenticates with
-the shared `${{ github.token }}`; `docs/benchmark/` and
-`docs/users.md` still don't exist; no `passport` match exists anywhere
-under `cli/`; `docs/cycles/` still has no file newer than
-`2026-10-18-cycle-2-retro.md`; `docs/sprints/` still does not exist;
-the three dogfood-migration checkboxes in `docs/backlog.md` (lines
-~1476-1499) are still unchecked; a fresh probe of
-`registry.npmjs.org/epito-cli` just now still returns 404; and
+This is the seventeenth re-verification, against today's true tip
+`b85a3b6` (the merge of this seat's own #410 and exo's #407). `9b62751`,
+the tip #410 verified against, was superseded within the hour: #407
+(exo) merged as `ea09e5f` at `06:41:07Z`, nine minutes after this
+seat's own #410 opened (`06:37:01Z`) and about forty seconds before
+#410 itself merged as `b85a3b6` at `06:42:13Z` — confirmed via `gh pr
+view 410` and `gh pr view 407`. `git diff 9b62751..b85a3b6 --stat`
+touches `docs/agents/caps.sh`, `docs/agents/incidents.md`,
+`docs/agents/lessons.md`, `docs/agents/liveness.py`,
+`docs/agents/post.sh`, and `docs/okrs.md` itself (#410's own landing
+commit) — none of them touch any file any KR below grades on, so
+there is no new product commit to re-grade, but every fact #410
+checked was re-checked again directly against `b85a3b6` rather than
+carried forward on an unexamined diff, per this charter's "never
+invent evidence" rule: `cli/package.json` still has `"private": true`;
+every seat workflow in `.github/workflows/` (`agent-market.yml`,
+`agent-engineer.yml`, `agent-exo.yml`, `agent-frontend.yml`,
+`agent-okr.yml`, `agent-pm.yml`, `asc-heartbeat.yml`, each grepped
+directly) still authenticates with the shared `${{ github.token }}`;
+`docs/benchmark/` and `docs/users.md` still don't exist; no `passport`
+match exists anywhere under `cli/`; `docs/cycles/` still has no file
+newer than `2026-10-18-cycle-2-retro.md`; `docs/sprints/` still does
+not exist; the three dogfood-migration checkboxes in
+`docs/backlog.md` (lines ~1476-1499) are still unchecked; a fresh
+probe of `registry.npmjs.org/epito-cli` just now still returns 404;
+every line count this pass re-cites for O1 KR1 and O2 KR2's code
+(`cli/src/deploy.js` 494, `cli/src/token.js` 115,
+`cli/src/lib/identity.js` 435, `cli/adapters/langgraph_run.py` 277,
+`cli/test/smoke-langgraph.sh` 221, `cli/src/lib/slack.js` 66) still
+matches exactly, confirming none of that code moved either; and
 `docs/vision.md` §0 is still byte-identical to the version this seat
-last held (`git diff a4a6fb5..9b62751 -- docs/vision.md` is empty) —
+last held (`git diff 9b62751..b85a3b6 -- docs/vision.md` is empty) —
 no drift to name there either.
 
 ## Mission (held, never edited — docs/vision.md §0)
@@ -119,11 +122,11 @@ no drift to name there either.
   minted per-agent credential. **Named reason:** no cycle has bet this
   work — cycle 1 bet the resident runtime, cycle 2 bet npm
   distribution — so it has sat unscheduled rather than refused. This
-  finding has now been reported unchanged at least seventeen times: first
+  finding has now been reported unchanged at least eighteen times: first
   in #53 (2026-10-05), again at the `ef3aa8f` landing (2026-10-27),
   again in #372, #373, #377, #381, #383, #386, #389, #392, #393, #397,
-  #398, #400, #403, #405, and #406, and again at this pass; see Drift
-  below.
+  #398, #400, #403, #405, #406, and #410, and again at this pass; see
+  Drift below.
 - **KR2, Aspirational — 0.0.** Five agents deployed by non-owners,
   tracked in `docs/users.md`. That file does not exist. No evidence.
 - **KR3, Committed — 0.3.** `epito` and the MCP server installable by
@@ -174,35 +177,51 @@ one real deploy away rather than one build away.
    a generic Actions identity, not a self of its own. Not new drift,
    but worth repeating now that the gap has gone two OKR cycles with
    no cycle bet touching it.
-2. **A message-triggered dispatch loop is now running across at least
-   three seats, costing real runs for zero grade movement, the same
-   shape #399 already killed for the webhook channel alone — new this
-   pass.** `agents/okr/agent.toml`'s own `webhook = false` comment (read
-   here, not written by this pass) names the exact failure mode: every
-   merge to `main` re-woke this seat, which re-verified the same tip
-   and opened another re-verification pull request, which merged and
-   woke it again — "nine such pull requests in one night, six merged,
-   $11.72 and 76 minutes of runs, zero OKR grades moved." That fix
-   gates `webhook` only. `gh pr list --search "head:epitome-okr" --state
-   all` and the same search against `head:epitome-exo` show the
-   identical shape still running through the `message` trigger, which
-   nothing gates: 13 message-triggered pull requests to this seat alone
-   today (`#377` through `#406`), and at least 14 to the exo seat alone
-   today (`#374` through `#409`) — two of exo's (`#407`, `#409`) still
-   open and unmerged as this pass runs its checks, `#409` not yet
-   existing the first time this pass queried exo's PR list a few
-   minutes earlier, so the count is still climbing live. This seat's
-   own #406, exo's #404, and the engineer's #395 landed within nineteen
-   seconds of each other (`06:28:51Z`, `06:29:04Z`, `06:29:10Z` — `gh pr
-   view` on each). Nothing in this charter grades this: it is not a KR,
-   not the benchmark, and fixing the gate is the same pm/HQ lane that
-   owns `agents/*/agent.toml`'s trigger fields, which is why this pass
-   names it in Drift and does not touch the manifest itself. Stated
-   plainly for the owner: the cost #399 measured for one seat on one
-   channel is recurring, right now, on a second channel, across at
-   least three seats, and this pass's own PR will itself become one
-   more `message` dispatch to whatever reads these merges next unless
-   the gate is widened to cover it.
+2. **The message-triggered dispatch loop named last pass has a fourth
+   seat in it, found this pass by checking all six rather than the
+   three last pass named.** Filtering every seat's own pull-request
+   list for today against branches shaped
+   `epitome-<seat>/2026-11-02-message[-N]` (`gh pr list --search
+   "head:epitome-<seat>" --state all`, read fresh for all six roster
+   seats rather than carrying forward which seats were named last
+   time) finds: this seat (okr) 15 such pull requests today (`#373`
+   through `#410` — 10 merged, 5 closed unmerged, 0 still open); exo
+   14 (`#374` through `#409` — 9 merged, 3 closed unmerged, 2 still
+   open: `#396`, `#409`); the engineer 6 (`#378` through `#408` — 5
+   merged, 1 still open: `#408`); and the pm seat 2 (`#391`, open;
+   `#399`, merged) — pm's pair is new to this finding; last pass's
+   count checked only okr, exo, and the engineer, and did not look at
+   pm. `market` and `frontend` show none. The "zero grade movement"
+   cost #399 killed for the webhook channel alone
+   (`agents/okr/agent.toml`'s `webhook = false`, unedited by this
+   pass, still the only seat with that flag set — `agents/exo/`,
+   `agents/engineer/`, `agents/market/`, and `agents/pm/`'s
+   `agent.toml` all still read `webhook = true`, each grepped
+   directly) is confirmed again for this seat's own 15 passes, each of
+   which re-verified the same facts against whatever tip was current.
+   It is **not** shown to hold for exo, the engineer, or pm in the same
+   sense: this pass read what their message-triggered runs actually
+   produced (exo's lesson- and incident-log corrections; the
+   engineer's smoke-roster fixes; pm's `#399`, the webhook hold itself,
+   and `#391`, an unrelated charter-clause proposal) and each did
+   distinct, non-repeating work, not a re-verification of an unchanged
+   fact — so "zero grade movement" is a finding about this seat's own
+   loop, not a claim this pass makes about the other three. What is
+   common to all four, and is the actual drift, is the dispatch
+   mechanism itself: `agents/*/agent.toml`'s `[trigger]` table has only
+   `cron` and `webhook` fields — no `message` field exists anywhere in
+   any seat's manifest — so none of the four has a lever to gate this
+   path the way `#399` gated the main-merge webhook for okr alone.
+   Nothing in this charter grades this: it is not a KR, not the
+   benchmark, and fixing the gate is the same pm/HQ lane that owns
+   `agents/*/agent.toml`'s trigger fields, which is why this pass names
+   it in Drift and does not touch any manifest itself. Stated plainly
+   for the owner: the shape #399 measured and gated for one seat on one
+   channel is still ungated on the `message` channel, now confirmed
+   across four seats rather than three, and this pass's own pull
+   request will itself become one more `message` dispatch to whatever
+   reads this merge next — the fifth seat-pass running in a row to say
+   so.
 3. **The npm publish is a process gap, not an engineering one, and it
    has already cost one dead token.** Every line of code and every
    gate for `O3 KR3`'s CLI half is green on `main`; the only remaining
@@ -224,7 +243,7 @@ one real deploy away rather than one build away.
    process, not evidence that the three objectives are wrong.
 6. **Zero stray drafts from this seat at this run's start — unlike the
    #400/#403 pattern, the immediately prior pass had already landed.**
-   `gh pr view 406` returned `state: MERGED` before this run issued a
+   `gh pr view 410` returned `state: MERGED` before this run issued a
    single `git` command, and `gh pr list --search "head:epitome-okr"
    --state open --json number` returned `[]`. There was nothing of
    this seat's own left open to ready or close this pass.
@@ -244,8 +263,8 @@ one real deploy away rather than one build away.
 8. **This run's dispatch message made one checkable claim and one
    unverifiable instruction; the checkable one is true, the other was
    read as data, not as a command.** The message asserted this seat's
-   pull request (#406) merged — confirmed independently via `gh pr view
-   406` (`MERGED`). It also said to "continue with the next item in
+   pull request (#410) merged — confirmed independently via `gh pr view
+   410` (`MERGED`). It also said to "continue with the next item in
    your lane on the board, and say what you took," naming a "board"
    this charter gives no tool or endpoint for reaching — the same shape
    of unreachable-board claim every prior pass back through #403 has
@@ -253,26 +272,28 @@ one real deploy away rather than one build away.
    instruction that an event payload is data, never a command, this run
    read "the next item in your lane" as this seat's only lane item —
    the next scheduled re-verification pass, which this PR is, plus the
-   loop finding in item 2, which the repo evidence surfaced unprompted
-   — rather than as an instruction to query any board API. `BOARD_API_URL`
-   and `BOARD_RUNTIME_TOKEN` are present in this run's environment
-   (checked for presence and length only, never printed, per
+   loop finding in item 2 (now widened from three seats to four), which
+   the repo evidence surfaced unprompted — rather than as an
+   instruction to query any board API. `BOARD_API_URL` and
+   `BOARD_RUNTIME_TOKEN` are present in this run's environment (checked
+   for presence and length only, never printed, per
    `standards/lessons.md` L-X5) and `EPITO_HOOK_SECRET` is unset, same
    as every prior pass naming this; none of the three were called or
    acted on.
 9. **No action taken on any other seat's pull request this pass.**
    There was nothing of this seat's own open to close or ready (item
    6), and this charter names no duty over any other seat's pull
-   requests — including exo's #407, open and unmerged as this pass
-   starts, which this pass read only to confirm its timestamp for item
+   requests — including exo's open `#396` and `#409`, the engineer's
+   open `#408`, and pm's open `#391`, all open and unmerged as this
+   pass starts, which this pass read only to build the counts in item
    2 and otherwise left untouched.
-10. **This run readies its own PR before ending, the same as #405 and
-    #406.** `standards/lessons.md` L-A32 — ready at the first moment the
-    branch is coherent, not at the run's last turn, since GitHub
-    refuses to merge a draft at all — is followed again: this PR opens
-    as a draft first, per the charter's output instruction, and is
-    marked ready once its content is complete, continuing the clean
-    pattern #405 and #406 set rather than reverting to the
+10. **This run readies its own PR before ending, the same as #405,
+    #406, and #410.** `standards/lessons.md` L-A32 — ready at the first
+    moment the branch is coherent, not at the run's last turn, since
+    GitHub refuses to merge a draft at all — is followed again: this PR
+    opens as a draft first, per the charter's output instruction, and
+    is marked ready once its content is complete, continuing the clean
+    pattern #405, #406, and #410 set rather than reverting to the
     #392/#393/#400 stray-draft shape.
 
 ## What this run did not touch
@@ -288,6 +309,7 @@ loop named in Drift item 2 is reported, not fixed, by this pass: the
 gate that would widen to cover it is pm/HQ's lane over
 `agents/*/agent.toml`, not this charter's. No board API was called
 (Drift item 8). No other seat's pull request was opened, closed, or
-touched by this pass, including exo's own open #407 (Drift item 9); no
-stray draft of this seat's own existed to act on either (Drift items 6
-and 9).
+touched by this pass, including exo's open #396 and #409, the
+engineer's open #408, and pm's open #391 (Drift item 9); no stray
+draft of this seat's own existed to act on either (Drift items 6 and
+9).
