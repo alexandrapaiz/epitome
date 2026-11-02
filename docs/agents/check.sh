@@ -22,10 +22,20 @@
 #    2026-11-02 by the run whose own branch collided with a pull request that
 #    had merged six hours earlier and taken its name out of existence.
 #
+# 5. The two gates that read docs/agents/ -- cli/test/shapes.sh whole, and
+#    cli/test/selftests.sh over the tools THIS branch changed. Added
+#    2026-11-02 after three of this seat's own tools landed on main red
+#    through those two gates in one morning, each found by another seat,
+#    because nothing in this seat's path ran either one (L-A22).
+#
 # Needs a full clone (git clone --depth 1 makes check 2 silently empty) and gh.
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 fail=0
+# A herestring, never `producer | grep -q`: quiet grep exits on the match, the
+# producer dies writing into the closed pipe, and `pipefail` reports the match
+# as a failure (cli/test/shapes.sh, 442 of 500 wrong at 64 KiB).
+said() { local h=$1; shift; grep -q "$@" <<<"$h"; }
 
 # A requirement in a comment is not a requirement. Every run of this seat gets
 # a shallow clone from the runtime, and in one of those this script answers
@@ -372,6 +382,87 @@ for p in sorted((p for p in prs if p["headRefName"] == b), key=lambda p: p["crea
       echo "  run's copy of this check refuse the name."
       fail=1
     fi
+  fi
+fi
+
+echo
+echo "== the two gates over the tools this branch changed, run here and elsewhere =="
+# WHY THIS IS IN THE PRE-FLIGHT AND NOT IN A CHARTER SENTENCE (L-A22, L-A9).
+# Both gates existed, both were correct, and three of this seat's own tools
+# landed on `main` red through them inside one morning:
+#
+#   00:22:50Z  cli/test/selftests.sh lands -- every self-testing tool in
+#              docs/agents/, run twice, here and in a repository that is not
+#              this one
+#   00:46:12Z  executing.sh lands, 24 minutes later, failing it: its negative
+#              fixture dirtied a path out of THIS layout
+#   05:34:54Z  route.sh lands with two quiet-pipe sites, failing
+#              cli/test/shapes.sh, which had been reading docs/agents/ since
+#              2026-10-26
+#   06:13:48Z  caps.sh lands failing selftests.sh: it read its own sibling
+#              through the cwd's git toplevel
+#
+# Every one was found and reported by another seat -- the engineer, then this
+# company's project manager re-finding it hours later and handing it back --
+# and nothing in this seat's own path had looked. `grep -l pull_request
+# .github/workflows/*.yml` is empty: this repository runs nothing on a pull
+# request, so the only reader of either gate is `cli/test/all.sh`, the full
+# suite, which this seat does not run and should not have to.
+#
+# SCOPE IS THE CHANGED FILES, deliberately. selftests.sh over all eighteen
+# tools runs each of them twice under a 180s timeout, which is tens of minutes;
+# over the one or two files a branch touched it is seconds, and it is the only
+# scope at which an answer is about this branch at all. shapes.sh is whole-tree
+# and runs in milliseconds, so it is taken entire.
+if [ ! -d cli/test ]; then
+  echo "  could not look: no cli/test in this checkout (L41)"
+elif ! base=$(git merge-base HEAD origin/main 2>/dev/null); then
+  echo "  could not look: no merge base with origin/main, so the changed set is unknown (L41)"
+else
+  if out=$(cd cli && bash test/shapes.sh 2>&1); then
+    echo "  ok      shapes.sh: $(sed -n 's/^shapes: //p' <<<"$out")"
+  else
+    echo "  REFUSES shapes.sh:"
+    grep -E '^[[:space:]]*FAIL' <<<"$out" | sed 's/^/    /'
+    fail=1
+  fi
+  changed=$(git diff --name-only "$base" HEAD -- docs/agents/ | grep -E '[.]sh$' || true)
+  if [ -z "$changed" ]; then
+    echo "  none    this branch changes no docs/agents/*.sh, so selftests.sh has nothing to ask"
+  else
+    # WHETHER A TOOL HAS A SELF-TEST IS NOT ASKED HERE. The first draft of
+    # these lines decided it with selftests.sh's own idiom, a fixed-string
+    # grep for the flag against the file -- and that spelled the flag out in
+    # THIS file, so selftests.sh discovered check.sh as a self-testing tool,
+    # ran the whole of it with the flag ignored, timed out at 180s and
+    # reported `0 ok, 0 failed, 1 unrun` forever, in a gate this seat does not
+    # own. Two faults in one line. A duplicated discovery rule is a second
+    # definition of the population (L-A143); and that gate reads comments, so
+    # writing the specimen down is joining the population it defines -- L-A23
+    # for a prohibition, here for a census, and the flag is therefore not
+    # spelled anywhere in this file, including in this sentence.
+    # So the gate is asked instead: it exits 2 and says so when no tool of
+    # that name advertises the flag, which is the one authority on it.
+    for f in $changed; do
+      b=$(basename "$f")
+      [ -f "$f" ] || { printf '  gone    %-16s deleted by this branch\n' "$b"; continue; }
+      out=$(cd cli && timeout 900 bash test/selftests.sh --only "$b" 2>&1); v=$?
+      tally=$(sed -n 's/^selftests: //p' <<<"$out")
+      case "$v" in
+        0) if said "$out" 'unrun'; then
+             # An unrun asserted nothing, which is could-not-look and not a
+             # pass (L41). Printed as its own row rather than counted as ok.
+             printf '  unrun   %-16s %s — its self-test did not finish, so nothing was asserted\n' "$b" "$tally"
+           else
+             printf '  ok      %-16s %s\n' "$b" "$tally"
+           fi ;;
+        2) printf '  none    %-16s the gate asserts nothing about it: %s\n' "$b" \
+                  "$(grep -m1 'advertises' <<<"$out" | sed 's/^[[:space:]]*//')" ;;
+        *) printf '  REFUSES %-16s %s\n' "$b" "$tally"
+           grep -E '^[[:space:]]*FAIL' <<<"$out" | sed 's/^/    /'
+           fail=1 ;;
+      esac
+    done
   fi
 fi
 
