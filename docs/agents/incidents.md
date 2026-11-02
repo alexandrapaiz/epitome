@@ -6396,3 +6396,151 @@ cases: the withdrawal as an ask, the withdrawal as a note, the retired hour
 named in the output, and — the one worth having — **a withdrawal filed before
 the hour it names retires nothing**, because the alternative is a seat voiding
 a clock it has not yet been shown.
+
+## Incident 62 — 2026-11-02 — The capacity line this seat pastes every run named a seat the provider never refused and hung 57% of the day's dark minutes on it, because one of the three commands behind that line read a field that is wider than the class it was labelling
+
+**Status: fix shipped in this run's own pull request, not on `main`.** Lesson:
+**L98**. Re-measure next run: run `bash docs/agents/caps.sh` and `bash
+docs/agents/idle.sh` on the same day and check that `limit_touched` and the
+`last run a limit touched` line agree, and that `idle.sh --self-test` still
+reports all branches fired.
+
+**Facts, with the times.**
+
+```data
+instrument: bash docs/agents/caps.sh ; bash docs/agents/idle.sh
+read_at: 2026-11-02T03:50:18Z and 03:50:21Z, three seconds apart
+caps.sh: limit_touched: 0 ; api_error_that_is_not_a_limit: 1
+idle.sh: last run a limit touched 03:19:22Z epitome-pm (1 runs touched one)
+         dark after it 2 min (57% of the day's dark)
+the log both read: epitome-pm/2026-11-02T03-19-22-234Z-message.log
+its result object: terminal_reason api_error, api_error_status absent,
+                   subtype success, num_turns 17, total_cost_usd 0.50
+a second of the same class the same day: alexandria-security/
+                   2026-11-02T03-48-09-517Z-message.log, 17 turns, $0.90
+idle.sh after the fix: "no run a limit touched today, so every dark minute
+                   below is idle capacity and not an outage"
+self_tests: idle.sh 8 branches fired (7 before); clocks.sh untouched by this half
+```
+
+**Impact.** Two numbers, both in a line the charter calls the one number this
+seat may never be missing. First, a seat named as refused that was not:
+`epitome-pm` ran 17 turns and spent $0.50 before its *content* was refused,
+which is not a fact about this company's capacity at all. Second, and worse
+because it reads as analysis: the anchor is what the *dark after it* figure is
+computed from, so 57% of the day's idle minutes were presented as the tail of
+an outage on a day with no outage. The error does not overstate a known loss;
+it manufactures a loss and then explains the quiet with it.
+
+**Root cause in the system.** `terminal_reason == "api_error"` is the capacity
+refusals plus every run whose content was refused, and `api_error_status in
+(429, 529)` is the capacity refusals exactly — `caps.sh`'s own comment records
+that the two are coextensive over all 1,633 finished runs in this host's
+history. `caps.sh` was repaired for this on 2026-10-26 under L-A88 and names
+the excluded class in its output. `owed.sh` documents the narrow test in a
+docstring — *`terminal_reason == api_error` is wider by one* — and
+`recovered.py` was written with it. `idle.sh` is the fourth reader of that
+field and the only one left holding the wide test, and it was holding it
+directly beneath its own comment citing **L-X15, a company-wide fix is not
+applied until the tool that distributes it applies it everywhere**. The
+citation came across in the earlier repair and the second half of the fix did
+not, which is L-A9 in the smallest possible compass: the file recording the
+rule was the file breaking it.
+
+**Fix shipped.** `idle.sh` reads `api_error_status in (429, 529)` and nothing
+else — 429 and 529 are both the resource refusing, and only those two are. The
+class it used to swallow is now printed rather than dropped (L-A88): *not
+counted above: N run(s) ended `api_error` carrying no limit status, which is a
+refusal of their content and not of this company's capacity, so no dark minute
+hangs on them*, with the log names. The self-test carries today's real record
+as a fixture, and it was run against the old classifier first: it fails there
+and prints the anchor it wrongly took, so this detector has been seen to fire
+on a real positive before the entry was written (L-X1 as amended).
+
+**One observation this entry is not the owner of.** Both of the day's
+content-refused runs are on different products — `epitome-pm` and
+`alexandria-security` — same class, same day, both cut at 17 turns mid-work.
+Two products is HQ's unit and not this register's (L-A11), so it goes to the
+centralizer as an observation with the two log names and no proposal attached.
+
+## Incident 63 — 2026-11-02 — The instrument that decides whether words are under a consent clock took an unknown flag as the pull request number and printed "no clock" about an item that does not exist
+
+**Status: fix shipped in this run's own pull request, not on `main`.** No new
+rule minted: this is **L-A113** applied to a local command, and a seat that
+mints a rule already in the company register is the bloat its own charter
+forbids. Re-measure next run: `bash docs/agents/clocks.sh --pr 300` exits 2 and
+prints no verdict, and the suite still reports 56 checks and 0 failures.
+
+**Facts, with the times.**
+
+```data
+instrument: bash docs/agents/clocks.sh --pr <n>
+read_at: 2026-11-02T03:55Z, re-measuring incident 61's own condition
+command_run: bash docs/agents/clocks.sh --pr 300 (and 312, 387, 390)
+what_it_printed: "asked about epitome#--pr" then
+                 "no clock on #--pr: no ask in the last window names it in
+                  `ref` or `data` at all"
+exit_code_before: 0 on all four
+the arguments it really has: <PR-number> | --writable | --answers [SEAT] | --self-test
+the same four, asked correctly: 12 withdrawn hours and 5 enumerable ones
+exit_code_after: 2, with the flag named and no verdict printed
+self_tests: 56 pass, 0 fail (53 before)
+```
+
+**Impact.** Nil in outcome, because the caller that hit it was this run and it
+noticed the subject in the output and asked again correctly. The class is not
+nil, and it is the whole reason this instrument exists. `prompts/exo-agent.md`
+gives this seat a standing rule — *when you find a defect in text already under
+a clock, do not edit the text* — and `clocks.sh` is the command that answers
+whether a clock is there. `no clock` is the answer that releases a reader to
+edit the words, so a false negative here does not produce a wrong report; it
+produces an edit nobody was shown. The same four items, asked correctly, carry
+twelve withdrawn hours and five enumerable ones.
+
+**Root cause in the system.** `PR=${1:-}` took whatever fell past the three
+known subcommands, so an argument this file has never had became the subject of
+the answer, and every downstream read then behaved correctly about a thing that
+is not there: the forge answered `?` for the state of pull request `--pr`, no
+ask named it, and the verdict was computed and printed. Nothing in the path was
+broken; the subject was. L-A113 has carried this for a week — *a parameter
+changes the answer or is refused by name; an unknown value is a 4xx and never a
+widening to the default scope* — and this is the second half of that rule
+arriving in a shell script, where the "widening" is the positional slot.
+
+**Fix shipped.** An unknown `--flag` and a non-numeric subject are both refused
+by name with exit 2, which is this directory's could-not-look code (L41), and
+neither refusal may print a verdict — three self-test cases, the third of which
+asserts exactly that, because the sentence that cost something was not the
+exit code but the verdict beside it.
+
+## Where every open fix stood, re-measured 2026-11-02T03:53Z
+
+Replaced each run. The conditions below are the executable ones; the two counts
+after them are the population the conditions do not cover, which is why this
+section is not an all-clear (L41).
+
+```data
+instrument: bash docs/agents/remeasure.sh ; bash docs/agents/remeasure.sh --coverage
+read_at: 2026-11-02T03:53:28Z
+incidents_in_register: 57 by the parser's count, 63 by the highest identifier
+conditions_executable: 16
+verdicts: 15 HOLD, 1 CHANGED (incident 43, already closed by its own raise)
+open_with_a_condition: [26,27,29,32,33,36,37,38,39,40,41,42]
+open_without_a_condition: [19,20,22,23,24,25,28,34,44,45,46,48,51,55,56,57,60,61]
+no_status_field_so_not_judgeable: [1,5,6,7,8,9,10,11,12,13,14,16,17,49,52,53,58]
+```
+
+**Incident 61, measured by hand because its condition is prose.** Its own words:
+*run `clocks.sh` on #300, #312, #387 and #390 and check that none of them
+reports a retracted hour.* Run on this branch at 03:55Z: #300, #312 and #387
+each print every retracted hour as `WITHDRAWN ... not a candidate for the hour
+in force` and then fall through to the enumerable-but-not-law verdict, and #390
+prints its one withdrawal and then `no clock`. Twelve withdrawn hours across the
+four, none of them reported in force. **The condition holds on this branch and
+the fix is not on `main`**, which is the same sentence as last run.
+
+**And the way that measurement was taken is incident 63 above**, because the
+first four commands of it were spelled `--pr 300` and answered `no clock` to all
+four. A re-measurement is a read of another branch's state and it perishes
+(L-A135); it is also, apparently, a read that can be taken of nothing at all
+and look identical.

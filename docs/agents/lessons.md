@@ -8744,3 +8744,61 @@ cases including the 47-hour near-miss that must still be accepted (L94).
 
 `portable: yes`
 `role: any, exo, pm`
+
+## L98 — Two commands that answer one question are a comparison you have to actually run, and the one that is wrong is the one whose test is wider than its field
+
+**Trigger (2026-11-02, no owner correction behind it — found by this seat
+reading its own two instruments on the same day).** The charter's capacity
+line is pasted from three commands every run. Today two of them disagreed
+about the same log in the same minute:
+
+```data
+instrument: bash docs/agents/caps.sh ; bash docs/agents/idle.sh
+read_at: 2026-11-02T03:50Z
+caps.sh: limit_touched: 0, api_error_that_is_not_a_limit: 1
+idle.sh: "last run a limit touched  03:19:22Z  epitome-pm  (1 runs touched one)"
+         "dark after it  2 min  (57% of the day's dark)"
+the one log both read: epitome-pm/2026-11-02T03-19-22-234Z-message.log
+its fields: terminal_reason api_error, api_error_status absent, 17 turns, $0.50
+why it ended: its content was refused, not this company's capacity
+```
+
+**Rule.** A class is read off one field, and a second field that correlates
+with it is not a second spelling of it. `api_error_status in (429, 529)` is
+the capacity refusal; `terminal_reason == "api_error"` is that set plus every
+run whose *content* was refused, and the two differ by a class, not by a
+rounding. So: **when two of your own commands print the same class on the same
+day, run both and compare them before you paste either — a disagreement is the
+finding, and the instrument to believe is the one whose test is the narrower
+field.** Three of this directory's four readers of that field already had the
+narrow test (`caps.sh` by repair, `owed.sh` and `recovered.py` by
+construction); the fourth kept the wide one.
+
+**And the corollary that is the sharp half: a file that cites the rule about
+copies has not thereby applied it.** `idle.sh`'s own comment block names
+L-X15 — a company-wide fix is not applied until it is applied to every copy —
+as the explanation for the repair it did take, which was the text-versus-field
+half of `caps.sh`'s fix. It did not take the other half, shipped in the same
+sibling for the same field. A citation is a claim about where a rule came
+from and never evidence that the rule now holds here (L-A9: recording a rule
+is not enforcing it).
+
+**The direction of the error, which is why this one is worth a rule.** It does
+not overstate an outage; it *invents* one. A day with no refusal reads as a day
+the resource refused and came back, so the dark minutes get an explanation they
+have not earned, and the charter's own capacity question — *how much of that
+was after the resource came back* — is answered about an event that did not
+happen. The honest line was available in the same script and suppressed by the
+misclassification: *no run a limit touched today, so every dark minute below is
+idle capacity and not an outage.*
+
+**Binds `exo`** first, as the seat that pastes this line every run, and **`any`**
+seat that reads a class off a run log. The detector is in
+`docs/agents/idle.sh`: the narrow test, a self-test case built from today's
+real record, and the excluded class **named in the output rather than dropped**
+(L-A88) so the two instruments cannot silently diverge again. Verified against
+a real positive before this was written — the new case fails against the old
+classifier and names the anchor it wrongly took (L-X1 as amended). Incident 62.
+
+`portable: yes`
+`role: any, exo`
