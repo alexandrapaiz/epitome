@@ -9187,3 +9187,92 @@ proposal is filed beside the two that have not moved (L27, L31).
 
 `portable: yes`
 `role: any, exo, pm`
+
+## L107 — An empty path argument is not nowhere, it is here: a fixture's isolation is a variable, so an unchecked scratch directory turns every write in a self-test into a write in the caller's repository, and the three gates whose findings this run took were each a path resolved somewhere other than where its author was standing
+
+**No owner correction triggered this one.** It fired on the board item this
+seat took — this company's project manager, 2026-11-02T07:24:45Z: *"shapes.sh
+and selftests.sh both still fail on main the same way the engineer reported,
+on route.sh and executing.sh, the file your own branch just touched, so that
+one is yours to pick up next."* Three tools were at fault rather than two, the
+run fixed all three, and then the pre-flight it built to stop the next one
+destroyed its own branch. That is the lesson.
+
+**One rule, and it is about the empty string.** `mktemp -d` fails on a full
+disk. An unchecked failure leaves the variable empty, and a seat's fixture is
+written on the assumption that `"$work"` is somewhere else. It is not:
+`git -C ""` operates on the current directory and **exits 0 doing it**.
+Measured in isolation, on a throwaway repository — `git -C "" branch -M trunk`
+renamed the cwd's branch, return code 0, no warning. So a self-test whose
+every write is scoped by a variable is scoped by nothing the moment the
+scratch directory fails, and what it writes into is the checkout the run is
+standing in.
+
+**It happened rather than being predicted.** At 2026-11-02T07:35:24Z, with
+`/dev/sda1` at 507M free of 45G, `docs/agents/mergeable.sh --self-test` ran
+from this repository's root inside this run's own pre-flight. It renamed
+`epitome-exo/2026-11-02-message-18` to `trunk` and destroyed it, created
+`parent`, `child` and `rogue` beside it, and moved HEAD off the run's branch.
+`git status` then read every file in the repository as newly added, because
+there was no HEAD to diff against. Reproduced deliberately on a sandbox
+repository with `TMPDIR` pointed at nothing:
+
+| | |
+|---|---|
+| branches created in the caller's repository | **4** — `trunk`, `parent`, `child`, `rogue` |
+| the caller's own branch | renamed away and gone |
+| HEAD | moved from `victim-branch` to `parent` |
+| what the tool returned | **1** — it reported the failure *after* writing |
+| commits recovered | 4, all of them, from `origin` |
+
+The recovery is the second half of the rule. Four commits survived because
+they had been pushed, which is L-A30 — *a commit is not work until it is
+pushed* — collecting on itself for the first time this register can point at.
+The ref was gone from `refs/heads/`; `.git/logs/HEAD` still held the rename
+line, and `origin` still held the tip.
+
+**The same rule reaches the three defects the gates found, which is why this
+is one entry and not four.** Every one was a path resolved against the wrong
+place, and every one answered instead of refusing:
+
+| tool | the path | what it resolved to |
+|---|---|---|
+| `executing.sh` | `$tmp/clean/cli/src/lib/runner.js`, a literal from this layout | a directory that does not exist elsewhere; the redirect failed, nothing stopped, and the negative case tested a clean checkout |
+| `caps.sh` | `$(git rev-parse --show-toplevel)/docs/agents/liveness.py` | the **cwd's** repository, while the sibling sat beside the running script |
+| `mergeable.sh` | `""` | **here** |
+
+**The rule, one sentence.** Every path a check writes to or reads from is
+either one the check built in this run or one resolved from the running file's
+own directory, and if it cannot be had the check says could-not-look *before*
+the assertion that needs it — because a path assembled from a root the check
+did not build is a claim about the directory the author was standing in, and
+the empty string is the worst of those claims rather than the safest.
+
+**And the corollary this run paid for twice in one file.** A gate's census is
+defined by what the gate reads, so writing the specimen down joins the
+population. check.sh's first draft of the new check decided whether a tool had
+a self-test using the gate's own idiom, a fixed-string grep for the flag — and
+that spelled the flag inside check.sh, so the gate discovered check.sh as a
+self-testing tool, ran the whole of it with the flag ignored, timed out at
+180s and reported `0 ok, 0 failed, 1 unrun`. L-A23 forbids a prohibition
+quoting its banned specimen where the scanner reads; the same arithmetic holds
+for a count, and a duplicated discovery rule is a second definition of the
+population (L-A143). The fix was to ask the gate — it exits 2 and says so —
+and to spell the flag nowhere in that file.
+
+**What binds whom.** Every seat that writes a check: guard the scratch
+directory at the point it is created, never at the point it is used, and let
+the failure be exit 2. Every seat that writes a fixture: choose the file from
+what you built, never name it. Every seat that reads a sibling: resolve it
+from the running file's directory (L-A70). And this seat, on the standing
+count: 42 of the 56 `mktemp` assignments under `docs/agents/` are unchecked,
+and 40 writing `git -C "$var"` calls across 6 files take one as their only
+isolation. Three are repaired here; the rest are a scan's job, and the scan
+belongs in `cli/test/shapes.sh`, whose whole subject is the shapes a gate here
+may not have and which already reads `docs/agents/`. That file is the
+engineer's. So this is **not closed** (L-X1 as amended: a repair without a
+detector leaves the future exactly as exposed), it is routed, and the next run
+reads whether the shape landed and says so in first person.
+
+`portable: yes`
+`role: any, engineer, exo`
