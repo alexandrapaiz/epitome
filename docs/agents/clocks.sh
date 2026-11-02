@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Is a clock running on those words? Read the field, not the sentence (L52).
+# Is a clock running on those words? Read the field, not the sentence (L52) —
+# and read the hour FILED LAST, not the latest hour on the item, because a
+# withdrawal is the one message that moves a deadline earlier (L92).
 #
 #   bash docs/agents/clocks.sh               census: clocks claimed, clocks real
 #   bash docs/agents/clocks.sh 260            is a clock running on pull request 260
@@ -263,7 +265,26 @@ case "${1:-}" in
   "to_company":"epitome","to_seat":"pm","subject":"declared and long expired, applier half",
   "body":"the deadline in the field for the ask above",
   "ref":"https://github.com/alexandrapaiz/epitome/pull/994",
-  "expires_at":"2000-01-01T00:00:00+00:00"}
+  "expires_at":"2000-01-01T00:00:00+00:00"},
+ {"ts":"2026-10-24T19:00:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"owner","subject":"the owner half of the withdrawn item",
+  "body":"forty-eight hours of your silence on the clause in that branch",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/993","expires_at":null},
+ {"ts":"2026-10-24T19:01:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"the applier half, original hour",
+  "body":"the deadline in the field, addressed to the hand that applies it",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/993",
+  "expires_at":"2099-01-01T00:00:00+00:00"},
+ {"ts":"2026-10-24T19:02:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"amending: one more clause, the clock restarts",
+  "body":"one more clause on that branch, so the hour moves out",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/993",
+  "expires_at":"2099-06-01T00:00:00+00:00"},
+ {"ts":"2026-10-24T19:03:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"withdrawing the amendment I posted a minute ago",
+  "body":"the extra clause is off the branch again and the original hour stands",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/993",
+  "expires_at":"2099-01-01T00:00:00+00:00"}
 ]}
 JSON
   # 1 — the field alone is not a declared clock any more: #999's ask carries
@@ -306,6 +327,21 @@ JSON
   check "declared and expired -> 5"             5 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 994
   check "and it refuses to call that running"    0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
         'out=$(bash "$0" 994 2>&1); grep -q "^EXPIRED on #994" <<<"$out"' "$0"
+  # 4g — a withdrawal is the one act that moves an hour EARLIER, so the hour
+  #      in force is the one filed last and not the largest one on the item.
+  #      #993 carries 2099-01-01, then an amendment to 2099-06-01, then a
+  #      withdrawal back to 2099-01-01 filed a minute after it. This is
+  #      epitome #312's own shape on 2026-11-02, where the old rule reported
+  #      the withdrawn hour as running in all three places.
+  check "withdrawal -> the hour filed last runs"  0 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 993
+  check "and the hour it reports is the restored one" 0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 993 2>&1); grep -q "clock running on #993: expires 2099-01-01" <<<"$out"' "$0"
+  check "and it never reports the withdrawn one"     0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 993 2>&1); ! grep -q "clock running on #993: expires 2099-06-01" <<<"$out"' "$0"
+  check "and it names the shortening out loud"       0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 993 2>&1); grep -q "SHORTENED on #993" <<<"$out"' "$0"
+  check "and an ordinary item is not called shortened" 0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 996 2>&1); ! grep -q "SHORTENED" <<<"$out"' "$0"
   check "census with prose clocks -> 1"     1 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0"
   # 6 — could-not-look is its own answer and is never spelled like clean.
   check "unreadable board -> could not look" 2 env CLOCKS_FIXTURE="$tmp/nope.json" bash "$0" 271
@@ -476,18 +512,45 @@ if pr:
     named = [m for m in msgs if names(m, repo, product, pr)]
     real = [m for m in named if m.get("expires_at")]
     if real:
-        newest = sorted(real, key=lambda x: x["expires_at"])[-1]
-        exp = datetime.datetime.fromisoformat(newest["expires_at"])
+        # THE HOUR IS THE ONE FILED LAST, NEVER THE LATEST ONE FILED.
+        # This line used to read `sorted(real, key=expires_at)[-1]` and call
+        # the result `newest`, which is the whole defect in one word: it took
+        # the largest hour on the item for the current one. Those agree for
+        # every extension and disagree for exactly one act — a withdrawal,
+        # which by construction moves a deadline EARLIER. So the one message
+        # shape the field exists to carry was the one shape it could not
+        # express, and the instrument reported the retracted hour as live.
+        # Measured on this repository's own #312: five messages name a clock,
+        # the last filed (2026-11-02T00:25:52Z) withdraws an amendment and
+        # restores 2026-11-03T23:30:00Z, and this file answered
+        # 2026-11-04T00:30:00Z "declared in all three places". The applier
+        # read the same field two minutes twenty-seven seconds later and
+        # wrote the withdrawn hour into its own report as standing.
+        current = sorted(real, key=lambda x: x["ts"])[-1]
+        superseded = [m for m in real
+                      if m["ts"] < current["ts"]
+                      and m["expires_at"] > current["expires_at"]]
+        exp = datetime.datetime.fromisoformat(current["expires_at"])
         left = exp - now
         hours = left.total_seconds() / 3600
         told = [m for m in named if applier_recipient(m)]
         shown = [m for m in named if is_owner(m)]
         refused = [m for m in named if refuses_silence(m)]
-        for m in sorted(real, key=lambda x: x["expires_at"]):
+        # Filing order, so the last line printed is the one in force. Sorting
+        # this list by hour put the withdrawal in the middle of its own item.
+        for m in sorted(real, key=lambda x: x["ts"]):
+            mark = "  (in force)" if m is current else ""
             print(f"#{pr} carries the field: expires {m['expires_at'][:19]}Z, "
                   f"filed {m['ts'][:19]}Z by {m.get('from_company')}/{m.get('from_seat')} "
-                  f"-> {m.get('to_company')}/{m.get('to_seat')}")
+                  f"-> {m.get('to_company')}/{m.get('to_seat')}{mark}")
             print(f"  {m['subject'][:100]}")
+        if superseded:
+            latest = sorted(superseded, key=lambda x: x["expires_at"])[-1]
+            print(f"  SHORTENED on #{pr}: the hour filed last ({current['expires_at'][:19]}Z) "
+                  f"is EARLIER than one filed before it ({latest['expires_at'][:19]}Z, "
+                  f"{latest['ts'][:19]}Z). A later filing naming an earlier hour is a "
+                  f"withdrawal or a shortening, and it governs: read the hour in force, "
+                  f"not the longest one on the item.")
 
         missing = []
         if refused:
@@ -525,7 +588,7 @@ if pr:
 
         if hours < 0:
             print(f"EXPIRED on #{pr}: the hour passed {abs(int(hours))}h ago "
-                  f"({newest['expires_at'][:19]}Z) and this file cannot tell you whether "
+                  f"({current['expires_at'][:19]}Z) and this file cannot tell you whether "
                   f"anybody acted — ask the pull request, not the board.")
             print(f"  the applier §22 authorised: " + ", ".join(
                 f"{m.get('to_company')}/{m.get('to_seat')}" for m in told))
@@ -533,7 +596,7 @@ if pr:
 
         vehicle = {"OPEN": "open", "?": "NOT CHECKED — no forge read, so this place is"
                                         " unconfirmed rather than clear"}.get(pr_state, pr_state)
-        print(f"clock running on #{pr}: expires {newest['expires_at'][:19]}Z "
+        print(f"clock running on #{pr}: expires {current['expires_at'][:19]}Z "
               f"({int(hours)}h left), declared in all three places §22 names")
         print(f"  the pull request the `ref` releases: {vehicle}")
         print(f"  applier told: " + ", ".join(

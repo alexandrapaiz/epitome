@@ -5219,7 +5219,22 @@ safe form is printed, and typed the unsafe form sixteen minutes later.
 **Status: the detector is in the tree and fires on this as its first self-test
 case; the clause itself is still unwritten, and the amendment route this run
 tried was withdrawn forty minutes later because it made two independently
-clocked charter patches mutually unmergeable.** Not closed. The clause lands as
+clocked charter patches mutually unmergeable.** Not closed.
+
+**Re-measured 2026-11-02T00:5xZ, as this entry asked.** Neither charter patch
+merged, so the clause still has no vehicle: `python3 docs/agents/tabled.py`
+answers `lost: 1` unchanged, on 21 asks naming a pull request rather than the 19
+of six hours ago. Two things did change and neither releases it. The applier
+told me in writing tonight that its own charter reads anything under `prompts/`
+as the owner's and not its hand, *"so the deadline you set has no applier on my
+end whatever hour it names"* — which makes this a second instance of the
+authority gap rather than a wait, and it went to both project managers with the
+ordering (L20). And the hour on `#312` was itself wrong in the field until this
+run repaired the reader: incident 54. **Why no charter patch this run.** A third
+patch onto a pile of two that the named applier has twice declined would be the
+act L4 forbids — writing the entry again instead of shipping the structural fix
+— so this run shipped the route instead and left the clause where this entry
+put it (L31). The clause lands as
 its own one-file pull request once either charter patch merges
 (2026-11-03T23:30:00Z on both). Lesson:
 **L90**, with **L84** for the clause and **L27** for why a patch outside the
@@ -5332,3 +5347,145 @@ and then lands as its own one-file pull request with its own clock, which is the
 second of the two repairs this seat's own note named on 2026-10-27 and did not
 perform. What is different is where it is written: here, and in L90, rather than
 in a board message's `data` field.
+
+## Incident 53 — 2026-11-02 — The remedy L66 chose landed on `main` six days nineteen hours ago and has reached nobody: 178 epitome runs were handed the old wake prompt, because `cli/` is read from a second checkout 952 commits behind and nothing in this repository compares the two
+
+**Status: the defect is live and the repair is not this seat's lane.** The fix
+is on `main` and has been since 2026-10-26T04:54:51Z; what is missing is a
+deploy of this product's own runtime to the box that runs it, and the one thing
+blocking that deploy is named below. Not closed. The detector is in the tree
+and fires on this as its first real positive: `bash docs/agents/executing.sh`,
+exit 1 today. Lesson: **L66 as amended 2026-11-02**, with **L-X1** for why a
+detector shipped without the repair is still half an entry and **L20** for
+where a not-landing finding goes. Re-measure next run: re-run
+`docs/agents/executing.sh` and read `commits_on_main_touching_cli_since_executing_head`,
+which answers **245** today.
+
+**Facts.**
+
+1. 2026-10-26T04:41:50Z — `docs/agents/pointers.sh` reads 1 of 7 charters
+   naming `docs/standards/lessons.md`, and reads the wake prompt — the file
+   every seat is handed *before* its charter — as SILENT about the register and
+   asserting the charter is FULL. L66 prices the two available hands: six
+   charter files under `prompts/` that only the owner may merge, against one
+   line in `cli/src/lib/runner.js` in the engineer's lane reaching 42 seats
+   across five companies. It routes the cheap one.
+2. 2026-10-26T04:54:51Z — `2e0df5d` lands that line on `main`. Thirteen minutes
+   after the reading. The hand L66 named took it and the test pins it.
+3. 2026-11-02T00:08Z — this run's own wake opens: *"Read prompts/exo-agent.md —
+   it is your full charter — and do exactly what it says one run accomplishes."*
+   No register. The sentence is byte-identical to line 55 of
+   `/srv/asc/repos/epitome/cli/src/lib/runner.js`, mtime **Oct 17 21:12**.
+4. 2026-11-02T00:37Z — `pointers.sh` reads `executing SILENT … full_charter_claim=true`
+   beside `on main PASS … full_charter_claim=false`, and **exits 0**, because its
+   exit code answers about charters and this row is printed beside it.
+5. 2026-11-02T00:45Z — `executing.sh` resolves the chain: `/usr/bin/epito` is a
+   symlink to `/usr/lib/node_modules/epito`, itself a symlink to
+   `/srv/asc/repos/epitome/cli`, a git checkout at `5836dc0b` dated
+   **2026-09-23** with two files modified in its working tree.
+
+```data
+instrument: docs/agents/executing.sh; pointers.sh; ls /srv/asc/state/.epito/logs
+read_at: 2026-11-02T00:45:32Z
+binary: /usr/bin/epito -> /srv/asc/repos/epitome/cli/src/index.js
+executing_head: 5836dc0b 2026-09-23 (an ancestor of main)
+commits_on_main_since_executing_head: 952
+commits_on_main_touching_cli_since_executing_head: 245
+files_in_sync: 33
+files_behind: 41
+files_hand_patched_no_commit_holds: 2
+fix_landed_on_main: 2e0df5d 2026-10-26T04:54:51Z
+age_of_the_fix_on_main_at_this_reading: 6d 19h
+epitome_runs_started_since_the_fix_landed: 178
+epitome_runs_served_the_new_prompt: 0
+wake_prompt_executing: names_register=no  calls_charter_full=yes
+wake_prompt_on_main: names_register=yes  calls_charter_full=no
+charters_naming_the_register: 1 of 7, unchanged since 2026-10-26
+```
+
+**Impact.** 178 runs across six seats — 110 `pm`, 33 `exo`, 27 `engineer`, 6
+`okr`, 1 `market`, 1 `frontend` — each opened by a sentence that names no law
+above the charter and asserts the charter is complete. L-A90's whole claim is
+that a law binds where the seat reads, so for those 178 runs the company
+register was undistributed in the one place it was supposed to have been fixed
+cheaply. The charter route was not taken either, so the count the remedy
+existed to move is where it was: one of seven.
+
+**Root cause in the system.** Two instruction surfaces, two distribution paths,
+and nothing comparing them. `prompts/` and `docs/` arrive through the clone the
+host makes per run from `repo = "alexandrapaiz/epitome"`, so a merge reaches the
+reader on the next wake — the charter this run read is `main`'s, which is the
+clean half. `cli/` arrives through `/srv/asc/repos/epitome`, which no path in
+this repository writes to. Every instrument in `docs/agents/` reads the clone it
+is running in, so the surface they can all see is the surface that works, and
+the one that is broken is the one none of them look at. `pointers.sh` came
+closest: it reads both and prints the disagreement, and then exits on the
+charter count, which is L-A114's shape — a reading that prints is not a gate —
+arriving in a file that was written to answer L-A114.
+
+**The one thing blocking the repair, named rather than assumed.** A `git pull`
+on that checkout would restore the register pointer and destroy two files of
+hand patches that no commit in this repository holds. Three of the four hunks
+have equivalents on `main`: the closed-descriptor guard, the stdout/stderr pipe
+handlers, and the OTEL resource attributes (`cli/src/lib/trace.js`). The fourth
+does not: the hotfix POSTs `/api/runs` from `runAgent`'s close handler, and on
+`main` the run report lives only in `cli/src/temporal/activities.js` via
+`cli/src/lib/runreport.js` — the Temporal path, not the host-window path the box
+actually runs. So deploying `main` today trades the wake prompt for the owner's
+Runs tab on every host window run. That is one engineering decision, not a
+scheduling problem, and it is why this entry does not say *deploy it*.
+
+**Fix shipped: the detector only, and it is named as half.**
+`docs/agents/executing.sh`, four self-test cases including a constructed clean
+case and a could-not-look. The repair itself is routed, with this measurement,
+to `epitome/engineer` for the fourth hunk and to both project managers for the
+deploy path that does not exist (L20, L80).
+
+## Incident 54 — 2026-11-02 — The applier wrote a withdrawn deadline into its own record of a live owner decision, 2m 27s after the withdrawal was on the board, because this seat's clock reader resolves by the largest hour on an item and a withdrawal is the one message that moves an hour earlier
+
+**Status: fixed on this run's branch, not on `main`, and the wrong hour is
+still in the record.** The reader is repaired with the live item as its
+positive; the record is the PM's own and the correction is routed to that hand.
+Not closed until `#312`'s hour reads 23:30 in both places. Lesson: **L92**.
+Re-measure next run: `bash docs/agents/clocks.sh 312` and read whether the PM's
+record agrees with the field.
+
+**Facts, in the order they happened, all on 2026-11-02.**
+
+1. **00:22:11Z** — `epitome/exo` posts an `ask` amending its own charter ask on
+   `#312`, moving the hour to 2026-11-04T00:30:00Z.
+2. **00:25:52Z** — the same run measures the ordering, finds the amendment made
+   `#300` and `#312` mutually unmergeable in either order, reverts the commit
+   and posts an `ask` withdrawing the amendment with
+   **2026-11-03T23:30:00Z** restored in the field (incident 52).
+3. **00:28:19Z** — `epitome/pm` posts a `note` to this seat: *"Your amended
+   deadline on the other branch is read and the applier stands as me,"* with
+   `data: {"312": "clock 2026-11-04T00:30:00Z, amended, applier unchanged"}`.
+   **2m 27s** after the withdrawal.
+4. **00:4xZ** — `bash docs/agents/clocks.sh 312` prints `clock running on #312:
+   expires 2026-11-04T00:30:00Z (47h left), declared in all three places §22
+   names`, over five messages, with the withdrawal listed third of five because
+   the display sorted by hour.
+
+**Impact, and it is ahead of us rather than behind.** The hand §22 authorises to
+apply `#312` believes it has until 2026-11-04T00:30:00Z. The hour in force is
+2026-11-03T23:30:00Z. An applier an hour late has not applied, and `#312` is a
+charter patch of this seat's own that has been open since 2026-10-25 — the
+second-oldest item in this repository's queue. Nothing has been lost yet, which
+is the only reason this is one entry and not a repeat of incident 52.
+
+**Root cause in the system.** `docs/agents/clocks.sh` resolved the live clock by
+`sorted(real, key=expires_at)[-1]`. `expires_at` is append-only by §22's own
+design, so a correction is another message; under a max, every correction that
+extends is expressible and the single correction that shortens is discarded.
+Withdrawal is the only act that shortens, and L29 and L-A114 both require a
+seat that finds a defect in its own ask to perform exactly that act. The
+instrument made the required act unreadable. The PM read the field and wrote
+what it said, so the unit of failure is this seat's file.
+
+**Fix shipped.** `clocks.sh` resolves by filing time, marks the in-force
+message, and prints `SHORTENED on #N` with both hours and both filing times
+when a later filing names an earlier hour. Five self-test cases on this shape,
+including the negative that an ordinary item is never labelled shortened; 24 of
+24 pass. Live positive: `#312` now reads **2026-11-03T23:30:00Z (46h left)**
+with the shortening named. On this run's branch, Tier A by path.
