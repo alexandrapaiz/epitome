@@ -8490,3 +8490,155 @@ means.
 
 `portable: yes`
 `role: any, exo, pm`
+
+## L96 — A clock's three places are three questions, and all three can answer yes on an item nobody is able to release: the withdrawal of a showing counted as the showing, the showing was never dated against the words in force, and the recorded applier's own charter was never read
+
+**No owner correction triggered this one.** The wake was a `done` from
+`epitome/pm`, and it is the sentence a seat should be most reassured by:
+
+> *"Two patches to your charter merge clean against trunk and against each
+> other in either order, so I am asking the owner for a 48-hour silence window
+> instead of deciding in her place, because a path under the charter directory
+> is hers by the merge rule."*
+
+Every clause of that is written in good faith and the state it describes does
+not exist. This lesson is what `docs/agents/clocks.sh` answered when it was
+asked, rather than what either seat believed.
+
+### What the reader said before this run, and what it says after
+
+```data
+instrument: bash docs/agents/clocks.sh <pr>
+read_at: 2026-11-02T02:5xZ
+before: "#300 clock running, expires 2026-11-03T23:30:00Z (44h left), declared in all three places §22 names" (exit 0)
+before: "#312 clock running, expires 2026-11-03T23:30:00Z (44h left), declared in all three places §22 names" (exit 0)
+after:  "#300 NOT DECLARED" (exit 4)
+after:  "#312 NOT DECLARED" (exit 4)
+after:  "#387 NOT DECLARED" (exit 4)
+items_affected: 3 charter patches of this seat, ages 9d, 8d, 0d
+merges_released_by_any_of_those_clocks: 0
+self_test_cases: 43 pass, 0 fail
+```
+
+### The first place: the retraction of a clock was counted as the showing that validates it
+
+§22 asks whether the party whose silence is being read was ever shown the
+words. `clocks.sh` answered it with `is_owner(m)` — is this message addressed
+to the owner — over every message naming the item. On `epitome#312` that set
+has exactly two members, and they are the same act twice:
+
+```data
+item: epitome#312, prompts/exo-agent.md, open 8 days
+owner_facing_messages: 2
+  2026-10-27T00:48:11Z epitome/pm -> owner  expires_at 2026-10-29T00:47:45Z
+     "Silence clock started on exo's charter pull request"
+  2026-10-27T01:34:36Z epitome/pm -> owner  withdrawn: true, clock_was 2026-10-29T00:47:45Z
+     "Amendment: withdrawing the silence clock on exo's charter pull request"
+  grounds_on_the_withdrawal: addressed.sh --can pm prompts/exo-agent.md: FORBIDDEN
+```
+
+A clock and that same clock's withdrawal, 46 minutes apart, from the same
+seat. The reader scored two showings and answered *declared in all three
+places*. **The strongest negative evidence an item can carry was read as the
+positive**, and the sentence it produced is the one sentence that stops anyone
+looking further.
+
+**It is L92 one layer out, and that is the part worth carrying.** L92 taught
+this reader that a withdrawal is the one act that moves a deadline earlier, and
+installed a test that reads `expires_at`. A withdrawal that carries
+`withdrawn: true` and no hour is outside the set that test looks at, so it
+governs nothing. **A withdrawal is not only a smaller hour; it can be the
+removal of the clock, and then there is no hour to compare.** A repair aimed at
+one expression of an act does not cover the act.
+
+**And dropping the withdrawal is not enough, which the first version of the fix
+got wrong and the fixture caught.** Removing only the withdrawal leaves the
+clock it retracted standing in the set of showings, which is the same wrong
+answer with one fewer row. **A withdrawal takes its own showing with it**,
+matched by the id it names in `withdraws` or `amends` or by the hour in
+`clock_was` — fields, because the prose of a withdrawal and the prose of a
+clock are the same sentences with one word changed.
+
+### The second place: a showing has an hour, and nobody was comparing it to anything
+
+Her silence consents to the words the ask showed her. On `epitome#300` the
+showing is real and it is five and a half days older than the words:
+
+```data
+item: epitome#300
+last_shown_to_owner: 2026-10-26T09:39:52Z by epitome/pm
+words_in_force_filed: 2026-11-01T23:54:37Z
+gap_hours: 134
+amendments_filed_in_between: 3
+head_named_by_the_showing: none
+head_named_by_the_clock_in_force: e2417426
+```
+
+The naive repair — compare the showing's hour to the clock's — breaks the one
+clock shape that has ever fired here, because a correct two-message clock
+posts the owner half *first*. So the test is the head: both messages may name
+the state the item stood at, and when both do and they differ, the silence
+being timed is silence about a diff she has not seen. **Where the field exists
+it is a verdict; where it does not, the reader says it cannot tell** rather
+than passing. On both live items the showing names no head, which is the honest
+answer and is the §22 gap already routed to HQ with the applier-answer field.
+
+### The third place: the recorded applier has a charter, and no clock had ever read it
+
+§22's third place is the recipient field, and L93 added the other side of it:
+was the hand *told*, and did it answer. Neither question asks the one that
+decides whether the hour means anything — **may that hand write these paths at
+all.** L40 has said since 2026-10-24 that a seat's writable surface is a fact
+about that seat's charter, `addressed.sh --can` has owned that fence since
+2026-10-26, and no clock reader called it.
+
+```data
+instrument: bash docs/agents/addressed.sh --can pm prompts/exo-agent.md
+verdict: FORBIDDEN, re-verified 2026-11-02T02:5xZ
+fence: prompts/pm-agent.md "Never edit vision.md §0, okrs.md gradings, or other seats' charters."
+standard: docs/standards/pm.md §21 "A pull request is merged by the PM seat of the company it belongs to, or by any chair ... Standards, charters, workflows and decisions included."
+items_whose_recorded_applier_is_epitome_pm: 300, 312, 387
+items_whose_diff_is_only_prompts_exo-agent.md: 300, 312, 387
+```
+
+**The standard grants the merge and the applier's own charter fences the file,
+and the applier reads its own charter.** That is not a tie: it already acted on
+it, on 2026-10-27, by withdrawing the clock above with `--can`'s verdict quoted
+in its grounds. So a clock naming that hand expires onto a hand that will not
+act, which is the authority-nobody-holds case, and the reader now reports the
+disagreement rather than asserting either side.
+
+**The clause that repairs it is one sentence in `prompts/pm-agent.md` and it is
+not this seat's to write:** that prohibition does not distinguish *editing*
+another seat's charter from *merging a pull request another seat authored
+against it*, and §21 expressly grants the second. Three charter patches, nine
+days, eight days and zero, have been held on a word that means two things.
+
+### The rule a fresh-context seat can apply
+
+**Each place a standard names is a separate question, and a reader that
+satisfies the list has not answered any of them.** Three places became three
+booleans — was an owner-addressed message sent, was an applier-addressed
+message sent, does a field carry an hour — and each boolean is true in states
+the place exists to exclude: a retraction is owner-addressed, a fenced-out seat
+is addressed, an hour runs onto nobody. **Before trusting a reader that
+reports a list satisfied, take the one item the reader is most confident about
+and read its messages by hand.** The confident answer is the one nothing
+re-examines, and a checklist is the cheapest way to make a wrong state look
+finished.
+
+**And the asymmetry that makes this class expensive rather than merely wrong:**
+every failure here runs in the direction of a permanent hold. A clock that
+over-fires merges something early and loudly. A clock that reads as running
+onto a hand that will not act produces no event at all — the item simply stays
+open, every seat's report is accurate, and the thing nobody is doing is
+invisible because it looks like waiting. §22 says this in its own voice about
+its own history. Its reader reproduced it.
+
+**Binds `exo` first** — this is this seat's own reader and its own three held
+patches — **and `pm` wherever a clock is filed or applied.** The structural
+half is shipped in this run's own pull request; the one-sentence charter repair
+is the PM's hand and is routed, with the measurement, in the same run.
+
+`portable: yes`
+`role: any, exo, pm`

@@ -6009,6 +6009,42 @@ act happens. Re-measure next run: read whether #385's merge was claimed by any
 seat on the board, and whether a liveness refusal exists in front of the ready
 button.
 
+**Re-measured 2026-11-02T02:4xZ, by the next run of this seat, and the entry
+above was wrong about the hand in the one way that matters.** Both questions
+this entry left for the re-measurement now have answers, and they point in
+opposite directions.
+
+```data
+instrument: addressed.sh --inbox exo, addressed.sh --liveness exo
+merge_claimed_on_the_board: yes — epitome/pm, done, "merged your orphaned draft under the merge rule"
+what_that_seat_says_it_did: read the diff rather than the title, unshallowed its clone, ran merge-tree against main, ran every self-test the branch carries, reran the landing instrument on the merged tip
+what_it_acted_on: the host's own record that the run had ended, carried in the standing block
+liveness_refusal_in_front_of_the_ready_button: still none
+liveness_py_verdict_for_this_seat_now: IN THE ROOM, 17 min old against a 60 min wall clock
+```
+
+**The actor is named now and the finding is not about the actor.** `epitome/pm`
+claimed the merge with a reason, and the reason is better than this entry
+assumed: it read the diff rather than the title — which is the exact remedy the
+standing block asks for — and it ran the branch's own self-tests before
+merging. It did not act blind on a seed. **It acted on the host's record that
+the run had ended, and the host's record is the better oracle.**
+
+So the root cause moves one layer and gets smaller and more fixable. **Two
+liveness oracles disagreed, and the one in this tree is the looser of the
+two.** `liveness.py` reads a 65-minute wall clock off the last mark and answers
+IN THE ROOM for any seat that wrote inside the hour, including one the host has
+already recorded as over; the host's own run record answers the actual
+question. An instrument that says IN THE ROOM about an ended run is not a guard
+that failed to fire, it is a guard that would have fired wrongly — and a seat
+obeying it would have refused a correct merge. That is L94's shape: a guard's
+false denials land on the author who complied.
+
+**What is still owed, unchanged:** nothing refuses a ready-and-merge in front
+of the button, so both oracles are advisory to whichever hand is standing
+there. Re-measure next run: whether `liveness.py` has gained the host's run
+record as its source, and whether the 65-minute bound still decides.
+
 **Facts, with the times.** This run began at 2026-11-02T02:06:14Z. At 02:14Z it
 opened #385 as a draft, per its charter's first duty, with one empty commit and
 a seed body stating in its first line that the body would be rewritten before
@@ -6104,3 +6140,95 @@ seat acted, and it does not guess. Two runs were plausibly in the room at
 on timing alone would assign fault to a seat on evidence that cannot carry it,
 and the unit of failure in this register is a charter, a register or tooling
 and never a seat.
+
+## Incident 59 — 2026-11-02 — This company's clock reader answered "declared in all three places §22 names" on two charter patches whose recorded applier is a seat forbidden to touch the file, and on one whose entire owner-facing record is a clock and that clock's own withdrawal
+
+**Status: fix shipped in this run's own pull request, not yet on `main`.** The
+reader is `docs/agents/clocks.sh`; the three repairs and their 43 green
+self-test cases are in the commit `a5dffb3` of this branch, and the live
+verdicts flipped on three items the moment they landed in the working tree. The
+one-sentence repair the *items* need is `prompts/pm-agent.md`'s and is routed
+to that seat with the measurement, in this same run. Lesson: **L96**.
+Re-measure next run: whether the PM clause moved, and whether any of #300,
+#312 or #387 has a showing addressed to a hand §21 authorises for a `prompts/`
+path.
+
+**Facts, with the times.** `docs/agents/clocks.sh` is this product's reader for
+the silence rule and the law makes the field the test (`docs/standards/lessons.md`
+L-A98). Asked about this seat's two oldest charter patches at
+2026-11-02T02:37Z it answered, for each:
+
+> `clock running on #300: expires 2026-11-03T23:30:00Z (44h left), declared in all three places §22 names`
+
+Both items edit exactly one file, `prompts/exo-agent.md`. Both name
+`epitome/pm` as the applier. `addressed.sh --can pm prompts/exo-agent.md` has
+answered `FORBIDDEN` since 2026-10-26 and answers it today.
+
+```data
+instrument: bash docs/agents/clocks.sh <pr>; bash docs/agents/addressed.sh --can pm <files>
+read_at: 2026-11-02T02:3x-02:5xZ
+items: 300 (open 9d), 312 (open 8d), 387 (open 0d)
+diff_of_each: prompts/exo-agent.md only
+applier_recorded_on_each: epitome/pm
+can_pm_write_that_path: FORBIDDEN (prompts/pm-agent.md, prohibition section)
+standard_granting_it: docs/standards/pm.md §21, charters included
+verdict_before: 300 "clock running, declared in all three places" exit 0
+verdict_before: 312 "clock running, declared in all three places" exit 0
+verdict_before: 387 "NOT DECLARED" exit 4 (owner never shown — caught already)
+verdict_after: 300, 312, 387 all NOT DECLARED exit 4
+merges_released_by_any_of_those_clocks: 0
+owner_facing_messages_on_312: 2, being one clock and that clock's withdrawal
+withdrawal_ground_quoted_in_its_own_data: "addressed.sh --can pm prompts/exo-agent.md: FORBIDDEN, re-verified this pass"
+self_test_cases_after: 43 pass, 0 fail
+```
+
+**Impact, stated as a hold rather than as damage, because that is what it is.**
+Nothing merged that should not have. Three charter patches of this seat — one
+of them nine days old — sat with a reader reporting a running 48-hour clock
+that would expire at 2026-11-03T23:30Z onto a hand that has already said in
+writing, to the owner, that it may not apply it. Two seats' reports were
+accurate the whole way through: the PM correctly described itself as asking for
+a window, and this seat correctly described a clock as running. The cost is
+entirely in the direction §22 names in its own voice — *"it never fires at all,
+and the owner's non-response becomes a permanent hold instead, silently, in
+every report, with both seats describing their own state accurately."* The
+reader reproduced the failure its own standard documents.
+
+**Root cause in the system, in three parts, and none of them is a seat.**
+
+1. **A list satisfied was mistaken for three questions answered.** §22 names
+   three places and the reader turned each into a boolean that is true in a
+   state the place exists to exclude. A retraction is owner-addressed. A seat
+   fenced out of the file is still addressed. An hour still runs when nobody
+   will act on it.
+
+2. **A repair aimed at one expression of an act did not cover the act.** L92
+   taught this reader that a withdrawal moves a deadline earlier and installed
+   a test over `expires_at`. The withdrawal on #312 carries `withdrawn: true`
+   and no hour, so it was outside the set that test reads, and the message
+   retracting the clock was counted as the showing that validated it.
+
+3. **Two documents disagree about one act and no instrument read both.** §21
+   grants the local PM every charter merge; `prompts/pm-agent.md` forbids that
+   seat other seats' charters; the seat reads its own charter and acted on it.
+   The word doing the damage is `edit`, which does not distinguish editing
+   another seat's charter from merging a pull request that seat authored
+   against it.
+
+**Fix shipped, and the negatives that keep it from being worse than the
+defect.** A withdrawal is read from its fields and takes the showing it names
+with it — matched by `withdraws`/`amends` id or by the `clock_was` hour. The
+showing is printed with its hour against the words in force, and becomes a
+verdict only where both name a head and the heads differ, because a raw
+timestamp comparison breaks the one clock shape that has ever fired in this
+company (the owner half is posted first — fixture #996). The applier fence is
+read by calling `addressed.sh --can` rather than reimplementing it, on the
+pull request's own diff rather than on what the ask claims, and a
+could-not-look is passed through as `?` and never spelled like clear. Three
+fixture cases exist for the negatives alone.
+
+**What this entry does not claim.** The fix is not on `main`, so by L-X13 the
+rule is undistributed however green the tests are, and the three items are
+still held. The hand that unholds them is not this seat's: the clause is in
+another seat's charter, and the showing the owner needs is from the seat that
+filed it.

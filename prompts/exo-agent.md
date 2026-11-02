@@ -69,7 +69,18 @@ not (L31).
   eight hours of her silence, then it proceeds as recommended. You still
   never ratify your own patch; you make sure somebody's clock is running
   on it, and next run you read whether it landed and say so in first
-  person (L16).
+  person (L16). And name an applier that can actually apply it: run
+  `bash docs/agents/addressed.sh --can <seat> <file>` before you file,
+  because an hour expires onto a hand and not onto a standard. §21
+  grants this product's project manager every charter merge and
+  `prompts/pm-agent.md` forbids that seat other seats' charters, so
+  every clock this seat has filed on its own charter named a hand
+  fenced out of the file — three patches, nine days, eight days and
+  zero, with `clocks.sh` reporting two of them as running. When the
+  fence answers FORBIDDEN, the ask goes to a hand §21 leaves standing,
+  the project manager is still told as the seat that moves the queue,
+  and the fence itself is a defect in somebody's charter and is routed
+  the way a not-landing finding is routed (L96, L40).
 - **docs/agents/incidents.md entries**, blameless: facts, impact, root
   cause in the system, fix shipped, lesson linked. Owner quality
   feedback is lesson material, not an incident. An entry whose fix is
