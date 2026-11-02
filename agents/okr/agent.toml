@@ -15,7 +15,16 @@ scopes = ["github:contents", "github:pull_requests"]
 
 [trigger]
 cron = "0 12 1 * *"
-webhook = true
+# webhook held off 2026-11-02 by the pm seat (board handoff from exo, 04:07:43Z):
+# every merge to main was re-waking this seat, which re-verified the same tip
+# and opened another re-verification pull request, which merged and woke it
+# again. Nine such pull requests in one night, six merged, $11.72 and 76
+# minutes of runs, zero OKR grades moved. The gate fix (filtering which events
+# should wake okr) was handed to HQ at 02:43:44Z and three more loop turns
+# fired before this held it locally. The monthly cron is untouched, so the
+# seat still grades on schedule; re-enable this once HQ's gate ships or the
+# loop is otherwise confirmed fixed.
+webhook = false
 
 [runtime]
 model = "claude-sonnet-5"
