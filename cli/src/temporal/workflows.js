@@ -14,6 +14,11 @@ import {
   proxyActivities, defineSignal, defineQuery, setHandler, condition,
   workflowInfo, executeChild, ApplicationFailure, CancellationScope, log,
 } from "@temporalio/workflow";
+// Two integer literals and nothing else, which is what makes it importable
+// here: the bound a run is stopped at is declared once, in that file, and a
+// run that reached this workflow without one in its input used to fall back to
+// a second copy of the hour written out below (see temporal/bounds.js).
+import { DEFAULT_RUN_TIMEOUT_MS } from "./bounds.js";
 
 // --- signals and queries (the public surface of a running workflow) --------
 
@@ -72,7 +77,7 @@ export async function SeatRun(input) {
   if (!name || !manifest?.runtime) {
     throw ApplicationFailure.nonRetryable(`SeatRun needs { name, manifest } — a run carries its own manifest snapshot, so the worker never reads the roster directory`);
   }
-  const runTimeoutMs = input.runTimeoutMs ?? 60 * 60 * 1000;
+  const runTimeoutMs = input.runTimeoutMs ?? DEFAULT_RUN_TIMEOUT_MS;
   const { execute } = executor(runTimeoutMs);
 
   // A trigger that lands mid-run waits here. Two messages merge; anything else

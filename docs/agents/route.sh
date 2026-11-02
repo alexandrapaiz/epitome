@@ -7,8 +7,24 @@
 #
 # A SURFACE is the remedy written as an act on a named thing: a path in this
 # checkout, or an absolute path on this host. Exit 0 every surface has a hand
-# and that hand has been asked about it, 1 a surface has a hand nobody asked
-# or no hand at all, 2 could not look (L41).
+# and that hand has been asked about it and owes an answer, 1 a surface has a
+# hand nobody asked or no hand at all, 2 could not look (L41), 3 a hand has
+# already answered about a surface and its answer is the disposition.
+#
+# WHY THERE IS A FOURTH EXIT (L100, incident 65). `ASKED` was one value for two
+# states that take opposite remedies, which is L-A44 in this script's own
+# output. A hand asked and silent is waiting on nobody; a hand that has
+# *answered* has already disposed of the item, and its answer is the only place
+# the next act is written. On 2026-11-02 this seat asked
+# `alexandra-systems/exo-centralizer` about `standards/lessons.md` at 02:31:48Z,
+# that seat answered at 02:49:08Z naming the mechanism that blocked it — "my
+# register autonomy is per file, so bundling it with a charter and four tools
+# turned a merge I may do alone into one waiting on a hand" — and at 04:08:39Z
+# this seat routed the same item to two project managers, both of whom declined
+# it in writing as not theirs. `ASKED` had been printed over the answer. So an
+# answer is read and reported as its own state, with the hour and the subject,
+# because a run that cannot see it files the duplicate this script exists to
+# prevent.
 #
 # WHY THIS EXISTS. On 2026-10-24T21:44:41Z this seat began routing a one-line
 # step — `max_turns = 120` → `180` — as a not-landing finding. Over the next
@@ -67,16 +83,46 @@ fetch_sent() {
   return 0
 }
 
+# One page of what reached this seat's own inbox, for the answered half. This is
+# a separate read and not a filter on the page above: a hand's answer is a
+# message this seat did not write, so it is not in this seat's outbox at all,
+# and the first sketch of this check looked for it there and found nothing —
+# which would have reported every answered surface as merely asked, the exact
+# reading L100 is about.
+fetch_recv() {
+  local out=$1 recv=${ROUTE_RECV_JSON:-}
+  if [ -n "$recv" ]; then
+    [ -r "$recv" ] || { echo "  COULD NOT LOOK  no such page: $recv" >&2; return 2; }
+    cp "$recv" "$out"; return 0
+  fi
+  [ -n "${BOARD_API_URL:-}" ] && [ -n "${BOARD_RUNTIME_TOKEN:-}" ] || {
+    echo "  COULD NOT LOOK  BOARD_API_URL/BOARD_RUNTIME_TOKEN unset; this runs where the board is reachable" >&2
+    return 2; }
+  curl -sS -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" \
+    "$BOARD_API_URL/api/messages?to_seat=$SEAT&limit=300" > "$out" \
+    || { echo "  COULD NOT LOOK  the board did not answer" >&2; return 2; }
+  grep -q '"' "$out" || { echo "  COULD NOT LOOK  the board returned nothing parseable" >&2; return 2; }
+  return 0
+}
+
 # ---- the surface half: which repository holds it, and who has moved it ------
 # `git -C <dir>` answers both questions for any path on this box, including the
 # ones no charter in this checkout fences. A host path that resolves into a
 # clone is a line in that clone's repository and is routed as one.
+# Three reasons this can fail and they are not one reason (L41, L-A50). Until
+# 2026-11-02 all three printed *not a path on this box*, which is simply false
+# for the case that actually occurs: `/tmp` and `/srv/asc/state` are both on
+# this box, and what they are not is inside a repository. A reader told the
+# path does not exist goes looking for a typo; a reader told it is in no
+# repository goes looking for the hand somewhere other than a merge history,
+# which is the act this script exists to point at. Exit 1 is absent, 4 is
+# present-but-unversioned.
 resolve() {  # $1 = surface -> prints "repo<TAB>relpath<TAB>dir" or nothing
   local s=$1 real top origin rel
   real=$(readlink -f -- "$s" 2>/dev/null) || return 1
   [ -e "$real" ] || return 1
   local dir; dir=$real; [ -d "$dir" ] || dir=$(dirname -- "$real")
-  top=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || return 1
+  top=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || return 4
   origin=$(git -C "$top" remote get-url origin 2>/dev/null)
   origin=${origin##*github.com[:/]}; origin=${origin%.git}
   [ -n "$origin" ] || origin="(no origin: $top)"
@@ -117,6 +163,49 @@ company_of() {  # $1 = seat
     hit=$(find "$r" -mindepth 2 -maxdepth 2 -type d -name "$1" 2>/dev/null | head -1)
     if [ -n "$hit" ]; then basename "$(dirname "$hit")"; else echo "unknown"; fi
   fi
+}
+
+# Has that hand answered since it was asked about this surface. The question is
+# deliberately about the hand and not about the surface: a seat that replies to
+# a surface question rarely quotes the path back, so requiring the tokens here
+# would report almost every real answer as silence, which is the direction that
+# makes this check worthless. What it does require is direction and order — a
+# message *from* that pair, *after* the hour this seat asked — because those two
+# together are what makes a reply an answer rather than unrelated traffic.
+answered() {  # $1 = recv page, $2 = seat, $3 = company, $4 = asked-at -> 0 answered, 1 silent, 3 unparseable
+  RECV_PAGE=$1 WANT_SEAT=$2 WANT_CO=$3 SINCE=$4 python3 - <<'PY'
+import json, os, sys
+page, seat = os.environ["RECV_PAGE"], os.environ["WANT_SEAT"]
+company, since = os.environ["WANT_CO"], os.environ["SINCE"]
+try:
+    d = json.load(open(page))
+except Exception:
+    sys.exit(3)
+ms = d["messages"] if isinstance(d, dict) else d
+# Timestamps on this board arrive as both `...+00:00` and `...Z`, so they are
+# compared on the second rather than as whole strings. A wrong answer here is
+# silent, so the normaliser is one slice and not a parse.
+def key(t):
+    return (t or "")[:19]
+hits = [m for m in ms
+        if (m.get("from_seat") or "") == seat
+        and (m.get("from_company") or "") == company
+        and key(m.get("ts")) > key(since)]
+if not hits:
+    sys.exit(1)
+hits.sort(key=lambda m: m.get("ts") or "")
+# The *first* reply after the ask, not the last. The last is whatever that seat
+# happened to send most recently and is usually about something else entirely:
+# against the live board on 2026-11-02 the last-reply version named a note about
+# dashboard figures sent 1h50m after the answer this check exists to surface,
+# which would have pointed the reader at the wrong message while sounding
+# certain. The first reply is the one that answers the ask, and the count is
+# printed beside it so a reader knows whether there is more to read.
+m = hits[0]
+print("%s %s%s" % (m.get("ts", "?"), (m.get("subject") or "")[:66],
+                   "" if len(hits) == 1 else "   (+%d later from this hand)" % (len(hits) - 1)))
+sys.exit(0)
+PY
 }
 
 asked() {  # $1 = page, $2 = seat, $3 = relpath, $4 = company -> 0 named it, 1 addressed not about it, 2 never
@@ -160,12 +249,20 @@ report() {  # surfaces as "$@"
   tmp=$(mktemp -d) || { echo "  COULD NOT LOOK  no scratch directory" >&2; return 2; }
   page=$tmp/sent.json
   if ! fetch_sent "$page"; then rm -rf "$tmp"; return 2; fi
+  local inbox=$tmp/recv.json
+  if ! fetch_recv "$inbox"; then rm -rf "$tmp"; return 2; fi
   printf 'the hand for each surface, read off the repository that holds it, %s\n' "$(date -u +%FT%TZ)"
-  local no_hand=() never=() not_about=() ok=() unresolved=() unknown_co=()
+  local no_hand=() never=() not_about=() ok=() unresolved=() unversioned=() unknown_co=() replied=()
   for s in "$@"; do
     local r repo rel top
-    r=$(resolve "$s") || { printf '  UNRESOLVED %s: not a path on this box, so this cannot name its repository\n' "$s"
-      unresolved+=("$s"); rc=1; continue; }
+    r=$(resolve "$s"); local rrc=$?
+    if [ $rrc = 4 ]; then
+      printf '  UNVERSIONED %s: on this box, but in no repository, so no merge history names a hand\n' "$s"
+      unversioned+=("$s"); rc=1; continue
+    elif [ $rrc != 0 ]; then
+      printf '  ABSENT %s: nothing at this path on this box, so this cannot name its repository\n' "$s"
+      unresolved+=("$s"); rc=1; continue
+    fi
     IFS=$'\t' read -r repo rel top <<<"$r"
     printf '  %s\n    repo %s   path %s\n' "$s" "$repo" "$rel"
     local hs; hs=$(hands "$top" "$rel")
@@ -188,7 +285,19 @@ report() {  # surfaces as "$@"
       local out v
       out=$(asked "$page" "$seat" "$rel" "$co"); v=$?
       case $v in
-        0) printf '    ASKED     %s/%s — %s\n' "$co" "$seat" "$out"; ok+=("$co/$seat") ;;
+        0) # Asked. Now the state that used to hide inside this one: has that
+           # hand answered since. `out` is "<ts> <subject>" from `asked`, so the
+           # hour this seat asked is its first field.
+           local ans av
+           ans=$(answered "$inbox" "$seat" "$co" "${out%% *}"); av=$?
+           case $av in
+             0) printf '    ANSWERED  %s/%s — asked %s\n' "$co" "$seat" "$out"
+                printf '              answered %s\n' "$ans"
+                printf '              that answer is the disposition; the next ask is the act it names, to this hand\n'
+                replied+=("$seat:$s") ;;
+             1) printf '    ASKED     %s/%s — %s\n' "$co" "$seat" "$out"; ok+=("$co/$seat") ;;
+             *) printf '    COULD NOT LOOK  the inbox page did not parse\n'; rm -rf "$tmp"; return 2 ;;
+           esac ;;
         1) printf '    NOT ABOUT %s/%s — %s message(s) to that seat, none naming this surface\n' "$co" "$seat" "$out"
            not_about+=("$seat:$s"); rc=1 ;;
         2) printf '    NEVER     %s/%s has landed a change to this path and this seat has never addressed it\n' "$co" "$seat"
@@ -197,6 +306,36 @@ report() {  # surfaces as "$@"
       esac
     done <<<"$hs"
   done
+  # An unasked hand outranks an answered one, because the two take different
+  # acts and only one of them is this seat's own omission: a hand nobody asked
+  # is a message not yet written, while a hand that answered has already put
+  # the next act in writing. So exit 1 holds wherever both are present, and 3
+  # is reached only when every hand on every surface has been asked and at
+  # least one has replied (L-A44: the value has to carry which cause it is).
+  if [ $rc = 0 ] && [ ${#replied[@]} -gt 0 ]; then rc=3; fi
+  # And exit 1 is five causes, which this line spelled as one until 2026-11-02.
+  # `verdict:` is the row a reader pastes into a handoff — #402's body carries
+  # this script's, verbatim — so whatever it says is what the next hand acts on.
+  # On two surfaces that resolved to no repository at all it said *a surface has
+  # a hand nobody asked*, asserting a hand that is not known to exist and naming
+  # the one remedy (write to it) that cannot be performed. That is the comment
+  # directly above this one, L-A44, broken two lines below where it is cited:
+  # a value has to carry which cause it is. So the verdict is composed from the
+  # lists rather than from the exit code, and an unresolved surface says it has
+  # no hand to ask instead of borrowing the sentence for a surface that has one.
+  local verdict
+  case $rc in
+    0) verdict="every surface has a hand that was asked about it and owes an answer" ;;
+    3) verdict="every hand was asked and one has answered: read the answer before routing this further" ;;
+    1) local why=()
+       [ ${#unresolved[@]} -gt 0 ]  && why+=("${#unresolved[@]} surface(s) do not exist on this box, so this reading is about nothing")
+       [ ${#unversioned[@]} -gt 0 ] && why+=("${#unversioned[@]} surface(s) are on this box but in no repository, so no hand is known for them and none can be asked")
+       [ ${#no_hand[@]} -gt 0 ]     && why+=("${#no_hand[@]} surface(s) are in a repository no merge has touched, so no seat is known to be able to")
+       [ ${#never[@]} -gt 0 ]       && why+=("${#never[@]} hand(s) have never been addressed at all")
+       [ ${#not_about[@]} -gt 0 ]   && why+=("${#not_about[@]} hand(s) were addressed but never about this surface")
+       [ ${#unknown_co[@]} -gt 0 ]  && why+=("${#unknown_co[@]} hand(s) this box cannot name a company for")
+       verdict=$(IFS=';'; printf '%s' "${why[*]}") ;;
+  esac
   printf '\n```data\n'
   printf 'measured_at: %s\n' "$(date -u +%FT%TZ)"
   printf 'surfaces: %s\n' "$#"
@@ -204,9 +343,11 @@ report() {  # surfaces as "$@"
   printf 'hand_addressed_but_not_about_this_surface: [%s]\n' "$(IFS=,; echo "${not_about[*]:-}")"
   printf 'no_hand_known: [%s]\n' "$(IFS=,; echo "${no_hand[*]:-}")"
   printf 'hand_whose_company_this_box_cannot_name: [%s]\n' "$(IFS=,; echo "${unknown_co[*]:-}")"
-  printf 'not_a_path_on_this_box: [%s]\n' "$(IFS=,; echo "${unresolved[*]:-}")"
+  printf 'absent_from_this_box: [%s]\n' "$(IFS=,; echo "${unresolved[*]:-}")"
+  printf 'on_this_box_but_in_no_repository: [%s]\n' "$(IFS=,; echo "${unversioned[*]:-}")"
   printf 'asked_and_named: [%s]\n' "$(IFS=,; echo "${ok[*]:-}")"
-  printf 'verdict: %s\n' "$([ $rc = 0 ] && echo "every surface has a hand that was asked about it" || echo "a surface has a hand nobody asked")"
+  printf 'hand_that_has_already_answered: [%s]\n' "$(IFS=,; echo "${replied[*]:-}")"
+  printf 'verdict: %s\n' "$verdict"
   printf '```\n'
   rm -rf "$tmp"
   return $rc
@@ -251,6 +392,13 @@ JSON
   printf 'orphan\n' > "$R/untouched.md"   # tracked by no merge
   git -C "$R" add -A && git -C "$R" commit -q -m "no merge for this one"
 
+  # The default inbox for every case below is empty, so "has that hand
+  # answered" is a question each case opts into rather than one the live board
+  # answers behind the fixtures' back (L42: the two things the box supplies are
+  # exactly what a check of this script must not depend on).
+  printf '{"messages": []}\n' > "$tmp/recv-none.json"
+  ROUTE_RECV_JSON=$tmp/recv-none.json
+
   check() {  # $1 label, $2 want, then surfaces
     local label=$1 want=$2; shift 2
     local out v
@@ -260,6 +408,12 @@ JSON
     else printf '  FAIL  %-52s exit %s, wanted %s\n%s\n' "$label" "$v" "$want" "$out"; rc=1; fi
   }
   want() { grep -q "$1" "$tmp/last" || { printf '  FAIL  %s\n' "$2"; rc=1; }; }
+  # A herestring, never a pipe. `producer | grep -q` makes a matching pattern
+  # read as a failing pipeline under `pipefail`, because quiet grep exits on
+  # the match and the producer dies writing into the pipe it just closed
+  # (cli/test/shapes.sh, which measured 442 of 500 wrong at 64 KiB). want()
+  # above was already safe because it reads a file; these two were not.
+  said() { local h=$1; shift; grep -q "$@" <<<"$h"; }
   mkdir -p "$tmp/roster/centralizer" "$tmp/roster/keeper"
 
   echo "route.sh --self-test"
@@ -275,6 +429,50 @@ JSON
   #    Without it this script could pass by reporting everything.
   check "a hand asked about this surface by name" 0 "$R/ledger.md"
   want 'ASKED' "no ASKED verdict on the surface that was asked about"
+
+  # 2b. L100's own case, and the reason this script grew a fourth exit: the same
+  #     surface, the same ask, plus a reply from that hand afterwards. It must
+  #     stop reading as ASKED, because a run that reads ASKED here routes the
+  #     item onward and files the duplicate. The reply names no path on purpose
+  #     — requiring the tokens in an answer is the mistake that would make this
+  #     check report every real answer as silence.
+  cat > "$tmp/recv.json" <<'JSON'
+{"messages": [{"ts": "2026-10-26T09:40:00Z", "from_company": "alexandra-systems",
+  "from_seat": "keeper", "to_company": "epitome", "to_seat": "exo",
+  "subject": "Taken, but my autonomy on that file is per directory",
+  "body": "I cannot merge it bundled with the runtime change."}]}
+JSON
+  local out v
+  out=$(ROUTE_SENT_JSON="$tmp/sent.json" ROUTE_RECV_JSON="$tmp/recv.json" \
+        ROSTER="$tmp/roster" report "$R/ledger.md" 2>&1); v=$?
+  printf '%s\n' "$out" > "$tmp/last"
+  if [ "$v" = 3 ]; then printf '  ok    %-52s exit 3\n' "a hand that answered is not a hand asked"
+  else printf '  FAIL  %-52s exit %s, wanted 3\n%s\n' "a hand that answered is not a hand asked" "$v" "$out"; rc=1; fi
+  want 'ANSWERED' "a hand that replied after the ask was not reported as ANSWERED"
+  want 'per directory' "the answer's own subject was not carried into the report"
+
+  # 2c. Direction and order are both load-bearing. A message from that hand
+  #     *before* the ask is not an answer to it, and the first sketch of this
+  #     compared whole timestamp strings, which `+00:00` against `Z` gets wrong
+  #     in whichever direction the suffix sorts.
+  cat > "$tmp/recv-early.json" <<'JSON'
+{"messages": [{"ts": "2026-10-26T08:00:00.123456+00:00", "from_company": "alexandra-systems",
+  "from_seat": "keeper", "to_company": "epitome", "to_seat": "exo",
+  "subject": "Unrelated traffic that predates the ask", "body": "nothing owed"}]}
+JSON
+  out=$(ROUTE_SENT_JSON="$tmp/sent.json" ROUTE_RECV_JSON="$tmp/recv-early.json" \
+        ROSTER="$tmp/roster" report "$R/ledger.md" 2>&1); v=$?
+  printf '%s\n' "$out" > "$tmp/last"
+  if [ "$v" = 0 ]; then printf '  ok    %-52s exit 0\n' "a reply older than the ask is not an answer"
+  else printf '  FAIL  %-52s exit %s, wanted 0\n%s\n' "a reply older than the ask is not an answer" "$v" "$out"; rc=1; fi
+  want 'ASKED' "an older message from the hand was counted as an answer"
+
+  # 2d. A missing inbox page is could-not-look and never a clean ASKED, which is
+  #     the whole of L41 pointed at this script's new half.
+  out=$(ROUTE_SENT_JSON="$tmp/sent.json" ROUTE_RECV_JSON="$tmp/no-such-recv.json" \
+        ROSTER="$tmp/roster" report "$R/ledger.md" 2>&1); v=$?
+  if [ "$v" = 2 ]; then printf '  ok    %-52s exit 2\n' "a missing inbox page is could-not-look"
+  else printf '  FAIL  %-52s exit %s, wanted 2\n%s\n' "a missing inbox page is could-not-look" "$v" "$out"; rc=1; fi
 
   # 3. A hand that exists and has never been addressed at all.
   cat > "$tmp/sent2.json" <<'JSON'
@@ -314,9 +512,38 @@ JSON
   check "a path no merge has touched" 1 "$R/untouched.md"
   want 'NO HAND' "an unmerged path was not reported as NO HAND"
 
-  # 5. Not a path at all.
-  check "not a path on this box" 1 "merge the queue"
-  want 'UNRESOLVED' "a non-path was not reported as unresolved"
+  # 5. Absent from this box, and the new sibling of it: present but in no
+  #    repository. These were one verdict until 2026-11-02 and the live
+  #    positive for the second is `/tmp`, which this script called *not a path
+  #    on this box* while standing on it. They are checked apart here because
+  #    the remedies differ — a typo versus a hand that is not in any merge
+  #    history — and a test that fires only the first leaves the sentence that
+  #    was actually wrong unasserted (L42).
+  check "absent from this box" 1 "merge the queue"
+  want 'ABSENT' "a non-path was not reported as absent"
+  want 'do not exist on this box' "the verdict for an absent surface claimed a hand"
+  local unversioned_dir=$tmp/not-a-repo; mkdir -p "$unversioned_dir"
+  check "on this box but in no repository" 1 "$unversioned_dir"
+  want 'UNVERSIONED' "an unversioned directory was not reported as unversioned"
+  want 'in no repository, so no hand is known' "the verdict for an unversioned surface claimed a hand"
+  if said "$out" 'a hand nobody asked'; then
+    printf '  FAIL  %-52s\n' "an unversioned surface still asserts an unasked hand"; rc=1
+  else
+    printf '  ok    %-52s\n' "an unversioned surface asserts no hand"
+  fi
+
+  # 5b. The verdict names every cause present, not just the worst, because a
+  #     handoff about four surfaces is repaired four different ways.
+  out=$(ROUTE_SENT_JSON="$tmp/sent.json" ROSTER="$tmp/roster" report \
+        "$unversioned_dir" "$R/untouched.md" "merge the queue" 2>&1)
+  printf '%s\n' "$out" > "$tmp/last"
+  for frag in 'do not exist on this box' 'in no repository' 'no merge has touched'; do
+    if said "$out" "$frag"; then
+      printf '  ok    %-52s\n' "the verdict carries: ${frag:0:30}"
+    else
+      printf '  FAIL  %-52s\n' "the verdict dropped: ${frag:0:30}"; rc=1
+    fi
+  done
 
   # 6. A shallow clone is could-not-look and never no-hand.
   git clone -q --depth 1 "file://$R" "$tmp/shallow" 2>/dev/null

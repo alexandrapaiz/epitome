@@ -146,6 +146,7 @@ fix if the reader has it (ADR-24, docs/decisions.md).
 | `EPITO_PORT` | `4747` | ingress port |
 | `EPITO_WINDOW_MS` | `14400000` | how long a work window stays open (4h) |
 | `EPITO_RUN_TIMEOUT_MS` | `3600000` | per-run cap: the `execute` activity's timeout and the workflow's run timeout |
+| `EPITO_PROGRESS_EVERY_MS` | `300000` | how often a run that has said nothing is asked what it has committed, into its own log (5m). The executor prints its account at exit, so this is the only thing in the log of a run that gets killed |
 | `EPITO_MAX_CONCURRENT_RUNS` | `4` | how many seat runs one worker will hold at once |
 | `EPITO_EXECUTOR` | `claude` | the binary the `execute` activity spawns **for a claude seat** |
 | `EPITO_PYTHON` | `python3` | the interpreter a **langgraph** seat runs in — the one with that agent's own dependencies installed (a venv path is normal) |

@@ -8,7 +8,8 @@
 // that a live account is never touched without a card saying so — the GitHub
 // target has the same boundary and solves it the same way: epito prepares
 // everything and the human performs the one irreversible step.
-import { writeFileSync, mkdirSync, readFileSync, existsSync, chmodSync } from "node:fs";
+import { mkdirSync, readFileSync, existsSync } from "node:fs";
+import { writeFileAtomic } from "./lib/atomic.js";
 import { createPrivateKey } from "node:crypto";
 import { join, relative, resolve } from "node:path";
 import {
@@ -37,8 +38,16 @@ export function pkcs8Beside(name, dir = ".") {
   } catch (e) {
     die(`${source} is "${name}"'s GitHub App key and this machine cannot read it as a private key (${e.message}), so there is nothing to convert for the Worker. Fix: download a fresh private key from the App's settings page and save it there (0600).`);
   }
-  writeFileSync(out, pem, { mode: 0o600 });
-  chmodSync(out, 0o600);
+  // Same reason as the GitHub target's key write: the pkcs8 copy is derivable
+  // again from the .pem beside it, but a truncating write leaves a 0-byte
+  // file at 0600 that reads as a key and is not one, and the next `deploy`
+  // finds it already there. The mode lands before the key material does
+  // (lib/atomic.js).
+  writeFileAtomic(out, pem, {
+    mode: 0o600,
+    what: `the PKCS#8 copy of "${name}"'s App key that the Worker needs`,
+    retry: "run this deploy again",
+  });
   return out;
 }
 
@@ -92,7 +101,15 @@ export async function deployCloudflare({ name, path, manifest, outArg, dryRun, c
   }
 
   mkdirSync(out, { recursive: true });
-  for (const f of files) writeFileSync(join(out, f.path), f.contents);
+  // The bundle is regenerable, so what this buys is narrower and still worth
+  // it: a half-written worker.js on a full device is a bundle that deploys
+  // and fails at the edge, rather than a bundle that was never written.
+  for (const f of files) {
+    writeFileAtomic(join(out, f.path), f.contents, {
+      what: `part of the Worker bundle for "${name}"`,
+      retry: "run this deploy again",
+    });
+  }
   // deploy's own rule, for the same reason the GitHub target has it: this
   // writes under .epito/, and a repository that arrived here without ever
   // running `epito init` has no line for it.

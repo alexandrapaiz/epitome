@@ -59,8 +59,131 @@ E="node $CLI/src/index.js"
 
 pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
-bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
-check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# How many lines of the haystack a failing gate prints: enough to carry a
+# validate verdict and its fix lines, not the whole document.
+EVIDENCE_LINES="${EPITO_SMOKE_EVIDENCE_LINES:-24}"
+# A failing gate says what it looked at. Lifted from smoke-doctor.sh, which
+# paid three runs of archaeology for it: `FAIL <label>` names the claim and
+# never the output the claim was made against, so the only way to learn which
+# line of a verdict was missing is to run the suite again. On failure only -- a
+# green run's output is byte for byte what it was.
+#
+# This file's haystacks are easier than that suite's: seventy-five of its
+# assertions name `$OUT`, which is `validate`'s own captured output, and the
+# handful that do not name a document of their own (`$SOUT`, `$NROUT`, `$ERR`,
+# `$COL`). So the first `$NAME` in the UNEVALUATED expression is the document
+# nearly every time -- `check` is handed its test as a string, so the name
+# survives to here. A name whose value holds no newline is a path, a directory
+# or an exit code, and it is printed as the note it is; a file named in the
+# expression is read as the document it is, which is what the two `[ -f ]`
+# assertions and section 8's `find` leave behind.
+# Print one haystack under a failing gate. Why both ends rather than a tail,
+# measured in smoke-temporal.sh rather than guessed here: a FAIL on that
+# suite's `$docout`, 6,049 bytes of `epito doctor` report, showed twenty-four
+# lines of per-seat identity asides from the bottom while the verdict row the
+# assertion was about sat near the top -- true, bounded, and about nothing the
+# test had asked. Both ends and a count of what is between them is the honest
+# version, and the count is what tells a reader to re-run with
+# EPITO_SMOKE_EVIDENCE_LINES set.
+evidence() {
+  local heading="$1" body="$2"
+  # An empty haystack is an answer -- a log nothing wrote to is usually THE
+  # answer -- but it is not a document, and `mapfile` on it would report one
+  # blank line as though it were content.
+  [ -n "$body" ] || { printf '       %s is empty\n' "$heading"; return 0; }
+  local -a lines=(); mapfile -t lines <<<"$body"
+  local n=${#lines[@]} head_n=$((EVIDENCE_LINES / 2)) i
+  if [ "$n" -le "$EVIDENCE_LINES" ]; then
+    printf '       %s, %s bytes, all %s lines:\n' "$heading" "${#body}" "$n"
+    for ((i = 0; i < n; i++)); do printf '       | %s\n' "${lines[i]}"; done
+    return 0
+  fi
+  local tail_n=$((EVIDENCE_LINES - head_n))
+  printf '       %s, %s bytes, first %s and last %s of %s lines:\n' \
+    "$heading" "${#body}" "$head_n" "$tail_n" "$n"
+  for ((i = 0; i < head_n; i++)); do printf '       | %s\n' "${lines[i]}"; done
+  printf '       | … %s lines elided; EPITO_SMOKE_EVIDENCE_LINES raises this …\n' \
+    "$((n - EVIDENCE_LINES))"
+  for ((i = n - tail_n; i < n; i++)); do printf '       | %s\n' "${lines[i]}"; done
+}
+# A one-line haystack is printed whole UNLESS its name says it may hold a
+# credential, in which case what is printed is the presence-and-length form
+# L-X5 asks for. A failing assertion is the one place a suite prints a value
+# nobody chose to print, by name, out of this process's own environment, and
+# `tools/check-secret-print.py` reports the line because it cannot resolve an
+# indirect expansion to tell whether this one is safe. It is right that it
+# cannot, so the suite answers for itself here rather than being exempted in
+# `tools/secret-print-baseline.txt`: the words are the checker's own list, and
+# the label-suffix exemption it has is deliberately NOT copied, because a
+# haystack named `$KEY_FILE` losing its path from a FAIL line costs a reader
+# one `echo` and the other direction costs a credential.
+may_hold_credential() {
+  local n w
+  n=$(printf '%s' "$1" | tr '[:lower:]' '[:upper:]')
+  for w in TOKEN TOKENS SECRET SECRETS PASSWORD PASSWD PASS KEY APIKEY PAT \
+           WEBHOOK CREDENTIAL CREDENTIALS COOKIE BEARER AUTH; do
+    case "_${n}_" in *_"$w"_*) return 0 ;; esac
+  done
+  return 1
+}
+bad()  {
+  fail=$((fail+1)); printf '  FAIL %s\n' "$1"
+  [ -n "${2:-}" ] || return 0
+  printf '       the test: %s\n' "$2"
+  local rest="$2" name val w seen
+  local -a notes=() docs=() files=()
+  # Matched in the shell, not through `grep ... | head -1`: that is a producer
+  # piped into a reader that exits on its first line, the shape this
+  # repository has spent a week converting out of every suite in here, and the
+  # failure path is the last place to introduce one.
+  while [[ "$rest" =~ [$]\{?([A-Za-z_][A-Za-z0-9_]*) ]]; do
+    name="${BASH_REMATCH[1]}"; rest="${rest#*"${BASH_REMATCH[0]}"}"
+    val="${!name:-}"; [ -n "$val" ] || continue
+    if [ "${val#*$'\n'}" != "$val" ]; then
+      seen=""; for w in ${docs[@]+"${docs[@]}"}; do [ "$w" = "$name" ] && seen=1; done
+      [ -n "$seen" ] || docs+=("$name")
+    else
+      seen=""; for w in ${notes[@]+"${notes[@]}"}; do [ "$w" = "$name" ] && seen=1; done
+      [ -n "$seen" ] || notes+=("$name")
+    fi
+  done
+  for name in ${notes[@]+"${notes[@]}"}; do
+    val="${!name}"
+    if may_hold_credential "$name"; then
+      printf '       $%s is set, %s characters — its name says it may be a credential, so this line prints presence and length and never the value (L-X5)\n' "$name" "${#val}"
+    else
+      printf '       $%s is %s\n' "$name" "$val"
+    fi
+  done
+  local shown=0
+  if [ ${#docs[@]} -eq 0 ]; then
+    # The expression's own tokens, with its quoting flattened. A needle that
+    # happens to look like a path is not a risk, because only a token that
+    # names a readable file is kept.
+    local blob="${2//[\'\"]/ }"; blob="${blob//$'\n'/ }"
+    local -a words=(); read -ra words <<<"$blob"
+    for w in ${words[@]+"${words[@]}"}; do
+      [ -f "$w" ] && [ -r "$w" ] || continue
+      seen=""; for name in ${files[@]+"${files[@]}"}; do [ "$name" = "$w" ] && seen=1; done
+      [ -n "$seen" ] || files+=("$w")
+    done
+    for w in ${files[@]+"${files[@]}"}; do
+      evidence "$w" "$(cat -- "$w")"
+      shown=$((shown+1)); [ "$shown" = 2 ] && break
+    done
+    [ "$shown" -gt 0 ] && return 0
+    docs=(OUT)
+  fi
+  # Two, because the one assertion in this repository whose claim is a
+  # comparison between two documents (`[ "$before" = "$after" ]`) is unreadable
+  # with one of them, and no assertion here names three.
+  for name in "${docs[@]}"; do
+    val="${!name:-}"; [ -n "$val" ] || continue
+    evidence "\$$name" "$val"
+    shown=$((shown+1)); [ "$shown" = 2 ] && break
+  done
+}
+check(){ if eval "$2"; then ok "$1"; else bad "$1" "$2"; fi; }
 # `said <captured output> [grep flags] <pattern>` — the one way this suite
 # looks inside a command's output, and it contains no pipe. That is the whole
 # point of it.
@@ -75,7 +198,18 @@ check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 # a gate crying wolf about once in five runs, and a gate nobody believes is not
 # a gate. A herestring has no pipe and no second process to kill.
 said() { local hay="$1"; shift; grep -q "$@" <<<"$hay"; }
-step() { printf '\n== %s\n' "$1"; }
+# Clearing `OUT` here is what keeps `bad`'s last fallback honest. Said exactly,
+# because it would be easy to read as a fix it is not: this suite had no
+# fallback at all until the line above, so nothing here has ever printed the
+# wrong evidence. The clearing is so that the fallback being introduced cannot
+# start to -- twelve sections share one `OUT`, four of them (2, 6, 7 and 8)
+# assert on documents of their own and never read it, and an uncleared `OUT`
+# would hand a failure in one of those four a verdict from a section up to a
+# hundred lines earlier. That is what smoke-doctor.sh did before #369: a roster
+# assertion's FAIL cited a misspelled-flag answer from forty lines earlier,
+# read first and believed. Checked before clearing: every section that does
+# assert on `OUT` sets it after its own `step`.
+step() { OUT=""; printf '\n== %s\n' "$1"; }
 STUB_PID=""
 cleanup() {
   [ -n "$STUB_PID" ] && kill "$STUB_PID" 2>/dev/null

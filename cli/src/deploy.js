@@ -30,7 +30,7 @@
 // later.
 import { createServer } from "node:http";
 import { randomBytes, timingSafeEqual, createPrivateKey } from "node:crypto";
-import { writeFileSync, readFileSync, existsSync, mkdirSync, chmodSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { loadManifest } from "./lib/manifest.js";
@@ -42,6 +42,7 @@ import {
 } from "./lib/identity.js";
 import { appendAudit, ensureDir } from "./lib/audit.js";
 import { ignore } from "./lib/gitignore.js";
+import { writeFileAtomic } from "./lib/atomic.js";
 import { unknownOption } from "./lib/flags.js";
 
 const die = (msg) => { console.error(`epito: ${msg}`); process.exit(1); };
@@ -165,7 +166,15 @@ export function readPrincipals(dir = ".") {
 
 export function writePrincipals(records, dir = ".") {
   ensureDir();
-  writeFileSync(join(dir, PRINCIPALS_PATH), JSON.stringify({ principals: records }, null, 2) + "\n");
+  // `readPrincipals` above refuses to overwrite this file when it cannot read
+  // it, which is right — and a plain write is how it becomes unreadable. The
+  // store is read-modify-written on every deploy, so a truncating write on a
+  // full device leaves zero bytes, `JSON.parse("")` throws, and that refusal
+  // then blocks every later deploy until a human moves the file aside.
+  writeFileAtomic(join(dir, PRINCIPALS_PATH), JSON.stringify({ principals: records }, null, 2) + "\n", {
+    what: "the record of which App is which agent, which every `epito token` mint reads",
+    retry: "run this deploy again — the App itself was created, so re-running records it",
+  });
 }
 
 // The installation for the manifest's repo goes first in the list, because
@@ -186,10 +195,21 @@ function writeKey(name, pem, dir = ".") {
   const keysDir = join(dir, KEYS_DIR);
   mkdirSync(keysDir, { recursive: true, mode: 0o700 });
   const path = join(keysDir, `${name}.pem`);
-  writeFileSync(path, pem.endsWith("\n") ? pem : pem + "\n", { mode: 0o600 });
-  // writeFileSync's mode is ignored when the file already exists, and a key
-  // that was once world-readable stays world-readable. Say what we mean.
-  chmodSync(path, 0o600);
+  // GitHub shows an App's private key once. A truncating write that runs out
+  // of room destroys the only copy on this machine and nothing can give it
+  // back: the fix is a NEW key on the App's settings page, so the old file
+  // surviving is the whole point (lib/atomic.js).
+  //
+  // The 0600 also stops being a second step. writeFileSync's mode was ignored
+  // whenever the file already existed, so a key that was once world-readable
+  // stayed world-readable for as long as it took the chmod on the next line to
+  // run; the atomic write sets the mode on the temporary file before the first
+  // byte of key material enters it.
+  writeFileAtomic(path, pem.endsWith("\n") ? pem : pem + "\n", {
+    mode: 0o600,
+    what: `"${name}"'s GitHub App private key, which GitHub will not show again`,
+    retry: "run this deploy again",
+  });
   return path;
 }
 

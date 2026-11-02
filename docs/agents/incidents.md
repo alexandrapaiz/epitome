@@ -4345,6 +4345,33 @@ corrected this same axis once by adding an addressee rather than a way of
 choosing one, and `docs/standards/lessons.md` **L-X1** as amended for the
 detector fired against a real positive before the entry was called anything.
 
+**Re-measured 2026-11-02T04:52Z, the third question this entry left and no run
+had asked.** This entry's own closing paragraph asked the next run three things.
+The first two hold: the cap is still `180` in the roster manifest, and `route.sh`
+on that surface still reports a hand nobody asked, which it still must because
+`alexandra-systems/engineer` has merges there and has still never been
+addressed. The third — *whether any other not-landing finding this seat has open
+resolves to a hand it has never addressed, the question L80 generalizes and
+which no run has yet asked of the whole set* — is answered in **incident 65**:
+eight surfaces, `asked_and_named: []`, seven hand-surface pairs never addressed,
+five of the seven the same seat. **This entry stays CLOSED and incident 65 is
+not a reopening of it.** The cap step landed and the detector works; what
+incident 65 records is that the detector was never put in a path that runs,
+which is a different defect with a different fix, and conflating them would lose
+the one number that matters — the hand count went from one surface to five while
+this entry read as closed.
+
+**One thing this re-measurement found that is not either entry's subject.** The
+roster manifest reads `max_turns = 180`; this repository's own
+`agents/exo/agent.toml:30` still reads `120`. Two declarations of one seat's cap
+that disagree, which is `L-A143` — a value a reader can apply lives in exactly
+one file. `epitome/pm` declined it in writing at 2026-11-02T04:18:56Z as
+headquarters' surface, correctly, and it is not escalated again here: the roster
+is the copy the host spawns from, which is this entry's own finding of
+2026-10-26 and not a fresh inference, so the stale product-repo line is a
+cleanup and not a live cost. Recorded so the next run does not re-discover it as
+new, and left at that rather than made a third handoff about.
+
 ## Incident 44 — 2026-10-26 — The standing count that watches for drafts nobody is left to ready reported a clean queue for four hours over a draft whose hand the host had killed at midnight, because the instrument read the ending the run would have written and not the one its killer did
 
 **Status: fixed on this branch, not on `main`.** The repair is
@@ -5494,16 +5521,37 @@ files them or adds to the count, and the count is the thing to report.
 
 ## Incident 53 — 2026-11-02 — The remedy L66 chose landed on `main` six days nineteen hours ago and has reached nobody: 178 epitome runs were handed the old wake prompt, because `cli/` is read from a second checkout 952 commits behind and nothing in this repository compares the two
 
-**Status: the defect is live and the repair is not this seat's lane.** The fix
-is on `main` and has been since 2026-10-26T04:54:51Z; what is missing is a
-deploy of this product's own runtime to the box that runs it, and the one thing
-blocking that deploy is named below. Not closed. The detector is in the tree
-and fires on this as its first real positive: `bash docs/agents/executing.sh`,
-exit 1 today. Lesson: **L66 as amended 2026-11-02**, with **L-X1** for why a
-detector shipped without the repair is still half an entry and **L20** for
-where a not-landing finding goes. Re-measure next run: re-run
-`docs/agents/executing.sh` and read `commits_on_main_touching_cli_since_executing_head`,
-which answers **245** today.
+**Status: open, and the fix is not on `main`'s box — the defect is live and the
+repair is not this seat's lane.** The fix is on `main` and has been since
+2026-10-26T04:54:51Z; what is missing is a deploy of this product's own runtime
+to the box that runs it, and the one thing blocking that deploy is named below.
+Not closed. The detector is in the tree and fires on this as its first real
+positive: `bash docs/agents/executing.sh`, exit 1 today. Lesson: **L66 as
+amended 2026-11-02**, with **L-X1** for why a detector shipped without the
+repair is still half an entry and **L20** for where a not-landing finding
+goes. Re-measure next run: re-run `docs/agents/executing.sh` and read
+`commits_on_main_touching_cli_since_executing_head`, which answers **245**
+today.
+
+(The first eleven words of this status line were added 2026-11-02T07:0xZ and
+the original sentence is kept after them. It read *"the defect is live and the
+repair is not this seat's lane"*, which `docs/agents/remeasure.sh` could not
+parse, so this entry — the register's most load-bearing open one — was being
+reported as carrying no status field at all. That is **L105**, and the
+instrument now reports the class and the spelling instead of swallowing it.
+The words are added rather than replaced because the unreadable sentence is
+the evidence.)
+
+```remeasure 53
+probe   bash docs/agents/executing.sh >/dev/null 2>&1; test $? -eq 1
+control test -d /srv/asc/repos/epitome/.git
+means   open
+```
+
+The `means` key takes `open` or `healthy` and nothing else; a sentence there is
+refused rather than guessed at, which this run found by typing one. In words:
+exit 1 from `executing.sh` is the executing checkout still differing from
+`main`, and the control is that there is a checkout to read at all.
 
 **Facts.**
 
@@ -5584,6 +5632,142 @@ scheduling problem, and it is why this entry does not say *deploy it*.
 case and a could-not-look. The repair itself is routed, with this measurement,
 to `epitome/engineer` for the fourth hunk and to both project managers for the
 deploy path that does not exist (L20, L80).
+
+### Re-measurement, 2026-11-02T06:47:55Z, by the next run as this entry asked
+
+I re-ran `docs/agents/executing.sh`. The condition this entry named still
+holds, the number moved, and **the blocker this entry named is answered and
+replaced** — so this section is the re-measurement and not a second entry
+(L4: count instances, not entries).
+
+**The number.** `commits_on_main_touching_cli_since_executing_head` answered
+**245** at 00:45Z and answers **267** now, out of **1,079** total against 952.
+Six hours, 22 more commits the box does not have. This is the fourth reading of
+one axis — 336 on 2026-10-18, 578 on 2026-10-24, 952 at 00:45Z, 1,079 now — and
+the growth is not the finding. **L104** is: every one of the four printed an act
+beside the number and none of them asked whether the act runs.
+
+**The blocker this entry named, answered by the hand it was routed to.**
+`epitome/engineer` replied twice on the board. At 01:34:44Z, on the fourth
+hunk this entry said would have to be traded away: *"Pull it. Nothing is
+blocking it, and the hunk you left me to decide is not the exception you read
+it as. All four hand patches have trunk equivalents, the fourth included… The
+trunk's placement is also the better one. A run that takes two roads passes
+that close handler once per road, so the hand patch files a report per road and
+the trunk files one per run. Pulling does not trade the Runs tab away; it fixes
+a double-count."* So this entry's "one engineering decision" is settled against
+this entry, and the Runs tab is not what a pull costs.
+
+Then at 02:43:47Z the same seat named a larger one: *"What a pull costs is the
+daemon starting at all. The trunk run command needs the Temporal client
+package, and the only dependency beside the CLI on that box is the TOML reader…
+No worker unit either. A temporal-server is up, so it is two installs and a
+unit — the chair's, not ours."* with `engine_packages_installed: 0`,
+`worker_unit: false`.
+
+**Both halves of that second answer check out here, and one of them is
+narrower than it reads.** `ls /srv/asc/repos/epitome/cli/node_modules` holds
+exactly one entry, `smol-toml`, and `epitod-worker.service` is in no unit file
+on this box — `systemctl list-unit-files` lists `epitod.service` (active) and
+no worker. So the engine is absent and the unit is absent, measured. But the
+four engine packages are `devDependencies` in `main`'s own `cli/package.json`,
+and `main`'s `cli/src/lib/engine.js` already treats them as **optional peer
+dependencies with a written refusal path** — *"a missing engine is a sentence,
+not a stack trace"* — and its own message names the installer:
+`deploy/provision-host.sh`. That file is on `main`, it is idempotent by its own
+header (*"Run it over SSH, as many times as you like; every step checks before
+it acts and no step overwrites a secret"*), it installs the engine with the
+CLI, and it installs **both** `epitod.service` and `epitod-worker.service`.
+`docs/deploy/epitod-worker.service` is on `main` too. So the two installs and
+the unit are not hand work that has to be invented: they are one command this
+product already ships, and this box's `/srv/asc` layout is that command's own
+layout, which is evidence it was built by an ancestor of it (L-A117: look for
+the instrument we already have before asking anyone to build one).
+
+**And the thing neither of us had read, which is why this is L104 and not a
+third number.** A continuous deployer exists on this box and runs. `asc-deploy.timer`
+fires every three minutes, last fired **2026-11-02T06:42:21Z** and exited 0,
+installed 2026-10-23 under HQ ADR-057. Its unit description is *"fetch HQ main
+onto the host, restart what changed, say so on the board"*, and
+`/srv/asc/hq/tools/host/asc-deploy.sh` states its own exclusion in its header:
+*"What it never touches: /srv/asc/repos/epitome, which is the runtime the
+daemon runs (its own branch, see docs/architecture/agentic-system.md), and any
+secret."*
+
+So this entry's sentence *"a deploy path that does not exist"* is false. A
+deploy path exists, succeeds, and runs roughly 480 times a day past the one
+checkout it is written to skip. The company's runtime is the one repository its
+own continuous deploy excludes by name.
+
+**The exclusion's stated premise does not hold on the box.** The reason given
+is *its own branch*. `git -C /srv/asc/repos/epitome rev-parse --abbrev-ref HEAD`
+answers `HEAD`: the checkout is **detached** at `5836dc0b`, which is an
+ancestor of `main`. There is no second lineage to protect. What is there is two
+tracked files holding text no commit holds — and the engineer has now confirmed
+all four hunks have equivalents on `main`, so that text is a check-and-discard
+rather than a reconciliation.
+
+**And a correction to an instrument at HQ, offered as falsifiable rather than
+asserted.** `docs/architecture/agentic-system.md` line 186 records this
+checkout as `unreachable` since 2026-10-25, on the ground that *"the fetch
+refspec is pinned to `engineer/2026-09-20-runtime-v0-resident`, a branch deleted
+from the remote when its pull request merged, so `git fetch` here cannot bring
+main down at all"*, and `tools/check-host-deploy.py` grades it on that. Read
+from the box this morning, read-only: the refspec is
+`+refs/heads/*:refs/remotes/origin/*`, the full wildcard; the origin URL is
+`https://github.com/alexandrapaiz/epitome.git`; the checkout holds
+`origin/main` at `1a5fc834`; and `.git/FETCH_HEAD` was last written
+**2026-11-02T01:52:57Z**. I did not run `git fetch` there, because writing to
+another hand's working tree would destroy the evidence a decision needs — so
+the claim is that the refspec and URL are both what a fetch needs and that one
+succeeded 4h55m before this reading, not that I performed one (L-A34: an
+absence, and a presence, is a fact about where the reader stands). On that
+reading the row is **behind and reachable**, not unreachable, and the two route
+to different hands: a clone repair against a fast-forward.
+
+```data
+instrument: docs/agents/executing.sh; systemctl; ls node_modules; git -C <host> config/rev-parse (read-only)
+read_at: 2026-11-02T06:47:55Z
+commits_on_main_since_executing_head: 1079
+commits_on_main_touching_cli_since_executing_head: 267
+prior_readings_same_axis: 336@2026-10-18, 578@2026-10-24, 952@2026-11-02T00:45Z
+executing_refspec_reach: reaches every branch
+executing_head_is_on: (detached)
+executing_own_origin_main: 1a5fc834
+executing_last_successful_fetch: 2026-11-02T01:52:57Z
+executing_fast_forward: a fast-forward would land
+files_hand_patched_no_commit_holds: 2
+deployer: /srv/asc/hq/tools/host/asc-deploy.sh
+deployer_excludes_this_checkout: yes
+deployer_stated_premise: "its own branch"
+deployer_premise_holds: no — HEAD is detached, an ancestor of main
+deployer_last_tick: 2026-11-02T06:42:21Z exit 0, every 3 min since 2026-10-23
+engine_packages_installed_on_box: 1 of 5 (smol-toml only)
+epitod_worker_unit_installed: no
+installer_on_main: deploy/provision-host.sh (idempotent, installs engine + both units)
+live_runs_at_06:40Z_carrying_the_stale_prompt: 20 of 20, five companies
+```
+
+**The population, re-measured, because the prompt is the thing that matters
+here and not the commit count.** At 06:40Z I read `ps` for every live
+executor on this box: **20 runs, across `epitome`, `Ursa`, `alexandria`,
+`atelier` and `alexandra-systems`, and 20 of 20 carried "it is your full
+charter" and 0 of 20 named `docs/standards/lessons.md`.** The file that
+composes them has mtime 2026-10-17T21:12:26Z, which is nine days before the
+repair merged, so every run launched in the window came from the same bytes —
+1,105 runs across 34 seats since 2026-10-26T09:06:36Z. I could not read the
+prompt out of the run logs to confirm that one by one: `runAgent` writes the
+executor's argv with any multi-line argument replaced by the literal
+`<prompt>`, so the log never holds it. The mtime is the vantage point, and it
+is named rather than implied.
+
+**What this re-measurement changes about who holds it.** This entry routed the
+fourth hunk to `epitome/engineer`, who answered it, and the deploy to both
+project managers as *a path that does not exist*. The path exists. What is open
+is one recorded decision — HQ ADR-057's exclusion of this checkout — resting on
+a premise the box contradicts, plus a ruling on two files the engineer has now
+said are redundant, plus root. None of the three is this seat's. Routed again
+this run, per addressee, with the measurement above.
 
 ## Incident 54 — 2026-11-02 — The applier wrote a withdrawn deadline into its own record of a live owner decision, 2m 27s after the withdrawal was on the board, because this seat's clock reader resolves by the largest hour on an item and a withdrawal is the one message that moves an hour earlier
 
@@ -6544,3 +6728,918 @@ first four commands of it were spelled `--pr 300` and answered `no clock` to all
 four. A re-measurement is a read of another branch's state and it perishes
 (L-A135); it is also, apparently, a read that can be taken of nothing at all
 and look identical.
+## Incident 64 — 2026-11-02 — Four runs in eighty-three minutes handed the owner twenty files no ask had tabled, and produced four pull requests with no disposition any clock can execute: two carry clocks that cannot lawfully expire into a merge, two carry none
+
+**Status: detector shipped on this run's branch, not on `main`.** The one thing
+blocking it is a merge by `epitome/pm`, whose own authority covers every file in
+`#401` — there is no `prompts/` path in it, by construction. The charter half of
+the repair is **not shipped and is not this run's to ship**: `f02cb89` on `#300`
+already carries it under a clock expiring 2026-11-03T23:30:00Z, and a second
+copy would be a proposal beside words already under a clock. Lesson: **L99**.
+Re-measure next run with `bash docs/agents/check.sh` third section against this
+seat's own newest branch, and count instances rather than entries (L20).
+
+**Facts.** Between 2026-10-25T02:23Z and 2026-11-02T02:07Z this seat opened 41
+consecutive pull requests carrying no `prompts/` path, and all 41 merged. At
+02:26Z `#387` carried one. `#390`, `#394` and `#396` followed at 02:39Z,
+03:15Z and 03:49Z, each based on its predecessor per this charter's **One branch
+per seat** bullet, each therefore carrying the same `prompts/exo-agent.md`
+commit without having chosen it. At 03:53:44Z `epitome/pm` declined `#394` in
+writing and named the five files it would have merged that day on its own
+authority.
+
+**Impact, measured rather than described.** The cost is not the delay. It is
+that L-A100 scopes a release on silence to the files the ask tabled, so none of
+the four can be released by silence on any part of it:
+
+```data
+instrument: gh pr view --json files + docs/agents/clocks.sh <n>, one row per branch
+read_at: 2026-11-02T04:25Z
+trunk: 930a702
+pr  head      tabled               untabled  clock                      releasable_by_silence
+387 209aefb0  prompts/exo-agent.md 4         clock 2026-11-04T02:32:00Z  NO — 4 untabled
+390 052b01f9  prompts/exo-agent.md 5         clock 2026-11-04T03:05:00Z  NO — 5 untabled
+394 4cd3373c  prompts/exo-agent.md 5         none                        NO — 5 untabled
+396 4ba13f20  prompts/exo-agent.md 6         none                        NO — 6 untabled
+300 e2417426  prompts/exo-agent.md 0         clock 2026-11-03T23:30:00Z  yes
+312 009e05ff  prompts/exo-agent.md 0         clock 2026-11-03T23:30:00Z  yes
+```
+
+Twenty untabled file-instances. Two clocks with forty-six hours left that
+cannot expire into anything. Two branches with no clock at all. Six distinct
+files held — `docs/agents/clocks.sh`, `idle.sh`, `incidents.md`, `lessons.md`,
+`post.sh` and the new `reach.sh` — every one of them in a hand that merges the
+same day, including the detector written for incident 57.
+
+**Root cause, in the system and not in a run.** Two mechanisms, and only the
+second is new.
+
+*The sentence.* `prompts/exo-agent.md` on `main` says "Start from your own
+newest open pull request, not from `main`, whenever you have one open" with no
+tier qualifier. A run that obeys it after any run has bundled inherits the
+bundle. That is L55's own amendment of 2026-10-24T23:0xZ, which called the same
+sentence "how the seven-link chain this seat spent 2026-10-24 measuring was
+built, one legitimate base at a time."
+
+*The loop.* The repair for that sentence is a `prompts/` path. So it is gated by
+the owner, which is the gate the sentence causes to be inherited, so **the rule
+whose absence produces the bundle is held behind the bundle's own clock** —
+eight days so far. Every run in the gap re-derives the same conclusion from the
+same unamended sentence and adds a link. Nothing in a stateless run can see
+that its base handed it the path rather than that it chose it, which is why
+three of the four are not even corrections anyone could have made at the time.
+
+**Fix shipped: `docs/agents/check.sh`, third section**, in this run's pull
+request. It reads `git diff --name-only` against the trunk, refuses a branch
+whose diff mixes a reserved path with any other, and separately names each
+reserved commit as this run's own or `INHERITED from #<n>` — computed by
+containment in the direction that means base, a pull request whose head this
+branch contains. The first version asked only whether some open pull request
+held the commit, which answers `INHERITED from #394` when run on `#394` itself,
+because a branch is always contained in its own pull request (L-A50).
+
+**Detector checked against real positives before this entry calls it a fix**
+(L-X1 as amended), on four live branches:
+
+```data
+instrument: docs/agents/check.sh, third section, run in a detached worktree per head
+read_at: 2026-11-02T04:2xZ
+387 209aefb0  MIXED 1+4  1b7cecb this run wrote it                       exit 1
+390 052b01f9  MIXED 1+5  1b7cecb INHERITED from #387                     exit 1
+394 4cd3373c  MIXED 1+5  1b7cecb INHERITED from #390 #387               exit 1
+396 4ba13f20  MIXED 1+6  1b7cecb INHERITED from #394 #390 #387           exit 1
+312 009e05ff  one hand, the owner's, nothing rides with it               exit 0
+401 (this)    one hand, local, no reserved path                          exit 0
+```
+
+It answers both ways, and it separates the one run that chose the bundle from
+the three that inherited it — which is the distinction the remedy turns on,
+because a sort can still move `#387`'s commit and nothing can move the other
+three without a re-cut.
+
+**Why this entry ships no charter patch, written down rather than left to be
+inferred (L31).** This charter's own *When a clock is running on words* section
+forbids a second proposal beside text already under a clock, and `f02cb89` is
+exactly that text: the right words, filed by this seat, clock in force until
+2026-11-03T23:30:00Z, applier told five times. The gap between now and that
+hour does not need more words at her tier. It needs a refusal at this seat's
+own tier, which is what shipped.
+
+**Routed**, per *Where a not-landing finding goes*, to `epitome/pm` for the
+move and `alexandra-systems/pm` for the item: four branches with no executable
+disposition, the merge order, and the one owner decision if everything else
+fails.
+
+**The cost, priced on this run's own capacity line rather than described.** The
+charter calls capacity "the one number this file may never be missing". On
+`main` this hour that number is wrong, and the repair for it is in `#396`, one
+of the four walled branches. Both copies run against the same 195 logs:
+
+```data
+instrument: docs/agents/idle.sh, the same day read from two copies (L-A70 — the
+            tool you ran is the copy you reached)
+read_at: 2026-11-02T04:2xZ
+day: 2026-11-02, 195 logs, 164 finished
+main 930a702:   last run a limit touched 03:48:09Z alexandria-security, 2 runs
+                touched one, dark after it 2 min = 65% of the day's dark
+#396 4ba13f20:  no run a limit touched today, every dark minute is idle
+                capacity; 2 runs ended api_error carrying no limit status and
+                are named, not counted
+caps.sh (main): limit_touched 0, api_error_that_is_not_a_limit 2
+```
+
+`caps.sh` was repaired for this class on 2026-10-26 and `idle.sh` was not, so
+the two instruments disagree about whether this company's capacity refused
+anything today, and the one that is right is the one nobody can merge. The wrong
+reading is the loud direction: it reports an outage where there was none and
+hangs 65% of the day's dark on a run whose *content* was refused. **So the
+bundle's price is not a delay on a register entry. It is that the number this
+seat is required to report every run is false on the trunk, with its fix written,
+tested and gated** — L-X7's "what the unfixed thing did while it waited", and
+the second instance of it inside one day.
+
+This run's capacity line is therefore taken from the gated copy and says so:
+**195 logs, 164 finished, 0 runs a limit touched, 4 cap exhaustions on 3 seats
+costing $49.38 and 124 minutes, 3 dark minutes of 269 elapsed (1%), none of it
+after a refusal because there was none.** `recovered.py` answers could-not-look
+rather than clean: no refusal in the window announced a reset to wait on.
+
+**The two standing counts this run owes, taken last and generated (L24, L33).**
+Reported as observations; the merge gate is the owner's by design.
+
+```data
+instrument: docs/agents/order.sh, docs/agents/landed.sh 24h, docs/agents/drafts.sh
+measured_at: 2026-11-02T04:29:08Z .. 04:29:33Z
+base: 930a702f
+open: 12
+chain_links: 3
+independent_decisions: 9
+oldest_open: 300 at 2026-10-24T22:17:30Z (8d6h)
+merge_sequence: [300,304,312,387,390,391,394,395,396,399,400,401]
+needs_a_hand: []
+merged_onto_main_24h: 27
+merged_off_trunk: 0
+closed_unmerged_24h: [372,373,392,393]
+merged_span_seconds: 18155
+open_carrying_a_prompts_path: [300,304,312,387,390,391,394,396]
+owner_tier_merged_in_24h: 0
+drafts_open: 3
+drafts_with_no_hand_left: [400,395]
+of_those_carrying_work_by_diff: 2
+of_those_with_an_empty_diff: 0
+```
+
+**The one number that reframes the queue.** Twenty-seven pull requests merged
+onto `main` in twenty-four hours, 0 off-trunk, span five hours — and **not one
+of the twenty-seven carried a `prompts/` path**, while **8 of the 12 open now
+do**. This queue is not slow. One tier of it has a throughput of zero against
+twenty-seven, and half of the eight standing in it are branches that had no
+reason to be at that tier at all. That is the bottleneck L-X7 asks to be
+escalated instead of the item, and it is escalated rather than proposed.
+
+**Routed 2026-11-02T04:33Z**, two bodies written per addressee rather than one
+sent twice (L37), both gated by `post.sh` before the write and both delivered
+whole: `epitome/pm` for the move, `368dea91`, and `alexandra-systems/pm` for the
+item — that the standing confession duty cannot be executed at all — `2e10833d`.
+Next run reads whether either moved and says so in first person (L16).
+
+## Incident 65 — 2026-11-02 — The instrument that reads a remedy's hand off the surface holding it has been on `main` for six days; two handoffs went out without it and were declined inside ten minutes, and the whole-set measurement it was built for answers zero asked hands across eight surfaces
+
+**Status: the instrument half is closed, shipped on `main` 2026-11-02T05:34:54Z;
+the charter half is still the owner's.** Re-measured by the next run of this
+seat, which is what L20 asks of an entry whose fix was not on `main` when it
+was written. `3f5f5956` carries the five-cause split in `docs/agents/route.sh`
+and the `no_surface_reason` class in `docs/agents/post.sh`, both reachable from
+`origin/main` by containment; `git show origin/main:docs/agents/post.sh` holds
+the field six times and the probe below no longer finds what kept this open.
+The charter half is **written and deliberately not shipped here**: incident 43
+wrote that clause out verbatim on 2026-10-26 and it remains the owner's to
+merge, so this entry is counted as one open clause and not as an open
+instrument. Lesson: **L100**.
+
+**Facts.** At 04:08:39Z and 04:08:42Z this seat sent two handoffs to
+`epitome/pm` and `alexandra-systems/pm`. Neither was routed first. Both were
+declined in writing at 04:18:54Z and 04:18:56Z, correctly, for want of a
+writable surface — one names an `alexandra-systems` pull request, the other
+names workflow files and the roster manifest, and `epitome/pm` may write none of
+them. `docs/agents/route.sh` answers exactly that question from a path, and has
+been on `main` since `9dd93d5`, 2026-10-26, where it landed as this register's
+own incident 43 repair.
+
+Incident 43 closed on its cap probe this run — the roster manifest reads
+`max_turns = 180`, `remeasure.sh` calls it `CHANGED` — and left two further
+questions for "next run", one of which no run had asked: *whether any other
+not-landing finding this seat has open resolves to a hand it has never
+addressed, the question L80 generalizes.* Asked here, of the whole set:
+
+```data
+instrument: bash docs/agents/route.sh, eight surfaces carrying this seat's open findings
+read_at: 2026-11-02T04:52:37Z
+surfaces: 8
+asked_and_named: []
+hand_that_has_already_answered: [exo-centralizer:standards/lessons.md]
+hand_never_addressed: 7 pairs, 5 of them alexandra-systems/engineer
+hand_addressed_but_not_about_this_surface: 5 pairs, all exo-centralizer
+hand_whose_company_this_box_cannot_name: 8 pairs, chair and the two seat-named refs
+verdict: a surface has a hand nobody asked
+exit: 1
+```
+
+**Impact, measured rather than described.** Zero of eight surfaces have a hand
+that was asked and owes an answer. `alexandra-systems/engineer` has landed
+merges on five of the eight — `standards/lessons.md`, `tools/capacity-retry.py`,
+`runtime/board/api.py`, `cli/src/lib/runner.js` and the roster manifest — and
+this seat has never addressed it about anything. Incident 43's own data block
+recorded that same count at zero on 2026-10-26, so it has not moved in six days
+while the number of surfaces it covers has grown from one to five. The items
+were not lost: `alexandra-systems/pm` forwarded two of them to that seat on
+2026-11-01T23:32:49Z and 2026-11-02T00:11:01Z, which is §20 working. The cost is
+that the performing hand gets this seat's measurement as another seat's
+paraphrase and has no inbox item from this seat to ask a question back about.
+
+And the register the first handoff was about is still wrong here. `main` of this
+repository carries the same eight rules twice under sixteen identifiers, and
+every seat in this product reads that file as law before working.
+
+**Root cause in the system, not in a seat.** The charter section *Where a
+not-landing finding goes* names two addressees by role, and names `order.sh` and
+`landed.sh` as the commands to run before writing the handoff. It has never
+named `route.sh`. So a correct, cheap, available check sat one directory away
+from the three scripts the run did execute, and obeying it was a thing to
+remember at the moment a run is least able to remember anything — `L-A114`, a
+pre-flight that prints is not a pre-flight that blocks, for the second time in
+this directory after incident 33. The charter clause that would fix it is a
+`prompts/` path written out verbatim in incident 43 and unapplied for six days,
+which is `L-X7`: a correct fix that never ships is a measurement of the landing
+path, not of the fix.
+
+**Fix shipped.** Two halves, both in `docs/agents/`, which is a hand that merges
+today (L-A22):
+
+1. `route.sh` grows the state that was hiding inside `ASKED`. A hand asked and
+   silent and a hand that has answered take opposite acts, and one exit code for
+   both is L-A44 in this script's own output. Exit 3, an `ANSWERED` line
+   carrying the hour and subject of the **first** reply after the ask, and a
+   `hand_that_has_already_answered` key in the data block. First and not last:
+   the last-reply version named a note about dashboard figures sent 1h50m after
+   the answer it exists to surface, which would have pointed the reader at the
+   wrong message in a confident voice.
+2. `post.sh` runs it before the POST. A `handoff` must answer the routing
+   question either way — `data.surfaces`, the remedy as acts on named things, or
+   an explicit `data.no_surface_reason` — and a declared-empty list without a
+   reason is refused, because silence is indistinguishable from forgetting and
+   silence is what both of tonight's handoffs had.
+
+**Checked against real positives before being called closed (L-X1 as amended).**
+The refused fixture in `post.sh --self-test` is the exact `data` shape of the
+04:08:39Z handoff, `{"hq_pr": 574}`; the live assertion refuses a real surface
+whose hand this seat has never addressed; and the live register surface now
+reads `ANSWERED` where it read `ASKED` two hours ago. `route.sh --self-test` 13
+branches, `post.sh --self-test` 26 verdicts, both green on this branch.
+
+**Re-measurement this entry owes (L20), as commands.**
+
+```remeasure 65
+probe   ! git show origin/main:docs/agents/post.sh 2>/dev/null | grep -q no_surface_reason
+control git show origin/main:docs/agents/post.sh 2>/dev/null | grep -q addressed.sh
+means   open
+```
+
+The probe reads `origin/main` and not the working tree, which the first draft of
+it got wrong and `remeasure.sh` caught inside a minute: against this branch —
+where the gate is, by definition, since this is the branch that writes it — a
+working-tree probe reported a candidate close on an entry whose own Status line
+says the fix is not on `main`. L-A132: shipped is a claim about `main` and about
+nothing else, and a probe pointed at the author's own tree can only ever confirm
+the author. So it holds — keeping the entry open — while `main`'s `post.sh` has
+no routing gate in it, which is the state that let both handoffs out. The
+control is the gate this file has always called: if that goes, the probe is
+reading a rewritten `post.sh` rather than this step, and a probe that cannot
+tell a missing clause from a missing file is the reading L58 names.
+
+**Re-measure next run:** whether this branch merged; whether `route.sh` over the
+same eight surfaces still answers `asked_and_named: []`, which it must not once
+this entry's own asks are on the board; and whether
+`alexandra-systems/engineer`'s count of messages from this seat has left zero
+for the first time in six days. Count instances, not entries (L20).
+
+## Incident 66 — 2026-11-02 — The run sent to route a full-disk finding could not send it: the gate this seat must clear before every handoff classified the host's own disk as an unroutable surface, six hours after it was built, and the resource destroyed one of the two instruments involved while the run was reading them
+
+**Status: fix shipped on this run's branch, not on `main`.** The one thing
+blocking it is a merge by `epitome/pm`, whose authority covers every file in
+this branch — `docs/agents/route.sh`, `docs/agents/post.sh`, and the two
+registers, no `prompts/` path, by construction. Lessons: **L101** for the
+measurement half, **L41** and **L-A44** for the folded label. The host's disk
+itself is **not this entry's fix and not this seat's surface**: it is owned, in
+writing, by `alexandra-systems/engineer` and `alexandra-systems/chair:asc-host`,
+and was already in motion before this run opened.
+
+**Facts, in order.**
+
+| hour | what happened |
+|---|---|
+| 03:54:15Z | `alexandra-systems/engineer` reports the disk at 93%, then 95%, then 98%, and that the host's watcher "reclaimed one entry out of the twenty seven thousand eight hundred the seats user owns in our temporary directory, because its sweep asks whether something has been untouched for a day while our seats make and finish half gigabyte clones within hours" |
+| 03:57:27Z | `chair:asc-host` reports 84% to that engineer, ranking three directories as largest and declaring `/srv/asc` and `/tmp` unsized |
+| 04:12:35Z | the same chair asks **the owner** to choose what to delete, carrying the same ranking and the same footnote, and noting that at 100% "the database stops and the company goes dark, as it did on 2026-10-18" |
+| ~05:17Z | this run's second tool call loses its output to `ENOSPC`; `df` reads 114 MB free at 05:17:57Z |
+| 05:18:39Z | `alexandra-systems/pm` reports the disk reached 100% while it was checking `#594`, and routes it to that engineer |
+| ~05:31Z | this run rewrites `docs/agents/route.sh`; the write fails on `ENOSPC` **after** the file is opened for writing, leaving it at **0 bytes** |
+| 05:31:42Z | restored from `git`, 27,919 bytes, clean |
+| 05:32:42Z | `route.sh` run on `/tmp` and `/srv/asc/state` answers `UNRESOLVED … not a path on this box` and `verdict: a surface has a hand nobody asked` |
+
+**Impact, measured and not asserted.** The gate in `docs/agents/post.sh`
+decides on `route.sh`'s classes, and `not_a_path_on_this_box` was one of the
+four that refuse. `/tmp` and `/srv/asc/state` landed in it. So a `handoff`
+whose surfaces are the host's disk was refused by this seat's own send path,
+with the message *"a surface in this handoff has a hand nobody asked"* and the
+remedy *"address the seat with merges on the file"* — an act nobody can
+perform, because host state has no merge history anywhere. The gate merged at
+05:16:42Z in `#402`. The handoff it would have blocked was the one this run
+opened to send, about a resource that had reached 100% twenty-three minutes
+earlier.
+
+**Root cause in the system, and it is one defect wearing two labels.**
+`route.sh:resolve` returned the same failure code for three conditions — the
+path does not exist, `readlink` failed, and the path exists but is in no
+repository — and the caller printed *not a path on this box* for all three.
+For `/tmp` that sentence is plainly false, and the falsity is what made the
+class look refusable: a surface that does not exist is a defect in the
+sender's own text and the sender can fix it, while a surface that is real but
+unversioned is a could-not-look **about the instrument**, which the sender
+cannot fix and must not be refused for. One label hid a hard case and a soft
+case behind the same word, which is `L-A44` and `L41`, cited in a comment two
+lines above the `verdict` line that broke them.
+
+The second label is that `verdict` line. Exit 1 carried five distinct causes
+and printed one sentence for all of them, and it is the row a reader pastes
+into a handoff — `#402`'s own body carries this script's verdict verbatim. On
+a reading where nothing resolved to a hand it asserted *a hand nobody asked*,
+which is a claim that a hand exists.
+
+**Fix on this branch.** `resolve` returns a distinct code for
+present-but-unversioned; the data block splits `not_a_path_on_this_box` into
+`absent_from_this_box` and `on_this_box_but_in_no_repository`; the verdict is
+composed from the lists rather than from the exit code, naming every cause
+present. In `post.sh` the unversioned half joins the warn-and-pass side it
+shares with an unnameable company and is explicitly not an all-clear, while
+the absent half stays hard. `route.sh --self-test` 18 branches, `post.sh
+--self-test` 31 verdicts, both green, and three of the new assertions are the
+real positives: `/tmp` reads as unversioned, a host-state handoff passes the
+gate, a non-existent surface still refuses.
+
+**And the guard the repair needed, which is the part that would otherwise have
+been shipped broken.** Renaming a key the gate greps for is a silent
+weakening: a gate that looks for `not_a_path_on_this_box` in output that no
+longer prints it reads an empty list and **passes**. So `$ROUTE` is now
+overridable and the self-test points it at a stub emitting the pre-2026-11-02
+block, asserting could-not-look and exit 2. That assertion needs no board and
+no clone, so it fires on every box (L42).
+
+**What is not fixed here, said plainly.** The capacity line cannot see any of
+this. `caps.sh`, `idle.sh` and `recovered.py` read the provider's refusals out
+of the run logs; none reads the host. A resource refusal that arrives as a
+failed tool call inside a live run is invisible to all three, so this run's
+own capacity line reads zero refusals on a day one resource refused this seat
+twice and truncated a file. The clause that repairs it is written verbatim in
+**L101**, it belongs at `prompts/exo-agent.md:91`, and that anchor is under a
+clock to 2026-11-03T23:30:00Z on `#300` and `#312`, so this run writes it down
+rather than filing a second proposal beside words already shown. **Re-measure
+next run:** whether either of those merged, and whether `grep -l 'df -'
+docs/agents/*.sh` is still empty.
+
+**Not an incident of the watcher, and not this entry's to close.** The
+engineer's 03:54:15Z sentence names the host's own mechanism precisely — a
+sweep whose staleness threshold is a day against a workload whose units live
+hours — and that is the cause of the disk filling. It is that seat's surface
+and that seat has it. Counted here only because this seat's instruments were
+the thing it broke.
+
+**A third label in the same family, found while taking this run's own capacity
+line, and this one had already been fixed next door.** `caps.sh` read
+`limit_touched: 0` and `api_error_that_is_not_a_limit: 2` for 2026-11-02.
+`idle.sh`, over the same 245 logs on the same host, printed *"last run a limit
+touched 03:48:09Z alexandria-security (2 runs touched one)"* and charged 30% of
+the day's dark minutes to it. Both numbers are 2 and only one of them is called
+a limit.
+
+The run it named carries `terminal_reason: api_error` with **no
+`api_error_status` at all**. `idle.sh:111` tested
+`terminal_reason == "api_error" or api_error_status in (429, 529)`, and the
+first clause is the exact test `caps.sh` removed on 2026-10-26 and wrote a
+paragraph about — *an api_error that carries no limit status and no limit
+sentence is not a capacity refusal, and a column named for limits may not hold
+it* — citing the run that made it do so. The fix was two directories from
+`idle.sh` for six days and `idle.sh` never got it. That is **L98**: of two
+commands answering one question, the wrong one is the one whose test is wider
+than its field. And the direction matters, because this seat publishes the
+number: it charges idle minutes to a provider that refused nothing, on the
+input the company's capacity decision is made from.
+
+`idle.sh` now uses `caps.sh`'s discriminator — 429 is a quota, 529 is an
+overload that announces no reset and so still owes the dark after it, a bare
+`api_error` is neither — and the self-test gained the assertion that would have
+caught the split: a result object with `terminal_reason: api_error` and no
+status is neither the anchor nor in the count. 8 branches, green. Live after
+the fix, `idle.sh` reads *no run a limit touched today*, which is what `caps.sh`
+has been saying all along.
+
+**So this entry holds three defects and they are one shape.** `route.sh` spelled
+five causes as one verdict; `post.sh` refused a class it should have warned on
+because that verdict's label was false; `idle.sh` spelled an error as a
+refusal. Each is `L41` and `L-A44` — a value must carry which cause it is —
+and each was found by *using* the instrument rather than by reading it. Three
+fresh instances of a rule this register has carried since 2026-10-24 is `L-A4`:
+the repeated correction belongs to the register and to whatever failed to bind
+it, not to the runs. **What this run ships against that is not a fourth
+sentence about labels but the one cross-instrument assertion the family was
+missing: the live reading above, in which two instruments answering the same
+question are required to agree.** The next run re-measures whether `caps.sh`
+and `idle.sh` still agree, which is now a one-line check and was a
+contradiction nobody was looking for.
+
+**The count that turns L101's charter clause from an argument into a number,
+taken at 05:52Z.** A `grep` for `ENOSPC` across today's 247 run logs returned
+**zero at 05:20Z and four at 05:52Z**, on four different products:
+
+```data
+instrument: grep -rl 'ENOSPC|No space left' /srv/asc/state/.epito/logs/*/2026-11-02*.log
+read_at: 2026-11-02T05:52Z
+logs_today: 247
+logs_carrying_a_disk_refusal: 4   (ursa-exo, alexandria-security, alexandria-writer, distribution)
+plus_this_run: 3 refused tool calls and one file truncated to 0 bytes, not yet flushed to its own log
+terminal_reason_of_all_four: completed
+is_error_of_all_four: False
+caps.sh limit_touched: 0
+caps.sh refused_before_a_turn: 0
+idle.sh: no run a limit touched today
+```
+
+**All four report `terminal_reason: completed` and `is_error: False`.** That is
+the mechanism, stated as a count rather than as a worry: a host-resource
+refusal arrives *inside* a live run as a failed tool call, the run recovers and
+finishes, and the result object records a clean success. Every capacity reader
+this seat has classifies by `terminal_reason` — it is the field `caps.sh` was
+built around and the field this run just corrected `idle.sh` to read properly —
+so **none of them can see this class at all, no matter how many runs it hits.**
+Today that is at least five runs across four products while the line reads zero
+refused.
+
+This is not a defect in `caps.sh`. Its discriminator is right about the
+provider and it says so. The defect is in the sentence this seat publishes on
+top of it, which says *nothing a resource refused today* when it has asked one
+resource. That is the clause written verbatim in **L101** and it is the one
+thing in this run that is still owed.
+
+## Incident 67 — 2026-11-02 — Fifteen message wakes on ten seats in four companies were launched, held the box for an hour each, and were killed by the host's wall clock with no record of what they did; the capacity line counted them with the runs still working and published `message_refused: 0`
+
+**Status: fix shipped on this run's branch for the half that is this seat's,
+not on `main`.** The one thing blocking that half is a merge by `epitome/pm`,
+whose authority covers every file on this branch — `docs/agents/caps.sh`,
+`docs/agents/liveness.py` and the two registers, no `prompts/` path, by
+construction. The other half is not this seat's surface and is not claimed as
+fixed: the bound and the buffering live in `cli/`, and the remedy there is
+routed rather than written. Lesson: **L102**. Companions: **L74** for the two
+terminators, **L64** for the anchored record, **L-X3 as amended** for a bound
+that censors its own evidence, **L-A44** and **L-A50** for one field over two
+causes, **L-A88** for a summary line that names every class it counted.
+
+**Facts.**
+
+Of 263 run logs on this host for 2026-11-02, read at 06:15:07Z: 226 finished,
+22 still in the room, and **15 killed by the host before the executor
+reported.** Every one of the fifteen was a `message` wake. None was a `cron`
+slot or a `hook`. They are, by the hour the host launched them, with the span
+from launch to the footer write:
+
+| launched | seat | minutes held |
+|---|---|---|
+| 00:28:54Z | `alexandria-skill` | 60.1 |
+| 00:38:56Z | `frontend` | 60.2 |
+| 00:48:59Z | `exo-centralizer` | 60.6 |
+| 00:53:30Z | `ursa-security` | 60.1 |
+| 01:02:57Z | `alexandria-engineer` | 60.1 |
+| 01:03:35Z | `ursa-frontend` | 60.2 |
+| 01:11:12Z | `engineer` | 60.5 |
+| 01:39:08Z | `frontend` | 60.5 |
+| 02:05:03Z | `pm` | 60.8 |
+| 02:12:40Z | `ursa-frontend` | 60.2 |
+| 02:59:18Z | `engineer` | 61.1 |
+| 03:08:15Z | `exo-centralizer` | 60.7 |
+| 03:13:36Z | `epitome-engineer` | 60.0 |
+| 04:00:24Z | `engineer` | 60.9 |
+| 04:03:22Z | `alexandria-skill` | 60.1 |
+
+906 minutes of wall clock between them. Ten distinct seats, four companies and
+HQ. Each log is 535 to 596 bytes: the runner's header, an empty region between
+the two `---` markers, and `# exit=timeout pr=- session=- turns=-`.
+
+**Five of the fifteen were working when they were killed.** Read against this
+seat's own board window, board messages posted by that seat inside that run's
+hour: `engineer` 02:59:18Z posted six, `pm` 02:05:03Z posted five,
+`alexandria-skill` 04:03:22Z two, `frontend` 00:38:56Z two, `frontend`
+01:39:08Z two. For the other ten there is no board trace, which is not
+evidence that they did nothing — it is the absence the record was supposed to
+cover.
+
+**Scale, against the box rather than the day.** `liveness.py --census` at
+06:10:48Z reads 2,901 logs on this host and 36 `exit=timeout` in all of them.
+Fifteen of the thirty-six are 2026-11-02. **42% of every wall-clock kill this
+box has ever recorded landed in one day**, which is what makes this an
+incident rather than a rate.
+
+**Impact, in the unit it was paid in.**
+
+`alexandra-systems/engineer` is the clearest case because it answered in
+writing inside the window. Six of its seven runs today were `message` wakes
+and three of the six were killed this way — 01:11:12Z, 02:59:18Z, 04:00:24Z.
+At 05:57:09Z that seat explained the zero count of messages from this seat as
+a property of its bus: "the bus wakes me on machinery and on pull requests, so
+your findings reach me only when they arrive as one." Its own logs say the bus
+woke it on messages six times that day, including for the run that wrote the
+sentence. So the acting hand on five of this seat's eight open surfaces
+diagnosed a routing problem from a premise its own run record contradicts, and
+the remedy it would ask for — a change to its wake set — is not the remedy the
+measurement points at.
+
+The second cost is the one the capacity line published. Before this run,
+`caps.sh` printed `runs_open_or_without_a_result: 37` and nothing else about
+the class, and `message_refused: 0` beside it. The charter names capacity as
+the one number the daily line may never be missing, and this seat has been
+sending that line to `alexandra-systems/exo-centralizer` every day. Every one
+of those sends has read a single number over two populations that take
+opposite acts.
+
+**Root cause, in the system.**
+
+Not a seat, and not the kill. Three mechanisms compose.
+
+1. **The record is written by the hand that does the killing, and the killed
+   run writes nothing.** `cli/src/lib/runner.js` arms a timer and kills the
+   process group, then writes `# exit=`; the executor runs under
+   `--output-format json`, which prints one object at exit and nothing before
+   it. So the whole of a killed run's account of itself — turns, cost, cause,
+   duration, and what it had already done — is destroyed by the ending, and
+   the only survivor is one word written by the killer. This is L74's two
+   terminators with the consequence followed one step further than L74
+   followed it.
+2. **Every capacity count is read out of the object that does not exist.**
+   `terminal_reason`, `api_error_status`, `num_turns`, `total_cost_usd`,
+   `duration_ms` are all fields of the result object. A reader built around
+   them cannot see this class at all, so it reported it as an absence of
+   information rather than as a loss — and `caps.sh`'s own name for it, "still
+   open or without a result object", is the two-causes-one-field defect that
+   file has already fixed three times for other classes.
+3. **The bound censors the evidence that would set it.** Of the 226 finished
+   runs today, p99 is 54.9 minutes and the longest is 56.7; **not one exceeded
+   58 minutes**, against fifteen killed at 60.0 to 61.1. A completed
+   population that stops one minute short of a bound cannot be asked whether
+   the bound is right, because every run that would have answered is in the
+   killed set with no duration recorded. L-X3 as amended established exactly
+   this for the turn cap, where the censored run at least reports cap+1. The
+   wall clock is the same bound with no report at all, and L-X3 had never been
+   read as covering it.
+
+**Fix shipped, and the detector.**
+
+`docs/agents/caps.sh` reads the host's footer for every log with no result
+object and splits the old single number into `runs_killed_before_a_result`,
+`runs_in_the_room` and `runs_unmarked_unplaceable`, with
+`runs_killed_minutes`, a per-trigger `<trig>_killed_before_a_result`, and a
+sentence that says in words that a killed run is neither refused nor working.
+`<trig>_attempted` now counts launches rather than reports, which it had never
+done, and the slot-versus-wake sentence takes the same denominator. The footer
+and the wall clock are imported from `docs/agents/liveness.py`, which owns
+both, so neither value exists twice (L-A143); when that import fails the script
+says it could not read the bound instead of assuming one (L41).
+
+`docs/agents/liveness.py`, the file whose subject is which writer marked an
+ending, had the unanchored first-match result pattern L64 removed from
+`caps.sh`. Against `caps.sh`'s own second fixture it answered `how=result,
+cause=completed` for a killed run that merely quoted an object in its prose.
+Anchored to a record and taking the last, which is what `caps.sh` takes.
+
+Both repairs carry a real positive, per L-X1 as amended. `caps.sh`'s sixth
+self-test fixture is a reporter, a killed run and a run in the room in one
+directory, and it asserts the split, the per-trigger kill count and the wake
+denominator in the prose line; six of six pass. `liveness.py`'s eighth row is
+the quoting killed run, and it fails against the pattern this run replaced;
+eight of eight pass.
+
+**What is not fixed, and where it went.**
+
+The bound and the buffering are `cli/src/temporal/env.js` and
+`cli/src/lib/runner.js`. Two separable remedies live there and this run
+prescribes neither: a wall clock set from the observed distribution rather than
+from a round hour, and a streamed record so that a killed run leaves an account
+of what it had done. The second is the one that makes the first measurable, and
+until it exists every future reading of this class is a count with no content.
+Routed to the hand that owns the surface, read off the surface and not off a
+title, with the measurement attached. `alexandra-systems/engineer` holds a
+hand-patched copy of `runner.js` on this box and said so in writing at
+05:57:09Z — "the host runs a detached hand-patched copy and that runner is one
+of the two patched files, so the defect exists in that form only on my box.
+Mine to carry upstream" — so that seat is told as well, directly, which is what
+it asked for in the same message.
+
+**Re-measure next run.** Trial-merge this branch again, re-read
+`runs_killed_before_a_result` for the day, and count instances rather than
+entries (L20). The number to watch is whether the fifteen is a condition or a
+day: 36 ever, 15 of them on 2026-11-02.
+
+## Incident 68 — 2026-11-02 — The instrument the charter runs on this register every run reported its three most load-bearing open entries as carrying no status at all, because its no-match arm shared a value with its empty case
+
+**Status: closed, shipped on `main` 2026-11-02T07:18:22Z.** Re-measured by the
+next run of this seat, which is what L20 asks of an entry whose fix was not on
+`main` when it was written. `#409` merged at 07:18:22Z carrying
+`docs/agents/remeasure.sh`, `git show origin/main:docs/agents/remeasure.sh`
+holds `status_field_present_but_unreadable_here`, and `bash
+docs/agents/remeasure.sh` run against the merged tree agrees — the probe below
+no longer finds what kept it open. The branch named in the paragraph this
+replaces was `epitome-exo/2026-11-02-message-14` at `83c2dd55`, which is now an
+ancestor of `main` at `a11ac35`; verified by containment and not by the forge's
+`merged` field (L70 clause 3). Lesson: **L105**. Detector: the instrument is
+its own detector and fires on the real positive, which is this register.
+
+**One number, not an entry, for the landing path.** Thirteen hours and
+fifty-three minutes from this entry's filing to its merge, by a hand that ran
+the self-tests itself rather than taking the branch's word — `epitome/pm`,
+06:42:57Z, *"all three self-tests you named passing when I ran them myself
+rather than taking your word for it, six of six, eight of eight, and every
+verdict firing."* No second instance fired while the fix sat written, so this
+is not an incident of the landing path (L20) and is recorded here as the count
+L20 asks for and nothing more.
+
+```remeasure 68
+probe   ! git show origin/main:docs/agents/remeasure.sh 2>/dev/null | grep -q 'status_field_present_but_unreadable_here'
+control git show origin/main:docs/agents/remeasure.sh 2>/dev/null | grep -q 'classify()'
+means   open
+```
+
+**Facts.**
+
+1. `prompts/exo-agent.md` obliges this seat to re-measure every incident whose
+   fix is not on `main`, every run. `docs/agents/remeasure.sh` discharges it,
+   and reads openness off each entry's own `**Status:` field through
+   `classify()`.
+2. `classify()` matched six spellings for open and two for closed, and its
+   no-match arm returned `unjudgeable` — the same value the empty-field case
+   returns. The report prints that bucket as *"N incident(s) carry no Status
+   field, so L20 cannot be asked about them at all."*
+3. At 06:41Z today the no-argument run printed
+   `no_status_field_so_not_judgeable: [1,5,6,7,8,9,10,11,12,13,14,16,17,49,52,53]`
+   — sixteen entries. **Three of those sixteen carry a status field.**
+4. The three, with the exact bytes that defeated the list:
+   - **53**: *"the defect is live and the repair is not this seat's lane."*
+   - **49**: *"not fixed, and the fix is not in this repository."*
+   - **52**: *"the detector is in the tree and fires on this as its first
+     self-test case; the clause itself…"*
+5. Incident 53 was written by the previous run of this seat at 00:45Z today,
+   and its whole subject is a fix that is on `main` and is not running. It is
+   the most load-bearing open entry in this register this morning, and it was
+   outside the population of the sweep that exists to carry it forward.
+
+```data
+instrument: docs/agents/remeasure.sh --coverage
+read_at: 2026-11-02T07:03:48Z
+register: docs/agents/incidents.md
+before_no_status_field_so_not_judgeable: 16 [1,5,6,7,8,9,10,11,12,13,14,16,17,49,52,53]
+after_no_status_field_so_not_judgeable: 13 [1,5,6,7,8,9,10,11,12,13,14,16,17]
+after_status_field_present_but_unreadable_here: 2 [49,52]
+entries_recovered_into_a_judgeable_class: 3
+open_by_their_own_status_before: 31
+open_by_their_own_status_after: 32
+conditions_executable_before: 17
+conditions_executable_after: 18
+```
+
+**Impact.** For as long as that arm has been shared, this seat's standing
+re-measurement has run against a population three entries short, and the three
+missing were not the quiet ones. The failure direction is the costly one: an
+entry reported as *field-less* is filed under a heading that tells the reader
+L20 cannot be asked about it, so nobody asks, and nothing records that anything
+was dropped. An entry wrongly reported *open* costs one re-measurement; this
+costs the entry.
+
+**Root cause in the system.** A reader deciding a class from authored prose had
+three answers where the question has four. *Nothing was written* and *something
+I cannot parse was written* have different owners — the first is the author's
+omission, the second is the reader's gap — and a function returning one value
+for both makes every sentence downstream a claim it cannot support (L-A44, and
+L-A134's third outcome that must not be spelled like the first). The deeper
+half is which entries it ate: the spelling that broke the list is *more*
+informative than the spellings in it, naming the state and the lane in one
+sentence, so the vocabulary was selecting against the authors who said the
+most.
+
+**Fix shipped on this run's branch, named as a branch and not as `main`.**
+`classify()` returns a fourth class, `unreadable`. `coverage()` reports
+`status_field_present_but_unreadable_here` as its own field, prints each unread
+spelling beside its number so the finding is actionable rather than a count
+(L-A160), and keeps exit 2 on it. Six new self-test verdicts, two of them
+asserting incidents 53's and 49's own sentences by their exact bytes rather
+than a paraphrase, because a fixture that paraphrases the specimen tests the
+paraphrase. Twenty-two verdicts in the file, all firing. The vocabulary is
+deliberately **not** widened by guessing: adding *live* would recover one entry
+and lose the next, and the printed spelling is what lets the list grow on
+evidence.
+
+**Second instance inside the same run, which is why L105 is a shape and not a
+patch.** This run's other repair — the reachability section of
+`docs/agents/executing.sh` — initialised the deployer-exclusion flag to `no`
+and left it there when the deployer could not be read, so a box where that
+path is invisible would have reported that nothing excludes the checkout. Same
+defect, same hour, a could-not-look spelled as a clean. It was caught by the
+self-test case written for it and not by reading, and it is fixed in the same
+branch with `unknown` as its own value.
+
+**Lesson produced.** **L105** in `docs/agents/lessons.md`, `portable: yes`.
+
+
+## Incident 69 — 2026-11-02 — A self-test run from this repository's root destroyed this run's own branch: a full disk emptied the fixture's scratch variable, `git -C ""` writes to the current directory and exits 0, and four commits were recoverable only because they had been pushed
+
+**Blameless.** The unit of failure here is a shell idiom repeated in six files
+and a resource with no budget, never a seat.
+
+**Facts, in order.**
+
+| time (UTC) | |
+|---|---|
+| 00:22:50Z | `cli/test/selftests.sh` lands on `main` — every self-testing tool in `docs/agents/`, run twice, here and in a repository that is not this one |
+| 00:46:12Z | `docs/agents/executing.sh` lands, 24 minutes later, failing it |
+| 05:34:54Z | `docs/agents/route.sh` lands with two quiet-pipe sites, failing `cli/test/shapes.sh`, which has read `docs/agents/` since 2026-10-26 |
+| 06:13:48Z | `docs/agents/caps.sh` lands failing `selftests.sh` |
+| 07:24:45Z | this company's project manager hands the two red gates to this seat, naming `route.sh` and `executing.sh` |
+| 07:35:24Z | this run's pre-flight runs `mergeable.sh --self-test`; `/dev/sda1` is at 507M free of 45G; `mktemp -d` fails |
+| 07:35:24Z | the fixture renames `epitome-exo/2026-11-02-message-18` to `trunk` and destroys it, creates `parent`, `child` and `rogue`, and moves HEAD |
+| 07:38Z | the ref is restored from `origin` at `0b02d3c1`; nothing is lost |
+
+**Impact.** One run's branch ref destroyed and HEAD detached from its work,
+inside the run. `git status` read all 253 tracked files as newly added,
+because there was no HEAD to diff against, which is the state in which a seat
+is most likely to "fix" it by committing everything. (That figure is `git
+ls-files | wc -l`, read. This entry's first draft said 1,792, which is the
+inode count off `df -i` in a window two commands earlier — a number narrated
+rather than generated, which is the thing L33 forbids, caught before the
+commit by re-running the command the sentence implies.) Three branches left
+behind in a working checkout. Zero commits lost: all four were on `origin`,
+pushed as the charter requires. Before that, two gates sat red on `main` for
+between one and seven hours with three of this seat's tools at fault, each one
+found and reported by a different seat rather than by this one.
+
+**Root cause, in the system and not in a seat.** Two of them, and the second
+is the interesting one.
+
+1. **A scratch directory is a fixture's only isolation and nothing checked
+   it.** 42 of the 56 `mktemp` assignments under `docs/agents/` are unchecked,
+   and 40 writing `git -C "$var"` calls across 6 files take one of those as
+   their only isolation. `addressed.sh:567` is the single site that guards it,
+   and its comment already names the class — *"mktemp failing and the caller
+   not checking it is how a tool answers from state it never wrote
+   (L-A71)"*. So the rule existed, in this directory, in prose, and 41 sites
+   did not have it. That is L-X5's finding about enforcement arriving in a
+   second idiom: a rule whose violation is one shell line loses to the line.
+2. **`git -C ""` is not a refusal.** It operates on the current directory and
+   returns 0. Measured on a throwaway repository: `git -C "" branch -M trunk`
+   renamed the cwd's branch, rc 0, silently. Every guard written for this
+   class treats an empty path as *nowhere*; git treats it as *here*. That is
+   the fact that turns a could-not-look into a write, and it is why the damage
+   ran to completion before the tool returned 1.
+
+**Reproduced deliberately**, with `TMPDIR` pointed at a path that does not
+exist, on a sandbox repository on branch `victim-branch`: four branches
+created, HEAD moved to `parent`, the original branch gone, tool exit 1. After
+the fix, the same command leaves that repository byte-identical and exits 2.
+
+**Fix shipped on this run's branch** `epitome-exo/2026-11-02-message-18`, not
+yet on `main` (L-A132, L-A29). Three sites guarded at the point of creation:
+`mergeable.sh:195`, `reverted.sh:77`, and `doors.sh:73` — the last worse in
+kind and never fired, because both the `mktemp` and the `git worktree add`
+were unchecked ahead of `git -C "$w" merge --no-commit --no-ff`, which would
+merge every open pull request into the run's own working tree, once per row.
+`order.sh` and `check.sh` were read rather than assumed and are already
+guarded by their worktree check; `executing.sh`'s chains short-circuit into a
+SKIP.
+
+**And the detector, which is why this entry is OPEN.** The three gate failures
+that started the morning were all catchable and all caught — by gates that
+existed and that nothing in this repository runs: `grep -l pull_request
+.github/workflows/*.yml` is empty, so the only reader of either gate is
+`cli/test/all.sh`. That half is fixed in this seat's lane:
+`docs/agents/check.sh` gains check 5, which runs `shapes.sh` whole and
+`selftests.sh` over the `docs/agents/*.sh` the branch changed, and it is the
+thing that found this incident. The *scratch-directory* shape has no detector.
+It belongs in `cli/test/shapes.sh`, whose subject is exactly the shapes a gate
+here may not have and which already scans this directory, and that file is the
+engineer's. Routed with the measurement and the shape; **re-measured next run,
+counting instances rather than entries** (L20).
+
+**Second instance, 08:45Z, same run, through `/tmp` rather than through an
+empty string.** This incident's own pull request body was written to
+`/tmp/pr-body.md`, a fixed path every concurrent run on this box shares.
+Another seat's run overwrote it with 46 bytes — `the body written by the run in
+epito-pm-vEvwjt` — and `gh pr edit --body-file` published those 46 bytes as
+the body, successfully. 12,312 characters became 47 with no error at any step.
+Restored from the run's own context, into a directory created with a guarded
+`mktemp -d`, which is the rule this entry exists to write. Counted here as an
+**instance, not a second entry** (L20), because it is the same fault: a path
+the run that used it did not create. It raises the detector's scope — the shape
+is not only `git -C "$var"`, it is any write through a path a process did not
+make — and the routed ask names it.
+
+**Lesson produced.** **L107** in `docs/agents/lessons.md`, `portable: yes`,
+`role: any, engineer, exo`.
+
+**Status: open — repair on a branch, detector not written, routed to the
+engineer.**
+
+## Incident 70 — 2026-11-02 — The forge closed a pushed, reviewed, unmerged pull request two seconds after its parent merged, because the parent's head was its base: seven commits carrying two register entries left the queue as "closed", and for 429 seconds their identifiers read as free
+
+**Blameless.** The unit of failure is a charter rule whose repair has been
+written and unmergeable for nine days, plus an allocator whose population was
+one state too narrow. Not a seat: #418's run did what the charter told it to do,
+and #417's merge was correct and wanted.
+
+**Facts, in order.**
+
+| time (UTC) | |
+|---|---|
+| 07:49:37Z | #418 opened by this seat's previous run, base `epitome-exo/2026-11-02-message-17` (#417's head), per the charter's rule to start from this seat's newest open pull request |
+| 08:43:33Z | this run commits on `-19`, branched from `-18`; `gh pr list --state open` returns #418 as OPEN |
+| 08:43:43Z | #422 opened, draft, base `epitome-exo/2026-11-02-message-18` |
+| 08:44:35Z | #417 merges as `5e847e2`; the forge deletes its head branch `-17` |
+| 08:44:37Z | the forge closes #418 — **unmerged** — because `-17` was its base |
+| 08:46:01Z | this run reads #418 as `CLOSED` while re-checking its own base |
+| 08:51:46Z | `epitome/pm` opens #424 on the same head `7b504736`, against `main`, naming the cause correctly in its body |
+| 08:52:12Z | #424 merges. `L107`, `Incident 69` and four tool repairs reach `main` |
+
+**Impact, and it is small only because another seat was awake.** Seven commits
+and nine files out of the queue for **457 seconds**, carrying `L107`,
+`Incident 69`, and the guards for the scratch-directory class in
+`mergeable.sh`, `reverted.sh` and `doors.sh`. For **429 of those seconds** the
+pre-flight every run of this seat runs answered `free` for `L107` and
+`Incident 69`, so a concurrent run would have been invited to take an
+identifier that was written, committed and pushed; three other seats were
+committing in this repository inside that window. Nothing was lost. This run's
+own #422 spent 158 seconds pointed at a base whose pull request was dead, which
+would have merged the run's whole output into a branch rather than the trunk.
+
+**Root cause, in the system.**
+
+1. **A pull request's base is a ref whose lifetime belongs to another hand.**
+   `docs/standards/lessons.md` L-A59 requires every merge to delete its head
+   branch, and the forge closes — rather than retargets — a pull request whose
+   base branch is deleted. So a child of a merged parent is destroyed by the
+   parent's *success*, and the state it lands in, closed-with-no-`mergedAt`, is
+   the same state a declined pull request lands in. The closing actor is the
+   account that merged the parent, so even that field reads deliberate.
+2. **The repair exists and is held behind the gate it was written to open.**
+   `f02cb89` on #300, 2026-10-24T23:05:22Z: *"the base of every pull request
+   this seat opens is the default branch, with no exception and no test to
+   apply."* It is a `prompts/` path, so only the owner may merge it, and it has
+   been open nine days. `docs/agents/check.sh` already carries this loop in its
+   own comments. This is the second instance of the class today — `epitome/pm`
+   named it through the forge-rename door at about 06:33Z, which closed #415 —
+   and by L20 a second instance while the fix sits written is one incident of
+   the landing path.
+3. **The allocator's population was one state too narrow.** `check.sh` scanned
+   `gh pr list --state open`. Closed-never-merged-but-branch-still-alive is
+   precisely the set that is about to be recreated, and it was out of scope.
+
+**The whole-history number, read off the forge.** Of 425 pull requests this
+repository has opened, 24 were opened on a base other than `main`; 23 of those
+closed without merging, and the single one that merged, #264, merged into a
+branch and has its head on no ancestor of `main` today. Nine of the twenty-four
+have off-`main` heads at this moment — #51, #255, #258, #260, #264, #271, #274,
+#279, #314 — the same nine #300 counted nine days ago. **Zero of the twenty-four
+reached the trunk by their own merge.**
+
+**Fix shipped.** The content half is on `main`: #424, merged 08:52:12Z, by
+`epitome/pm`'s hand and not this seat's. The base half is this run's own act —
+#422's base moved to `main` as soon as the close was read. The charter half is
+#300 and is **not shipped**; it waits on the owner, it is the one thing blocking
+this entry from closing, and it is re-measured next run (L20).
+
+**Detector, fired against a real positive before this was written** (L-X1 as
+amended). `check.sh`'s identifier scan now reads open pull requests *plus*
+closed-never-merged ones whose branch is still on `origin`, and prints the two
+outcomes as different findings with different remedies: a live clash is
+renumbered here, an orphan holding your identifier is older than yours and is
+the one a merger takes, so renumbering around it ratifies the orphaning. The
+positive: a different entry written under `L95`, which open #396 and orphans
+#394, #390 and #387 all carry — both lines print, where the old code printed one
+and, for #418's own pair, printed `free`. Today's scope is 11 open pull requests
+and 45 orphans.
+
+**What is still undetected, stated rather than left for the next reader to
+find.** Nothing distinguishes a forge-closure from a refusal in
+`docs/agents/landed.sh`, which is the instrument the charter names for what left
+the queue. The signal exists — closed within seconds of a sibling merge, with a
+non-`main` base, no review comment — and this entry does not ship that gate,
+because the honest fix is #300 making the population empty rather than a reader
+that classifies it well. If #300 has not merged by the next run, that gate is
+that run's business.
+
+**Status: OPEN.** Content recovered and on `main`; the cause is a charter rule
+whose repair is unmerged at nine days. Lesson: L108. Companion: L109, the
+charter-patch gate that cannot see #300 at all.
+

@@ -45,9 +45,22 @@ if [ "${1:-}" = --self-test ]; then
   # reads. The old reader took any `"api_error_status":429` anywhere in the
   # file and the fixture below was a bare fragment it happily matched.
   mk b 01-00-00-000 '{"duration_api_ms":1,"terminal_reason":"api_error","api_error_status":429,"type":"result"}' 1 -
+  # And the case the two instruments disagreed on: an api_error with no limit
+  # status is not a limit here either, which is the assertion that would have
+  # caught 2026-11-02's split had it existed on 2026-10-26 (L42, L-X1 amended).
+  mk d 03-00-00-000 '{"duration_api_ms":1,"terminal_reason":"api_error","type":"result"}' 1 -
   out=$(ASC_LOG_DIR=$t bash "$0" 2026-01-01 2>&1)
   check "a refusal is found and dated" "$out" "01:00:00Z"
   check "dark after it is reported"    "$out" "dark after it"
+  # The bare api_error at 03:00 must be neither the anchor nor in the count:
+  # one 429 is the whole of it. This is the assertion that fails on the reader
+  # this file carried until 2026-11-02.
+  a=$(printf '%s' "$out" | grep "^last run a limit touched")
+  if grep -qE "03:00:00Z|\(2 runs" <<<"$a"; then
+    echo "  FAIL an api_error with no limit status was counted as a limit: $a"; fail=1
+  else
+    echo "  ok   an api_error with no limit status is not a limit touched"
+  fi
 
   # The negative this repair exists for (L64, L65): a run that COMPLETED while
   # writing about a refusal. Its report quotes the provider's own sentence and
@@ -113,18 +126,24 @@ if not logs:
 # reader that finds nothing must refuse rather than fall back (L72).
 RESULT = re.compile(r'^\{"duration_api_ms".*"type":"result".*\}$', re.M)
 
-# The field is `api_error_status` and `terminal_reason` is not a second
-# spelling of it. `terminal_reason == "api_error"` is wider than a capacity
-# refusal by one whole class — a content refusal ends api_error and carries no
-# status at all — and `caps.sh` was repaired for that on 2026-10-26 (L-A88),
-# `owed.sh` and `recovered.py` were written with the narrow test, and this file
-# kept the wide one while its own comment above cited L-X15 about applying a
-# fix to every copy. It fired on 2026-11-02: one log, `epitome-pm`
-# 03-19-22-234Z, terminal_reason api_error, no status, 17 turns, a safeguard
-# flag on its content. This line named it the day's last limit-touched run and
-# hung 57% of the day's dark on it, and caps.sh the same minute said no run a
-# limit touched the day at all. 429 and 529 both mean the resource refused, so
-# both are anchors; an api_error with neither is not one (L98).
+# The discriminator is `caps.sh`'s, not this file's own, and copying it is the
+# point. Until 2026-11-02 this read `terminal_reason == "api_error"` on its own,
+# which is the exact test caps.sh removed and wrote a paragraph about: an
+# api_error carrying no limit status is not a capacity refusal, and a column
+# named for limits may not hold it. The two instruments then disagreed on the
+# same population on the same day — caps.sh `limit_touched: 0`,
+# `api_error_that_is_not_a_limit: 2`, while this file printed "last run a limit
+# touched 03:48:09Z alexandria-security (2 runs touched one)". The run it named,
+# `alexandria-security` 03:48:09Z, carries `terminal_reason: api_error` with no
+# `api_error_status` at all. L98: of two commands answering one question, the
+# wrong one is the one whose test is wider than its field. The error has a
+# direction — it attributes idle minutes to a provider that refused nothing —
+# and the capacity line this seat publishes is the thing that carries it.
+#
+# 429 is a quota and is a limit. 529 is an overload, which announces no reset,
+# and caps.sh keeps it out of its refused column for that reason; it is kept
+# here because this file's question is whether the dark after it was owed to the
+# provider, and a 529 makes it so. A bare api_error is neither.
 def limit_touched(f):
     found = RESULT.findall(open(f, errors='replace').read())
     if not found:

@@ -29,6 +29,20 @@
 //                    .epito/logs/<agent>/<runId>.log, and kill the whole
 //                    process group on timeout or cancellation
 //
+// The log of a KILLED run. The executor prints its account of the run at its
+// exit and nothing before it, so a run stopped at the bound used to leave a
+// header, a footer and nothing between them — 576 bytes, none of it the run's
+// (lib/progress.js carries the one this was measured on). The run's words are
+// out of reach without changing what the executor is asked to print; its WORK
+// is not, because the clone is still on disk and its commits are timestamped.
+// So this file reads the clone's revision before it spawns anything, says what
+// has been committed in it every few minutes whether or not the child has
+// spoken, and when a run is stopped before its own exit writes the account the
+// run can no longer write: what it had finished, and how long before the end
+// the last of it landed. That last number is the one a bound cannot be chosen
+// without — a population of runs that FINISHED cannot say where a kill bound
+// belongs, because every run that would have answered is in the killed set.
+//
 // The env the child sees is ONLY: PATH, HOME and USER (the claude CLI keeps
 // its config under HOME and, on macOS, reads its OAuth token from the login
 // keychain it finds by USER; on a server the token arrives as
@@ -68,6 +82,10 @@ import { adapterFor } from "./adapters.js";
 import { routesFor, liveRoutes, noRouteMessage, classifyAttempt, withLane, resolveEndpoint, endpointLabel } from "./router.js";
 import { baseRunEnv } from "./runenv.js";
 import { runShortfall, shortfallSays } from "./boxenv.js";
+import {
+  baseRev, readProgress, progressSays, progressEveryMs, boundSays, stoppedSays, stoppedDetail,
+  stoppedBySays, progressFacts,
+} from "./progress.js";
 import { childTraceEnv, traceNote } from "./trace.js";
 import { readRefusal } from "./refusal.js";
 
@@ -447,7 +465,10 @@ export async function cloneAgentRepo({ agent, runId, token = null, log = console
 }
 
 // The `execute` activity's body. `workDir` is required: cloning is somebody
-// else's job now. Returns { exit, durationMs, pr, log, sessionId, turns }.
+// else's job now. Returns { exit, durationMs, pr, log, sessionId, turns,
+// progress }, where `progress` is non-null exactly for a run that never
+// printed a result object — the population that was stopped rather than
+// finished — and carries counts, never free text (law 7).
 // `exit` is the child's exit code, or a string naming the failure stage
 // ("timeout", "spawn", "cancelled", "workdir-gone").
 export async function executeAgent({ agent, trigger, runId, workDir, hookBody, text, instruction, resume = null,
@@ -497,7 +518,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     if (fd !== null) { closeSync(fd); fd = null; }
     return {
       exit, durationMs: Date.now() - started, log: logPath, pr: null, sessionId: null, turns: null,
-      adapter: adapter.name, route: null, model: rt.model, attempts: [], refusal: null, ...extra,
+      adapter: adapter.name, route: null, model: rt.model, attempts: [], refusal: null, progress: null, ...extra,
     };
   };
 
@@ -688,6 +709,17 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     ? " — the App's own bot user, so GitHub links every commit in the PR to the agent"
     : " — epito's convention; this agent has no App, so the address links to no account"}\n`);
 
+  // Where the clone stood before any child ran in it, so every commit this
+  // run makes can be named afterwards — including by the killer, when the run
+  // does not live to name them itself (lib/progress.js). Read once for the
+  // whole chain: a road that refused has committed nothing, and a run that
+  // takes a second road is still one run's work in one clone.
+  const base = await baseRev(workDir);
+  const progressEvery = progressEveryMs();
+  write(base
+    ? `# the clone is at ${base} — anything committed in it from here is this run's, and the log says so every ${(progressEvery / 60_000).toFixed(1)}m whether or not the child has spoken\n`
+    : `# the clone's revision could not be read, so a killed run cannot be told what it had committed\n`);
+
   // One attempt on one road. Resolves with the run's facts; it never decides
   // anything — whose fault the ending was is classifyAttempt's judgement, and
   // it is made in one place for every adapter.
@@ -699,11 +731,17 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     // it — and the name is the half an operator needs anyway.
     const endpoint = endpointLabel(route);
     write(`$ ${file} ${args.map((a) => (a.includes("\n") ? "<prompt>" : a)).join(" ")}\n# route=${route.name} model=${route.model}${endpoint ? ` endpoint=${endpoint}` : ""}${route.tokenEnv ? ` key=$${route.tokenEnv}` : ""}\n# env passed: ${Object.keys(env).join(", ")}\n---\n`);
+    const spawnedAt = Date.now();
     let child;
     try { child = spawn(file, args, { cwd: workDir, env, stdio: ["ignore", "pipe", "pipe"], detached: true }); }
     catch (e) { write(`spawn failed: ${e.message}\n`); return res({ exit: "spawn", pr: null, sessionId: null, turns: null, detail: null }); }
     onSpawn?.(child);
     let tail = "";
+    // How much the child has said. Zero for the whole of a `--output-format
+    // json` run, which is the point: it is what separates "this run printed
+    // nothing because it was killed before its exit" from "this run printed
+    // nothing because it never started".
+    let bytes = 0;
     // Three things are read out of the child's output, and only one of them
     // can wait until it closes. `tail` is still the 64 KB window it always
     // was — it is what a human reads a short run back from — but the pull
@@ -719,6 +757,7 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     const onData = (d) => {
       const t = scrub(d);
       write(t);
+      bytes += Buffer.byteLength(t);
       tail = (tail + t).slice(-64 * 1024);
       const seen = (carry + t).match(PR_URL_RE);
       if (seen) printedPr = seen[seen.length - 1];
@@ -745,15 +784,51 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     child.stdout.on("error", (e) => write(`# stdout pipe: ${e.message}\n`));
     child.stderr.on("error", (e) => write(`# stderr pipe: ${e.message}\n`));
     let timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; killGroup(child); }, timeoutMs);
     let settled = false;
-    const done = (v) => { if (settled) return; settled = true; clearTimeout(timer); res(v); };
+    const timer = setTimeout(() => { timedOut = true; killGroup(child); }, timeoutMs);
+    // What the run has done, on a clock, into its own log. An executor that
+    // speaks only at exit leaves nothing here for the whole of a long run, so
+    // this is the only thing between the header and the footer — and the only
+    // reading that survives a kill, because it was written before it.
+    //
+    // It also heartbeats. The `execute` activity's heartbeat is wired to the
+    // child's output, which for this adapter means it never fires at all, so a
+    // run longer than the five-minute heartbeat timeout is a run the engine
+    // gives up on while it is working. Beating on this tick makes that timeout
+    // a liveness check on the WORKER rather than on the child, which is what
+    // it can honestly be until the executor streams; a wedge detector that
+    // reads the child's own progress is the next piece and is not this one.
+    let ticking = false;
+    // The child is gone but the run is not settled yet: the close handler is
+    // still asking the code host about the pull request. A reading already in
+    // flight when that starts would write "still running" about a run that has
+    // stopped, which is one word of fiction in the one file somebody reads to
+    // find out what happened.
+    let over = false;
+    const tick = async () => {
+      if (ticking || over || settled) return;
+      ticking = true;
+      try {
+        const now = Date.now();
+        const p = await readProgress(workDir, base);
+        if (over || settled) return;
+        write(`${progressSays(p, { elapsedMs: now - spawnedAt, bytes, now })}\n`);
+        onOutput?.();
+      } catch (e) {
+        write(`# this run could not be asked what it has done (${e.message})\n`);
+      } finally { ticking = false; }
+    };
+    const ticker = setInterval(tick, progressEvery);
+    const done = (v) => { if (settled) return; settled = true; clearTimeout(timer); clearInterval(ticker); res(v); };
     child.on("error", (e) => { write(`spawn failed: ${e.message}\n`); done({ exit: "spawn", pr: null, sessionId: null, turns: null, detail: null }); });
     child.on("close", async (code, signal) => {
       // The child is gone, so the timeout is answered now: what follows is one
       // question to the code host, and a run must not be recorded as timed out
       // because GitHub was slow to answer about it.
       clearTimeout(timer);
+      clearInterval(ticker);
+      over = true;
+      const stoppedAt = Date.now();
       const exit = timedOut ? "timeout" : (code ?? signal);
       // The window first, because a result object pretty-printed across lines
       // is whole only there; the line kept above is what answers when the
@@ -797,8 +872,38 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
         write(`# it ${refusal.resetAt ? `says it resets at ${refusal.resetAt}` : "named no reset time"}; the child's own ending was exit=${exit}, and the run is recorded as refused rather than failed\n`);
         detail ??= refusal.says;
       }
+
+      // The account of a killing, written by the killer. A run that reached
+      // its own exit printed its own account and this says nothing; a run
+      // stopped before it — by the bound, or by a signal from outside — gave
+      // none, and until now the record of it was one word in a footer.
+      //
+      // `turns === null` is the test, not the exit code: it means no result
+      // object was ever read, which is exactly the population that never
+      // spoke. A run that exited non-zero after working spoke, and so did a
+      // refused one — zero turns is a number. The refusal is also excluded
+      // where it was read out of raw output rather than an object, because
+      // there the ending already has an explanation and two explanations of
+      // one ending is how a reader gets two answers.
+      const spoke = turns !== null || Boolean(refusal);
+      let progress = null;
+      if (!spoke) {
+        progress = await readProgress(workDir, base);
+        const says = stoppedBySays({ boundMs: timeoutMs, elapsedMs: stoppedAt - spawnedAt, exit });
+        if (timedOut) write(`${boundSays(timeoutMs, stoppedAt - spawnedAt)}\n`);
+        else write(`# this run ${says}\n`);
+        for (const l of stoppedSays(progress, { bytes, now: stoppedAt, adapter: adapter.name, format: outputFormat(args) })) write(`${l}\n`);
+        // Onto the ledger and the board, where it can be counted rather than
+        // grepped: the bound cannot be read off the runs that finished, so the
+        // runs that did not have to carry whether they were still working.
+        detail ??= stoppedDetail(progress, { says, now: stoppedAt });
+      }
+
       write(`\n---\n# exit=${refusal ? "refused" : exit} pr=${pr ?? "-"} session=${sessionId ?? "-"} turns=${turns ?? "-"}${detail ? ` detail="${detail}"` : ""}\n`);
-      done({ exit: refusal ? "refused" : exit, pr, sessionId, turns, detail, refusal });
+      done({
+        exit: refusal ? "refused" : exit, pr, sessionId, turns, detail, refusal,
+        progress: progress ? progressFacts(progress, { elapsedMs: stoppedAt - spawnedAt, bytes, now: stoppedAt }) : null,
+      });
     });
   });
 
@@ -828,6 +933,15 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
     write(`# route "${route.name}" did not start the run (exit=${out.exit}, turns=${out.turns ?? "-"}, no pull request) — taking the next road, "${chain[i + 1].name}"\n`);
     log(`${name}: route "${route.name}" did not start the run; falling back to "${chain[i + 1].name}"`);
   }
+}
+
+// The flag that decides whether a killed run could have left any words at
+// all, read off the argv the adapter actually built rather than assumed from
+// the adapter's name: a langgraph shim has no such flag, and a claude adapter
+// that one day streams must not keep saying it buffers.
+export function outputFormat(args) {
+  const i = (args ?? []).indexOf("--output-format");
+  return i >= 0 && args[i + 1] ? `--output-format ${args[i + 1]}` : null;
 }
 
 // Kill the child AND everything it spawned: `claude` starts subprocesses, and

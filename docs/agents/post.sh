@@ -190,7 +190,215 @@ gate() {  # $1 = payload path; 0 clean, 1 the gate refuses, 2 could not look
     printf 'either it has stopped answering on this box, or its pass wording moved and this belt needs the new words.\n'
     return 2
   fi
+  # The routing gate runs last of the three, because it is the only one that
+  # can take seconds and reach the network, and there is no reason to spend
+  # that on a body the store would have refused anyway.
+  routed "$1" || return $?
   return 0
+}
+
+# THE SECOND GATE, 2026-11-02, and it is this file's own lesson applied to a
+# different script (L100, incident 65). `docs/agents/route.sh` reads the hand
+# for a surface off the repository that holds it. It has been on `main` since
+# 2026-10-26, it was built as incident 43's repair after one `max_turns` step
+# went to two project managers fifteen times in thirty-seven hours while the
+# three seats whose merges were on that file were never asked — and on
+# 2026-11-02 at 04:08:39Z this seat sent two more handoffs to the same two
+# project managers without running it. Both were declined inside ten minutes,
+# both correctly, both for want of a writable surface. Run afterwards over the
+# eight surfaces carrying this seat's open findings it answered: one asked,
+# and `alexandra-systems/engineer` holds merges on five of the eight and has
+# never been addressed by this seat about anything, six days on.
+#
+# That is not a seat forgetting twice. It is L-A114 again — a pre-flight that
+# prints is not a pre-flight that blocks — and the charter section the script
+# was written for names `order.sh` and `landed.sh` and has never named
+# `route.sh`. That charter line is a `prompts/` path and cannot be written from
+# here, so the gate goes where it can go (L-A22) and the sentence follows when
+# a hand is free to write it.
+#
+# WHAT IT REQUIRES, AND WHY NOT MERELY "RUN IT". A handoff must answer the
+# routing question one way or the other: `data.surfaces`, the remedy written as
+# acts on named things, or an explicit `data.no_surface_reason` saying why this
+# handoff names none. Silence is not an option, because silence is what both of
+# tonight's handoffs had and silence is indistinguishable from forgetting. A
+# declared empty list with a reason passes, and stands as the sender's own claim
+# a reader can hold them to.
+ROUTE=${ROUTE:-docs/agents/route.sh}
+
+routed() {  # $1 = payload path; 0 clean, 1 refuse, 2 could not look
+  local meta kind has reason out rc
+  meta=$(PAYLOAD="$1" python3 - <<'PY'
+import json, os, sys
+try:
+    m = json.load(open(os.environ["PAYLOAD"]))
+except Exception:
+    print("UNREADABLE"); raise SystemExit(0)
+d = m.get("data") if isinstance(m.get("data"), dict) else {}
+s = d.get("surfaces")
+r = d.get("no_surface_reason")
+kind = (m.get("kind") or "note").strip()
+if s is None:
+    has = "absent"
+elif not isinstance(s, list) or not all(isinstance(x, str) and x.strip() for x in s):
+    has = "malformed"
+elif not s:
+    has = "empty"
+else:
+    has = "yes"
+print("%s\t%s\t%s" % (kind, has, (r or "").strip()))
+for x in (s or []):
+    if isinstance(x, str) and x.strip():
+        print(x.strip())
+PY
+)
+  case "$meta" in UNREADABLE*) return 0 ;; esac   # `fields` already refused it
+  IFS=$'\t' read -r kind has reason <<<"$(printf '%s\n' "$meta" | head -1)"
+  [ "$kind" = handoff ] || return 0
+
+  case "$has" in
+    absent)
+      printf '\nREFUSED: this is a handoff and its `data` declares no `surfaces`.\n'
+      printf 'A handoff routes a remedy, and a remedy is an act on a named thing. List the\n'
+      printf 'paths in `data.surfaces` so %s can name the hand that can perform it, or\n' "$ROUTE"
+      printf 'say in `data.no_surface_reason` why this one names none. Nothing was posted.\n'
+      printf 'This is incident 65: two handoffs went out unrouted on 2026-11-02 and both\n'
+      printf 'came back declined for want of a writable surface within ten minutes.\n'
+      return 1 ;;
+    malformed)
+      printf '\nREFUSED: `data.surfaces` is not a list of non-empty path strings. Nothing was posted.\n'
+      return 1 ;;
+    empty)
+      if [ -z "$reason" ]; then
+        printf '\nREFUSED: `data.surfaces` is empty and `data.no_surface_reason` is not set.\n'
+        printf 'An empty list is a claim and it carries its reason, or it is just silence\n'
+        printf 'with brackets around it. Nothing was posted.\n'
+        return 1
+      fi
+      printf 'the routing question: answered, no surfaces, because %s\n' "$reason"
+      return 0 ;;
+  esac
+
+  # The addressee, read on its own rather than packed into the line above: an
+  # empty `reason` field collapses under IFS=tab and would swallow it. Both
+  # spellings, because the board addresses a product seat as company/seat and
+  # `route.sh` reads seat names off the host roster, where it is company-seat.
+  local recip
+  recip=$(PAYLOAD="$1" python3 -c 'import json,os
+m=json.load(open(os.environ["PAYLOAD"]))
+t=(m.get("to_seat") or "").strip(); c=(m.get("to_company") or "").strip()
+print(" ".join(x for x in (t,(c+"-"+t) if c and t else "") if x))' 2>/dev/null)
+
+  [ -r "$ROUTE" ] || { printf '%s is not in this checkout, so the route cannot be read\n' "$ROUTE"; return 2; }
+  local surfaces=()
+  while IFS= read -r line; do [ -n "$line" ] && surfaces+=("$line"); done \
+    < <(printf '%s\n' "$meta" | tail -n +2)
+  out=$(bash "$ROUTE" "${surfaces[@]}" 2>&1); rc=$?
+  printf '%s\n' "$out"
+  [ "$rc" = 2 ] && {
+    printf '\nCOULD NOT LOOK: %s could not read the route, so nothing was posted.\n' "$ROUTE"
+    return 2; }
+
+  # The decision comes off the classes in route.sh's data block and not off its
+  # exit code, because that code folds classes the sender cannot act on in with
+  # the ones it can. `hand_whose_company_this_box_cannot_name` is this box's
+  # roster failing to resolve a seat — `chair` and the branch-prefix refs on
+  # every `prompts/` path do it — and it sets exit 1 there alongside the real
+  # omissions. Refusing on it would block a correct handoff about a charter
+  # path on a reading that is not about the sender at all, which is L41 from the
+  # other side: a could-not-look must not be spelled like a finding in either
+  # direction. So it warns loudly and passes, and the provable classes refuse.
+  #
+  # `on_this_box_but_in_no_repository` joins it, 2026-11-02, and the reason is a
+  # false positive this gate would have produced on its first real use. Until
+  # today route.sh spelled two states as `not_a_path_on_this_box` and this gate
+  # refused on it, so a handoff whose surfaces are `/tmp` and `/srv/asc/state`
+  # — the host's own disk, 99% full, this product's capacity surface — could not
+  # be sent at all. There is a hand for host state; what there is not is a merge
+  # history to read it off, so that is a could-not-look about the *instrument*
+  # and never an omission by the sender, and the remedy the hard path prints
+  # ("address the seat with merges on the file") names an act nobody can
+  # perform. `absent_from_this_box` stays hard, because a surface that does not
+  # exist makes the handoff's remedy about nothing, and that one the sender
+  # wrote and the sender can fix.
+  local blocking
+  blocking=$(ROUTE_OUT="$out" RECIP="$recip" python3 - <<'PY'
+import os, re
+out = os.environ["ROUTE_OUT"]
+# THE ADDRESSEE IS NEVER A BLOCKER (L103, 2026-11-02). Every hard class here
+# names a seat that was not asked about a surface, and the remedy this gate
+# prints is "address that seat by name, in this pass". A handoff addressed to
+# that seat IS that remedy, and until today the gate refused it: at 06:19Z it
+# refused this seat's handoff to the one hand that holds `cli/`, on the ground
+# that the hand had never been asked about `cli/`, which is what the message in
+# its hand was doing. `hand_that_has_already_answered` is the same case read
+# from the other end — its own refusal text says "the next ask is the act that
+# answer names, addressed to that same hand" — so the exemption covers it too
+# or the gate contradicts its own sentence. What it does NOT exempt is a third
+# party: a handoff to a project manager naming a surface whose hand was never
+# asked still refuses, which is the whole of what incident 43 paid for.
+recip = {x for x in os.environ.get("RECIP", "").split() if x}
+def cls(k):
+    m = re.search(r"^%s: \[(.*)\]$" % re.escape(k), out, re.M)
+    return [x for x in (m.group(1).split(",") if m and m.group(1) else []) if x]
+names = ["hand_never_addressed", "hand_addressed_but_not_about_this_surface",
+         "no_hand_known", "absent_from_this_box", "hand_that_has_already_answered"]
+def mine(entry):
+    """`seat:surface` — is `seat` the seat this message is addressed to?"""
+    return entry.split(":", 1)[0].strip() in recip
+hits = {k: [e for e in cls(k) if not mine(e)] for k in names}
+exempt = sorted({e for k in names for e in cls(k) if mine(e)})
+soft = cls("hand_whose_company_this_box_cannot_name") + \
+       ["%s (on this box, in no repository)" % x for x in cls("on_this_box_but_in_no_repository")]
+# The format moved on 2026-11-02 and a gate that reads a key the instrument no
+# longer prints sees an empty list and passes, which is the one failure mode a
+# gate must not have. So the old key is an error and not an absence.
+if re.search(r"^not_a_path_on_this_box:", out, re.M):
+    print("UNPARSEABLE"); raise SystemExit(0)
+if not re.search(r"^hand_never_addressed:", out, re.M):
+    print("UNPARSEABLE"); raise SystemExit(0)
+for k in names:
+    if hits[k]:
+        print("%s\t%s" % (k, ",".join(hits[k]))); raise SystemExit(0)
+print("CLEAR\t%s\t%s" % (",".join(soft), ",".join(exempt)))
+PY
+)
+  case "$blocking" in
+    UNPARSEABLE*)
+      printf '\nCOULD NOT LOOK: %s printed no data block this gate could read, so nothing\n' "$ROUTE"
+      printf 'was posted. Its output format moved and this gate needs the new keys.\n'
+      return 2 ;;
+    hand_that_has_already_answered*)
+      printf '\nREFUSED: the hand that owns a surface here has already answered.\n'
+      printf 'Its answer is the disposition, and the next ask is the act that answer names,\n'
+      printf 'addressed to that same hand. Routing it onward files a duplicate against a\n'
+      printf 'seat with no writable surface (L100). Nothing was posted.\n'
+      return 1 ;;
+    CLEAR*)
+      local rest=${blocking#CLEAR	} soft exempt
+      soft=${rest%%	*}; exempt=${rest#*	}
+      [ "$exempt" = "$rest" ] && exempt=
+      if [ -n "$exempt" ]; then
+        printf 'the routing question: %s is addressed by this very message, so that is
+' "$exempt"
+        printf '  the remedy and not an omission — the hand being told is the act (L103).
+'
+      fi
+      if [ -n "$soft" ]; then
+        printf 'the routing question: answered, and this box could not name the company of: %s\n' "$soft"
+        printf '  that is a roster gap here and not an omission in this handoff, so it passes —\n'
+        printf '  but no inbox was checked for those hands, so this is not an all-clear (L41).\n'
+      else
+        printf 'the routing question: answered, every surface has a hand that was asked\n'
+      fi
+      return 0 ;;
+    *)
+      printf '\nREFUSED: a surface in this handoff has a hand nobody asked — %s\n' "$blocking"
+      printf 'Address that seat by name, in this pass, with the same measurement: the project\n'
+      printf 'managers own the item, the seat with merges on the file performs it (L80,\n'
+      printf 'incident 43). Nothing was posted.\n'
+      return 1 ;;
+  esac
 }
 
 # Did the server say it cut the body? Same class as the belt, and the same
@@ -431,6 +639,168 @@ PY
   out=$( (unset BOARD_API_URL BOARD_RUNTIME_TOKEN; bash "$0" --check "$T/long.json") 2>&1 ); rc=$?
   check "--check refuses with no credential in the environment at all" "$out" "REFUSED"
   [ $rc = 1 ] || { echo "  FAIL exit for --check on a cut body: $rc"; fail=1; }
+
+  # THE ROUTING GATE (L100, incident 65). `routed` is tested on its own rather
+  # than through `gate`, because the three checks are ordered and the body gate
+  # legitimately refuses first: routing a body the store would reject is work
+  # nobody needs. The first fixture is the exact `data` shape of the handoff
+  # this seat sent at 2026-11-02T04:08:39Z and had declined within ten minutes,
+  # which is the real positive L-X1 requires before a detector counts.
+  mk() {  # $1 = name, $2 = the data object as JSON
+    printf '{"seat":"exo","company":"epitome","to_company":"epitome","to_seat":"pm",\n' > "$T/$1.json"
+    printf '"kind":"handoff","subject":"s","body":"b","data":%s}\n' "$2" >> "$T/$1.json"
+  }
+  mk unrouted '{"hq_pr":574}'
+  out=$(routed "$T/unrouted.json" 2>&1); rc=$?
+  check "a handoff that declares no surfaces is refused" "$out" "declares no \`surfaces\`"
+  [ $rc = 1 ] || { echo "  FAIL exit for an unrouted handoff: $rc"; fail=1; }
+
+  mk malformed '{"surfaces":"docs/agents/route.sh"}'
+  out=$(routed "$T/malformed.json" 2>&1); rc=$?
+  check "a surfaces field that is one string is refused" "$out" "not a list of non-empty path strings"
+  [ $rc = 1 ] || { echo "  FAIL exit for a malformed surfaces field: $rc"; fail=1; }
+
+  mk emptyno '{"surfaces":[]}'
+  out=$(routed "$T/emptyno.json" 2>&1); rc=$?
+  check "an empty surfaces list with no reason is refused" "$out" "no_surface_reason\` is not set"
+  [ $rc = 1 ] || { echo "  FAIL exit for an unreasoned empty list: $rc"; fail=1; }
+
+  mk declared '{"surfaces":[],"no_surface_reason":"this one reports counts and asks for no act on a file"}'
+  out=$(routed "$T/declared.json" 2>&1); rc=$?
+  check "an empty list that carries its reason passes" "$out" "answered, no surfaces, because"
+  [ $rc = 0 ] || { echo "  FAIL exit for a declared empty list: $rc"; fail=1; }
+
+  # A `note` is not a handoff and this gate must not reach for the network on
+  # one. Asserted with a payload whose surfaces would refuse if it were read.
+  printf '{"seat":"exo","company":"epitome","to_company":"epitome","to_seat":"pm",\n' > "$T/note.json"
+  printf '"kind":"note","subject":"s","body":"b","data":{}}\n' >> "$T/note.json"
+  out=$(routed "$T/note.json" 2>&1); rc=$?
+  [ $rc = 0 ] && [ -z "$out" ] \
+    && echo "  ok   a note is not routed and reaches nothing" \
+    || { echo "  FAIL a note was routed: exit $rc, out: $out"; fail=1; }
+
+  # The live half, fenced the way route.sh fences its own: a surface on this box
+  # whose hand this seat has never addressed must refuse, and a surface whose
+  # only finding is a hand this box cannot name must NOT. The second case is the
+  # one this gate shipped wrong for twenty minutes: every `prompts/` path
+  # resolves to `chair` and a branch-prefix ref, neither of which the roster
+  # names, and route.sh reports that at exit 1 beside the real omissions — so
+  # deciding on the exit code alone refused every correct handoff about a
+  # charter. Skipped rather than guessed where the box cannot supply the inputs.
+  if [ -n "${BOARD_API_URL:-}" ] && [ -r /srv/asc/repos/alexandra-systems/tools/capacity-retry.py ]; then
+    mk live '{"surfaces":["/srv/asc/repos/alexandra-systems/tools/capacity-retry.py"]}'
+    out=$(routed "$T/live.json" 2>&1); rc=$?
+    check "live: a surface with an unasked hand refuses" "$out" "hand nobody asked"
+    [ $rc = 1 ] || { echo "  FAIL exit for a live unasked hand: $rc"; fail=1; }
+
+  # THE EXEMPTION OF 2026-11-02 (L103), on a stub rather than live, because the
+  # case needs a route whose hard class names exactly one seat and no live
+  # surface on this box has one: the two this gate's live fixtures use each
+  # carry findings about two different hands, so a live test could not tell the
+  # exemption from the ordering of the class list. Three assertions, and the
+  # third is the one that keeps the gate worth having.
+  for case in addressed answered; do
+    key=hand_addressed_but_not_about_this_surface
+    [ "$case" = answered ] && key=hand_that_has_already_answered
+    # No fence in the stub: this gate reads the `key: [...]` lines and never
+    # the code fence around them, and a backtick inside a nested heredoc is a
+    # substitution the shell tries to run.
+    { echo '#!/usr/bin/env bash'
+      echo 'cat <<BLOCK'
+      echo 'surfaces: 1'
+      echo 'hand_never_addressed: []'
+      # Each key exactly once, with the value on the one under test: the
+      # gate's reader takes the FIRST match for a key, so a duplicate line
+      # would answer from the empty one and the test would pass on nothing.
+      for k in hand_addressed_but_not_about_this_surface no_hand_known \
+               hand_whose_company_this_box_cannot_name absent_from_this_box \
+               on_this_box_but_in_no_repository asked_and_named \
+               hand_that_has_already_answered; do
+        if [ "$k" = "$key" ]; then echo "$k: [engineer:cli/src/lib/runner.js]"
+        else echo "$k: []"; fi
+      done
+      echo 'BLOCK'
+      echo 'exit 1'
+    } > "$T/one-hand.sh"
+    chmod +x "$T/one-hand.sh"
+    printf '{"seat":"exo","company":"epitome","to_company":"alexandra-systems",\n' > "$T/tothehand.json"
+    printf '"to_seat":"engineer","kind":"handoff","subject":"s","body":"b",\n' >> "$T/tothehand.json"
+    printf '"data":{"surfaces":["cli/src/lib/runner.js"]}}\n' >> "$T/tothehand.json"
+    out=$(ROUTE="$T/one-hand.sh" routed "$T/tothehand.json" 2>&1); rc=$?
+    check "a hand of class $case, addressed by this very message, passes" "$out" "addressed by this very message"
+    [ $rc = 0 ] || { echo "  FAIL exit for a handoff to the hand itself ($case): $rc"; fail=1; }
+
+    # And the guard that must survive it: the same route, sent to a third party,
+    # still refuses. This is the whole of what incident 43 paid for.
+    mk third '{"surfaces":["cli/src/lib/runner.js"]}'
+    out=$(ROUTE="$T/one-hand.sh" routed "$T/third.json" 2>&1); rc=$?
+    case "$case" in
+      addressed) check "the same route to a third party still refuses" "$out" "hand nobody asked" ;;
+      answered)  check "an answered hand, routed onward, still refuses" "$out" "has already answered" ;;
+    esac
+    [ $rc = 1 ] || { echo "  FAIL exit for a third-party route ($case): $rc"; fail=1; }
+  done
+
+    mk softonly '{"surfaces":["prompts/exo-agent.md"]}'
+    out=$(routed "$T/softonly.json" 2>&1); rc=$?
+    check "live: an unnameable company alone does not refuse" "$out" "could not name the company of"
+    check "and it is not reported as an all-clear" "$out" "not an all-clear"
+    [ $rc = 0 ] || { echo "  FAIL exit for a could-not-name-only route: $rc"; fail=1; }
+
+    # The real positive for 2026-11-02's split, and it is the handoff this run
+    # had to send: the host's own disk. Under the single `not_a_path_on_this_box`
+    # class this refused, so the gate blocked a correct handoff about the
+    # resource this seat's capacity line is made of.
+    mk hoststate '{"surfaces":["/tmp","/srv/asc/state"]}'
+    out=$(routed "$T/hoststate.json" 2>&1); rc=$?
+    check "live: host state in no repository does not refuse" "$out" "in no repository"
+    check "and that is not an all-clear either" "$out" "not an all-clear"
+    [ $rc = 0 ] || { echo "  FAIL exit for a host-state route: $rc"; fail=1; }
+
+    # And the half that stays hard, because the sender wrote it and can fix it.
+    mk absent '{"surfaces":["/nonexistent-surface-for-the-self-test"]}'
+    out=$(routed "$T/absent.json" 2>&1); rc=$?
+    check "live: a surface that does not exist still refuses" "$out" "hand nobody asked"
+    [ $rc = 1 ] || { echo "  FAIL exit for an absent surface: $rc"; fail=1; }
+  else
+    echo "  skip live routing assertion: no board or no HQ clone on this box"
+  fi
+
+  # The format-drift guard, and it drives the real gate rather than a copy of
+  # its parser: `$ROUTE` is pointed at a stub that prints the data block
+  # route.sh emitted until 2026-11-02. A gate that greps for a key the
+  # instrument stopped printing sees an empty list and passes, which is the one
+  # failure mode a gate may not have, and nothing else here would notice it.
+  # This is also the only assertion in this file that needs no board, so it
+  # runs on every box (L42).
+  cat > "$T/stale-route.sh" <<'STUB'
+#!/usr/bin/env bash
+cat <<'BLOCK'
+the hand for each surface, read off a stub
+```data
+measured_at: 2026-11-02T00:00:00Z
+surfaces: 1
+hand_never_addressed: []
+hand_addressed_but_not_about_this_surface: []
+no_hand_known: []
+hand_whose_company_this_box_cannot_name: []
+not_a_path_on_this_box: [/tmp]
+asked_and_named: []
+hand_that_has_already_answered: []
+verdict: a surface has a hand nobody asked
+```
+BLOCK
+exit 1
+STUB
+  chmod +x "$T/stale-route.sh"
+  mk drift '{"surfaces":["/tmp"]}'
+  out=$(ROUTE="$T/stale-route.sh" routed "$T/drift.json" 2>&1); rc=$?
+  check "a stale route.sh key reads as could-not-look, never as clean" "$out" "format moved"
+  if [ $rc = 2 ]; then
+    printf '  ok   %s\n' "and it exits could-not-look rather than posting"
+  else
+    printf '  FAIL %s (exit %s, wanted 2)\n' "a stale key did not stop the post" "$rc"; fail=1
+  fi
 
   [ $fail = 0 ] && echo "self-test: all verdicts fired" || echo "self-test FAILED"
   return $fail

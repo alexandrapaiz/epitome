@@ -19,6 +19,7 @@ import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
 import { runtimeBuild, buildLine, buildNote, porcelainPaths, thisRuntime } from "../src/lib/build.js";
 import { rosterEnv, namesFor, envTemplate, holding, runShortfall, shortfallSays, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
+import { baseRev, readProgress, stoppedDetail, stoppedSays, progressFacts } from "../src/lib/progress.js";
 import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, buildPrompt, shortfallLine, runBranchPrefix, pullRequestForRun, removeClone, scratchDirFor, scratchEnv, SCRATCH_ENV, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP, noRepoMessage, webRoot, installUrl, appSettingsUrl } from "../src/lib/identity.js";
 import {
@@ -1079,6 +1080,296 @@ test("with no App, the run is exactly what it was before the identity slice", as
     removeClone("okr", work);
     delete process.env.GH_TOKEN; delete process.env.EPITO_STUB_ECHO_TOKEN; delete process.env.EPITO_STUB_DIR;
   }
+});
+
+// --- the account of a killing ---------------------------------------------
+// Nineteen runs on this company's resident host were killed at the hour on
+// 2026-11-02, and each left a log of about 576 bytes: a header, two rules and
+// a one-word footer. The executor prints its account of a run at its exit and
+// nothing before it, so a run that never reaches its exit says nothing — and
+// five of those nineteen had posted work to the board inside their hour. What
+// they finished was on disk the whole time, in the clone, with timestamps on
+// it. These assert that the runtime now reads it.
+
+// A clone that is a real repository, because that is what the runtime is
+// reading: a bare temp directory is the case where the reading FAILS, and it
+// has a test of its own below.
+const gitClone = (name) => {
+  const d = cloneDir(name);
+  const git = (...a) => execFileSync("git", ["-C", d, ...a], { stdio: "ignore" });
+  git("init", "-q", "-b", "main");
+  git("-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "--allow-empty", "-m", "the history this clone arrived with");
+  return d;
+};
+
+const stub = new URL("./stub-executor.mjs", import.meta.url).pathname;
+
+// One run of the stub, with the run log written under a directory this test
+// owns. `.epito/logs/<agent>/` is relative to cwd, which is why every one of
+// these chdirs.
+const killRun = async (name, { work, timeoutMs, env = {}, onOutput } = {}) => {
+  const dir = tmpDir();
+  const cwd = process.cwd();
+  const prior = {};
+  for (const [k, v] of Object.entries(env)) { prior[k] = process.env[k]; process.env[k] = v; }
+  process.chdir(dir);
+  try {
+    const r = await executeAgent({
+      agent: seat(name, { runtime: { model: "m", entry: "e", repo: "acme/roster", env: Object.keys(env) } }),
+      trigger: "message", runId: `kill-${name}`, workDir: work, timeoutMs, log: () => {}, executor: stub, onOutput,
+    });
+    // `log` is relative to the run's cwd, and this helper hands it back to a
+    // caller that has already chdir'd home.
+    return { ...r, log: join(dir, r.log) };
+  } finally {
+    process.chdir(cwd);
+    for (const [k, v] of Object.entries(prior)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  }
+};
+
+test("the bound a run is stopped at is declared in exactly one place", () => {
+  // The repair's own detector. Before this, `temporal/env.js` declared
+  // DEFAULT_RUN_TIMEOUT_MS and `temporal/workflows.js` wrote the same hour out
+  // again as the fallback for a run that arrived without one — so moving the
+  // declaration moved the bound for the runs that carry it in their input and
+  // for no others, silently. A repair with no detector leaves the next pass as
+  // exposed as this one was.
+  const src = join(repoRoot(new URL("../", import.meta.url).pathname) ?? "", "cli", "src");
+  const hours = [];
+  const walk = (d) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const at = join(d, e.name);
+      if (e.isDirectory()) { walk(at); continue; }
+      if (!e.name.endsWith(".js")) continue;
+      const text = readFileSync(at, "utf8");
+      // A line that holds an hour AND names a bound. Not every hour in this
+      // tree is a declaration of one — refusal.js and runlogs.js convert hours
+      // to milliseconds, which is arithmetic and not a policy — so the test is
+      // the conjunction, which is also what a second declaration would look
+      // like however it was spelled.
+      for (const line of text.split("\n")) {
+        if (/^\s*(\/\/|\*)/.test(line)) continue;
+        const hour = /\b(60\s*\*\s*)?60\s*\*\s*60\s*\*\s*1000\b|\b3_?600_?000\b/.test(line);
+        const bound = /timeout|TIMEOUT|window|WINDOW|bound/i.test(line);
+        if (hour && bound) hours.push(`${at}: ${line.trim()}`);
+      }
+    }
+  };
+  walk(src);
+  const files = [...new Set(hours.map((h) => h.slice(0, h.indexOf(":")).split("/").pop()))].sort();
+  assert.deepEqual(files, ["bounds.js"],
+    `a bound measured in hours is declared outside bounds.js:\n${hours.join("\n")}`);
+  assert.equal(hours.length, 2, `bounds.js declares the run bound and the window bound and nothing else:\n${hours.join("\n")}`);
+});
+
+test("readProgress names what this run committed and nothing the clone arrived with", async () => {
+  const work = gitClone("pm");
+  const git = (...a) => execFileSync("git", ["-C", work, ...a], { stdio: "ignore" });
+  const base = await baseRev(work);
+  assert.match(base, /^[0-9a-f]{40}$/, "the clone's revision is read before anything runs in it");
+  git("checkout", "-q", "-b", "pm/2026-11-02-message");
+  writeFileSync(join(work, "a.txt"), "a\n");
+  git("add", "-A");
+  git("-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "-m", "the first thing this run finished");
+  writeFileSync(join(work, "b.txt"), "b\n");
+
+  const p = await readProgress(work, base);
+  assert.equal(p.read, true);
+  assert.equal(p.commits.length, 1, "the commit the clone arrived with is not this run's work");
+  assert.equal(p.commits[0].subject, "the first thing this run finished");
+  assert.equal(p.branch, "pm/2026-11-02-message");
+  assert.equal(p.dirty, 1, "and what it has not committed yet is counted separately");
+});
+
+test("another branch the clone arrived with is not this run's work", async () => {
+  // The clone a run gets is FULL on purpose, so it carries every
+  // remote-tracking ref the repository has — 416 of them on this product's
+  // own. None of those commits is the run's, and a reader that reached them
+  // reported two hundred commits for a run that had made none. So: local
+  // heads, never every ref.
+  const work = gitClone("exo");
+  const git = (...a) => execFileSync("git", ["-C", work, ...a], { stdio: "ignore" });
+  const commit = (m) => git("-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "--allow-empty", "-m", m);
+  // Somebody else's open branch, as a remote-tracking ref, exactly as a clone
+  // would hold it: not reachable from the revision this run starts at.
+  git("checkout", "-q", "-b", "somebody-else");
+  commit("a commit on another seat's branch, which this clone merely carries");
+  git("update-ref", "refs/remotes/origin/somebody-else", "HEAD");
+  git("checkout", "-q", "main");
+  git("branch", "-q", "-D", "somebody-else");
+
+  const base = await baseRev(work);
+  const idle = await readProgress(work, base);
+  assert.equal(idle.read, true);
+  assert.deepEqual(idle.commits, [], "a run that has committed nothing has committed nothing");
+
+  git("checkout", "-q", "-b", "exo/2026-11-02-message");
+  commit("the one thing this run actually did");
+  const p = await readProgress(work, base);
+  assert.equal(p.commits.length, 1, "and its own commit is the only one counted");
+  assert.equal(p.commits[0].subject, "the one thing this run actually did");
+});
+
+test("a reading that failed is not a run that did nothing — the two sentences differ", async () => {
+  const notARepo = cloneDir("pm");
+  assert.equal(await baseRev(notARepo), null, "a directory that is not a repository has no revision to read");
+  const p = await readProgress(notARepo, "0000000000000000000000000000000000000000");
+  assert.equal(p.read, false);
+  assert.match(p.why, /git could not be asked/);
+  // The distinction is the whole point: "nothing committed" is evidence about
+  // the run, "could not be read" is evidence about the reader (L77).
+  const failed = stoppedDetail(p, { says: "killed at the 60.0m run bound after 60.3m", now: Date.now() });
+  assert.match(failed, /what it had done could not be read/);
+  const idle = stoppedDetail({ read: true, count: 0, commits: [], branch: "b", dirty: 0 }, { says: "killed at the 60.0m run bound after 60.3m", now: Date.now() });
+  assert.match(idle, /with nothing committed/);
+  assert.doesNotMatch(idle, /could not be read/);
+  // And the third sentence, which is neither: a reading with no count at all —
+  // a caller older than that field, or a fixture written by hand. It must fall
+  // back to the commits it does carry, because `undefined` reading as zero
+  // would report a run that worked as a run that did nothing.
+  const noCount = stoppedDetail({ read: true, commits: [{ at: new Date().toISOString(), subject: "it did this" }], branch: "b", dirty: 0 }, { says: "killed", now: Date.now() });
+  assert.match(noCount, /with 1 commit on b/);
+});
+
+test("the count of what a run did is exact, and the log quotes a window of it", async () => {
+  // The number that gets counted and the subjects that get quoted want
+  // different limits, and a count read off a capped `git log` is capped. The
+  // one population this instrument exists to characterise — a run stuck in a
+  // loop — is the population that would hit the cap, so it is the one that
+  // must not be told "20" when it committed twenty-five times.
+  const work = cloneDir("engineer");
+  const git = (...a) => execFileSync("git", ["-C", work, ...a], { stdio: "ignore" });
+  git("init", "-q", "-b", "main");
+  const commit = (m) => git("-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "--allow-empty", "-m", m);
+  commit("the history this clone arrived with");
+  const base = await baseRev(work);
+  git("checkout", "-q", "-b", "engineer/loop");
+  for (let i = 1; i <= 25; i++) commit(`round ${i}`);
+
+  const p = await readProgress(work, base);
+  assert.equal(p.count, 25, "the count is every commit this run made");
+  assert.equal(p.commits.length, 20, "and the quotes are a bounded window of them");
+
+  const lines = stoppedSays(p, { bytes: 0, now: Date.now(), adapter: "claude", format: "--output-format json" });
+  assert.match(lines[0], /what it had done when it died: 25 commits on engineer\/loop/);
+  assert.equal(lines[1], "#   the newest 20 of them:", "the window says it is a window, so a reader counting lines does not disagree with the sentence above it");
+  assert.match(lines[2], /round 6$/, "oldest of the window first");
+  assert.match(lines[21], /round 25$/);
+  assert.match(stoppedDetail(p, { says: "killed at the 60.0m run bound after 60.3m", now: Date.now() }), /with 25 commits on engineer\/loop/);
+  assert.equal(progressFacts(p, { elapsedMs: 1, bytes: 0, now: Date.now() }).commits, 25);
+});
+
+test("a run killed at the bound leaves the account the run could not write", async () => {
+  const work = gitClone("engineer");
+  // Two commits, then a sleep far longer than the bound: a run that is working
+  // and has said nothing, which is every run under `--output-format json`.
+  const r = await killRun("engineer", {
+    work, timeoutMs: 2_000,
+    env: { EPITO_STUB_COMMITS: "2", EPITO_STUB_SLEEP_MS: "60000", EPITO_STUB_DIR: join(tmpdir(), "epito-stub-kill") },
+  });
+  assert.equal(r.exit, "timeout", "the bound killed it");
+  assert.equal(r.turns, null, "and it never printed a result object, so it gave no account of itself");
+
+  const logged = readFileSync(r.log, "utf8");
+  assert.match(logged, /the 0\.0m run bound killed this run after 0\.0m — it is DEFAULT_RUN_TIMEOUT_MS in cli\/src\/temporal\/bounds\.js/,
+    "the log names the bound that did this and the file that declares it");
+  assert.match(logged, /what it had done when it died: 2 commits on stub-work-/,
+    "and what the run had finished, read off the clone");
+  assert.match(logged, /the 1 of 2 things this run finished/, "including the commits themselves, oldest first");
+  assert.match(logged, /the child wrote nothing to this log: the executor the claude adapter runs \(`--output-format json`\)/,
+    "and why none of the run's own words are in this file");
+
+  // The same fact where it can be counted rather than grepped.
+  assert.match(r.detail, /^killed at the 0\.0m run bound after 0\.0m with 2 commits on stub-work-/);
+  assert.match(r.detail, /the last 0\.0m before it was stopped$/);
+  assert.equal(r.progress.read, true);
+  assert.equal(r.progress.commits, 2);
+  assert.equal(r.progress.bytes, 0, "zero bytes of the child's own output is the fact that separates this from a run that never started");
+  // Was it still working when it died? That is the one number a kill bound
+  // cannot be chosen without, and it is the one the old footer could not
+  // hold. Loose here only because git stamps a commit to the second, so a
+  // two-second run reads accurate to about a second — against a bound
+  // measured in minutes, which is what this is for.
+  assert.ok(r.progress.sinceLastCommitMs !== null && r.progress.sinceLastCommitMs < 5_000,
+    `it was committing when it died (${r.progress.sinceLastCommitMs}ms before the kill)`);
+});
+
+test("a silent run says what it has done every tick, before anything kills it", async () => {
+  const work = gitClone("frontend");
+  // The `execute` activity heartbeats from this callback and from nowhere
+  // else, so with an executor that prints at exit it never beat at all — and
+  // the activity declares a five-minute heartbeat timeout. A tick is the only
+  // thing that makes that declaration mean anything for a run of this kind.
+  let beats = 0;
+  const r = await killRun("frontend", {
+    work, timeoutMs: 20_000, onOutput: () => { beats++; },
+    env: {
+      // Ten ticks' worth of sleep to assert two: a reading spawns three gits,
+      // and a loaded box is allowed to be slow without failing this.
+      EPITO_STUB_COMMITS: "1", EPITO_STUB_SLEEP_MS: "3000", EPITO_PROGRESS_EVERY_MS: "300",
+      EPITO_STUB_DIR: join(tmpdir(), "epito-stub-tick"),
+    },
+  });
+  assert.equal(r.exit, 0, "this one finished on its own");
+  const logged = readFileSync(r.log, "utf8");
+  const ticks = logged.split("\n").filter((l) => l.includes("still running:"));
+  assert.ok(ticks.length >= 2, `a silent run leaves more than a header behind (got ${ticks.length}: ${ticks.join(" / ")})`);
+  for (const t of ticks) assert.match(t, /^# \d+\.\dm in, still running: .* so far$/, `a tick is a whole sentence: ${t}`);
+  // The sentence this exists for: working, and silent. Asserted of SOME tick
+  // rather than of the first or the last, because both ends are legitimately
+  // something else — the first can land before the child has made its branch
+  // ("nothing committed yet on main", the clone as it arrived), and the last
+  // can land after the child has printed its result and before the close
+  // handler has run.
+  const working = ticks.filter((t) => /1 commit on stub-work-[0-9a-f]+, the last 0\.\dm ago \("the 1 of 1 things this run finished"\), 0 paths uncommitted, and 0 bytes of the child's own output so far$/.test(t));
+  assert.ok(working.length >= 1, `a working, silent run says what it has committed (got ${ticks.length} ticks: ${ticks.join(" / ")})`);
+
+  // A run that reached its own exit gave its own account, so the killer writes
+  // none: two accounts of one run is how a reader ends up with two answers.
+  assert.doesNotMatch(logged, /what it had done when it died/);
+  assert.equal(r.progress, null);
+  assert.equal(r.detail, null);
+  assert.ok(beats >= ticks.length, `every tick beats as well as writes (${beats} beats for ${ticks.length} ticks)`);
+});
+
+test("a child that reached its own exit is not told as a killing", async () => {
+  const work = gitClone("market");
+  const dir = tmpDir();
+  const cwd = process.cwd();
+  process.chdir(dir);
+  let r;
+  try {
+    // /bin/false: it exits 1 at once and prints nothing, so it lands in the
+    // same population as a killed run — no result object — by a completely
+    // different route. Nobody stopped it, and the account must not say so.
+    r = await executeAgent({
+      agent: seat("market", { runtime: { model: "m", entry: "e", repo: "acme/roster" } }),
+      trigger: "cron", runId: "exited-market", workDir: work, timeoutMs: 30_000, log: () => {},
+      executor: "/bin/false",
+    });
+    r = { ...r, log: join(dir, r.log) };
+  } finally { process.chdir(cwd); }
+  assert.equal(r.exit, 1);
+  assert.equal(r.turns, null, "it printed no result object, which is what puts it in this population");
+  const logged = readFileSync(r.log, "utf8");
+  assert.match(logged, /# this run ended after 0\.0m with exit 1 and no account of itself/);
+  assert.doesNotMatch(logged, /run bound killed this run/, "no bound did this");
+  assert.doesNotMatch(logged, /stopped by/, "and nobody signalled it");
+  assert.match(r.detail, /^ended after 0\.0m with exit 1 and no account of itself with nothing committed$/,
+    "the ledger gets the same sentence, and it is about an ending rather than a killing");
+});
+
+test("a refused run spoke, so it is not given a killed run's account", async () => {
+  const work = gitClone("okr");
+  const r = await killRun("okr", {
+    work, timeoutMs: 30_000,
+    env: { EPITO_STUB_REFUSE_SAYS: "Claude AI usage limit reached|1762070400", EPITO_STUB_DIR: join(tmpdir(), "epito-stub-refuse") },
+  });
+  assert.equal(r.exit, "refused");
+  assert.equal(r.turns, 0, "zero turns is a number: the run printed its object and said it did nothing");
+  const logged = readFileSync(r.log, "utf8");
+  assert.doesNotMatch(logged, /what it had done when it died/, "a refusal is not a killing");
+  assert.match(r.detail, /usage limit reached/, "and the refusal keeps the detail field it was already using");
 });
 
 // --- the window's own scratch directory -----------------------------------
@@ -3293,9 +3584,32 @@ test("asking whether the engine is up pulls in no engine", async () => {
   // otherwise a future edit to temporal/env.js could quietly make the manifest
   // commands need the ~300 MB of engine that cli/package.json exists to avoid
   // shipping.
-  const env = readFileSync(fileURLToPath(new URL("../src/temporal/env.js", import.meta.url)), "utf8");
-  assert.ok(!/^import /m.test(env),
-    "src/temporal/env.js has grown an import — lib/engine.js reads the address from it, so an @temporalio import there would make `epito validate` need the engine");
+  //
+  // It used to be spelled "temporal/env.js has no imports at all", which was a
+  // proxy for the invariant and not the invariant: the run bound is now
+  // declared once, in temporal/bounds.js, because declaring it twice was how
+  // moving it moved nothing — and env.js has to read that one declaration. So
+  // the check follows the local import graph instead, which is the property
+  // that was always meant and is stronger than the proxy, since it also holds
+  // for whatever those modules import.
+  const closure = (start) => {
+    const seen = new Set();
+    const walk = (url) => {
+      const path = fileURLToPath(url);
+      if (seen.has(path)) return;
+      seen.add(path);
+      const text = readFileSync(path, "utf8");
+      for (const [, spec] of text.matchAll(/^import .*? from "([^"]+)"/gm)) {
+        assert.ok(spec.startsWith("node:") || spec.startsWith("."),
+          `${path.split("/cli/").pop()} imports ${spec}; everything \`epito validate\` reaches may import only node builtins and engine-free local modules`);
+        if (spec.startsWith(".")) walk(new URL(spec, url));
+      }
+    };
+    walk(start);
+    return seen;
+  };
+  const reached = closure(new URL("../src/temporal/env.js", import.meta.url));
+  assert.ok(reached.size >= 2, "the walk found env.js and at least the module it reads the bound from");
   const engine = readFileSync(fileURLToPath(new URL("../src/lib/engine.js", import.meta.url)), "utf8");
   for (const [, spec] of engine.matchAll(/^import .*? from "([^"]+)"/gm)) {
     assert.ok(spec.startsWith("node:") || spec.startsWith("."),
