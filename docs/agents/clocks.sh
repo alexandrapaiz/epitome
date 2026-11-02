@@ -8,6 +8,9 @@
 #   bash docs/agents/clocks.sh --writable     can a seat set the field at all
 #                                             (POSTS one self-addressed ask — this
 #                                              is the only subcommand that writes)
+#   bash docs/agents/clocks.sh --answers [SEAT]  does the party whose silence is
+#                                             being read ever answer here at all
+#                                             (0 yes, 1 never, 2 could not look)
 #   bash docs/agents/clocks.sh --self-test
 #
 # Why this is a command and not a paragraph. The law above this charter says a
@@ -190,6 +193,109 @@ writable() {
   esac
 }
 
+# §22'S FOURTH QUESTION, WHICH IT DOES NOT ASK: does the party whose silence is
+# being read ever answer on this surface at all?
+#
+# The three places §22 names are all properties of the ask — the field, the
+# `ref`, the recipient. Every one of them can be satisfied perfectly by a
+# sender writing into a void, because none of them is a fact about the
+# addressee. A clock reads silence as consent, and that inference needs one
+# premise nobody here had ever checked: that the silent party would have spoken
+# if it disagreed. Where that premise is false the silence carries no
+# information, and forty-eight hours of it is a timer rather than a consent.
+#
+# Measured on this board on 2026-11-02, over its whole recorded life rather
+# than a page of it (4,259 messages, 2026-09-30T02:32Z to 2026-11-02T03:20Z):
+# 144 asks have been addressed to `owner`, 45 of them from this product, and
+# the owner has written to this board exactly once, on 2026-09-30T03:51Z,
+# before the first of them existed. She is not idle — she merges, under her
+# own account, and every charter merge this repository has ever had is hers —
+# but she has never answered an ask *here*, so her silence here is the only
+# state this surface can show and it means nothing in particular.
+#
+# So this is a measurement and never an accusation: the right reading is that
+# the answer channel and the ask channel are different surfaces, and a seat
+# that files an hour against the wrong one is not collecting consent. `--answers`
+# prints the two counts and names the surface the party does act on. The window
+# is the board's whole life, walked in splitting slices by `docs/agents/board.py`
+# rather than read at a limit, because a 500-row page answers about its newest
+# slice and the error runs toward "nobody ever asked" (L86, L77).
+#
+#   bash docs/agents/clocks.sh --answers [SEAT]   default owner
+#
+# Three outcomes and never two (L41): 0 the party answers here, so its silence
+# is evidence; 1 the party has never answered here, so a clock on its silence
+# collects nothing; 2 could not look.
+answers_rate() {  # $1 = party, default owner
+  local party=${1:-owner}
+  PARTY="$party" CLOCKS_FIXTURE="${CLOCKS_FIXTURE:-}" python3 - <<'PY'
+import datetime, json, os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath("docs/agents/clocks.sh")), "docs/agents"))
+party = os.environ["PARTY"].lower()
+fix = os.environ.get("CLOCKS_FIXTURE") or ""
+blind = []
+if fix:
+    try:
+        rows = json.load(open(fix)).get("messages", [])
+    except Exception as e:
+        print(f"could not look: the fixture did not parse ({e})"); sys.exit(2)
+else:
+    try:
+        sys.path.insert(0, "docs/agents")
+        import board
+        rows, blind = board.fetch(int(os.environ.get("WINDOW_ALL", "2400")))
+    except Exception as e:
+        print(f"could not look: the board did not answer ({e})"); sys.exit(2)
+if not rows:
+    print("could not look: the window came back empty, which is not the same as a silent party")
+    sys.exit(2)
+asked = [m for m in rows if (m.get("to_seat") or "").lower() == party]
+spoke = [m for m in rows if (m.get("from_seat") or "").lower() == party]
+ts = sorted(m.get("ts") or "" for m in rows)
+print(f"the surface: {len(rows)} message(s), {ts[0][:19]}Z to {ts[-1][:19]}Z")
+if blind:
+    print(f"  WINDOWS READ ONLY IN PART: {blind} — the counts below are lower bounds (L77)")
+print(f"asks and messages addressed to `{party}`: {len(asked)}")
+print(f"messages written by `{party}` on this surface: {len(spoke)}")
+for m in sorted(spoke, key=lambda x: x.get("ts") or "")[:3]:
+    print(f"  {(m.get('ts') or '')[:19]}Z {m.get('subject', '')[:72]}")
+if not spoke:
+    print(f"SILENCE CARRIES NOTHING: `{party}` has never written on this surface, so a clock "
+          f"reading its silence here is a timer and not a consent — the hour will pass in every "
+          f"world, including the one where it disagrees")
+    print(f"  {len(asked)} ask(s) have been filed against that silence")
+    print(f"  read the party's answers where they land instead: for a charter path here that is "
+          f"the forge, and `git log origin/main -- prompts/` is the instrument")
+    sys.exit(1)
+# THE PREMISE, STATED AS A NUMBER. A clock gives the party 48 hours and reads
+# the 49th as consent, so the premise it needs is that this party produces a
+# word here inside a window of that size. That is measurable, so it is measured
+# rather than assumed, and the threshold is the clock's own horizon rather than
+# a figure chosen here. A party whose last word is older than its own clock
+# window, with asks stacked up behind it, has already falsified the premise.
+last = max((m.get("ts") or "") for m in spoke)
+newer = [m for m in asked if (m.get("ts") or "") > last]
+latest = ts[-1]
+silent_h = (datetime.datetime.fromisoformat(latest)
+            - datetime.datetime.fromisoformat(last)).total_seconds() / 3600
+print(f"its last word here: {last[:19]}Z, {silent_h / 24:.1f} day(s) before the newest "
+      f"message on the surface")
+print(f"asks addressed to it since that word: {len(newer)}")
+horizon = float(os.environ.get("CLOCK_HORIZON_HOURS", "48"))
+if silent_h > horizon and newer:
+    print(f"SILENCE CARRIES NOTHING: a clock gives `{party}` {int(horizon)}h and reads the next "
+          f"hour as consent, and this party has produced no word here in {int(silent_h)}h while "
+          f"{len(newer)} ask(s) accumulated — so the premise the inference needs is false on this "
+          f"surface and the hour would pass in every world, including the one where it disagrees")
+    print(f"  read its answers where they land instead: for a charter path here that is the "
+          f"forge, and `git log origin/main -- prompts/` is the instrument")
+    sys.exit(1)
+print(f"`{party}` has answered here inside its own clock window, so its silence is evidence "
+      f"about this item")
+sys.exit(0)
+PY
+}
+
 fetch() {  # $1 = destination file
   : "${BOARD_API_URL:?BOARD_API_URL is not set; this runs where the board is reachable}"
   : "${BOARD_RUNTIME_TOKEN:?BOARD_RUNTIME_TOKEN is not set}"
@@ -226,6 +332,7 @@ fetch_answers() {  # $1 = destination file; a could-not-look here is not fatal
 
 case "${1:-}" in
 --writable) writable; exit $? ;;
+--answers)  answers_rate "${2:-owner}"; exit $? ;;
 
 --self-test)
   # Every branch fired against an input, because a branch nothing has ever hit
@@ -502,6 +609,59 @@ PYEOF
   check "and it says so rather than claiming a write" 0 \
         env BOARD_API_URL="http://127.0.0.1:1/x" CLOCKS_FIXTURE="$tmp/probed.json" bash -c \
         'out=$(bash "$0" --writable 2>&1); grep -q "cited, not re-probed" <<<"$out"' "$0"
+
+  # --answers, §22's fourth question. Four fixtures and no network, because a
+  # self-test that reaches the board tests the board. The horizon is the
+  # clock's own 48 hours, so the two cases that matter are 47 and 50 hours of
+  # silence, and the 47 is the one worth having: L94 says a guard ships with an
+  # accepted case that is a near-miss of its own violation, and the near-miss
+  # here is a party who did answer, barely, with asks already stacked behind it.
+  cat > "$tmp/answers-silent.json" <<'JSON'
+{"messages":[
+ {"ts":"2026-10-01T00:00:00+00:00","kind":"note","from_seat":"owner","to_seat":null,
+  "subject":"the only word she ever wrote here"},
+ {"ts":"2026-10-01T06:00:00+00:00","kind":"ask","from_seat":"pm","to_seat":"owner",
+  "subject":"an ask filed into it"},
+ {"ts":"2026-10-03T02:00:00+00:00","kind":"note","from_seat":"pm","to_seat":null,
+  "subject":"the newest message on the surface, 50h after her last word"}
+]}
+JSON
+  cat > "$tmp/answers-nearmiss.json" <<'JSON'
+{"messages":[
+ {"ts":"2026-10-01T03:00:00+00:00","kind":"note","from_seat":"owner","to_seat":null,
+  "subject":"her last word, 47h before the newest message"},
+ {"ts":"2026-10-01T06:00:00+00:00","kind":"ask","from_seat":"pm","to_seat":"owner",
+  "subject":"an ask filed after it, so the accumulation leg is satisfied too"},
+ {"ts":"2026-10-03T02:00:00+00:00","kind":"note","from_seat":"pm","to_seat":null,
+  "subject":"the newest message on the surface"}
+]}
+JSON
+  cat > "$tmp/answers-never.json" <<'JSON'
+{"messages":[
+ {"ts":"2026-10-01T06:00:00+00:00","kind":"ask","from_seat":"pm","to_seat":"owner",
+  "subject":"an ask to a party that has never written here at all"},
+ {"ts":"2026-10-03T02:00:00+00:00","kind":"note","from_seat":"pm","to_seat":null,
+  "subject":"the newest message on the surface"}
+]}
+JSON
+  printf '{"messages":[]}\n' > "$tmp/answers-empty.json"
+  check "--answers: 50h silent with asks behind it" 1 \
+        env CLOCKS_FIXTURE="$tmp/answers-silent.json" bash "$0" --answers owner
+  check "--answers: the 47h near-miss is accepted"  0 \
+        env CLOCKS_FIXTURE="$tmp/answers-nearmiss.json" bash "$0" --answers owner
+  check "--answers: never wrote here at all"        1 \
+        env CLOCKS_FIXTURE="$tmp/answers-never.json" bash "$0" --answers owner
+  check "--answers: empty window is could-not-look"  2 \
+        env CLOCKS_FIXTURE="$tmp/answers-empty.json" bash "$0" --answers owner
+  check "--answers: a party that does answer"        0 \
+        env CLOCKS_FIXTURE="$tmp/answers-nearmiss.json" bash "$0" --answers pm
+  # The verdict names the surface and the two counts, so a reader can check it
+  # without rerunning it. A measurement nobody can see is an assertion (L77).
+  check "--answers prints both counts"               0 \
+        env CLOCKS_FIXTURE="$tmp/answers-nearmiss.json" bash -c \
+        'out=$(bash "$0" --answers owner 2>&1); grep -q "addressed to .owner.: 1" <<<"$out" \
+          && grep -q "written by .owner. on this surface: 1" <<<"$out"' "$0"
+
   exit $rc ;;
 esac
 
