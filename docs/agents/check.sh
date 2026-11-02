@@ -118,7 +118,7 @@ for f in docs/agents/patches/*.diff; do
 done
 
 echo
-echo "== identifiers free across main and every open pull request =="
+echo "== identifiers free across main, every open pull request, and every orphan =="
 git fetch -q origin main 'refs/pull/*/head:refs/remotes/pull/*' 2>/dev/null
 # A pre-flight check answers about the state you are about to push, and this
 # one asked `HEAD`. On 2026-10-24 at 17:3xZ it printed thirteen identifiers as
@@ -127,6 +127,57 @@ git fetch -q origin main 'refs/pull/*/head:refs/remotes/pull/*' 2>/dev/null
 # them (L41: a could-not-look must never be spelled like a clean). So `WORK`
 # reads the working tree, which is what the next commit will contain and is
 # identical to `HEAD` once it is committed.
+#
+# AND THE POPULATION WAS WRONG, WHICH IS A SEPARATE DEFECT FROM THE REF
+# (L108). The scan below read `gh pr list --state open`, and a pull request the
+# forge closed is not open. At 2026-11-02T08:44:35Z #417 merged; at 08:44:37Z
+# the forge closed #418, unmerged, because #417's head branch — #418's base —
+# was deleted on merge. #418 carried `L107` and `Incident 69` in seven commits
+# on a branch that still existed, and for the 429 seconds until `epitome/pm`
+# re-opened the same head as #424 this very check answered **free** for both
+# identifiers. Nothing was wrong with how it read a ref; it was asking the
+# wrong set of refs.
+#
+# So the population is open pull requests PLUS closed-and-never-merged ones
+# whose head branch is still on `origin`, which is exactly the set somebody is
+# about to recreate — #424 was recreated seven minutes later. A closed pull
+# request whose branch is also gone carries no text anybody can land, and is
+# correctly out of scope.
+#
+# THE TWO OUTCOMES ARE NOT ONE OUTCOME (L-A44, L-A50). A live open pull request
+# holding your identifier is a collision, and the remedy is to renumber here. An
+# orphan holding it is not: the orphan's text is older, it is the one a merger
+# will take, and renumbering around it ratifies the orphaning. So the label says
+# which, and names the remedy that does not destroy the other seat's entry.
+scan_prs=""; orphans=""
+if command -v gh >/dev/null; then
+  scan_prs=$(gh pr list --state open --limit 200 --json number --jq '.[].number' 2>/dev/null)
+  # `--state closed` includes merged, so the filter is `mergedAt == null`. The
+  # window is the newest 200 closed pull requests, and that scope is part of
+  # the answer (L-A47): an orphan older than that has had its branch deleted by
+  # every housekeeping pass this repository runs, which is what takes it out.
+  live=$(git ls-remote --heads origin 2>/dev/null | sed 's|.*refs/heads/||')
+  if [ -n "$live" ]; then
+    orphans=$(gh pr list --state closed --limit 200 \
+                --json number,mergedAt,headRefName \
+                --jq '.[] | select(.mergedAt == null) | "\(.number) \(.headRefName)"' 2>/dev/null \
+              | while read -r onum oref; do
+                  grep -qxF "$oref" <<<"$live" && printf '%s\n' "$onum"
+                done)
+  else
+    echo "  could not look at orphans: origin would not list its heads (L41)"
+  fi
+  # The count and not the list. Forty-five orphans were in scope the first time
+  # this ran, and a forty-five-number line every run is the kind of noise that
+  # teaches a reader to skip the section it is in; the numbers are printed where
+  # they mean something, which is on a clash.
+  if [ -n "$orphans" ]; then
+    printf '  scope: %s open pull request(s) and %s orphan(s) — closed, never merged, branch still on origin\n' \
+      "$(printf '%s\n' $scan_prs | grep -c .)" "$(printf '%s\n' $orphans | grep -c .)"
+  fi
+else
+  echo "  could not look: no gh, so only main is in scope (L41)"
+fi
 taken() {  # taken <ref|WORK> <path> <regex> -> one identifier per line
   if [ "$1" = WORK ]; then cat "$2" 2>/dev/null
   else git show "$1:$2" 2>/dev/null; fi | sed -nE "s/$3/\1/p"
@@ -141,8 +192,8 @@ do
   [ -z "$mine" ] && continue
   for id in $(echo "$mine" | tr ' ' '~'); do
     id=${id//\~/ }
-    clash=""
-    for pr in $(gh pr list --state open --limit 100 --json number --jq '.[].number' 2>/dev/null); do
+    clash=""; orphaned=""
+    for pr in $scan_prs $orphans; do
       git merge-base --is-ancestor "pull/$pr" HEAD 2>/dev/null && continue   # already mine
       # Herestring, not a pipe: `taken ... | grep -qxF` can report NOT TAKEN
       # for an id the branch really carries, and a false "not taken" here is
@@ -152,12 +203,24 @@ do
         this=$(grep -F "## $id " "$path"          | head -1)
         that=$(git show "pull/$pr:$path"  | grep -F "## $id " | head -1)
         [ "$this" = "$that" ] && continue   # same entry, carried by a sibling branch
-        clash="$clash #$pr"
+        if grep -qxF "$pr" <<<"$orphans"; then orphaned="$orphaned #$pr"
+        else clash="$clash #$pr"; fi
       fi
     done
+    # Both lines when both are true, because the two remedies are different and
+    # a reader shown only the louder one acts on half the finding (L-A88: a
+    # summary line names every class it counted).
     if [ -n "$clash" ]; then
-      printf '%-28s %-14s TAKEN by%s\n' "$path" "$id" "$clash"; fail=1
-    else
+      printf '%-28s %-14s TAKEN by%s — renumber here (L23)\n' "$path" "$id" "$clash"; fail=1
+    fi
+    if [ -n "$orphaned" ]; then
+      printf '%-28s %-14s ORPHANED on%s — closed unmerged, branch alive\n' "$path" "$id" "$orphaned"
+      printf '%-28s %-14s   that entry is older than yours and is the one a merger takes:\n' "" ""
+      printf '%-28s %-14s   recreate it against `main` and renumber HERE, or carry its head\n' "" ""
+      printf '%-28s %-14s   in. Renumbering around it silently ratifies the orphaning (L108).\n' "" ""
+      fail=1
+    fi
+    if [ -z "$clash" ] && [ -z "$orphaned" ]; then
       printf '%-28s %-14s free\n' "$path" "$id"
     fi
   done
@@ -243,6 +306,130 @@ else
     done
   fi
 fi
+echo
+echo "== this seat's live asks on one reserved path compose with each other =="
+# THE FIRST CHECK IN THIS FILE CLAIMS THIS GROUND AND CANNOT SEE IT (L109).
+# `docs/agents/patches/ORDER` holds five diffs, all of them for the engineer's
+# and the project manager's charters, and the charter's own rule is why: L27
+# forbids this seat a patch in a file beside the charter, because "a diff that
+# is not in the file it changes has no click to be". So every charter proposal
+# this seat makes lives in a pull request, and the gate that exists to refuse
+# "a charter patch `git apply` will not take" is pointed at the one directory
+# the charter forbids putting them in. Not a stale check — a check aimed away
+# from its subject, which reads as an all-clear (L77, L-A21).
+#
+# WHAT WAS THERE WHEN IT WAS FINALLY ASKED, 2026-11-02T08:49Z. Three live asks
+# on `prompts/exo-agent.md`: #300 from 2026-10-24, #312 from 2026-10-25, #396
+# from this morning. Each applies to `origin/main` alone. **#300 and #312 do
+# not compose, in either order** — `#300` then `#312` fails at line 94, `#312`
+# then `#300` fails at line 102 — so the owner may merge either and the second
+# one she reaches will conflict, nine days after the first was written, with
+# nothing in this repository having said so. #396 composes with both.
+#
+# WHY A PAIR AND NOT THE WHOLE SEQUENCE. There is no ORDER file for pull
+# requests and this seat does not get to invent the merge order of the owner's
+# own queue. A pair is the smallest claim that is true regardless of what she
+# merges: if two asks cannot both land, that is a fact about the two of them
+# and about no sequence. Reported as an observation, because the merge gate is
+# hers by design.
+if ! command -v gh >/dev/null; then
+  echo "  could not look: no gh, so the queue cannot be read (L41)"
+elif ! git rev-parse --verify -q origin/main >/dev/null; then
+  echo "  could not look: no origin/main to compose against (L41)"
+else
+  # The source is a named ref and the report prints which one (L-X16): a
+  # composition measured against the invoker's working tree is unfalsifiable.
+  echo "  composing against origin/main at $(git rev-parse --short origin/main)"
+  # AND IT REFUSES ONLY WHAT THIS BRANCH CAN FIX. A pair of asks that cannot
+  # both land is a fact about the owner's queue, and the charter is explicit
+  # that this seat reports such things as observations and never as proposals
+  # because the merge gate is hers by design. A gate that fails every future
+  # branch of this seat over #300 x #312 until she merges one of them is a gate
+  # this seat learns to route around (L-A56, L-A160, and L-X5's own warning
+  # about a guard that punishes the compliant form). So: a non-composing pair
+  # containing THIS branch's pull request refuses, because the branch in hand
+  # can act on it. Any other pair is printed as an observation and the exit code
+  # is left alone.
+  self=$(gh pr list --head "$(git rev-parse --abbrev-ref HEAD)" --state open \
+           --limit 5 --json number --jq '.[].number' 2>/dev/null | tr '\n' ' ')
+  [ -n "$self" ] && echo "  this branch is#$(printf '%s' "${self% }" | sed 's/ / #/g'), so a pair naming it refuses and the rest are observations"
+  pairs=$(gh pr list --state open --limit 200 --json number,files 2>/dev/null \
+          | python3 -c '
+import json, sys, itertools, collections
+by = collections.defaultdict(list)
+for p in json.load(sys.stdin):
+    for f in p.get("files") or []:
+        if f["path"].startswith("prompts/"):
+            by[f["path"]].append(p["number"])
+for path in sorted(by):
+    ns = sorted(set(by[path]))
+    for a, b in itertools.combinations(ns, 2):
+        print("%s\t%s\t%s" % (path, a, b))
+')
+  if [ -z "$pairs" ]; then
+    echo "  no reserved path carries two live asks, so there is nothing to compose"
+  else
+    cw=$(mktemp -d) || { echo "  could not look: no scratch directory (L107)" >&2; cw=""; }
+    if [ -z "$cw" ]; then
+      fail=1
+    elif ! git worktree add -q --detach "$cw" origin/main 2>/dev/null; then
+      echo "  could not look: no scratch worktree at origin/main (L41)"
+      rmdir "$cw" 2>/dev/null
+    else
+      # A pair is tested in both orders, because `git apply` is not symmetric:
+      # the first patch moves the context the second one is anchored to, so an
+      # ask can be landable before a sibling and refuse after it.
+      while IFS=$'\t' read -r cpath a b; do
+        [ -z "$cpath" ] && continue
+        pa="$cw/.ask-$a.patch"; pb="$cw/.ask-$b.patch"
+        git diff "origin/main...pull/$a" -- "$cpath" > "$pa" 2>/dev/null
+        git diff "origin/main...pull/$b" -- "$cpath" > "$pb" 2>/dev/null
+        if [ ! -s "$pa" ] || [ ! -s "$pb" ]; then
+          printf '  %s  #%s x #%s  could not look: a pull ref would not resolve (L41)\n' \
+            "$cpath" "$a" "$b"
+          continue
+        fi
+        bad=""
+        for ord in "$a $b" "$b $a"; do
+          set -- $ord
+          git -C "$cw" checkout -q -- . 2>/dev/null
+          if git -C "$cw" apply "$cw/.ask-$1.patch" 2>/dev/null \
+             && git -C "$cw" apply --check "$cw/.ask-$2.patch" 2>/dev/null; then :
+          else bad="$bad #$1-then-#$2"; fi
+        done
+        git -C "$cw" checkout -q -- . 2>/dev/null
+        if [ -n "$bad" ]; then
+          # `case` and not `grep -qw ... || grep -qw ...`: `cli/test/shapes.sh`
+          # counts the `||` in that form as a quiet pipe, which it is not —
+          # there is no writer on the left of a logical-or whose status could be
+          # masked, and the right-hand side is the herestring that gate's own
+          # fix text prescribes. Reported to `epitome/engineer`, whose surface
+          # `cli/test/` is; a glob on a space-padded list is the cheaper form
+          # here anyway.
+          if case " $self " in *" $a "*|*" $b "*) true ;; *) false ;; esac; then
+            printf '  %s  #%s x #%s  DOES NOT COMPOSE:%s — and one of them is THIS branch\n' \
+              "$cpath" "$a" "$b" "$bad"
+            fail=1
+          else
+            printf '  %s  #%s x #%s  does not compose:%s — observation, neither is this branch\n' \
+              "$cpath" "$a" "$b" "$bad"
+          fi
+          noncompose=1
+        else
+          printf '  %s  #%s x #%s  compose, both orders\n' "$cpath" "$a" "$b"
+        fi
+      done <<<"$pairs"
+      if [ "${noncompose:-0}" = 1 ]; then
+        echo "  A pair that does not compose is one ask the owner cannot merge second, and"
+        echo "  this seat may not pick her order. Say it in the body and route it; never"
+        echo "  rebase another run's ask to suit this one (L29: the clock consents to the"
+        echo "  words the ask showed her)."
+      fi
+      git worktree remove --force "$cw" 2>/dev/null
+    fi
+  fi
+fi
+
 echo
 echo "== instruments that count commit distance refuse a clone they cannot deepen =="
 # L86 said a truncated frame answers rather than refusing and its error has a

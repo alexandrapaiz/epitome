@@ -9295,3 +9295,172 @@ reads whether the shape landed and says so in first person.
 
 `portable: yes`
 `role: any, engineer, exo`
+
+## L108 — A pull request's base is a ref another hand deletes, so a child dies of its parent's success: the forge closes it unmerged, the queue cannot tell that from refused, and every identifier it carries reads as free the moment it goes
+
+**No owner correction triggered this one.** It fired on this run's own branch,
+fifty-four seconds after the branch was opened, and the mechanism had already
+been named once this morning — `epitome/pm` found it through the rename door at
+about 06:33Z and `docs/agents/check.sh` already carries that finding in its own
+comments. So this is a **second instance of a named class**, not a discovery,
+and the two halves worth writing down are the ones nobody had measured: what
+the queue reads afterwards, and what happens to the identifiers.
+
+**Facts, to the second.**
+
+| time (UTC) | |
+|---|---|
+| 08:43:33Z | this run commits on `epitome-exo/2026-11-02-message-19`, branched from `epitome-exo/2026-11-02-message-18` because the charter says to start from this seat's newest open pull request, and `gh pr list --state open` had just returned #418 as open |
+| 08:43:43Z | #422 opened, draft, base `epitome-exo/2026-11-02-message-18` |
+| 08:44:35Z | #417 merges |
+| 08:44:35Z | the forge deletes `epitome-exo/2026-11-02-message-17`, #417's head and #418's **base** |
+| 08:44:37Z | the forge closes #418, **unmerged**, two seconds after its parent's success and fifty-four after this run targeted it |
+| 08:51:46Z | `epitome/pm` recreates the same head as #424, against `main`, with the diagnosis right in the body: *"the content was never rejected, only orphaned by the base deletion"* |
+| 08:52:12Z | #424 merges. Seven commits, nine files, `L107` and `Incident 69` reach `main`, 457 seconds after leaving the queue |
+
+**The first half nobody had measured: the queue cannot tell this from a
+refusal.** `docs/agents/landed.sh` splits what left the queue into merged and
+closed-unmerged, which is the right split for every other cause. A pull request
+the forge closed because its base was deleted lands in `closed`, beside the ones
+a seat declined on the merits, and there is no field that separates them — same
+state, same empty `mergedAt`, and the closing actor is the account that performed
+the *parent's merge*, so even the actor reads as deliberate. The only mark is a
+timestamp two seconds after a sibling merge, and nothing reads timestamps that
+way. **A cause that cannot be told apart from refusal will be read as refusal**
+(L-A50, L-A44), and the seat whose work it was has no memory and will not come
+back for it.
+
+**The second half, which is worse, because it invites a collision rather than
+losing one.** `check.sh`'s identifier allocator asked `gh pr list --state open`.
+A pull request the forge closed is not open, so from 08:44:37Z to 08:51:46Z —
+**429 seconds** — that check answered `free` for `L107` and `Incident 69`, both
+of them written, committed and pushed on a branch that still existed. Any run of
+this seat or a sibling in that window would have been told the identifier was
+available and taken it, and the collision would have surfaced only when the
+orphan was recreated, which is the one moment the two texts become
+simultaneously real. The allocator was reading its refs correctly and asking the
+wrong set of them: **an allocator's population is a separate claim from its read,
+and a closed branch that still exists is exactly the set somebody is about to
+recreate.**
+
+**The number, whole-history, read off the forge rather than remembered.** Of 425
+pull requests this repository has opened, **24 were opened on a base other than
+`main`**. Twenty-three of those closed without ever merging. The one that merged,
+#264, merged into a branch: its head is on no ancestor of `main` today. Nine of
+the twenty-four have heads that are not on `main` at this moment — #51, #255,
+#258, #260, #264, #271, #274, #279, #314 — which is the same nine #300 counted on
+2026-10-24, unmoved in nine days. **Zero of the twenty-four reached the trunk by
+their own merge.** #418 is the twenty-fourth and it reached `main` only because
+another seat was awake, read it within seven minutes, and recreated it by hand.
+
+**The repair is written, correct, and nine days old, which makes this a landing
+finding and not a fix to propose again** (L-X7, L20). `f02cb89` on #300, written
+2026-10-24T23:05:22Z: *"Take its **head** and open the pull request against
+`main` regardless: the base of every pull request this seat opens is the default
+branch, with no exception and no test to apply."* It cannot land without the
+owner because it is a `prompts/` path. `check.sh` already says this in its own
+comments — *"the rule whose absence causes the bundle is itself held behind the
+bundle's own clock"* — and this entry is the second instance arriving while that
+sentence sat in the tree. **So no charter patch is filed here** (L31's second
+limb): a fourth proposal for a file that already carries three live ones, two of
+which do not compose (L109), buys nothing the ask does not already have, and
+L-X7 says the honest record is the queue depth rather than a fourth request.
+
+**What this run did instead, which is the half available without her.** The base
+of #422 was moved to `main` the moment the close was read, so the branch's own
+pull request no longer points at a ref another merge can delete; the orphan's
+seven commits rode in by containment until #424 landed them first. Neither act
+needed a charter.
+
+**And the detector, fired against a real positive** (L-X1 as amended).
+`check.sh`'s allocator now scans open pull requests plus closed-never-merged ones
+whose branch is still on `origin`, and labels the two apart, because the remedies
+are opposite: a live clash is renumbered here, and an orphan holding your
+identifier is *older than yours and the one a merger will take*, so renumbering
+around it silently ratifies the orphaning. Checked by writing a different entry
+under `L95`, which open #396 and orphans #394, #390 and #387 all hold: both lines
+print. The old code printed one of them, and for #418's pair it printed `free`.
+
+**The rule, one sentence.** A pull request whose base is not the default branch
+is a claim on a ref whose lifetime belongs to whoever merges the parent, so open
+against `main` and take the parent's work by containment; and any instrument that
+asks "is this identifier, branch name or entry free" counts the branches the
+forge has closed and not deleted, because closed-unmerged is a state work passes
+through on its way back in, not a state it has left from.
+
+
+## L109 — A gate aimed away from its subject reads as an all-clear: the check this charter names for "a charter patch `git apply` will not take" reads the one directory the charter forbids putting one in, and the first time the real question was asked, two of this seat's three live asks on one file could not both be merged
+
+**No owner correction triggered this one either.** It fired on the first line of
+`docs/agents/check.sh`, which this seat wrote, has run before every pull request
+for a week, and had never once pointed at the thing it was named for.
+
+**The two rules, and they are both this seat's own.** The charter says: *"Before
+the pull request opens, run `bash docs/agents/check.sh` from a full clone: it
+refuses a charter patch `git apply` will not take."* And L27 says a charter patch
+goes **into the charter file**, never into a file beside it, because *"a diff that
+is not in the file it changes has no click to be."* Both are right. Together they
+leave the gate with nothing to read: `docs/agents/patches/ORDER` holds five diffs,
+every one of them for the engineer's or the project manager's charter, and this
+seat's own proposals are where L27 sends them — in pull requests, which that
+check never looks at.
+
+**So the check is not stale, and that distinction is the lesson.** A stale check
+tests an old version of its subject and a reader can tell, because the subject is
+there to compare against. A check aimed *away* from its subject answers about a
+population that is empty or irrelevant and prints the same word a clean answer
+prints. Every run of this seat for a week read `5 applies` and had been told
+nothing whatever about the charter patches it actually had in flight. That is
+L-A21 — a gate is judged by what it can see — and L77: the all-clear of an
+instrument is a statement about its input.
+
+**What was there the first time the real question was asked, 2026-11-02T08:49Z.**
+Three live asks on `prompts/exo-agent.md`:
+
+| ask | filed | applies to `origin/main` alone |
+|---|---|---|
+| #300 | 2026-10-24T22:17:30Z | yes |
+| #312 | 2026-10-25T03:25:52Z | yes |
+| #396 | 2026-11-02T03:49:07Z | yes |
+
+And in pairs, in both orders, because `git apply` is not symmetric — the first
+patch moves the context the second is anchored to:
+
+| pair | result |
+|---|---|
+| #300 then #312 | **fails**, `prompts/exo-agent.md:94` |
+| #312 then #300 | **fails**, `prompts/exo-agent.md:102` |
+| #300 × #396 | composes, both orders |
+| #312 × #396 | composes, both orders |
+| #304 × #391 on `prompts/pm-agent.md` | composes, both orders |
+
+**#300 and #312 cannot both be merged.** Either one is landable today; whichever
+the owner reaches second conflicts, and she finds that out in the merge box with
+no warning anywhere. #312 is eight days old and #300 is nine, they were written
+by two runs of this seat with no memory of each other, and the rule that was
+supposed to prevent exactly this is the first check in the file.
+
+**Why a pair and not a sequence, which is the part that keeps this an
+observation.** `docs/agents/patches/ORDER` works because this seat may declare
+the order of patches it owns. There is no ORDER for pull requests and there must
+not be: the merge gate is the owner's by design, and a sequence published by this
+seat would be this seat picking her order. A pair is the smallest claim that
+survives any order she chooses — *these two cannot both land* is a fact about the
+two of them and about no sequence at all. So the gate reports pairs, and the
+remedy it prints is to say so and route it, never to rebase a sibling ask to suit
+the branch in hand: that ask is under the owner's eye with the words it showed
+her, and editing it substitutes words she was not shown (L29).
+
+**Fix shipped on this run's branch,** not yet on `main` (L-A132): `check.sh`
+gains a check that reads every open pull request's files, groups the reserved
+paths, and composes each pair against `origin/main` — a named ref whose short sha
+it prints, because a composition measured against the invoker's working tree is
+unfalsifiable (L-X16). Its first run is the table above, which is the real
+positive this detector was checked against rather than a fixture.
+
+**The rule, one sentence.** Before trusting a gate's all-clear, ask what
+population it read and whether the rule's own law puts the subject somewhere
+else — because a charter that forbids a location and a gate that only reads that
+location agree with each other perfectly and bind nothing, and the smallest true
+claim about a queue you do not control is a pair, never a sequence.
+
