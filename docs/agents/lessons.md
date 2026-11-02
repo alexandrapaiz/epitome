@@ -8503,3 +8503,169 @@ has spoken.
 
 `portable: yes`
 `role: any, exo`
+
+## L101 — A declared blind spot does not license a superlative computed inside the visible part: a total measured on a subset is a lower bound, but "the largest" measured on a subset is simply false, and the reader acts on the ranking while the footnote is read as diligence
+
+**No owner correction triggered this one.** It came out of this run's own
+first minute. The resident runtime handed this seat a box whose disk was
+full, a `cat` of a tool's header lost its output to `ENOSPC`, and at
+05:31:15Z a `python3` rewrite of `docs/agents/route.sh` truncated that file
+to **0 bytes** — it opened the file for writing and the write failed — so
+the instrument this seat is required to run before every handoff was
+destroyed mid-run by the resource. Restored from `git` at 05:31:42Z.
+
+**The reading that was in front of a decision-maker while that happened.**
+`alexandra-systems/chair:asc-host` posted twice, to this company's engineer
+at 03:57:27Z and then as an `ask` to the owner at 04:12:35Z. Both carry the
+same two sentences, verbatim and identical:
+
+> "The largest things on it are /var/log at 0.3G, /root/.cache at 0.1G,
+> /var/cache at 0.0G."
+
+> "I could not size /srv/asc, /tmp inside the time I allowed, so that much
+> of the disk is unaccounted for here."
+
+The ask then says *"the choice of what goes is yours"*. So the owner was
+asked to choose what to delete from a list of three directories, and the
+footnote under the list says the two biggest things on the disk were not
+measured. Both halves are honest. The ranking is still wrong, and it is
+wrong in the direction that makes the ask unanswerable: every item she was
+offered is too small to matter.
+
+```data
+instrument: df -Pm / ; du -sm on each top-level directory
+read_at: 2026-11-02T05:35:12Z
+df_used_mb: 43172        df_avail_mb: 1942        df_use_pct: 96
+srv_mb: 18063            41.8% of used
+tmp_mb: 15248            35.3% of used
+srv_plus_tmp_share_of_used: 77.2%    <- both declared unsized
+usr_mb: 3608   snap_mb: 930   var_mb: 927   opt_mb: 345
+var_log_mb: 271          0.6% of used   <- named as the largest thing on it
+var_cache_mb: 39         0.1% of used
+three_named_items_share_of_used: about 0.9%
+du_sweep_of_all_seven_top_directories_seconds: 26
+du_of_the_two_declared_unsizeable_seconds: 16.3  (/tmp 11.66, /srv 4.64)
+```
+
+**The direction of this snapshot, because it flatters the reading rather
+than the finding (L86).** `df_avail_mb` was 114 at 05:17:57Z, 192 at
+05:29Z, 1134 at 05:31:42Z and 1942 at 05:35:12Z. It is **rising**, because
+the seat that owns the disk is reclaiming it. So 96% is a mid-recovery
+reading and not the peak: the shares above are measured at the moment the
+crisis was already being handled, which makes them conservative about how
+lopsided the ranking was at 04:12:35Z and not generous.
+
+**The mechanism, which is why this is not L86 again.** L86 is about a frame
+that answers instead of refusing, and L41 and L77 are about an all-clear
+that is really a could-not-look. All three were *obeyed* here: the blind
+spot is declared, in writing, in the same message. What survived the
+footnote is the superlative, and a superlative is the one statistic that
+does not degrade gracefully on a subset. A total measured on part of a
+population is a true lower bound. A mean is an estimate. **"The largest" is
+either the largest or it is the opposite of the answer**, because the whole
+content of the claim is a comparison against the things that were not
+measured. So the footnote cannot repair the sentence above it; it can only
+tell a reader who notices that the sentence above it is void.
+
+And readers do not notice, for a reason that is structural rather than
+careless: the ranking is the part shaped like an answer and the footnote is
+the part shaped like diligence. A decision-maker reading *"the largest
+things are these three"* followed by *"I could not size those two"* takes
+the first as the finding and the second as the author being careful. Two
+seats read these messages before this run did — HQ's engineer at 03:54:15Z
+and HQ's PM at 05:18:39Z, both of whom went on to act on the disk — and
+neither sized `/tmp` or `/srv` either. The cost of repairing it was
+**16 seconds**.
+
+**The rule.** When a measurement cannot see part of its subject, it reports
+the total as a bound and **prints no ranking, no largest, no biggest and no
+worst** until the blind spot is sized — or it sizes the blind spot first,
+which is usually cheaper than the paragraph explaining why it did not. If a
+superlative is what the reader asked for, the honest answer to a partial
+read is *"I cannot rank these yet, and sizing what I missed costs N
+seconds"*. Where the blind spot genuinely cannot be sized, name the
+unmeasured share of the whole next to the ranking, in the same sentence,
+because a share is the one number that tells a reader how much the ranking
+is worth.
+
+**This binds this seat first, and before it binds anybody else.** This
+charter orders a superlative every day: *"Observe this product's numbers
+and its biggest drag"*, and *"name the weakest one"* of the ten attributes,
+both sent to `alexandra-systems/exo-centralizer` as the input to a
+company-wide decision. And the capacity line — the one number this charter
+says may never be missing — is computed by `caps.sh`, `idle.sh` and
+`recovered.py`, all three of which read the provider's refusals out of the
+host's run logs. **None of the three reads the host.** So on a day a
+resource refused this seat's own work twice and destroyed a file, the
+capacity line this seat is required to publish will read `limit_touched: 0`
+and `refused_before_a_turn: 0`, and those numbers are correct about the
+resource they measure and silent about the one that fired. That silence is
+`docs/standards/lessons.md` L-X14's second clause — *any surface that
+aggregates failures groups them by cause or admits in its own note that it
+cannot* — and this charter's capacity bullet does not carry it.
+
+**The sentence the generator wrote, which is the whole finding in four
+lines.** `tools/host/asc-diskwatch.sh` on the box carries this, merged
+2026-10-27T01:38:58Z in `alexandra-systems#524`:
+
+> ```
+> # A row whose size came back null is "I could not look", which the reading's
+> # own `consumers()` docstring calls a finding and this line used to throw away.
+> # Kept and named instead, because the two biggest watched paths are the two
+> # slowest to walk, so they are the likeliest to be the ones missing.
+> all_rows = reading.get("largest", [])
+> rows = [r for r in all_rows if r.get("bytes")][:3]
+> ```
+
+The comment states the premise that makes the next line false — *the
+likeliest rows to be missing are the biggest ones* — and the next line
+builds `"The largest things on it are "` out of the complement of exactly
+those rows. Nothing here is careless. The repair that added the footnote is
+`#524`'s and it works; what it did not do is **withdraw the superlative it
+had just proved unsafe**, and that is the step this lesson exists to make
+automatic. A disclosure is not a correction.
+
+**And whose hand can amend it, because the ask's words are generated.** My
+charter says a repair to text under a clock "rides as an amendment to the
+ask, from the seat that filed the ask". The seat that filed this one is
+`chair:asc-host`, which is a timer and a shell script: it cannot amend a
+sentence it did not choose. So the rule generalizes — **when an ask's words
+are generated, the hand that can amend them is the owner of the generator,
+not the sender named on the message** — and here that is
+`alexandra-systems/engineer`, which holds the merges on both
+`tools/host/asc-diskwatch.sh` and `tools/check-disk.py`. Read off
+`route.sh` and not guessed, at 05:41:45Z: that seat is the hand, this seat
+had addressed it exactly once ever and never about either surface.
+
+**Binds:** every seat reporting a top-N, a largest, a weakest or a biggest
+drag over a population it measured in part, and every chair reporting host
+state. For this seat, it binds the daily brief's two superlatives and the
+capacity line.
+
+**The charter clause, verbatim, because this run may not write it (L31).**
+The bullet it belongs in is `prompts/exo-agent.md:91`, the capacity line,
+and that bullet is the exact text `#312` is rewriting under a clock that
+runs to 2026-11-03T23:30:00Z. L90 records what happened the last time this
+seat put a second clause at that anchor: `#300` and `#312` conflict in
+either order and one clause had turned two decisions the owner can refuse
+separately into one she cannot. So no patch and no second proposal beside
+it, which is this charter's own rule for words under a clock. The clause is
+written here instead, where the next run reads it off `main`:
+
+> Every count in this line names the resource it read and the resources it
+> did not. The three readers behind it read the provider; the host is a
+> second resource and a shared one, and a refusal it issues arrives inside
+> a run as a failed tool call rather than as a refused run, so it cannot
+> appear in these counts at all. A capacity line that says nothing was
+> refused when it has only asked one resource is L-X14's obituary with the
+> cause left blank.
+
+**File:** `prompts/exo-agent.md`, the capacity bullet. **Hand:** the owner,
+as an act-ask carrying no hour, because L96 measured 245 messages addressed
+to her against one written by her and no hour this seat has ever filed on a
+charter patch could have released one. **Rides on:** whichever of `#300` or
+`#312` merges first, as its own one-file pull request, which is the order
+L90 already set.
+
+`portable: yes`
+`role: any, exo`

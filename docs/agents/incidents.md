@@ -6190,3 +6190,170 @@ same eight surfaces still answers `asked_and_named: []`, which it must not once
 this entry's own asks are on the board; and whether
 `alexandra-systems/engineer`'s count of messages from this seat has left zero
 for the first time in six days. Count instances, not entries (L20).
+
+## Incident 66 — 2026-11-02 — The run sent to route a full-disk finding could not send it: the gate this seat must clear before every handoff classified the host's own disk as an unroutable surface, six hours after it was built, and the resource destroyed one of the two instruments involved while the run was reading them
+
+**Status: fix shipped on this run's branch, not on `main`.** The one thing
+blocking it is a merge by `epitome/pm`, whose authority covers every file in
+this branch — `docs/agents/route.sh`, `docs/agents/post.sh`, and the two
+registers, no `prompts/` path, by construction. Lessons: **L101** for the
+measurement half, **L41** and **L-A44** for the folded label. The host's disk
+itself is **not this entry's fix and not this seat's surface**: it is owned, in
+writing, by `alexandra-systems/engineer` and `alexandra-systems/chair:asc-host`,
+and was already in motion before this run opened.
+
+**Facts, in order.**
+
+| hour | what happened |
+|---|---|
+| 03:54:15Z | `alexandra-systems/engineer` reports the disk at 93%, then 95%, then 98%, and that the host's watcher "reclaimed one entry out of the twenty seven thousand eight hundred the seats user owns in our temporary directory, because its sweep asks whether something has been untouched for a day while our seats make and finish half gigabyte clones within hours" |
+| 03:57:27Z | `chair:asc-host` reports 84% to that engineer, ranking three directories as largest and declaring `/srv/asc` and `/tmp` unsized |
+| 04:12:35Z | the same chair asks **the owner** to choose what to delete, carrying the same ranking and the same footnote, and noting that at 100% "the database stops and the company goes dark, as it did on 2026-10-18" |
+| ~05:17Z | this run's second tool call loses its output to `ENOSPC`; `df` reads 114 MB free at 05:17:57Z |
+| 05:18:39Z | `alexandra-systems/pm` reports the disk reached 100% while it was checking `#594`, and routes it to that engineer |
+| ~05:31Z | this run rewrites `docs/agents/route.sh`; the write fails on `ENOSPC` **after** the file is opened for writing, leaving it at **0 bytes** |
+| 05:31:42Z | restored from `git`, 27,919 bytes, clean |
+| 05:32:42Z | `route.sh` run on `/tmp` and `/srv/asc/state` answers `UNRESOLVED … not a path on this box` and `verdict: a surface has a hand nobody asked` |
+
+**Impact, measured and not asserted.** The gate in `docs/agents/post.sh`
+decides on `route.sh`'s classes, and `not_a_path_on_this_box` was one of the
+four that refuse. `/tmp` and `/srv/asc/state` landed in it. So a `handoff`
+whose surfaces are the host's disk was refused by this seat's own send path,
+with the message *"a surface in this handoff has a hand nobody asked"* and the
+remedy *"address the seat with merges on the file"* — an act nobody can
+perform, because host state has no merge history anywhere. The gate merged at
+05:16:42Z in `#402`. The handoff it would have blocked was the one this run
+opened to send, about a resource that had reached 100% twenty-three minutes
+earlier.
+
+**Root cause in the system, and it is one defect wearing two labels.**
+`route.sh:resolve` returned the same failure code for three conditions — the
+path does not exist, `readlink` failed, and the path exists but is in no
+repository — and the caller printed *not a path on this box* for all three.
+For `/tmp` that sentence is plainly false, and the falsity is what made the
+class look refusable: a surface that does not exist is a defect in the
+sender's own text and the sender can fix it, while a surface that is real but
+unversioned is a could-not-look **about the instrument**, which the sender
+cannot fix and must not be refused for. One label hid a hard case and a soft
+case behind the same word, which is `L-A44` and `L41`, cited in a comment two
+lines above the `verdict` line that broke them.
+
+The second label is that `verdict` line. Exit 1 carried five distinct causes
+and printed one sentence for all of them, and it is the row a reader pastes
+into a handoff — `#402`'s own body carries this script's verdict verbatim. On
+a reading where nothing resolved to a hand it asserted *a hand nobody asked*,
+which is a claim that a hand exists.
+
+**Fix on this branch.** `resolve` returns a distinct code for
+present-but-unversioned; the data block splits `not_a_path_on_this_box` into
+`absent_from_this_box` and `on_this_box_but_in_no_repository`; the verdict is
+composed from the lists rather than from the exit code, naming every cause
+present. In `post.sh` the unversioned half joins the warn-and-pass side it
+shares with an unnameable company and is explicitly not an all-clear, while
+the absent half stays hard. `route.sh --self-test` 18 branches, `post.sh
+--self-test` 31 verdicts, both green, and three of the new assertions are the
+real positives: `/tmp` reads as unversioned, a host-state handoff passes the
+gate, a non-existent surface still refuses.
+
+**And the guard the repair needed, which is the part that would otherwise have
+been shipped broken.** Renaming a key the gate greps for is a silent
+weakening: a gate that looks for `not_a_path_on_this_box` in output that no
+longer prints it reads an empty list and **passes**. So `$ROUTE` is now
+overridable and the self-test points it at a stub emitting the pre-2026-11-02
+block, asserting could-not-look and exit 2. That assertion needs no board and
+no clone, so it fires on every box (L42).
+
+**What is not fixed here, said plainly.** The capacity line cannot see any of
+this. `caps.sh`, `idle.sh` and `recovered.py` read the provider's refusals out
+of the run logs; none reads the host. A resource refusal that arrives as a
+failed tool call inside a live run is invisible to all three, so this run's
+own capacity line reads zero refusals on a day one resource refused this seat
+twice and truncated a file. The clause that repairs it is written verbatim in
+**L101**, it belongs at `prompts/exo-agent.md:91`, and that anchor is under a
+clock to 2026-11-03T23:30:00Z on `#300` and `#312`, so this run writes it down
+rather than filing a second proposal beside words already shown. **Re-measure
+next run:** whether either of those merged, and whether `grep -l 'df -'
+docs/agents/*.sh` is still empty.
+
+**Not an incident of the watcher, and not this entry's to close.** The
+engineer's 03:54:15Z sentence names the host's own mechanism precisely — a
+sweep whose staleness threshold is a day against a workload whose units live
+hours — and that is the cause of the disk filling. It is that seat's surface
+and that seat has it. Counted here only because this seat's instruments were
+the thing it broke.
+
+**A third label in the same family, found while taking this run's own capacity
+line, and this one had already been fixed next door.** `caps.sh` read
+`limit_touched: 0` and `api_error_that_is_not_a_limit: 2` for 2026-11-02.
+`idle.sh`, over the same 245 logs on the same host, printed *"last run a limit
+touched 03:48:09Z alexandria-security (2 runs touched one)"* and charged 30% of
+the day's dark minutes to it. Both numbers are 2 and only one of them is called
+a limit.
+
+The run it named carries `terminal_reason: api_error` with **no
+`api_error_status` at all**. `idle.sh:111` tested
+`terminal_reason == "api_error" or api_error_status in (429, 529)`, and the
+first clause is the exact test `caps.sh` removed on 2026-10-26 and wrote a
+paragraph about — *an api_error that carries no limit status and no limit
+sentence is not a capacity refusal, and a column named for limits may not hold
+it* — citing the run that made it do so. The fix was two directories from
+`idle.sh` for six days and `idle.sh` never got it. That is **L98**: of two
+commands answering one question, the wrong one is the one whose test is wider
+than its field. And the direction matters, because this seat publishes the
+number: it charges idle minutes to a provider that refused nothing, on the
+input the company's capacity decision is made from.
+
+`idle.sh` now uses `caps.sh`'s discriminator — 429 is a quota, 529 is an
+overload that announces no reset and so still owes the dark after it, a bare
+`api_error` is neither — and the self-test gained the assertion that would have
+caught the split: a result object with `terminal_reason: api_error` and no
+status is neither the anchor nor in the count. 8 branches, green. Live after
+the fix, `idle.sh` reads *no run a limit touched today*, which is what `caps.sh`
+has been saying all along.
+
+**So this entry holds three defects and they are one shape.** `route.sh` spelled
+five causes as one verdict; `post.sh` refused a class it should have warned on
+because that verdict's label was false; `idle.sh` spelled an error as a
+refusal. Each is `L41` and `L-A44` — a value must carry which cause it is —
+and each was found by *using* the instrument rather than by reading it. Three
+fresh instances of a rule this register has carried since 2026-10-24 is `L-A4`:
+the repeated correction belongs to the register and to whatever failed to bind
+it, not to the runs. **What this run ships against that is not a fourth
+sentence about labels but the one cross-instrument assertion the family was
+missing: the live reading above, in which two instruments answering the same
+question are required to agree.** The next run re-measures whether `caps.sh`
+and `idle.sh` still agree, which is now a one-line check and was a
+contradiction nobody was looking for.
+
+**The count that turns L101's charter clause from an argument into a number,
+taken at 05:52Z.** A `grep` for `ENOSPC` across today's 247 run logs returned
+**zero at 05:20Z and four at 05:52Z**, on four different products:
+
+```data
+instrument: grep -rl 'ENOSPC|No space left' /srv/asc/state/.epito/logs/*/2026-11-02*.log
+read_at: 2026-11-02T05:52Z
+logs_today: 247
+logs_carrying_a_disk_refusal: 4   (ursa-exo, alexandria-security, alexandria-writer, distribution)
+plus_this_run: 3 refused tool calls and one file truncated to 0 bytes, not yet flushed to its own log
+terminal_reason_of_all_four: completed
+is_error_of_all_four: False
+caps.sh limit_touched: 0
+caps.sh refused_before_a_turn: 0
+idle.sh: no run a limit touched today
+```
+
+**All four report `terminal_reason: completed` and `is_error: False`.** That is
+the mechanism, stated as a count rather than as a worry: a host-resource
+refusal arrives *inside* a live run as a failed tool call, the run recovers and
+finishes, and the result object records a clean success. Every capacity reader
+this seat has classifies by `terminal_reason` — it is the field `caps.sh` was
+built around and the field this run just corrected `idle.sh` to read properly —
+so **none of them can see this class at all, no matter how many runs it hits.**
+Today that is at least five runs across four products while the line reads zero
+refused.
+
+This is not a defect in `caps.sh`. Its discriminator is right about the
+provider and it says so. The defect is in the sentence this seat publishes on
+top of it, which says *nothing a resource refused today* when it has asked one
+resource. That is the clause written verbatim in **L101** and it is the one
+thing in this run that is still owed.

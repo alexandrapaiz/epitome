@@ -109,12 +109,20 @@ fetch_recv() {
 # `git -C <dir>` answers both questions for any path on this box, including the
 # ones no charter in this checkout fences. A host path that resolves into a
 # clone is a line in that clone's repository and is routed as one.
+# Three reasons this can fail and they are not one reason (L41, L-A50). Until
+# 2026-11-02 all three printed *not a path on this box*, which is simply false
+# for the case that actually occurs: `/tmp` and `/srv/asc/state` are both on
+# this box, and what they are not is inside a repository. A reader told the
+# path does not exist goes looking for a typo; a reader told it is in no
+# repository goes looking for the hand somewhere other than a merge history,
+# which is the act this script exists to point at. Exit 1 is absent, 4 is
+# present-but-unversioned.
 resolve() {  # $1 = surface -> prints "repo<TAB>relpath<TAB>dir" or nothing
   local s=$1 real top origin rel
   real=$(readlink -f -- "$s" 2>/dev/null) || return 1
   [ -e "$real" ] || return 1
   local dir; dir=$real; [ -d "$dir" ] || dir=$(dirname -- "$real")
-  top=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || return 1
+  top=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || return 4
   origin=$(git -C "$top" remote get-url origin 2>/dev/null)
   origin=${origin##*github.com[:/]}; origin=${origin%.git}
   [ -n "$origin" ] || origin="(no origin: $top)"
@@ -244,11 +252,17 @@ report() {  # surfaces as "$@"
   local inbox=$tmp/recv.json
   if ! fetch_recv "$inbox"; then rm -rf "$tmp"; return 2; fi
   printf 'the hand for each surface, read off the repository that holds it, %s\n' "$(date -u +%FT%TZ)"
-  local no_hand=() never=() not_about=() ok=() unresolved=() unknown_co=() replied=()
+  local no_hand=() never=() not_about=() ok=() unresolved=() unversioned=() unknown_co=() replied=()
   for s in "$@"; do
     local r repo rel top
-    r=$(resolve "$s") || { printf '  UNRESOLVED %s: not a path on this box, so this cannot name its repository\n' "$s"
-      unresolved+=("$s"); rc=1; continue; }
+    r=$(resolve "$s"); local rrc=$?
+    if [ $rrc = 4 ]; then
+      printf '  UNVERSIONED %s: on this box, but in no repository, so no merge history names a hand\n' "$s"
+      unversioned+=("$s"); rc=1; continue
+    elif [ $rrc != 0 ]; then
+      printf '  ABSENT %s: nothing at this path on this box, so this cannot name its repository\n' "$s"
+      unresolved+=("$s"); rc=1; continue
+    fi
     IFS=$'\t' read -r repo rel top <<<"$r"
     printf '  %s\n    repo %s   path %s\n' "$s" "$repo" "$rel"
     local hs; hs=$(hands "$top" "$rel")
@@ -299,11 +313,28 @@ report() {  # surfaces as "$@"
   # is reached only when every hand on every surface has been asked and at
   # least one has replied (L-A44: the value has to carry which cause it is).
   if [ $rc = 0 ] && [ ${#replied[@]} -gt 0 ]; then rc=3; fi
+  # And exit 1 is five causes, which this line spelled as one until 2026-11-02.
+  # `verdict:` is the row a reader pastes into a handoff — #402's body carries
+  # this script's, verbatim — so whatever it says is what the next hand acts on.
+  # On two surfaces that resolved to no repository at all it said *a surface has
+  # a hand nobody asked*, asserting a hand that is not known to exist and naming
+  # the one remedy (write to it) that cannot be performed. That is the comment
+  # directly above this one, L-A44, broken two lines below where it is cited:
+  # a value has to carry which cause it is. So the verdict is composed from the
+  # lists rather than from the exit code, and an unresolved surface says it has
+  # no hand to ask instead of borrowing the sentence for a surface that has one.
   local verdict
   case $rc in
     0) verdict="every surface has a hand that was asked about it and owes an answer" ;;
-    1) verdict="a surface has a hand nobody asked" ;;
     3) verdict="every hand was asked and one has answered: read the answer before routing this further" ;;
+    1) local why=()
+       [ ${#unresolved[@]} -gt 0 ]  && why+=("${#unresolved[@]} surface(s) do not exist on this box, so this reading is about nothing")
+       [ ${#unversioned[@]} -gt 0 ] && why+=("${#unversioned[@]} surface(s) are on this box but in no repository, so no hand is known for them and none can be asked")
+       [ ${#no_hand[@]} -gt 0 ]     && why+=("${#no_hand[@]} surface(s) are in a repository no merge has touched, so no seat is known to be able to")
+       [ ${#never[@]} -gt 0 ]       && why+=("${#never[@]} hand(s) have never been addressed at all")
+       [ ${#not_about[@]} -gt 0 ]   && why+=("${#not_about[@]} hand(s) were addressed but never about this surface")
+       [ ${#unknown_co[@]} -gt 0 ]  && why+=("${#unknown_co[@]} hand(s) this box cannot name a company for")
+       verdict=$(IFS=';'; printf '%s' "${why[*]}") ;;
   esac
   printf '\n```data\n'
   printf 'measured_at: %s\n' "$(date -u +%FT%TZ)"
@@ -312,7 +343,8 @@ report() {  # surfaces as "$@"
   printf 'hand_addressed_but_not_about_this_surface: [%s]\n' "$(IFS=,; echo "${not_about[*]:-}")"
   printf 'no_hand_known: [%s]\n' "$(IFS=,; echo "${no_hand[*]:-}")"
   printf 'hand_whose_company_this_box_cannot_name: [%s]\n' "$(IFS=,; echo "${unknown_co[*]:-}")"
-  printf 'not_a_path_on_this_box: [%s]\n' "$(IFS=,; echo "${unresolved[*]:-}")"
+  printf 'absent_from_this_box: [%s]\n' "$(IFS=,; echo "${unresolved[*]:-}")"
+  printf 'on_this_box_but_in_no_repository: [%s]\n' "$(IFS=,; echo "${unversioned[*]:-}")"
   printf 'asked_and_named: [%s]\n' "$(IFS=,; echo "${ok[*]:-}")"
   printf 'hand_that_has_already_answered: [%s]\n' "$(IFS=,; echo "${replied[*]:-}")"
   printf 'verdict: %s\n' "$verdict"
@@ -474,9 +506,38 @@ JSON
   check "a path no merge has touched" 1 "$R/untouched.md"
   want 'NO HAND' "an unmerged path was not reported as NO HAND"
 
-  # 5. Not a path at all.
-  check "not a path on this box" 1 "merge the queue"
-  want 'UNRESOLVED' "a non-path was not reported as unresolved"
+  # 5. Absent from this box, and the new sibling of it: present but in no
+  #    repository. These were one verdict until 2026-11-02 and the live
+  #    positive for the second is `/tmp`, which this script called *not a path
+  #    on this box* while standing on it. They are checked apart here because
+  #    the remedies differ — a typo versus a hand that is not in any merge
+  #    history — and a test that fires only the first leaves the sentence that
+  #    was actually wrong unasserted (L42).
+  check "absent from this box" 1 "merge the queue"
+  want 'ABSENT' "a non-path was not reported as absent"
+  want 'do not exist on this box' "the verdict for an absent surface claimed a hand"
+  local unversioned_dir=$tmp/not-a-repo; mkdir -p "$unversioned_dir"
+  check "on this box but in no repository" 1 "$unversioned_dir"
+  want 'UNVERSIONED' "an unversioned directory was not reported as unversioned"
+  want 'in no repository, so no hand is known' "the verdict for an unversioned surface claimed a hand"
+  if printf '%s\n' "$out" | grep -q 'a hand nobody asked'; then
+    printf '  FAIL  %-52s\n' "an unversioned surface still asserts an unasked hand"; rc=1
+  else
+    printf '  ok    %-52s\n' "an unversioned surface asserts no hand"
+  fi
+
+  # 5b. The verdict names every cause present, not just the worst, because a
+  #     handoff about four surfaces is repaired four different ways.
+  out=$(ROUTE_SENT_JSON="$tmp/sent.json" ROSTER="$tmp/roster" report \
+        "$unversioned_dir" "$R/untouched.md" "merge the queue" 2>&1)
+  printf '%s\n' "$out" > "$tmp/last"
+  for frag in 'do not exist on this box' 'in no repository' 'no merge has touched'; do
+    if printf '%s\n' "$out" | grep -q "$frag"; then
+      printf '  ok    %-52s\n' "the verdict carries: ${frag:0:30}"
+    else
+      printf '  FAIL  %-52s\n' "the verdict dropped: ${frag:0:30}"; rc=1
+    fi
+  done
 
   # 6. A shallow clone is could-not-look and never no-hand.
   git clone -q --depth 1 "file://$R" "$tmp/shallow" 2>/dev/null

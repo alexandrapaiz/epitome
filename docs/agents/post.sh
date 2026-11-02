@@ -211,7 +211,7 @@ gate() {  # $1 = payload path; 0 clean, 1 the gate refuses, 2 could not look
 # tonight's handoffs had and silence is indistinguishable from forgetting. A
 # declared empty list with a reason passes, and stands as the sender's own claim
 # a reader can hold them to.
-ROUTE=docs/agents/route.sh
+ROUTE=${ROUTE:-docs/agents/route.sh}
 
 routed() {  # $1 = payload path; 0 clean, 1 refuse, 2 could not look
   local meta kind has reason out rc
@@ -277,15 +277,27 @@ PY
     return 2; }
 
   # The decision comes off the classes in route.sh's data block and not off its
-  # exit code, because that code folds one class the sender cannot act on in
-  # with four it can. `hand_whose_company_this_box_cannot_name` is this box's
+  # exit code, because that code folds classes the sender cannot act on in with
+  # the ones it can. `hand_whose_company_this_box_cannot_name` is this box's
   # roster failing to resolve a seat — `chair` and the branch-prefix refs on
   # every `prompts/` path do it — and it sets exit 1 there alongside the real
   # omissions. Refusing on it would block a correct handoff about a charter
   # path on a reading that is not about the sender at all, which is L41 from the
   # other side: a could-not-look must not be spelled like a finding in either
-  # direction. So it warns loudly and passes, and the four provable classes
-  # refuse.
+  # direction. So it warns loudly and passes, and the provable classes refuse.
+  #
+  # `on_this_box_but_in_no_repository` joins it, 2026-11-02, and the reason is a
+  # false positive this gate would have produced on its first real use. Until
+  # today route.sh spelled two states as `not_a_path_on_this_box` and this gate
+  # refused on it, so a handoff whose surfaces are `/tmp` and `/srv/asc/state`
+  # — the host's own disk, 99% full, this product's capacity surface — could not
+  # be sent at all. There is a hand for host state; what there is not is a merge
+  # history to read it off, so that is a could-not-look about the *instrument*
+  # and never an omission by the sender, and the remedy the hard path prints
+  # ("address the seat with merges on the file") names an act nobody can
+  # perform. `absent_from_this_box` stays hard, because a surface that does not
+  # exist makes the handoff's remedy about nothing, and that one the sender
+  # wrote and the sender can fix.
   local blocking
   blocking=$(ROUTE_OUT="$out" python3 - <<'PY'
 import os, re
@@ -294,9 +306,15 @@ def cls(k):
     m = re.search(r"^%s: \[(.*)\]$" % re.escape(k), out, re.M)
     return [x for x in (m.group(1).split(",") if m and m.group(1) else []) if x]
 names = ["hand_never_addressed", "hand_addressed_but_not_about_this_surface",
-         "no_hand_known", "not_a_path_on_this_box", "hand_that_has_already_answered"]
+         "no_hand_known", "absent_from_this_box", "hand_that_has_already_answered"]
 hits = {k: cls(k) for k in names}
-soft = cls("hand_whose_company_this_box_cannot_name")
+soft = cls("hand_whose_company_this_box_cannot_name") + \
+       ["%s (on this box, in no repository)" % x for x in cls("on_this_box_but_in_no_repository")]
+# The format moved on 2026-11-02 and a gate that reads a key the instrument no
+# longer prints sees an empty list and passes, which is the one failure mode a
+# gate must not have. So the old key is an error and not an absence.
+if re.search(r"^not_a_path_on_this_box:", out, re.M):
+    print("UNPARSEABLE"); raise SystemExit(0)
 if not re.search(r"^hand_never_addressed:", out, re.M):
     print("UNPARSEABLE"); raise SystemExit(0)
 for k in names:
@@ -632,8 +650,60 @@ PY
     check "live: an unnameable company alone does not refuse" "$out" "could not name the company of"
     check "and it is not reported as an all-clear" "$out" "not an all-clear"
     [ $rc = 0 ] || { echo "  FAIL exit for a could-not-name-only route: $rc"; fail=1; }
+
+    # The real positive for 2026-11-02's split, and it is the handoff this run
+    # had to send: the host's own disk. Under the single `not_a_path_on_this_box`
+    # class this refused, so the gate blocked a correct handoff about the
+    # resource this seat's capacity line is made of.
+    mk hoststate '{"surfaces":["/tmp","/srv/asc/state"]}'
+    out=$(routed "$T/hoststate.json" 2>&1); rc=$?
+    check "live: host state in no repository does not refuse" "$out" "in no repository"
+    check "and that is not an all-clear either" "$out" "not an all-clear"
+    [ $rc = 0 ] || { echo "  FAIL exit for a host-state route: $rc"; fail=1; }
+
+    # And the half that stays hard, because the sender wrote it and can fix it.
+    mk absent '{"surfaces":["/nonexistent-surface-for-the-self-test"]}'
+    out=$(routed "$T/absent.json" 2>&1); rc=$?
+    check "live: a surface that does not exist still refuses" "$out" "hand nobody asked"
+    [ $rc = 1 ] || { echo "  FAIL exit for an absent surface: $rc"; fail=1; }
   else
     echo "  skip live routing assertion: no board or no HQ clone on this box"
+  fi
+
+  # The format-drift guard, and it drives the real gate rather than a copy of
+  # its parser: `$ROUTE` is pointed at a stub that prints the data block
+  # route.sh emitted until 2026-11-02. A gate that greps for a key the
+  # instrument stopped printing sees an empty list and passes, which is the one
+  # failure mode a gate may not have, and nothing else here would notice it.
+  # This is also the only assertion in this file that needs no board, so it
+  # runs on every box (L42).
+  cat > "$T/stale-route.sh" <<'STUB'
+#!/usr/bin/env bash
+cat <<'BLOCK'
+the hand for each surface, read off a stub
+```data
+measured_at: 2026-11-02T00:00:00Z
+surfaces: 1
+hand_never_addressed: []
+hand_addressed_but_not_about_this_surface: []
+no_hand_known: []
+hand_whose_company_this_box_cannot_name: []
+not_a_path_on_this_box: [/tmp]
+asked_and_named: []
+hand_that_has_already_answered: []
+verdict: a surface has a hand nobody asked
+```
+BLOCK
+exit 1
+STUB
+  chmod +x "$T/stale-route.sh"
+  mk drift '{"surfaces":["/tmp"]}'
+  out=$(ROUTE="$T/stale-route.sh" routed "$T/drift.json" 2>&1); rc=$?
+  check "a stale route.sh key reads as could-not-look, never as clean" "$out" "format moved"
+  if [ $rc = 2 ]; then
+    printf '  ok   %s\n' "and it exits could-not-look rather than posting"
+  else
+    printf '  FAIL %s (exit %s, wanted 2)\n' "a stale key did not stop the post" "$rc"; fail=1
   fi
 
   [ $fail = 0 ] && echo "self-test: all verdicts fired" || echo "self-test FAILED"
