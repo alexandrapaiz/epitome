@@ -99,8 +99,77 @@ STUB_TOKEN="ghs_STUBTOKEN0000000000000000000000000000"
 GH_STARTS=0; OTLP_STARTS=0; WORKER_STARTS=0
 pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
-bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
-check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# How many lines of a haystack a failing gate prints: enough to carry a log's
+# last few lines, not the whole document.
+EVIDENCE_LINES="${EPITO_SMOKE_EVIDENCE_LINES:-24}"
+# A failing gate says what it looked at. Lifted from smoke-doctor.sh, which
+# paid three runs of archaeology to write it, and adapted to this file's own
+# haystacks: `FAIL <label>` names the claim and never the output the claim was
+# made against, so the only way to learn which of six lines was missing is to
+# run the suite again and hope to be unlucky in the same place. This suite's
+# own :974 flake cost four runs on one box at two revisions for exactly that
+# reason. On failure only -- a green run's output is byte for byte what it was.
+#
+# Where smoke-doctor.sh reads a `$NAME` out of the unevaluated expression and
+# prints that document, this suite names its haystacks differently and the
+# difference decides the reader. Of its 145 assertions only about twenty carry
+# a `$NAME` that survives to `check` at all (`$docout`, `$PS`, `$quiet_ps`,
+# `$out`); the rest are `grep -q '<needle>' '$ROOT/<file>.log'`, written in
+# double quotes, so `$ROOT` is expanded by the caller and what reaches here is
+# a literal path. So this reader asks both questions, in the order the answer
+# is most likely to be the document: a `$NAME` whose value holds a newline is
+# one, and failing that, any token of the expression that is a readable file is
+# one. A `$NAME` with no newline in it is a port, a path or an exit code, and
+# it is printed as the note it is rather than as a document.
+bad()  {
+  fail=$((fail+1)); printf '  FAIL %s\n' "$1"
+  [ -n "${2:-}" ] || return 0
+  printf '       the test: %s\n' "$2"
+  local rest="$2" name val docname="" doc="" w seen
+  local -a notes=() files=()
+  # Matched in the shell, not through `grep ... | head -1`: that is a producer
+  # piped into a reader that exits on its first line, the shape this
+  # repository has spent a week converting out of every suite in here, and the
+  # failure path is the last place to introduce one.
+  while [[ "$rest" =~ [$]\{?([A-Za-z_][A-Za-z0-9_]*) ]]; do
+    name="${BASH_REMATCH[1]}"; rest="${rest#*"${BASH_REMATCH[0]}"}"
+    val="${!name:-}"; [ -n "$val" ] || continue
+    if [ "${val#*$'\n'}" != "$val" ]; then
+      [ -n "$docname" ] || { docname="$name"; doc="$val"; }
+    else
+      seen=""
+      for w in ${notes[@]+"${notes[@]}"}; do [ "$w" = "$name" ] && seen=1; done
+      [ -n "$seen" ] || notes+=("$name")
+    fi
+  done
+  for name in ${notes[@]+"${notes[@]}"}; do printf '       $%s is %s\n' "$name" "${!name}"; done
+  if [ -z "$doc" ]; then
+    # The expression's own tokens, with its quoting flattened: a needle that
+    # happens to look like a path is not a risk, because only tokens that name
+    # a readable file are kept.
+    local blob="${2//[\'\"]/ }"; blob="${blob//$'\n'/ }"
+    local -a words=(); read -ra words <<<"$blob"
+    for w in ${words[@]+"${words[@]}"}; do
+      [ -f "$w" ] && [ -r "$w" ] || continue
+      seen=""
+      for name in ${files[@]+"${files[@]}"}; do [ "$name" = "$w" ] && seen=1; done
+      [ -n "$seen" ] || files+=("$w")
+    done
+    # Two is the cap, because an assertion that reads more files than that is
+    # reporting about a set and the first two are the ones a reader starts on.
+    for w in ${files[@]+"${files[@]}"}; do
+      printf '       %s, last %s lines:\n' "$w" "$EVIDENCE_LINES"
+      tail -n "$EVIDENCE_LINES" -- "$w" | sed 's/^/       | /'
+      [ "$w" = "${files[1]:-}" ] && break
+    done
+    [ ${#files[@]} -gt 0 ] && return 0
+    docname=out; doc="${out:-}"
+  fi
+  [ -n "$doc" ] || return 0
+  printf '       $%s, %s bytes, last %s lines:\n' "$docname" "${#doc}" "$EVIDENCE_LINES"
+  printf '%s\n' "$doc" | tail -n "$EVIDENCE_LINES" | sed 's/^/       | /'
+}
+check(){ if eval "$2"; then ok "$1"; else bad "$1" "$2"; fi; }
 # `said <captured output> [grep flags] <pattern>` — the one way this suite looks
 # inside a command's output, and it contains no pipe. That is the whole point of
 # it.
@@ -146,7 +215,14 @@ audit(){ label="$1"; shift; if node "$CLI/test/audit-has.mjs" "$@" >/dev/null 2>
 # The absence of a line is an assertion too: "this seat minted nothing" is half
 # of what the identity slice promises.
 none(){ n=$(node "$CLI/test/audit-has.mjs" --count "$2"); if [ "$n" = 0 ]; then ok "$1"; else bad "$1 (found $n)"; fi; }
-step() { printf '\n== %s\n' "$1"; }
+# Clearing `out` here is what keeps `bad`'s last fallback honest: before this
+# line it printed whatever the last `out=` ANYWHERE in the suite had left
+# behind, which in this file is three sites in two steps, two hundred lines and
+# a dozen sections apart. The same fallback printed a misspelled-flag answer
+# under a roster assertion in smoke-doctor.sh (#369), which is the fault read
+# first and believed. Both steps that assert on `out` set it after their own
+# `step`, so the only thing this forgets is evidence from a different test.
+step() { out=""; printf '\n== %s\n' "$1"; }
 # "The clone is gone" is an assertion about an activity that runs AFTER the run
 # the test just watched finish: `cleanup` is its own Temporal activity, so the
 # directory disappears a moment later, not at run.end. Asserting it immediately
@@ -183,7 +259,10 @@ eventually() { # <label> <predicate> [seconds] [what-to-print-if-it-never-became
     eval "$pred" && { ok "$label"; return; }
     sleep 0.25
   done
-  bad "$label (still not true ${secs}s later)"
+  # The predicate goes to `bad` so that an `eventually` with no diag of its own
+  # still names the file it was watching: six of this suite's seven sites pass
+  # a diag, and the seventh was the one that had nothing.
+  bad "$label (still not true ${secs}s later)" "$pred"
   [ -n "$diag" ] && eval "$diag" 2>&1 | sed 's/^/       /'
   return 0
 }
