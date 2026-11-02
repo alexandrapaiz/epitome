@@ -7410,6 +7410,59 @@ shallow *and* unshallowed, the clean case moving from `could-not-look` to
 both numbers labelled as bounds, the deep run picks this checkout and prints
 909/0 exact. Two frames, two depths, one verdict.
 
+**Amended 2026-11-02 by its second instance, which is two instruments at once
+and makes the fix a gate rather than a clearer sentence.** This rule became law
+on 2026-10-27. Five days later this seat wrote `docs/agents/executing.sh` from
+scratch, with five distance commands and no depth assertion anywhere, and left
+`docs/agents/landed.sh` as it was. Same seat, same register, same axis, with
+the rule already merged. By L4 that is this register's defect and not a
+discipline problem, so what ships is the enforcement and not a rewording.
+
+*What the two of them did.* Measured, same script, same input, the only
+variable the clone:
+
+- `executing.sh`, on a 60-commit fixture whose checkout sits 52 behind. Full
+  clone: `BEHIND`, `files_behind 1`, `no_commit_holds 0`. Depth-1 clone:
+  `HAND-PATCH … no commit holds this text; a checkout would destroy it`,
+  `files_behind 0`, `no_commit_holds 1`. Both wrong statements point away from
+  the repair, and the second one tells the reader not to update a file that is
+  an ordinary older commit.
+- `landed.sh`, in the runtime's own clone shape. Unfixed: 1 merged, **12
+  off-trunk**, exit 0, header sha `1a5fc83` — valid, correct, and therefore no
+  tell at all. Fixed: 12 merged, 1 off-trunk. Incident 56 carries the full
+  table and the second mechanism, which is that `--unshallow` does not create
+  `refs/remotes/origin/main` and the obvious fix repairs nothing on its own.
+
+*The clause this rule was missing.* **A distance-counting instrument asserts
+the depth of its frame before its first measurement, not beside the command
+that needs it, and an instrument that is correct only because a sibling tool
+ran first is not correct.** That second half is the new material. `check.sh`,
+`order.sh`, `doors.sh` and `offmain.sh` all unshallow, and the charter sends a
+run through two of them before `landed.sh` is ever called — so every figure
+this register has published from it was right, and right by invocation order
+between tools that do not reference each other. That is indistinguishable from
+correctness until the order changes, which is what makes it worth a clause
+instead of a note.
+
+*Shipped as a gate (L-A22), performing the act rather than grepping for the
+word (L-A69).* `check.sh` section three builds a depth-1 single-branch clone
+whose origin points nowhere, derives the instruments from the property rather
+than a list (L-A26), and gives each a verdict. Real positive: `origin/main`'s
+pre-fix `executing.sh` swapped into that fixture makes it fire. Six
+instruments, six pass today.
+
+*And the gate's own correction, which belongs in this rule because the rule is
+what it got wrong.* The first version asked for exit 2 and failed `roster.sh`,
+the one instrument this lesson was written about — which falls back to the
+host's clone and prints `952 commits behind` as an explicit LOWER BOUND with
+`binary_distance_frame_shallow: yes`. That is this rule's *other* right answer,
+stated in clause 2 above, and the gate was reading its own rule more narrowly
+than the rule. **Refusing is one right answer and labelling is the other; what
+fails is a number published from a history the instrument could not read with
+nothing in the output saying so.** A gate written off a lesson is checked
+against the lesson's own exemplar before it is trusted, because the instrument
+the rule was written about is the one most likely to be doing it right.
+
 `portable: yes`
 `role: any, exo, engineer`
 
@@ -8073,3 +8126,146 @@ no field at all.
 
 `portable: yes`
 `role: any, pm, exo`
+
+## L94 — A guard's false denials land on the forms that comply with the rule, because the compliant form is the one nobody wrote a test for: measure a new guard's errors by which author they punish, and treat a denial of the rule's own register, documentation or exemption file as a defect of the guard rather than a cost of safety
+
+**No owner correction triggered this one.** The wake was a `handoff` from
+`epitome/engineer` at 2026-11-02T01:02:26Z, reporting that it had vendored
+HQ's `tools/check-secret-print.py` byte for byte, registered it as a
+`PreToolUse` hook in a settings file this repository did not have, covered the
+wiring with 39 assertions — and found four defects in the vendored checker
+which it would not patch, because a vendored file is not edited here:
+
+> *"Four findings are yours to route to headquarters. I would not patch a
+> vendored file."*
+
+All four were re-measured here before being routed, per L-A51, and three came
+back sharper than reported. The routing is HQ's business; the rule below is
+what the four of them have in common, and it is not a fact about this checker.
+
+**The four, measured.** The checker is at `#378`, head `4f312301`.
+
+```data
+probe: docs/agents/x5probe.sh --checker tools/check-secret-print.py
+checker_sha: ffd7eeae
+read_at: 2026-11-02T01:40Z
+F1: LIVE — X5-DEFAULT reads `${V:?word}` as `${V:-word}`; 10 sites, 5 files
+F2: LIVE — the name rule reads `pass` as PASSWORD; 12 sites on #378, 14 on main
+F3: LIVE — X5-ENVDUMP denies `env |` and allows `env >`, which --help claims
+F4: LIVE — the edit path denies a full-file write of the register carrying L-X5
+findings_live: 4
+```
+
+**Now count the direction.** Three of the four punish an author who obeyed
+L-X5, and the fourth lets through the form that leaks more.
+
+1. `: "${TOKEN:?TOKEN is not set}"` is the correct presence assertion. Proved
+   in a shell with a dummy value: `: "${V:?x}"` prints nothing, `echo
+   "${V:?x}"` prints the value. So the fix is **not** to exempt `:?` — that
+   would open a real leak — it is that the leak is the *pair*, expansion and
+   consumer. `X5-PRINT` already models the consumer and requires a writer on
+   the line. `X5-DEFAULT` does not, so one guard runs two different rules
+   under two codes and nothing in the output says which answered. Sharper than
+   reported: `${V:?}` with an empty message passes and `${V:?message}` is
+   denied, so the *more informative* form is the one refused.
+2. `printf '%d ok, %d failed\n' "$pass" "$fail"` is the last line every suite
+   in this repository prints. `pass` is matched because `PASS` is in the
+   credential-word list and the suffix-exclusion list that already spares
+   `_COUNT` and `_LEN` cannot help a name that is one whole word. Also
+   measured: `pass_total` is matched and `pass_count` is not, so `TOTAL` is
+   missing from that list too.
+3. `env | grep TOKEN` is denied. `env > file`, `env >> file`, `printenv >
+   file` and `set > file` are all allowed, and the checker's own `--help` says
+   "piped **or redirected**". The redirect is the broader leak of the two,
+   because it persists every variable to disk rather than showing matching
+   lines in a transcript. So the guard denies the narrower exposure and allows
+   the wider one while claiming both — which is worse than a stated limit,
+   because a reader who checks the documentation stops there.
+4. The file scan skips markdown deliberately, "because the registers quote
+   these shapes on purpose". The hook's edit path has no such exemption, and a
+   full-file `Write` of `docs/standards/lessons.md` is **denied** — measured
+   live, the hook returning `permissionDecision: deny` on the register that
+   carries L-X5. **Markdown is the wrong predicate**, which is this seat's
+   correction to the finding as received: of the nine files tested, exactly
+   three are denied, and two of them are not markdown —
+   `tools/secret-print-baseline.txt` and `.claude/README.md`. The three denied
+   files are the register that carries the rule, the document that explains
+   the guard, and the file that records its exemptions. Nothing else in the
+   repository is denied at all.
+
+**The sharpest single measurement, and the reason this is a lesson.** Writing
+`tools/secret-print-baseline.txt` is denied by **eleven findings, every one of
+them a quotation of the baseline's own accepted entries.** The baseline is the
+mechanism for accepting a finding, so the guard makes its own suppression
+mechanism harder to write in exact proportion to how much it is used. A
+maintenance cost that grows with each use is not a conservative default; it is
+a mechanism with a half-life.
+
+**Rule.** Three clauses.
+
+1. **Grade a new guard by which author its false answers punish, before
+   shipping it.** Run it over the rule's own safe form, the rule's register
+   entry, the guard's documentation and the guard's exemption file. A guard
+   that denies those four is not strict, it is self-limiting: it teaches the
+   compliant author that compliance is what gets refused, and the first thing
+   a refused author does is route around it. This is not new to L-X5 — that
+   rule's own `X5-TRACE` clause already noticed it, in its own words, *"every
+   other shape in this rule is punished for writing a value down, and this one
+   punishes the author who refused to"* — and an observation a rule makes about
+   itself and does not generalize is the next defect with a date on it.
+2. **Where a guard models the sink for one of its rules, a rule that ignores
+   the sink is a different rule wearing the same guard's name.** An idiom is
+   not a leak; an idiom reaching a reader is. `${V:?m}` fed to `:` and fed to
+   `echo` are opposite verdicts, and so are `env` piped and `env` redirected.
+   Check each rule against the others' scope before shipping a set of them,
+   because a reader of the output cannot tell which rule answered and will
+   generalize from whichever fires first.
+3. **An exemption predicate written on a file's name cannot see what the file
+   is for.** Suffix, path and glob are all proxies for role, and the role that
+   actually needs exempting is *this file is not executed, it carries the
+   rule*. A glob list is also wrong on the day the repository grows a file:
+   measured here, the baseline's `$pass` entries are scoped to `cli/test/*.sh`
+   and `deploy/*.sh`, and today's `main` has the same shape in
+   `docs/agents/stage.sh`, so two findings already escape it (L-A26 applied to
+   a baseline).
+
+**Fix shipped: not the checker, which is not this repository's to edit.** What
+ships here is the thing nothing else was going to do.
+`docs/agents/x5probe.sh` asks the four findings as four questions against any
+copy of the checker, states for each which answer means LIVE because for two
+the defect is a denial and for one it is an allowance (L-A50), and exits 0 only
+when all four are fixed upstream. **Detector checked against a real positive
+both ways (L-X1 as amended):** 4 LIVE and exit 1 against `#378`'s checker;
+four FIXED and exit 0 against a stub built to behave as a corrected upstream,
+so the probes are known to answer both ways rather than hard-wired to today's
+answer; could-not-look and exit 2 on a branch where the checker is absent.
+
+**Why the probe and not just the routing.** `tools/secret-print-baseline.txt`
+carries, in the engineer's own words, the instruction *"WHEN HQ FIXES ONE,
+DELETE ITS ENTRIES: a stale exemption for a bug that is gone hides the next
+real finding on the same line."* Nothing was going to run it. The baseline is
+read by a hook, a hook denies nothing it accepts, and a seat with no memory
+does not re-measure an exemption it did not write. The exemptions would have
+outlived the bugs silently, and the next real `X5-PRINT` on any `printf …
+"$pass"` line here would have been swallowed by an entry kept for a defect HQ
+had already fixed.
+
+**The local half, which is this product's and not HQ's.** The scan command
+written in the baseline file's own header omits `--baseline`, so copying it
+gives 34 findings and exit 1, while the same command with the flag gives exit 0
+and "34 accepted". The claim that this product's surfaces scan clean is true
+and is not reproducible from the command printed beside it — and the gate that
+command is waiting for does not exist yet, so the first person to build the
+gate will build it from the broken line. Named to `epitome/engineer`, whose
+file it is, with `#378` as the vehicle (L-A37).
+
+**Binds:** HQ, for the four checker fixes and for clause 1 as a pre-ship test
+on any guard. This seat, for routing with the test already run rather than
+relaying a count (L-A51), and for the probe as the thing that reads whether a
+routed finding moved. `epitome/engineer`, for the baseline's documented
+command and its glob scope. Incident 51, whose structural half this closes.
+Companion to **L-X5**, which predicted this failure's enforcement problem and
+then supplied clause 1 about itself without generalizing it.
+
+`portable: yes`
+`role: any, exo, engineer, security`
