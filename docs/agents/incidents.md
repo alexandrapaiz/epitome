@@ -6670,3 +6670,99 @@ it asked for in the same message.
 `runs_killed_before_a_result` for the day, and count instances rather than
 entries (L20). The number to watch is whether the fifteen is a condition or a
 day: 36 ever, 15 of them on 2026-11-02.
+
+## Incident 68 — 2026-11-02 — The instrument the charter runs on this register every run reported its three most load-bearing open entries as carrying no status at all, because its no-match arm shared a value with its empty case
+
+**Status: open on `main`, fixed on this run's branch.** The repair and six new
+self-test verdicts are in `docs/agents/remeasure.sh` on
+`epitome-exo/2026-11-02-message-14`; nothing is on `main` yet. The one thing
+blocking it is a merge, and `docs/agents/` is a hand that merges today — the
+branch carries no `prompts/` path, so no owner clock is on it. Lesson:
+**L105**. Detector: the instrument is its own detector and fires on the real
+positive, which is this register.
+
+```remeasure 68
+probe   ! git show origin/main:docs/agents/remeasure.sh 2>/dev/null | grep -q 'status_field_present_but_unreadable_here'
+control git show origin/main:docs/agents/remeasure.sh 2>/dev/null | grep -q 'classify()'
+means   open
+```
+
+**Facts.**
+
+1. `prompts/exo-agent.md` obliges this seat to re-measure every incident whose
+   fix is not on `main`, every run. `docs/agents/remeasure.sh` discharges it,
+   and reads openness off each entry's own `**Status:` field through
+   `classify()`.
+2. `classify()` matched six spellings for open and two for closed, and its
+   no-match arm returned `unjudgeable` — the same value the empty-field case
+   returns. The report prints that bucket as *"N incident(s) carry no Status
+   field, so L20 cannot be asked about them at all."*
+3. At 06:41Z today the no-argument run printed
+   `no_status_field_so_not_judgeable: [1,5,6,7,8,9,10,11,12,13,14,16,17,49,52,53]`
+   — sixteen entries. **Three of those sixteen carry a status field.**
+4. The three, with the exact bytes that defeated the list:
+   - **53**: *"the defect is live and the repair is not this seat's lane."*
+   - **49**: *"not fixed, and the fix is not in this repository."*
+   - **52**: *"the detector is in the tree and fires on this as its first
+     self-test case; the clause itself…"*
+5. Incident 53 was written by the previous run of this seat at 00:45Z today,
+   and its whole subject is a fix that is on `main` and is not running. It is
+   the most load-bearing open entry in this register this morning, and it was
+   outside the population of the sweep that exists to carry it forward.
+
+```data
+instrument: docs/agents/remeasure.sh --coverage
+read_at: 2026-11-02T07:03:48Z
+register: docs/agents/incidents.md
+before_no_status_field_so_not_judgeable: 16 [1,5,6,7,8,9,10,11,12,13,14,16,17,49,52,53]
+after_no_status_field_so_not_judgeable: 13 [1,5,6,7,8,9,10,11,12,13,14,16,17]
+after_status_field_present_but_unreadable_here: 2 [49,52]
+entries_recovered_into_a_judgeable_class: 3
+open_by_their_own_status_before: 31
+open_by_their_own_status_after: 32
+conditions_executable_before: 17
+conditions_executable_after: 18
+```
+
+**Impact.** For as long as that arm has been shared, this seat's standing
+re-measurement has run against a population three entries short, and the three
+missing were not the quiet ones. The failure direction is the costly one: an
+entry reported as *field-less* is filed under a heading that tells the reader
+L20 cannot be asked about it, so nobody asks, and nothing records that anything
+was dropped. An entry wrongly reported *open* costs one re-measurement; this
+costs the entry.
+
+**Root cause in the system.** A reader deciding a class from authored prose had
+three answers where the question has four. *Nothing was written* and *something
+I cannot parse was written* have different owners — the first is the author's
+omission, the second is the reader's gap — and a function returning one value
+for both makes every sentence downstream a claim it cannot support (L-A44, and
+L-A134's third outcome that must not be spelled like the first). The deeper
+half is which entries it ate: the spelling that broke the list is *more*
+informative than the spellings in it, naming the state and the lane in one
+sentence, so the vocabulary was selecting against the authors who said the
+most.
+
+**Fix shipped on this run's branch, named as a branch and not as `main`.**
+`classify()` returns a fourth class, `unreadable`. `coverage()` reports
+`status_field_present_but_unreadable_here` as its own field, prints each unread
+spelling beside its number so the finding is actionable rather than a count
+(L-A160), and keeps exit 2 on it. Six new self-test verdicts, two of them
+asserting incidents 53's and 49's own sentences by their exact bytes rather
+than a paraphrase, because a fixture that paraphrases the specimen tests the
+paraphrase. Twenty-two verdicts in the file, all firing. The vocabulary is
+deliberately **not** widened by guessing: adding *live* would recover one entry
+and lose the next, and the printed spelling is what lets the list grow on
+evidence.
+
+**Second instance inside the same run, which is why L105 is a shape and not a
+patch.** This run's other repair — the reachability section of
+`docs/agents/executing.sh` — initialised the deployer-exclusion flag to `no`
+and left it there when the deployer could not be read, so a box where that
+path is invisible would have reported that nothing excludes the checkout. Same
+defect, same hour, a could-not-look spelled as a clean. It was caught by the
+self-test case written for it and not by reading, and it is fixed in the same
+branch with `unknown` as its own value.
+
+**Lesson produced.** **L105** in `docs/agents/lessons.md`, `portable: yes`.
+
