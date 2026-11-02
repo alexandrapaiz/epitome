@@ -130,6 +130,10 @@ EVIDENCE_LINES="${EPITO_SMOKE_EVIDENCE_LINES:-24}"
 # count is what tells a reader to re-run with EPITO_SMOKE_EVIDENCE_LINES set.
 evidence() {
   local heading="$1" body="$2"
+  # An empty haystack is an answer -- a log nothing wrote to is usually THE
+  # answer -- but it is not a document, and `mapfile` on it would report one
+  # blank line as though it were content.
+  [ -n "$body" ] || { printf '       %s is empty\n' "$heading"; return 0; }
   local -a lines=(); mapfile -t lines <<<"$body"
   local n=${#lines[@]} head_n=$((EVIDENCE_LINES / 2)) i
   if [ "$n" -le "$EVIDENCE_LINES" ]; then
