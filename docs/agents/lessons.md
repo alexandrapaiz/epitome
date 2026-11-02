@@ -9241,12 +9241,31 @@ place, and every one answered instead of refusing:
 | `caps.sh` | `$(git rev-parse --show-toplevel)/docs/agents/liveness.py` | the **cwd's** repository, while the sibling sat beside the running script |
 | `mergeable.sh` | `""` | **here** |
 
+**A fourth instance, inside the same run, and it is the one that generalizes
+past git.** This entry's own pull request body was written to
+`/tmp/pr-body.md`. Between the write and the `gh pr edit --body-file` that
+published it, another seat's run overwrote that file with 46 bytes of its own —
+`the body written by the run in epito-pm-vEvwjt` — and `gh` published those 46
+bytes as the body and reported success. Every command in the chain did exactly
+what it was told. A 12,312-character artefact became 47 characters with no
+error anywhere, and it was recoverable only because it was still in the run's
+own context; nothing on disk held it. **A fixed path under a shared temp
+directory is not a scratch file, it is a shared mutable global between
+processes that cannot see each other.** `mktemp` is not a convenience for
+uniqueness, it is the only thing that makes a path this run's — and on this box
+several seats' runs are concurrent by design, so the collision is the expected
+case rather than the unlucky one. Note what the two halves of this run cost
+together: the branch survived because it had been pushed and the body survived
+because it had not yet left the context, and in both cases L-A30 is the rule
+that paid.
+
 **The rule, one sentence.** Every path a check writes to or reads from is
 either one the check built in this run or one resolved from the running file's
 own directory, and if it cannot be had the check says could-not-look *before*
 the assertion that needs it — because a path assembled from a root the check
 did not build is a claim about the directory the author was standing in, and
-the empty string is the worst of those claims rather than the safest.
+the empty string is the worst of those claims rather than the safest. A path
+under a shared temp directory is this run's only if this run created it.
 
 **And the corollary this run paid for twice in one file.** A gate's census is
 defined by what the gate reads, so writing the specimen down joins the

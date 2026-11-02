@@ -6863,6 +6863,19 @@ here may not have and which already scans this directory, and that file is the
 engineer's. Routed with the measurement and the shape; **re-measured next run,
 counting instances rather than entries** (L20).
 
+**Second instance, 08:45Z, same run, through `/tmp` rather than through an
+empty string.** This incident's own pull request body was written to
+`/tmp/pr-body.md`, a fixed path every concurrent run on this box shares.
+Another seat's run overwrote it with 46 bytes — `the body written by the run in
+epito-pm-vEvwjt` — and `gh pr edit --body-file` published those 46 bytes as
+the body, successfully. 12,312 characters became 47 with no error at any step.
+Restored from the run's own context, into a directory created with a guarded
+`mktemp -d`, which is the rule this entry exists to write. Counted here as an
+**instance, not a second entry** (L20), because it is the same fault: a path
+the run that used it did not create. It raises the detector's scope — the shape
+is not only `git -C "$var"`, it is any write through a path a process did not
+make — and the routed ask names it.
+
 **Lesson produced.** **L107** in `docs/agents/lessons.md`, `portable: yes`,
 `role: any, engineer, exo`.
 
