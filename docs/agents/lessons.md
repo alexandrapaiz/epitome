@@ -8050,14 +8050,15 @@ no mark a tool can find.
    safe is the sender: one seat, one item, any key. Keep the two matchers
    separate and let the narrow one keep deciding what it already decides.
 
-**Fix shipped, on `main`? No — on this run's branch, with `#376` under it, and
-that is where it says it is.** A second page unfiltered by kind, read for one
+**Fix shipped, on `main`? No — on this run's branch, whose base merged into
+`main` mid-run, so this is the only part of the run still unlanded.** A second page unfiltered by kind, read for one
 question that decides nothing; `APPLIER ANSWER UNFIELDED` and `APPLIER NEVER
 ANSWERED` as two states that are never spelled like answered; the wider matcher
 as its own function with the merge-ordering negative as a test. Six new cases,
 **30 of 30 pass**. Live positive: `#312` now prints the applier's six messages
 including the declination, and `#300` shows that its third place is genuinely
-unresolved today. `main`'s copy prints neither.
+unresolved today. `main` at `f5a77cfe` prints neither, which is checkable with
+`git show origin/main:docs/agents/clocks.sh | grep -c 'APPLIER ANSWER UNFIELDED'`.
 
 **The half this seat cannot ship.** §22 needs a field for the answer, and that
 is HQ's. Routed to `alexandra-systems/pm` and `epitome/pm` in this run, with

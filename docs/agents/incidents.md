@@ -5443,10 +5443,10 @@ deploy path that does not exist (L20, L80).
 
 ## Incident 54 — 2026-11-02 — The applier wrote a withdrawn deadline into its own record of a live owner decision, 2m 27s after the withdrawal was on the board, because this seat's clock reader resolves by the largest hour on an item and a withdrawal is the one message that moves an hour earlier
 
-**Status: the record is corrected and the reader is still not on `main`.**
-Re-measured 2026-11-02T01:0xZ by the next run, as the line below asked. Lesson:
-**L92**. Not closed: the repair is in `#376` and `main`'s copy of the reader
-gives the withdrawn hour today.
+**Status: CLOSED 2026-11-02T01:11Z.** Repair on `main`, detector on `main`,
+detector seen firing on the real positive, record corrected by the hand that
+holds it. Lesson: **L92**. All four of L-X1-as-amended's conditions are met and
+this is the first entry in this file to say so on the same day it was opened.
 
 **Re-measurement, 2026-11-02T01:0xZ.** Both halves read.
 
@@ -5460,13 +5460,27 @@ gives the withdrawn hour today.
   did not have: a `note` at **00:28:42Z**, addressed to no seat, so outside the
   inbox read that found the first. **Two records carried the withdrawn hour,
   not one**, and both are now superseded by one correction.
-- **The instrument: still wrong where every run reads it.** `main`'s
-  `docs/agents/clocks.sh` answers `clock running on #312: expires
+- **The instrument: wrong on `main` at 01:0xZ, right on `main` at 01:11Z,
+  because the fix merged in the middle of this re-measurement.** Both readings
+  were taken in a detached worktree at `origin/main`, so the branch under this
+  run could not answer for either.
+
+  At **01:0xZ**, `main` at `de88000f` answered `clock running on #312: expires
   2026-11-04T00:30:00Z (47h left), declared in all three places §22 names`,
-  exit 0, **right now**, with the withdrawal printed third of five because that
-  copy still sorts the display by hour. Every run of every seat gets a fresh
-  clone, so that is the copy the next reader gets. Read in a detached worktree
-  at `origin/main` so the branch under this run could not answer for it.
+  exit 0, with the withdrawal printed third of five because that copy still
+  sorted the display by hour.
+
+  `#374` merged at **01:06:10Z** and `#376` at **01:06:32Z**. At **01:11Z**,
+  `main` at `f5a77cfe` answers `expires 2026-11-03T23:30:00Z (46h left)`, marks
+  the withdrawal `(in force)`, and prints `SHORTENED on #312` with both hours
+  and both filing times. L92 and this entry are on `main` in the same merge.
+
+  The first reading is kept rather than replaced, because it was true when it
+  was taken and the gap between the two is the only honest way to show that a
+  reading of `main` perishes in minutes (L-A121, L91). A run that had reported
+  the 01:0xZ number without re-reading would have published a wrong claim about
+  `main` four minutes after it stopped being true, which is the defect this
+  entry is about, one level up.
 
 **What the correction cost, which is the figure L-X7 asks for.** One instrument
 defect produced two wrong records in 23 seconds, cost the applier a third
@@ -5476,12 +5490,13 @@ forever: `data.superseded_hour: "2026-11-04T00:30:00Z"` is in the correcting
 note itself. A reader resolving by the largest hour now finds the withdrawn one
 inside the message that retracts it — which is `main`'s reader exactly.
 
-**And the applier is citing law that `main` does not define.** `data.lesson:
-"epitome L92"` points at an entry that exists only on this seat's unmerged
-branch. The citation is correct about the register and unresolvable against
-`main`, which is L-X13's measurement applied to this product's own registers:
-distribution is the merge, and two seats are now reasoning from a rule no third
-seat can look up.
+**And the applier was citing law `main` did not yet define.** `data.lesson:
+"epitome L92"` was filed at 00:57:01Z against an entry that existed only on
+this seat's branch, and became resolvable at 01:06:32Z — **nine minutes and
+thirty-one seconds** of two seats reasoning from a rule no third seat could
+look up. It resolved because the merge came, not because the citation waited
+for it. L-X13 measured on this product's own registers: a citation is a claim
+about `main`, and the window in which it is false is the review queue.
 
 **Facts, in the order they happened, all on 2026-11-02.**
 
