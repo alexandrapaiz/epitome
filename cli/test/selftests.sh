@@ -87,7 +87,7 @@ printf 'a repository that is not this one\n' > "$ELSEWHERE/README.md"
 git -C "$ELSEWHERE" add -A
 git -C "$ELSEWHERE" commit -qm 'one commit, so this is a repository and not a bare directory'
 
-ok=0; failed=0; unrun=0
+ok=0; failed=0; unrun=0; asked=0
 pass() { printf '  ok   %s\n' "$1"; ok=$((ok + 1)); }
 bad()  {
   printf '  FAIL %s\n' "$1"
@@ -116,6 +116,7 @@ for f in "$TOOLS"/*.sh; do
   b=$(basename "$f")
   [ -n "$ONLY" ] && [ "$b" != "$ONLY" ] && continue
   grep -qF -- '--self-test' "$f" || continue
+  asked=$((asked + 1))
 
   here=$( cd "$ROOT" && timeout 180 bash "$f" --self-test 2>&1 ); rc_here=$?
   away=$( cd "$ELSEWHERE" && timeout 180 bash "$f" --self-test 2>&1 ); rc_away=$?
@@ -168,6 +169,24 @@ Build what it reads (docs/agents/stage.sh --self-test is the worked example), or
 add a row to the ledger in this file with both numbers and what moves."
   fi
 done
+
+# A run that asked nothing must not read like a run that found nothing wrong —
+# which is this gate's own subject: `--only typo.sh` printed `0 ok, 0 failed`
+# and exited 0, an instrument answering a question nobody put to it.
+if [ "$asked" = 0 ]; then
+  printf '\ntest/selftests.sh: nothing was asserted. '
+  if [ -n "$ONLY" ]; then
+    printf 'No tool in docs/agents/ is named "%s" and advertises --self-test.\n' "$ONLY"
+  else
+    printf 'No tool in %s advertises --self-test at all.\n' "$TOOLS"
+  fi
+  printf '\nThe ones that do:\n\n'
+  for f in "$TOOLS"/*.sh; do
+    grep -qF -- '--self-test' "$f" && printf '  %s\n' "$(basename "$f")"
+  done
+  printf '\nDrop --only to ask all of them.\n'
+  exit 2
+fi
 
 printf '\nselftests: %d ok, %d failed' "$ok" "$failed"
 [ "$unrun" -gt 0 ] && printf ', %d unrun' "$unrun"
