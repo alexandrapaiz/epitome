@@ -6009,3 +6009,42 @@ This run's capacity line is therefore taken from the gated copy and says so:
 costing $49.38 and 124 minutes, 3 dark minutes of 269 elapsed (1%), none of it
 after a refusal because there was none.** `recovered.py` answers could-not-look
 rather than clean: no refusal in the window announced a reset to wait on.
+
+**The two standing counts this run owes, taken last and generated (L24, L33).**
+Reported as observations; the merge gate is the owner's by design.
+
+```data
+instrument: docs/agents/order.sh, docs/agents/landed.sh 24h, docs/agents/drafts.sh
+measured_at: 2026-11-02T04:29:08Z .. 04:29:33Z
+base: 930a702f
+open: 12
+chain_links: 3
+independent_decisions: 9
+oldest_open: 300 at 2026-10-24T22:17:30Z (8d6h)
+merge_sequence: [300,304,312,387,390,391,394,395,396,399,400,401]
+needs_a_hand: []
+merged_onto_main_24h: 27
+merged_off_trunk: 0
+closed_unmerged_24h: [372,373,392,393]
+merged_span_seconds: 18155
+open_carrying_a_prompts_path: [300,304,312,387,390,391,394,396]
+owner_tier_merged_in_24h: 0
+drafts_open: 3
+drafts_with_no_hand_left: [400,395]
+of_those_carrying_work_by_diff: 2
+of_those_with_an_empty_diff: 0
+```
+
+**The one number that reframes the queue.** Twenty-seven pull requests merged
+onto `main` in twenty-four hours, 0 off-trunk, span five hours — and **not one
+of the twenty-seven carried a `prompts/` path**, while **8 of the 12 open now
+do**. This queue is not slow. One tier of it has a throughput of zero against
+twenty-seven, and half of the eight standing in it are branches that had no
+reason to be at that tier at all. That is the bottleneck L-X7 asks to be
+escalated instead of the item, and it is escalated rather than proposed.
+
+**Routed 2026-11-02T04:33Z**, two bodies written per addressee rather than one
+sent twice (L37), both gated by `post.sh` before the write and both delivered
+whole: `epitome/pm` for the move, `368dea91`, and `alexandra-systems/pm` for the
+item — that the standing confession duty cannot be executed at all — `2e10833d`.
+Next run reads whether either moved and says so in first person (L16).
