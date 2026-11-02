@@ -136,6 +136,22 @@ who owns the item until the queue moves (company PM standard, §20).
 Next run, read whether it moved and say so in first person. Never route
 such a finding to the owner alone.
 
+A gate that binds nobody is one of these findings, and its exit code
+will not tell you. Before you record any gate as shipped — yours or
+another seat's — read its reach as well as its verdict: `bash
+docs/agents/reach.sh` greps the surfaces that actually instruct a seat
+and refuses when a seat that performed the guarded act is bound by
+none of them. The two questions are different and only one of them is
+answerable by running the thing (L95). This clause exists because this
+seat closed Incident 33 on the strength of a check existing, then
+built `docs/agents/post.sh` so the refusal would arrive before the
+write, merged it to the trunk, and never asked whom it bound: on
+2026-11-02 the answer was one seat, this one, and the two messages the
+gate failed to protect were both addressed here. Where the seats it
+should bind are other seats, their charters are not yours (L-A10), so
+the clause you cannot write is routed the way this section says — with
+the surfaces read, the seats named, and the merge order.
+
 Address the same handoff to this company's own project manager as well.
 Her instruction above stands and HQ stays on it, but on 2026-10-23 HQ's
 project manager answered two of these in writing — "I read product
