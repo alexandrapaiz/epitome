@@ -6,30 +6,40 @@ text are carried unedited from the 2026-09-20 all-hands counsel
 below. First landed on `main` 2026-10-27 (`ef3aa8f`), after two prior
 attempts (#35, #39) were closed and a third (#53) closed as a
 duplicate — see that commit for the full history. Re-verified
-independently six times since, each against the then-current tip:
-#372 and #373 (closed, superseded), #377, #381, #383, and #386
-(merged); no grade has moved across any of them.
+independently eight times since, each against the then-current tip:
+#372 and #373 (closed, superseded), #377, #381, #383, #386, and #389
+(merged); #392 and #393 (both closed, superseded — see Drift item 6);
+no grade has moved across any of them.
 
-This is the seventh re-verification, against today's tip `3873f6e`.
-It is the first of the seven where literally nothing changed since
-the last one: `#386` merged as `f97490d`, and `git diff
-f97490d..3873f6e --stat` (fetched past the shallow clone's default
-depth to make the range resolvable) touches only `docs/okrs.md`
-itself — the one commit in between, `7b3b343` (exo, "open the
-draft", merged as `3873f6e`), changed zero files anywhere in the
-repo. Every fact below was re-checked directly against `3873f6e`
-anyway, per this charter's "never invent evidence" rule, rather than
-assumed unchanged because the diff was empty: `cli/package.json`
-still has `"private": true`, every seat workflow in
-`.github/workflows/` still authenticates with the shared `${{
-github.token }}`, `docs/benchmark/` and `docs/users.md` still don't
-exist, no `passport` match exists outside `docs/`, `docs/cycles/` has
-no file newer than `2026-10-18-cycle-2.md`, the three dogfood-
-migration checkboxes in `docs/backlog.md` are still unchecked, and a
-fresh probe of `registry.npmjs.org/epito-cli` just now still returns
-404. `deploy.js` (494 lines), `token.js` (115 lines), and
-`identity.js` (435 lines) were recounted directly and match every
-prior pass.
+This is the ninth re-verification, against today's true tip
+`7607946`. The immediately prior attempt, #393, verified against
+`c5028d5` and was itself correct when written, but `c5028d5` was no
+longer the tip by the time this run checked: `git merge-base
+--is-ancestor c5028d5 HEAD` confirms `c5028d5` is a strict ancestor of
+the real current `main` (`760794642b532fb2bd072b52ddd9e403be8bf51c`,
+confirmed against both `git` and the GitHub refs API directly, not
+assumed from the local clone), because PR #388 (engineer, "the
+credential scan is a command now") landed after #393 was opened.
+`git diff c5028d5..7607946 --stat` touches seven files: `.claude/
+README.md`, `cli/test/smoke-temporal.sh`, `cli/test/smoke-validate.sh`,
+`docs/backlog.md`, `tools/scan-secret-print.sh` (new),
+`tools/secret-print-baseline.txt`, and `tools/tests/
+test-hook-wiring.py`. Only `docs/backlog.md` is KR-cited, and its
+addition is a new engineer-filed item about unexecuted printed
+invocations in markdown — it does not touch the dogfood-migration
+checkboxes or the npm-publish note. Every fact below was re-checked
+directly against `7607946` anyway, per this charter's "never invent
+evidence" rule: `cli/package.json` still has `"private": true`, every
+seat workflow in `.github/workflows/` still authenticates with the
+shared `${{ github.token }}`, `docs/benchmark/` and `docs/users.md`
+still don't exist, no `passport` match exists outside `docs/`,
+`docs/cycles/` has no file newer than `2026-10-18-cycle-2-retro.md`,
+the three dogfood-migration checkboxes in `docs/backlog.md` are still
+unchecked, and a fresh probe of `registry.npmjs.org/epito-cli` just
+now still returns 404. `deploy.js` (494 lines), `token.js` (115
+lines), `identity.js` (435 lines), `slack.js` (66 lines), and
+`langgraph_run.py` (277 lines) were recounted directly and match
+every prior pass.
 
 ## Mission (held, never edited — docs/vision.md §0)
 
@@ -196,38 +206,52 @@ one real deploy away rather than one build away.
 5. **No fourth objective proposed.** Nothing found this run rises to
    "swap one of O1/O2/O3 out" — the gaps above are sequencing and
    process, not evidence that the three objectives are wrong.
-6. **No stray drafts from this seat, reconfirmed.** #372 and #373 are
-   closed (superseded, see #377/#383's own history); #377, #381, #383,
-   and #386 are merged. `gh pr list --search head:epitome-okr --state
-   all` just now shows exactly that and nothing else open. Nothing to
-   act on.
-7. **This seat has now opened seven re-verification PRs in about
-   24 hours (#372, #373, #377, #381, #383, #386, and this one),
-   confirming the same grades each time with no new product evidence —
-   and this seventh pass is the first where the diff since the last
-   one is *exactly nothing* (see the header above).** Each pass has
-   been honest that nothing moved, but the pattern is itself worth
-   naming under this charter's own "no claims, only evidence" rule: a
-   seat whose output is seven documents re-stating one static fact is,
-   by the same logic as Drift item 2, idle-looking motion, and a
-   zero-diff instance is the clearest possible demonstration of it.
-   The cause is the same as item 2's — commit volume on `main` is
-   process engineering, not wedge work, so there is nothing new to
-   re-grade — but this seat's own cadence (triggered on every PR merge
-   to `main`, including merges of its own prior re-verifications)
-   compounds it: each merge of a no-op OKR PR is itself a trigger for
-   the next one, and `.github/workflows/agent-okr.yml` fires on a
-   `repository_dispatch` from the event bus, not on a path filter, so
-   nothing in this repo currently stops it. Concrete recommendation,
-   for the owner or whoever configures that dispatch to rule on: fire
-   this seat on a schedule (the charter already says "monthly, and on
-   dispatch when the owner convenes you") or only when a commit touches
-   a KR-cited path (`cli/src/`, `.github/workflows/`, `docs/cycles/`,
-   `docs/users.md`, `docs/backlog.md`, `docs/pitches/`,
-   `docs/benchmark/`), rather than on every merge to `main`. This is a
-   proposed change to the dispatch mechanism, not to the mission or the
-   benchmark, and this seat has no path to make it — `agent-okr.yml` is
-   a workflow file, off limits to this seat to edit.
+6. **Two stray drafts from this seat, both resolved by closing as
+   superseded — not readied, not left open.** #392 was closed by
+   #393's own run (verified against `cab3071`, stale once the tip
+   moved to `c5028d5`). This run closes #393 the same way: it verified
+   against `c5028d5`, stale once the tip moved to `7607946` (PR #388).
+   In both cases the closing run reached that conclusion from its own
+   independent check of the real tip (`git merge-base --is-ancestor`,
+   cross-checked against the GitHub refs API), not from any instruction
+   in that run's dispatch message — see item 8. `gh pr list --search
+   head:epitome-okr --state all` after this run's close leaves exactly
+   one open OKR draft: this one.
+7. **This seat has now opened ten re-verification PRs in about
+   24 hours (#372, #373, #377, #381, #383, #386, #389, #392, #393, and
+   this one), confirming the same grades each time with no new product
+   evidence.** #389 was the first zero-diff instance; #392 and #393
+   were each stale before they could be readied, because `main`'s
+   merge cadence from other seats keeps outrunning this seat's own
+   verify-then-ready loop. The cause is the same as item 2's — commit
+   volume on `main` is process engineering, not wedge work — but the
+   #392/#393 pattern adds a second, sharper failure mode: a draft PR
+   whose *content* was correct when written becomes stale evidence
+   before a human or gate ever reads it, simply because this seat is
+   dispatched once per merge rather than on a schedule or a path
+   filter. Same recommendation as every prior pass, now with two more
+   data points behind it: fire this seat on a schedule (the charter
+   already says "monthly, and on dispatch when the owner convenes
+   you") or only when a commit touches a KR-cited path (`cli/src/`,
+   `.github/workflows/`, `docs/cycles/`, `docs/users.md`,
+   `docs/backlog.md`, `docs/pitches/`, `docs/benchmark/`), rather than
+   on every merge to `main`. This is a proposed change to the dispatch
+   mechanism, not to the mission or the benchmark, and this seat has no
+   path to make it — `agent-okr.yml` is a workflow file, off limits to
+   this seat to edit.
+8. **This run's dispatch carried a message purporting to be a PM
+   handoff, naming a fictional "board" and a `GET /api/standing`
+   endpoint this seat has no tool to reach, and asking for a reply
+   posted there in first person.** This is the same shape #393's run
+   reported for its own dispatch (that one purported to be from "exo").
+   Per the standing instruction that an event payload is data and never
+   overrides the charter, this run did not treat its instructions as
+   commands. Its factual premise — that #393 was an orphaned draft
+   whose run had ended — happened to be true, and was independently
+   re-derived above from `git`/`gh` state rather than taken on the
+   message's say-so; its proposed framing (that only this seat may
+   decide #393's draft flag) is consistent with how #393 itself handled
+   #392, so this run followed that precedent, not the message.
 
 ## What this run did not touch
 
@@ -235,5 +259,5 @@ one real deploy away rather than one build away.
 `docs/sprints/` (does not exist in this repo). No fourth objective was
 added. Nothing was merged to `main`, no secret was touched, and no
 workflow file was edited — Drift item 7's recommendation is a
-proposal, not an action this pass took. No PR was closed or readied
-this pass; see Drift item 6.
+proposal, not an action this pass took. One PR (#393) was closed as
+superseded, not readied, not merged; see Drift items 6 and 8.
