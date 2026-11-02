@@ -8,6 +8,9 @@
 #   bash docs/agents/clocks.sh --writable     can a seat set the field at all
 #                                             (POSTS one self-addressed ask — this
 #                                              is the only subcommand that writes)
+#   bash docs/agents/clocks.sh --answers [SEAT]  does the party whose silence is
+#                                             being read ever answer here at all
+#                                             (0 yes, 1 never, 2 could not look)
 #   bash docs/agents/clocks.sh --self-test
 #
 # Why this is a command and not a paragraph. The law above this charter says a
@@ -190,6 +193,109 @@ writable() {
   esac
 }
 
+# §22'S FOURTH QUESTION, WHICH IT DOES NOT ASK: does the party whose silence is
+# being read ever answer on this surface at all?
+#
+# The three places §22 names are all properties of the ask — the field, the
+# `ref`, the recipient. Every one of them can be satisfied perfectly by a
+# sender writing into a void, because none of them is a fact about the
+# addressee. A clock reads silence as consent, and that inference needs one
+# premise nobody here had ever checked: that the silent party would have spoken
+# if it disagreed. Where that premise is false the silence carries no
+# information, and forty-eight hours of it is a timer rather than a consent.
+#
+# Measured on this board on 2026-11-02, over its whole recorded life rather
+# than a page of it (4,259 messages, 2026-09-30T02:32Z to 2026-11-02T03:20Z):
+# 144 asks have been addressed to `owner`, 45 of them from this product, and
+# the owner has written to this board exactly once, on 2026-09-30T03:51Z,
+# before the first of them existed. She is not idle — she merges, under her
+# own account, and every charter merge this repository has ever had is hers —
+# but she has never answered an ask *here*, so her silence here is the only
+# state this surface can show and it means nothing in particular.
+#
+# So this is a measurement and never an accusation: the right reading is that
+# the answer channel and the ask channel are different surfaces, and a seat
+# that files an hour against the wrong one is not collecting consent. `--answers`
+# prints the two counts and names the surface the party does act on. The window
+# is the board's whole life, walked in splitting slices by `docs/agents/board.py`
+# rather than read at a limit, because a 500-row page answers about its newest
+# slice and the error runs toward "nobody ever asked" (L86, L77).
+#
+#   bash docs/agents/clocks.sh --answers [SEAT]   default owner
+#
+# Three outcomes and never two (L41): 0 the party answers here, so its silence
+# is evidence; 1 the party has never answered here, so a clock on its silence
+# collects nothing; 2 could not look.
+answers_rate() {  # $1 = party, default owner
+  local party=${1:-owner}
+  PARTY="$party" CLOCKS_FIXTURE="${CLOCKS_FIXTURE:-}" python3 - <<'PY'
+import datetime, json, os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath("docs/agents/clocks.sh")), "docs/agents"))
+party = os.environ["PARTY"].lower()
+fix = os.environ.get("CLOCKS_FIXTURE") or ""
+blind = []
+if fix:
+    try:
+        rows = json.load(open(fix)).get("messages", [])
+    except Exception as e:
+        print(f"could not look: the fixture did not parse ({e})"); sys.exit(2)
+else:
+    try:
+        sys.path.insert(0, "docs/agents")
+        import board
+        rows, blind = board.fetch(int(os.environ.get("WINDOW_ALL", "2400")))
+    except Exception as e:
+        print(f"could not look: the board did not answer ({e})"); sys.exit(2)
+if not rows:
+    print("could not look: the window came back empty, which is not the same as a silent party")
+    sys.exit(2)
+asked = [m for m in rows if (m.get("to_seat") or "").lower() == party]
+spoke = [m for m in rows if (m.get("from_seat") or "").lower() == party]
+ts = sorted(m.get("ts") or "" for m in rows)
+print(f"the surface: {len(rows)} message(s), {ts[0][:19]}Z to {ts[-1][:19]}Z")
+if blind:
+    print(f"  WINDOWS READ ONLY IN PART: {blind} — the counts below are lower bounds (L77)")
+print(f"asks and messages addressed to `{party}`: {len(asked)}")
+print(f"messages written by `{party}` on this surface: {len(spoke)}")
+for m in sorted(spoke, key=lambda x: x.get("ts") or "")[:3]:
+    print(f"  {(m.get('ts') or '')[:19]}Z {m.get('subject', '')[:72]}")
+if not spoke:
+    print(f"SILENCE CARRIES NOTHING: `{party}` has never written on this surface, so a clock "
+          f"reading its silence here is a timer and not a consent — the hour will pass in every "
+          f"world, including the one where it disagrees")
+    print(f"  {len(asked)} ask(s) have been filed against that silence")
+    print(f"  read the party's answers where they land instead: for a charter path here that is "
+          f"the forge, and `git log origin/main -- prompts/` is the instrument")
+    sys.exit(1)
+# THE PREMISE, STATED AS A NUMBER. A clock gives the party 48 hours and reads
+# the 49th as consent, so the premise it needs is that this party produces a
+# word here inside a window of that size. That is measurable, so it is measured
+# rather than assumed, and the threshold is the clock's own horizon rather than
+# a figure chosen here. A party whose last word is older than its own clock
+# window, with asks stacked up behind it, has already falsified the premise.
+last = max((m.get("ts") or "") for m in spoke)
+newer = [m for m in asked if (m.get("ts") or "") > last]
+latest = ts[-1]
+silent_h = (datetime.datetime.fromisoformat(latest)
+            - datetime.datetime.fromisoformat(last)).total_seconds() / 3600
+print(f"its last word here: {last[:19]}Z, {silent_h / 24:.1f} day(s) before the newest "
+      f"message on the surface")
+print(f"asks addressed to it since that word: {len(newer)}")
+horizon = float(os.environ.get("CLOCK_HORIZON_HOURS", "48"))
+if silent_h > horizon and newer:
+    print(f"SILENCE CARRIES NOTHING: a clock gives `{party}` {int(horizon)}h and reads the next "
+          f"hour as consent, and this party has produced no word here in {int(silent_h)}h while "
+          f"{len(newer)} ask(s) accumulated — so the premise the inference needs is false on this "
+          f"surface and the hour would pass in every world, including the one where it disagrees")
+    print(f"  read its answers where they land instead: for a charter path here that is the "
+          f"forge, and `git log origin/main -- prompts/` is the instrument")
+    sys.exit(1)
+print(f"`{party}` has answered here inside its own clock window, so its silence is evidence "
+      f"about this item")
+sys.exit(0)
+PY
+}
+
 fetch() {  # $1 = destination file
   : "${BOARD_API_URL:?BOARD_API_URL is not set; this runs where the board is reachable}"
   : "${BOARD_RUNTIME_TOKEN:?BOARD_RUNTIME_TOKEN is not set}"
@@ -226,6 +332,8 @@ fetch_answers() {  # $1 = destination file; a could-not-look here is not fatal
 
 case "${1:-}" in
 --writable) writable; exit $? ;;
+--answers)  answers_rate "${2:-owner}"; exit $? ;;
+
 
 --self-test)
   # Every branch fired against an input, because a branch nothing has ever hit
@@ -319,7 +427,33 @@ case "${1:-}" in
  {"ts":"2026-10-24T20:01:00+00:00","kind":"note","from_company":"epitome","from_seat":"okr",
   "to_company":"epitome","to_seat":"exo","subject":"a seat that is not the applier naming the item",
   "body":"this names the same item and is not the hand that applies it","ref":null,
-  "data":{"merge_sequence":[993,994,995]}}
+  "data":{"merge_sequence":[993,994,995]}},
+ {"ts":"2026-10-27T00:48:11+00:00","kind":"ask","from_company":"epitome","from_seat":"pm",
+  "to_company":null,"to_seat":"owner","subject":"silence clock started on that charter branch",
+  "body":"forty-eight hours of your silence and it proceeds",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/992",
+  "expires_at":"2026-10-29T00:47:45+00:00","data":{"pr":992}},
+ {"ts":"2026-10-27T01:34:36+00:00","kind":"ask","from_company":"epitome","from_seat":"pm",
+  "to_company":null,"to_seat":"owner","subject":"amendment: withdrawing that clock, before it expires",
+  "body":"no hand is authorised to merge that path, so the clock I started releases nothing",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/992","expires_at":null,
+  "data":{"pr":992,"withdrawn":true,"clock_was":"2026-10-29T00:47:45Z"}},
+ {"ts":"2026-11-01T23:54:55+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"the applier half on the withdrawn-in-front-of-her item",
+  "body":"the deadline in the field for that branch, addressed to the hand that applies it",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/992",
+  "expires_at":"2099-01-01T00:00:00+00:00","data":{"pr":992,"head_992":"009e05f1"}},
+ {"ts":"2026-10-26T09:39:52+00:00","kind":"ask","from_company":"epitome","from_seat":"pm",
+  "to_company":null,"to_seat":"owner","subject":"that charter edit is waiting on your hand alone",
+  "body":"forty-eight hours of your silence on the clause in that branch",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/991","expires_at":null,
+  "data":{"pr":991,"head":"aaaaaaa1"}},
+ {"ts":"2026-11-01T23:28:19+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"amending that ask: one more clause, same clock",
+  "body":"the deadline in the field, addressed to the hand that applies it",
+  "ref":"https://github.com/alexandrapaiz/epitome/pull/991",
+  "expires_at":"2099-01-01T00:00:00+00:00",
+  "data":{"pr":991,"head":"bbbbbbb2","amends":"epitome#991"}}
 ]}
 JSON
   # 1 — the field alone is not a declared clock any more: #999's ask carries
@@ -400,6 +534,53 @@ JSON
   # clock-field set and this hour could move. It does not.
   check "the new kinds do not move the hour"    0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
         'out=$(bash "$0" 993 2>&1); grep -q "clock running on #993: expires 2099-01-01" <<<"$out"' "$0"
+  # 5c — §22's FIRST place, read as a showing rather than a message count
+  #      (L96). #992 is epitome #312's own shape on 2026-11-02: the owner leg
+  #      is a clock and that same clock's withdrawal, nothing else, and the
+  #      applier half carries a live hour. The old rule counted two showings
+  #      and answered "declared in all three places".
+  check "owner leg is a clock and its withdrawal -> 4" 4 \
+        env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 992
+  check "and it refuses to call that running"    0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 992 2>&1); ! grep -q "clock running on #992" <<<"$out"' "$0"
+  check "and it prints the retraction as one"    0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 992 2>&1); grep -q "RETRACTED .* withdrew a clock" <<<"$out"' "$0"
+  check "and it says what her silence was shown" 0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 992 2>&1); grep -q "been shown is a retraction" <<<"$out"' "$0"
+  # The negative that keeps this from deleting the owner leg wholesale: #996's
+  # owner half carries no withdrawal field, so it is still a showing and that
+  # item still runs. This is the one shape that has ever fired here (L85).
+  check "a plain owner half is still a showing"  0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 996 2>&1); grep -q "all three places" <<<"$out"' "$0"
+  check "and nothing is retracted on it"         0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 996 2>&1); ! grep -q "RETRACTED" <<<"$out"' "$0"
+  # 5d — the words she was shown, dated (L96). #991's showing names head
+  #      aaaaaaa1 and the clock in force names bbbbbbb2, so the silence being
+  #      timed is silence about a diff she has not seen.
+  check "showing names an older head -> 4"       4 \
+        env CLOCKS_FIXTURE="$tmp/board.json" bash "$0" 991
+  check "and it prints both heads"               0 env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 991 2>&1); grep -q "SHOWN OTHER WORDS on #991" <<<"$out"' "$0"
+  # And the unresolvable case says unknown rather than clean: #996's showing
+  # names no head at all, which is the live shape on #300 and #312.
+  check "no head at the showing -> reported, not resolved" 0 \
+        env CLOCKS_FIXTURE="$tmp/board.json" bash -c \
+        'out=$(bash "$0" 996 2>&1); grep -q "showing names no head" <<<"$out"' "$0"
+  # 5e — the fence verdict is an input, so the fixture path can fire it
+  #      without reaching the forge: `clear` and `?` must both leave #996
+  #      running, and only FORBIDDEN may block. The live positive is this
+  #      product's own #300 and #312, where the recorded applier is
+  #      `epitome/pm` and `addressed.sh --can pm prompts/exo-agent.md` has
+  #      answered FORBIDDEN since 2026-10-27 (L96, L40).
+  check "fence clear leaves it running"        0 env CLOCKS_FIXTURE="$tmp/board.json" \
+        CLOCKS_FENCE=clear bash "$0" 996
+  check "fence unreadable leaves it running"   0 env CLOCKS_FIXTURE="$tmp/board.json" \
+        CLOCKS_FENCE='?' bash "$0" 996
+  check "fence FORBIDDEN -> 4"                 4 env CLOCKS_FIXTURE="$tmp/board.json" \
+        CLOCKS_FENCE='FORBIDDEN prompts/exo-agent.md: pm fences this surface' bash "$0" 996
+  check "and it quotes the fence"              0 env CLOCKS_FIXTURE="$tmp/board.json" \
+        CLOCKS_FENCE='FORBIDDEN prompts/exo-agent.md: pm fences this surface' bash -c \
+        'out=$(bash "$0" 996 2>&1); grep -q "APPLIER FENCED OUT on #996" <<<"$out"' "$0"
   check "census with prose clocks -> 1"     1 env CLOCKS_FIXTURE="$tmp/board.json" bash "$0"
   # 6 — could-not-look is its own answer and is never spelled like clean.
   check "unreadable board -> could not look" 2 env CLOCKS_FIXTURE="$tmp/nope.json" bash "$0" 271
@@ -429,7 +610,152 @@ PYEOF
   check "and it says so rather than claiming a write" 0 \
         env BOARD_API_URL="http://127.0.0.1:1/x" CLOCKS_FIXTURE="$tmp/probed.json" bash -c \
         'out=$(bash "$0" --writable 2>&1); grep -q "cited, not re-probed" <<<"$out"' "$0"
+
+  # A RETRACTED HOUR IS NOT THE HOUR IN FORCE, and the withdrawal is not an
+  # ask. Two fixtures, because the two halves failed independently: the first
+  # has the withdrawal as an `ask` (visible to the old filter, still counted as
+  # a candidate), the second as a `note` (invisible to it entirely, which is
+  # the form every seat here actually writes). Both must come back "no clock".
+  cat > "$tmp/withdrawn-ask.json" <<'JSON'
+{"messages":[
+ {"id":"aaaaaaaa-0000-0000-0000-000000000001",
+  "ts":"2026-10-24T10:00:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"an hour on 991",
+  "body":"forty-eight hours of your silence","ref":"https://github.com/alexandrapaiz/epitome/pull/991",
+  "expires_at":"2026-10-26T10:00:00+00:00","data":{"pr":991}},
+ {"ts":"2026-10-24T11:00:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"withdrawing that hour, as an ask",
+  "body":"the instrument was wrong, not the hour","ref":null,
+  "data":{"pr":991,"withdraws":"aaaaaaaa-0000-0000-0000-000000000001"}}
+]}
+JSON
+  cat > "$tmp/withdrawn-note.json" <<'JSON'
+{"messages":[
+ {"id":"aaaaaaaa-0000-0000-0000-000000000002",
+  "ts":"2026-10-24T10:00:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"an hour on 992",
+  "body":"forty-eight hours of your silence","ref":"https://github.com/alexandrapaiz/epitome/pull/992",
+  "expires_at":"2026-10-26T10:00:00+00:00","data":{"pr":992}},
+ {"ts":"2026-10-24T11:00:00+00:00","kind":"note","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"withdrawing that hour, as a note",
+  "body":"the form every seat here actually writes a withdrawal in","ref":null,
+  "data":{"pr":992,"withdraws":"aaaaaaaa-0000-0000-0000-000000000002"}}
+]}
+JSON
+  check "a withdrawn hour is not in force (ask form)"  1 \
+        env CLOCKS_FIXTURE="$tmp/withdrawn-ask.json" bash "$0" 991
+  check "a withdrawn hour is not in force (note form)" 1 \
+        env CLOCKS_FIXTURE="$tmp/withdrawn-note.json" bash "$0" 992
+  check "and it names the hour it retired"             0 \
+        env CLOCKS_FIXTURE="$tmp/withdrawn-note.json" bash -c \
+        'out=$(bash "$0" 992 2>&1); grep -q "WITHDRAWN  the hour 2026-10-26T10:00:00Z" <<<"$out"' "$0"
+  # The negative control, and it is the one that matters: a withdrawal filed
+  # BEFORE the hour it names cannot retire it, or a seat could void a clock it
+  # has not yet been shown. Same fixture, order reversed.
+  cat > "$tmp/withdrawn-early.json" <<'JSON'
+{"messages":[
+ {"ts":"2026-10-24T09:00:00+00:00","kind":"note","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"a withdrawal filed before the clock it names",
+  "body":"this retracts nothing, because the hour came after it","ref":null,
+  "data":{"pr":993,"withdraws":"aaaaaaaa-0000-0000-0000-000000000003"}},
+ {"id":"aaaaaaaa-0000-0000-0000-000000000003",
+  "ts":"2026-10-24T10:00:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"owner","subject":"an hour on 993, shown to her",
+  "body":"forty-eight hours of your silence","ref":"https://github.com/alexandrapaiz/epitome/pull/993",
+  "expires_at":"2099-10-26T10:00:00+00:00","data":{"pr":993}},
+ {"ts":"2026-10-24T10:01:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"the applier half on 993",
+  "body":"you are the hand on this one","ref":"https://github.com/alexandrapaiz/epitome/pull/993",
+  "expires_at":"2099-10-26T10:00:00+00:00","data":{"pr":993}}
+]}
+JSON
+  check "a withdrawal before its hour retires nothing" 0 \
+        env CLOCKS_FENCE=clear CLOCKS_FIXTURE="$tmp/withdrawn-early.json" bash "$0" 993
+
+  # --answers, §22's fourth question. Four fixtures and no network, because a
+  # self-test that reaches the board tests the board. The horizon is the
+  # clock's own 48 hours, so the two cases that matter are 47 and 50 hours of
+  # silence, and the 47 is the one worth having: L94 says a guard ships with an
+  # accepted case that is a near-miss of its own violation, and the near-miss
+  # here is a party who did answer, barely, with asks already stacked behind it.
+  cat > "$tmp/answers-silent.json" <<'JSON'
+{"messages":[
+ {"ts":"2026-10-01T00:00:00+00:00","kind":"note","from_seat":"owner","to_seat":null,
+  "subject":"the only word she ever wrote here"},
+ {"ts":"2026-10-01T06:00:00+00:00","kind":"ask","from_seat":"pm","to_seat":"owner",
+  "subject":"an ask filed into it"},
+ {"ts":"2026-10-03T02:00:00+00:00","kind":"note","from_seat":"pm","to_seat":null,
+  "subject":"the newest message on the surface, 50h after her last word"}
+]}
+JSON
+  cat > "$tmp/answers-nearmiss.json" <<'JSON'
+{"messages":[
+ {"ts":"2026-10-01T03:00:00+00:00","kind":"note","from_seat":"owner","to_seat":null,
+  "subject":"her last word, 47h before the newest message"},
+ {"ts":"2026-10-01T06:00:00+00:00","kind":"ask","from_seat":"pm","to_seat":"owner",
+  "subject":"an ask filed after it, so the accumulation leg is satisfied too"},
+ {"ts":"2026-10-03T02:00:00+00:00","kind":"note","from_seat":"pm","to_seat":null,
+  "subject":"the newest message on the surface"}
+]}
+JSON
+  cat > "$tmp/answers-never.json" <<'JSON'
+{"messages":[
+ {"ts":"2026-10-01T06:00:00+00:00","kind":"ask","from_seat":"pm","to_seat":"owner",
+  "subject":"an ask to a party that has never written here at all"},
+ {"ts":"2026-10-03T02:00:00+00:00","kind":"note","from_seat":"pm","to_seat":null,
+  "subject":"the newest message on the surface"}
+]}
+JSON
+  printf '{"messages":[]}\n' > "$tmp/answers-empty.json"
+  check "--answers: 50h silent with asks behind it" 1 \
+        env CLOCKS_FIXTURE="$tmp/answers-silent.json" bash "$0" --answers owner
+  check "--answers: the 47h near-miss is accepted"  0 \
+        env CLOCKS_FIXTURE="$tmp/answers-nearmiss.json" bash "$0" --answers owner
+  check "--answers: never wrote here at all"        1 \
+        env CLOCKS_FIXTURE="$tmp/answers-never.json" bash "$0" --answers owner
+  check "--answers: empty window is could-not-look"  2 \
+        env CLOCKS_FIXTURE="$tmp/answers-empty.json" bash "$0" --answers owner
+  check "--answers: a party that does answer"        0 \
+        env CLOCKS_FIXTURE="$tmp/answers-nearmiss.json" bash "$0" --answers pm
+  # The verdict names the surface and the two counts, so a reader can check it
+  # without rerunning it. A measurement nobody can see is an assertion (L77).
+  check "--answers prints both counts"               0 \
+        env CLOCKS_FIXTURE="$tmp/answers-nearmiss.json" bash -c \
+        'out=$(bash "$0" --answers owner 2>&1); grep -q "addressed to .owner.: 1" <<<"$out" \
+          && grep -q "written by .owner. on this surface: 1" <<<"$out"' "$0"
+
+  # The subject this script was asked about, which until 2026-11-02 it would
+  # take from any word at all. Both refusals are exit 2 and neither of them may
+  # print a verdict, because the sentence that cost something was a VERDICT on
+  # a subject that did not exist: `no clock on #--pr` (L-A113).
+  check "an unknown flag is refused by name"         2 \
+        env CLOCKS_FIXTURE="$tmp/answers-nearmiss.json" bash "$0" --pr
+  check "a non-numeric subject is refused"           2 \
+        env CLOCKS_FIXTURE="$tmp/answers-nearmiss.json" bash "$0" 3hundred
+  check "neither refusal prints a verdict"           0 \
+        env CLOCKS_FIXTURE="$tmp/answers-nearmiss.json" bash -c \
+        'for a in --pr 3hundred; do out=$(bash "$0" "$a" 2>&1); \
+           grep -q "no clock on" <<<"$out" && exit 1; done; exit 0' "$0"
+
   exit $rc ;;
+
+# An argument this script does not know is refused BY NAME, and a pull request
+# number that is not a number is refused the same way (L-A113). Until now
+# `PR=${1:-}` took whatever fell through, so `--pr 300` set PR to the string
+# `--pr`, the forge answered `?` for its state, no ask named it, and the verdict
+# printed was *no clock on #--pr*. That is this instrument's loud-wrong
+# direction: the reader asking it is deciding whether words are under a clock
+# she may not edit, and "no clock" is the answer that releases her to edit them.
+# Found on 2026-11-02 re-measuring incident 61, by a caller that guessed a flag
+# this file never had. A could-not-look is exit 2 here and everywhere (L41).
+--*)
+  printf 'clocks.sh does not have the argument `%s`, and it will not read it as a pull
+request number: a wrong subject answers "no clock" to a reader who is asking
+whether she may edit words under one (L-A113, L41).
+' "$1" >&2
+  printf 'the arguments it does have: <PR-number> | --writable | --answers [SEAT] | --self-test
+' >&2
+  exit 2 ;;
 esac
 
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
@@ -447,6 +773,13 @@ else
 fi
 
 PR=${1:-}
+case "$PR" in
+  ''|*[!0-9]*) [ -z "$PR" ] || {
+      printf 'clocks.sh was given `%s` as a pull request number and it is not one, so it
+refuses rather than answering about an item that does not exist (L-A113, L41).
+' "$PR" >&2
+      exit 2; } ;;
+esac
 # The scope of the answer, printed rather than assumed: a pull request number
 # means nothing without the repository it was issued in (L-A18, L-A47).
 REPO=${REPO:-$(basename -s .git "$(git remote get-url origin 2>/dev/null)" 2>/dev/null)}
@@ -468,9 +801,40 @@ if [ -n "$PR" ] && [ -z "${CLOCKS_FIXTURE:-}" ] && command -v gh >/dev/null 2>&1
   PR_STATE=$(gh pr view "$PR" --json state --jq .state 2>/dev/null || echo '?')
   [ -n "$PR_STATE" ] || PR_STATE='?'
 fi
-python3 - "$tmp/asks.json" "$PROSE" "${PR:-}" "$REPO" "$PRODUCT" "$PR_STATE" "$tmp/answers.json" <<'PY'
+# §22's THIRD PLACE AGAIN, AND THE QUESTION IT NEVER ASKS: may the hand it
+# records write the paths this merge would write? `applier_recipient` below
+# answers by seat name, which is what §22 literally says, and L40 says a
+# seat's writable surface is a fact about that seat's charter and not about
+# what the work is for. `addressed.sh --can` owns that fence, so it is called
+# rather than reimplemented here (one rule, one owning document — L-X10), and
+# the paths come from the pull request's own diff rather than from what the
+# ask claims it changes, because the merge writes the diff. A verdict that
+# could not be read is passed through as `?` and never spelled like clear.
+# CLOCKS_FENCE is the fixture door for this one verdict, in the same spirit as
+# CLOCKS_FIXTURE: a self-test that reaches the forge tests the forge.
+APPLIER_FENCE=${CLOCKS_FENCE:-'?'}
+if [ -z "${CLOCKS_FENCE:-}" ] && [ -n "$PR" ] && [ -z "${CLOCKS_FIXTURE:-}" ] && command -v gh >/dev/null 2>&1; then
+  PR_FILES=$(gh pr view "$PR" --json files --jq '.files[].path' 2>/dev/null || true)
+  if [ -n "$PR_FILES" ]; then
+    # `--can` exits 1 on a FORBIDDEN verdict, which is the verdict this block
+    # exists to read, so its exit code is captured rather than used as a
+    # condition — an `if` here read every fence as could-not-look, which is
+    # the state that misreports (L41: three outcomes and never two).
+    # shellcheck disable=SC2086
+    CAN=$(bash "$(git rev-parse --show-toplevel)/docs/agents/addressed.sh" \
+            --can pm $PR_FILES 2>/dev/null); CAN_RC=$?
+    case "$CAN_RC:$CAN" in
+      2:*|*:'')   APPLIER_FENCE='?' ;;
+      *FORBIDDEN*) APPLIER_FENCE=$(printf '%s\n' "$CAN" | grep -m1 FORBIDDEN \
+                     | sed 's/^ *//;s/  */ /g') ;;
+      *)          APPLIER_FENCE='clear' ;;
+    esac
+  fi
+fi
+python3 - "$tmp/asks.json" "$PROSE" "${PR:-}" "$REPO" "$PRODUCT" "$PR_STATE" "$tmp/answers.json" "$APPLIER_FENCE" <<'PY'
 import json, re, sys, datetime
-path, prose, pr, repo, product, pr_state, answers_path = sys.argv[1:8]
+(path, prose, pr, repo, product, pr_state, answers_path,
+ applier_fence) = sys.argv[1:9]
 try:
     msgs = json.load(open(path))["messages"]
 except Exception as why:
@@ -633,8 +997,126 @@ if pr:
         d = m.get("data") or {}
         return isinstance(d, dict) and d.get("silence_proceeds") is False
 
+    def withdraws_clock(m):
+        """Is this message the retraction of a clock rather than the showing
+        of one?
+
+        Read from a field, for the same reason as `refuses_silence`: the prose
+        of a withdrawal and the prose of a clock are the same sentences with
+        one word changed, and the field is the only part of either that a
+        reader cannot misread (L-A45, L-A98). Two field forms, both observed on
+        this board: `withdrawn: true` with `clock_was` naming the hour it
+        retracts, and `withdraws` carrying the message id it retracts.
+
+        WHY THIS EXISTS, and it is the worst answer this file has given. On
+        2026-11-02 the owner leg of epitome#312 consisted of exactly two
+        messages: `epitome/pm` starting a clock at 2026-10-27T00:48:11Z, and
+        `epitome/pm` withdrawing that same clock at 01:34:36Z on the ground
+        that no hand is authorised to merge a `prompts/` path at all. Both are
+        addressed to the owner and both name the item, so `is_owner` counted
+        two showings, and this file answered `clock running on #312 ...
+        declared in all three places §22 names`. **The retraction of a clock
+        was read as the showing that validates it** — the strongest negative
+        evidence an item can carry, scored as the positive.
+
+        It is L92 one layer out. That lesson taught this file that a
+        withdrawal is the one act that moves an hour earlier, and the test it
+        installed reads `expires_at`; a withdrawal that carries `withdrawn:
+        true` and no hour is outside the set that test looks at, so it governs
+        nothing. A withdrawal is not only a smaller hour. It can be the
+        removal of the clock, and then there is no hour to compare."""
+        d = m.get("data") or {}
+        if not isinstance(d, dict):
+            return False
+        return d.get("withdrawn") is True or bool(d.get("withdraws"))
+
+    def head_in(m):
+        """The head a message claims the item stood at, from the keys this
+        product actually uses: `head`, `head_<pr>`, or `heads[<pr>]`. Returns
+        None when the sender named none, which is the common case and is
+        reported as unknown rather than as agreement (L-A134)."""
+        d = m.get("data") or {}
+        if not isinstance(d, dict):
+            return None
+        for key in ("head", f"head_{pr}", f"head{pr}"):
+            v = d.get(key)
+            if isinstance(v, str) and v:
+                return v
+        v = d.get("heads")
+        if isinstance(v, dict):
+            h = v.get(pr) or v.get(int(pr) if pr.isdigit() else pr)
+            if isinstance(h, str) and h:
+                return h
+        return None
+
     named = [m for m in msgs if names(m, repo, product, pr)]
-    real = [m for m in named if m.get("expires_at")]
+
+    # A RETRACTED HOUR IS NOT A CANDIDATE FOR THE HOUR IN FORCE, AND THIS IS
+    # THE THIRD INSTANCE OF ONE DEFECT. L92 taught this file that a withdrawal
+    # moves a deadline earlier and installed a test reading `expires_at`. L96
+    # taught it that a withdrawal can remove the clock entirely, and installed
+    # `retracted_by` — but only inside the owner leg, where it decides whether
+    # she was *shown* anything. Neither touched this line, so the retracted
+    # clock stayed in the set `current` is chosen from, and a withdrawal
+    # addressed to a seat rather than to the owner was never read at all.
+    #
+    # Measured on this seat's own items on 2026-11-02T03:37Z. Five clocks were
+    # withdrawn by their own author, by message id, in `data.withdraws` —
+    # exactly the field form `withdraws_clock` documents — and three minutes
+    # later this file still answered `#300 carries the field: expires
+    # 2026-11-03T23:30:00Z (in force)`. The author of a clock had removed it
+    # and the reader of clocks could not see that it was gone.
+    #
+    # So the retirement is read over every withdrawal on the item regardless
+    # of recipient, because who a withdrawal was addressed to is a fact about
+    # its audience and not about whether the hour still stands. `retracted`
+    # below stays owner-facing on purpose: "withdrawn in front of her" is a
+    # different question from "this hour is void", and only the second one
+    # decides which clock is current (L96's own words: a repair aimed at one
+    # expression of an act does not cover the act).
+    # AND THE WITHDRAWALS ARE NOT ASKS, WHICH IS WHY THIS WAS INVISIBLE RATHER
+    # THAN MERELY WRONG. `msgs` is filtered to `kind == "ask"` thirty lines
+    # into this program, because the two places §22 names that live on the ask
+    # are what the first query was written for. A withdrawal is not an ask. It
+    # is a `note` or a `done`, which is what every seat here writes one as —
+    # all five this seat filed at 03:37Z were notes — so the set this file
+    # scanned for retractions could not contain one by construction. The
+    # second page, fetched without a kind filter for the applier's record, is
+    # the input that can, so the retraction scan reads the union.
+    _seen = {m.get("id") for m in named if m.get("id")}
+    withdrawals = [m for m in named if withdraws_clock(m)] + [
+        m for m in answers
+        if m.get("id") not in _seen
+        and names(m, repo, product, pr) and withdraws_clock(m)]
+    if not answers_read:
+        print(f"  COULD NOT LOOK at withdrawals on #{pr} filed as anything but an ask: the "
+              f"second page did not come back, so a retracted hour below may still be "
+              f"printed as in force (L77)")
+
+    def retired(m):
+        """Has any later withdrawal on this item voided this clock?"""
+        mid, hour = m.get("id"), (m.get("expires_at") or "")[:19]
+        for w in withdrawals:
+            if w["ts"] <= m["ts"]:
+                continue
+            d = w.get("data") or {}
+            if not isinstance(d, dict):
+                continue
+            if mid and mid in (d.get("withdraws"), d.get("amends")):
+                return w
+            was = d.get("clock_was") or ""
+            if hour and isinstance(was, str) and was[:19] == hour:
+                return w
+        return None
+
+    retired_clocks = [(m, retired(m)) for m in named if m.get("expires_at")]
+    for m, w in retired_clocks:
+        if w:
+            print(f"  WITHDRAWN  the hour {(m.get('expires_at') or '')[:19]}Z filed "
+                  f"{m['ts'][:19]}Z by {m.get('from_company')}/{m.get('from_seat')} was retracted "
+                  f"{w['ts'][:19]}Z by {w.get('from_company')}/{w.get('from_seat')}, so it is not "
+                  f"a candidate for the hour in force")
+    real = [m for m, w in retired_clocks if not w]
     if real:
         # THE HOUR IS THE ONE FILED LAST, NEVER THE LATEST ONE FILED.
         # This line used to read `sorted(real, key=expires_at)[-1]` and call
@@ -658,7 +1140,38 @@ if pr:
         left = exp - now
         hours = left.total_seconds() / 3600
         told = [m for m in named if applier_recipient(m)]
-        shown = [m for m in named if is_owner(m)]
+        # THE OWNER LEG, WITH THE RETRACTIONS TAKEN OUT OF IT. `shown` used to
+        # be every owner-addressed message naming the item, which counted a
+        # withdrawal as a showing; see `withdraws_clock`. The two lists are
+        # kept apart rather than merged, because "she was never shown this"
+        # and "she was shown it and then told to disregard it" are different
+        # states and only the second has something to print.
+        owner_facing = [m for m in named if is_owner(m)]
+        retracted = [m for m in owner_facing if withdraws_clock(m)]
+        # A withdrawal takes its own showing with it, and that is the whole
+        # point: dropping only the withdrawal leaves the clock it retracted
+        # standing in `shown`, which is the answer this file already gave.
+        # Matched by the id the withdrawal names, or failing that by the hour
+        # it says it is retracting — both are fields, and a withdrawal that
+        # names neither retracts nothing this reader can identify and so takes
+        # nothing out (it still prints, below).
+        def retracted_by(m):
+            mid = m.get("id")
+            hour = (m.get("expires_at") or "")[:19]
+            for w in retracted:
+                if w["ts"] <= m["ts"]:
+                    continue
+                d = w.get("data") or {}
+                if not isinstance(d, dict):
+                    continue
+                if mid and mid in (d.get("withdraws"), d.get("amends")):
+                    return w
+                was = d.get("clock_was") or ""
+                if hour and isinstance(was, str) and was[:19] == hour:
+                    return w
+            return None
+        shown = [m for m in owner_facing
+                 if not withdraws_clock(m) and not retracted_by(m)]
         refused = [m for m in named if refuses_silence(m)]
         # Filing order, so the last line printed is the one in force. Sorting
         # this list by hour put the withdrawal in the middle of its own item.
@@ -718,7 +1231,63 @@ if pr:
                       f"the hand §22 records has not acknowledged the clock it is expected "
                       f"to apply (L93)")
 
+        # §22's FIRST PLACE, READ AS A SHOWING AND NOT AS A MESSAGE COUNT.
+        # Printed in filing order like the applier's record above, because
+        # the two legs fail the same way: a reader who sees only a verdict
+        # cannot tell a showing from its retraction.
+        if retracted:
+            for m in sorted(retracted, key=lambda x: x["ts"]):
+                d = m.get("data") or {}
+                was = d.get("clock_was") or d.get("withdraws") or "unstated"
+                took = [x for x in owner_facing if retracted_by(x) is m]
+                with_it = (f", and it takes the showing of "
+                           + ", ".join(f"{x['ts'][:19]}Z" for x in took)
+                           + " with it") if took else \
+                          ", and this reader cannot tell which showing it retracts"
+                print(f"  RETRACTED  {m['ts'][:19]}Z {m.get('from_company')}/"
+                      f"{m.get('from_seat')} -> {m.get('to_company')}/{m.get('to_seat')} "
+                      f"withdrew a clock in its own data (was: {was}){with_it}")
+        stale_head = None
+        if shown:
+            last_shown = sorted(shown, key=lambda x: x["ts"])[-1]
+            sh, ch = head_in(last_shown), head_in(current)
+            print(f"  she was last shown this item at {last_shown['ts'][:19]}Z by "
+                  f"{last_shown.get('from_company')}/{last_shown.get('from_seat')}; the "
+                  f"words in force were filed {current['ts'][:19]}Z")
+            if sh and ch and sh[:7] != ch[:7]:
+                stale_head = (sh, ch)
+                print(f"  SHOWN OTHER WORDS on #{pr}: the showing names head {sh[:8]} and "
+                      f"the clock in force names head {ch[:8]}, so the silence being timed "
+                      f"is silence about a diff she was not shown")
+            elif not sh:
+                print(f"  the showing names no head, so whether the diff moved under it "
+                      f"cannot be read from the board: §22 names no field for the state an "
+                      f"ask was shown at, and this one is reported rather than resolved "
+                      f"(routed to HQ 2026-11-02, with the applier-answer field)")
+
+        local_pm = any((m.get("to_seat") or "").lower() == "pm"
+                       and (m.get("to_company") or product) == product for m in told)
+        if local_pm and applier_fence.startswith("FORBIDDEN"):
+            print(f"  APPLIER FENCED OUT on #{pr}: {applier_fence}")
+            print(f"    §21 grants `{product}/pm` this merge and that seat's charter fences "
+                  f"the path; this file reports the disagreement and takes the seat's own "
+                  f"charter as what the seat will act on (L40)")
+
         missing = []
+        if local_pm and applier_fence.startswith("FORBIDDEN"):
+            missing.append(f"the hand §22 records is `{product}/pm`, §21 grants that seat "
+                           f"every charter merge, and that seat's own charter fences a path "
+                           f"in this diff (`addressed.sh --can`). The two disagree, the seat "
+                           f"reads its own charter, and it has already withdrawn a clock on "
+                           f"this file for exactly that reason, so the hour expires onto a "
+                           f"hand that will not act — an authority nobody holds, which is "
+                           f"routed and not waited on (L40, L96)")
+        if stale_head:
+            missing.append(f"the last showing names head {stale_head[0][:8]} and the clock "
+                           f"in force names head {stale_head[1][:8]}: a clock consents to the "
+                           f"words the ask showed her, so this one times silence about a diff "
+                           f"she has not seen (L96) — re-show the item, from the hand that "
+                           f"filed the ask, and let the clock restart on it")
         if refused:
             for m in refused:
                 print(f"  REFUSED  {m['ts'][:19]}Z {m.get('from_company')}/{m.get('from_seat')}"
@@ -732,7 +1301,12 @@ if pr:
             missing.append("no message names an applier §21 authorises to merge here: §22's "
                            "third place is the recipient field, and a clock expires at an hour "
                            "no run chose, so an applier nobody told is nobody woken")
-        if not shown:
+        if not shown and retracted:
+            missing.append("every owner-addressed message on this item withdraws a clock "
+                           "rather than showing her one, so the only thing her silence has "
+                           "been shown is a retraction and there is nothing for it to "
+                           "consent to (L96)")
+        elif not shown:
             missing.append("no ask on this item ever reached an owner, so the silence being "
                            "read as consent is the silence of a party never shown the words")
         if pr_state in ("MERGED", "CLOSED"):
@@ -750,6 +1324,9 @@ if pr:
                     f"{m.get('to_company')}/{m.get('to_seat')} at {m['ts'][:19]}Z" for m in told))
             if shown:
                 print(f"  shown her: " + ", ".join(f"{m['ts'][:19]}Z" for m in shown))
+            if retracted:
+                print(f"  withdrawn in front of her: " + ", ".join(
+                    f"{m['ts'][:19]}Z" for m in sorted(retracted, key=lambda x: x["ts"])))
             sys.exit(4)
 
         if hours < 0:

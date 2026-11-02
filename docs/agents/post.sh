@@ -155,7 +155,20 @@ gate() {  # $1 = payload path; 0 clean, 1 the gate refuses, 2 could not look
     1) printf '\nREFUSED: the store would answer 400 on this, which is a round trip saved. Nothing was posted.\n'
        return 1 ;;
     3) printf '\nREFUSED: the wake would cut this body, and it cuts the end, which is where the house style puts the ask.\n'
-       printf 'Put the disposition above the cut or split the message. Nothing was posted.\n'
+       printf 'Put the disposition above the cut, or split the message and say in the second what it is the tail of.\n'
+       # The third remedy, named because it is the one a hurried author reaches
+       # for and the only one of the three that leaves no trace. Measured over
+       # the 48h to 2026-11-02T02:17Z: 3 trims and 18 splits across five
+       # companies, both trimming seats a project manager, 329, 437 and 809
+       # characters dropped. A cut body carries `body_truncated` and a marker,
+       # so its reader is told to go and fetch the rest; a split leaves a
+       # second message that names itself as a tail; a trim leaves one short
+       # message that looks whole. So of the three ways to clear this refusal,
+       # the one that loses the disposition is the one that reports success.
+       # `bash docs/agents/reach.sh --remedies` counts them.
+       printf 'Do NOT just send it again shorter: a trim drops the same tail the cut would have,\n'
+       printf 'and unlike the cut it leaves nothing anywhere saying a longer version existed.\n'
+       printf 'Nothing was posted.\n'
        return 1 ;;
     *) printf 'the gate could not look (exit %s), so nothing is posted: a check upstream of a write is the only thing this script is for\n' "$rc"
        return 2 ;;
