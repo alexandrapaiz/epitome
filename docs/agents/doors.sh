@@ -70,7 +70,17 @@ while IFS=$'\t' read -r n base head draft created review; do
   done <<< "$prs"
   # Clean: a real merge in a throwaway worktree, because --check style answers
   # differ from the merge (L28).
-  w=$(mktemp -d); git worktree add -q --detach "$w" "$BASE" 2>/dev/null
+  # BOTH OF THESE ARE CHECKED, because the merge below is a WRITE and `$w` is
+  # the only thing keeping it out of the seat's own working tree. An unchecked
+  # `mktemp -d` on a full disk leaves `$w` empty, `git -C ""` operates on the
+  # current directory and exits 0 doing it, and this line would then merge
+  # every open pull request into the checkout the run is standing in, once per
+  # row. Read rather than fired here; fired on mergeable.sh's twin fixture at
+  # 07:35Z on 2026-11-02, which renamed a live run's branch and moved its HEAD
+  # (L41, L-A71).
+  w=$(mktemp -d) || { echo "could not look: no scratch directory" >&2; exit 2; }
+  git worktree add -q --detach "$w" "$BASE" 2>/dev/null \
+    || { echo "could not look: no worktree at $BASE, so #$n is unmeasured" >&2; rm -rf "$w"; exit 2; }
   if git -C "$w" merge --no-commit --no-ff "refs/remotes/pull/$n" >/dev/null 2>&1; then
     conflict=""
   else

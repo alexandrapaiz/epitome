@@ -92,7 +92,27 @@ if [ "${1:-}" = "--self-test" ]; then
   # The negative: one tracked file changed in the working tree of that same
   # checkout. Nothing about the commit moved, which is the case a `git log`
   # comparison alone would call clean.
-  printf '\n// not any commit\n' >> "$tmp/clean/cli/src/lib/runner.js"
+  #
+  # THE FILE IS CHOSEN FROM THE CLONE, NOT NAMED. This line read
+  # `>> "$tmp/clean/cli/src/lib/runner.js"` until 2026-11-02, a path out of
+  # THIS repository's layout, and a redirect into a directory that does not
+  # exist fails without stopping the script -- so in any other repository the
+  # append printed one line to stderr, changed nothing, and the two assertions
+  # below then measured the fixture's absence instead of this instrument:
+  # `one uncommitted line -> behind` wanted 1 and got 0, and
+  # `the text is in no commit` wanted 0 and got 1. Both read as this script
+  # being broken. Found by cli/test/selftests.sh, whose whole second question
+  # is whether a verdict moves with the checkout, and which is the only reader
+  # that could have found it, because here the path exists.
+  #
+  # Nothing in this instrument cares WHICH file is dirty -- it walks
+  # `git ls-files` of the checkout and compares each blob to `$MAIN:`'s -- so
+  # the fixture asks the clone what it has. And the build is checked, because a
+  # fixture that failed to build is not a subject that failed (L41): a self-test
+  # whose setup fails silently reports the setup's failure in the subject's name.
+  victim=$(git -C "$tmp/clean" ls-files | head -1)
+  [ -n "$victim" ] && printf '\n// not any commit\n' >> "$tmp/clean/$victim" \
+    || { echo "could not look: the clean clone has no tracked file to dirty" >&2; exit 2; }
   check "one uncommitted line -> behind"      1 env EXECUTING_HOSTREPO="$tmp/clean" EXECUTING_BIN="$tmp/clean/cli/src/index.js" bash "$0"
   check "and it says the text is in no commit" 0 env EXECUTING_HOSTREPO="$tmp/clean" EXECUTING_BIN="$tmp/clean/cli/src/index.js" bash -c \
         'out=$(bash "$0" 2>&1); grep -q "no commit holds" <<<"$out"' "$0"
