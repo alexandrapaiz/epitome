@@ -167,12 +167,23 @@ if [ ! -d "$LOGS" ]; then
 fi
 
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo .)
+# Where liveness.py is, which is not the same question as where the repository
+# is. ROOT is the git toplevel of the CURRENT DIRECTORY and stays that, because
+# the `agents/*/agent.toml` read below is genuinely repo-relative. A sibling is
+# not: it is beside the copy of this file that is RUNNING, and reconstructing
+# its repo-relative path answers about the cwd instead (L-A70). Measured
+# 2026-11-02: `cd /tmp/elsewhere && bash <this repo>/docs/agents/caps.sh` read
+# `/tmp/elsewhere/docs/agents/liveness.py`, lost the wall clock, and reported
+# `runs_in_the_room: 0, runs_unmarked_unplaceable: 1` for a log it could have
+# placed -- with the sibling sitting next to the script it was executing.
+SELFDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-DAYS="$DAYS" SEAT="$SEAT" LOGS="$LOGS" ROOT="$ROOT" python3 - <<'PY'
+DAYS="$DAYS" SEAT="$SEAT" LOGS="$LOGS" ROOT="$ROOT" SELFDIR="$SELFDIR" python3 - <<'PY'
 import glob, json, os, re, sys, datetime, collections
 
 logs = os.environ["LOGS"]; days = int(os.environ["DAYS"])
 seat_filter = os.environ["SEAT"] or None; root = os.environ["ROOT"]
+selfdir = os.environ["SELFDIR"]
 
 today = datetime.datetime.now(datetime.timezone.utc).date()
 window = [(today - datetime.timedelta(days=i)).isoformat() for i in range(days)]
@@ -252,14 +263,15 @@ LIMIT  = re.compile(r'hit your [a-z]+ limit|"api_error_status":(?:429|529)|limit
 # killer. On the day this was written the two were 20 and 15.
 #
 # The bound and the footer are not re-declared here. `docs/agents/liveness.py`
-# owns both — it is the file whose subject is which writer marked an ending, it
+# owns both, and it is read from beside THIS FILE rather than from the
+# repository the cwd is in — it is the file whose subject is which writer marked an ending, it
 # reads the wall clock off `cli/src/temporal/env.js` rather than choosing one,
 # and a second copy of either value in this file is the thing L-A143 forbids.
 # What is NOT borrowed from it is the result-object test: this file's `RESULT`
 # is anchored to a record because of L64, and the two were allowed to disagree
 # about one log until 2026-11-02, when `liveness.py` took the same anchor.
 import importlib.util as _ilu
-_lv_path = os.path.join(root, "docs", "agents", "liveness.py")
+_lv_path = os.path.join(selfdir, "liveness.py")
 try:
     _spec = _ilu.spec_from_file_location("_liveness", _lv_path)
     _lv = _ilu.module_from_spec(_spec)
