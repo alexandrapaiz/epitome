@@ -45,7 +45,7 @@ box's 2,901-log history, in one day, every one of the fifteen a `message` wake,
 at a span of 60.0 to 61.1 minutes. Five of the fifteen posted to the board
 inside their hour, so they were working when they were killed and nothing
 records what they did. That is the class `caps.sh` could not name until the same
-day (L103, incident 67).
+day (L102, incident 67).
 
 The sting, and the reason this is a rule and not a patch. `drafts.sh` asks two
 questions: did the opening run end, and is a later run of the same seat on this
@@ -107,7 +107,7 @@ GRACE_MIN = 5.0
 # result object in a sentence and carries the host's `# exit=timeout` footer and
 # no record of its own: this file answered `how=result, cause=completed`, which
 # is a killed run reported as an ending its executor chose, in the one file
-# whose whole subject is which writer marked the ending (L103, incident 67).
+# whose whole subject is which writer marked the ending (L102, incident 67).
 RESULT = re.compile(r'^\{"duration_api_ms".*"type":"result".*\}$', re.M)
 FOOTER = re.compile(r"^# exit=(\S+)", re.M)
 NAME = re.compile(r"(\d{4}-\d\d-\d\d)T(\d\d)-(\d\d)-(\d\d)-\d{3}Z-(.+)\.log")
@@ -223,7 +223,7 @@ def self_test():
     # own prose quotes a result object, which is `caps.sh`'s second fixture and
     # the shape L64 was written about. Against the unanchored dot-all read this
     # file shipped until that date it answers `result/completed`: a killing
-    # reported as an ending the executor chose (L103, incident 67).
+    # reported as an ending the executor chose (L102, incident 67).
     QUOTER = (
         "# epito run epitome-exo 2026-11-02T01-00-00-000Z-message\n"
         "# trigger=message model=claude-opus-5\n$ claude -p <prompt>\n---\n"

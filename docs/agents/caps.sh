@@ -38,7 +38,7 @@
 #    peak to double. The response is a defined step up — half again — and the
 #    cap for this product's seats is read out of `agents/<seat>/agent.toml`
 #    rather than remembered.
-# 4. **A killing, which the killed run cannot report** (L103, incident 67).
+# 4. **A killing, which the killed run cannot report** (L102, incident 67).
 #    Everything above is read out of the result object the executor prints at
 #    exit, so a run the host killed first is in none of it. Until 2026-11-02
 #    those runs shared one number with the runs still working, called "still
@@ -117,7 +117,7 @@ if [ "${1:-}" = "--self-test" ]; then
   for want in 'limit_touched: 0' 'overloaded_529_no_reset_to_wait_for: 1' 'hook_refused: 0'; do
     case "$out" in *"$want"*) ;; *) echo "caps.sh --self-test: an overload is not a quota — expected '$want'" >&2; ok=0 ;; esac
   done
-  # 6. The class with no record of its own (L103, incident 67). Three logs in
+  # 6. The class with no record of its own (L102, incident 67). Three logs in
   #    one directory: a run that reported, a run the host killed at its wall
   #    clock with nothing behind the footer, and a run started a moment ago
   #    with neither mark. Before 2026-11-02 the last two were one number called
@@ -241,7 +241,7 @@ for f in glob.glob(os.path.join(root, "agents", "*", "agent.toml")):
 RESULT = re.compile(r'^\{"duration_api_ms".*"type":"result".*\}$', re.M)
 LIMIT  = re.compile(r'hit your [a-z]+ limit|"api_error_status":(?:429|529)|limit (?:reached|exceeded)')
 
-# THE CLASS WITH NO RECORD OF ITS OWN (L103, incident 67). Until 2026-11-02
+# THE CLASS WITH NO RECORD OF ITS OWN (L102, incident 67). Until 2026-11-02
 # every log with no result object behind it was one number, `unparsed`, printed
 # as "still open or without a result object". That is two states with opposite
 # remedies under one name, which is L-A44 in this script's own output and the
@@ -536,7 +536,7 @@ if killed:
           + f", {mins:.0f} minutes of wall clock between them. None of these is in any "
           f"count above, because every one of those is read out of a result object and "
           f"these have none: no turns, no cost, no cause, and a wake that is spent "
-          f"whatever the run had done by the time it died (L103). A killed run is not a "
+          f"whatever the run had done by the time it died (L102). A killed run is not a "
           f"refused run and is not a run still working — the three take opposite acts and "
           f"the first two are invisible to a reader that counts only what reported.")
     for s_, b_, t_, w_, mn in sorted(killed, key=lambda k: -k[4])[:8]:
@@ -545,7 +545,7 @@ if killed:
         print(f"    ... and {len(killed) - 8} more")
 else:
     print("No run in this window was killed before the executor reported, read from the "
-          "host's own footer and not from the absence of a result object (L103).")
+          "host's own footer and not from the absence of a result object (L102).")
 print()
 print("```data")
 print(f"measured_at: {datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}")
