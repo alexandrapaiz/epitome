@@ -272,20 +272,66 @@ PY
     < <(printf '%s\n' "$meta" | tail -n +2)
   out=$(bash "$ROUTE" "${surfaces[@]}" 2>&1); rc=$?
   printf '%s\n' "$out"
-  case $rc in
-    0) printf 'the routing question: answered, every surface has a hand that was asked\n'; return 0 ;;
-    1) printf '\nREFUSED: a surface in this handoff has a hand nobody asked.\n'
-       printf 'Address that seat by name, in this pass, with the same measurement — the\n'
-       printf 'project managers own the item, the seat with merges on the file performs it\n'
-       printf '(L80, incident 43). Nothing was posted.\n'
-       return 1 ;;
-    3) printf '\nREFUSED: the hand that owns a surface here has already answered.\n'
-       printf 'Its answer is the disposition, and the next ask is the act that answer names,\n'
-       printf 'addressed to that same hand. Routing it onward files a duplicate against a\n'
-       printf 'seat with no writable surface (L100). Nothing was posted.\n'
-       return 1 ;;
-    *) printf '\nCOULD NOT LOOK: %s exited %s, so the route is unknown and nothing was posted.\n' "$ROUTE" "$rc"
-       return 2 ;;
+  [ "$rc" = 2 ] && {
+    printf '\nCOULD NOT LOOK: %s could not read the route, so nothing was posted.\n' "$ROUTE"
+    return 2; }
+
+  # The decision comes off the classes in route.sh's data block and not off its
+  # exit code, because that code folds one class the sender cannot act on in
+  # with four it can. `hand_whose_company_this_box_cannot_name` is this box's
+  # roster failing to resolve a seat — `chair` and the branch-prefix refs on
+  # every `prompts/` path do it — and it sets exit 1 there alongside the real
+  # omissions. Refusing on it would block a correct handoff about a charter
+  # path on a reading that is not about the sender at all, which is L41 from the
+  # other side: a could-not-look must not be spelled like a finding in either
+  # direction. So it warns loudly and passes, and the four provable classes
+  # refuse.
+  local blocking
+  blocking=$(ROUTE_OUT="$out" python3 - <<'PY'
+import os, re
+out = os.environ["ROUTE_OUT"]
+def cls(k):
+    m = re.search(r"^%s: \[(.*)\]$" % re.escape(k), out, re.M)
+    return [x for x in (m.group(1).split(",") if m and m.group(1) else []) if x]
+names = ["hand_never_addressed", "hand_addressed_but_not_about_this_surface",
+         "no_hand_known", "not_a_path_on_this_box", "hand_that_has_already_answered"]
+hits = {k: cls(k) for k in names}
+soft = cls("hand_whose_company_this_box_cannot_name")
+if not re.search(r"^hand_never_addressed:", out, re.M):
+    print("UNPARSEABLE"); raise SystemExit(0)
+for k in names:
+    if hits[k]:
+        print("%s\t%s" % (k, ",".join(hits[k]))); raise SystemExit(0)
+print("CLEAR\t%s" % ",".join(soft))
+PY
+)
+  case "$blocking" in
+    UNPARSEABLE*)
+      printf '\nCOULD NOT LOOK: %s printed no data block this gate could read, so nothing\n' "$ROUTE"
+      printf 'was posted. Its output format moved and this gate needs the new keys.\n'
+      return 2 ;;
+    hand_that_has_already_answered*)
+      printf '\nREFUSED: the hand that owns a surface here has already answered.\n'
+      printf 'Its answer is the disposition, and the next ask is the act that answer names,\n'
+      printf 'addressed to that same hand. Routing it onward files a duplicate against a\n'
+      printf 'seat with no writable surface (L100). Nothing was posted.\n'
+      return 1 ;;
+    CLEAR*)
+      local soft=${blocking#CLEAR	}
+      if [ -n "$soft" ]; then
+        printf 'the routing question: answered, and this box could not name the company of: %s\n' "$soft"
+        printf '  that is a roster gap here and not an omission in this handoff, so it passes —\n'
+        printf '  but no inbox was checked for those hands, so this is not an all-clear (L41).\n'
+      else
+        printf 'the routing question: answered, every surface has a hand that was asked\n'
+      fi
+      return 0 ;;
+    *)
+      printf '\nREFUSED: a surface in this handoff has a hand nobody asked — %s\n' "$blocking"
+      printf 'Address that seat by name, in this pass, with the same measurement: the project\n'
+      printf 'managers own the item, the seat with merges on the file performs it (L80,\n'
+      printf 'incident 43). Nothing was posted.\n'
+      return 1 ;;
   esac
 }
 
@@ -568,13 +614,24 @@ PY
     || { echo "  FAIL a note was routed: exit $rc, out: $out"; fail=1; }
 
   # The live half, fenced the way route.sh fences its own: a surface on this box
-  # whose hand this seat has never addressed must refuse. Skipped rather than
-  # guessed where the box cannot supply a board or the HQ clone.
+  # whose hand this seat has never addressed must refuse, and a surface whose
+  # only finding is a hand this box cannot name must NOT. The second case is the
+  # one this gate shipped wrong for twenty minutes: every `prompts/` path
+  # resolves to `chair` and a branch-prefix ref, neither of which the roster
+  # names, and route.sh reports that at exit 1 beside the real omissions — so
+  # deciding on the exit code alone refused every correct handoff about a
+  # charter. Skipped rather than guessed where the box cannot supply the inputs.
   if [ -n "${BOARD_API_URL:-}" ] && [ -r /srv/asc/repos/alexandra-systems/tools/capacity-retry.py ]; then
     mk live '{"surfaces":["/srv/asc/repos/alexandra-systems/tools/capacity-retry.py"]}'
     out=$(routed "$T/live.json" 2>&1); rc=$?
     check "live: a surface with an unasked hand refuses" "$out" "hand nobody asked"
     [ $rc = 1 ] || { echo "  FAIL exit for a live unasked hand: $rc"; fail=1; }
+
+    mk softonly '{"surfaces":["prompts/exo-agent.md"]}'
+    out=$(routed "$T/softonly.json" 2>&1); rc=$?
+    check "live: an unnameable company alone does not refuse" "$out" "could not name the company of"
+    check "and it is not reported as an all-clear" "$out" "not an all-clear"
+    [ $rc = 0 ] || { echo "  FAIL exit for a could-not-name-only route: $rc"; fail=1; }
   else
     echo "  skip live routing assertion: no board or no HQ clone on this box"
   fi
