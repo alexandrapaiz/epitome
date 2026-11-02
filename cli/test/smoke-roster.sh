@@ -50,8 +50,168 @@ E="node $CLI/src/index.js"
 
 pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
-bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
-check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# How many lines of a haystack a failing gate prints: enough to carry a
+# verdict table and its closing line, not a whole 7 KB report.
+EVIDENCE_LINES="${EPITO_SMOKE_EVIDENCE_LINES:-24}"
+# A failing gate says what it looked at. Lifted from smoke-doctor.sh, which
+# paid three runs of archaeology to write it, and from smoke-temporal.sh,
+# which rewrote its reader; adapted here to the one thing this suite does
+# differently from all three. `FAIL <label>` names the claim and never the
+# output the claim was made against, so the only way to learn which of five
+# rows was missing is to run the suite again and hope to be unlucky in the
+# same place -- and this suite runs against the real roster, so "unlucky in
+# the same place" means on the same box with the same five manifests.
+#
+# What is different here: the other three suites capture every command into
+# one `out`, cleared per step, which gives their `bad` an honest fallback for
+# an assertion that names no haystack. This suite captures a DIFFERENT
+# variable per command -- `$vout`, `$dout`, `$eout`, `$tout`, `$pout`,
+# `$rout`, `$fout2`.. -- and `out` is set in section 1 alone, by the per-seat
+# validate loop. A fallback to it would print the last seat's validate output
+# under a failing env or doctor assertion two hundred lines later: the exact
+# wrong-cause fault smoke-doctor.sh's 7b gate was fixed for (#369). So there
+# is no fallback in here. An assertion that can name no document says so, and
+# the assertions that could not name one have been given a name to pass.
+#
+# Three readers, in the order the answer is most likely to be the document:
+#   1. a `$NAME` in the UNEVALUATED expression whose value holds a newline
+#   2. a haystack named by the caller as a third argument -- a variable name
+#      or a path -- which is how the exit-code assertions (`[ $rc -eq 0 ]`,
+#      where the caller expanded `$rc` to a digit before `check` saw it) name
+#      the output whose exit code they are about
+#   3. any token of the expression that is a readable file, which is how the
+#      twenty-odd `grep -q '<needle>' '$AGENTS/<seat>/agent.toml'` assertions
+#      name a manifest
+# A `$NAME` with no newline in it is a seat name, a count or a path, and it is
+# printed as the note it is rather than as a document.
+
+# Print one haystack under a failing gate. Both ends rather than a tail: a
+# `epito doctor` report is 6 KB and the row an assertion is about sits in the
+# verdict table near the TOP, so a tail shows per-seat asides about nothing
+# the test asked. The count between the ends is what tells a reader to re-run
+# with EPITO_SMOKE_EVIDENCE_LINES set.
+evidence() {
+  local heading="$1" body="$2"
+  # An empty haystack is an answer -- a command that printed nothing is
+  # usually THE answer -- but it is not a document, and `mapfile` on it gives
+  # a one-element array that would read as `all 1 lines` and a blank.
+  [ -n "$body" ] || { printf '       %s is empty\n' "$heading"; return 0; }
+  local -a lines=(); mapfile -t lines <<<"$body"
+  local n=${#lines[@]} head_n=$((EVIDENCE_LINES / 2)) i
+  if [ "$n" -le "$EVIDENCE_LINES" ]; then
+    printf '       %s, %s bytes, all %s lines:\n' "$heading" "${#body}" "$n"
+    for ((i = 0; i < n; i++)); do printf '       | %s\n' "${lines[i]}"; done
+    return 0
+  fi
+  local tail_n=$((EVIDENCE_LINES - head_n))
+  printf '       %s, %s bytes, first %s and last %s of %s lines:\n' \
+    "$heading" "${#body}" "$head_n" "$tail_n" "$n"
+  for ((i = 0; i < head_n; i++)); do printf '       | %s\n' "${lines[i]}"; done
+  printf '       | … %s lines elided; EPITO_SMOKE_EVIDENCE_LINES raises this …\n' \
+    "$((n - EVIDENCE_LINES))"
+  for ((i = n - tail_n; i < n; i++)); do printf '       | %s\n' "${lines[i]}"; done
+}
+# A one-line haystack is printed whole UNLESS its name says it may hold a
+# credential, in which case what is printed is the presence-and-length form
+# L-X5 asks for. A failing assertion is the one place a suite prints a value
+# nobody chose to print, by name, out of this process's own environment, and
+# `tools/check-secret-print.py` reports the line because it cannot resolve an
+# indirect expansion to tell whether this one is safe. The words are the
+# checker's own list, and its label-suffix exemption is deliberately not
+# copied: a haystack named `$KEY_FILE` losing its path from a FAIL line costs
+# a reader one `echo`, and the other direction costs a credential.
+may_hold_credential() {
+  local n w
+  n=$(printf '%s' "$1" | tr '[:lower:]' '[:upper:]')
+  for w in TOKEN TOKENS SECRET SECRETS PASSWORD PASSWD PASS KEY APIKEY PAT \
+           WEBHOOK CREDENTIAL CREDENTIALS COOKIE BEARER AUTH; do
+    case "_${n}_" in *_"$w"_*) return 0 ;; esac
+  done
+  return 1
+}
+# `bad <label> [unevaluated test] [haystack ...]`
+bad()  {
+  fail=$((fail+1)); printf '  FAIL %s\n' "$1"
+  local label="$1"; shift
+  [ $# -gt 0 ] || return 0
+  local test="$1"; shift
+  [ -z "$test" ] || printf '       the test: %s\n' "$test"
+  local rest="$test" name val w seen
+  local -a notes=() docs=() files=()
+  # Matched in the shell, not through `grep ... | head -1`: that is a producer
+  # piped into a reader that exits on its first line, the shape this
+  # repository has spent a week converting out of every suite in here, and
+  # the failure path is the last place to introduce one.
+  while [[ "$rest" =~ [$]\{?([A-Za-z_][A-Za-z0-9_]*) ]]; do
+    name="${BASH_REMATCH[1]}"; rest="${rest#*"${BASH_REMATCH[0]}"}"
+    val="${!name:-}"; [ -n "$val" ] || continue
+    if [ "${val#*$'\n'}" != "$val" ]; then
+      seen=""; for w in ${docs[@]+"${docs[@]}"}; do [ "$w" = "$name" ] && seen=1; done
+      [ -n "$seen" ] || docs+=("$name")
+    else
+      seen=""; for w in ${notes[@]+"${notes[@]}"}; do [ "$w" = "$name" ] && seen=1; done
+      [ -n "$seen" ] || notes+=("$name")
+    fi
+  done
+  for name in ${notes[@]+"${notes[@]}"}; do
+    val="${!name}"
+    if may_hold_credential "$name"; then
+      printf '       $%s is set, %s characters — its name says it may be a credential, so this line prints presence and length and never the value (L-X5)\n' "$name" "${#val}"
+    else
+      printf '       $%s is %s\n' "$name" "$val"
+    fi
+  done
+  # The caller's own haystacks, after the expression's because an assertion
+  # that names a document in its test is about that document; a third
+  # argument is for the assertions whose document was expanded away before
+  # `check` ever saw the string.
+  for w in "$@"; do
+    if [[ "$w" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] && [ -n "${!w:-}" ]; then
+      docs+=("$w")
+    elif [ -f "$w" ] && [ -r "$w" ]; then
+      files+=("$w")
+    else
+      printf '       %s: named as this assertion'"'"'s haystack, and there is nothing there to read\n' "$w"
+    fi
+  done
+  local shown=0
+  # Two, because the assertions that compare one document against another are
+  # unreadable with one of them, and none here names three.
+  for name in ${docs[@]+"${docs[@]}"}; do
+    val="${!name:-}"; [ -n "$val" ] || continue
+    evidence "\$$name" "$val"
+    shown=$((shown+1)); [ "$shown" = 2 ] && return 0
+  done
+  if [ ${#files[@]} -eq 0 ]; then
+    # The expression's own tokens, with its quoting flattened. A needle that
+    # happens to look like a path is not a risk, because only a token that
+    # names a readable file is kept.
+    local blob="${test//[\'\"]/ }"; blob="${blob//$'\n'/ }"
+    local -a words=(); read -ra words <<<"$blob"
+    for w in ${words[@]+"${words[@]}"}; do
+      [ -f "$w" ] && [ -r "$w" ] || continue
+      seen=""; for name in ${files[@]+"${files[@]}"}; do [ "$name" = "$w" ] && seen=1; done
+      [ -n "$seen" ] || files+=("$w")
+    done
+  fi
+  for w in ${files[@]+"${files[@]}"}; do
+    evidence "$w" "$(cat -- "$w")"
+    shown=$((shown+1)); [ "$shown" = 2 ] && return 0
+  done
+  [ "$shown" -gt 0 ] || printf '       (this assertion names no document; what it looked at is in the test above)\n'
+}
+check(){ if eval "$2"; then ok "$1"; else bad "$@"; fi; }
+# Report that a file carries a value the assertion says is absent, by line
+# number and never by line. The three assertions in section 3 that say a
+# secret is not printed back are the one place where printing the haystack
+# would be printing the thing the assertion exists to keep off the screen, so
+# they get the line numbers and the reader gets one `sed -n` to run.
+leak_site() {
+  local file="$1" needle="$2" n
+  n=$(grep -cF -- "$needle" "$file" 2>/dev/null || true)
+  printf '       %s carries it on %s of its %s lines — not printed here, which is the point of the assertion; `grep -nF` it in %s\n' \
+    "$(basename "$file")" "${n:-0}" "$(wc -l <"$file" | tr -d ' ')" "$file"
+}
 # `said <captured output> [grep flags] <pattern>` — the one way this suite looks
 # inside a command's output, and it contains no pipe. That is the whole point of
 # it.
