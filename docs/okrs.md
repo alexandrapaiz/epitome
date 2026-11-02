@@ -8,25 +8,31 @@ re-verified against `72051fc`), after two prior attempts (#35, #39)
 were closed and a third (#53) closed as a duplicate — see that commit
 for the full history. Two further re-verification drafts followed
 that landing, #372 (checked against `7c38619`) and #373 (checked
-against `2a889a9`), and a third re-verification, #377, merged
-2026-11-02 against tip `de88000`. As of this run's start, #372 had
-already been closed — consistent with #377's Drift item 6 deferring
-that call to whoever merges — while #373 remained open and unmerged.
-This run is a fourth, independent re-verification, done fresh against
-2026-11-02 (`1a5fc83`, the current tip) rather than carried over from
-`de88000` or any draft. No grade changed: the two commits landed since
-`de88000` (`4cb61e1`, a `docs/ideas.md` conflict resolution; `1a5fc83`,
-#369's merge of a `cli/test/smoke-doctor.sh` gate fix plus
-`docs/backlog.md` entries) touch neither `cli/src/`,
-`.github/workflows/`, `docs/cycles/`, `docs/users.md`, nor
-`docs/benchmark/` — nothing a KR below cites. Every fact was
-re-checked directly against `1a5fc83`: `cli/package.json` still has
-`"private": true`, every seat workflow in `.github/workflows/` still
-authenticates with the shared `${{ github.token }}`, `docs/benchmark/`
-and `docs/users.md` still don't exist, no `passport` match exists
-outside `docs/`, and a fresh probe of `registry.npmjs.org/epito-cli`
-just now still returns 404. `deploy.js` (494 lines) and `identity.js`
-(435 lines) were recounted directly and match the prior pass.
+against `2a889a9`), and three more re-verifications merged in
+succession on 2026-11-02: #377 (tip `de88000`, third re-verification),
+#381 (tip `1a5fc83`, fourth), and #383 (same tip, fifth — closed #373
+as superseded and readied #381). This run is a sixth, independent
+re-verification, done fresh against 2026-11-02 (`ebf9382`, the
+current tip) rather than carried over from any draft. No grade
+changed: the commits landed since `1a5fc83` (#380 and #382, both
+merged by the engineer/exo seats) touch `cli/test/smoke-temporal.sh`,
+`cli/test/board-sink.mjs` (new), `docs/agents/check.sh` (new),
+`docs/agents/clocks.sh`, `docs/agents/executing.sh` (new),
+`docs/agents/incidents.md`, `docs/agents/landed.sh`,
+`docs/agents/lessons.md`, `docs/agents/x5probe.sh` (new), and one line
+of `docs/ideas.md` — process/instrument files only, none of them
+`cli/src/`, `.github/workflows/`, `docs/cycles/`, `docs/users.md`,
+`docs/backlog.md`, `docs/pitches/`, nor `docs/benchmark/`. Every fact
+was re-checked directly against `ebf9382`: `cli/package.json` still
+has `"private": true`, every seat workflow in `.github/workflows/`
+still authenticates with the shared `${{ github.token }}`,
+`docs/benchmark/` and `docs/users.md` still don't exist, no
+`passport` match exists outside `docs/`, `docs/cycles/` has no file
+newer than `2026-10-18-cycle-2.md`, the three dogfood-migration
+checkboxes in `docs/backlog.md` are still unchecked, and a fresh probe
+of `registry.npmjs.org/epito-cli` just now still returns 404.
+`deploy.js` (494 lines), `token.js` (115 lines), and `identity.js`
+(435 lines) were recounted directly and match every prior pass.
 
 ## Mission (held, never edited — docs/vision.md §0)
 
@@ -103,9 +109,10 @@ just now still returns 404. `deploy.js` (494 lines) and `identity.js`
   minted per-agent credential. **Named reason:** no cycle has bet this
   work — cycle 1 bet the resident runtime, cycle 2 bet npm
   distribution — so it has sat unscheduled rather than refused. This
-  finding has now been reported unchanged at least six times: first in
-  #53 (2026-10-05), again at the `ef3aa8f` landing (2026-10-27), again
-  in #372, #373, and #377, and again at this pass; see Drift below.
+  finding has now been reported unchanged at least eight times: first
+  in #53 (2026-10-05), again at the `ef3aa8f` landing (2026-10-27),
+  again in #372, #373, #377, #381, and #383, and again at this pass;
+  see Drift below.
 - **KR2, Aspirational — 0.0.** Five agents deployed by non-owners,
   tracked in `docs/users.md`. That file does not exist. No evidence.
 - **KR3, Committed — 0.3.** `epito` and the MCP server installable by
@@ -157,15 +164,18 @@ one real deploy away rather than one build away.
    but worth repeating now that the gap has gone two OKR cycles with
    no cycle bet touching it.
 2. **Weeks of commits, zero KR evidence moved by them.** Since #39's
-   close (2026-10-18) through today's tip (`1a5fc83`, 2026-11-02), the
+   close (2026-10-18) through today's tip (`ebf9382`, 2026-11-02), the
    large majority of commit volume on `main` is internal process
    engineering under the exo/pm/engineer seats — incident filings,
    `loop.md` ticks, charter patches, drift instruments
    (`docs/agents/*.sh`, `docs/agents/L*` lessons,
    `docs/agents/incidents.md`, `docs/standards/lessons.md`) and test-
-   gate repairs (`cli/test/smoke-doctor.sh`, #369). None of it is a
-   wrong thing to build;
-   a company running on autonomous seats needs instruments for its own
+   gate repairs (`cli/test/smoke-doctor.sh`, #369). The two commits
+   landed just this pass (#380, #382) are more of the same shape:
+   new incident register entries, two new `docs/agents/*.sh` probes,
+   and a `cli/test/smoke-temporal.sh` assertion that the board
+   receives a run report. None of it is a wrong thing to build; a
+   company running on autonomous seats needs instruments for its own
    cadence. But no KR above has moved since the cycle 2 engineering
    (the npm rename, the publish gates) landed before #39 closed. Worth
    naming so the owner can judge whether seat-governance work is
@@ -207,11 +217,34 @@ one real deploy away rather than one build away.
    reproduced text `main` already carried. #373 is closed as superseded
    rather than readied, and this draft was marked ready for review in
    the same pass, both by this seat, both on that handoff's authority.
+   No stray drafts remain open from this seat as of this pass: `gh pr
+   list` confirms #372 and #373 are CLOSED and #377/#381/#383 are
+   MERGED. A message this run was handed claimed #383 was still an
+   open draft with "no live run behind it"; checked directly against
+   GitHub rather than trusted, that claim was already false by the
+   time this run started — #383 merged at the same timestamp the
+   message itself cites as its "run ended" time. Nothing to act on;
+   named here in case the same stale read recurs.
+7. **This seat has now opened five re-verification PRs in about
+   24 hours (#372, #373, #377, #381, #383), and this is a sixth,
+   confirming the same grades each time with no new product evidence.**
+   Each pass has been honest that nothing moved, but the pattern is
+   itself worth naming under this charter's own "no claims, only
+   evidence" rule: a seat whose output is six documents re-stating one
+   static fact is, by the same logic as Drift item 2, idle-looking
+   motion. The underlying cause is the same as item 2's — commit
+   volume on `main` is process engineering, not wedge work, so there
+   is nothing new to re-grade — but this seat's own cadence (triggered
+   on every PR merge to `main`, including merges of its own prior
+   re-verifications) compounds it: each merge of a no-op OKR PR is
+   itself a trigger for the next one. Worth the owner's judgment on
+   whether this seat should fire on every merge, or only when a commit
+   touches a KR-cited path.
 
 ## What this run did not touch
 
 `docs/vision.md` §0 (held, quoted, never edited), any charter, and
 `docs/sprints/` (does not exist in this repo). No fourth objective was
-added. Nothing was merged to `main` and no secret was touched. This
-pass did close #373 and ready this draft — see Drift item 6 for why
-that is a grading call this seat made rather than a merge performed.
+added. Nothing was merged to `main` and no secret was touched. No PR
+was closed or readied this pass — #372 and #373 are already closed
+and #377/#381/#383 already merged; see Drift item 6.
