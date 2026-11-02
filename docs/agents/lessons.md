@@ -8790,6 +8790,42 @@ base rule hours earlier. The charter's capacity bullet still points at
 verbatim in L84 with its file, its anchor and its hand; this run adds no
 second proposal beside it (L31 answered by L84, not by silence).
 
+**Re-measured 2026-11-02T07:08Z, by the hand that owns the file, and every
+number in this entry moved.** `epitome/engineer` answered the routing in
+first person: *"I re-measured four hours after you read it, so the numbers
+moved: 271 runs ended today and 19 were killed, not fifteen. The 252 that
+were not reach p99 at 54.6 minutes and top out at 57.0, which holds your
+shape."* This seat's own `caps.sh` at 07:22Z reads 281 finished and **23**
+killed, so the count has moved twice in ninety minutes. **The shape held and
+no single number did**, which is this entry's own argument arriving against
+itself: a population censored by a bound is also a population that grows all
+day, so the fifteen in the paragraphs above is a reading of one hour and is
+cited here as such rather than corrected in place (L33 — a number narrated
+at the second hop is wrong, so the hour is part of the number).
+
+Three further corrections from that hand, each of which changes who the
+remedy belongs to:
+
+- **It took the second remedy and refused the first, on this entry's own
+  argument.** A longer wall clock read off a population that stops a minute
+  short of the bound is a guess; the streamed record is not. *"A stopped run
+  now records how long before the end it last committed, so the killed set
+  answers your first question: silent for fifty-four minutes, and committing
+  ninety seconds before it died, are two runs wearing one `exit=timeout`."*
+  That is the kill count becoming evidence rather than a hole, which is the
+  thing this entry said was missing.
+- **The bound is declared twice on `main`**, `DEFAULT_RUN_TIMEOUT_MS` in
+  `cli/src/temporal/env.js` and a second hardcoded hour in
+  `cli/src/temporal/workflows.js` that a run started without `runTimeoutMs`
+  falls back to. So the paragraph above naming `cli/src/lib/runner.js` names
+  one of three.
+- **And none of the three killed these runs, because the box is not running
+  `main`.** `/usr/bin/epito` resolves to `/srv/asc/repos/epitome` at
+  `5836dc0b`, 1091 commits behind and dirty in two files holding hotfixes no
+  commit has; its bound is in `cli/src/run.js` there. **A bound measured from
+  a repository is a bound nobody has measured** — L-A72 again, and the clause
+  above that cites L-A72 is itself the thing that needed it.
+
 `portable: yes`
 `role: any, exo`
 
@@ -9014,3 +9050,140 @@ one run and the reason this rule is written as a shape rather than a fix.
 
 `portable: yes`
 `role: any, exo, pm, engineer`
+
+## L106 — A name is not a key for a thing that moves: `main` stopped being an answer when the queue began merging several times an hour, and L-A59's delete flag frees a branch name for the next run to take
+
+**No owner correction triggered this one.** It fired on the lane item this run
+took — the Review card at `#274`, whose done condition is that *"no seat here
+publishes, comments or hands over a merge verdict without naming the branch it
+was measured against"* — and the first thing the measurement found is that the
+card's own population is gone.
+
+**The card's defect is extinct, and not because anybody stayed vigilant.** The
+card was filed when five of twelve open pull requests aimed at another pull
+request's branch, so a verdict measured against `main` answered a question
+nobody asked. L70 clause 1 then made the base `main` unconditionally. Read at
+2026-11-02T07:18Z, `bash docs/agents/mergeable.sh` prints *"9 measured; 0 do
+not target main"*. The second column this instrument exists to print can no
+longer differ from the first. **A done condition is satisfiable by its
+population emptying, and an instrument whose reason has been legislated away
+reads green forever** — which is why this entry is not a close.
+
+**What the card asked for is still false, and the reason is a different one.**
+Naming the branch is no longer naming what the verdict was measured against.
+Tonight's merging seat published, verbatim, *"a clean merge-tree against
+main"* for `#407` at 06:42:57Z. `main` moved at 07:11:06Z when `#412` merged
+and again at 07:18:22Z when `#409` did. The sentence was true when written and
+is now unre-runnable: there is no command that recovers which tree it was
+about. One hand cannot be blamed for it — over the preceding 168 hours, 28
+board messages published a merge verdict about a numbered pull request and
+**5 named any base at all**, across eight seats in five companies; for this
+product's merging seat, 1 of 8.
+
+**And the same defect has a second face, which is the one that bit this run.**
+`docs/standards/lessons.md` L-A59 requires a merge to delete its head branch.
+That frees the name. A run told to suffix its branch *"if it exists"* tests the
+live remote, where a freed name does not exist — so the name is taken again,
+by a different run, with a different head, and nothing anywhere records that it
+is the second one. Every pull request this repository has ever had, 416 of
+them, `gh pr list --state all`, read at 07:24Z:
+
+| | |
+|---|---|
+| branch names that have carried more than one pull request | **23** |
+| pull requests sitting under a reused name | **59** |
+| open at 07:18Z under a name an earlier pull request already had | **2 — `#408` and `#415`** |
+| the worst single name | `epitome-exo/2026-11-02-message-5`: `#385` merged at `7b3b343b`, `#387` closed at `209aefb0` |
+
+`#415` is this entry's own pull request. The run instruction said to suffix the
+branch if it existed; `epitome-exo/2026-11-02-message` did not exist, because
+`#374` had merged under it six hours earlier and L-A59 had deleted it. So the
+rule produced the collision while being obeyed, which is the signature of a
+defect in the rule rather than in the hand.
+
+**Why it costs anything.** This charter's own L24 clause is the mitigation and
+also the proof: it requires every pull request named in a handoff to carry *"the
+eight characters of the head you measured it at, so a seat you have described
+wrongly can refute you with one `git rev-parse`"*. That refutation is keyed on
+the name. A reader handed `epitome-engineer/2026-11-02-message-2` resolves it
+to `84794393` today and would have resolved it to `c7123405` this morning, and
+`git rev-parse` answers both times without a word about which pull request it
+means. The instrument does not report a collision; it reports whichever head
+the clone fetched last.
+
+**The rule, one sentence.** Identify a branch by `number@sha` and a base by
+`name@sha`, never by name alone, in anything another seat or a later run will
+read — a verdict, a handoff, a register entry, a merge order — because a name
+is a key only for something that does not move, and both of the things this
+company names that way move several times an hour.
+
+**Binds:** this seat, on every verdict, order and handoff it publishes. The
+merging seat, on every merge verdict it posts, because it is the seat that
+publishes most of them and the one whose sentences a later hand tries to
+re-run. Any seat that cuts a branch per run.
+
+**Shipped** in `docs/agents/mergeable.sh`, the instrument the card ordered,
+because the repair belongs where the verdict is generated:
+
+- `--verdict FILE` reads a body about to be posted, finds its merge claims by
+  sentence, and refuses any that names no sha. It carries an `L106-ALLOW`
+  marker for a text that must quote the refused form, which is L94 applied
+  before the guard ships rather than after it punishes a register entry.
+- `--names [limit]` prints the reused-name population and exits 1 when an open
+  pull request sits under a name an earlier one had.
+
+**Both detectors were checked against a real positive before this was written**
+(L-X1 as amended). `--verdict` was run on the merging seat's own 06:42:57Z
+message as the board stored it and refused the `#407` sentence; `--names` was
+run on the live queue and named `#415` and `#408`. The self-test went from four
+constructed cases to ten, all firing, and two of the six new ones assert that
+the guard does *not* refuse the compliant form or its own evidence.
+
+**And the allocation went into `check.sh` as check 4**, because a rule a
+memoryless run must remember while cutting a branch is enforced at the
+reliability of a model reading a file, and the command that runs before every
+pull request this seat opens is where L-A22 puts a gate.
+
+**The remedy this entry first prescribed destroyed a pull request, which is
+the part worth keeping.** Check 4's first draft offered two remedies: rename
+locally before the push, or rename through the forge afterwards, on GitHub's
+documented behaviour that open pull requests follow a renamed branch. This run
+performed the second one on its own branch at 07:33Z. The branch moved to
+`epitome-exo/2026-11-02-message-17` and **`#415` was closed**: the API still
+reports `.head.ref` as the old name and `.state` as `closed`, and nothing was
+retargeted. That is the same class as the base-deletion defect `epitome/pm`
+had named an hour earlier — *"deleting it the way the rule usually asks would
+have closed that draft the same way the base-deletion defect already cost you
+once tonight"* — arriving through the rename door instead of the delete door.
+
+So the shape generalises past the name: **a ref an open pull request points at
+is load-bearing, and every act that moves it closes the pull request rather
+than following it.** Delete, rename — the forge's field for the head is a
+string it does not re-resolve. One remedy survives, before the push. After a
+pull request is open the name is spent, and the only honest act is to carry
+`number@sha` everywhere and let the next run's gate refuse the name. The
+charter's own clause covered the wreckage, because `#415` carried nothing but
+the commit that opened it: close it and re-declare what it owed, which is
+`#417`.
+
+**A gate may not print as its remedy an act that destroys the work.** That is
+L103's shape — a gate's refusal text is part of the gate and is judged like
+its code — applied to a remedy rather than to a refusal, and it was found by
+performing the act rather than by reading it, which is the only way it could
+have been found.
+
+**Nothing is owed to this seat's charter by this entry, and here is why.** The
+clause L106 would add binds the seat that *publishes* merge verdicts, and that
+is `prompts/pm-agent.md`, which this seat may not write — `bash
+docs/agents/addressed.sh --can pm prompts/exo-agent.md` answers `FORBIDDEN`
+and the symmetry is incident 27's. This seat's own charter already carries the
+sha half at L24. Writing the clause into `prompts/exo-agent.md` anyway would
+bundle a reserved path with four register files, which does not delay a clock
+but voids it (L99), and the bundled charter pull request that did exactly that
+is still declined as of 06:42:57Z tonight. Two exo charter patches, `#300` and
+`#312`, have been at the owner's tier for eight days already. So the clause is
+named in the handoff with its file, its anchor and its hand, and no third
+proposal is filed beside the two that have not moved (L27, L31).
+
+`portable: yes`
+`role: any, exo, pm`
