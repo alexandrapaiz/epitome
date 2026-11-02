@@ -3,15 +3,22 @@
 Maintained by the OKR seat (`prompts/okr-agent.md`). Objectives and KR
 text are carried unedited from the 2026-09-20 all-hands counsel
 (`docs/allhands/2026-09-20-okr.md` §2), ratified once the mission below
-was signed. This is the first time this file has landed on `main`: two
-prior attempts (#35, 2026-09-30; #39, 2026-10-01) wrote it and were
-closed — #35 superseded by #39, and #39 itself closed 2026-10-18 for
-seventeen days of no movement, with the owner's own reopen condition
-("the okr seat re-verifies the Q4 grading is still current against
-today's main and re-pushes"). A third attempt (#53, 2026-10-05) opened
-in parallel and was closed 2026-10-14 as a duplicate. This run is that
-re-verification, done fresh against `main` as of 2026-10-27
-(`72051fc`), not a resurrection of any prior draft's text.
+was signed. This file first landed on `main` 2026-10-27 (`ef3aa8f`,
+re-verified against `72051fc`), after two prior attempts (#35, #39)
+were closed and a third (#53) closed as a duplicate — see that commit
+for the full history. This run is a second re-verification, done fresh
+against `main` as of 2026-11-02 (`2a889a9`), six days after the landing
+commit. Every file the grading below cites was re-checked directly
+against that commit, not carried over from the previous pass. No grade
+changed: the thirty-four commits in between touched seat-governance
+tooling (`docs/agents/*.sh`, `docs/backlog.md`) and nothing in
+`cli/src/`, `.github/workflows/`, `docs/cycles/`, `docs/users.md`, or
+`docs/benchmark/`, so there is nothing new for a KR to be graded
+against. Two line counts below are corrected from the previous pass
+(`deploy.js` 494 not 495, `identity.js` 435 not 436) — `git log` shows
+neither file has a commit against it since the landing, so the
+previous pass simply miscounted; noted so the correction isn't mistaken
+for drift.
 
 ## Mission (held, never edited — docs/vision.md §0)
 
@@ -25,8 +32,8 @@ re-verification, done fresh against `main` as of 2026-10-27
 - **KR1, Committed — 0.5.** `epito deploy` provisions a GitHub App
   principal; `epito token` returns a short-lived token never written
   to disk. The code is real and substantial — `cli/src/deploy.js`
-  (495 lines), `cli/src/token.js` (115 lines, writes only to stdout at
-  line 114), `cli/src/lib/identity.js` (436 lines: RS256 App JWT
+  (494 lines), `cli/src/token.js` (115 lines, writes only to stdout at
+  line 114), `cli/src/lib/identity.js` (435 lines: RS256 App JWT
   signing, installation-token minting, scope→permission mapping) — and
   tested end-to-end against a local stub GitHub server
   (`cli/test/github-stub.mjs`, `cli/test/smoke-deploy.sh`). What is
@@ -34,8 +41,9 @@ re-verification, done fresh against `main` as of 2026-10-27
   commit landing as `<name>[bot]` against *real* `api.github.com`.
   `docs/mvp/2026-10-05-status.md` says so itself: "A real GitHub App
   was not created... Not proven tonight." No later run closes that
-  gap. Same grade as the last verification (#39, 2026-10-01); the code
-  moved, the proof did not.
+  gap. Same grade as the last verification (ef3aa8f, 2026-10-27); none
+  of these files have a commit against them since, so the code did not
+  move either this time.
 - **KR2, Committed — 0.0.** One alexandria seat runs on epito.me and
   its ADR-27 hand-wiring is deleted. `docs/backlog.md`'s own three
   dogfood-migration cards (step 1 run it, step 2 delete the
@@ -87,8 +95,9 @@ re-verification, done fresh against `main` as of 2026-10-27
   minted per-agent credential. **Named reason:** no cycle has bet this
   work — cycle 1 bet the resident runtime, cycle 2 bet npm
   distribution — so it has sat unscheduled rather than refused. This is
-  the second OKR run in a row reporting it unchanged (first named
-  bluntly in #53, 2026-10-05); see Drift below.
+  the third OKR run in a row reporting it unchanged (first named
+  bluntly in #53, 2026-10-05, repeated at the ef3aa8f landing); see
+  Drift below.
 - **KR2, Aspirational — 0.0.** Five agents deployed by non-owners,
   tracked in `docs/users.md`. That file does not exist. No evidence.
 - **KR3, Committed — 0.3.** `epito` and the MCP server installable by
@@ -120,34 +129,42 @@ Unchanged from the 2026-09-20 baseline and the 2026-10-01 re-verification
 | Platforms one agent is verified on via its passport | 0 — no passport code exists yet (O2 KR1) |
 | Lines of ADR-27 plumbing deleted from alexandria | 0 (O1 KR2) |
 
-All four still read zero, six weeks after the last reading. The one
-proxy nearest to moving is the first: the code it depends on
-(`epito deploy`/`epito token`) is complete and tested, so the number is
-one real deploy away rather than one build away.
+All four still read zero, six weeks after the baseline reading and
+unchanged again at this pass (2026-11-02, six days after the last
+check). The one proxy nearest to moving is the first: the code it
+depends on (`epito deploy`/`epito token`) is complete and tested, so
+the number is one real deploy away rather than one build away.
 
 ## Drift (stated plainly, for the owner to rule on)
 
 1. **HQ still does not dogfood its own identity product — reported a
-   second time, unchanged.** O3 KR1's finding (shared `github.token`
+   third time, unchanged.** O3 KR1's finding (shared `github.token`
    everywhere, no minted per-agent principal anywhere in
-   `.github/workflows/`) is identical to what #53 named six weeks ago.
-   The mission's first sentence is "give every agent... a self its
-   owner holds"; by that sentence, every seat writing to this repo,
-   including this one, still runs as a generic Actions identity, not a
-   self of its own. Not new drift, but worth saying twice now that the
+   `.github/workflows/`) is identical to what #53 named six weeks ago
+   and what the ef3aa8f landing confirmed again on 2026-10-27. The
+   mission's first sentence is "give every agent... a self its owner
+   holds"; by that sentence, every seat writing to this repo, including
+   this one, still runs as a generic Actions identity, not a self of
+   its own. Not new drift, but worth saying a third time now that the
    gap has gone two OKR cycles with no cycle bet touching it.
-2. **Six weeks of commits, zero KR evidence moved by them.** Since #39's
-   close (2026-10-18) through the current tip (2026-10-27), the large
-   majority of commit volume on `main` is internal process engineering
-   under the exo/pm seats — incident filings, `loop.md` ticks, charter
-   patches, drift instruments (`docs/agents/*.sh`, `docs/agents/L*`
-   lessons, `docs/agents/incidents.md`). None of it is a wrong thing to
-   build; a company running on autonomous seats needs instruments for
-   its own cadence. But none of these nine KRs moved in that window
-   either — the cycle 2 engineering that did land (the npm rename, the
-   publish gates) was already merged before #39 closed. Worth naming
-   so the owner can judge whether seat-governance work is crowding out
-   wedge work, or is a one-time cost that's now paid.
+2. **Six weeks of commits, zero KR evidence moved by them — and the
+   six days since confirm it again.** Since #39's close (2026-10-18)
+   through the previous tip (2026-10-27), the large majority of commit
+   volume on `main` was internal process engineering under the exo/pm
+   seats — incident filings, `loop.md` ticks, charter patches, drift
+   instruments (`docs/agents/*.sh`, `docs/agents/L*` lessons,
+   `docs/agents/incidents.md`). The thirty-four commits since then
+   (through `2a889a9`, 2026-11-02) are the same class — more of
+   `docs/agents/*.sh`, `docs/backlog.md`, `docs/standards/pm.md` — and
+   checked directly this pass, none of them touch `cli/src/`,
+   `.github/workflows/`, `docs/cycles/`, or any other file a KR above
+   cites. None of it is a wrong thing to build; a company running on
+   autonomous seats needs instruments for its own cadence. But two
+   consecutive re-verifications now report the same thing: no KR has
+   moved since the cycle 2 engineering (the npm rename, the publish
+   gates) landed before #39 closed. Worth naming so the owner can judge
+   whether seat-governance work is crowding out wedge work, or is a
+   one-time cost that's now paid.
 3. **The npm publish is a process gap, not an engineering one, and it
    has already cost one dead token.** Every line of code and every
    gate for `O3 KR3`'s CLI half is green on `main`; the only remaining
@@ -172,4 +189,9 @@ one real deploy away rather than one build away.
 
 `docs/vision.md` §0 (held, quoted, never edited), any charter, and
 `docs/sprints/` (does not exist in this repo). No fourth objective was
-added. Nothing was merged to `main` and no secret was touched.
+added. Nothing was merged to `main` and no secret was touched. This
+run also left alone an unrelated item surfaced in its event payload —
+a handoff about another seat's open draft PR (#372) — because nothing
+in this charter concerns another seat's pull requests or their draft
+status; that belongs to whichever seat or process owns it, not the
+OKR seat.
