@@ -66,6 +66,23 @@ export function deviceSaid(e, dir) {
   }
 }
 
+// And what to do about it, which is a different sentence from what happened
+// and has to come from the same place. An earlier draft let each caller pass
+// one fixed `Fix:` clause, so `epito init` answered a directory this user may
+// not write in with "make room" — a true sentence about the wrong cause. The
+// caller knows the command to re-run; only this knows what went wrong.
+function remedy(e, dir) {
+  switch (e?.code) {
+    case "EDQUOT": return `raise this user's quota on the device holding ${dir}`;
+    case "EROFS": return `write somewhere that is not read-only, or remount ${dir}`;
+    case "EACCES":
+    case "EPERM": return `make ${dir} writable by this user`;
+    case "EFBIG": return `raise this process's file-size limit (ulimit -f)`;
+    case "ENOSPC":
+    default: return `make room on the device holding ${dir}`;
+  }
+}
+
 // Thrown rather than printed: every command in this CLI has its own `die` and
 // its own vocabulary for what the file was. `code` survives so a caller can
 // still branch on ENOSPC.
@@ -80,10 +97,10 @@ export class WriteRefused extends Error {
 }
 
 // Returns the path written. `what` is what the file IS to the reader, and
-// `fix` is the sentence that gets them out of it; both land in the message a
-// caller prints, so the error-message bar is met in one place instead of at
-// each of the seven call sites.
-export function writeFileAtomic(path, data, { mode, what, fix } = {}) {
+// `retry` is the command that gets them back to where they were; the cause's
+// own remedy comes from `remedy` above, so the error-message bar is met in
+// one place instead of at each of the seven call sites.
+export function writeFileAtomic(path, data, { mode, what, retry } = {}) {
   // `rename` replaces a directory entry, so two things that `writeFileSync`
   // does are not free here and both are handled rather than accepted:
   //
@@ -152,7 +169,7 @@ export function writeFileAtomic(path, data, { mode, what, fix } = {}) {
       : `Nothing was written and nothing was left behind.`;
     throw new WriteRefused(
       `could not write ${target}${what ? ` — ${what}` : ""}: ${deviceSaid(e, where)}. ${kept}` +
-      ` Fix: ${fix ?? `make room on the device holding ${where} and run the command again`}.`,
+      ` Fix: ${remedy(e, where)}${retry ? `, then ${retry}` : ""}.`,
       { code: e?.code, path, cause: e },
     );
   }

@@ -145,7 +145,7 @@ test("the whole failure path, with a real EACCES: the message names the file, th
     assert.throws(
       () => writeFileAtomic(path, "{}\n", {
         what: "the record of which App is which agent",
-        fix: "make room on that device and run this deploy again",
+        retry: "run this deploy again",
       }),
       (e) => {
         assert.ok(e instanceof WriteRefused);
@@ -153,7 +153,11 @@ test("the whole failure path, with a real EACCES: the message names the file, th
         assert.match(e.message, /could not write .*principals\.json — the record of which App is which agent/);
         assert.match(e.message, /this user may not write in /);
         assert.match(e.message, /is unchanged and still holds its 27 bytes/);
-        assert.match(e.message, /Fix: make room on that device and run this deploy again\.$/);
+        // The remedy has to match the cause. An earlier draft let the caller
+        // supply the whole Fix clause, and this directory — which this user
+        // simply may not write in — was answered with "make room".
+        assert.match(e.message, /Fix: make .*\/closed writable by this user, then run this deploy again\.$/);
+        assert.doesNotMatch(e.message, /make room/);
         return true;
       },
     );
@@ -162,6 +166,27 @@ test("the whole failure path, with a real EACCES: the message names the file, th
   } finally {
     chmodSync(inner, 0o700);
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("each cause gets its own remedy, because a wrong fix is worse than none", () => {
+  const dir = work();
+  const full = join(dir, "full");
+  mkdirSync(full);
+  const path = join(full, "principals.json");
+  writeFileSync(path, "{}\n");
+  // A real ENOSPC cannot be staged in a unit test without a full device, so
+  // the mapping is driven through the one cause this box can produce on
+  // demand and the rest are asserted on the real error objects' codes
+  // (see the /dev/full test below for where the ENOSPC wording comes from).
+  chmodSync(full, 0o500);
+  try {
+    const e = (() => { try { writeFileAtomic(path, "x", { retry: "run it again" }); } catch (err) { return err; } })();
+    assert.equal(e.code, "EACCES");
+    assert.match(e.message, /this user may not write in/);
+    assert.match(e.message, /Fix: make .* writable by this user, then run it again\./);
+  } finally {
+    chmodSync(full, 0o700);
   }
 });
 

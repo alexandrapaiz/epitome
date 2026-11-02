@@ -271,18 +271,22 @@ model = "claude-sonnet-5"
 entry = "${charter}"
 ${repoLine}`, {
     what: `the manifest ${self} is minting for "${name}"`,
-    fix: `make room and run ${self} ${name} again`,
+    retry: `run ${self} ${name} again`,
   }));
   // An agent's App key lands in .epito/keys/ and its ledger in
   // .epito/audit.jsonl. The manifest is publishable by design and that
   // directory is not, so init makes the difference structural rather than a
   // thing the reader has to remember (spec rule 1).
   wrote(".gitignore", () => ignore(".epito/"), 'take the ".epito/" line back out of .gitignore');
-  wrote("prompts/", () => mkdirSync("prompts", { recursive: true }));
+  // `mkdirSync` with `recursive` answers with the path it created and with
+  // nothing at all when the directory was already there, which is the same
+  // "I changed nothing" that `ignore()` reports — so a prompts/ that predates
+  // this mint is not listed as something to remove either.
+  wrote("prompts/", () => mkdirSync("prompts", { recursive: true }) !== undefined);
   if (!existsSync(charter)) {
     wrote(charter, () => writeFileAtomic(charter, `# ${name}\n\nYou are ${name}. This file is your charter: who you are, what one\nrun accomplishes, and what you never do. Everything worth remembering\nlives in a file, because every run is a fresh context.\n`, {
       what: `"${name}"'s charter, the file its runs read`,
-      fix: `make room and run ${self} ${name} again`,
+      retry: `run ${self} ${name} again`,
     }));
   }
   console.log(`minted ${name}: agent.toml + ${charter}`);
