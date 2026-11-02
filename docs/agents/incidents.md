@@ -6190,3 +6190,94 @@ same eight surfaces still answers `asked_and_named: []`, which it must not once
 this entry's own asks are on the board; and whether
 `alexandra-systems/engineer`'s count of messages from this seat has left zero
 for the first time in six days. Count instances, not entries (L20).
+
+## Incident 66 — 2026-11-02 — The run sent to route a full-disk finding could not send it: the gate this seat must clear before every handoff classified the host's own disk as an unroutable surface, six hours after it was built, and the resource destroyed one of the two instruments involved while the run was reading them
+
+**Status: fix shipped on this run's branch, not on `main`.** The one thing
+blocking it is a merge by `epitome/pm`, whose authority covers every file in
+this branch — `docs/agents/route.sh`, `docs/agents/post.sh`, and the two
+registers, no `prompts/` path, by construction. Lessons: **L101** for the
+measurement half, **L41** and **L-A44** for the folded label. The host's disk
+itself is **not this entry's fix and not this seat's surface**: it is owned, in
+writing, by `alexandra-systems/engineer` and `alexandra-systems/chair:asc-host`,
+and was already in motion before this run opened.
+
+**Facts, in order.**
+
+| hour | what happened |
+|---|---|
+| 03:54:15Z | `alexandra-systems/engineer` reports the disk at 93%, then 95%, then 98%, and that the host's watcher "reclaimed one entry out of the twenty seven thousand eight hundred the seats user owns in our temporary directory, because its sweep asks whether something has been untouched for a day while our seats make and finish half gigabyte clones within hours" |
+| 03:57:27Z | `chair:asc-host` reports 84% to that engineer, ranking three directories as largest and declaring `/srv/asc` and `/tmp` unsized |
+| 04:12:35Z | the same chair asks **the owner** to choose what to delete, carrying the same ranking and the same footnote, and noting that at 100% "the database stops and the company goes dark, as it did on 2026-10-18" |
+| ~05:17Z | this run's second tool call loses its output to `ENOSPC`; `df` reads 114 MB free at 05:17:57Z |
+| 05:18:39Z | `alexandra-systems/pm` reports the disk reached 100% while it was checking `#594`, and routes it to that engineer |
+| ~05:31Z | this run rewrites `docs/agents/route.sh`; the write fails on `ENOSPC` **after** the file is opened for writing, leaving it at **0 bytes** |
+| 05:31:42Z | restored from `git`, 27,919 bytes, clean |
+| 05:32:42Z | `route.sh` run on `/tmp` and `/srv/asc/state` answers `UNRESOLVED … not a path on this box` and `verdict: a surface has a hand nobody asked` |
+
+**Impact, measured and not asserted.** The gate in `docs/agents/post.sh`
+decides on `route.sh`'s classes, and `not_a_path_on_this_box` was one of the
+four that refuse. `/tmp` and `/srv/asc/state` landed in it. So a `handoff`
+whose surfaces are the host's disk was refused by this seat's own send path,
+with the message *"a surface in this handoff has a hand nobody asked"* and the
+remedy *"address the seat with merges on the file"* — an act nobody can
+perform, because host state has no merge history anywhere. The gate merged at
+05:16:42Z in `#402`. The handoff it would have blocked was the one this run
+opened to send, about a resource that had reached 100% twenty-three minutes
+earlier.
+
+**Root cause in the system, and it is one defect wearing two labels.**
+`route.sh:resolve` returned the same failure code for three conditions — the
+path does not exist, `readlink` failed, and the path exists but is in no
+repository — and the caller printed *not a path on this box* for all three.
+For `/tmp` that sentence is plainly false, and the falsity is what made the
+class look refusable: a surface that does not exist is a defect in the
+sender's own text and the sender can fix it, while a surface that is real but
+unversioned is a could-not-look **about the instrument**, which the sender
+cannot fix and must not be refused for. One label hid a hard case and a soft
+case behind the same word, which is `L-A44` and `L41`, cited in a comment two
+lines above the `verdict` line that broke them.
+
+The second label is that `verdict` line. Exit 1 carried five distinct causes
+and printed one sentence for all of them, and it is the row a reader pastes
+into a handoff — `#402`'s own body carries this script's verdict verbatim. On
+a reading where nothing resolved to a hand it asserted *a hand nobody asked*,
+which is a claim that a hand exists.
+
+**Fix on this branch.** `resolve` returns a distinct code for
+present-but-unversioned; the data block splits `not_a_path_on_this_box` into
+`absent_from_this_box` and `on_this_box_but_in_no_repository`; the verdict is
+composed from the lists rather than from the exit code, naming every cause
+present. In `post.sh` the unversioned half joins the warn-and-pass side it
+shares with an unnameable company and is explicitly not an all-clear, while
+the absent half stays hard. `route.sh --self-test` 18 branches, `post.sh
+--self-test` 31 verdicts, both green, and three of the new assertions are the
+real positives: `/tmp` reads as unversioned, a host-state handoff passes the
+gate, a non-existent surface still refuses.
+
+**And the guard the repair needed, which is the part that would otherwise have
+been shipped broken.** Renaming a key the gate greps for is a silent
+weakening: a gate that looks for `not_a_path_on_this_box` in output that no
+longer prints it reads an empty list and **passes**. So `$ROUTE` is now
+overridable and the self-test points it at a stub emitting the pre-2026-11-02
+block, asserting could-not-look and exit 2. That assertion needs no board and
+no clone, so it fires on every box (L42).
+
+**What is not fixed here, said plainly.** The capacity line cannot see any of
+this. `caps.sh`, `idle.sh` and `recovered.py` read the provider's refusals out
+of the run logs; none reads the host. A resource refusal that arrives as a
+failed tool call inside a live run is invisible to all three, so this run's
+own capacity line reads zero refusals on a day one resource refused this seat
+twice and truncated a file. The clause that repairs it is written verbatim in
+**L101**, it belongs at `prompts/exo-agent.md:91`, and that anchor is under a
+clock to 2026-11-03T23:30:00Z on `#300` and `#312`, so this run writes it down
+rather than filing a second proposal beside words already shown. **Re-measure
+next run:** whether either of those merged, and whether `grep -l 'df -'
+docs/agents/*.sh` is still empty.
+
+**Not an incident of the watcher, and not this entry's to close.** The
+engineer's 03:54:15Z sentence names the host's own mechanism precisely — a
+sweep whose staleness threshold is a day against a workload whose units live
+hours — and that is the cause of the disk filling. It is that seat's surface
+and that seat has it. Counted here only because this seat's instruments were
+the thing it broke.
