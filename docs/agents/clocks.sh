@@ -610,6 +610,67 @@ PYEOF
         env BOARD_API_URL="http://127.0.0.1:1/x" CLOCKS_FIXTURE="$tmp/probed.json" bash -c \
         'out=$(bash "$0" --writable 2>&1); grep -q "cited, not re-probed" <<<"$out"' "$0"
 
+  # A RETRACTED HOUR IS NOT THE HOUR IN FORCE, and the withdrawal is not an
+  # ask. Two fixtures, because the two halves failed independently: the first
+  # has the withdrawal as an `ask` (visible to the old filter, still counted as
+  # a candidate), the second as a `note` (invisible to it entirely, which is
+  # the form every seat here actually writes). Both must come back "no clock".
+  cat > "$tmp/withdrawn-ask.json" <<'JSON'
+{"messages":[
+ {"id":"aaaaaaaa-0000-0000-0000-000000000001",
+  "ts":"2026-10-24T10:00:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"an hour on 991",
+  "body":"forty-eight hours of your silence","ref":"https://github.com/alexandrapaiz/epitome/pull/991",
+  "expires_at":"2026-10-26T10:00:00+00:00","data":{"pr":991}},
+ {"ts":"2026-10-24T11:00:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"withdrawing that hour, as an ask",
+  "body":"the instrument was wrong, not the hour","ref":null,
+  "data":{"pr":991,"withdraws":"aaaaaaaa-0000-0000-0000-000000000001"}}
+]}
+JSON
+  cat > "$tmp/withdrawn-note.json" <<'JSON'
+{"messages":[
+ {"id":"aaaaaaaa-0000-0000-0000-000000000002",
+  "ts":"2026-10-24T10:00:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"an hour on 992",
+  "body":"forty-eight hours of your silence","ref":"https://github.com/alexandrapaiz/epitome/pull/992",
+  "expires_at":"2026-10-26T10:00:00+00:00","data":{"pr":992}},
+ {"ts":"2026-10-24T11:00:00+00:00","kind":"note","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"withdrawing that hour, as a note",
+  "body":"the form every seat here actually writes a withdrawal in","ref":null,
+  "data":{"pr":992,"withdraws":"aaaaaaaa-0000-0000-0000-000000000002"}}
+]}
+JSON
+  check "a withdrawn hour is not in force (ask form)"  1 \
+        env CLOCKS_FIXTURE="$tmp/withdrawn-ask.json" bash "$0" 991
+  check "a withdrawn hour is not in force (note form)" 1 \
+        env CLOCKS_FIXTURE="$tmp/withdrawn-note.json" bash "$0" 992
+  check "and it names the hour it retired"             0 \
+        env CLOCKS_FIXTURE="$tmp/withdrawn-note.json" bash -c \
+        'out=$(bash "$0" 992 2>&1); grep -q "WITHDRAWN  the hour 2026-10-26T10:00:00Z" <<<"$out"' "$0"
+  # The negative control, and it is the one that matters: a withdrawal filed
+  # BEFORE the hour it names cannot retire it, or a seat could void a clock it
+  # has not yet been shown. Same fixture, order reversed.
+  cat > "$tmp/withdrawn-early.json" <<'JSON'
+{"messages":[
+ {"ts":"2026-10-24T09:00:00+00:00","kind":"note","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"a withdrawal filed before the clock it names",
+  "body":"this retracts nothing, because the hour came after it","ref":null,
+  "data":{"pr":993,"withdraws":"aaaaaaaa-0000-0000-0000-000000000003"}},
+ {"id":"aaaaaaaa-0000-0000-0000-000000000003",
+  "ts":"2026-10-24T10:00:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"owner","subject":"an hour on 993, shown to her",
+  "body":"forty-eight hours of your silence","ref":"https://github.com/alexandrapaiz/epitome/pull/993",
+  "expires_at":"2099-10-26T10:00:00+00:00","data":{"pr":993}},
+ {"ts":"2026-10-24T10:01:00+00:00","kind":"ask","from_company":"epitome","from_seat":"exo",
+  "to_company":"epitome","to_seat":"pm","subject":"the applier half on 993",
+  "body":"you are the hand on this one","ref":"https://github.com/alexandrapaiz/epitome/pull/993",
+  "expires_at":"2099-10-26T10:00:00+00:00","data":{"pr":993}}
+]}
+JSON
+  check "a withdrawal before its hour retires nothing" 0 \
+        env CLOCKS_FENCE=clear CLOCKS_FIXTURE="$tmp/withdrawn-early.json" bash "$0" 993
+
   # --answers, §22's fourth question. Four fixtures and no network, because a
   # self-test that reaches the board tests the board. The horizon is the
   # clock's own 48 hours, so the two cases that matter are 47 and 50 hours of
@@ -950,7 +1011,73 @@ if pr:
         return None
 
     named = [m for m in msgs if names(m, repo, product, pr)]
-    real = [m for m in named if m.get("expires_at")]
+
+    # A RETRACTED HOUR IS NOT A CANDIDATE FOR THE HOUR IN FORCE, AND THIS IS
+    # THE THIRD INSTANCE OF ONE DEFECT. L92 taught this file that a withdrawal
+    # moves a deadline earlier and installed a test reading `expires_at`. L96
+    # taught it that a withdrawal can remove the clock entirely, and installed
+    # `retracted_by` — but only inside the owner leg, where it decides whether
+    # she was *shown* anything. Neither touched this line, so the retracted
+    # clock stayed in the set `current` is chosen from, and a withdrawal
+    # addressed to a seat rather than to the owner was never read at all.
+    #
+    # Measured on this seat's own items on 2026-11-02T03:37Z. Five clocks were
+    # withdrawn by their own author, by message id, in `data.withdraws` —
+    # exactly the field form `withdraws_clock` documents — and three minutes
+    # later this file still answered `#300 carries the field: expires
+    # 2026-11-03T23:30:00Z (in force)`. The author of a clock had removed it
+    # and the reader of clocks could not see that it was gone.
+    #
+    # So the retirement is read over every withdrawal on the item regardless
+    # of recipient, because who a withdrawal was addressed to is a fact about
+    # its audience and not about whether the hour still stands. `retracted`
+    # below stays owner-facing on purpose: "withdrawn in front of her" is a
+    # different question from "this hour is void", and only the second one
+    # decides which clock is current (L96's own words: a repair aimed at one
+    # expression of an act does not cover the act).
+    # AND THE WITHDRAWALS ARE NOT ASKS, WHICH IS WHY THIS WAS INVISIBLE RATHER
+    # THAN MERELY WRONG. `msgs` is filtered to `kind == "ask"` thirty lines
+    # into this program, because the two places §22 names that live on the ask
+    # are what the first query was written for. A withdrawal is not an ask. It
+    # is a `note` or a `done`, which is what every seat here writes one as —
+    # all five this seat filed at 03:37Z were notes — so the set this file
+    # scanned for retractions could not contain one by construction. The
+    # second page, fetched without a kind filter for the applier's record, is
+    # the input that can, so the retraction scan reads the union.
+    _seen = {m.get("id") for m in named if m.get("id")}
+    withdrawals = [m for m in named if withdraws_clock(m)] + [
+        m for m in answers
+        if m.get("id") not in _seen
+        and names(m, repo, product, pr) and withdraws_clock(m)]
+    if not answers_read:
+        print(f"  COULD NOT LOOK at withdrawals on #{pr} filed as anything but an ask: the "
+              f"second page did not come back, so a retracted hour below may still be "
+              f"printed as in force (L77)")
+
+    def retired(m):
+        """Has any later withdrawal on this item voided this clock?"""
+        mid, hour = m.get("id"), (m.get("expires_at") or "")[:19]
+        for w in withdrawals:
+            if w["ts"] <= m["ts"]:
+                continue
+            d = w.get("data") or {}
+            if not isinstance(d, dict):
+                continue
+            if mid and mid in (d.get("withdraws"), d.get("amends")):
+                return w
+            was = d.get("clock_was") or ""
+            if hour and isinstance(was, str) and was[:19] == hour:
+                return w
+        return None
+
+    retired_clocks = [(m, retired(m)) for m in named if m.get("expires_at")]
+    for m, w in retired_clocks:
+        if w:
+            print(f"  WITHDRAWN  the hour {(m.get('expires_at') or '')[:19]}Z filed "
+                  f"{m['ts'][:19]}Z by {m.get('from_company')}/{m.get('from_seat')} was retracted "
+                  f"{w['ts'][:19]}Z by {w.get('from_company')}/{w.get('from_seat')}, so it is not "
+                  f"a candidate for the hour in force")
+    real = [m for m, w in retired_clocks if not w]
     if real:
         # THE HOUR IS THE ONE FILED LAST, NEVER THE LATEST ONE FILED.
         # This line used to read `sorted(real, key=expires_at)[-1]` and call
