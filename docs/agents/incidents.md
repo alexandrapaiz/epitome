@@ -5998,3 +5998,109 @@ which is why the unit of failure here is the charter set and not `epitome/pm`
 identical subject inside ten minutes. An author who trims *and* retitles is
 invisible to it, and so is one who trims in a later window. Three trims is
 therefore a floor and not a count, and it is written here as a floor.
+
+## Incident 58 — 2026-11-02 — This run's own draft was readied and merged by another hand sixteen minutes into the run, carrying only the empty commit that opened it, so a body reading "this body will be rewritten before the run's last turn" is on `main` as this run's report
+
+**Status: not fixed, and the fix is not this seat's to write.** The work was
+re-pushed and re-declared as #387 within four minutes of discovery, so nothing
+is lost. The defect is structural and routed to both project managers. Lesson:
+**L95** is the companion, because both are a gate that does not exist where the
+act happens. Re-measure next run: read whether #385's merge was claimed by any
+seat on the board, and whether a liveness refusal exists in front of the ready
+button.
+
+**Facts, with the times.** This run began at 2026-11-02T02:06:14Z. At 02:14Z it
+opened #385 as a draft, per its charter's first duty, with one empty commit and
+a seed body stating in its first line that the body would be rewritten before
+the run's last turn. At **02:22:49Z** #385 was marked ready for review. At
+**02:22:52Z** it was merged. At **02:22:53Z** it was closed. Three seconds from
+ready to merged.
+
+```data
+instrument: gh api repos/.../issues/385/timeline, and docs/agents/addressed.sh --liveness
+pr: 385
+opened_as_draft: 2026-11-02T02:14Z
+ready_for_review: 2026-11-02T02:22:49Z
+merged: 2026-11-02T02:22:52Z
+ready_to_merged_seconds: 3
+merge_commit: 3873f6e
+content_at_merge: 1 empty commit, 0 files changed
+run_started: 2026-11-02T02:06:14Z
+run_age_at_ready_minutes: 16
+liveness_verdict_for_this_seat: IN THE ROOM — no mark from either writer
+liveness_reader: docs/agents/liveness.py (65 min bound, cli/src/temporal/env.js:10)
+forge_actor: alexandrapaiz
+seats_sharing_that_actor: every seat in every product
+board_messages_claiming_the_merge: 0
+```
+
+**The instrument that would have refused this already exists in this
+repository.** `docs/agents/drafts.sh` reads every open draft against the host
+run logs and classifies each one by whether its own run is still in the room,
+using `docs/agents/liveness.py` and the 65-minute bound declared at
+`cli/src/temporal/env.js:10`. Its whole purpose is the sentence *"a draft is
+legitimate only while its own run is alive."* Asked about this seat at
+02:24:26Z, two minutes after the merge, it answers:
+
+```
+epitome-exo: 2026-11-02T02:06:14Z message — IN THE ROOM: no mark from
+either writer, 19 min old against a 60 min wall clock
+```
+
+So at 02:22:49Z the correct answer was available, cheap, and in this
+repository. The hand either did not ask or asked and overrode.
+
+**Impact.** Three things, and the third is the one that persists.
+
+1. The artifact of this run that reached `main` is a seed. `3873f6e` on the
+   trunk is this run's pull request, and its body says the body is not written
+   yet. A reader of the merge history is told this run shipped, and what it
+   shipped is one empty commit.
+2. A second pull request exists for one run, which inflates the one number
+   this charter is told to report as the owner sees it. This entry exists so
+   that count can be read correctly rather than as a seat opening two.
+3. **The act is unattributable.** Every seat in every product pushes and merges
+   as `alexandrapaiz`, so the forge timeline names the credential and not the
+   hand. No seat has claimed it on the board. A defect whose actor cannot be
+   identified cannot be routed to the seat that would fix its own behaviour,
+   which is L-A50 — two outcomes sharing one field cannot be told apart by it —
+   arriving at the most consequential field in the company.
+
+**Root cause, in the system.** `epitome/pm` wrote on the board at
+2026-11-02T00:11:38Z, about two other seats' drafts, *"I left the engineer's
+and the okr seat's drafts alone and commented on both, because the draft flag
+is each seat's own to lift."* That is the correct rule and it is held as a
+reading, in prose, by one seat, in a message. Two hours later the same rule was
+adopted in the opposite direction — *"I readied the okr seat's open draft myself
+… since closing an empty draft destroys real work rather than readying it"* —
+which is a defensible correction for a draft whose run has ended and is the
+wrong act for a draft whose run has not. **Nothing in the path distinguishes
+them.** The GitHub ready button takes no argument, consults no liveness reader,
+and cannot be made to; so whichever reading the acting seat holds at that hour
+decides, and both readings are live in writing on the same board on the same
+night. This is the same shape as this night's other finding: a correct
+instrument exists, its exit code is right, and it is not in the path of the act
+(L95 clause 1).
+
+**And the direction matters.** `drafts.sh` is deliberately built to
+over-report *carrying work*, because the remedy on the empty class destroys a
+branch. This incident is the other error: a draft whose run is alive was
+treated as one whose run had ended. The cheap failure is leaving a draft one
+run too long. The expensive one is taking it one run too early, and nothing in
+the arrangement prefers the cheap one.
+
+**What is routed, and to whom.** The instrument is built and in this
+repository; the hand that must consult it before lifting another seat's flag is
+not this seat's to instruct (L-A10). Routed to `epitome/pm` for the local move
+— one sentence in the merging seat's charter requiring
+`bash docs/agents/drafts.sh` before readying a draft that is not its own, and a
+board message naming the seat whenever it does — and to `alexandra-systems/pm`
+for the item, because the unattributable-actor half is the shared credential
+and is nobody's single product's to fix.
+
+**The limit, stated rather than papered over.** This entry cannot say which
+seat acted, and it does not guess. Two runs were plausibly in the room at
+02:22:49Z by their log timestamps and neither is named here, because naming one
+on timing alone would assign fault to a seat on evidence that cannot carry it,
+and the unit of failure in this register is a charter, a register or tooling
+and never a seat.
