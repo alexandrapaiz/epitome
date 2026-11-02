@@ -35,7 +35,8 @@
 // land. Syncing first means the error arrives while the only thing at risk is
 // a temporary file.
 import {
-  closeSync, fchmodSync, fstatSync, fsyncSync, openSync, renameSync, statSync, unlinkSync, writeSync,
+  closeSync, fchmodSync, fstatSync, fsyncSync, lstatSync, openSync, realpathSync, renameSync, statSync,
+  unlinkSync, writeSync,
 } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { randomBytes } from "node:crypto";
@@ -45,7 +46,7 @@ import { randomBytes } from "node:crypto";
 // manual page: `fs.writeFileSync("/dev/full", "x")` on this box gives
 // `ENOSPC: no space left on device, write`, which is where the ENOSPC line
 // below comes from.
-function said(e, dir) {
+export function deviceSaid(e, dir) {
   switch (e?.code) {
     case "ENOSPC": return `no space left on the device holding ${dir}`;
     case "EDQUOT": return `this user is over quota on the device holding ${dir}`;
@@ -74,16 +75,30 @@ export class WriteRefused extends Error {
 // Returns the path written. `what` is what the file IS to the reader, and
 // `fix` is the sentence that gets them out of it; both land in the message a
 // caller prints, so the error-message bar is met in one place instead of at
-// nine call sites.
+// each of the seven call sites.
 export function writeFileAtomic(path, data, { mode, what, fix } = {}) {
-  const dir = dirname(path) || ".";
+  // `rename` replaces a directory entry, so two things that `writeFileSync`
+  // does are not free here and both are handled rather than accepted:
+  //
+  //  - A symlinked target would be REPLACED by a regular file instead of
+  //    written through, so a `.gitignore` symlinked into a dotfiles
+  //    repository would quietly stop being that file. Resolve it and write
+  //    where it points, which is what the plain write did.
+  //  - A second hard link to the target keeps the OLD contents, where the
+  //    plain write updated every link. Nothing in this CLI writes a file it
+  //    expects to be hard-linked, and not destroying the file is worth more
+  //    than that; it is named here so the next reader is not surprised.
+  let target = path;
+  try { if (lstatSync(path).isSymbolicLink()) target = realpathSync(path); }
+  catch { /* nothing there, or a dangling link: write the path we were given */ }
+  const dir = dirname(target) || ".";
   // A `rename` publishes the temporary file's mode, where `writeFileSync`
   // would have left an existing file's mode alone. So an existing target's
   // mode is carried across unless the caller names one.
   let before = null;
-  try { before = statSync(path); } catch { /* no file there: nothing to preserve, nothing to lose */ }
+  try { before = statSync(target); } catch { /* no file there: nothing to preserve, nothing to lose */ }
   const useMode = mode ?? (before ? before.mode & 0o7777 : 0o666);
-  const tmp = join(dir, `.${basename(path)}.epito-${process.pid}-${randomBytes(4).toString("hex")}.tmp`);
+  const tmp = join(dir, `.${basename(target)}.epito-${process.pid}-${randomBytes(4).toString("hex")}.tmp`);
   let fd = null;
   try {
     // "wx" — never adopt a temporary file somebody else is holding. The mode
@@ -114,16 +129,16 @@ export function writeFileAtomic(path, data, { mode, what, fix } = {}) {
     }
     closeSync(fd);
     fd = null;
-    renameSync(tmp, path);
-    return path;
+    renameSync(tmp, target);
+    return target;
   } catch (e) {
     if (fd !== null) { try { closeSync(fd); } catch { /* already gone */ } }
     try { unlinkSync(tmp); } catch { /* never created, or already gone */ }
     const kept = before
-      ? `${path} is unchanged and still holds its ${before.size} bytes, because epito writes beside a file and renames: a write that runs out of room never truncates what was there.`
+      ? `${target} is unchanged and still holds its ${before.size} bytes, because epito writes beside a file and renames: a write that runs out of room never truncates what was there.`
       : `Nothing was written and nothing was left behind.`;
     throw new WriteRefused(
-      `could not write ${path}${what ? ` — ${what}` : ""}: ${said(e, dir)}. ${kept}` +
+      `could not write ${target}${what ? ` — ${what}` : ""}: ${deviceSaid(e, dir)}. ${kept}` +
       ` Fix: ${fix ?? `make room on the device holding ${dir} and run the command again`}.`,
       { code: e?.code, path, cause: e },
     );

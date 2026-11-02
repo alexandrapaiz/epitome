@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { writeFileSync, readFileSync, existsSync, mkdirSync, statSync, accessSync, constants } from "node:fs";
+import { readFileSync, existsSync, mkdirSync, statSync, accessSync, constants } from "node:fs";
+import { writeFileAtomic, WriteRefused } from "./lib/atomic.js";
 import { NAME_RE, kebab } from "./lib/manifest.js";
 import { SPEC_VERSION } from "./lib/fields.js";
 import { ignore } from "./lib/gitignore.js";
@@ -214,12 +215,31 @@ if (cmd === "init") {
   // access(2) — still gets a sentence rather than a stack, and says how far
   // the mint got, because a partly minted directory is the thing the reader
   // has to clean up.
+  //
+  // Two things the cleanup sentence used to get wrong about `.gitignore`, and
+  // they are the same mistake as the truncating write one layer up: that file
+  // belongs to the repository and init only ever adds one line to it. It was
+  // listed as something to REMOVE, and it was listed even when `ignore()` had
+  // found the line already there and changed nothing — so a half-minted
+  // directory told its reader to delete a file epito had never written. A step
+  // that says it changed nothing is not a step to undo, and a file epito
+  // appended to is undone by taking the line back out.
   const sofar = [];
-  const wrote = (what, fn) => {
-    try { fn(); sofar.push(what); }
+  const wrote = (what, fn, undo = `remove ${what}`) => {
+    try {
+      if (fn() === false) return;
+      sofar.push({ what, undo });
+    }
     catch (e) {
-      die(`${self} could not write ${what} in ${process.cwd()}: ${e.code === "ENOSPC" ? "no space left on the device" : e.message}.` +
-        (sofar.length ? ` ${sofar.join(" and ")} ${sofar.length > 1 ? "were" : "was"} written already, so this directory is half minted. Fix: remove ${sofar.join(" and ")}, make room, and run ${self} again.` : ` Fix: make room and run ${self} again.`));
+      // A WriteRefused already names the device, what the file was, whether
+      // the old one survived, and the fix (lib/atomic.js). Anything else gets
+      // that sentence built here.
+      const says = e instanceof WriteRefused
+        ? e.message
+        : `${self} could not write ${what} in ${process.cwd()}: ${e.message}. Fix: make room and run ${self} again.`;
+      die(says + (sofar.length
+        ? ` ${sofar.map((s) => s.what).join(" and ")} ${sofar.length > 1 ? "were" : "was"} written already, so this directory is half minted: ${sofar.map((s) => s.undo).join(", ")}.`
+        : ""));
     }
   };
   const charter = `prompts/${name}.md`;
@@ -236,7 +256,7 @@ if (cmd === "init") {
 #   agent's token to one repo. \`epito run\`, \`epito deploy\` and \`epito token\`
 #   all need it, and \`epito validate\` says so until it is set.
 `;
-  wrote("agent.toml", () => writeFileSync("agent.toml", `[agent]
+  wrote("agent.toml", () => writeFileAtomic("agent.toml", `[agent]
 name = "${name}"
 description = "One sentence: what this agent does."
 
@@ -249,15 +269,21 @@ cron = "0 6 * * *"
 [runtime]
 model = "claude-sonnet-5"
 entry = "${charter}"
-${repoLine}`));
+${repoLine}`, {
+    what: `the manifest ${self} is minting for "${name}"`,
+    fix: `make room and run ${self} ${name} again`,
+  }));
   // An agent's App key lands in .epito/keys/ and its ledger in
   // .epito/audit.jsonl. The manifest is publishable by design and that
   // directory is not, so init makes the difference structural rather than a
   // thing the reader has to remember (spec rule 1).
-  wrote(".gitignore", () => ignore(".epito/"));
+  wrote(".gitignore", () => ignore(".epito/"), 'take the ".epito/" line back out of .gitignore');
   wrote("prompts/", () => mkdirSync("prompts", { recursive: true }));
   if (!existsSync(charter)) {
-    wrote(charter, () => writeFileSync(charter, `# ${name}\n\nYou are ${name}. This file is your charter: who you are, what one\nrun accomplishes, and what you never do. Everything worth remembering\nlives in a file, because every run is a fresh context.\n`));
+    wrote(charter, () => writeFileAtomic(charter, `# ${name}\n\nYou are ${name}. This file is your charter: who you are, what one\nrun accomplishes, and what you never do. Everything worth remembering\nlives in a file, because every run is a fresh context.\n`, {
+      what: `"${name}"'s charter, the file its runs read`,
+      fix: `make room and run ${self} ${name} again`,
+    }));
   }
   console.log(`minted ${name}: agent.toml + ${charter}`);
   // Lower-casing is the one thing init does to the name it was handed, and it
