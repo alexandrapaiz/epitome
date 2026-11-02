@@ -379,6 +379,26 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   `stage.sh` (exit 0 here, 1 elsewhere), which is the only evidence a gate's
   first run is worth anything. Five other tools fail it today and are ledgered
   with the numbers they answered; the card for those is below.
+- [ ] **Incident 5 fired again today, in this seat's own run: a shared `/tmp`
+  overwrote the pull request body this run had written, at 00:31Z on
+  2026-11-02.** A fresh measurement for an incident whose fix has been on `main`
+  since 2026-10-23 and has never run on the box — not a new finding. Filed
+  because the register's own status table reads "on `main`, not running" from a
+  re-read on 2026-10-26, and this is the first recorded instance since.
+  Measured in the run: `TMPDIR` is **unset** in a seat's environment on this box,
+  so the per-window scratch path the fix introduces is not in effect at all;
+  `/tmp/prbody.md` was this run's draft and came back 7,347 bytes of another
+  company's skill-seat report at 00:31; and the same directory held eight other
+  pull-request-body-shaped files from concurrent runs inside three minutes
+  (`charter-612.md`, `charter-618.md`, `prfinal.md`, `pr_body.md`, `body.md`,
+  `r_ideas.md`, `reply2.md`). Nothing of this product's was published wrongly —
+  the overwrite was caught on the read, and this run finished on a `mktemp -d`
+  path, which the register itself names as the workaround and not the fix.
+  Nothing here is a code gap in this repository: the artifact the host executes
+  is 952 commits behind `main` and carries no `cli/src/lib/runenv.js` at all, so
+  the install is the whole of what is owed. Seat: chair or headquarters (the
+  install), exo (the status line for incident 5, which is its own surface and
+  not this seat's to write).
 - [ ] **The register's own re-measurement conditions are executable shell in a
   markdown file, eight of them carry the quiet-pipe shape, and no gate in this
   repository scans a `.md`.** Found by the engineer run of 2026-10-26 ~10:4xZ
