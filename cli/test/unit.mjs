@@ -19,7 +19,7 @@ import { readdirSync } from "node:fs";
 import { webhookName } from "../src/lib/slack.js";
 import { runtimeBuild, buildLine, buildNote, porcelainPaths, thisRuntime } from "../src/lib/build.js";
 import { rosterEnv, namesFor, envTemplate, holding, runShortfall, shortfallSays, HELD, EMPTY, ABSENT } from "../src/lib/boxenv.js";
-import { baseRev, readProgress, stoppedDetail } from "../src/lib/progress.js";
+import { baseRev, readProgress, stoppedDetail, stoppedSays, progressFacts } from "../src/lib/progress.js";
 import { isCloneDir, cloneDirPrefix, executeAgent, cloneAgentRepo, gitEnvFor, buildPrompt, shortfallLine, runBranchPrefix, pullRequestForRun, removeClone, scratchDirFor, scratchEnv, SCRATCH_ENV, GIT_TOKEN_ENV } from "../src/lib/runner.js";
 import { permissionsFor, appJwt, envNames, loadPrincipal, SCOPE_MAP, noRepoMessage, webRoot, installUrl, appSettingsUrl } from "../src/lib/identity.js";
 import {
@@ -1220,9 +1220,43 @@ test("a reading that failed is not a run that did nothing — the two sentences 
   // the run, "could not be read" is evidence about the reader (L77).
   const failed = stoppedDetail(p, { says: "killed at the 60.0m run bound after 60.3m", now: Date.now() });
   assert.match(failed, /what it had done could not be read/);
-  const idle = stoppedDetail({ read: true, commits: [], branch: "b", dirty: 0 }, { says: "killed at the 60.0m run bound after 60.3m", now: Date.now() });
+  const idle = stoppedDetail({ read: true, count: 0, commits: [], branch: "b", dirty: 0 }, { says: "killed at the 60.0m run bound after 60.3m", now: Date.now() });
   assert.match(idle, /with nothing committed/);
   assert.doesNotMatch(idle, /could not be read/);
+  // And the third sentence, which is neither: a reading with no count at all —
+  // a caller older than that field, or a fixture written by hand. It must fall
+  // back to the commits it does carry, because `undefined` reading as zero
+  // would report a run that worked as a run that did nothing.
+  const noCount = stoppedDetail({ read: true, commits: [{ at: new Date().toISOString(), subject: "it did this" }], branch: "b", dirty: 0 }, { says: "killed", now: Date.now() });
+  assert.match(noCount, /with 1 commit on b/);
+});
+
+test("the count of what a run did is exact, and the log quotes a window of it", async () => {
+  // The number that gets counted and the subjects that get quoted want
+  // different limits, and a count read off a capped `git log` is capped. The
+  // one population this instrument exists to characterise — a run stuck in a
+  // loop — is the population that would hit the cap, so it is the one that
+  // must not be told "20" when it committed twenty-five times.
+  const work = cloneDir("engineer");
+  const git = (...a) => execFileSync("git", ["-C", work, ...a], { stdio: "ignore" });
+  git("init", "-q", "-b", "main");
+  const commit = (m) => git("-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "--allow-empty", "-m", m);
+  commit("the history this clone arrived with");
+  const base = await baseRev(work);
+  git("checkout", "-q", "-b", "engineer/loop");
+  for (let i = 1; i <= 25; i++) commit(`round ${i}`);
+
+  const p = await readProgress(work, base);
+  assert.equal(p.count, 25, "the count is every commit this run made");
+  assert.equal(p.commits.length, 20, "and the quotes are a bounded window of them");
+
+  const lines = stoppedSays(p, { bytes: 0, now: Date.now(), adapter: "claude", format: "--output-format json" });
+  assert.match(lines[0], /what it had done when it died: 25 commits on engineer\/loop/);
+  assert.equal(lines[1], "#   the newest 20 of them:", "the window says it is a window, so a reader counting lines does not disagree with the sentence above it");
+  assert.match(lines[2], /round 6$/, "oldest of the window first");
+  assert.match(lines[21], /round 25$/);
+  assert.match(stoppedDetail(p, { says: "killed at the 60.0m run bound after 60.3m", now: Date.now() }), /with 25 commits on engineer\/loop/);
+  assert.equal(progressFacts(p, { elapsedMs: 1, bytes: 0, now: Date.now() }).commits, 25);
 });
 
 test("a run killed at the bound leaves the account the run could not write", async () => {

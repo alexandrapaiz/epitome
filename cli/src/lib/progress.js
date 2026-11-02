@@ -62,6 +62,10 @@ export function progressEveryMs(env = process.env) {
 //   whether there was work.
 const MAX_GIT_OUT = 1024 * 1024;
 
+// How many commit subjects a reading carries. The log quotes at most this
+// many and the board quotes none, so reading more is bytes nobody sees.
+const QUOTED = 20;
+
 function git(workDir, args, timeoutMs = 2_000) {
   return new Promise((res) => {
     let p;
@@ -106,20 +110,39 @@ export async function readProgress(workDir, base, run = git) {
   // this repository, `--all --not HEAD` reported two hundred commits for a run
   // that had made none. Local heads are where a run's own work can be, and
   // HEAD is named beside them so a detached checkout still answers.
-  const log = await run(workDir, ["log", "-n", "200", "--format=%cI%x1f%s", "--branches", "HEAD", "--not", base]);
-  if (log.code !== 0) {
-    return { read: false, why: `git could not be asked what this run committed (${log.out.trim().split("\n")[0] || `exit ${log.code}`})` };
+  //
+  // Two gits and not one, because the COUNT and the QUOTES want different
+  // limits. Only the newest few subjects are ever printed, so reading more of
+  // them is waste — but a count read off a capped `log` is capped too, and it
+  // is the field somebody will later ask "how many were still working when
+  // they died" of. A `log -n 200` would have answered "200" for a run that
+  // committed four hundred times, which is the one population this instrument
+  // exists to characterise: a run stuck in a loop. `rev-list --count` is one
+  // integer at any size.
+  const range = ["--branches", "HEAD", "--not", base];
+  const [counted, log] = await Promise.all([
+    run(workDir, ["rev-list", "--count", ...range]),
+    run(workDir, ["log", "-n", String(QUOTED), `--format=%cI%x1f%s`, ...range]),
+  ]);
+  if (log.code !== 0 || counted.code !== 0) {
+    const bad = log.code !== 0 ? log : counted;
+    return { read: false, why: `git could not be asked what this run committed (${bad.out.trim().split("\n")[0] || `exit ${bad.code}`})` };
   }
   const commits = log.out.split("\n").filter(Boolean).map((l) => {
     const [at, ...rest] = l.split("\x1f");
     return { at, subject: rest.join("\x1f") };
   });
+  const exact = Number(counted.out.trim());
   const [head, status] = await Promise.all([
     run(workDir, ["rev-parse", "--abbrev-ref", "HEAD"]),
     run(workDir, ["status", "--porcelain"]),
   ]);
   return {
     read: true,
+    // The exact number, which is what gets counted; `commits` is the window
+    // that gets quoted. They are equal for every run anyone has seen and the
+    // sentences say which is which when they are not.
+    count: Number.isFinite(exact) ? exact : commits.length,
     commits,
     branch: head.code === 0 ? head.out.trim() : null,
     dirty: status.code === 0 ? status.out.split("\n").filter(Boolean).length : null,
@@ -127,6 +150,12 @@ export async function readProgress(workDir, base, run = git) {
 }
 
 const mins = (ms) => `${(ms / 60_000).toFixed(1)}m`;
+const plural = (n) => `${n} commit${n === 1 ? "" : "s"}`;
+// The exact count, with the quoted window as the floor. A reading built by
+// hand — a test fixture, a caller older than this field — carries no `count`,
+// and the direction that must never happen is `undefined` reading as 0 and a
+// run with work being reported as having committed nothing.
+const countOf = (p) => (Number.isFinite(p?.count) ? p.count : (p?.commits?.length ?? 0));
 
 // How long ago the newest commit landed, measured against a clock the caller
 // supplies so the sentence is the same on a replay as it was live.
@@ -143,9 +172,9 @@ export function progressSays(p, { elapsedMs, bytes, now }) {
   const head = `${mins(elapsedMs)} in, still running:`;
   if (!p?.read) return `# ${head} ${p?.why ?? "nothing could be read about what it has done"}; ${bytes} bytes of the child's own output so far`;
   const ago = sinceLastCommit(p, now);
-  const work = p.commits.length === 0
+  const work = countOf(p) === 0
     ? `nothing committed yet${p.branch ? ` on ${p.branch}` : ""}`
-    : `${p.commits.length} commit${p.commits.length > 1 ? "s" : ""}${p.branch ? ` on ${p.branch}` : ""}, the last ${ago === null ? "at an unreadable time" : `${mins(ago)} ago`} ("${p.commits[0].subject}")`;
+    : `${plural(countOf(p))}${p.branch ? ` on ${p.branch}` : ""}, the last ${ago === null ? "at an unreadable time" : `${mins(ago)} ago`} ("${p.commits[0].subject}")`;
   const dirt = p.dirty === null ? "" : `, ${p.dirty} path${p.dirty === 1 ? "" : "s"} uncommitted`;
   return `# ${head} ${work}${dirt}, and ${bytes} bytes of the child's own output so far`;
 }
@@ -168,10 +197,14 @@ export function stoppedSays(p, { bytes, now, adapter, format = null }) {
     lines.push(`# what it had done when it died could not be read: ${p?.why ?? "no reason given"}`);
   } else {
     const ago = sinceLastCommit(p, now);
-    lines.push(p.commits.length === 0
+    lines.push(countOf(p) === 0
       ? `# what it had done when it died: nothing committed${p.branch ? ` on ${p.branch}` : ""}${p.dirty ? `, ${p.dirty} path${p.dirty === 1 ? "" : "s"} left uncommitted` : ""}`
-      : `# what it had done when it died: ${p.commits.length} commit${p.commits.length > 1 ? "s" : ""}${p.branch ? ` on ${p.branch}` : ""}, the last ${ago === null ? "at an unreadable time" : `${mins(ago)} before it was stopped`}${p.dirty ? `, and ${p.dirty} path${p.dirty === 1 ? "" : "s"} left uncommitted` : ""}`);
-    for (const c of p.commits.slice(0, 20).reverse()) lines.push(`#   ${c.at} ${c.subject}`);
+      : `# what it had done when it died: ${plural(countOf(p))}${p.branch ? ` on ${p.branch}` : ""}, the last ${ago === null ? "at an unreadable time" : `${mins(ago)} before it was stopped`}${p.dirty ? `, and ${p.dirty} path${p.dirty === 1 ? "" : "s"} left uncommitted` : ""}`);
+    // Oldest first, because this is read as the story of the run. Only the
+    // newest few are here, and the line says so rather than letting a reader
+    // count them and disagree with the sentence above.
+    if (countOf(p) > p.commits.length) lines.push(`#   the newest ${p.commits.length} of them:`);
+    for (const c of p.commits.slice().reverse()) lines.push(`#   ${c.at} ${c.subject}`);
   }
   if (bytes === 0) {
     lines.push(`# the child wrote nothing to this log: the executor the ${adapter} adapter runs${format ? ` (\`${format}\`)` : ""} prints its whole account of the run at exit and nothing before it, so a run stopped before its exit leaves none of its own words here`);
@@ -188,9 +221,9 @@ export function stoppedSays(p, { bytes, now, adapter, format = null }) {
 // happened.
 export function stoppedDetail(p, { says, now }) {
   if (!p?.read) return `${says}; what it had done could not be read (${p?.why ?? "no reason given"})`;
-  if (p.commits.length === 0) return `${says} with nothing committed${p.dirty ? ` and ${p.dirty} path${p.dirty === 1 ? "" : "s"} uncommitted` : ""}`;
+  if (countOf(p) === 0) return `${says} with nothing committed${p.dirty ? ` and ${p.dirty} path${p.dirty === 1 ? "" : "s"} uncommitted` : ""}`;
   const ago = sinceLastCommit(p, now);
-  return `${says} with ${p.commits.length} commit${p.commits.length > 1 ? "s" : ""}${p.branch ? ` on ${p.branch}` : ""}, the last ${ago === null ? "at an unreadable time" : `${mins(ago)} before it was stopped`}`;
+  return `${says} with ${plural(countOf(p))}${p.branch ? ` on ${p.branch}` : ""}, the last ${ago === null ? "at an unreadable time" : `${mins(ago)} before it was stopped`}`;
 }
 
 // How a run ended, in the vocabulary the board and the ledger read. Three
@@ -215,7 +248,7 @@ export function progressFacts(p, { elapsedMs, bytes, now }) {
   if (!p?.read) return { ...base, read: false };
   return {
     ...base, read: true,
-    commits: p.commits.length,
+    commits: countOf(p),
     branch: p.branch ?? null,
     dirty: p.dirty,
     sinceLastCommitMs: sinceLastCommit(p, now),
