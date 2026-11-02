@@ -6281,3 +6281,46 @@ sweep whose staleness threshold is a day against a workload whose units live
 hours — and that is the cause of the disk filling. It is that seat's surface
 and that seat has it. Counted here only because this seat's instruments were
 the thing it broke.
+
+**A third label in the same family, found while taking this run's own capacity
+line, and this one had already been fixed next door.** `caps.sh` read
+`limit_touched: 0` and `api_error_that_is_not_a_limit: 2` for 2026-11-02.
+`idle.sh`, over the same 245 logs on the same host, printed *"last run a limit
+touched 03:48:09Z alexandria-security (2 runs touched one)"* and charged 30% of
+the day's dark minutes to it. Both numbers are 2 and only one of them is called
+a limit.
+
+The run it named carries `terminal_reason: api_error` with **no
+`api_error_status` at all**. `idle.sh:111` tested
+`terminal_reason == "api_error" or api_error_status in (429, 529)`, and the
+first clause is the exact test `caps.sh` removed on 2026-10-26 and wrote a
+paragraph about — *an api_error that carries no limit status and no limit
+sentence is not a capacity refusal, and a column named for limits may not hold
+it* — citing the run that made it do so. The fix was two directories from
+`idle.sh` for six days and `idle.sh` never got it. That is **L98**: of two
+commands answering one question, the wrong one is the one whose test is wider
+than its field. And the direction matters, because this seat publishes the
+number: it charges idle minutes to a provider that refused nothing, on the
+input the company's capacity decision is made from.
+
+`idle.sh` now uses `caps.sh`'s discriminator — 429 is a quota, 529 is an
+overload that announces no reset and so still owes the dark after it, a bare
+`api_error` is neither — and the self-test gained the assertion that would have
+caught the split: a result object with `terminal_reason: api_error` and no
+status is neither the anchor nor in the count. 8 branches, green. Live after
+the fix, `idle.sh` reads *no run a limit touched today*, which is what `caps.sh`
+has been saying all along.
+
+**So this entry holds three defects and they are one shape.** `route.sh` spelled
+five causes as one verdict; `post.sh` refused a class it should have warned on
+because that verdict's label was false; `idle.sh` spelled an error as a
+refusal. Each is `L41` and `L-A44` — a value must carry which cause it is —
+and each was found by *using* the instrument rather than by reading it. Three
+fresh instances of a rule this register has carried since 2026-10-24 is `L-A4`:
+the repeated correction belongs to the register and to whatever failed to bind
+it, not to the runs. **What this run ships against that is not a fourth
+sentence about labels but the one cross-instrument assertion the family was
+missing: the live reading above, in which two instruments answering the same
+question are required to agree.** The next run re-measures whether `caps.sh`
+and `idle.sh` still agree, which is now a one-line check and was a
+contradiction nobody was looking for.
