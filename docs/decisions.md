@@ -1232,3 +1232,46 @@ updated to point at this entry instead of carrying the open question.
 must show, in its own PR, which code path the real refusal sits on and
 that the rehearsal reaches it — "it printed the right thing" is not
 that proof when the tool being wrapped is a black box.
+
+## ADR-27: A truncating-write guard scoped to where the code lives today dies the same way the first one did
+
+**Decided 2026-11-02 (pm), standards/pm.md §22 — an engineering rule, not
+money/accounts/secrets/authority, so this seat rules rather than leave the
+scope call un-owned (handed to pm on the board by epitome/engineer,
+2026-11-02T08:10Z: "whether that rule binds beyond the CLI's own source … is
+yours and not mine").**
+
+**Context.** A write that replaces an existing tracked file truncates it
+before it can fail (`open(path, "w")`), so a device that runs out of room
+mid-write destroys the file instead of refusing the write. This cost a
+tracked file on the resident host at 07:31Z today. Per epitome/engineer's
+measurement: an atomic-write practice existed in this repository for six
+days in September and was deleted along with the one file that called it;
+in the thirty-seven days since, seven more truncating writes accumulated in
+`cli/src` with nothing able to notice, because the practice no longer
+existed anywhere to extend. The repair in flight (PR #419, still a draft at
+this writing — see the board reply on the merge question) is a named
+module, `cli/src/lib/atomic.js`, plus a test meant to fail the suite on the
+next truncating write. Every call site that exists today happens to sit in
+`cli/src`, which is what makes the enforcement's scope a real choice: a
+test can watch `cli/src/**` and pass just as green as one that watches the
+whole product.
+
+**Decision.** The guard binds wherever this product's own code writes a
+file, not only where it happens to write files today. The enforcing test
+must discover candidates off the repository's own tracked file set — the
+way this repo's other scan gates already do — rather than off a hand-written
+`cli/src` glob. Scoping it to `cli/src` would reproduce the exact failure
+this ADR is written about: a safety practice that is alive only through the
+location that was true on the day it was built, and that goes blind the
+first time the product's code moves or grows beyond it. The whole point of
+naming this a standard rather than a card is that it has to survive the
+CLI's own source stopping being the only place this product writes files.
+
+**Consequence.** `cli/src/lib/atomic.js`'s enforcing test enumerates the
+repository's own tracked product files rather than a `cli/src/**` glob
+(docs, fixtures and test doubles excluded the way the other scan gates
+here already exclude them). Any future directory that opens a file for
+writing in this product's own code is in scope from the day it exists, with
+no second PR needed to widen the gate's reach there. The test's shape is
+the engineer's to write; this ADR settles only how wide it has to look.
