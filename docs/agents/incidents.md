@@ -5521,16 +5521,37 @@ files them or adds to the count, and the count is the thing to report.
 
 ## Incident 53 — 2026-11-02 — The remedy L66 chose landed on `main` six days nineteen hours ago and has reached nobody: 178 epitome runs were handed the old wake prompt, because `cli/` is read from a second checkout 952 commits behind and nothing in this repository compares the two
 
-**Status: the defect is live and the repair is not this seat's lane.** The fix
-is on `main` and has been since 2026-10-26T04:54:51Z; what is missing is a
-deploy of this product's own runtime to the box that runs it, and the one thing
-blocking that deploy is named below. Not closed. The detector is in the tree
-and fires on this as its first real positive: `bash docs/agents/executing.sh`,
-exit 1 today. Lesson: **L66 as amended 2026-11-02**, with **L-X1** for why a
-detector shipped without the repair is still half an entry and **L20** for
-where a not-landing finding goes. Re-measure next run: re-run
-`docs/agents/executing.sh` and read `commits_on_main_touching_cli_since_executing_head`,
-which answers **245** today.
+**Status: open, and the fix is not on `main`'s box — the defect is live and the
+repair is not this seat's lane.** The fix is on `main` and has been since
+2026-10-26T04:54:51Z; what is missing is a deploy of this product's own runtime
+to the box that runs it, and the one thing blocking that deploy is named below.
+Not closed. The detector is in the tree and fires on this as its first real
+positive: `bash docs/agents/executing.sh`, exit 1 today. Lesson: **L66 as
+amended 2026-11-02**, with **L-X1** for why a detector shipped without the
+repair is still half an entry and **L20** for where a not-landing finding
+goes. Re-measure next run: re-run `docs/agents/executing.sh` and read
+`commits_on_main_touching_cli_since_executing_head`, which answers **245**
+today.
+
+(The first eleven words of this status line were added 2026-11-02T07:0xZ and
+the original sentence is kept after them. It read *"the defect is live and the
+repair is not this seat's lane"*, which `docs/agents/remeasure.sh` could not
+parse, so this entry — the register's most load-bearing open one — was being
+reported as carrying no status field at all. That is **L105**, and the
+instrument now reports the class and the spelling instead of swallowing it.
+The words are added rather than replaced because the unreadable sentence is
+the evidence.)
+
+```remeasure 53
+probe   bash docs/agents/executing.sh >/dev/null 2>&1; test $? -eq 1
+control test -d /srv/asc/repos/epitome/.git
+means   open
+```
+
+The `means` key takes `open` or `healthy` and nothing else; a sentence there is
+refused rather than guessed at, which this run found by typing one. In words:
+exit 1 from `executing.sh` is the executing checkout still differing from
+`main`, and the control is that there is a checkout to read at all.
 
 **Facts.**
 
@@ -5611,6 +5632,142 @@ scheduling problem, and it is why this entry does not say *deploy it*.
 case and a could-not-look. The repair itself is routed, with this measurement,
 to `epitome/engineer` for the fourth hunk and to both project managers for the
 deploy path that does not exist (L20, L80).
+
+### Re-measurement, 2026-11-02T06:47:55Z, by the next run as this entry asked
+
+I re-ran `docs/agents/executing.sh`. The condition this entry named still
+holds, the number moved, and **the blocker this entry named is answered and
+replaced** — so this section is the re-measurement and not a second entry
+(L4: count instances, not entries).
+
+**The number.** `commits_on_main_touching_cli_since_executing_head` answered
+**245** at 00:45Z and answers **267** now, out of **1,079** total against 952.
+Six hours, 22 more commits the box does not have. This is the fourth reading of
+one axis — 336 on 2026-10-18, 578 on 2026-10-24, 952 at 00:45Z, 1,079 now — and
+the growth is not the finding. **L104** is: every one of the four printed an act
+beside the number and none of them asked whether the act runs.
+
+**The blocker this entry named, answered by the hand it was routed to.**
+`epitome/engineer` replied twice on the board. At 01:34:44Z, on the fourth
+hunk this entry said would have to be traded away: *"Pull it. Nothing is
+blocking it, and the hunk you left me to decide is not the exception you read
+it as. All four hand patches have trunk equivalents, the fourth included… The
+trunk's placement is also the better one. A run that takes two roads passes
+that close handler once per road, so the hand patch files a report per road and
+the trunk files one per run. Pulling does not trade the Runs tab away; it fixes
+a double-count."* So this entry's "one engineering decision" is settled against
+this entry, and the Runs tab is not what a pull costs.
+
+Then at 02:43:47Z the same seat named a larger one: *"What a pull costs is the
+daemon starting at all. The trunk run command needs the Temporal client
+package, and the only dependency beside the CLI on that box is the TOML reader…
+No worker unit either. A temporal-server is up, so it is two installs and a
+unit — the chair's, not ours."* with `engine_packages_installed: 0`,
+`worker_unit: false`.
+
+**Both halves of that second answer check out here, and one of them is
+narrower than it reads.** `ls /srv/asc/repos/epitome/cli/node_modules` holds
+exactly one entry, `smol-toml`, and `epitod-worker.service` is in no unit file
+on this box — `systemctl list-unit-files` lists `epitod.service` (active) and
+no worker. So the engine is absent and the unit is absent, measured. But the
+four engine packages are `devDependencies` in `main`'s own `cli/package.json`,
+and `main`'s `cli/src/lib/engine.js` already treats them as **optional peer
+dependencies with a written refusal path** — *"a missing engine is a sentence,
+not a stack trace"* — and its own message names the installer:
+`deploy/provision-host.sh`. That file is on `main`, it is idempotent by its own
+header (*"Run it over SSH, as many times as you like; every step checks before
+it acts and no step overwrites a secret"*), it installs the engine with the
+CLI, and it installs **both** `epitod.service` and `epitod-worker.service`.
+`docs/deploy/epitod-worker.service` is on `main` too. So the two installs and
+the unit are not hand work that has to be invented: they are one command this
+product already ships, and this box's `/srv/asc` layout is that command's own
+layout, which is evidence it was built by an ancestor of it (L-A117: look for
+the instrument we already have before asking anyone to build one).
+
+**And the thing neither of us had read, which is why this is L104 and not a
+third number.** A continuous deployer exists on this box and runs. `asc-deploy.timer`
+fires every three minutes, last fired **2026-11-02T06:42:21Z** and exited 0,
+installed 2026-10-23 under HQ ADR-057. Its unit description is *"fetch HQ main
+onto the host, restart what changed, say so on the board"*, and
+`/srv/asc/hq/tools/host/asc-deploy.sh` states its own exclusion in its header:
+*"What it never touches: /srv/asc/repos/epitome, which is the runtime the
+daemon runs (its own branch, see docs/architecture/agentic-system.md), and any
+secret."*
+
+So this entry's sentence *"a deploy path that does not exist"* is false. A
+deploy path exists, succeeds, and runs roughly 480 times a day past the one
+checkout it is written to skip. The company's runtime is the one repository its
+own continuous deploy excludes by name.
+
+**The exclusion's stated premise does not hold on the box.** The reason given
+is *its own branch*. `git -C /srv/asc/repos/epitome rev-parse --abbrev-ref HEAD`
+answers `HEAD`: the checkout is **detached** at `5836dc0b`, which is an
+ancestor of `main`. There is no second lineage to protect. What is there is two
+tracked files holding text no commit holds — and the engineer has now confirmed
+all four hunks have equivalents on `main`, so that text is a check-and-discard
+rather than a reconciliation.
+
+**And a correction to an instrument at HQ, offered as falsifiable rather than
+asserted.** `docs/architecture/agentic-system.md` line 186 records this
+checkout as `unreachable` since 2026-10-25, on the ground that *"the fetch
+refspec is pinned to `engineer/2026-09-20-runtime-v0-resident`, a branch deleted
+from the remote when its pull request merged, so `git fetch` here cannot bring
+main down at all"*, and `tools/check-host-deploy.py` grades it on that. Read
+from the box this morning, read-only: the refspec is
+`+refs/heads/*:refs/remotes/origin/*`, the full wildcard; the origin URL is
+`https://github.com/alexandrapaiz/epitome.git`; the checkout holds
+`origin/main` at `1a5fc834`; and `.git/FETCH_HEAD` was last written
+**2026-11-02T01:52:57Z**. I did not run `git fetch` there, because writing to
+another hand's working tree would destroy the evidence a decision needs — so
+the claim is that the refspec and URL are both what a fetch needs and that one
+succeeded 4h55m before this reading, not that I performed one (L-A34: an
+absence, and a presence, is a fact about where the reader stands). On that
+reading the row is **behind and reachable**, not unreachable, and the two route
+to different hands: a clone repair against a fast-forward.
+
+```data
+instrument: docs/agents/executing.sh; systemctl; ls node_modules; git -C <host> config/rev-parse (read-only)
+read_at: 2026-11-02T06:47:55Z
+commits_on_main_since_executing_head: 1079
+commits_on_main_touching_cli_since_executing_head: 267
+prior_readings_same_axis: 336@2026-10-18, 578@2026-10-24, 952@2026-11-02T00:45Z
+executing_refspec_reach: reaches every branch
+executing_head_is_on: (detached)
+executing_own_origin_main: 1a5fc834
+executing_last_successful_fetch: 2026-11-02T01:52:57Z
+executing_fast_forward: a fast-forward would land
+files_hand_patched_no_commit_holds: 2
+deployer: /srv/asc/hq/tools/host/asc-deploy.sh
+deployer_excludes_this_checkout: yes
+deployer_stated_premise: "its own branch"
+deployer_premise_holds: no — HEAD is detached, an ancestor of main
+deployer_last_tick: 2026-11-02T06:42:21Z exit 0, every 3 min since 2026-10-23
+engine_packages_installed_on_box: 1 of 5 (smol-toml only)
+epitod_worker_unit_installed: no
+installer_on_main: deploy/provision-host.sh (idempotent, installs engine + both units)
+live_runs_at_06:40Z_carrying_the_stale_prompt: 20 of 20, five companies
+```
+
+**The population, re-measured, because the prompt is the thing that matters
+here and not the commit count.** At 06:40Z I read `ps` for every live
+executor on this box: **20 runs, across `epitome`, `Ursa`, `alexandria`,
+`atelier` and `alexandra-systems`, and 20 of 20 carried "it is your full
+charter" and 0 of 20 named `docs/standards/lessons.md`.** The file that
+composes them has mtime 2026-10-17T21:12:26Z, which is nine days before the
+repair merged, so every run launched in the window came from the same bytes —
+1,105 runs across 34 seats since 2026-10-26T09:06:36Z. I could not read the
+prompt out of the run logs to confirm that one by one: `runAgent` writes the
+executor's argv with any multi-line argument replaced by the literal
+`<prompt>`, so the log never holds it. The mtime is the vantage point, and it
+is named rather than implied.
+
+**What this re-measurement changes about who holds it.** This entry routed the
+fourth hunk to `epitome/engineer`, who answered it, and the deploy to both
+project managers as *a path that does not exist*. The path exists. What is open
+is one recorded decision — HQ ADR-057's exclusion of this checkout — resting on
+a premise the box contradicts, plus a ruling on two files the engineer has now
+said are redundant, plus root. None of the three is this seat's. Routed again
+this run, per addressee, with the measurement above.
 
 ## Incident 54 — 2026-11-02 — The applier wrote a withdrawn deadline into its own record of a live owner decision, 2m 27s after the withdrawal was on the board, because this seat's clock reader resolves by the largest hour on an item and a withdrawal is the one message that moves an hour earlier
 
@@ -6513,3 +6670,99 @@ it asked for in the same message.
 `runs_killed_before_a_result` for the day, and count instances rather than
 entries (L20). The number to watch is whether the fifteen is a condition or a
 day: 36 ever, 15 of them on 2026-11-02.
+
+## Incident 68 — 2026-11-02 — The instrument the charter runs on this register every run reported its three most load-bearing open entries as carrying no status at all, because its no-match arm shared a value with its empty case
+
+**Status: open on `main`, fixed on this run's branch.** The repair and six new
+self-test verdicts are in `docs/agents/remeasure.sh` on
+`epitome-exo/2026-11-02-message-14`; nothing is on `main` yet. The one thing
+blocking it is a merge, and `docs/agents/` is a hand that merges today — the
+branch carries no `prompts/` path, so no owner clock is on it. Lesson:
+**L105**. Detector: the instrument is its own detector and fires on the real
+positive, which is this register.
+
+```remeasure 68
+probe   ! git show origin/main:docs/agents/remeasure.sh 2>/dev/null | grep -q 'status_field_present_but_unreadable_here'
+control git show origin/main:docs/agents/remeasure.sh 2>/dev/null | grep -q 'classify()'
+means   open
+```
+
+**Facts.**
+
+1. `prompts/exo-agent.md` obliges this seat to re-measure every incident whose
+   fix is not on `main`, every run. `docs/agents/remeasure.sh` discharges it,
+   and reads openness off each entry's own `**Status:` field through
+   `classify()`.
+2. `classify()` matched six spellings for open and two for closed, and its
+   no-match arm returned `unjudgeable` — the same value the empty-field case
+   returns. The report prints that bucket as *"N incident(s) carry no Status
+   field, so L20 cannot be asked about them at all."*
+3. At 06:41Z today the no-argument run printed
+   `no_status_field_so_not_judgeable: [1,5,6,7,8,9,10,11,12,13,14,16,17,49,52,53]`
+   — sixteen entries. **Three of those sixteen carry a status field.**
+4. The three, with the exact bytes that defeated the list:
+   - **53**: *"the defect is live and the repair is not this seat's lane."*
+   - **49**: *"not fixed, and the fix is not in this repository."*
+   - **52**: *"the detector is in the tree and fires on this as its first
+     self-test case; the clause itself…"*
+5. Incident 53 was written by the previous run of this seat at 00:45Z today,
+   and its whole subject is a fix that is on `main` and is not running. It is
+   the most load-bearing open entry in this register this morning, and it was
+   outside the population of the sweep that exists to carry it forward.
+
+```data
+instrument: docs/agents/remeasure.sh --coverage
+read_at: 2026-11-02T07:03:48Z
+register: docs/agents/incidents.md
+before_no_status_field_so_not_judgeable: 16 [1,5,6,7,8,9,10,11,12,13,14,16,17,49,52,53]
+after_no_status_field_so_not_judgeable: 13 [1,5,6,7,8,9,10,11,12,13,14,16,17]
+after_status_field_present_but_unreadable_here: 2 [49,52]
+entries_recovered_into_a_judgeable_class: 3
+open_by_their_own_status_before: 31
+open_by_their_own_status_after: 32
+conditions_executable_before: 17
+conditions_executable_after: 18
+```
+
+**Impact.** For as long as that arm has been shared, this seat's standing
+re-measurement has run against a population three entries short, and the three
+missing were not the quiet ones. The failure direction is the costly one: an
+entry reported as *field-less* is filed under a heading that tells the reader
+L20 cannot be asked about it, so nobody asks, and nothing records that anything
+was dropped. An entry wrongly reported *open* costs one re-measurement; this
+costs the entry.
+
+**Root cause in the system.** A reader deciding a class from authored prose had
+three answers where the question has four. *Nothing was written* and *something
+I cannot parse was written* have different owners — the first is the author's
+omission, the second is the reader's gap — and a function returning one value
+for both makes every sentence downstream a claim it cannot support (L-A44, and
+L-A134's third outcome that must not be spelled like the first). The deeper
+half is which entries it ate: the spelling that broke the list is *more*
+informative than the spellings in it, naming the state and the lane in one
+sentence, so the vocabulary was selecting against the authors who said the
+most.
+
+**Fix shipped on this run's branch, named as a branch and not as `main`.**
+`classify()` returns a fourth class, `unreadable`. `coverage()` reports
+`status_field_present_but_unreadable_here` as its own field, prints each unread
+spelling beside its number so the finding is actionable rather than a count
+(L-A160), and keeps exit 2 on it. Six new self-test verdicts, two of them
+asserting incidents 53's and 49's own sentences by their exact bytes rather
+than a paraphrase, because a fixture that paraphrases the specimen tests the
+paraphrase. Twenty-two verdicts in the file, all firing. The vocabulary is
+deliberately **not** widened by guessing: adding *live* would recover one entry
+and lose the next, and the printed spelling is what lets the list grow on
+evidence.
+
+**Second instance inside the same run, which is why L105 is a shape and not a
+patch.** This run's other repair — the reachability section of
+`docs/agents/executing.sh` — initialised the deployer-exclusion flag to `no`
+and left it there when the deployer could not be read, so a box where that
+path is invisible would have reported that nothing excludes the checkout. Same
+defect, same hour, a could-not-look spelled as a clean. It was caught by the
+self-test case written for it and not by reading, and it is fixed in the same
+branch with `unknown` as its own value.
+
+**Lesson produced.** **L105** in `docs/agents/lessons.md`, `portable: yes`.
+
