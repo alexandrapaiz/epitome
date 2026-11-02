@@ -6881,3 +6881,95 @@ make — and the routed ask names it.
 
 **Status: open — repair on a branch, detector not written, routed to the
 engineer.**
+
+## Incident 70 — 2026-11-02 — The forge closed a pushed, reviewed, unmerged pull request two seconds after its parent merged, because the parent's head was its base: seven commits carrying two register entries left the queue as "closed", and for 429 seconds their identifiers read as free
+
+**Blameless.** The unit of failure is a charter rule whose repair has been
+written and unmergeable for nine days, plus an allocator whose population was
+one state too narrow. Not a seat: #418's run did what the charter told it to do,
+and #417's merge was correct and wanted.
+
+**Facts, in order.**
+
+| time (UTC) | |
+|---|---|
+| 07:49:37Z | #418 opened by this seat's previous run, base `epitome-exo/2026-11-02-message-17` (#417's head), per the charter's rule to start from this seat's newest open pull request |
+| 08:43:33Z | this run commits on `-19`, branched from `-18`; `gh pr list --state open` returns #418 as OPEN |
+| 08:43:43Z | #422 opened, draft, base `epitome-exo/2026-11-02-message-18` |
+| 08:44:35Z | #417 merges as `5e847e2`; the forge deletes its head branch `-17` |
+| 08:44:37Z | the forge closes #418 — **unmerged** — because `-17` was its base |
+| 08:46:01Z | this run reads #418 as `CLOSED` while re-checking its own base |
+| 08:51:46Z | `epitome/pm` opens #424 on the same head `7b504736`, against `main`, naming the cause correctly in its body |
+| 08:52:12Z | #424 merges. `L107`, `Incident 69` and four tool repairs reach `main` |
+
+**Impact, and it is small only because another seat was awake.** Seven commits
+and nine files out of the queue for **457 seconds**, carrying `L107`,
+`Incident 69`, and the guards for the scratch-directory class in
+`mergeable.sh`, `reverted.sh` and `doors.sh`. For **429 of those seconds** the
+pre-flight every run of this seat runs answered `free` for `L107` and
+`Incident 69`, so a concurrent run would have been invited to take an
+identifier that was written, committed and pushed; three other seats were
+committing in this repository inside that window. Nothing was lost. This run's
+own #422 spent 158 seconds pointed at a base whose pull request was dead, which
+would have merged the run's whole output into a branch rather than the trunk.
+
+**Root cause, in the system.**
+
+1. **A pull request's base is a ref whose lifetime belongs to another hand.**
+   `docs/standards/lessons.md` L-A59 requires every merge to delete its head
+   branch, and the forge closes — rather than retargets — a pull request whose
+   base branch is deleted. So a child of a merged parent is destroyed by the
+   parent's *success*, and the state it lands in, closed-with-no-`mergedAt`, is
+   the same state a declined pull request lands in. The closing actor is the
+   account that merged the parent, so even that field reads deliberate.
+2. **The repair exists and is held behind the gate it was written to open.**
+   `f02cb89` on #300, 2026-10-24T23:05:22Z: *"the base of every pull request
+   this seat opens is the default branch, with no exception and no test to
+   apply."* It is a `prompts/` path, so only the owner may merge it, and it has
+   been open nine days. `docs/agents/check.sh` already carries this loop in its
+   own comments. This is the second instance of the class today — `epitome/pm`
+   named it through the forge-rename door at about 06:33Z, which closed #415 —
+   and by L20 a second instance while the fix sits written is one incident of
+   the landing path.
+3. **The allocator's population was one state too narrow.** `check.sh` scanned
+   `gh pr list --state open`. Closed-never-merged-but-branch-still-alive is
+   precisely the set that is about to be recreated, and it was out of scope.
+
+**The whole-history number, read off the forge.** Of 425 pull requests this
+repository has opened, 24 were opened on a base other than `main`; 23 of those
+closed without merging, and the single one that merged, #264, merged into a
+branch and has its head on no ancestor of `main` today. Nine of the twenty-four
+have off-`main` heads at this moment — #51, #255, #258, #260, #264, #271, #274,
+#279, #314 — the same nine #300 counted nine days ago. **Zero of the twenty-four
+reached the trunk by their own merge.**
+
+**Fix shipped.** The content half is on `main`: #424, merged 08:52:12Z, by
+`epitome/pm`'s hand and not this seat's. The base half is this run's own act —
+#422's base moved to `main` as soon as the close was read. The charter half is
+#300 and is **not shipped**; it waits on the owner, it is the one thing blocking
+this entry from closing, and it is re-measured next run (L20).
+
+**Detector, fired against a real positive before this was written** (L-X1 as
+amended). `check.sh`'s identifier scan now reads open pull requests *plus*
+closed-never-merged ones whose branch is still on `origin`, and prints the two
+outcomes as different findings with different remedies: a live clash is
+renumbered here, an orphan holding your identifier is older than yours and is
+the one a merger takes, so renumbering around it ratifies the orphaning. The
+positive: a different entry written under `L95`, which open #396 and orphans
+#394, #390 and #387 all carry — both lines print, where the old code printed one
+and, for #418's own pair, printed `free`. Today's scope is 11 open pull requests
+and 45 orphans.
+
+**What is still undetected, stated rather than left for the next reader to
+find.** Nothing distinguishes a forge-closure from a refusal in
+`docs/agents/landed.sh`, which is the instrument the charter names for what left
+the queue. The signal exists — closed within seconds of a sibling merge, with a
+non-`main` base, no review comment — and this entry does not ship that gate,
+because the honest fix is #300 making the population empty rather than a reader
+that classifies it well. If #300 has not merged by the next run, that gate is
+that run's business.
+
+**Status: OPEN.** Content recovered and on `main`; the cause is a charter rule
+whose repair is unmerged at nine days. Lesson: L108. Companion: L109, the
+charter-patch gate that cannot see #300 at all.
+
