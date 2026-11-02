@@ -12,6 +12,10 @@
 #    from main alone is correct at the moment it is written and duplicated by
 #    the time anyone merges, and a both-sides resolution keeps both copies
 #    without a conflict marker.
+# 3. This branch's own diff is in one hand, and where it is not, whether the
+#    reserved path is this run's choice or inherited from its base (L55 clause
+#    one, L-A133). Added 2026-11-02 after four pull requests in one session
+#    handed the owner nineteen files she had not been asked about.
 #
 # Needs a full clone (git clone --depth 1 makes check 2 silently empty) and gh.
 set -uo pipefail
@@ -144,6 +148,86 @@ do
   done
 done
 
+echo
+echo "== the tier sort on this branch's own diff, and where a reserved path came from =="
+# THE FOURTH CHECK, 2026-11-02, and the rule it enforces has been law since
+# 2026-10-24: L55 clause one, "files in two hands never share a branch", and
+# L-A133, "the slowest clock in a pull request is the clock on all of it". Both
+# were obeyed for 41 consecutive pull requests of this seat and then broken four
+# times in one session, between 02:26Z and 03:49Z on 2026-11-02 (#387, #390,
+# #394, #396 — one `prompts/` path and four to six register and helper files
+# each, all four still open). `epitome/pm` declined #394 in writing the same
+# hour, naming the five files it would have merged that day.
+#
+# WHY A COMMAND AND NOT THE CHARTER. The charter patch that repairs the base
+# rule exists and is correct: `f02cb89` on #300, written 2026-10-24T23:05:22Z,
+# unmerged since. It cannot land without the owner, because it is a `prompts/`
+# path, which is the same gate it was written to stop inheriting. So the rule
+# whose absence causes the bundle is itself held behind the bundle's own clock,
+# and prose cannot break that loop — this can, because `docs/agents/` is a hand
+# that merges today (L-A22: the gate goes in the command; L-X1 as amended: an
+# incident is closed when something in the tree would notice it again).
+#
+# TWO FINDINGS, AND THEY ARE NOT THE SAME FINDING (L-A44, L-A50). A branch that
+# mixes hands is a sort this run can still perform, and it refuses. A reserved
+# path this run INHERITED from its own base is the one a stateless run cannot
+# see: the diff shows `prompts/exo-agent.md` with nothing saying whose choice it
+# was, and the remedy is not an edit but a re-cut from the trunk. So the second
+# finding names the pull request the commit came from, which is the sentence the
+# run needs in order to act.
+reserved_rx='^prompts/'
+base=$(git merge-base origin/main HEAD 2>/dev/null)
+if [ -z "$base" ]; then
+  echo "  could not decide: no merge base with origin/main (fetch it first)"
+else
+  changed=$(git diff --name-only "$base" HEAD)
+  res=$(grep -E "$reserved_rx" <<<"$changed" | grep -c . )
+  oth=$(grep -vE "$reserved_rx" <<<"$changed" | grep -c . )
+  printf '  %s reserved path(s), %s other path(s), against %s\n' \
+    "$res" "$oth" "$(git rev-parse --short origin/main)"
+  if [ "$res" -gt 0 ] && [ "$oth" -gt 0 ]; then
+    echo "  MIXED HANDS — a merge is one click on the whole branch, so the owner holds all $((res+oth))"
+    grep -E "$reserved_rx" <<<"$changed" | sed 's/^/    owner   /'
+    grep -vE "$reserved_rx" <<<"$changed" | sed 's/^/    local   /'
+    echo "    the sort is a branch operation, never a sentence in the body (L55 clause one)"
+    fail=1
+  elif [ "$res" -gt 0 ]; then
+    echo "  one hand: the owner's, and nothing else rides with it — this is the shape to open"
+  else
+    echo "  one hand: local, no reserved path — a hand that merges today"
+  fi
+  # Whose choice was it. A pull request whose head this branch CONTAINS is one
+  # of this branch's bases; a pull request that contains this head is a child of
+  # it, and the two are not the same relation. The first version of this check
+  # asked only "is this commit in some open pull request", which answers
+  # `INHERITED from #394` when run on #394 itself — a branch is always contained
+  # in its own pull request (L-A50: two outcomes sharing one field cannot be
+  # told apart by that field). So the bases are computed first, by containment
+  # in the direction that means base, and the classification reads off them.
+  if [ "$res" -gt 0 ]; then
+    head=$(git rev-parse HEAD); bases=""
+    for pr in $(gh pr list --state open --limit 100 --json number --jq '.[].number' 2>/dev/null); do
+      h=$(git rev-parse "pull/$pr" 2>/dev/null) || continue
+      [ "$h" = "$head" ] && continue                      # this branch's own
+      git merge-base --is-ancestor "pull/$pr" HEAD 2>/dev/null && bases="$bases $pr"
+    done
+    [ -n "$bases" ] && printf '    this branch contains the whole of%s — its base is a pull request, not the trunk\n' "$bases"
+    for c in $(git rev-list "$base..HEAD" -- $(grep -E "$reserved_rx" <<<"$changed" | tr '\n' ' ')); do
+      from=""
+      for pr in $bases; do
+        git merge-base --is-ancestor "$c" "pull/$pr" 2>/dev/null && from="$from #$pr"
+      done
+      if [ -n "$from" ]; then
+        printf '    %s INHERITED from%s — re-cut from the trunk; a revert leaves it in the history\n' \
+          "$(git rev-parse --short "$c")" "$from"
+        fail=1
+      else
+        printf '    %s this run wrote it, and it is the only reserved commit a sort can still move\n' \
+          "$(git rev-parse --short "$c")"
+      fi
+    done
+  fi
+fi
 echo
 echo "== instruments that count commit distance refuse a clone they cannot deepen =="
 # L86 said a truncated frame answers rather than refusing and its error has a
