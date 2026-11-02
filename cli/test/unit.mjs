@@ -1107,7 +1107,7 @@ const stub = new URL("./stub-executor.mjs", import.meta.url).pathname;
 // One run of the stub, with the run log written under a directory this test
 // owns. `.epito/logs/<agent>/` is relative to cwd, which is why every one of
 // these chdirs.
-const killRun = async (name, { work, timeoutMs, env = {} }) => {
+const killRun = async (name, { work, timeoutMs, env = {}, onOutput } = {}) => {
   const dir = tmpDir();
   const cwd = process.cwd();
   const prior = {};
@@ -1116,7 +1116,7 @@ const killRun = async (name, { work, timeoutMs, env = {} }) => {
   try {
     const r = await executeAgent({
       agent: seat(name, { runtime: { model: "m", entry: "e", repo: "acme/roster", env: Object.keys(env) } }),
-      trigger: "message", runId: `kill-${name}`, workDir: work, timeoutMs, log: () => {}, executor: stub,
+      trigger: "message", runId: `kill-${name}`, workDir: work, timeoutMs, log: () => {}, executor: stub, onOutput,
     });
     // `log` is relative to the run's cwd, and this helper hands it back to a
     // caller that has already chdir'd home.
@@ -1198,8 +1198,13 @@ test("a run killed at the bound leaves the account the run could not write", asy
 
 test("a silent run says what it has done every tick, before anything kills it", async () => {
   const work = gitClone("frontend");
+  // The `execute` activity heartbeats from this callback and from nowhere
+  // else, so with an executor that prints at exit it never beat at all — and
+  // the activity declares a five-minute heartbeat timeout. A tick is the only
+  // thing that makes that declaration mean anything for a run of this kind.
+  let beats = 0;
   const r = await killRun("frontend", {
-    work, timeoutMs: 20_000,
+    work, timeoutMs: 20_000, onOutput: () => { beats++; },
     env: {
       // Ten ticks' worth of sleep to assert two: a reading spawns three gits,
       // and a loaded box is allowed to be slow without failing this.
@@ -1226,6 +1231,7 @@ test("a silent run says what it has done every tick, before anything kills it", 
   assert.doesNotMatch(logged, /what it had done when it died/);
   assert.equal(r.progress, null);
   assert.equal(r.detail, null);
+  assert.ok(beats >= ticks.length, `every tick beats as well as writes (${beats} beats for ${ticks.length} ticks)`);
 });
 
 test("a refused run spoke, so it is not given a killed run's account", async () => {
