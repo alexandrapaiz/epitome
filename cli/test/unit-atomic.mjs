@@ -254,32 +254,211 @@ test("a symlinked target is written through, not replaced", () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-// The detector, because a repair without one leaves the next pass as exposed
-// as this one was. Every write in src/ that replaces a file goes through
-// lib/atomic.js; the two appends do not and must not (see the note below).
-test("no command in src/ writes a file with a truncating write", () => {
-  const files = [];
-  const walk = (d) => {
-    for (const entry of readdirSync(d, { withFileTypes: true })) {
-      const p = join(d, entry.name);
-      if (entry.isDirectory()) walk(p);
-      else if (entry.name.endsWith(".js")) files.push(p);
-    }
-  };
-  walk(join(CLI, "src"));
-  assert.ok(files.length > 40, `expected to have walked src/, found ${files.length} files`);
-  const offenders = [];
-  for (const f of files) {
-    if (f.endsWith("lib/atomic.js")) continue;
-    readFileSync(f, "utf8").split("\n").forEach((line, i) => {
-      if (/\bwriteFileSync\s*\(/.test(line) || /\bwriteFile\s*\(/.test(line)) {
-        offenders.push(`${f.slice(CLI.length + 1)}:${i + 1}`);
-      }
-    });
+// ===========================================================================
+// THE GUARD, and why it looks at the whole repository rather than at cli/src.
+//
+// The first atomic write this product ever had was reachable through exactly
+// one call site — `writeState` in lib/audit.js, 2026-09-20 to 2026-09-26 —
+// and it was deleted along with the state.json it protected. Seven truncating
+// writes then accumulated over the 37 days after, with nothing in the
+// repository able to notice. A guard scoped to the directory those writes
+// happen to sit in today dies the same death: one new directory, one `git mv`,
+// and it is watching an empty room while reading green.
+//
+// So the candidates are discovered off this repository's own tracked file set,
+// which is what ADR-27 settles and what the other scan gate here already does
+// — tools/scan-secret-print.sh, whose hand-written glob list was found two
+// surfaces short of the trunk on the day it was written, and which had never
+// looked at cli/src at all. The guard below asks `git ls-files` what this
+// product is made of, and decides what is a candidate from the SHAPE of each
+// path rather than from a list of the directories that exist this morning.
+const ROOT = dirname(CLI);
+
+// The languages this product executes. Each one has its own fix for the same
+// fault: writeFileAtomic here, `tempfile` + `os.replace` in python, a write
+// beside the file and `mv` in shell.
+const LANGUAGE = { ".js": "js", ".mjs": "js", ".cjs": "js", ".py": "py", ".sh": "sh", ".bash": "sh" };
+const languageOf = (p) => LANGUAGE[(p.match(/\.[^./]+$/) ?? [""])[0]];
+
+// A test, a stub or a fixture rehearses this product rather than running as
+// it, and its writes land in a directory mkdtemp made two lines earlier, so a
+// refusal there has nothing to destroy. The 83 of those in cli/test are a
+// different and already measured card (docs/backlog.md, Next: a suite whose
+// fixtures cannot be written is unrun, not failed). Recognised by the shape of
+// the path, so a suite in a directory nobody has made yet is excluded on the
+// same rule, and a product file is never excluded merely for sitting near one.
+const rehearsal = (p) => {
+  const segs = p.split("/");
+  return segs.some((s) => s === "test" || s === "tests" || s === "__tests__" || s === "fixtures")
+    || /^(?:test|smoke|unit)[-_.]/.test(segs.at(-1))
+    || /(?:\.test\.[cm]?js|_test\.py)$/.test(p);
+};
+
+const isProductCode = (p) => Boolean(languageOf(p)) && !rehearsal(p);
+
+const trackedFiles = () => {
+  try {
+    return execFileSync("git", ["-C", ROOT, "ls-files", "-z"], { encoding: "utf8", maxBuffer: 1 << 26 })
+      .split("\0").filter(Boolean);
+  } catch (e) {
+    assert.fail("could not look: this guard's candidates are the repository's own tracked files, read with "
+      + `\`git ls-files\`, and that could not run here (${e.code ?? e.message}). A guard that cannot see what `
+      + "it is guarding must not report green. Fix: run this suite inside the epito git checkout.");
   }
-  assert.deepEqual(offenders, [],
-    "writeFileSync truncates the file before it can fail, so a full device destroys it. " +
-    "Fix: writeFileAtomic from src/lib/atomic.js, with what the file is and the fix for the reader.");
+};
+
+// This repository's own tree, named by its tracked top-level directories and
+// never by a list typed here.
+const repoDirs = (files) => [...new Set(files.filter((p) => p.includes("/")).map((p) => p.split("/")[0]))]
+  .sort().map((d) => d.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+
+// What a truncating write looks like in each language, and nothing wider. A
+// bare `>` matcher over this repository's shell reports 644 lines and almost
+// none of them are writes: `if len(para) > widest:` inside an embedded python
+// heredoc, a usage block's `--domain <fqdn>`, a provisioner's `cat >` into
+// /etc on a machine it is building from nothing. A gate whose baseline holds
+// 600 accepted entries is a gate nobody reads, so the shell matcher asks
+// instead where the bytes LAND — inside this repository's own tree or outside
+// it — and reads the answer set off `git ls-files` as well.
+const matcherFor = (lang, src, dirs) => {
+  if (lang === "js") {
+    return /\b(?:writeFileSync|writeFile|createWriteStream)\s*\(|\bopenSync\s*\([^)]*["'](?:w|w\+|wx|wx\+)["']/;
+  }
+  if (lang === "py") return /\bopen\s*\([^)]*["'][wx]|\.write_text\s*\(|\.writelines\s*\(/;
+  // `$ROOT/docs/...` counts as much as `docs/...`, and the variable's name is
+  // read out of the file rather than guessed at: every instrument here reaches
+  // the repository root through `git rev-parse --show-toplevel`, most by
+  // cd-ing to it and a few by assigning it first.
+  const vars = [...src.matchAll(/(\w+)=\s*"?\$\(\s*git rev-parse --show-toplevel/g)].map((m) => m[1]);
+  const root = vars.length ? `(?:${vars.map((v) => `\\$\\{?${v}\\}?/`).join("|")})?` : "";
+  return new RegExp(`(?:(?:^|[^<>\\d&])>|\\btee\\s+(?:-a\\s+)?)\\s*"?${root}(?:${dirs})/`);
+};
+
+// A line whose first non-blank character opens a comment is prose about code,
+// and this repository's code is mostly prose: lib/atomic.js writes
+// `writeFileSync(` four times explaining why it does not call it. Only whole
+// -line comments are dropped and never a trailing one, because stripping from
+// the first `//` on a line would hide `writeFileSync(p, "http://host")`.
+const isProse = (line) => /^\s*(?:\/\/|#|\*)/.test(line);
+
+const scan = (path, src, dirs) => {
+  const re = matcherFor(languageOf(path), src, dirs);
+  const hits = [];
+  src.split("\n").forEach((line, i) => {
+    if (!isProse(line) && re.test(line)) hits.push({ path, line: i + 1, text: line.trim() });
+  });
+  return hits;
+};
+
+// Accepted, each with the reason it is not the fault. Matched on the text of
+// the line rather than its number, and the test after the scan fails if one of
+// these stops matching anything — an acceptance that nobody can see expire is
+// how a baseline turns into a rubber stamp.
+const ACCEPTED = [
+  {
+    path: "cli/src/lib/atomic.js",
+    text: /openSync\(tmp, "wx"/,
+    why: "this is the fix. It is the one place in the product that opens a file for writing, and what it "
+       + "opens is a temporary name beside the target — with `wx`, so it will not truncate even that",
+  },
+  {
+    path: "docs/agents/recovered.py",
+    text: /open\(path, "w"\)/,
+    why: "the instrument's own --self-test, writing a log file it invented into a directory "
+       + "`tempfile.mkdtemp()` made six lines earlier: the write replaces nothing, so a refusal there has "
+       + "nothing to destroy",
+  },
+];
+
+const THE_RULE = "A write that replaces a file truncates it before it can fail, so a device with no room "
+  + "left destroys the file instead of refusing the write. Fix, by language: in js, writeFileAtomic from "
+  + "cli/src/lib/atomic.js, with what the file is and the remedy for the reader; in python, write a "
+  + "temporary file in the same directory and os.replace it; in shell, redirect beside the file and mv. If "
+  + "the line is not a replacement — a brand-new file in a scratch directory, or this module itself — add "
+  + "it to ACCEPTED in this file with the reason, which is read in review.";
+
+test("the guard's candidates are the repository's own tracked files, not a list of today's directories", () => {
+  const product = trackedFiles().filter(isProductCode);
+  assert.ok(product.length > 80, `expected the whole product's own code, found ${product.length} files`);
+  const outside = product.filter((p) => !p.startsWith("cli/src/"));
+  assert.ok(outside.length >= 30,
+    "every truncating write this product has today is in cli/src, which is the whole reason the guard must "
+    + `not be scoped there (ADR-27). Candidates outside cli/src: ${outside.length}`);
+  for (const dir of ["cli/adapters", "docs/agents", "tools", "deploy"]) {
+    assert.ok(product.some((p) => p.startsWith(`${dir}/`)),
+      `${dir}/ holds tracked code this product executes, and the guard is not looking at it`);
+  }
+});
+
+test("a directory this product does not have yet is in scope the day somebody adds it", () => {
+  for (const p of ["epitod/src/server.js", "worker/handler.mjs", "tools/ledger.py", "deploy/rollout.sh"]) {
+    assert.ok(isProductCode(p), `${p} would be this product's own code and the guard would not look at it`);
+  }
+  for (const p of ["docs/standards/lessons.md", "spec/manifest.md", "company.yaml", "cli/test/unit.mjs",
+    "cli/test/fixtures/langgraph-stub/src/agent.py", "deploy/test-provision.sh", "tools/tests/test-wiring.py"]) {
+    assert.ok(!isProductCode(p), `${p} describes or rehearses this product; it is not a candidate`);
+  }
+});
+
+test("nothing this product executes replaces a file with a truncating write", () => {
+  const files = trackedFiles();
+  const dirs = repoDirs(files);
+  const offenders = [];
+  for (const p of files.filter(isProductCode)) {
+    for (const hit of scan(p, readFileSync(join(ROOT, p), "utf8"), dirs)) {
+      if (ACCEPTED.some((a) => a.path === hit.path && a.text.test(hit.text))) continue;
+      offenders.push(`${hit.path}:${hit.line}: ${hit.text}`);
+    }
+  }
+  assert.deepEqual(offenders, [], THE_RULE);
+});
+
+test("every accepted exception still names a line that is there", () => {
+  const dirs = repoDirs(trackedFiles());
+  for (const a of ACCEPTED) {
+    const hits = scan(a.path, readFileSync(join(ROOT, a.path), "utf8"), dirs);
+    assert.ok(hits.some((h) => a.text.test(h.text)),
+      `${a.path} no longer holds the write this file accepts (${a.text}), so the acceptance is stale and `
+      + `the reason beside it is no longer true of anything: "${a.why}". Fix: remove the entry.`);
+  }
+});
+
+// The negative control, because a scan that finds nothing is otherwise
+// indistinguishable from a scan that looks at nothing (L77). Each planted
+// line is the shape of a write that would really destroy a file, in a path
+// that does not exist in this repository today.
+test("the guard sees a planted truncating write in each language it covers", () => {
+  const dirs = repoDirs(trackedFiles());
+  const planted = [
+    ["cli/src/lib/roster.js", 'writeFileSync(target, bytes);'],
+    ["epitod/src/server.mjs", 'createWriteStream("/srv/asc/state.json");'],
+    ["cli/adapters/shim.js", 'const fd = openSync(target, "w", 0o600);'],
+    ["tools/ledger.py", 'with open(ledger, "w") as fh:'],
+    ["tools/ledger.py", 'Path(ledger).write_text(rows)'],
+    ["docs/agents/pending.sh", 'printf "%s\\n" "$row" > docs/agents/pending.md'],
+    ["docs/agents/pending.sh", 'ROOT=$(git rev-parse --show-toplevel)\ncat > "$ROOT/docs/agents/pending.md" <<EOF'],
+    ["docs/agents/pending.sh", 'printf "%s\\n" "$rows" | tee docs/agents/pending.md'],
+  ];
+  for (const [p, src] of planted) {
+    assert.ok(scan(p, src, dirs).length >= 1,
+      `the guard would not have seen this write in ${p}: ${src.split("\n").at(-1)}`);
+  }
+  // And does not see these, each one a real line out of this repository with
+  // the path it came from, because a gate that cries at 600 lines is a gate
+  // whose baseline becomes a rubber stamp.
+  const quiet = [
+    ["docs/agents/addressed.sh:487", "        if len(para) > widest:"],
+    ["deploy/provision-host.sh:49", "  --domain <fqdn>      hostname Caddy serves the ingress on (TLS via ACME)"],
+    ["docs/agents/addressed.sh:825", "  cat > \"$tmp/prompts/fixture-agent.md\" <<'MD'"],
+    ["deploy/provision-host.sh:488", "cat > /etc/systemd/system/epitod.service <<UNIT"],
+    ["cli/src/lib/board.js:99", "  appendFileSync(path, JSON.stringify(event) + \"\\n\");"],
+    ["cli/src/lib/atomic.js:53", "// manual page: `fs.writeFileSync(\"/dev/full\", \"x\")` on this box gives"],
+    ["tools/check-secret-print.py:1", "    with open(path) as fh:"],
+  ];
+  for (const [where, line] of quiet) {
+    const p = where.split(":")[0];
+    assert.equal(scan(p, line, dirs).length, 0, `the guard cried at ${where}, which is not a write: ${line}`);
+  }
 });
 
 // Why the two appends are NOT converted, asserted rather than claimed. A
