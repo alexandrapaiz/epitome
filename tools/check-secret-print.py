@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# vendored-from: alexandrapaiz/alexandra-systems tools/check-secret-print.py @ 6ff45e0bdcef8f74e3efddb5b30bfab4e0787e89
+# vendored-from: do not edit here. standards/secrets.md §5 makes the tool and
+# vendored-from: the hook registration part of the invariant; re-vendor with HQ's
+# vendored-from: tools/install-secret-hook.py.
 """Does this command print a secret? Asked before the command runs.
 
     tools/check-secret-print.py --command 'echo "$EXO_TOKEN"'
@@ -134,8 +138,16 @@ A line, or the line above it, carrying `L-X5-ALLOW` with a reason is skipped
 in file scans. `--no-allow` ignores the markers, which is how the markers get
 audited. For findings the checker is right about and the company keeps
 anyway, `--baseline tools/secret-print-baseline.txt` holds them one per line
-with the reason in the file's own comments. Neither form applies in --hook or
---command mode: a command about to run has no reviewer.
+with the reason in the file's own comments. A marker on the line that opens a
+``` fence covers that whole block, which is the form a register needs.
+
+Neither form applies to a COMMAND: one about to run has no reviewer. Both
+apply to an EDIT, which the diff and the repository scan still see, and an
+edit to prose (.md, .markdown, .rst) or to a checker's own `*baseline.txt` is
+not denied at all — the file scan already holds that markdown is quoted on
+purpose, and until 2026-11-02 the hook held the opposite, which denied the
+register that carries this rule, the standard that explains the guard, and the
+guard's own exemptions file.
 
 usage:
   tools/check-secret-print.py [FILE...] [--quiet] [--json] [--no-allow]
@@ -317,6 +329,52 @@ SAFE_FORM = ("printf '%s present: %%s length: %%s\\n' "
 
 SCAN_DIRS = ("tools", "standards", "runtime", ".github/workflows", "site")
 SCAN_SUFFIXES = (".sh", ".bash", ".zsh", ".yml", ".yaml", ".py")
+
+# THE FILE SCAN AND THE HOOK DISAGREED ABOUT MARKDOWN, AND THE HOOK WON
+# (2026-11-02, re-measured by epitome's exo and routed here by the PM).
+#
+# `default_targets()` above decides this question one way and says why: a
+# markdown file is read only when a caller names it, "because the registers
+# quote these shapes on purpose". The hook decided it the other way, because
+# it had no predicate at all — every edit was read as a command. The cost is
+# the one no checker should be able to impose: the register that CARRIES L-X5,
+# the standard that EXPLAINS the guard, and the guard's OWN exemptions file
+# were each denied by their own entries, so the next hand that amends L-X5 is
+# stopped by the rule that entry documents. Measured on this box before the
+# fix, with the shape a register entry actually has (a fenced block):
+#
+#   standards/lessons.md             Edit  -> deny
+#   standards/secrets.md             Edit  -> deny
+#   tools/secret-print-baseline.txt  Edit  -> deny
+#
+# A prose file is quoted, not run: nothing executes a sentence, and this rule
+# flags the EXPANSION of a secret-named variable rather than a literal value,
+# so a denial here cannot be protecting a credential. What it was protecting
+# against was somebody writing a runnable file, and that is a suffix question.
+#
+# Two things keep this narrow. It is the EDIT path only -- a `Bash` command
+# that writes prose is still a command, still unreviewed, still denied. And
+# the register stays scannable: `tools/check-secret-print.py standards/lessons.md`
+# reads it exactly as before, which is the audit this exemption answers to.
+PROSE_SUFFIXES = (".md", ".markdown", ".rst")
+# A checker's exemptions register is a list of the shapes it accepts, so every
+# line in it is the idiom by construction. `tools/secret-print-baseline.txt` is
+# this guard's; the suffix rule is written once for all of this repository's
+# `*-baseline.txt` files rather than as one hardcoded path, because the next
+# checker's baseline would otherwise arrive with the same defect.
+EXEMPTION_REGISTER = "baseline.txt"
+
+
+def quotes_rather_than_runs(path):
+    """Is an edit to this path a quotation rather than a command?
+
+    True for prose and for a checker's own exemptions register; False for
+    everything the file scan reads, and for a path this cannot recognise --
+    an unknown suffix stays guarded, because the failure that matters is the
+    one where a new runnable file slips through.
+    """
+    name = os.path.basename(str(path or "")).lower()
+    return name.endswith(PROSE_SUFFIXES) or name.endswith(EXEMPTION_REGISTER)
 
 
 class Finding:
@@ -744,13 +802,35 @@ def scan_text(text, extra=(), line_offset=0):
     return findings
 
 
+FENCE = re.compile(r"^\s*(```|~~~)")
+
+
 def allowed_lines(text):
-    """Line numbers suppressed by a marker on themselves or the line above."""
+    """Line numbers suppressed by a marker on themselves or the line above.
+
+    A marker also covers the fenced block that OPENS on the line it covers
+    (2026-11-02). Without that, the marker was unusable in exactly the files
+    that most need it: a register quotes a shape inside a ``` block, so the
+    fence line sits between the marker and the idiom, and a reader who put the
+    marker where the documentation says to put it still got a denial. Measured
+    before the fix -- marker, fence, idiom: deny; marker, idiom: allow. One
+    marker with one reason now covers the block it introduces, which is also
+    the only form that works when the quotation is more than one line long.
+    """
     allowed = set()
-    for i, line in enumerate(text.splitlines(), start=1):
-        if ALLOW_MARKER.search(line):
-            allowed.add(i)
-            allowed.add(i + 1)
+    lines = text.splitlines()
+    for i, line in enumerate(lines, start=1):
+        if not ALLOW_MARKER.search(line):
+            continue
+        allowed.add(i)
+        allowed.add(i + 1)
+        # The covered line opens a fence: carry the marker to its close, or to
+        # the end of the text if the hunk being written stops inside a block.
+        if i < len(lines) and FENCE.match(lines[i]):
+            for j in range(i + 2, len(lines) + 1):
+                allowed.add(j)
+                if FENCE.match(lines[j - 1]):
+                    break
     return allowed
 
 
@@ -913,7 +993,12 @@ def run_hook(extra=()):
         tool = payload.get("tool_name", "")
         target = (payload.get("tool_input") or {}).get("file_path")
         if findings and tool in FILE_TOOLS and isinstance(target, str):
-            findings = edit_suppressions(findings, text, target)
+            if quotes_rather_than_runs(target):
+                # Prose and exemptions registers: the scan's own predicate,
+                # applied where it was missing. See PROSE_SUFFIXES.
+                findings = []
+            else:
+                findings = edit_suppressions(findings, text, target)
         if findings:
             what = "edit would write a line that prints" if (
                 tool in FILE_TOOLS) else "command would print"
@@ -937,7 +1022,9 @@ def run_hook(extra=()):
                 "An edit that has to carry the shape — a baseline entry, a "
                 "test case, a lesson quoting the idiom — carries an "
                 "L-X5-ALLOW marker with its reason, or a line in "
-                "tools/secret-print-baseline.txt.",
+                "tools/secret-print-baseline.txt. A marker above a ``` fence "
+                "covers the whole block, and an edit to prose (.md, .rst) or "
+                "to a checker's own *baseline.txt is never denied here.",
             ]
             decision = "\n".join(lines)
     except Exception as exc:                       # noqa: BLE001 - see docstring
