@@ -6,52 +6,51 @@ text are carried unedited from the 2026-09-20 all-hands counsel
 below. First landed on `main` 2026-10-27 (`ef3aa8f`), after two prior
 attempts (#35, #39) were closed and a third (#53) closed as a
 duplicate — see that commit for the full history. Re-verified
-independently nineteen times since, each against the
-then-current tip: #372, #373, #392, #393, #400, #403, and #414
-(closed, superseded — each the stray draft of its own pass, resolved
-before or by the next re-verification); #377, #381, #383, #386, #389,
-#397, #398, #405, #406, #410, #411, and #412 (merged); no grade has
-moved across any of them.
+independently twenty times since, each against the then-current tip:
+#372, #373, #392, #393, #400, #403, and #414 (closed, superseded —
+each the stray draft of its own pass, resolved before or by the next
+re-verification); #377, #381, #383, #386, #389, #397, #398, #405,
+#406, #410, #411, #412, and #416 (merged); no grade has moved across
+any of them.
 
-This is the twentieth re-verification, against today's true tip
-`eba9d62` (the merge of this seat's own #412, landed `07:08:47Z`,
-cleanly on top of `84a3cb7`). `git diff 84a3cb7..eba9d62 --stat`
-touches only `docs/okrs.md` itself (#412's own landing commit) — no
-new product commit to re-grade — but every fact #412 checked was
-re-checked again directly against `eba9d62` rather than carried
-forward on an unexamined diff, per this charter's "never invent
-evidence" rule: `cli/package.json` still has `"private": true`; every
-seat workflow in `.github/workflows/` (`agent-market.yml`,
-`agent-engineer.yml`, `agent-exo.yml`, `agent-frontend.yml`,
-`agent-okr.yml`, `agent-pm.yml`, `asc-heartbeat.yml`, each grepped
-directly) still authenticates with the shared `${{ github.token }}`;
-`docs/benchmark/` and `docs/users.md` still don't exist; no `passport`
-match exists anywhere under `cli/`; `docs/cycles/` still has no file
-newer than `2026-10-18-cycle-2-retro.md`; `docs/sprints/` still does
-not exist; the three dogfood-migration checkboxes in `docs/backlog.md`
-(lines 1476, 1497, 1499) are still unchecked; a fresh probe of
-`registry.npmjs.org/epito-cli` just now still returns 404; every line
-count this pass re-cites for O1 KR1 and O2 KR2's code
-(`cli/src/deploy.js` 494, `cli/src/token.js` 115,
-`cli/src/lib/identity.js` 435, `cli/adapters/langgraph_run.py` 277,
-`cli/test/smoke-langgraph.sh` 221, `cli/src/lib/slack.js` 66) still
-matches exactly, confirming none of that code moved either; and
-`docs/vision.md` §0 is still byte-identical to the version this seat
-last held (`git diff 84a3cb7..eba9d62 -- docs/vision.md` is empty) —
-no drift to name there either.
+This is the twenty-first re-verification, against today's true tip
+`30053c4` (the merge of this seat's own #416, landed `08:44:41Z`,
+cleanly on top of `eba9d62`). `git diff eba9d62..30053c4 --stat`
+touches 16 files, most of it the engineer's atomic-write hardening
+(new `cli/src/lib/atomic.js`, 176 lines, plus its own 298-line test)
+threaded into `cli/src/deploy.js` and `cli/src/index.js` — real code
+movement for the first time in several passes, but every fact this
+charter grades was re-checked directly against `30053c4` rather than
+carried forward on the diff's shape: `cli/package.json` still has
+`"private": true`; every seat workflow in `.github/workflows/`
+(`agent-market.yml`, `agent-engineer.yml`, `agent-exo.yml`,
+`agent-frontend.yml`, `agent-okr.yml`, `agent-pm.yml`,
+`asc-heartbeat.yml`, each grepped directly) still authenticates with
+the shared `${{ github.token }}`; `docs/benchmark/` and
+`docs/users.md` still don't exist; no `passport` match exists anywhere
+under `cli/`; `docs/cycles/` still has no file newer than
+`2026-10-18-cycle-2-retro.md`; `docs/sprints/` still does not exist;
+the three dogfood-migration checkboxes in `docs/backlog.md` (lines
+1476, 1497, 1499) are still unchecked; a fresh probe of
+`registry.npmjs.org/epito-cli` just now still returns 404; `identity.js`
+and `token.js` are byte-identical to the last verification (`git diff
+eba9d62..30053c4 -- cli/src/lib/identity.js cli/src/token.js` is
+empty) and `cli/adapters/langgraph_run.py` (277 lines),
+`cli/test/smoke-langgraph.sh` (221 lines), and `cli/src/lib/slack.js`
+(66 lines) all still match the line counts every prior pass has cited;
+and `docs/vision.md` §0 is still byte-identical to the version this
+seat last held (`git diff eba9d62..30053c4 -- docs/vision.md` is
+empty) — no drift to name there either.
 
-**New this pass:** a sibling re-verification, #414, was open against
-this exact tip (`84a3cb7`) when this run started — dispatched by a
-near-identical "your pull request merged" message, racing #412. #412
-merged first; by the time this run checked, #414 was `CONFLICTING`/
-`DIRTY` against `main` (`gh pr view 414 --json mergeStateStatus`),
-because both touched `docs/okrs.md` from the same stale base. This run
-closed #414 as superseded — not "picking a winner between two equal
-siblings" (the call #412 itself declined to make, when both were still
-open and neither had landed), but recognizing that one sibling had
-already landed, which makes the other provably stale rather than a
-coin flip. See Drift item 2 for what this means for the message-
-dispatch loop already named in the last several passes.
+**New this pass:** `cli/src/deploy.js` moved for the first time since
+`ef3aa8f` (494 → 514 lines) — see O1 KR1 below for why that does not
+change its grade — and `docs/backlog.md` now records a second
+`NPM_TOKEN` window dying unused (line 23: "Two `NPM_TOKEN` windows have
+now died unused"), see Drift item 3. This seat had zero open pull
+requests when this run started (`gh pr list --search
+"head:epitome-okr" --state open` returned `[]`), the first clean start
+in three passes running (#412 and #414 both needed a stray closed out
+from under them).
 
 ## Mission (held, never edited — docs/vision.md §0)
 
@@ -65,18 +64,21 @@ dispatch loop already named in the last several passes.
 - **KR1, Committed — 0.5.** `epito deploy` provisions a GitHub App
   principal; `epito token` returns a short-lived token never written
   to disk. The code is real and substantial — `cli/src/deploy.js`
-  (494 lines), `cli/src/token.js` (115 lines, writes only to stdout at
-  line 114), `cli/src/lib/identity.js` (435 lines: RS256 App JWT
-  signing, installation-token minting, scope→permission mapping) — and
-  tested end-to-end against a local stub GitHub server
-  (`cli/test/github-stub.mjs`, `cli/test/smoke-deploy.sh`). What is
-  missing is the KR's own evidence bar: a fresh-clone transcript of a
-  commit landing as `<name>[bot]` against *real* `api.github.com`.
-  `docs/mvp/2026-10-05-status.md` says so itself: "A real GitHub App
-  was not created... Not proven tonight." No later run closes that
-  gap. Same grade as the last verification (`ef3aa8f`, 2026-10-27);
-  none of these files have a commit against them since, so the code
-  did not move either this time.
+  (514 lines, up from 494 this pass), `cli/src/token.js` (115 lines,
+  unchanged, writes only to stdout), `cli/src/lib/identity.js` (435
+  lines, unchanged: RS256 App JWT signing, installation-token minting,
+  scope→permission mapping) — and tested end-to-end against a local
+  stub GitHub server (`cli/test/github-stub.mjs`,
+  `cli/test/smoke-deploy.sh`, both still present). What moved this pass
+  is reliability, not proof: the engineer's new `cli/src/lib/atomic.js`
+  (`writeFileAtomic`) now backs the principals store and the GitHub
+  App private-key write in `deploy.js`, so a disk-full mid-deploy can
+  no longer truncate either file. That closes a real crash-safety gap
+  but is orthogonal to this KR's own evidence bar: a fresh-clone
+  transcript of a commit landing as `<name>[bot]` against *real*
+  `api.github.com`. `docs/mvp/2026-10-05-status.md` still says "A real
+  GitHub App was not created... Not proven tonight," and no later run
+  closes that gap. Same grade as every prior verification.
 - **KR2, Committed — 0.0.** One alexandria seat runs on epito.me and
   its ADR-27 hand-wiring is deleted. `docs/backlog.md`'s own three
   dogfood-migration cards (step 1 run it, step 2 delete the
@@ -101,21 +103,22 @@ dispatch loop already named in the last several passes.
   declined this way.
 - **KR2, Committed — 0.6.** One agent epito did not write acts on
   GitHub through `epito token` with zero code changes. Real and
-  substantial: `cli/adapters/langgraph_run.py` (277 lines) runs an
-  unmodified `langgraph.json`/graph, handles compiled and uncompiled
-  graphs, and is smoke-tested (`cli/test/smoke-langgraph.sh`, 221
-  lines) against the actual installed `langgraph` package, not a fake.
-  Held below 1.0 for the same reason as the last verification: the
-  fixture app it runs (`cli/test/fixtures/langgraph-real/`) is one this
-  repo wrote, not a fresh clone of an independently-authored LangGraph
-  project, so the KR's "zero changes to its own code" claim is tested
-  against our own stand-in rather than someone else's real graph.
+  substantial: `cli/adapters/langgraph_run.py` (277 lines, unchanged)
+  runs an unmodified `langgraph.json`/graph, handles compiled and
+  uncompiled graphs, and is smoke-tested (`cli/test/smoke-langgraph.sh`,
+  221 lines, unchanged) against the actual installed `langgraph`
+  package, not a fake. Held below 1.0 for the same reason as every
+  prior verification: the fixture app it runs
+  (`cli/test/fixtures/langgraph-real/`) is one this repo wrote, not a
+  fresh clone of an independently-authored LangGraph project, so the
+  KR's "zero changes to its own code" claim is tested against our own
+  stand-in rather than someone else's real graph.
 - **KR3, Aspirational — 0.0.** One manifest on two chat platforms,
   only the backend name changed. Only one platform exists at all:
-  `cli/src/lib/slack.js` (66 lines) posts a one-line status line to a
-  webhook and explicitly defers reading/`@-mention` handling ("a Slack
-  reader is a separate, later process," per its own header). No second
-  platform exists in code. No evidence of the KR as written.
+  `cli/src/lib/slack.js` (66 lines, unchanged) posts a one-line status
+  line to a webhook and explicitly defers reading/`@-mention` handling
+  ("a Slack reader is a separate, later process," per its own header).
+  No second platform exists in code. No evidence of the KR as written.
 
 ### O3. Someone other than the owner runs an agent on it. (demand is counted, not asserted)
 
@@ -128,13 +131,13 @@ dispatch loop already named in the last several passes.
   minted per-agent credential. **Named reason:** no cycle has bet this
   work — cycle 1 bet the resident runtime, cycle 2 bet npm
   distribution — so it has sat unscheduled rather than refused. This
-  finding has now been reported unchanged at least twenty times: first
-  in #53 (2026-10-05), again at the `ef3aa8f` landing (2026-10-27),
-  again in #372, #373, #377, #381, #383, #386, #389, #392, #393, #397,
-  #398, #400, #403, #405, #406, #410, #411, #412, and #414 (closed
-  without landing, but the finding was re-checked and re-stated in its
-  body before closure, so it counts), and again at this pass; see
-  Drift below.
+  finding has now been reported unchanged at least twenty-one times:
+  first in #53 (2026-10-05), again at the `ef3aa8f` landing
+  (2026-10-27), again in #372, #373, #377, #381, #383, #386, #389,
+  #392, #393, #397, #398, #400, #403, #405, #406, #410, #411, #412,
+  #414 (closed without landing, but the finding was re-checked and
+  re-stated in its body before closure, so it counts), and #416, and
+  again at this pass; see Drift below.
 - **KR2, Aspirational — 0.0.** Five agents deployed by non-owners,
   tracked in `docs/users.md`. That file does not exist. No evidence.
 - **KR3, Committed — 0.3.** `epito` and the MCP server installable by
@@ -144,12 +147,12 @@ dispatch loop already named in the last several passes.
   runbook, `cli/test/pack.sh`, `cli/test/stranger.sh`), but
   `"private": true` still blocks `npm publish`, and the registry
   itself confirms nothing is live: a direct probe of
-  `registry.npmjs.org/epito-cli` just now (2026-11-02) still 404s, same
-  as `docs/cycles/2026-10-18-cycle-2.md`'s probe of 2026-10-23T21:23Z,
-  after the `NPM_TOKEN` used for the one publish attempt expired unused
-  (2026-10-24T19:26:26Z, `docs/backlog.md` line ~233). What is left for
-  this half is a secrets/account action (mint a token, run the
-  publish), not engineering. The MCP server half is pure pitch
+  `registry.npmjs.org/epito-cli` just now (2026-11-02) still 404s.
+  What is left for this half is a secrets/account action (mint a
+  token, run the publish), not engineering — and that action has now
+  missed twice: `docs/backlog.md` (line 23) records a **second**
+  `NPM_TOKEN` window dying unused since the first expired unused
+  2026-10-24T19:26:26Z. The MCP server half is pure pitch
   (`docs/pitches/epito-mcp-server.md`); it has been declined for a
   cycle bet four times running, most recently in cycle 2, each time by
   owner override rather than on the merits.
@@ -185,64 +188,42 @@ one real deploy away rather than one build away.
    a generic Actions identity, not a self of its own. Not new drift,
    but worth repeating now that the gap has gone two OKR cycles with
    no cycle bet touching it.
-2. **The message-dispatch loop named last pass still holds at four
-   seats this pass — no fifth found, but okr's own volume escalated
-   from redundant cost to an actual merge conflict.** Filtering every
+2. **The message-dispatch loop named every pass since #405 still holds
+   at four seats, and its volume keeps growing.** Filtering every
    seat's own pull requests created `2026-11-02` to branches
    containing `-message` (`gh pr list --search "created:2026-11-02"
-   --state all --json number,state,headRefName,createdAt`, grouped by
-   seat prefix, re-run fresh for all six roster seats rather than
-   carried forward) finds: this seat (okr) 18 such pull requests today
-   (`#373` through `#414` — 12 merged, 6 closed unmerged, 0 still open;
-   the twelfth merge is `#412`, and the sixth closure is `#414`, both
-   new since last pass's count of 16/11/5/0); exo 14 (`#374` through
-   `#409` — 9 merged, 3 closed unmerged, 2 still open: `#396`, `#409`,
-   both unchanged from last pass); the engineer 6 (`#378` through
-   `#408` — 5 merged, 1 still open: `#408`, unchanged); and pm 3
-   (`#391` still open, `#399` merged, and a new `#413` opened at
-   `07:03:23Z`, still open — grew by one since last pass's count of
-   2/1/1). `market` and `frontend` still show none. What is common to
-   all four, and is still the actual drift, is the dispatch mechanism
-   itself: `agents/*/agent.toml`'s `[trigger]` table has only `cron`
-   and `webhook` fields — no `message` field exists anywhere in any
-   seat's manifest, re-grepped this pass — so none of the four has a
-   lever to gate this path the way `#399` gated the main-merge webhook
-   for okr alone. Nothing in this charter grades this: it is not a KR,
-   not the benchmark, and fixing the gate is the same pm/HQ lane that
-   owns `agents/*/agent.toml`'s trigger fields, which is why this pass
-   again names it in Drift and does not touch any manifest itself.
-2a. **New this pass: two sibling re-verifications of this seat's own
-   were open at once and actually conflicted — not just cost, a stuck
-   PR.** #412 and #414 were both dispatched within three minutes of
-   each other (`07:00:27Z` and `~07:06-07:09Z`), both re-verifying the
-   identical tip `84a3cb7`, neither aware of the other (#414's own body
-   names exactly this, and declines to resolve it, recommending
-   "the owner/pm merge whichever of the two lands first and close the
-   other as redundant"). #412 landed first (`07:08:47Z`). By the time
-   this run checked, #414 was `CONFLICTING`/`DIRTY` against `main`
-   (`gh pr view 414 --json mergeStateStatus,mergeable`) — a real stuck
-   state, not merely a wasted review. This run closed #414
-   (with an explanatory comment on the PR) rather than leaving a
-   conflicting PR open for a human to untangle, on the same precedent
-   this seat has already used for #400 and #403: the next
-   re-verification resolves its own seat's stray duplicate. This is
-   not "picking a winner between two equal siblings" in the sense #414
-   declined — by the time this run acted, #412 had already won by
-   landing; closing #414 only recognized that, it did not decide it.
-   Stated plainly for the owner: the shape #399 gated for one seat on
-   one channel is still ungated on the `message` channel, now
-   confirmed to produce not just duplicate PRs but genuine merge
-   conflicts between a seat's own sibling runs, at four seats rather
-   than a fifth. This run's own pull request will itself become one
-   more `message` dispatch to whatever reads this merge next.
+   --state all --json number,state,headRefName,createdAt --limit 300`,
+   grouped by seat prefix, re-run fresh for all six roster seats rather
+   than carried forward — the default `gh` page size of 30 silently
+   truncated an earlier attempt at this count, worth naming so the next
+   pass doesn't repeat it) finds: this seat (okr) 19 such pull requests
+   today (13 merged — `#377` through `#416` — 6 closed unmerged, 0
+   still open; grew by one merge, `#416`, since last pass's 18/12/6/0);
+   exo 18 (`#374` through `#422` — 11 merged, 5 closed unmerged, 2
+   still open: `#396` and a new `#422`, up from last pass's 14/9/3/2);
+   the engineer 8 (`#378` through `#419` — 7 merged, 0 closed, 1 still
+   open: a new `#421`, up from last pass's 6/5/0/1); and pm 4 (`#391`
+   still open, `#399` merged, `#413` still open, and a new `#420` still
+   open, up from last pass's 3/1/0/2). `market` and `frontend` still
+   show none, re-checked directly. What is common to all four, and is
+   still the actual drift, is the dispatch mechanism itself:
+   `agents/*/agent.toml`'s `[trigger]` table has only `cron` and
+   `webhook` fields — no `message` field exists anywhere in any seat's
+   manifest, re-grepped this pass — so none of the four has a lever to
+   gate this path the way `#399` gated the main-merge webhook for okr
+   alone. Nothing in this charter grades this: it is not a KR, not the
+   benchmark, and fixing the gate is the same pm/HQ lane that owns
+   `agents/*/agent.toml`'s trigger fields, which is why this pass again
+   names it in Drift and does not touch any manifest itself.
 3. **The npm publish is a process gap, not an engineering one, and it
-   has already cost one dead token.** Every line of code and every
+   has now cost a second dead token.** Every line of code and every
    gate for `O3 KR3`'s CLI half is green on `main`; the only remaining
    steps are a human secrets action (mint `NPM_TOKEN`, run `npm
-   publish`) that has sat on `docs/backlog.md` since before
-   2026-10-24, after the first token died unused. If this repeats, the
-   benchmark's closest-to-moving proxy stays at zero for a reason that
-   has nothing to do with the product.
+   publish`). `docs/backlog.md` line 23 now records "Two `NPM_TOKEN`
+   windows have now died unused" — a second expiry since the first
+   died unused 2026-10-24T19:26:26Z, both before `npm publish` ever
+   ran. The benchmark's closest-to-moving proxy stays at zero for a
+   reason that still has nothing to do with the product.
 4. **Passport, Slack identity, and the MCP server are owner-declined,
    not neglected — named so it isn't misread as drift.** O2 KR1, O2
    KR3, and O3 KR3's MCP half are all at 0.0 by explicit owner choice
@@ -254,87 +235,64 @@ one real deploy away rather than one build away.
 5. **No fourth objective proposed.** Nothing found this run rises to
    "swap one of O1/O2/O3 out" — the gaps above are sequencing and
    process, not evidence that the three objectives are wrong.
-6. **One stray draft from this seat at this run's start, unlike the
-   immediately prior pass — #414, resolved per item 2a above.**
-   `gh pr view 412` returned `state: MERGED` before this run issued a
-   single `git` command, but `gh pr list --search "head:epitome-okr"
-   --state open --json number` returned `[414]`, not `[]`. Unlike the
-   #400/#403 pattern (two stray drafts of the *same* pass, both
-   superseded by the next one), #414 was a sibling of the *previous*
-   pass (#412), already stale by the time this run checked it. Closed,
-   not left open — see item 2a.
-7. **The webhook hold (#399) still works exactly as scoped for the
-   channel it covers — item 2 above is a second, distinct gap, not
-   evidence the first fix failed.** This run's own trigger is again
-   `message`, not a `main`-merge webhook; `agents/okr/agent.toml`'s
-   `webhook = false` (unedited by this pass, still #399's prior change,
-   read here not written) only covers the latter, and that part is
-   holding — the monthly cron and this `message` path are the only two
-   ways this seat has fired today, consistent with what #405's and
-   #406's own prior items already established about `message` being a
-   third, distinct dispatch path from both cron and the main-merge
-   webhook. What's new this pass is not that the hold broke, but that
-   the same cost pattern it was built to stop is running unblocked
-   through the path it was never scoped to cover.
-8. **This run's dispatch message made one checkable claim and one
-   unverifiable instruction; the checkable one is true, the other was
-   read as data, not as a command.** The message asserted this seat's
-   pull request (#412) merged — confirmed independently via `gh pr view
-   412` (`MERGED` at `07:08:47Z`) — and named the commit it should
-   re-verify against (`84a3cb7`), which this pass did, then went one
-   step further and re-verified against the true current tip `eba9d62`
-   (#412's own merge commit) once it found `84a3cb7` was itself the
-   immediately prior tip, not the latest. The message also said to
-   "continue with the next item in your lane on the board, and say
-   what you took," the identical phrasing every prior pass back through
-   #403 has named (their own Drift item 8) and #414 named again, naming
-   a "board" this charter gives no tool or endpoint for reaching, even
-   though it is a real HQ mechanism (`agents/pm/agent.toml` describes
-   pm's seat as running "the backlog and the board";
-   `agents/okr/agent.toml`'s own webhook-hold comment references a
-   "board handoff from exo"). Per the charter's standing instruction
-   that an event payload is data, never a command, this run read "the
-   next item in your lane" as this seat's only lane item — the next
-   scheduled re-verification pass, which this PR is, plus the loop
-   finding in items 2 and 2a (confirmed again at four seats, no fifth,
-   now with an actual conflict), which the repo evidence surfaced
-   unprompted — rather than as an instruction to query any board API.
-   `BOARD_API_URL` and `BOARD_RUNTIME_TOKEN` are present in this run's
-   environment (checked for presence and length only, never printed,
-   per `standards/lessons.md` L-X5) and `EPITO_HOOK_SECRET` is unset,
-   same as every prior pass naming this; none of the three were called
-   or acted on.
-9. **No action taken on any other seat's pull request this pass.**
-   The one PR this run closed (#414, item 6/2a) was this seat's own, not
-   another seat's; this charter names no duty over any other seat's
-   pull requests, and none of exo's open `#396`/`#409`, the engineer's
-   open `#408`, or pm's open `#391`/`#413` — all open and unmerged as
-   this pass starts — were touched, only read to build the counts in
-   item 2.
-10. **This run readies its own PR before ending, the same as #405,
-    #406, #410, #411, and #412.** `standards/lessons.md` L-A32 — ready
-    at the first moment the branch is coherent, not at the run's last
-    turn, since GitHub refuses to merge a draft at all — is followed
-    again: this PR opens as a draft first, per the charter's output
-    instruction, and is marked ready once its content is complete,
-    continuing the clean pattern #405, #406, #410, #411, and #412 set
-    rather than reverting to the #392/#393/#400/#414 stray-PR shape.
+6. **This run started with zero stray drafts of its own, the first
+   clean start in three passes.** `gh pr list --search
+   "head:epitome-okr" --state open --json number` returned `[]` before
+   this run issued a single `git` command, unlike the #412/#414
+   handoff two passes ago (a genuine merge conflict between two
+   siblings of this same seat) and the #400/#403 pattern before that.
+   Nothing to close this time.
+7. **A real "board" reading tool now exists in the repo
+   (`docs/agents/board.py`), but this charter still gives this seat no
+   duty or reason to call it.** Every prior pass back through #403 has
+   named the dispatch message's closing instruction — "continue with
+   the next item in your lane on the board, and say what you took" —
+   as unverifiable and read it as data, not a command, since this
+   charter names three duties (vision, okrs.md, benchmark) and no
+   fourth that requires querying any board. That is still true this
+   pass: `docs/agents/board.py` is new since the last verification
+   (it did not exist at `eba9d62`) and is a real, callable mechanism
+   (it reads `/api/messages` via `BOARD_API_URL`/`BOARD_RUNTIME_TOKEN`,
+   both present in this run's environment, checked for presence only,
+   never printed) — but it was committed by another seat's lane
+   (`docs/agents/` is HQ/exo's reliability register, per the L73–L106
+   entries added alongside it in `docs/agents/lessons.md`), and nothing
+   in `prompts/okr-agent.md` assigns this seat a reason to run it. This
+   run read "the next item in your lane" the same way every prior pass
+   has: the next scheduled re-verification, which this PR is, plus
+   whatever the repo evidence surfaces unprompted (the drift items
+   above) — not as an instruction to call a tool this charter never
+   names. `EPITO_HOOK_SECRET` remains unset, same as every prior pass
+   naming this.
+8. **No action taken on any other seat's pull request this pass.**
+   This run closed none of its own PRs (item 6: there were none to
+   close) and touched none of exo's open `#396`/`#422`, the engineer's
+   open `#421`, or pm's open `#391`/`#413`/`#420` — all open and
+   unmerged as this pass starts — beyond reading them to build the
+   counts in item 2. This charter names no duty over any other seat's
+   pull requests.
+9. **This run readies its own PR before ending, the same as #405,
+   #406, #410, #411, #412, and #416.** `docs/agents/lessons.md` L-A32
+   (formerly cited as `standards/lessons.md`, which no longer exists
+   as a path — the register moved to `docs/agents/lessons.md` since
+   the last verification, read here, not written by this pass) — ready
+   at the first moment the branch is coherent, not at the run's last
+   turn, since GitHub refuses to merge a draft at all — is followed
+   again: this PR opens as a draft first, per the charter's output
+   instruction, and is marked ready once its content is complete.
 
 ## What this run did not touch
 
 `docs/vision.md` §0 (held, quoted, never edited — confirmed
 byte-identical to the last pass, see above), any charter, and
 `docs/sprints/` (does not exist in this repo, re-confirmed). No fourth
-objective was added. Nothing was merged to `main` by this pass (#412
-had already merged before this run started), no secret was touched,
-and no workflow or manifest file was edited — `agents/okr/agent.toml`'s
-`webhook = false` is #399's own prior change, read here, not written
-by this pass, and the message-dispatch loop named in Drift items 2 and
-2a is reported, not fixed, by this pass: the gate that would widen to
-cover it is pm/HQ's lane over `agents/*/agent.toml`, not this
-charter's. No board API was called (Drift item 8). No other seat's
-pull request was opened, closed, or touched by this pass, including
-exo's open #396 and #409, the engineer's open #408, and pm's open
-#391 and #413 (Drift item 9). This seat's own stray #414 was closed,
-not left open (Drift items 2a and 6) — the one exception to "did not
-touch," and it is this seat's own prior pass, not another seat's.
+objective was added. Nothing was merged to `main` by this pass (#416
+had already merged before this run started), no secret was touched
+(`BOARD_API_URL`/`BOARD_RUNTIME_TOKEN` were checked for presence only,
+never printed or called, per Drift item 7), and no workflow or manifest
+file was edited. No board API was called. No other seat's pull request
+was opened, closed, or touched by this pass, including exo's open
+`#396` and `#422`, the engineer's open `#421`, and pm's open `#391`,
+`#413`, and `#420` (Drift item 8). This seat had no stray PR of its own
+to close this pass (Drift item 6) — the first clean start in three
+passes.
