@@ -496,6 +496,13 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   `smoke-validate.sh` (119), which is 262 of the 658. Per suite, not as one
   sweep, because the `$NAME` reader had to be checked against each file's own
   variables and the two files disagreed about what a haystack even is.
+  One number in this card's own heading has moved since it was written and it is
+  worth saying rather than quietly using the new one: it counts **twelve** files
+  defining a `bad()`, and the count is **thirteen** today — `cli/test/
+  selftests.sh` landed with #375 a few hours after this card was filed, and it
+  is one of the ones that needs no block, because it is handed its evidence as
+  an argument. The nine blind ones are unchanged, which is why the heading still
+  reads true.
   `smoke-temporal.sh` is the one that needed the reader rewritten rather than
   copied. Of its 145 `check` sites only about twenty carry a `$NAME` that
   survives to `check` at all (`$docout` 7, `$PS` 4, `$quiet_ps` 3, `$out` 3):
