@@ -69,11 +69,11 @@ done
 # Five of eighteen. Two more were in this table an hour ago and are not now,
 # which is what a row leaving looks like: pointers.sh and stage.sh.
 LEDGER='
-drafts.sh|0|1|its self-test ends on the scan`s own verdict, so a repository with no drafts in it reads as a failing instrument
-offmain.sh|0|2|the same shape, and the second checkout has no `origin`, which the scan reports as could-not-look (exit 2) over whatever its assertions said
-reverted.sh|0|1|the same shape again, on a scan that answers about reverted commits this other repository does not have
-post.sh|0|1|eight of its assertions read files of THIS repository as their fixtures, so they fail wherever the repository is not
-roster.sh|0|1|three of its assertions read this repository`s own roster as their fixture
+drafts.sh|0|1|the self-test ends on the verdict of the scan, so a repository with no drafts in it reads as a failing instrument
+offmain.sh|0|2|the same shape, and the second checkout has no origin ref, which the scan reports as could-not-look (exit 2) over whatever the assertions said
+reverted.sh|0|1|the same shape again, on a scan about reverted commits that the other repository does not have
+post.sh|0|1|eight of the assertions read files of THIS repository as their fixtures, so they fail wherever the repository is not
+roster.sh|0|1|three of the assertions read the roster of this repository as their fixture
 '
 
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/epito-selftests-XXXXXX")"
