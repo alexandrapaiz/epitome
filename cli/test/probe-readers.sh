@@ -43,7 +43,17 @@ esac; done
 FIXED="${READERS_FIXED:-2000}"
 FRESH="${READERS_FRESH:-20}"
 N='answered and then refused the connection this question needs'
-WORK="$(mktemp -d "${TMPDIR:-/tmp}/epito-probe-readers-XXXXXX")"
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/epito-probe-readers-XXXXXX")" || WORK=""
+# An empty scratch path is not nowhere, it is HERE: every `rm -rf "$WORK"` and
+# every tool run with `-C "$WORK"` would act on the caller's own checkout, and
+# `git -C ""` exits 0 while doing it. mktemp is refused on a full device, which
+# is the ordinary cause. Fix for a reader who hits this: free space under
+# ${TMPDIR:-/tmp}, or set TMPDIR to a filesystem that has some.
+if [ -z "$WORK" ] || [ ! -d "$WORK" ]; then
+  printf 'could not look: no scratch directory under %s, so this probe has nowhere of its own to write.\n' "${TMPDIR:-/tmp}" >&2
+  printf 'Fix: free space on that filesystem, or point TMPDIR at one with room. Refusing rather than writing into %s.\n' "$(pwd)" >&2
+  exit 2
+fi
 FAKE=""
 cleanup() { [ -n "$FAKE" ] && kill "$FAKE" 2>/dev/null; rm -rf "$WORK"; }
 trap cleanup EXIT

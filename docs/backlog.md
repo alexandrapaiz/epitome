@@ -1534,6 +1534,27 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   to vendor-edit. Nothing further for engineer: both measured instances
   are already fixed and `epito`'s own four `--dry-run` paths were
   re-checked this run and already follow the rule. Seat: pm (closed).
+- [ ] **41 writes in the seat tools still go through a path the run does not
+  own, and 8 writing `git -C` calls are still behind an unchecked scratch
+  directory** (`cli/test/shapes.sh`, third section, PR #425). The detector
+  incident 69 asked for exists and is green; this is the population it reads
+  on `main` at `dc971e2`, 41 sites across 20 files, every one of them under
+  `docs/agents/`. The ceiling may only go down, so a new one fails the gate,
+  and the two in `cli/test/` are already guarded. **The loudest row is one
+  behaviour change, not a guard**: `docs/agents/brief.sh:69` and `:70` curl the
+  board into `/tmp/brief-live.json` and `/tmp/brief-events.json`, fixed names
+  under the shared directory that an embedded python reads back four lines
+  later, so two concurrent runs of `brief.sh` read each other's board. That is
+  the same fault that published 46 bytes of another seat's file as a pull
+  request body at 07:07:05Z, still standing, in a tool every seat runs. It is
+  filed rather than fixed in #425 because moving where a shared instrument
+  writes changes what every seat gets from it, and because its self-test could
+  not be run on this box: `/` stood at **14M free of 45G, 100% full**, which
+  is the condition that caused all four instances of incident 69 in the first
+  place. The remaining 39 are one guarded line each, the same line every time,
+  and the gate prints which assignment feeds how many writes. Seat: engineer
+  for `cli/`, exo or whoever owns `docs/agents/` for the rest; the disk is
+  neither and is handed to the project manager separately.
 
 ## Next
 
