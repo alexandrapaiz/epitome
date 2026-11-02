@@ -218,9 +218,15 @@ bad()  {
     done
   fi
   # A single-line haystack printed as a note above IS the answer, so the line
-  # below fires only when nothing at all was said -- which is honest, and is
-  # the case for the four `untouched` assertions and the two that assert a
-  # path does not exist.
+  # below fires only when nothing at all was said -- which is honest. Measured,
+  # by forcing all 158 assertions in this file to fail at once: 4 of them say
+  # it. Three are the dry-run assertions that a path was NOT created
+  # (`[ ! -e .epito/audit.jsonl ]`, `[ ! -d .epito ]`) and one is
+  # `[ -z "$verr" ]`. And that census OVERSTATES the silence for all four,
+  # because a forced failure is not a real one: when `[ ! -d .epito ]` fails
+  # for real the directory is there to list, and when `[ -z "$verr" ]` fails
+  # for real stderr has something in it to print. The `untouched` assertions
+  # are not in the four -- they name $EPITO_BEFORE and $EPITO_AFTER.
   [ "$shown" -gt 0 ] || [ "$shown_any" = 1 ] \
     || printf '       (this assertion names no document; what it looked at is in the test above)\n'
 }
