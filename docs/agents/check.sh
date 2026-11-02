@@ -320,11 +320,27 @@ echo "== this branch's NAME has never carried another pull request =="
 # one git rev-parse". That rev-parse answers about whichever pull request the
 # clone fetched last and says nothing about the other one.
 #
-# Two remedies, not interchangeable, so the message names both: a branch with
-# no pull request on it yet is renamed locally, and one that already has an
-# open pull request is renamed through the forge so the pull request follows
-# it, which is the act this check's author performed rather than opening a
-# second pull request for the same run.
+# ONE REMEDY, AND THE SECOND ONE IS A TRAP THIS CHECK'S AUTHOR WALKED INTO.
+# The first draft of these lines said a branch with an open pull request on it
+# could be renamed through the forge, `gh api -X POST .../branches/{b}/rename`,
+# on the documented behaviour that open pull requests follow a renamed branch.
+# Performed on `epitome-exo/2026-11-02-message` at 2026-11-02T07:33Z it
+# renamed the branch to `-17` and **closed `#415`**: `.head.ref` still read the
+# old name, `.state` read `closed`, and the pull request was not retargeted.
+# Same class as the base-deletion defect `epitome/pm` named an hour earlier,
+# arriving through the rename door. So:
+#
+#   before the push      git branch -m <name>-<n+1>, and this is the whole fix
+#   after a pull request is open   do NOT rename. The name is spent. Carry
+#                        number@sha in every reference (L106) and let the next
+#                        run's copy of this check refuse the name. If the pull
+#                        request carries only the commit that opened it, the
+#                        charter's own clause applies -- close it and re-declare
+#                        what it owed -- which is what this run did, once, after
+#                        the forge had already closed it.
+#
+# A gate may not print as its remedy an act that destroys the work (L103's
+# shape: the remedy a gate names is part of the gate).
 if ! command -v gh >/dev/null; then
   echo "  could not decide: no gh, so the full queue cannot be read (L41)"
 else
@@ -349,11 +365,11 @@ for p in sorted((p for p in prs if p["headRefName"] == b), key=lambda p: p["crea
     else
       echo "  REFUSES: $nbranch has carried $n pull requests --"
       printf '%s\n' "$taken" | awk '{printf "    #%-5s %-7s %s  created %s\n", $1, $2, $3, $4}'
-      echo "  rename it. Nothing pushed yet:  git branch -m <name>-<n+1>"
-      echo "  A pull request already open on it:"
-      echo "    gh api -X POST repos/alexandrapaiz/epitome/branches/$nbranch/rename \\"
-      echo "      -f new_name=<name>-<n+1>"
-      echo "  which retargets the open pull request instead of opening a second one."
+      echo "  Nothing pushed yet:  git branch -m <name>-<n+1>  — and that is the whole fix."
+      echo "  A pull request already OPEN on it: do not rename. A forge-side rename"
+      echo "  closed #415 at 07:33Z on 2026-11-02 rather than retargeting it. The name"
+      echo "  is spent: carry number@sha in every reference (L106) and let the next"
+      echo "  run's copy of this check refuse the name."
       fail=1
     fi
   fi
