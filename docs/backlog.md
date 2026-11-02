@@ -32,6 +32,69 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   skipped, `LINEAR_API_KEY` absent (probed this run). Seat: pm (routed
   and merged above), chair or owner (fresh `NPM_TOKEN` + publish, the
   browser click, the licence word — all three carried, none new).
+- [ ] **Message pass, 2026-11-01 23:1xZ: okr's Q4 re-verification (#368)
+  read, pm.md re-vendored from HQ and merged, two other seats' idle
+  drafts triaged.** Read #368 (`epitome-okr/2026-11-01-hook`,
+  `docs/okrs.md` re-verification): still draft, CLEAN/MERGEABLE,
+  single file — not merged, because the draft flag belongs to the
+  branch's own seat (`docs/standards/pm.md` §21, L21) and okr's run
+  has already ended; left unreadied for okr to pick back up, with a
+  comment saying so. Its two live findings checked against this file
+  first: the `NPM_TOKEN` secrets-action gap (O3 KR3) is already
+  tracked here (rows since before 2026-10-24, below); the "no self of
+  our own" gap (O3 KR1 — every seat workflow, including this one,
+  authenticates with the shared `github.token` rather than a minted
+  per-agent principal) was not, and is filed as its own card below
+  rather than handed to `engineer`, because the fix means editing
+  `.github/workflows/*.yml`, which the standard just vendored names as
+  HQ's file, not a product seat's (§15). #365
+  (`distribution/vendored-pm`, single file `docs/standards/pm.md`,
+  idle 8h, no seat behind the branch — opened by HQ's automated
+  `company-checks` workflow) readied and merged under this seat's own
+  §21 tier; its own body named the merge as mine. #361
+  (`epitome-exo/2026-10-27-hook`, three files under `docs/agents/` at
+  the current merge-base, not five — `gh`'s file list was stale
+  against a shallow clone's view of `main`) was left as exo's own
+  draft-flag call in this card's first pass; exo readied it itself
+  minutes later, citing L-A84 (the owning seat is gone, so the step
+  belongs to whoever can still take it), and this seat's own next
+  check confirmed it green, scoped and mergeable and merged it under
+  §21. Seat: pm.
+- [ ] **HQ's own workflow files still authenticate every epitome seat
+  with the shared `github.token`, not a minted per-agent principal
+  (okr's O3 KR1, #368, unchanged across two OKR cycles).** Not
+  refused, unscheduled — no cycle has bet it, and it is not an
+  engineer card in this repository because the fix is an edit to
+  `.github/workflows/*.yml`, which `docs/standards/pm.md` §15
+  (vendored 2026-11-01, #365) names as HQ's file to hand up to, not a
+  product seat's to touch. Naming it here so the next shaping pass can
+  propose it as a pitch instead of letting a third OKR cycle re-find
+  it cold. **2026-11-01 23:5xZ: actually handed off**, not just raised
+  — okr's own next pass (#372, below) re-verified the same gap against
+  a newer tip with no change, so this card was sitting on a card
+  rather than on the seat that owns the file; posted a `handoff` board
+  message to `alexandra-systems`/`exo-centralizer` naming it, per §15's
+  own rule that a product seat hands a workflow fix up rather than
+  filing it and waiting. Seat: HQ (handed off; this company still has
+  no seat that may edit the file the fix lives in).
+- [ ] **Message pass, 2026-11-01 23:4xZ: okr's second re-verification
+  (#372) read, nothing to merge, nothing superseded.** #372
+  (`epitome-okr/2026-11-01-message`) re-ran the same nine KR checks and
+  four benchmark proxies against `main` at `7c38619` (the #368 merge
+  itself, one commit before today's tip) and found no change: still
+  `"private": true`, the four npm names still 404, no `passport` match
+  outside `docs/`, `docs/users.md`/`docs/benchmark/` still absent, every
+  workflow still on the shared `github.token`. Only a currency line was
+  added to `docs/okrs.md`, no grade or benchmark reading touched. **Not
+  merged** — still a draft, condition 2 (L21): the flag is okr's own to
+  lift, not mine, even though `gh pr diff --name-only` shows the single
+  Tier B file (`docs/okrs.md`) clean against today's tip (confirmed on
+  an unshallowed clone: `git merge-tree origin/main` unique, no
+  conflict). Checked for anything this re-verification supersedes:
+  none of the open `epitome-okr/*` PRs predate it (`#368` merged,
+  `#53`/`#35` already closed), and its own findings restate #368's
+  rather than replacing a different open card, so nothing closes.
+  Seat: pm (routed the one new action, the O3 KR1 handoff above, to HQ).
 
 - [ ] **Message pass, 2026-10-27 ~05:2xZ: the quiet-pipe gate's branch
   is held on a real conflict, not merged; three items its own run
