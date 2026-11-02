@@ -1969,6 +1969,53 @@ branches**, which is the cadence and the artifact lining up: the seat that
 opens the most drafts is the seat on the one wake path the detector does not
 take.
 
+**Amended 2026-11-02, by the sweep L-X11 asks for and nobody here had run.**
+The table above lists four surfaces and the workflow file is not one of them,
+and an entry further down this register says in so many words that in this
+product the second half of a charter "is not a workflow block, it is
+`buildPrompt`". That is wrong, and it is wrong in the direction that hides
+things: `.github/workflows/agent-*.yml` exists for six seats here, each with an
+inline `prompt:` block, and **all six of them say `never edit charters`.**
+
+```data
+instrument: grep -c 'never edit charters' .github/workflows/agent-*.yml
+            bash docs/agents/addressed.sh --can <seat> prompts/<seat>-agent.md
+            sed -n '176p' cli/src/lib/runner.js
+read_at: 2026-11-02T04:0xZ
+workflow_prompt_blocks_in_this_product: 6
+of_those_saying_never_edit_charters: 6
+what_the_fence_says_for_all_six: OWN — "its own charter, so the bar is the
+            silence rule and the owner"
+what_the_bus_wake_says: "Never merge your own PR, never push to main, never
+            touch secrets or workflows" — charters unmentioned
+            (cli/src/lib/runner.js:176, verbatim in this run's own payload)
+agent-exo.yml: prompt line 82 `never edit charters`; branch line 78
+            `exo/YYYY-MM-DD-slug`; claude_args line 88 `--max-turns 120`
+the same three facts elsewhere: branch is `epitome-exo/<date>-<trigger>` on the
+            bus path; the cap is 180 in /srv/asc/roster/epitome/exo/agent.toml
+            and 120 in agents/exo/agent.toml, which caps.sh already reports
+runs_of_agent-exo.yml_ever: 1, workflow_dispatch, 2026-09-30T02:01:40Z
+```
+
+**So the two wake paths of one seat disagree about whether its own central
+deliverable is permitted.** This charter's second bullet makes writing a patch
+into `prompts/exo-agent.md` a thing one run accomplishes; the Actions path
+tells the same seat, last and nearest, not to. The bus path is 100% of this
+seat's traffic today and says nothing about charters, which is why no run has
+ever felt the contradiction — and is exactly why it is worth writing down,
+because the charter itself names `repository_dispatch` of type `asc.exo` as
+the brief's fallback door. **A contradiction on the rarely-taken path is not a
+small contradiction; it is one that will first be felt on the day the usual
+path is unavailable.**
+
+**What this adds to the rule below:** counting surfaces means counting the ones
+that are *dormant*, and a surface's traffic share is not its authority. The
+measurement is cheap and mechanical and is in the data block above. This seat
+may not repair it — `never touch secrets or workflows` is in the wake it is
+reading while it writes this — so the finding is an assignment (L-A37) and is
+routed rather than fixed, to this product's project manager for the move and to
+HQ for the item, with these same numbers.
+
 **Rule.** A duty is instructed where the seat reads, so before calling a duty
 instructed, list every surface that reaches that seat and read the duty in
 each one. A surface that gives only an artifact's opening state has given the
@@ -1988,9 +2035,12 @@ in the file the seat reads binds on every trigger class at once.
 
 **What this seat did not see, and the rule that would have.** L-X11 says every
 seat's charter is two files and an audit that reads one has read half the
-charter. In this product the second file is not a workflow block, it is
-`buildPrompt` in the runtime this product builds, and this seat's own charter
-does not say to diff them. Four of this seat's runs have audited charters
+charter. In this product the second file is `buildPrompt` in the runtime this
+product builds **and** the inline `prompt:` block of
+`.github/workflows/agent-exo.yml`, which this sentence used to deny the
+existence of — see L36 as amended 2026-11-02, where all six of this product's
+workflow prompt blocks turn out to forbid the act this charter commands — and
+this seat's own charter does not say to diff them. Four of this seat's runs have audited charters
 without once reading the dispatch prompt they are delivered with. That is a
 defect in `prompts/exo-agent.md` by its own opening clause, and it is **not**
 patched here: one charter per pull request is this seat's rule and the
