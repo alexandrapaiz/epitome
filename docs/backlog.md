@@ -491,6 +491,77 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   is not mechanical is that each suite names its haystacks differently, so the
   `$NAME` reader has to be checked against each file's own variables rather
   than assumed. Do it per suite, not as one sweep. Seat: engineer.
+  **Status, 2026-11-02 ~02:0xZ (engineer): two of the nine done, on
+  `epitome-engineer/2026-11-02-message-3`** — `smoke-temporal.sh` (143 sites) and
+  `smoke-validate.sh` (119), which is 262 of the 658. Per suite, not as one
+  sweep, because the `$NAME` reader had to be checked against each file's own
+  variables and the two files disagreed about what a haystack even is.
+  `smoke-temporal.sh` is the one that needed the reader rewritten rather than
+  copied. Of its 145 `check` sites only about twenty carry a `$NAME` that
+  survives to `check` at all (`$docout` 7, `$PS` 4, `$quiet_ps` 3, `$out` 3):
+  the rest are written `check "..." "grep -q '<needle>' '$ROOT/x.log'"` in
+  DOUBLE quotes, so the caller expands `$ROOT` and what arrives is a literal
+  path. So this suite's reader asks the expression for a readable FILE among
+  its tokens as well as for a `$NAME`, and 36 sites are answerable only that
+  way. `smoke-validate.sh` is the opposite file: 75 of its assertions name
+  `$OUT` and the doctor's reader transfers almost unchanged.
+  One thing neither card knew, and it is why the reader prints two documents
+  and not one: section 8 of `smoke-validate.sh` is the only assertion in this
+  repository whose claim IS a comparison between two documents (`[ "$before" =
+  "$after" ]`, the find-listing before and after a validate), and printing one
+  of them answers nothing. Both are printed now; the mutated run below shows
+  `./c` appearing, which is the whole answer that assertion exists to give.
+  **Measured as a before and after, on mutated copies of both files, with the
+  trunk copy mutated identically.** `smoke-validate-trunkmut.sh` and
+  `smoke-validate-mut.sh` differ in three needles from their own trunk and
+  branch originals, and both read **122 ok, 6 failed** — the same verdict, which
+  is the claim that this changes what a FAIL SAYS and not what the suite
+  decides. What a reader gets differs completely: trunk prints `FAIL it counts
+  the manifests` and stops, and the branch prints the unevaluated test
+  (`said "$OUT" '4 of 4 manifests are agents'`) and the 468-byte verdict it was
+  asserted against, in which `✓ 3 of 3 manifests are agents` is on screen. Clean
+  runs either side: `smoke-validate.sh` is 128 ok 0 failed on trunk and 128 ok 0
+  failed here; `smoke-temporal.sh` is 197 ok 0 failed here, the count its own
+  card above already gives for a quiet box.
+  **What the clearing of `out`/`OUT` is and is not.** In `smoke-doctor.sh` it
+  fixed a wrong answer already being given (#369). In these two it cannot have,
+  because neither suite had a fallback before this branch — trunk prints nothing
+  at all. It is here so that the fallback this branch introduces cannot become
+  that fault: `smoke-validate.sh` runs twelve sections over one `OUT` and four
+  of them (2, 6, 7, 8) never read it, and `smoke-temporal.sh` has three `out=`
+  sites in two steps two hundred lines apart. Said plainly rather than counted
+  as a third fix.
+  **Seven suites and 396 sites left, in the order their blindness has cost the
+  most:** `smoke-roster.sh` (105), `pack.sh` (95), `smoke-deploy.sh` (71),
+  `deploy/test-provision.sh` (59), `stranger.sh` (31), `smoke-cloudflare.sh`
+  (20), `smoke-bus.sh` (15). Seat: engineer, still one pass per suite.
+- [ ] **Nothing in this repository checks that a suite can report its own
+  failure, so the nine blind ones stayed blind for a week and a tenth would
+  arrive blind.** Found by the engineer run of 2026-11-02 ~02:0xZ (ref
+  `epitome-engineer/2026-11-02-message-3`) after fixing the second and third
+  instances of the fault by hand. Measured, not argued: thirteen files under
+  `cli/test/` and `deploy/` define a `bad()`. Three print the unevaluated test
+  and the haystack (`smoke-doctor.sh`, and the two that branch converts); two
+  need none by their own design and the card above says why (`shapes.sh` puts
+  the measurement in the label, `selftests.sh` is handed its evidence as an
+  argument); one prints an unconditional head of one file whether that file is
+  the haystack or not (`smoke-langgraph.sh`, also named above); and **seven
+  print a label and nothing.** `cli/test/shapes.sh`, the one standing scan this
+  repository has, asks about a pipe shape and has no opinion about whether a
+  failing assertion can say what it looked at.
+  Why it is a card and not a line in the per-suite work above: the per-suite
+  card closes when nine files are converted, and it closes with no reader left
+  that would notice the eleventh suite. This is the same argument that bought
+  `shapes.sh` its place — the quiet-pipe conversions were done twice before a
+  gate existed, and the gate then caught nine NEW sites across three
+  compositions of one branch.
+  The fix is the shape `shapes.sh` already is: for every file that defines
+  `bad()` and a `check()` that evals a test string, assert that `check` passes
+  its test to `bad` and that `bad` prints something beyond the label, with an
+  allowance table seeded at today's seven so the gate is not red on day one and
+  each converted suite deletes its own row. What it cannot assert from the text
+  alone is that the evidence is the RIGHT document — that is per-suite judgment,
+  which is why the card above says per suite. Seat: engineer.
 - [ ] **`pointers.sh --self-test` exits 1 on a tool that is working, because its
   exit code reports the repository's state instead of the test's.** Found by the
   engineer run of 2026-10-27 ~00:1xZ (ref `epitome-engineer/2026-10-26-message-6`)
