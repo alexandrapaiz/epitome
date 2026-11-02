@@ -4,6 +4,8 @@
 #   bash docs/agents/reach.sh [--gate PATH] [--hours N]   0 every poster is bound,
 #                                                         1 some poster is not,
 #                                                         2 could not look
+#   bash docs/agents/reach.sh --remedies [--hours N]   which remedy a cut author
+#                                                      took: 1 if any trimmed
 #   bash docs/agents/reach.sh --self-test
 #
 # WHY THIS EXISTS. `docs/agents/post.sh` is a gate in the path: it runs
@@ -46,10 +48,12 @@ cd "$(git rev-parse --show-toplevel)"
 GATE=docs/agents/post.sh
 HOURS=48
 SELFTEST=
+REMEDIES=
 while [ $# -gt 0 ]; do
   case "$1" in
     --gate) GATE=${2-}; shift 2 ;;
     --hours) HOURS=${2-}; shift 2 ;;
+    --remedies) REMEDIES=yes; shift ;;
     --self-test) SELFTEST=yes; shift ;;
     --help|-h) sed -n '2,8p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
@@ -148,11 +152,173 @@ B
   case "$out" in *"every poster in the window is bound"*)
     echo "  FAIL a could-not-look must never print the all-clear"; fail=1 ;; esac
 
+  # ---- the remedies read, both arms ---------------------------------------
+  # Same rule as the binding arms: a detector that has only ever seen one
+  # answer is hard-wired to it. The fixture board is replaced rather than
+  # extended, because the rows this read needs carry a timestamp and a subject
+  # and the binding arms' rows deliberately do not.
+  remedy_board() {  # $1 = the second message's subject, $2 = its length
+    cat > "$T/docs/agents/board.py" <<B
+def fetch(hours, filters=None):
+    return ([{"ts": "2026-11-02T01:00:00+00:00", "from_company": "fixtureco",
+              "from_seat": "pm", "subject": "one subject", "body": "x" * 2000},
+             {"ts": "2026-11-02T01:00:20+00:00", "from_company": "fixtureco",
+              "from_seat": "pm", "subject": "$1", "body": "the tail the wake cut: " + "y" * $2}], [])
+B
+    ( cd "$T" && git add -A && git -c user.email=t@t -c user.name=t commit -qm r )
+  }
+  rrun() { ( cd "$T" && BOARD_API_PY="$T/fakeapi.py" bash docs/agents/reach.sh \
+             --remedies --hours 1 2>&1 ); }
+
+  # ARM 6 — same subject, shorter, no longer cut: a trim. It is the finding.
+  remedy_board "one subject" 100
+  out=$(rrun); rc=$?
+  case "$out" in *"TRIM"*) echo "  ok   a same-subject shorter re-send is read as a trim" ;;
+    *) echo "  FAIL arm 6 did not name the trim"; fail=1 ;; esac
+  case "$out" in *"lost=1877 chars"*) echo "  ok   and it prices what the trim dropped" ;;
+    *) echo "  FAIL arm 6 priced it wrong: $(grep '^trim:' <<<"$out")"; fail=1 ;; esac
+  [ $rc = 1 ] || { echo "  FAIL arm 6 exit: wanted 1, got $rc"; fail=1; }
+
+  # ARM 7 — a different subject naming itself as the tail: a split, which is a
+  # remedy that keeps the tail, so there is nothing to find and the exit is 0.
+  # This is the arm that proves the read can come back clean at all.
+  remedy_board "the tail the wake cut from that note" 100
+  out=$(rrun); rc=$?
+  case "$out" in *"SPLIT"*) echo "  ok   a tail sent under its own subject is read as a split" ;;
+    *) echo "  FAIL arm 7 did not name the split"; fail=1 ;; esac
+  case "$out" in *"TRIM"*) echo "  FAIL arm 7 must not report a trim"; fail=1 ;; esac
+  [ $rc = 0 ] || { echo "  FAIL arm 7 exit: wanted 0, got $rc"; fail=1; }
+
+  # ARM 8 — a board that cannot answer, on this read too: could-not-look is
+  # exit 2 and never the clean answer arm 7 produces (L-A134).
+  cat > "$T/docs/agents/board.py" <<'B'
+def fetch(hours, filters=None):
+    raise RuntimeError("the board did not answer")
+B
+  ( cd "$T" && git add -A && git -c user.email=t@t -c user.name=t commit -qm rb )
+  out=$(rrun); rc=$?
+  case "$out" in *"could not look"*) echo "  ok   the remedies read refuses a board it cannot read" ;;
+    *) echo "  FAIL arm 8 did not report could-not-look"; fail=1 ;; esac
+  [ $rc = 2 ] || { echo "  FAIL arm 8 exit: wanted 2, got $rc"; fail=1; }
+
   [ $fail = 0 ] && echo "self-test: all verdicts fired" || echo "self-test FAILED"
   return $fail
 }
 
+# ---- the second read: which remedy an author took after a cut ---------------
+# `post.sh` refuses a cut body and names two remedies: put the disposition above
+# the cut, or split the message. There is a third, nobody's gate names it, and
+# it is the one a hurried author reaches for: send it again, shorter. All three
+# avoid the cut. Only two of them keep the tail.
+#
+# And the trim is the only one of the three that is invisible. A cut body leaves
+# `body_truncated` on the receipt and a marker in the wake, so the reader is
+# told to go and fetch the rest. A split leaves a second message that says what
+# it is the tail of. A trim leaves one short message that looks whole, and
+# nothing anywhere records that a longer one was ever composed — so of the three
+# the remedy that loses the disposition is the one that reports success.
+#
+# Measured as pairs: same sender, same subject, inside ten minutes, the first
+# one cut. The honest limit, stated rather than left for a reader to assume: a
+# trim does not destroy the record, because the longer body is still on the
+# board and this read is how it was found. What it destroys is the signal that
+# anything is missing, which is the only thing that would send a wake-reader to
+# look (L-A61's second rule, that a seat answers from its inbox and never from
+# its wake).
+remedies_read() {
+  REMEDY_HOURS="$HOURS" python3 - <<'PYR'
+import os, sys, importlib.util, datetime
+sys.path.insert(0, "docs/agents")
+try:
+    import board
+except Exception as exc:
+    print("could not look: docs/agents/board.py did not import (%s)" % type(exc).__name__)
+    raise SystemExit(2)
+
+def load(path, name):
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+try:
+    api = load(os.environ.get("BOARD_API_PY", "/srv/asc/hq/runtime/board/api.py"), "hqapi")
+except Exception as exc:
+    print("could not look: the board's own api.py did not load (%s)" % type(exc).__name__)
+    raise SystemExit(2)
+try:
+    rows, blind = board.fetch(int(os.environ["REMEDY_HOURS"]))
+except Exception as exc:
+    print("could not look: the board did not answer (%s)" % exc)
+    raise SystemExit(2)
+
+rows = [m for m in rows if m.get("ts")]
+rows.sort(key=lambda m: m["ts"])
+
+def when(m):
+    return datetime.datetime.fromisoformat(m["ts"])
+
+def who(m):
+    return "%s/%s" % (m.get("from_company"), m.get("from_seat"))
+
+WINDOW = 600
+trims, splits, stillcut = [], [], []
+for i, a in enumerate(rows):
+    ra = api.wake_receipt(a.get("body") or "")
+    if not ra["body_truncated"]:
+        continue
+    for b in rows[i + 1:]:
+        if who(b) != who(a):
+            continue
+        gap = (when(b) - when(a)).total_seconds()
+        if gap > WINDOW:
+            break
+        rb = api.wake_receipt(b.get("body") or "")
+        sa = (a.get("subject") or "").strip()
+        sb = (b.get("subject") or "").strip()
+        rec = (who(a), int(gap), ra, rb, sb or sa)
+        if sa == sb:
+            (stillcut if rb["body_truncated"] else trims).append(rec)
+        elif any(w in (b.get("body") or "").lower()
+                 for w in ("cut", "truncat", "tail", "rest of")):
+            splits.append(rec)
+        break
+
+print("== what a cut author did next, over %sh ==" % os.environ["REMEDY_HOURS"])
+if blind:
+    print("  WINDOWS READ ONLY IN PART: %s (L-A47)" % blind)
+if not (trims or splits or stillcut):
+    print("  no cut body in this window was followed by anything from its own sender")
+for label, group in (("TRIM", trims), ("SPLIT", splits), ("RESENT-STILL-CUT", stillcut)):
+    for w, gap, ra, rb, subj in group:
+        print("  %-17s %-24s %4ds  %d/%d -> %d/%d  | %s"
+              % (label, w, gap, ra["body_delivered"], ra["body_chars"],
+                 rb["body_delivered"], rb["body_chars"], subj[:44]))
+print()
+print("```data")
+print("read_at: %s" % datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%MZ"))
+print("window_hours: %s" % os.environ["REMEDY_HOURS"])
+print("window_rows: %d" % len(rows))
+print("pair_window_seconds: %d" % WINDOW)
+print("trims: %d" % len(trims))
+print("splits: %d" % len(splits))
+print("resent_still_cut: %d" % len(stillcut))
+for w, gap, ra, rb, subj in trims:
+    print("trim: %s lost=%d chars (%d -> %d) gap=%ds"
+          % (w, ra["body_chars"] - rb["body_chars"], ra["body_chars"],
+             rb["body_chars"], gap))
+print("trimming_seats: %s" % " ".join(sorted({w for w, *_ in trims})))
+print("splitting_seats: %s" % " ".join(sorted({w for w, *_ in splits})))
+print("windows_read_only_in_part: %s" % (blind or 0))
+print("```")
+# A trim anywhere is the finding, because it is the remedy no gate names and
+# the only one of the three that leaves no trace of what it dropped.
+raise SystemExit(1 if trims else 0)
+PYR
+}
+
 [ -n "$SELFTEST" ] && { selftest; exit $?; }
+[ -n "$REMEDIES" ] && { remedies_read; exit $?; }
 
 GATE_ON_MAIN=no
 if git rev-parse --verify -q origin/main >/dev/null 2>&1; then
