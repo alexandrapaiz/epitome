@@ -241,13 +241,17 @@ audit(){ label="$1"; shift; if node "$CLI/test/audit-has.mjs" "$@" >/dev/null 2>
 # The absence of a line is an assertion too: "this seat minted nothing" is half
 # of what the identity slice promises.
 none(){ n=$(node "$CLI/test/audit-has.mjs" --count "$2"); if [ "$n" = 0 ]; then ok "$1"; else bad "$1 (found $n)"; fi; }
-# Clearing `out` here is what keeps `bad`'s last fallback honest: before this
-# line it printed whatever the last `out=` ANYWHERE in the suite had left
-# behind, which in this file is three sites in two steps, two hundred lines and
-# a dozen sections apart. The same fallback printed a misspelled-flag answer
-# under a roster assertion in smoke-doctor.sh (#369), which is the fault read
-# first and believed. Both steps that assert on `out` set it after their own
-# `step`, so the only thing this forgets is evidence from a different test.
+# Clearing `out` here is what keeps `bad`'s last fallback honest. Said exactly,
+# because it would be easy to read as a fix it is not: this suite had no
+# fallback at all until the line above, so nothing here has ever printed the
+# wrong evidence. The clearing is so that the fallback being introduced cannot
+# start to -- `out=` has three sites in two steps, two hundred lines and a
+# dozen sections apart, and an uncleared `out` would hand a failure in any
+# other section a document from one of those two. That is what smoke-doctor.sh
+# did before #369: a roster assertion's FAIL cited a misspelled-flag answer
+# from forty lines earlier, read first and believed. Checked before clearing:
+# both steps that assert on `out` set it after their own `step`, so the only
+# thing this forgets is evidence from a different test.
 step() { out=""; printf '\n== %s\n' "$1"; }
 # "The clone is gone" is an assertion about an activity that runs AFTER the run
 # the test just watched finish: `cleanup` is its own Temporal activity, so the

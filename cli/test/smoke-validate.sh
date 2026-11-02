@@ -77,13 +77,14 @@ EVIDENCE_LINES="${EPITO_SMOKE_EVIDENCE_LINES:-24}"
 # or an exit code, and it is printed as the note it is; a file named in the
 # expression is read as the document it is, which is what the two `[ -f ]`
 # assertions and section 8's `find` leave behind.
-# Print one haystack under a failing gate. Why a middle rather than a tail:
-# measured on this suite's own `$docout`, which is 6,049 bytes of `epito
-# doctor` report, the row an assertion is usually about sits in the verdict
-# table near the TOP and `tail` showed twenty-four lines of per-seat identity
-# asides from the bottom -- true, bounded, and about nothing the test asked.
-# Both ends and a count of what is between them is the honest version, and the
-# count is what tells a reader to re-run with EPITO_SMOKE_EVIDENCE_LINES set.
+# Print one haystack under a failing gate. Why both ends rather than a tail,
+# measured in smoke-temporal.sh rather than guessed here: a FAIL on that
+# suite's `$docout`, 6,049 bytes of `epito doctor` report, showed twenty-four
+# lines of per-seat identity asides from the bottom while the verdict row the
+# assertion was about sat near the top -- true, bounded, and about nothing the
+# test had asked. Both ends and a count of what is between them is the honest
+# version, and the count is what tells a reader to re-run with
+# EPITO_SMOKE_EVIDENCE_LINES set.
 evidence() {
   local heading="$1" body="$2"
   local -a lines=(); mapfile -t lines <<<"$body"
@@ -166,14 +167,17 @@ check(){ if eval "$2"; then ok "$1"; else bad "$1" "$2"; fi; }
 # a gate crying wolf about once in five runs, and a gate nobody believes is not
 # a gate. A herestring has no pipe and no second process to kill.
 said() { local hay="$1"; shift; grep -q "$@" <<<"$hay"; }
-# Clearing `OUT` here is what keeps `bad`'s last fallback honest: without it the
-# fallback prints whatever the previous section's `validate` left behind, and
-# this suite runs twelve sections over the same variable. Four of them (2, 6, 7
-# and 8) assert on documents of their own and never read `OUT`, so before this
-# line a failure there cited a verdict from a section up to a hundred lines
-# earlier -- the fault that printed a misspelled-flag answer under a roster
-# assertion in smoke-doctor.sh (#369). Every section that does assert on `OUT`
-# sets it after its own `step`.
+# Clearing `OUT` here is what keeps `bad`'s last fallback honest. Said exactly,
+# because it would be easy to read as a fix it is not: this suite had no
+# fallback at all until the line above, so nothing here has ever printed the
+# wrong evidence. The clearing is so that the fallback being introduced cannot
+# start to -- twelve sections share one `OUT`, four of them (2, 6, 7 and 8)
+# assert on documents of their own and never read it, and an uncleared `OUT`
+# would hand a failure in one of those four a verdict from a section up to a
+# hundred lines earlier. That is what smoke-doctor.sh did before #369: a roster
+# assertion's FAIL cited a misspelled-flag answer from forty lines earlier,
+# read first and believed. Checked before clearing: every section that does
+# assert on `OUT` sets it after its own `step`.
 step() { OUT=""; printf '\n== %s\n' "$1"; }
 STUB_PID=""
 cleanup() {
