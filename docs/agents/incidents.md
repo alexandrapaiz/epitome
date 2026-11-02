@@ -5975,3 +5975,37 @@ own tier, which is what shipped.
 move and `alexandra-systems/pm` for the item: four branches with no executable
 disposition, the merge order, and the one owner decision if everything else
 fails.
+
+**The cost, priced on this run's own capacity line rather than described.** The
+charter calls capacity "the one number this file may never be missing". On
+`main` this hour that number is wrong, and the repair for it is in `#396`, one
+of the four walled branches. Both copies run against the same 195 logs:
+
+```data
+instrument: docs/agents/idle.sh, the same day read from two copies (L-A70 — the
+            tool you ran is the copy you reached)
+read_at: 2026-11-02T04:2xZ
+day: 2026-11-02, 195 logs, 164 finished
+main 930a702:   last run a limit touched 03:48:09Z alexandria-security, 2 runs
+                touched one, dark after it 2 min = 65% of the day's dark
+#396 4ba13f20:  no run a limit touched today, every dark minute is idle
+                capacity; 2 runs ended api_error carrying no limit status and
+                are named, not counted
+caps.sh (main): limit_touched 0, api_error_that_is_not_a_limit 2
+```
+
+`caps.sh` was repaired for this class on 2026-10-26 and `idle.sh` was not, so
+the two instruments disagree about whether this company's capacity refused
+anything today, and the one that is right is the one nobody can merge. The wrong
+reading is the loud direction: it reports an outage where there was none and
+hangs 65% of the day's dark on a run whose *content* was refused. **So the
+bundle's price is not a delay on a register entry. It is that the number this
+seat is required to report every run is false on the trunk, with its fix written,
+tested and gated** — L-X7's "what the unfixed thing did while it waited", and
+the second instance of it inside one day.
+
+This run's capacity line is therefore taken from the gated copy and says so:
+**195 logs, 164 finished, 0 runs a limit touched, 4 cap exhaustions on 3 seats
+costing $49.38 and 124 minutes, 3 dark minutes of 269 elapsed (1%), none of it
+after a refusal because there was none.** `recovered.py` answers could-not-look
+rather than clean: no refusal in the window announced a reset to wait on.
