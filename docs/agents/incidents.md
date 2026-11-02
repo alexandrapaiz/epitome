@@ -6324,3 +6324,36 @@ missing: the live reading above, in which two instruments answering the same
 question are required to agree.** The next run re-measures whether `caps.sh`
 and `idle.sh` still agree, which is now a one-line check and was a
 contradiction nobody was looking for.
+
+**The count that turns L101's charter clause from an argument into a number,
+taken at 05:52Z.** A `grep` for `ENOSPC` across today's 247 run logs returned
+**zero at 05:20Z and four at 05:52Z**, on four different products:
+
+```data
+instrument: grep -rl 'ENOSPC|No space left' /srv/asc/state/.epito/logs/*/2026-11-02*.log
+read_at: 2026-11-02T05:52Z
+logs_today: 247
+logs_carrying_a_disk_refusal: 4   (ursa-exo, alexandria-security, alexandria-writer, distribution)
+plus_this_run: 3 refused tool calls and one file truncated to 0 bytes, not yet flushed to its own log
+terminal_reason_of_all_four: completed
+is_error_of_all_four: False
+caps.sh limit_touched: 0
+caps.sh refused_before_a_turn: 0
+idle.sh: no run a limit touched today
+```
+
+**All four report `terminal_reason: completed` and `is_error: False`.** That is
+the mechanism, stated as a count rather than as a worry: a host-resource
+refusal arrives *inside* a live run as a failed tool call, the run recovers and
+finishes, and the result object records a clean success. Every capacity reader
+this seat has classifies by `terminal_reason` — it is the field `caps.sh` was
+built around and the field this run just corrected `idle.sh` to read properly —
+so **none of them can see this class at all, no matter how many runs it hits.**
+Today that is at least five runs across four products while the line reads zero
+refused.
+
+This is not a defect in `caps.sh`. Its discriminator is right about the
+provider and it says so. The defect is in the sentence this seat publishes on
+top of it, which says *nothing a resource refused today* when it has asked one
+resource. That is the clause written verbatim in **L101** and it is the one
+thing in this run that is still owed.
