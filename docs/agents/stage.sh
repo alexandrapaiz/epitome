@@ -4,6 +4,13 @@
 #   bash docs/agents/stage.sh <identifier> [path]   where a fix has reached
 #   bash docs/agents/stage.sh --self-test           fire every verdict on built input
 #
+# `--self-test` builds the repository it reads as well as the install root, so
+# its verdict is about this tool and never about the checkout it is run in: a
+# seat gets a shallow clone, and the first version of this self-test read FAILED
+# on one because stage 1 could not answer "any branch" there. It exits 0 when
+# every assertion holds and 1 when one does not, which is not the 0/1/3 contract
+# below — that one is the tool's answer about an identifier, not about itself.
+#
 # A defect's fix is written, then merged, then installed, then in effect, and
 # those are four acts held by four different hands. Nothing in this company
 # reads them apart, so a tracker takes a bundled item's least-advanced stage
@@ -21,6 +28,10 @@
 # (L-X5), and the environment read is anchored to the start of a record
 # because a line is not a record (L-X5's seventh shape).
 set -uo pipefail
+# Resolved before the `cd` below, and before any case that runs this file
+# again from inside a fixture repository: `$0` is whatever the caller typed,
+# so a relative one stops naming this script the moment the cwd moves.
+SELF=$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "$0")
 cd "$(git rev-parse --show-toplevel)" 2>/dev/null || true
 
 INSTALLED_ROOT=${EPITO_INSTALLED_ROOT:-}
@@ -145,37 +156,126 @@ stage_report() {
 
 if [ "${1:-}" = --self-test ]; then
   # L42: the branch an instrument has never been made to hit is the one that
-  # decides its answer on the day it hits. Each verdict below is built.
-  t=$(mktemp -d); trap 'rm -rf "$t"' EXIT; fail=0
-  check() { if grep -qF "$3" <<<"$2"; then echo "  ok   $1"
-            else echo "  FAIL $1: wanted '$3' in:"; printf '%s\n' "$2" | sed 's/^/        /'; fail=1; fi; }
+  # decides its answer on the day it hits. Each verdict below is built — and
+  # BUILT means built, including the repository. The first version of this
+  # block handed stages 1 and 2 the live clone, which made its verdict a
+  # property of how the box happened to clone: on a shallow clone, the only
+  # kind a seat gets, stage 1 is could-not-look, the first gap is `written`
+  # instead of `installed`, and the tool printed `self-test FAILED` while
+  # behaving exactly as designed. A seat runs a self-test to ask whether the
+  # instrument works; it must answer that and nothing else.
+  t=$(mktemp -d); trap 'rm -rf "$t"' EXIT; fail=0; pass=0
+  check_rc() {  # what it asserts, the exit code seen, the exit code owed
+    # Numbers compared as numbers. The first version asked `check "rc=$rc"` for
+    # the string `rc=1`, which `rc=127` satisfies — and 127 is "command not
+    # found", so the assertion that this tool exits right passed loudest in the
+    # one case where the tool had not run at all (seen in this run, 1 ok of 19
+    # while every report read `No such file or directory`).
+    if [ "$2" = "$3" ]; then printf '  ok   %s\n' "$1"; pass=$((pass + 1))
+    else printf '  FAIL %s\n       wanted exit %s, got exit %s\n' "$1" "$3" "$2"; fail=$((fail + 1)); fi
+  }
+  check() {  # what it asserts, the text, the needle
+    # `[[ == ]]` and not `grep -qF`: a needle with a newline in it is a LIST of
+    # patterns to grep -F, matched independently, so `"1. written"\n"   NOT
+    # REACHED"` was satisfied by stage 3's NOT REACHED and said nothing about
+    # stage 1 at all. Measured: 2 of 2 asks matched a fixture where the two
+    # lines are four lines apart. Bash's own match has no such semantics.
+    if [[ $2 == *"$3"* ]]; then printf '  ok   %s\n' "$1"; pass=$((pass + 1))
+    else
+      printf '  FAIL %s\n       wanted, adjacent: %s\n       in:\n' "$1" "${3//$'\n'/ ⏎ }"
+      sed 's/^/       | /' <<<"$2"
+      fail=$((fail + 1))
+    fi
+  }
+
+  # The repository the four stages read, built: two commits on a `main` ref and
+  # one identifier that exists only on a side branch, so `written` and `merged`
+  # can disagree the way they do in life. `git log --all` sees the side branch;
+  # the governing ref does not.
+  repo=$t/repo
+  git init -q -b main "$repo"
+  git -C "$repo" config user.email self-test@epito.me
+  git -C "$repo" config user.name 'stage.sh self-test'
+  # The third identifier is env-var shaped and exported into the asks below, so
+  # the case where the ONLY gap is the install can be built here instead of
+  # borrowed from the checkout. `PATH` used to play that part: it reads as
+  # written and merged in this repository because commits mention it, which is
+  # a fact about this repository and not about the tool.
+  printf 'ZZ_FIXTURE_MERGED_ZZ and a fixture phrase, with ZZ_STAGE_SELFTEST_ZZ beside them\n' > "$repo/on-main.txt"
+  git -C "$repo" add -A; git -C "$repo" commit -qm 'the fixture main carries two identifiers'
+  git -C "$repo" checkout -q -b side
+  printf 'ZZ_FIXTURE_WRITTEN_ZZ\n' > "$repo/on-side.txt"
+  git -C "$repo" add -A; git -C "$repo" commit -qm 'written, not merged'
+  git -C "$repo" checkout -q main
+  # The shallow clone of it, which is the condition that broke this block. A
+  # built input now, not an accident of the box.
+  git clone -q --depth 1 --no-local "file://$repo" "$t/shallow" 2>/dev/null
+  ask() {  # the stage report, from inside the fixture repository
+    local dir=$1; shift
+    ( cd "$dir" && STAGE_MAIN_REF=${STAGE_MAIN_REF:-refs/heads/main} "$@" ) 2>&1
+  }
 
   mkdir -p "$t/pkg"; printf '{"name":"stub"}\n' > "$t/pkg/package.json"
 
-  out=$(EPITO_INSTALLED_ROOT=$t/pkg bash "$0" ZZ_NO_SUCH_IDENTIFIER_ZZ 2>&1); rc=$?
+  out=$(ask "$repo" env EPITO_INSTALLED_ROOT="$t/pkg" bash "$SELF" ZZ_NO_SUCH_IDENTIFIER_ZZ); rc=$?
   check "an identifier nobody wrote is NOT REACHED at written" "$out" "1. written"$'\n'"   NOT REACHED"
+  check "an identifier nobody merged is NOT REACHED at merged, and names the hand" "$out" \
+    "2. merged (refs/heads/main)"$'\n'"   NOT REACHED  not on refs/heads/main — the act owed is a merge"
   check "an absent install says the act owed is an install" "$out" "the act owed is an install"
   check "an absent env var says it is not reaching the seat" "$out" "is absent from this run"
-  check "a gap exits 1" "rc=$rc" "rc=1"
+  check_rc "a gap exits 1" "$rc" 1
+
+  out=$(ask "$repo" env EPITO_INSTALLED_ROOT="$t/pkg" bash "$SELF" ZZ_FIXTURE_WRITTEN_ZZ)
+  check "written on a branch and nowhere else is REACHED at written" "$out" "1. written"$'\n'"   REACHED"
+  check "...and still NOT REACHED at merged, which is the whole point of reading them apart" \
+    "$out" "2. merged (refs/heads/main)"$'\n'"   NOT REACHED"
+  check "...so the first gap is the merge and the hand is named" "$out" \
+    "first gap: merged — merge it (a project manager or a chair)"
+
+  out=$(ask "$repo" env EPITO_INSTALLED_ROOT="$t/pkg" bash "$SELF" ZZ_FIXTURE_MERGED_ZZ)
+  check "an identifier on the governing ref is REACHED at merged" "$out" \
+    "2. merged (refs/heads/main)"$'\n'"   REACHED  landed in"
 
   printf 'ZZ_NO_SUCH_IDENTIFIER_ZZ\n' > "$t/pkg/carries.txt"
-  out=$(EPITO_INSTALLED_ROOT=$t/pkg bash "$0" ZZ_NO_SUCH_IDENTIFIER_ZZ 2>&1)
+  out=$(ask "$repo" env EPITO_INSTALLED_ROOT="$t/pkg" bash "$SELF" ZZ_NO_SUCH_IDENTIFIER_ZZ)
   check "an install that carries it is REACHED" "$out" "file(s) under that root carry it"
 
-  out=$(EPITO_INSTALLED_ROOT=$t/pkg bash "$0" 'some phrase' 2>&1); rc=$?
-  check "a non-env identifier cannot be observed in a run" "$out" "4. in effect (this run)"$'\n'"   COULD NOT LOOK"
-  check "could-not-look exits 3 and not 0" "rc=$rc" "rc=1"
+  # Three stages reached and the fourth unobservable: the documented exit 3,
+  # which no case in this block could reach before, because a gap at written or
+  # merged had already made it 1.
+  printf 'a fixture phrase\n' > "$t/pkg/carries.txt"
+  out=$(ask "$repo" env EPITO_INSTALLED_ROOT="$t/pkg" bash "$SELF" 'a fixture phrase'); rc=$?
+  check "a non-env identifier cannot be observed in a run" "$out" \
+    "4. in effect (this run)"$'\n'"   COULD NOT LOOK"
+  check_rc "could-not-look exits 3 and not 0" "$rc" 3
+  check "...and could-not-look is not spelled like a gap or like clean (L41)" "$out" \
+    "first gap: in effect — name an observable this run can read"
 
-  out=$(EPITO_INSTALLED_ROOT=$t/nope bash "$0" PATH 2>&1)
+  out=$(ask "$repo" env ZZ_STAGE_SELFTEST_ZZ=1 EPITO_INSTALLED_ROOT="$t/nope" bash "$SELF" ZZ_STAGE_SELFTEST_ZZ)
   check "an unresolvable install is COULD NOT LOOK, not clean" "$out" "no installed copy resolved"
   check "the summary names the first gap and not the furthest stage" "$out" "first gap: installed"
+  check "...and the hand for that gap is the one incident 5 says holds no seat" "$out" \
+    "name the installed root, then ask again"
   check "a name present in this run is REACHED" "$out" "is present in this run"
 
-  out=$(STAGE_MAIN_REF=refs/heads/no-such-ref EPITO_INSTALLED_ROOT=$t/pkg bash "$0" PATH 2>&1)
+  out=$(ask "$repo" env ZZ_STAGE_SELFTEST_ZZ=1 STAGE_MAIN_REF=refs/heads/no-such-ref \
+    EPITO_INSTALLED_ROOT="$t/pkg" bash "$SELF" ZZ_STAGE_SELFTEST_ZZ)
   check "a missing governing ref is COULD NOT LOOK" "$out" "is not in this clone"
 
-  [ $fail = 0 ] && echo "all verdicts agree" || echo "self-test FAILED"
-  exit $fail
+  # The shallow clone, asked the same question: the tool must say what it cannot
+  # see and name the fix, and it must not call that a gap in the work.
+  if [ -d "$t/shallow/.git" ]; then
+    out=$(ask "$t/shallow" env EPITO_INSTALLED_ROOT="$t/pkg" bash "$SELF" ZZ_FIXTURE_MERGED_ZZ)
+    check "a shallow clone cannot answer 'any branch' and says so (L41)" "$out" \
+      "1. written"$'\n'"   COULD NOT LOOK  this clone is shallow"
+    check "...and names the fix in the message, not just the rule" "$out" "git fetch --unshallow"
+  else
+    printf '  SKIP a shallow clone could not be made here, so that branch is unasked\n'
+  fi
+
+  if [ "$fail" = 0 ]; then printf 'self-test: %d ok, 0 failed — all verdicts agree\n' "$pass"
+  else printf 'self-test FAILED: %d ok, %d failed — this tool is wrong about built input.\nFix the tool, or the expectation if the contract moved.\n' "$pass" "$fail"; fi
+  exit $(( fail > 0 ))
 fi
 
 [ -z "${1:-}" ] && { sed -n '2,20p' "$0"; exit 2; }

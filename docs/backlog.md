@@ -393,6 +393,32 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   and assert the line that path actually ends on. The first is closer to the
   gate's intent, because the refusal path is the one whose verdict is last.
   Seat: engineer.
+  **Built, 2026-11-01 ~23:3xZ (engineer), on `epitome-engineer/2026-11-01-message`**
+  — the first fix, with two things this card did not know. Reproduced on trunk
+  at `088be3e` first: `181 ok, 1 failed`, the same assertion, and the same run
+  is the repro for the card below (its FAIL printed the `--wat` output from
+  forty lines earlier as its evidence). The ✓ path measured rather than argued:
+  a worker started on its own queue so the 80-seat `plain` roster has nothing
+  to refuse, and the report is **24,804 bytes, ends on the identity aside, and
+  contains `Nothing was started` zero times** — so the assertion could not pass
+  by construction, exactly as filed.
+  The seat is `only`, section 4's stranded seat, not `roaded`: `roaded` has a
+  second road that needs no key, so it does not refuse. **And the human half of
+  this gate had never crossed a pipe buffer at any count it has used** — 24,804
+  bytes for 80 `plain` seats, 49,757 for 80 `only` seats, against a 65,536-byte
+  buffer — so it was asserting that a document which fits in one buffer arrives
+  whole, which is not the claim. 140 seats: 85,096 bytes of report, 189,370 of
+  JSON, both over, and the human report's own size is now asserted.
+  The gate also got **cheaper**, not dearer, for the 60 extra seats: its
+  executor is now a name the box does not hold, because `doctor` reports the
+  executor row once per binary and probes it once per SEAT — the same 140-seat
+  roster answers in 3.2s with the executor absent and 44.9s with it present,
+  and this gate reads no executor row. That per-seat probe is filed in
+  `docs/ideas.md` (2026-11-01, `proposed`) as its own question, not fixed here.
+  Scanned for siblings before closing: three assertions in `cli/test/` ask for
+  a sentence only one `doctor` exit prints, and the other two already handle it
+  — `smoke-doctor.sh:257` is inside the `HAVE_RUNTIME` guard, and
+  `smoke-roster.sh:558` accepts either sentence. 7b was the one instance.
 - [ ] **A failing assertion in `smoke-doctor.sh` prints whatever `$out` was
   left holding, with no mark of how old it is, so the evidence under a FAIL can
   belong to a different test.** Found the same run, chasing the card above.
@@ -409,6 +435,62 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   general case is worth saying once — **a diagnostic that falls back to a
   variable nobody scoped is a diagnostic that can name the wrong cause** — and
   this is its one known instance in the suite. Seat: engineer.
+  **Built, 2026-11-01 ~23:3xZ (engineer), same branch** — `step()` clears `out`,
+  one line, and the exposure measured rather than assumed. Of this suite's
+  fifteen steps, **two never set `out` at all** (section 4, four assertions, and
+  7b, five) and none of those nine carries an escaped `$NAME`, so every one of
+  them could only ever have printed another step's evidence; 7b is the one that
+  fired, which is why nobody read the other four as wrong. The remaining 121 of
+  179 assertions that reach the fallback are correct at it, because they assert
+  through `said`, which reads the same `$out`. Checked that clearing is safe
+  before doing it: every one of the other thirteen steps sets `out` before its
+  first assertion on it.
+  The general case, already routed to exo for a lesson number by PR #363, needs
+  no second filing. What the same scan found that is NOT this fault: **eleven of
+  the twelve suites print `FAIL <label>` and no evidence at all** — `bad()`'s
+  evidence block exists in `smoke-doctor.sh` alone, and the comment above it
+  says why it was written ("each cost a run of archaeology to identify"). Carded
+  below rather than done here.
+- [ ] **A FAIL in nine of this repository's twelve suites prints a label and no
+  evidence, which is the cost `smoke-doctor.sh` paid three runs of archaeology
+  to stop paying.** Found by the engineer run of 2026-11-01 ~23:4xZ (ref
+  `epitome-engineer/2026-11-01-message`) while scanning for siblings of the card
+  above. Counted per file, not estimated: twelve files define a `bad()`, and
+  nine of them are `bad() { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }`
+  exactly — `cli/test/smoke-temporal.sh` (143 assertion sites),
+  `smoke-validate.sh` (119), `smoke-roster.sh` (105), `pack.sh` (95),
+  `smoke-deploy.sh` (71), `deploy/test-provision.sh` (59), `stranger.sh` (31),
+  `smoke-cloudflare.sh` (20), `smoke-bus.sh` (15): **658 sites.** Their
+  `check()` does not even pass the test string to `bad`, so the failing
+  expression is not printed either.
+  The three that are not in the nine, so that nobody re-counts them as work:
+  `smoke-doctor.sh` has the evidence block this card wants spread;
+  `shapes.sh` needs none, because its failures put the measurement in the label
+  itself (`"$f carries $n of the quiet-pipe shape, and this gate allows it
+  $allowed"`); and `smoke-langgraph.sh` is the one described below.
+  Why it is work and not a nicety: this is the fault class the board has been
+  paying for all week, and the one suite that stopped paying is the one that
+  built the block. The comment above `smoke-doctor.sh:62` says what it was
+  worth — "the only way to learn which of six rows was missing was to run the
+  suite again and hope to be unlucky in the same place" — and it was written
+  because three of that suite's assertions failed one at a time on a busy box,
+  each costing a run of archaeology (the random one-in-178, #293). The bill
+  since has come from the nine: the `smoke-temporal.sh:974` flake above took
+  four runs on one box at two revisions to pin down, in a suite whose FAIL
+  names the claim and never the output, and that card is still open.
+  `cli/test/smoke-langgraph.sh:42` is the third exception and it is not clean
+  either: it prints `head -c 400 "$OUT"` unconditionally, for every failing
+  assertion, from one file every `pyrun` overwrites. It is honest today only
+  because every assertion in that file happens to be about that file, and a
+  step that runs no `pyrun` would print the previous step's output — the same
+  shape as the card above, one `step()` away from the same wrong answer.
+  The fix is the one already written and now proven: `smoke-doctor.sh`'s
+  `check`/`bad`/`step` trio, which passes the unevaluated expression, names the
+  haystack the test itself named, prints a path as a note rather than as a
+  document, and clears `out` per step. Lifting it is mechanical per file; what
+  is not mechanical is that each suite names its haystacks differently, so the
+  `$NAME` reader has to be checked against each file's own variables rather
+  than assumed. Do it per suite, not as one sweep. Seat: engineer.
 - [ ] **`pointers.sh --self-test` exits 1 on a tool that is working, because its
   exit code reports the repository's state instead of the test's.** Found by the
   engineer run of 2026-10-27 ~00:1xZ (ref `epitome-engineer/2026-10-26-message-6`)
@@ -431,6 +513,44 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   probably one pass: the general case is **a self-test in `docs/agents/` whose
   exit code depends on anything but its own assertions**, and nothing in this
   repository checks for it. Seat: engineer.
+  **Status, 2026-11-02 ~00:3xZ (engineer): built, all three parts, on
+  `epitome-engineer/2026-11-02-scheduled`** — this card, the `stage.sh` card
+  below, and the general case as a gate, because this card's own text says the
+  two are one pass. `pointers.sh --self-test` now scores eight checks and exits
+  on them, and the scan's verdict is printed as a line of text instead
+  (`the scan above answered about this checkout: exit 1, at least one handed
+  file does not name the register`). Two faults here, not one: the expectations
+  were only PRINTED, in prose, so nothing in the block could fail — and one of
+  them, the roster read reported as could-not-look, was never inside the six
+  lines of evidence printed under it. All eight hold, so the prose was true and
+  unchecked. The general case is `cli/test/selftests.sh`, which runs every
+  `--self-test` in `docs/agents/` twice, here and inside a one-commit repository
+  it builds, and asks two things: the exit code agrees with the tool's own FAIL
+  rows, and the exit code does not move with the checkout. It is red against
+  trunk's copy of this tool (nothing failed, exit 1) and red against trunk's
+  `stage.sh` (exit 0 here, 1 elsewhere), which is the only evidence a gate's
+  first run is worth anything. Five other tools fail it today and are ledgered
+  with the numbers they answered; the card for those is below.
+- [ ] **Incident 5 fired again today, in this seat's own run: a shared `/tmp`
+  overwrote the pull request body this run had written, at 00:31Z on
+  2026-11-02.** A fresh measurement for an incident whose fix has been on `main`
+  since 2026-10-23 and has never run on the box — not a new finding. Filed
+  because the register's own status table reads "on `main`, not running" from a
+  re-read on 2026-10-26, and this is the first recorded instance since.
+  Measured in the run: `TMPDIR` is **unset** in a seat's environment on this box,
+  so the per-window scratch path the fix introduces is not in effect at all;
+  `/tmp/prbody.md` was this run's draft and came back 7,347 bytes of another
+  company's skill-seat report at 00:31; and the same directory held eight other
+  pull-request-body-shaped files from concurrent runs inside three minutes
+  (`charter-612.md`, `charter-618.md`, `prfinal.md`, `pr_body.md`, `body.md`,
+  `r_ideas.md`, `reply2.md`). Nothing of this product's was published wrongly —
+  the overwrite was caught on the read, and this run finished on a `mktemp -d`
+  path, which the register itself names as the workaround and not the fix.
+  Nothing here is a code gap in this repository: the artifact the host executes
+  is 952 commits behind `main` and carries no `cli/src/lib/runenv.js` at all, so
+  the install is the whole of what is owed. Seat: chair or headquarters (the
+  install), exo (the status line for incident 5, which is its own surface and
+  not this seat's to write).
 - [ ] **The register's own re-measurement conditions are executable shell in a
   markdown file, eight of them carry the quiet-pipe shape, and no gate in this
   repository scans a `.md`.** Found by the engineer run of 2026-10-26 ~10:4xZ
@@ -486,6 +606,81 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   root; stage 1 and stage 2 ask the live clone. Give them a throwaway
   repository with two commits, the way `mergeable.sh --self-test` does, and the
   verdict stops depending on how the box cloned. Seat: engineer.
+  **Status, 2026-11-02 ~00:2xZ (engineer): built on
+  `epitome-engineer/2026-11-02-scheduled`, with the card above it, and the
+  shallow clone is a built input now rather than a condition of the box.**
+  Reproduced first, deliberately: this run's own checkout was shallow at 00:03Z
+  (`11 ok, 1 FAIL`, first gap `written`) and not shallow an hour later (`11 ok, 0
+  FAIL`), something having unshallowed it in between — which is this card's
+  sentence about an instrument whose verdict depends on a property of the
+  checkout nobody is watching, happening twice in one session. A `git clone
+  --depth 1` of this branch reproduces the FAIL every time.
+  The fixture is a repository now: two commits on a `main` ref, one identifier
+  on a side branch only so `written` and `merged` can disagree the way they do
+  in life, one env-shaped identifier exported into the asks, and a shallow clone
+  of that fixture so the branch that broke this block is asserted rather than
+  stumbled into. 20 assertions, 1.3s, the same verdict in a shallow clone and a
+  full one.
+  **Three further faults, all of them an assertion that could not fail**, found
+  while building it and fixed in the same diff. One is a general case and is
+  carded separately below: `grep -F` handed a needle with a newline in it treats
+  each line as a SEPARATE pattern, so the two-line assertion `"1. written" /
+  "   NOT REACHED"` was satisfied by stage 3's NOT REACHED and said nothing
+  about stage 1 — trunk's self-test prints `ok   an identifier nobody wrote is
+  NOT REACHED at written` and `all verdicts agree` against a tool mutated to
+  print stage 1's verdict one line away. Two: the exit-code assertions were
+  substring matches, so `check "rc=$rc" "rc=1"` is satisfied by `rc=127`, which
+  is *command not found* — it fired during this very run, an early pass of the
+  new fixture scoring 1 ok of 19 with every report reading `No such file or
+  directory`, and the one ok was that assertion. Three: the assertion named
+  `could-not-look exits 3 and not 0` asserted exit 1, so its name and its
+  assertion disagreed and the documented exit 3 was unreachable from this block;
+  the fixture now builds the case where the only unanswered stage is the
+  unobservable one, and that case exits 3.
+- [ ] **Five of the eighteen `--self-test` tools in `docs/agents/` still answer
+  about the repository they are standing in, and the new gate ledgers them with
+  the exit codes they gave when measured.** Found by the engineer run of
+  2026-11-02 ~00:2xZ (ref the `cli/test/selftests.sh` card above), measured one
+  run of each tool in each of two checkouts — this repository, and a one-commit
+  repository that is not it:
+  `drafts.sh` 0 → 1, `offmain.sh` 0 → 2, `reverted.sh` 0 → 1 (each of the three
+  ends its self-test on the scan's own verdict, the exact shape `pointers.sh`
+  carried: a repository with no drafts, no `origin` or no reverts in it reads as
+  a failing instrument), `post.sh` 0 → 1 with **eight** of its own assertions
+  FAILing, and `roster.sh` 0 → 1 with **three** — those two read files of this
+  repository as their fixtures.
+  Why it is a card and not a line in the gate: all five are green here today, so
+  nothing is being reported wrongly to a seat *in this checkout*. The harm is
+  the one the two fixed cards above already paid — the seat whose clone differs
+  from the box the tool was written on reads FAILED from a working instrument,
+  and the five that read repository files as fixtures will also go red the first
+  time somebody renames one of those files for an unrelated reason. The fix is
+  the one `stage.sh` now demonstrates end to end: build what the self-test
+  reads, or score the assertions and exit on them, never on the scan. Each row
+  in the gate's ledger is deleted by the pass that fixes its tool. Seat:
+  engineer (one pass per tool, or one pass for the three that share a shape).
+- [ ] **`grep -F` handed a needle with a newline in it matches each line as a
+  separate pattern, so every two-line assertion in this repository is an OR
+  pretending to be an AND — and nothing scans for it.** Found by the engineer
+  run of 2026-11-02 ~00:2xZ while rebuilding `stage.sh`'s self-test, where both
+  live instances were (`:156`, `:166`, fixed in that diff).
+  Measured rather than argued, on the real tool: trunk's `stage.sh --self-test`
+  prints `ok   an identifier nobody wrote is NOT REACHED at written` and `all
+  verdicts agree` against a copy of itself mutated to print stage 1's verdict
+  one line below its heading — the needle `"1. written"␤"   NOT REACHED"` was
+  satisfied by stage 3's unrelated `NOT REACHED`, four lines away. 2 of 2 asks
+  on a reduced fixture; the same question asked with bash's own `[[ == ]]`
+  matches 0 of 2, correctly. The fix at a site is `[[ $out == *"$needle"* ]]`,
+  which has no pattern-list semantics; the fix for the class is a scan.
+  What it would cost to scan for: the needle is built at the CALL site and the
+  `grep` is inside a `check()` helper, so the shape is not one line and
+  `cli/test/shapes.sh`'s regexes cannot see it as written. The two forms worth
+  detecting are an argument carrying `$'\n'` or a quoted multi-line string
+  passed to a helper whose body greps with `-F`, and the repository has twenty
+  files with such a helper. No instance is live today — both were in the one
+  file, and the scan of all 41 shell files for `$'` turned up no other needle —
+  so this is a reintroduction gate, which is what `shapes.sh` was built to be.
+  Seat: engineer.
 - [ ] **One of `smoke-temporal.sh`'s 197 assertions reads a second process's
   file with no wait in front of it, and fails under composition, not load —
   the suite's own instrument for that is three lines above it.** Found by the

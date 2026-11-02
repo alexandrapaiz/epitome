@@ -219,7 +219,7 @@ run_suite() {
   # this list reports as `unrun` with 0 assertions counted, which is the exact
   # false negative the diagnostic below was written for — test/stranger.sh hit
   # it on its first run through here.
-  tally="$(grep -Eo '^(smoke|provision|pack|stranger|shapes): [0-9]+ ok, [0-9]+ failed' "$log" | tail -1)"
+  tally="$(grep -Eo '^(smoke|provision|pack|stranger|shapes|selftests): [0-9]+ ok, [0-9]+ failed' "$log" | tail -1)"
   if [ -z "$tally" ]; then
     local p f
     p="$(grep -Eo '^# pass [0-9]+' "$log" | tail -1 | grep -Eo '[0-9]+')"
@@ -267,6 +267,7 @@ run_suite() {
 # First, because it needs no prerequisite, answers in milliseconds, and looks
 # for a fault no suite run can find: a gate carrying the quiet-pipe shape passes.
 run_suite "shapes"          bash "$CLI/test/shapes.sh"
+run_suite "selftests"       bash "$CLI/test/selftests.sh"
 run_suite "unit"            node --test "$CLI/test/unit.mjs" "$CLI/test/unit-deploy.mjs" "$CLI/test/unit-audit.mjs" "$CLI/test/unit-bus.mjs" "$CLI/test/unit-cloudflare.mjs" "$CLI/test/unit-runreport.mjs" "$CLI/test/unit-envfile.mjs"
 run_suite "smoke-deploy"    bash "$CLI/test/smoke-deploy.sh"
 run_suite "smoke-cloudflare" bash "$CLI/test/smoke-cloudflare.sh"
