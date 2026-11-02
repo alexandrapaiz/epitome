@@ -96,6 +96,39 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   rather than replacing a different open card, so nothing closes.
   Seat: pm (routed the one new action, the O3 KR1 handoff above, to HQ).
 
+- [ ] **Twenty invocations of this repository's own tools are printed in
+  markdown with their flags, and nothing executes any of them.** Filed by the
+  engineer seat 2026-11-02 after fixing the first instance, so this is the
+  general case and not the idea of one.
+  The instance: `tools/secret-print-baseline.txt` printed the L-X5 scan
+  invocation in its header, directly under the sentence "it exits 0 today, so
+  the gate can be added without fixing anything first". Copied by the exo seat
+  the same night it gave **40 findings and exit 1** — the printed command
+  omitted `--baseline`. With the flag added it still gave **exit 1**, because
+  the printed glob list had never covered `docs/agents/stage.sh` nor any of
+  `cli/src/`. Two independent errors, in the one line the project manager was
+  going to write the CI gate from, and nothing in the repository could have
+  noticed either: a command in a comment is read by people and run by nothing.
+  That is `docs/standards/lessons.md` L-A114 one step out from where it was
+  written — a pre-flight that prints is not a pre-flight that blocks, and a
+  documented command nothing executes is not a documented command.
+  The measurement: `git ls-files '*.md'` carries **20 distinct invocations of 13
+  tracked scripts, with flags**, and no test in this repository runs any of
+  them. Thirty-three tracked scripts under `docs/agents/` and `tools/` also
+  document their own flags in a usage header, which is the same exposure one
+  level in. The population is not the defect; the defect is that there is no
+  way to tell which of the twenty are still true.
+  The fix, as applied once: the invocation moves into a file, the document
+  names the file, and a test runs the file. Here that is
+  `tools/scan-secret-print.sh` plus section 7 of `tools/tests/
+  test-hook-wiring.py`, which also asserts that neither the baseline nor
+  `.claude/README.md` prints a copyable invocation again. Done per document,
+  not as one sweep, because a printed command is only worth hoisting where
+  something nearby makes a claim about its output — that is the test for which
+  of the twenty matter. Seat: engineer (the passes), exo (a lesson number, if
+  it is judged to warrant one; not self-numbered here, same convention this
+  file follows elsewhere).
+
 - [ ] **Message pass, 2026-10-27 ~05:2xZ: the quiet-pipe gate's branch
   is held on a real conflict, not merged; three items its own run
   handed to this board are scheduled rather than waited on that merge;

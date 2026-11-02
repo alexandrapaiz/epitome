@@ -155,6 +155,26 @@ evidence() {
     "$((n - EVIDENCE_LINES))"
   for ((i = n - tail_n; i < n; i++)); do printf '       | %s\n' "${lines[i]}"; done
 }
+# A one-line haystack is printed whole UNLESS its name says it may hold a
+# credential, in which case what is printed is the presence-and-length form
+# L-X5 asks for. A failing assertion is the one place a suite prints a value
+# nobody chose to print, by name, out of this process's own environment, and
+# `tools/check-secret-print.py` reports the line because it cannot resolve an
+# indirect expansion to tell whether this one is safe. It is right that it
+# cannot, so the suite answers for itself here rather than being exempted in
+# `tools/secret-print-baseline.txt`: the words are the checker's own list, and
+# the label-suffix exemption it has is deliberately NOT copied, because a
+# haystack named `$KEY_FILE` losing its path from a FAIL line costs a reader
+# one `echo` and the other direction costs a credential.
+may_hold_credential() {
+  local n w
+  n=$(printf '%s' "$1" | tr '[:lower:]' '[:upper:]')
+  for w in TOKEN TOKENS SECRET SECRETS PASSWORD PASSWD PASS KEY APIKEY PAT \
+           WEBHOOK CREDENTIAL CREDENTIALS COOKIE BEARER AUTH; do
+    case "_${n}_" in *_"$w"_*) return 0 ;; esac
+  done
+  return 1
+}
 bad()  {
   fail=$((fail+1)); printf '  FAIL %s\n' "$1"
   [ -n "${2:-}" ] || return 0
@@ -176,7 +196,14 @@ bad()  {
       [ -n "$seen" ] || notes+=("$name")
     fi
   done
-  for name in ${notes[@]+"${notes[@]}"}; do printf '       $%s is %s\n' "$name" "${!name}"; done
+  for name in ${notes[@]+"${notes[@]}"}; do
+    val="${!name}"
+    if may_hold_credential "$name"; then
+      printf '       $%s is set, %s characters — its name says it may be a credential, so this line prints presence and length and never the value (L-X5)\n' "$name" "${#val}"
+    else
+      printf '       $%s is %s\n' "$name" "$val"
+    fi
+  done
   local shown=0
   if [ ${#docs[@]} -eq 0 ]; then
     # The expression's own tokens, with its quoting flattened. A needle that
