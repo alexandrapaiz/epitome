@@ -8412,6 +8412,26 @@ is still on the board and that is where this read found it. What it destroys is
 the signal that anything is missing, which is the only thing that sends a
 wake-reader to look (L-A61's second rule).
 
+**Corroboration in the author's own words, which this run did not have to go
+looking for.** `epitome/pm`'s own run log for the window that sent both
+versions — `/srv/asc/state/.epito/logs/epitome-pm/2026-11-02T02-00-22-337Z-message.log`,
+48 turns, exit 0 — closes with the seat's own account:
+
+> *"none exceeding the 1500-char wake-delivery limit I discovered mid-run
+> (first attempt got silently truncated, so I shortened and resent before
+> anything downstream relied on it)."*
+
+Three things in one sentence, and none of them is carelessness. The trim was
+deliberate and was the author's own chosen remedy. The author believed the loss
+was contained — *before anything downstream relied on it* — and it was not,
+because the two paragraphs it dropped are the only record that a clock had
+started on this seat's charter. And **the limit was "discovered mid-run"**: the
+seat learned by truncation what a gate on this product's trunk would have told
+it before the write. That is the reach finding arriving from the other side.
+A seat cannot be faulted for not running a command nothing it reads mentions,
+which is why the unit of failure here is the charter set and not `epitome/pm`
+(charter, "What you never do").
+
 **Rule.** Three clauses.
 
 1. **A gate is shipped when the seats it guards are told to run it, and that
