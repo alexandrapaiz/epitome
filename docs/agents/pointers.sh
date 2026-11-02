@@ -6,7 +6,11 @@
 #   bash docs/agents/pointers.sh --self-test  a constructed positive and negative
 #
 # Exit 0 every handed file names the register, 1 at least one does not,
-# 2 could not look (L41).
+# 2 could not look (L41). Under `--self-test` those three do not apply: it
+# exits 0 when every assertion it makes on built input holds and 1 when one
+# does not, and the scan's own verdict on the checkout is printed in the text
+# instead. A self-test whose exit code reports anything but its own assertions
+# tells a seat the instrument is broken when the repository is merely unclean.
 #
 # WHY THIS EXISTS. `docs/standards/lessons.md` L-A90 says a law binds where the
 # seat reads and not where the register keeps it: "a standard distributed into a
@@ -340,9 +344,53 @@ sys.exit(1 if bad else 0)
 rc=$?
 
 if [ -n "$SELFTEST" ]; then
+  # A self-test's exit code is a statement about its own assertions and nothing
+  # else. The scan above answered about THIS CHECKOUT — legitimately 1 while six
+  # of seven charters do not name the register — and the first version of this
+  # block ended `exit $rc`, so the instrument a seat runs to ask *does this tool
+  # work* answered *is this repository clean*, and reported 1 with every
+  # expectation in it satisfied. It also only PRINTED its expectations in prose,
+  # which means nothing in it could fail: one of the two cases below claims the
+  # roster read is could-not-look and the evidence it printed was the first six
+  # lines, which never contain that row.
+  #
+  # So the expectations are checks now, the scan's verdict stays in the text
+  # below where a reader can still see it, and the exit code is the score.
   echo
   echo "== self-test: can the clean case be reached at all (L-A101) =="
   tmp=$(mktemp -d); trap 'cleanup; rm -rf "$tmp"' EXIT
+  st_ok=0; st_fail=0
+
+  # The herestring, never `printf | grep -q`: cli/test/shapes.sh carries the
+  # measurement for why a pipe into quiet grep can report a needle it matched
+  # as missing, and a checker that does that scores the wrong thing.
+  check() {  # what it asserts, the text, the needle
+    if grep -qF -- "$3" <<<"$2"; then printf '  ok   %s\n' "$1"; st_ok=$((st_ok + 1))
+    else
+      printf '  FAIL %s\n       wanted: %s\n       in:\n' "$1" "$3"
+      sed 's/^/       | /' <<<"$2"
+      st_fail=$((st_fail + 1))
+    fi
+  }
+  check_absent() {
+    if grep -qF -- "$3" <<<"$2"; then
+      printf '  FAIL %s\n       must not say: %s\n       in:\n' "$1" "$3"
+      sed 's/^/       | /' <<<"$2"
+      st_fail=$((st_fail + 1))
+    else printf '  ok   %s\n' "$1"; st_ok=$((st_ok + 1)); fi
+  }
+  # One copy's row, pulled out by its own label. An assertion about the
+  # `executing` row must not be satisfiable by another row's text: that is the
+  # fault the doctor suite was carrying until #369 — a verdict quoted as
+  # evidence under a claim it was never about.
+  row() {  # label, the text
+    local label=$1 l
+    while IFS= read -r l; do
+      case "$l" in "  $label "*) printf '%s\n' "$l"; return 0 ;; esac
+    done <<<"$2"
+    printf '(no "%s" row in the output)\n' "$label"
+  }
+
   mkdir -p "$tmp/prompts" "$tmp/agents/good" "$tmp/agents/bad" "$tmp/cli/src/lib"
   cat > "$tmp/prompts/good-agent.md" <<'EOF'
 The law above this charter is `docs/standards/lessons.md`, whose any and
@@ -360,11 +408,18 @@ EOF
   # case that was never in doubt.
   printf 'export function buildPrompt({ name }) {\n  return [`Read ${name} - it is your full charter`].join("\\n");\n}\n' \
     > "$tmp/cli/src/lib/runner.js"
-  ( cd "$tmp" && git init -q . && git add -A >/dev/null 2>&1
-    EPITO_ROSTER="$tmp/nothing-here" EPITO_LAUNCHER="$tmp/cli/src/lib/runner.js" \
-      bash pointers.sh --company self 2>&1 | sed -n '1,6p' | sed 's/^/  /' )
-  echo "  expected: the wake prompt SILENT with a full-charter claim, hint SILENT/full,"
-  echo "  and both the main row and the roster read reported as could-not-look (L41)."
+  one=$( cd "$tmp" && git init -q . && git add -A >/dev/null 2>&1
+         EPITO_ROSTER="$tmp/nothing-here" EPITO_LAUNCHER="$tmp/cli/src/lib/runner.js" \
+           bash pointers.sh --company self 2>&1 )
+  printf '\n  -- case one: a prompt that names no register, in a tree with no main and no roster\n'
+  sed -n '1,6p' <<<"$one" | sed 's/^/  /'
+  check "the prompt that names nothing reads SILENT" "$(row executing "$one")" "SILENT"
+  check "and its source hint agrees, SILENT/full" "$(row executing "$one")" "hint=SILENT/full"
+  check "and the row says the completeness claim out loud" "$(row executing "$one")" "asserts the charter is FULL"
+  check "no origin/main in the clone is could-not-look, not a grade of this tree (L41)" \
+    "$(row 'on main' "$one")" "could not look"
+  check "a roster path with no manifest under it is could-not-look, not zero seats (L41)" \
+    "$one" "could not look: no manifest under"
 
   # Case two, the real positive for the repair, reduced from the commit that
   # found it (epitome-engineer 2e0df5d, 2026-10-26): the comment above the
@@ -384,10 +439,32 @@ export function buildPrompt({ name }) {
   ].join("\n");
 }
 EOF
-  ( cd "$tmp" && git add -A >/dev/null 2>&1
-    EPITO_ROSTER="$tmp/nothing-here" EPITO_LAUNCHER="$tmp/cli/src/lib/runner.js" \
-      bash pointers.sh --company self 2>&1 | sed -n '3p' | sed 's/^/  /' )
-  echo "  expected: PASS with hint=PASS/full — the verdict from calling the function,"
-  echo "  the hint showing what the first version of this script reported instead."
+  two=$( cd "$tmp" && git add -A >/dev/null 2>&1
+         EPITO_ROSTER="$tmp/nothing-here" EPITO_LAUNCHER="$tmp/cli/src/lib/runner.js" \
+           bash pointers.sh --company self 2>&1 )
+  printf '\n  -- case two: a prompt that passes, whose source comment quotes the phrase\n'
+  row executing "$two" | sed 's/^/  /'
+  check "the composed prompt decides the verdict, and it is PASS" "$(row executing "$two")" "PASS"
+  check "the source hint shows the disagreement it decides nothing about" \
+    "$(row executing "$two")" "hint=PASS/full"
+  check_absent "a comment quoting the phrase does not make the row claim completeness" \
+    "$(row executing "$two")" "asserts the charter is FULL"
+
+  case "$rc" in
+    0) scanned="every handed file names the register" ;;
+    1) scanned="at least one handed file does not name the register" ;;
+    2) scanned="could not look" ;;
+    *) scanned="an exit this tool does not document" ;;
+  esac
+  printf '\n  the scan above answered about this checkout: exit %s, %s.\n' "$rc" "$scanned"
+  printf '  That is the repository state and not this self-test verdict; the exit code\n'
+  printf '  below is the score of the checks above and nothing else.\n'
+  if [ "$st_fail" = 0 ]; then
+    printf 'self-test: %d ok, 0 failed\n' "$st_ok"
+    exit 0
+  fi
+  printf 'self-test FAILED: %d ok, %d failed — an expectation above went unmet, so this\n' "$st_ok" "$st_fail"
+  printf 'tool is wrong about built input. Fix the tool, or the expectation if it moved.\n'
+  exit 1
 fi
 exit $rc
