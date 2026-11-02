@@ -165,20 +165,78 @@ done
 # clause: a limit a guard declares is the next incident's description).
 BIN_PATH=; BIN_HEAD=; BIN_DATE=; BIN_BEHIND=; BIN_MISSING=; BIN_NOTE=
 BIN_REF=; BIN_AHEAD=; BIN_DIRTY=
+BIN_FRAME=; BIN_MAIN=; BIN_MAIN_SHA=; BIN_ANCESTOR=; BIN_FRAME_SHALLOW=
+
+# WHICH REPOSITORY ANSWERS THE DISTANCE. The first version asked this one, and
+# gated the whole read on `git rev-parse --is-shallow-repository` with no `-C`
+# — the shallowness of the *invoking* checkout, which is a fact about the clone
+# the runtime handed this run and not a fact about the binary. Every resident
+# run gets a shallow clone (16 commits on 2026-10-27), so the row read
+# `could-not-look` on every run that mattered, and the self-test's clean case
+# failed against its own fixture. The box only ever answered `no` by accident:
+# `breach` falls out of the dirty-path list when the ahead-count is absent, and
+# the executing clone has been dirty since 2026-09-23 (incident 46). A clean
+# box would have been could-not-look and nobody would have known.
+#
+# Shallowness is also not what makes a count wrong — a CUT WALK is, and the two
+# are not the same test. The fixture clone is shallow to one commit and answers
+# 0/0 exactly. The executing clone is shallow to 883 and answers exactly too.
+# This checkout is shallow in the way that matters: `git merge-base 5836dc0b
+# 8ea243ca` returns nothing here, because the artifact predates the graft, and
+# every count taken across that cut is a fabrication rather than a shortfall.
+# Measured 2026-10-27, all three frames on this box, against incident 46's own
+# reading of the clone from a frame with history:
+#
+#     frame               shallow  merge-base  behind  ahead  ancestor
+#     this checkout       yes      (empty)     1       64     no      <- all wrong
+#     /srv/asc/repos/...  yes      5836dc0b    883     0      yes     <- right
+#
+# A cut hides commits from `main`'s reachable set, so it UNDERSTATES behind and
+# OVERSTATES ahead, and `ahead` is the field the destructive-repair warning is
+# written off. The first version of this row would have told a reader that the
+# box holds 64 commits `main` does not. It holds none.
+#
+# So: a frame answers only if it holds both endpoints AND `merge-base` finds a
+# base, which is the one cheap question whose answer is a fact about the walk
+# rather than about the clone. Candidates in order, the first that qualifies
+# wins, and the frame that answered is printed — a count whose frame is unnamed
+# cannot be refuted by the seat it describes (L24, L83).
+bin_frame() {  # $1 = repository to count in; sets BIN_* on success
+  local r=$1 m base
+  git -C "$r" cat-file -e "${BIN_HEAD}^{commit}" 2>/dev/null || return 1
+  for m in refs/remotes/origin/main refs/heads/main; do
+    git -C "$r" rev-parse --verify --quiet "$m" >/dev/null 2>&1 || continue
+    base=$(git -C "$r" merge-base "$BIN_HEAD" "$m" 2>/dev/null)
+    [ -n "$base" ] || continue   # the walk is cut: this frame cannot answer
+    BIN_FRAME=$r; BIN_MAIN=$m
+    BIN_MAIN_SHA=$(git -C "$r" rev-parse "$m" 2>/dev/null)
+    BIN_BEHIND=$(git -C "$r" rev-list --count "$BIN_HEAD..$m" 2>/dev/null)
+    BIN_AHEAD=$(git -C "$r" rev-list --count "$m..$BIN_HEAD" 2>/dev/null)
+    # Reachability direct, rather than inferred from the ahead-count: it is the
+    # field the verdict row asserts, and inferring it from an absent count is
+    # what read `could-not-look` on every shallow clone this runtime hands out.
+    if git -C "$r" merge-base --is-ancestor "$BIN_HEAD" "$m" 2>/dev/null
+      then BIN_ANCESTOR=yes; else BIN_ANCESTOR=no; fi
+    [ "$(git -C "$r" rev-parse --is-shallow-repository 2>/dev/null)" = true ] \
+      && BIN_FRAME_SHALLOW=yes || BIN_FRAME_SHALLOW=no
+    return 0
+  done
+  return 1
+}
+
 if command -v epito >/dev/null 2>&1; then
   BIN_PATH=$(readlink -f "$(command -v epito)" 2>/dev/null)
   bindir=$(dirname "$BIN_PATH" 2>/dev/null)
   BIN_HEAD=$(git -C "$bindir" rev-parse HEAD 2>/dev/null)
   if [ -n "$BIN_HEAD" ]; then
     BIN_DATE=$(git -C "$bindir" show -s --format=%cI "$BIN_HEAD" 2>/dev/null)
-    # Counted in this checkout, which is the one with the history; a shallow
-    # clone answers wrongly rather than not at all, so it says so (L41).
-    if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
-      BIN_NOTE="this clone is shallow, so the distance is could-not-look"
-    else
-      BIN_BEHIND=$(git rev-list --count "$BIN_HEAD..origin/main" 2>/dev/null)
-      BIN_AHEAD=$(git rev-list --count "origin/main..$BIN_HEAD" 2>/dev/null)
-    fi
+    # This checkout first, because its `origin/main` was fetched minutes ago;
+    # then the executing clone, which holds the artifact by construction but
+    # whose `origin/main` is whatever it last fetched. Reading a stale main
+    # would understate the distance, so the frame's own main sha is printed and
+    # the staleness is computed against this checkout's rather than assumed.
+    bin_frame . || bin_frame "$bindir" || \
+      BIN_NOTE="no frame here can walk between ${BIN_HEAD:0:8} and a \`main\` ref — this checkout is grafted above the artifact and the executing clone has no \`main\` — so the distance is could-not-look, which is a reading and not a clean bill (L41)"
     # The ref it sits on, because a carve-out in a deploy path is usually
     # written as "that one is on its own branch" and nothing re-reads the
     # claim. `rev-parse --abbrev-ref` answers the literal `HEAD` when the
@@ -220,7 +278,11 @@ fi
 AGENTS="$AGENTS" ROSTER="$ROSTER" COMPANY="$COMPANY" \
 BIN_PATH="$BIN_PATH" BIN_HEAD="$BIN_HEAD" BIN_DATE="$BIN_DATE" \
 BIN_BEHIND="$BIN_BEHIND" BIN_MISSING="$BIN_MISSING" BIN_NOTE="$BIN_NOTE" \
-BIN_REF="$BIN_REF" BIN_AHEAD="$BIN_AHEAD" BIN_DIRTY="$BIN_DIRTY" python3 - <<'PY'
+BIN_REF="$BIN_REF" BIN_AHEAD="$BIN_AHEAD" BIN_DIRTY="$BIN_DIRTY" \
+BIN_FRAME="$BIN_FRAME" BIN_MAIN="$BIN_MAIN" BIN_MAIN_SHA="$BIN_MAIN_SHA" \
+BIN_ANCESTOR="$BIN_ANCESTOR" BIN_FRAME_SHALLOW="$BIN_FRAME_SHALLOW" \
+HERE_MAIN_SHA="$(git rev-parse --verify --quiet refs/remotes/origin/main 2>/dev/null)" \
+python3 - <<'PY'
 import os, re, sys, json, datetime
 
 agents, roster, company = os.environ["AGENTS"], os.environ["ROSTER"], os.environ["COMPANY"]
@@ -368,19 +430,40 @@ bm, bn = os.environ.get("BIN_MISSING",""), os.environ.get("BIN_NOTE","")
 bref = os.environ.get("BIN_REF","")
 bahead = os.environ.get("BIN_AHEAD","")
 bdirty = [x for x in os.environ.get("BIN_DIRTY","").split(",") if x]
-# Reachable means: a ref can be moved to this artifact. An ahead-count or a
-# dirty working tree each make that false, and the dirty case is the one no
-# commit count can express.
+bframe = os.environ.get("BIN_FRAME","")
+bmain, bmainsha = os.environ.get("BIN_MAIN",""), os.environ.get("BIN_MAIN_SHA","")
+banc = os.environ.get("BIN_ANCESTOR","")
+bfshallow = os.environ.get("BIN_FRAME_SHALLOW","")
+heremain = os.environ.get("HERE_MAIN_SHA","")
+# The frame's `main` against the one this run fetched. A frame behind the true
+# main understates every distance it reports, so the comparison is printed
+# rather than trusted; when it differs the behind-count is a lower bound.
+bstale = bool(bmainsha and heremain and bmainsha != heremain)
+# Reachable means: a ref can be moved to this artifact. Ancestry answers the
+# commit half directly — inferring it from an absent ahead-count is what read
+# `could-not-look` on every shallow clone — and a dirty working tree makes it
+# false on its own, which is the half no commit count can express.
 breach = None
-if bp and bh and (bahead != "" or bdirty):
-    breach = not (bdirty or (bahead.isdigit() and int(bahead) > 0))
+if bp and bh and (banc or bdirty):
+    breach = not (bdirty or banc == "no")
 if bn and not bp:
     print(f"the binary: {bn}")
 elif bp:
     print(f"the binary that hosts these seats is {bp}")
     if bh:
         print(f"  checked out at {bh[:8]} ({bd[:10]}), "
-              + (f"**{bb} commits behind origin/main**" if bb else f"distance unknown — {bn}"))
+              + (f"**{bb} commits behind `{bmain}`**" if bb else f"distance unknown — {bn}"))
+        if bb and (bstale or bfshallow == "yes"):
+            why = []
+            if bstale:
+                why.append(f"its {bmain} is {bmainsha[:8]} while this run fetched "
+                           f"{heremain[:8]}")
+            if bfshallow == "yes":
+                why.append("it is shallow")
+            print(f"  counted in `{bframe}` — {', and '.join(why)} — so {bb} is a LOWER "
+                  f"BOUND on the distance and {bahead} is an UPPER BOUND on what it holds "
+                  "alone. The frame found a merge-base, so the reachability verdict below "
+                  "is a fact and only the two numbers are bounds")
     else:
         print(f"  not a git checkout, so its revision is could-not-look{(' — ' + bn) if bn else ''}")
     if bm:
@@ -400,7 +483,9 @@ elif bp:
         print( "  **and it is not reachable from `origin/main`**, so moving a ref there "
                "does not reproduce it:")
         if bahead.isdigit() and int(bahead) > 0:
-            print(f"    {bahead} commit(s) it holds that `origin/main` does not")
+            print(f"    {bahead} commit(s) it holds that `origin/main` does not"
+                  + (" — an upper bound, from a shallow frame; diff before you believe it"
+                     if bfshallow == "yes" else ""))
         if bdirty:
             print(f"    {len(bdirty)} file(s) uncommitted in its working tree: "
                   + ", ".join(bdirty))
@@ -430,6 +515,12 @@ print(f"binary_committed: {bd[:10] if bd else 'could-not-look'}")
 print(f"binary_ref: {bref or 'could-not-look'}")
 print(f"binary_commits_behind_main: {bb or 'could-not-look'}")
 print(f"binary_commits_ahead_main: {bahead if bahead != '' else 'could-not-look'}")
+print(f"binary_distance_frame: {bframe or 'none-answered'}")
+print(f"binary_distance_main_ref: {bmain or 'could-not-look'}")
+print(f"binary_distance_main_sha: {bmainsha[:8] if bmainsha else 'could-not-look'}")
+print(f"binary_distance_frame_shallow: {bfshallow or 'could-not-look'}")
+print(f"binary_distance_frame_stale: {'yes' if bstale else ('no' if bmainsha and heremain else 'could-not-look')}")
+print(f"binary_is_ancestor_of_main: {banc or 'could-not-look'}")
 print(f"binary_uncommitted: {json.dumps(bdirty)}")
 print(f"binary_reachable_from_main: "
       f"{'could-not-look' if breach is None else ('yes' if breach else 'no')}")

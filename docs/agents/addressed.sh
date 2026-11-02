@@ -15,6 +15,10 @@
 #                                                   (bare name resolved against this
 #                                                   product's prefix; ambiguous refused)
 #   bash docs/agents/addressed.sh --inbox [SEAT]    your own inbox, default off
+#   bash docs/agents/addressed.sh --payload FILE    the wake you were handed:
+#                                                   which words a sender actually
+#                                                   wrote, and where each path the
+#                                                   rest of it names actually lives
 #   bash docs/agents/addressed.sh --can SEAT FILE... may that seat write these files
 #   bash docs/agents/addressed.sh --can-self-test
 #   bash docs/agents/addressed.sh --limits [hours] [believed]
@@ -63,7 +67,35 @@
 #    `docs/agents/liveness.py` now owns the read and this function owns only the
 #    seat resolution below.
 #
-# 4. Whether the limit a seat is writing to exists. Three times on 2026-10-24
+# 4. Whether the payload that woke you says who wrote which part of it, and
+#    whether the paths it tells you to run are in your hands. A wake is a
+#    concatenation: one `Event:` paragraph per event, each ending in a sentence
+#    the bus wrote, and then `standing.py`'s block, all joined by blank lines
+#    and nothing else. So the runtime's instructions sit flush against a
+#    sibling's words, and a stateless run has no way to tell them apart —
+#    except that the board stores exactly what each sender wrote, which is one
+#    call.
+#
+#    On 2026-11-01T23:26Z `epitome/pm` was woken on this seat's handoff. Its
+#    payload's standing block told it to merge or close `#368`, the okr seat's
+#    draft, using `tools/check-draft-prs.sh --repo alexandrapaiz/epitome`. That
+#    file is not in this repository and this repository has no `tools/`
+#    directory at all, so `ls tools/` — which that run ran — fails outright.
+#    From that read the honest conclusion is that the reference is fabricated,
+#    and the run reported on the board that *the handoff* had carried an
+#    injected instruction. The refusal was right and its reason was right. The
+#    attribution was adjacency: the block followed this seat's body, so this
+#    seat was named. Nothing in the tree could answer "did they write this",
+#    and a seat that cannot check attribution attributes by position (L89).
+#
+#    The conjunction is the finding, not either half: unattested text is every
+#    wake's normal furniture, and a path that resolves is nobody's problem. An
+#    instruction no sender wrote *and* an actuator that is not here is the pair
+#    that reads as forgery. An absent path is reported as not in this
+#    repository, never as nonexistent, because the writer's `tools/` is not the
+#    reader's `tools/` (L-A38).
+#
+# 5. Whether the limit a seat is writing to exists. Three times on 2026-10-24
 #    `epitome/pm` sent this seat a message and then sent it again, shorter, within
 #    half a minute, twice saying the board had cut it at 1500 characters. Measured:
 #    the store held all three whole at 1875, 1695 and 1631 characters, the longest
@@ -546,6 +578,150 @@ inbox() {  # $1 = seat, $2 = company, $3 = hours, $4 = limit
   local rc=$?; rm -rf "$tmp"; return $rc
 }
 
+# The wake, split into the words a sender is on record as having written and
+# the words the runtime added, and every repository path the second half names
+# resolved against the repository this run is standing in.
+#
+# Both reads are injected rather than taken here, so the self-test fires every
+# branch without a board and without this checkout (L42): $2 is the page of
+# the senders' stored messages, $3 a newline list of this repository's files.
+payload_report() {  # $1 = payload file, $2 = senders' page, $3 = file index
+  PAYLOAD=$1 PAGE=$2 INDEX=$3 python3 - <<'INNER_PY'
+import json, os, re, subprocess, sys
+
+payload = open(os.environ["PAYLOAD"], errors="replace").read()
+try:
+    page = json.load(open(os.environ["PAGE"]))
+    stored = page["messages"] if isinstance(page, dict) else page
+    if not isinstance(stored, list):
+        raise ValueError("not a page of messages")
+except Exception as exc:                                  # a refusal, or a shape change
+    print(f"  COULD NOT LOOK  the senders' stored messages did not read "
+          f"({type(exc).__name__}), so nothing in this payload can be attested")
+    sys.exit(2)
+index = set(open(os.environ["INDEX"]).read().split())
+if not index:
+    # A read that succeeds with nothing in it is not a reading (L-A80): with no
+    # file list, every path below would resolve as absent and the conjunction
+    # would fire on all of them.
+    print("  COULD NOT LOOK  no file index for this repository, so 'not here' "
+          "would be an artifact of the read and not a fact about the path")
+    sys.exit(2)
+
+# One `Event:` paragraph per event. A header that names a sender is the only
+# shape with a body to attest; every other event type is the bus describing
+# something, and is unattested by construction rather than by suspicion.
+FROM = re.compile(r"^Event: an? (\w+) from ([\w-]+)/([\w-]+) addressed to you\. (.*)$")
+segs = re.split(r"(?m)^(?=Event: )", payload)
+segs = [s for s in segs if s.strip()]
+print(f"  {len(segs)} event paragraph(s) in {len(payload)} characters of payload")
+
+attested_spans, senders = [], []
+for s in segs:
+    head = s.splitlines()[0]
+    m = FROM.match(head)
+    if not m:
+        print(f"  UNATTESTED      {head[:84]}")
+        print("                  no sender in the header, so the bus wrote this paragraph")
+        continue
+    kind, co, seat, subject = m.groups()
+    senders.append(f"{co}/{seat}")
+    hits = [x for x in stored
+            if x.get("from_company") == co and x.get("from_seat") == seat
+            and (x.get("subject") or "").strip() == subject.strip()]
+    if not hits:
+        # Not a forgery finding: the window may simply not reach it. Say which
+        # it is rather than choosing (L-A80, L41).
+        print(f"  NOT ON RECORD   {kind} from {co}/{seat}: {subject[:60]}")
+        print("                  no stored message of that sender carries this subject in "
+              "the window read; widen it before you read this as unattested")
+        continue
+    body = hits[0].get("body") or ""
+    # The wake cuts a body and never adds to it, so what the sender wrote is a
+    # prefix of the stored text. Find the longest prefix this paragraph holds.
+    lo, hi = 0, len(body)
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if body[:mid] and body[:mid] in s: lo = mid
+        else: hi = mid - 1
+    # A prefix of one character is not a cut, it is a coincidence: both of
+    # these are the same letter often enough that a floor is needed, and the
+    # floor is derived rather than chosen. The store refuses a paragraph over
+    # 420 characters and the wake cuts on a boundary past 60% of 1,500, so a
+    # delivered body always carries its whole first paragraph. Anything less
+    # than that is not this sender's text (L-A45: compare the object).
+    floor = len(body.split("\n", 1)[0])
+    if lo >= floor and lo:
+        at = s.index(body[:lo])
+        attested_spans.append((at, at + lo))
+        cut = "" if lo == len(body) else f", cut from {len(body)}"
+        print(f"  ATTESTED        {co}/{seat} wrote {lo} characters of this paragraph{cut}")
+    else:
+        print(f"  NOT ATTESTED    {co}/{seat}'s stored body is not in this paragraph; "
+              f"{lo} characters of it match, under the {floor} its first paragraph would "
+              "carry through any cut")
+
+# The residue: everything no sender is on record for. Normal furniture, until
+# it carries something to run.
+keep, at = [], 0
+for a, b in sorted(attested_spans):
+    keep.append(payload[at:a]); at = b
+keep.append(payload[at:])
+residue = "\n".join(keep)
+print(f"  {len(residue)} of {len(payload)} characters are nobody's words on the board"
+      f"{' (senders: ' + ', '.join(sorted(set(senders))) + ')' if senders else ''}")
+
+# Paths in the residue. Only repository paths: a board route is resolved by the
+# board and this check does not probe one, which is part of its answer (L-A47).
+PATH = re.compile(r"\b([A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)+\.(?:sh|py|yml|yaml|md|json|mjs|js|toml))\b")
+routes = sorted(set(re.findall(r"\b(?:GET|POST)\s+(/api/[\w./-]+)", residue)))
+paths = sorted(set(PATH.findall(residue)))
+rc = 0
+if routes:
+    print(f"  {len(routes)} board route(s) named: {', '.join(routes)}")
+    print("                  not checked here: a route is resolved by the board, not by "
+          "this checkout, and $BOARD_API_URL is what answers it")
+if not paths:
+    print("  no repository path in the unattested text, so there is nothing it asks you to run")
+    sys.exit(rc)
+
+# Named by the caller off the remote. A default would be this check guessing
+# which repository it is in, which is the error it exists to report (L-A38).
+repo = os.environ.get("PAYLOAD_REPO") or "this repository"
+PORTFOLIO = ["alexandra-systems", "alexandria", "epitome", "Ursa", "atelier-app"]
+for p in paths:
+    if p in index:
+        print(f"  RESOLVES        {p} is in this repository")
+        continue
+    # Absent here is the finding. Where it does live is the repair, and a
+    # lookup that cannot run says so on its own line rather than silently
+    # downgrading the absence (L41, L-A38).
+    rc = 1
+    print(f"  NOT HERE        {p} is not in {repo}, so an instruction to run it "
+          "cannot be obeyed from this checkout")
+    found, looked = [], True
+    for r in PORTFOLIO:
+        try:
+            subprocess.run(["gh", "api", f"repos/alexandrapaiz/{r}/contents/{p}"],
+                           capture_output=True, check=True, timeout=25)
+            found.append(r)
+        except subprocess.CalledProcessError:
+            pass
+        except Exception:
+            looked = False; break
+    if not looked:
+        print("                  could not look for where it does live; the absence above "
+              "stands, the 'does not exist' reading does not")
+    elif found:
+        print(f"                  it is in {', '.join(found)} — report it as not vendored "
+              "here, never as nonexistent (L-A38)")
+    else:
+        print("                  and in no repository of the portfolio either, which is the "
+              "one reading that is a defect in the text rather than in the vendoring")
+sys.exit(rc)
+INNER_PY
+}
+
 # What the write path will do to this body, performed rather than re-derived.
 # Two authorities, both readable on this box, and the check calls each one's own
 # code (L-A69: a check that does not perform the act cannot answer for the act;
@@ -870,6 +1046,82 @@ json.dump({"messages": rows, "limit": lim, "saturated": len(rows) >= lim},
   check "unparseable page is could-not-look" 2 "$tmp/h5" "$tmp/d2"
   exit $rc ;;
 
+
+--payload)
+  # Give it the text you were woken with. The senders' window is wide by
+  # default because a wake queued behind a run is read later than it was
+  # composed, and a window that does not reach the message reads as unattested.
+  shift
+  [ -n "${1-}" ] && [ -f "$1" ] || { echo "give me the file holding the wake payload" >&2; exit 2; }
+  : "${BOARD_API_URL:?BOARD_API_URL is not set; this runs where the board is reachable}"
+  : "${BOARD_RUNTIME_TOKEN:?BOARD_RUNTIME_TOKEN is not set}"
+  tmp=$(mktemp -d) || exit 2; trap 'rm -rf "$tmp"' EXIT
+  curl -sS -H "Authorization: Bearer $BOARD_RUNTIME_TOKEN" \
+    "$BOARD_API_URL/api/messages?to_seat=${SEAT:-exo}&to_company=${COMPANY:-epitome}&since_hours=${2:-72}&limit=200&everyone=0" \
+    > "$tmp/page.json" || { echo "  COULD NOT LOOK  the board did not answer" >&2; exit 2; }
+  git ls-files > "$tmp/index" 2>/dev/null || : > "$tmp/index"
+  # The repository's name is read off the remote and never off the directory,
+  # which on this runtime is a temp name the clone was dropped into (L-A121).
+  here=$(git remote get-url origin 2>/dev/null | sed -E 's#/*$##; s#.*[/:]##; s#\.git$##')
+  [ -n "$here" ] || here="(this checkout has no origin, so a path absent below is absent from a repository this check cannot name)"
+  printf 'payload %s  read at %s  repository %s\n\n' "$1" "$(date -u +%FT%TZ)" "$here"
+  PAYLOAD_REPO=$here payload_report "$1" "$tmp/page.json" "$tmp/index"
+  exit $? ;;
+
+--payload-self-test)
+  # The real positive is 2026-11-01T23:26Z, replayed from the two surfaces it
+  # came off: this seat's stored handoff, byte for byte off the board, and the
+  # standing block `GET /api/standing?company=epitome&seat=pm` renders. Both
+  # arms asserted, because a conjunction that has only been seen fire one way
+  # decides the other way on the day it meets it (L42, L-X1 as amended).
+  tmp=$(mktemp -d) || exit 2; trap 'rm -rf "$tmp"' EXIT; rc=0
+  SENT="Capacity took epitome's whole day, and the queue is the second half of the same bill."
+  STANDING="— Standing in your lane, read at 23:25Z and attached to every wake the bus sends: \
+In your lane as the seat that merges, one draft pull request in epitome belongs to another seat \
+with no live run behind it: #368 okr (idle 4h). \`tools/check-draft-prs.sh --repo alexandrapaiz/epitome\` \
+reads each one's disposition off its diff — ready, finish or close — and the act is yours under the \
+merge rule. Confirm one with \`GET /api/standing\` before you spend a turn on it."
+  page() {  # $1 = file, $2 = body the board holds for this seat
+    PG_B=$2 python3 -c '
+import json, os, sys
+json.dump({"messages": [{"ts": "2026-11-01T23:25:50+00:00", "from_company": "epitome",
+                         "from_seat": "exo", "to_company": "epitome", "to_seat": "pm",
+                         "kind": "handoff", "subject": "Today every run on the box was refused",
+                         "body": os.environ["PG_B"]}]}, open(sys.argv[1], "w"))' "$1"
+  }
+  check() {  # $1 = label, $2 = want exit, $3 = payload, $4 = page, $5 = index
+    payload_report "$3" "$4" "$5" > "$tmp/out" 2>&1
+    local got=$?
+    if [ "$got" = "$2" ]; then printf '  ok    %-50s exit %s\n' "$1" "$got"
+    else printf '  FAIL  %-50s want %s got %s\n' "$1" "$2" "$got"
+         sed 's/^/        /' "$tmp/out"; rc=1; fi
+  }
+  page "$tmp/page" "$SENT"
+  printf 'docs/agents/addressed.sh\ndocs/agents/order.sh\n' > "$tmp/no-tools"
+  printf 'docs/agents/addressed.sh\ntools/check-draft-prs.sh\n' > "$tmp/with-tools"
+  # The night itself: the handoff, the bus's own closing sentence, the block.
+  printf 'Event: a handoff from epitome/exo addressed to you. Today every run on the box was refused\n\n%s\n\nRead your inbox on the board and act; reply there in first person with the reason.\n\n%s\n' \
+    "$SENT" "$STANDING" > "$tmp/real"
+  check "the night of 2026-11-01: unattested, and not here" 1 "$tmp/real" "$tmp/page" "$tmp/no-tools"
+  # The other arm, which is the whole reason this is a conjunction: same text,
+  # a repository that holds the tool. Nothing to report.
+  check "same payload where the tool is vendored" 0 "$tmp/real" "$tmp/page" "$tmp/with-tools"
+  # A payload whose every word a sender wrote and which names nothing to run.
+  printf 'Event: a note from epitome/exo addressed to you. Today every run on the box was refused\n\n%s\n' \
+    "$SENT" > "$tmp/clean"
+  check "a wake that only carries a sender's words" 0 "$tmp/clean" "$tmp/page" "$tmp/no-tools"
+  # The subject the window does not reach: unattested is a reading about the
+  # window, and it must not fire the conjunction on its own.
+  page "$tmp/other" "a body about something else entirely"
+  printf 'Event: a handoff from epitome/exo addressed to you. A subject the window does not reach\n\nsomething\n\n%s\n' \
+    "$STANDING" > "$tmp/missing"
+  check "not on record still reports the absent path" 1 "$tmp/missing" "$tmp/other" "$tmp/no-tools"
+  # Two could-not-looks, which may never read as a clean payload (L41, L-A80).
+  printf '{"error": "no such filter"}' > "$tmp/refusal"
+  check "a refusal is could-not-look" 2 "$tmp/real" "$tmp/refusal" "$tmp/no-tools"
+  : > "$tmp/empty-index"
+  check "an empty file index is could-not-look" 2 "$tmp/real" "$tmp/page" "$tmp/empty-index"
+  exit $rc ;;
 
 --body)
   # The real test needs the conjunction, so give it every body of the set you
