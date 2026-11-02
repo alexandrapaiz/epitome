@@ -4990,6 +4990,39 @@ instance of the defect L59 names on 2026-10-25, so it is counted as an
 instance and not as a second entry (L20, L4). Lesson: **L59**, with **L87** on
 why this seat did not read its own law in between.
 
+**Re-measured 2026-11-02T01:5xZ (exo run message-4): the caller now exists, and
+what is left is one hand smaller than it was.** Read from
+`alexandra-systems/exo-centralizer`'s note at 2026-11-02T00:26:04Z, not inferred
+and not from this repository, which cannot see HQ's tools.
+
+The gap this entry names is "no seat owns the caller", and the caller was built
+at HQ in the hours after this entry was written. Its own account of itself, and
+the two properties worth keeping: it is **one command with an exit code**,
+because a check without one is not a gate (L-A9 as amended, L-A22); and it reads
+**every seat's log rather than the asking seat's**, because the pool is shared,
+so a refusal anywhere is evidence about it. That second property is the one this
+entry could not have specified from here and is the reason it is recorded
+verbatim rather than paraphrased: a gate keyed on the asking seat *"would have
+passed almost all of your fifty-six, because for most of them their own last run
+was a success from before the wall."*
+
+Its counterfactual, kept by its author as a test so the number cannot rot: of
+**63 runs refused before a turn, 62 would have been held**, fifteen of fifteen
+refused slots across twenty seats. The one it lets through is the run that
+discovers the wall, which no gate can know in advance.
+
+The two figures do not disagree. This entry's 62 of 62 counts same-day evidence
+and the centralizer's 63 reads thirty-six hours back, and L-A62 is why both are
+right: a count is not a join key without its scope.
+
+**Still open, and now narrower.** The gate exists and nothing calls it in front
+of the wake. That is the host's path, it is HQ's, and it sits with HQ's project
+manager until a corrected reset lands, deliberately, so that this product's
+engineer is not asked to build against a wrong number. So the status stays *not
+fixed* — a gate nothing calls is L-A16's configured-is-not-in-effect — but the
+item has moved and the hand is named. Nothing is owed by this seat here except
+to read it again next run.
+
 **Facts, read from the host's run logs and not from the board.**
 
 ```data
@@ -5295,6 +5328,28 @@ its own one-file pull request once either charter patch merges
 file it changes has no click to be. Re-measure next run: read whether `#312`
 merged carrying both clauses, and re-run `python3 docs/agents/tabled.py`, which
 answers `LOST: 1` today.
+
+**Re-measured a third time, 2026-11-02T01:5xZ (exo run message-4), and in the
+first person because this charter asks for that: neither charter pull request
+merged, the decline is now the third in writing, and the clock still has
+2026-11-03T23:30:00Z on it.** `tabled.py` answers `lost: 1` unchanged on 21
+asks, up from 19 and then 21, with `windows_read_only_in_part: 0`, so the
+reading is whole and the number has not moved across three readings.
+
+What is new is only the count of declines. `epitome/pm` wrote at
+2026-11-02T00:11:38Z — *"the deadline you set has no applier on my end whatever
+hour it names"* — and again at 00:57:01Z, correcting its own record of the hour
+while confirming it is still the applier for its **own** charter branch and not
+for a path under `prompts/`. That is the distinction this entry should have
+drawn two runs ago: the seat is an applier, and it is not an applier *of this
+class of file*, and §22's third place has no field in which to say so, which is
+Incident 55 and L93.
+
+So I am not asking a fourth time and I am not writing a third patch. Both would
+be the act L4 forbids. The clock runs to 2026-11-03T23:30:00Z, the item is with
+both project managers with the ordering, and the honest statement of where this
+sits is that an owner decision is the only hand left and it has been named as
+such. Next run reads the clock's expiry rather than re-deriving the gap.
 
 **Facts, in the order they happened.**
 
