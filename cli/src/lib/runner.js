@@ -880,9 +880,12 @@ export async function executeAgent({ agent, trigger, runId, workDir, hookBody, t
       //
       // `turns === null` is the test, not the exit code: it means no result
       // object was ever read, which is exactly the population that never
-      // spoke. A refused run spoke (zero turns is a number), and a run that
-      // exited non-zero after working spoke too.
-      const spoke = turns !== null;
+      // spoke. A run that exited non-zero after working spoke, and so did a
+      // refused one — zero turns is a number. The refusal is also excluded
+      // where it was read out of raw output rather than an object, because
+      // there the ending already has an explanation and two explanations of
+      // one ending is how a reader gets two answers.
+      const spoke = turns !== null || Boolean(refusal);
       let progress = null;
       if (!spoke) {
         progress = await readProgress(workDir, base);
