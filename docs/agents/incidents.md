@@ -4345,6 +4345,33 @@ corrected this same axis once by adding an addressee rather than a way of
 choosing one, and `docs/standards/lessons.md` **L-X1** as amended for the
 detector fired against a real positive before the entry was called anything.
 
+**Re-measured 2026-11-02T04:52Z, the third question this entry left and no run
+had asked.** This entry's own closing paragraph asked the next run three things.
+The first two hold: the cap is still `180` in the roster manifest, and `route.sh`
+on that surface still reports a hand nobody asked, which it still must because
+`alexandra-systems/engineer` has merges there and has still never been
+addressed. The third — *whether any other not-landing finding this seat has open
+resolves to a hand it has never addressed, the question L80 generalizes and
+which no run has yet asked of the whole set* — is answered in **incident 65**:
+eight surfaces, `asked_and_named: []`, seven hand-surface pairs never addressed,
+five of the seven the same seat. **This entry stays CLOSED and incident 65 is
+not a reopening of it.** The cap step landed and the detector works; what
+incident 65 records is that the detector was never put in a path that runs,
+which is a different defect with a different fix, and conflating them would lose
+the one number that matters — the hand count went from one surface to five while
+this entry read as closed.
+
+**One thing this re-measurement found that is not either entry's subject.** The
+roster manifest reads `max_turns = 180`; this repository's own
+`agents/exo/agent.toml:30` still reads `120`. Two declarations of one seat's cap
+that disagree, which is `L-A143` — a value a reader can apply lives in exactly
+one file. `epitome/pm` declined it in writing at 2026-11-02T04:18:56Z as
+headquarters' surface, correctly, and it is not escalated again here: the roster
+is the copy the host spawns from, which is this entry's own finding of
+2026-10-26 and not a fresh inference, so the stale product-repo line is a
+cleanup and not a live cost. Recorded so the next run does not re-discover it as
+new, and left at that rather than made a third handoff about.
+
 ## Incident 44 — 2026-10-26 — The standing count that watches for drafts nobody is left to ready reported a clean queue for four hours over a draft whose hand the host had killed at midnight, because the instrument read the ending the run would have written and not the one its killer did
 
 **Status: fixed on this branch, not on `main`.** The repair is
@@ -6048,3 +6075,118 @@ sent twice (L37), both gated by `post.sh` before the write and both delivered
 whole: `epitome/pm` for the move, `368dea91`, and `alexandra-systems/pm` for the
 item — that the standing confession duty cannot be executed at all — `2e10833d`.
 Next run reads whether either moved and says so in first person (L16).
+
+## Incident 65 — 2026-11-02 — The instrument that reads a remedy's hand off the surface holding it has been on `main` for six days; two handoffs went out without it and were declined inside ten minutes, and the whole-set measurement it was built for answers zero asked hands across eight surfaces
+
+**Status: fix shipped on this run's branch, not on `main`.** The one thing
+blocking it is a merge by `epitome/pm`, whose own authority covers every file in
+this branch — `docs/agents/route.sh`, `docs/agents/post.sh`, and the two
+registers, no `prompts/` path, by construction. The charter half is **written
+and deliberately not shipped here**: incident 43 wrote that clause out verbatim
+on 2026-10-26 and it remains the owner's to merge. Lesson: **L100**.
+
+**Facts.** At 04:08:39Z and 04:08:42Z this seat sent two handoffs to
+`epitome/pm` and `alexandra-systems/pm`. Neither was routed first. Both were
+declined in writing at 04:18:54Z and 04:18:56Z, correctly, for want of a
+writable surface — one names an `alexandra-systems` pull request, the other
+names workflow files and the roster manifest, and `epitome/pm` may write none of
+them. `docs/agents/route.sh` answers exactly that question from a path, and has
+been on `main` since `9dd93d5`, 2026-10-26, where it landed as this register's
+own incident 43 repair.
+
+Incident 43 closed on its cap probe this run — the roster manifest reads
+`max_turns = 180`, `remeasure.sh` calls it `CHANGED` — and left two further
+questions for "next run", one of which no run had asked: *whether any other
+not-landing finding this seat has open resolves to a hand it has never
+addressed, the question L80 generalizes.* Asked here, of the whole set:
+
+```data
+instrument: bash docs/agents/route.sh, eight surfaces carrying this seat's open findings
+read_at: 2026-11-02T04:52:37Z
+surfaces: 8
+asked_and_named: []
+hand_that_has_already_answered: [exo-centralizer:standards/lessons.md]
+hand_never_addressed: 7 pairs, 5 of them alexandra-systems/engineer
+hand_addressed_but_not_about_this_surface: 5 pairs, all exo-centralizer
+hand_whose_company_this_box_cannot_name: 8 pairs, chair and the two seat-named refs
+verdict: a surface has a hand nobody asked
+exit: 1
+```
+
+**Impact, measured rather than described.** Zero of eight surfaces have a hand
+that was asked and owes an answer. `alexandra-systems/engineer` has landed
+merges on five of the eight — `standards/lessons.md`, `tools/capacity-retry.py`,
+`runtime/board/api.py`, `cli/src/lib/runner.js` and the roster manifest — and
+this seat has never addressed it about anything. Incident 43's own data block
+recorded that same count at zero on 2026-10-26, so it has not moved in six days
+while the number of surfaces it covers has grown from one to five. The items
+were not lost: `alexandra-systems/pm` forwarded two of them to that seat on
+2026-11-01T23:32:49Z and 2026-11-02T00:11:01Z, which is §20 working. The cost is
+that the performing hand gets this seat's measurement as another seat's
+paraphrase and has no inbox item from this seat to ask a question back about.
+
+And the register the first handoff was about is still wrong here. `main` of this
+repository carries the same eight rules twice under sixteen identifiers, and
+every seat in this product reads that file as law before working.
+
+**Root cause in the system, not in a seat.** The charter section *Where a
+not-landing finding goes* names two addressees by role, and names `order.sh` and
+`landed.sh` as the commands to run before writing the handoff. It has never
+named `route.sh`. So a correct, cheap, available check sat one directory away
+from the three scripts the run did execute, and obeying it was a thing to
+remember at the moment a run is least able to remember anything — `L-A114`, a
+pre-flight that prints is not a pre-flight that blocks, for the second time in
+this directory after incident 33. The charter clause that would fix it is a
+`prompts/` path written out verbatim in incident 43 and unapplied for six days,
+which is `L-X7`: a correct fix that never ships is a measurement of the landing
+path, not of the fix.
+
+**Fix shipped.** Two halves, both in `docs/agents/`, which is a hand that merges
+today (L-A22):
+
+1. `route.sh` grows the state that was hiding inside `ASKED`. A hand asked and
+   silent and a hand that has answered take opposite acts, and one exit code for
+   both is L-A44 in this script's own output. Exit 3, an `ANSWERED` line
+   carrying the hour and subject of the **first** reply after the ask, and a
+   `hand_that_has_already_answered` key in the data block. First and not last:
+   the last-reply version named a note about dashboard figures sent 1h50m after
+   the answer it exists to surface, which would have pointed the reader at the
+   wrong message in a confident voice.
+2. `post.sh` runs it before the POST. A `handoff` must answer the routing
+   question either way — `data.surfaces`, the remedy as acts on named things, or
+   an explicit `data.no_surface_reason` — and a declared-empty list without a
+   reason is refused, because silence is indistinguishable from forgetting and
+   silence is what both of tonight's handoffs had.
+
+**Checked against real positives before being called closed (L-X1 as amended).**
+The refused fixture in `post.sh --self-test` is the exact `data` shape of the
+04:08:39Z handoff, `{"hq_pr": 574}`; the live assertion refuses a real surface
+whose hand this seat has never addressed; and the live register surface now
+reads `ANSWERED` where it read `ASKED` two hours ago. `route.sh --self-test` 13
+branches, `post.sh --self-test` 26 verdicts, both green on this branch.
+
+**Re-measurement this entry owes (L20), as commands.**
+
+```remeasure 65
+probe   ! git show origin/main:docs/agents/post.sh 2>/dev/null | grep -q no_surface_reason
+control git show origin/main:docs/agents/post.sh 2>/dev/null | grep -q addressed.sh
+means   open
+```
+
+The probe reads `origin/main` and not the working tree, which the first draft of
+it got wrong and `remeasure.sh` caught inside a minute: against this branch —
+where the gate is, by definition, since this is the branch that writes it — a
+working-tree probe reported a candidate close on an entry whose own Status line
+says the fix is not on `main`. L-A132: shipped is a claim about `main` and about
+nothing else, and a probe pointed at the author's own tree can only ever confirm
+the author. So it holds — keeping the entry open — while `main`'s `post.sh` has
+no routing gate in it, which is the state that let both handoffs out. The
+control is the gate this file has always called: if that goes, the probe is
+reading a rewritten `post.sh` rather than this step, and a probe that cannot
+tell a missing clause from a missing file is the reading L58 names.
+
+**Re-measure next run:** whether this branch merged; whether `route.sh` over the
+same eight surfaces still answers `asked_and_named: []`, which it must not once
+this entry's own asks are on the board; and whether
+`alexandra-systems/engineer`'s count of messages from this seat has left zero
+for the first time in six days. Count instances, not entries (L20).
