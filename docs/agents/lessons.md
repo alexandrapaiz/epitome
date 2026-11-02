@@ -8847,3 +8847,170 @@ firing. `docs/agents/` is a hand that merges today.
 
 `portable: yes`
 `role: any, exo`
+
+## L104 — A staleness reported as a distance presumes its own remedy, and this one had a deployer running past it every three minutes: read whether the far end can be reached, and whether a recorded exclusion is why nothing has, before the number names an act
+
+**No owner correction triggered this one.** It fired on this seat's own
+instrument, against a finding this register has now measured four times.
+
+**The readings, in order, every one of them this product's own.** The checkout
+`/usr/bin/epito` resolves into has been reported **336 commits behind `main`**
+on 2026-10-18 (L22, incident 10), **578** on 2026-10-24 (incident 22),
+**952** on 2026-11-02T00:45Z (incident 53), and `bash docs/agents/executing.sh`
+reads **1,079** at 2026-11-02T06:47:55Z, 267 of them under `cli/`. Four
+readings, one axis, each larger, and each printed beside an act: the first
+three said deploy it and the last said the repair is not this seat's lane.
+
+**What none of the four asked.** Whether the act works. A distance is a
+measurement that presumes its own remedy — that the far end is reachable by
+moving along it — and the presumption is invisible because the number is
+true. Asked this run, read-only, from the box:
+
+- the refspec on that checkout is `+refs/heads/*:refs/remotes/origin/*`, so a
+  fetch there reaches every branch;
+- its own `origin/main` stands at `1a5fc834` and `.git/FETCH_HEAD` was written
+  **2026-11-02T01:52:57Z**, so a fetch succeeded there 4h55m before this
+  reading;
+- `HEAD` is **detached** at `5836dc0b`, an ancestor of `main`, so a
+  fast-forward would land;
+- and **two tracked files hold text no commit in this repository holds**, so
+  `git merge --ff-only` refuses until somebody rules on them.
+
+So the clone is reachable and the lineage has not parted. The act is a ruling
+on two files and then a fast-forward and a restart, and the hand is root's.
+That is a different act, with a different holder, from the one three of the
+four readings printed.
+
+**And the reason nothing has done it is written down, in a file that runs.**
+`asc-deploy.timer` has fired on this box every three minutes since 2026-10-23,
+it exited 0 ninety-five seconds before this reading, and
+`/srv/asc/hq/tools/host/asc-deploy.sh` says in its own header: *"What it never
+touches: /srv/asc/repos/epitome, which is the runtime the daemon runs (its own
+branch, see docs/architecture/agentic-system.md), and any secret."* The
+exclusion is deliberate, dated, and reasoned under HQ ADR-057.
+
+**The rule, and it is about exclusions rather than about this box.** An
+exclusion from an automated path carries the premise that justified it, and
+the premise is a measurement that expires. Nothing re-measures it, because
+every reader who finds the exclusion reads the reason, finds it sound, and
+stops — which is the correct behaviour and is why the premise outlives its
+truth silently. Here the stated premise is *its own branch*, and the box holds
+no branch: `git rev-parse --abbrev-ref HEAD` answers `HEAD`. There is no
+second lineage to protect. So the finding is not a scheduling problem and not
+a missing deploy path; it is one recorded decision whose ground has moved, and
+the addressee is whoever owns that decision rather than whoever owns the
+distance.
+
+**The second clause, because it changes who is woken.** *Unreachable* and
+*behind* route to different hands — a clone repair against a deploy — so an
+instrument that grades a subject unreachable re-reads the mechanism it named
+before repeating the verdict. HQ's `tools/check-host-deploy.py` reports this
+checkout `unreachable` on two grounds, and one of them is a fetch refspec
+pinned to `engineer/2026-09-20-runtime-v0-resident`, a branch deleted from the
+remote when its pull request merged. **That ground is not true today**: the
+refspec is the wildcard, and a fetch landed this morning. Measured read-only
+from the box at 06:47Z, and I did not run `git fetch` there, because writing to
+another hand's working tree destroys the evidence its decision needs — so what
+I can say is that the refspec and the URL are both what a fetch needs and that
+one succeeded at 01:52:57Z, not that I performed one. That is the limit of this
+vantage point (L-A34).
+
+**The shape to recognise.** Any number that grows monotonically across
+readings while the act beside it stays the same sentence. The growth reads as
+urgency and is in fact evidence that the printed act is not the act, because an
+act anybody could take would have been taken at one of the four readings. This
+is L-A123 for a number instead of a file: a check that reads only current state
+cannot tell *nobody did this* from *somebody deliberately undid this*, and the
+two have opposite next moves. The deliberate case is the one a distance cannot
+express.
+
+**Binds:** this seat, on every instrument of its own that prints a gap beside
+a remedy — the remedy's precondition is read first, and a recorded exclusion is
+read out loud beside the number it has been suppressing. Any seat reporting a
+drift, a lag, a staleness or a commit distance.
+
+**Shipped** in `docs/agents/executing.sh`: a reachability section before the
+distance, three questions asked separately because the repair differs for each,
+the deployer read by path with its own exclusion quoted, `the_act` as a field,
+and seven new self-test verdicts including a refspec pinned off `main`, a
+deployer that names the checkout and one that does not. Seventeen verdicts in
+the file, all firing. `docs/agents/` is a hand that merges today.
+
+`portable: yes`
+`role: any, exo, pm, engineer`
+
+## L105 — A status field a tool reads needs a closed vocabulary and a fourth answer: "I cannot read this spelling" is not "there is no field here", and the entry that wrote the more informative sentence is the one that fell out of the population
+
+**No owner correction triggered this one.** It fired on the instrument this
+charter runs every run, against the entry the previous run of this seat wrote
+six hours earlier.
+
+**The facts.** `docs/agents/remeasure.sh` discharges L20 by asking the
+register who is open and comparing that set against the set it can execute.
+Openness is read off each entry's own `**Status:` field by `classify()`, which
+matched *open*, *not in this tree*, *not on `main`*, *fix written*, *in no
+tree* for open and *closed*, *shipped* for closed — and returned
+`unjudgeable` for everything else. The report prints that bucket as *"N
+incident(s) carry **no Status field**, so L20 cannot be asked about them at
+all."*
+
+Incident 53's status field reads: *"the defect is live and the repair is not
+this seat's lane."* It matches nothing in either list, so it landed in the
+no-field bucket. **Incident 53 is the entry whose entire subject is a fix that
+is on `main` and is not running** — the most load-bearing open entry in this
+register this morning — and the one instrument the charter points at it
+reported that it carries no status at all.
+
+Two more were in there with it, found the moment the class existed. Incident
+49: *"not fixed, and the fix is not in this repository."* Incident 52: *"the
+detector is in the tree and fires on this as its first self-test case; the
+clause itself…"*. **Three of the register's thirty-one open entries were
+invisible, and all three had written a status.**
+
+**The rule.** Where a tool decides a class from a free-text field, the
+vocabulary is closed in the reader and the no-match arm is **its own fourth
+answer**, reported with the spelling that produced it. An absent field is the
+author's omission; a field the reader cannot parse is the reader's gap. They
+have different owners and different fixes, and a reader that returns one value
+for both makes its own report a liar about which (L-A44, L-A134).
+
+**The direction, which is why this is law and not tidiness.** The two errors
+are not symmetric. An entry wrongly called open costs one re-measurement. An
+entry wrongly called *field-less* leaves a live defect out of a population a
+charter obliges this seat to sweep, under a heading a reader skims, and no
+later run comes back for it because nothing records that it was dropped.
+
+**And note which entries it ate.** Not the careless ones. The spelling that
+broke it is *more* informative than the ones the list held — it names the
+state and the lane in one sentence — and informativeness is what made it
+unreadable. A vocabulary that rewards the plainest possible sentence selects
+against the authors who say the most, which is the opposite of what the field
+is for. So the remedy is not to widen the list by guessing: adding *live*
+fixes one entry and leaves the next. The remedy is that the unread spelling
+is printed, so the list grows on evidence and the next author can pick a word
+the file knows.
+
+**The shape to recognise.** Any `case`/`if` chain over authored prose whose
+final arm is shared with the empty case. The test is one question: can this
+function's answer distinguish *nothing was written* from *something I do not
+understand was written*. This is L-A107 — one key per field, the measured
+spellings stay readable, the list is closed, a new spelling is reported rather
+than absorbed — applied to a field's **values** rather than to its keys, which
+nobody had done.
+
+**Binds:** this seat, on every register field its own instruments classify.
+Any seat whose tool reads a status, a disposition, a verdict or a stage out of
+prose another seat wrote.
+
+**Shipped** in `docs/agents/remeasure.sh`: `classify()` returns a fourth class,
+`coverage()` reports `status_field_present_but_unreadable_here` with each
+unread spelling beside its number, and the exit stays 2 on it. Six new
+self-test verdicts, two of them asserting incident 53's and incident 49's own
+sentences by their exact bytes rather than a paraphrase. Twenty-two verdicts in
+the file, all firing. The same could-not-look defect in this run's other patch —
+an unreadable deployer reporting `excludes: no` — was caught by its own
+self-test and is fixed in the same branch, which is the second instance inside
+one run and the reason this rule is written as a shape rather than a fix.
+
+`portable: yes`
+`role: any, exo, pm, engineer`
