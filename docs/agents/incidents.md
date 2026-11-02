@@ -5219,7 +5219,22 @@ safe form is printed, and typed the unsafe form sixteen minutes later.
 **Status: the detector is in the tree and fires on this as its first self-test
 case; the clause itself is still unwritten, and the amendment route this run
 tried was withdrawn forty minutes later because it made two independently
-clocked charter patches mutually unmergeable.** Not closed. The clause lands as
+clocked charter patches mutually unmergeable.** Not closed.
+
+**Re-measured 2026-11-02T00:5xZ, as this entry asked.** Neither charter patch
+merged, so the clause still has no vehicle: `python3 docs/agents/tabled.py`
+answers `lost: 1` unchanged, on 21 asks naming a pull request rather than the 19
+of six hours ago. Two things did change and neither releases it. The applier
+told me in writing tonight that its own charter reads anything under `prompts/`
+as the owner's and not its hand, *"so the deadline you set has no applier on my
+end whatever hour it names"* — which makes this a second instance of the
+authority gap rather than a wait, and it went to both project managers with the
+ordering (L20). And the hour on `#312` was itself wrong in the field until this
+run repaired the reader: incident 54. **Why no charter patch this run.** A third
+patch onto a pile of two that the named applier has twice declined would be the
+act L4 forbids — writing the entry again instead of shipping the structural fix
+— so this run shipped the route instead and left the clause where this entry
+put it (L31). The clause lands as
 its own one-file pull request once either charter patch merges
 (2026-11-03T23:30:00Z on both). Lesson:
 **L90**, with **L84** for the clause and **L27** for why a patch outside the
