@@ -536,6 +536,25 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   of them (2, 6, 7, 8) never read it, and `smoke-temporal.sh` has three `out=`
   sites in two steps two hundred lines apart. Said plainly rather than counted
   as a third fix.
+  **`smoke-temporal.sh` measured the same way, and it is the stronger pair
+  because its reader is the new one.** Three needles mutated in the branch copy
+  and in `main`'s copy identically: both read **194 ok, 3 failed**. `main`
+  prints three bare `FAIL` lines. The branch prints, for the same three: the
+  `$docout` the doctor assertion was made against (6,049 bytes), the `$PS`
+  table in which `queue=seats` is visible against an assertion asking for
+  `queue=seatss`, and the `ingress.log` the reconcile assertion named — that
+  last one found by the file reader, since no `$NAME` survives to `check` at
+  that site at all.
+  **Two things the measurement changed about the fix, both found by running it
+  rather than reasoning about it.** The first: `tail` was the wrong end. A FAIL
+  on the 6,049-byte `$docout` printed twenty-four lines of per-seat identity
+  asides while the verdict row the assertion was about sat near the TOP, which
+  is true, bounded and about nothing the test asked. It prints both ends now,
+  with a count of what is between them and the name of the env var that raises
+  the cap. The second: `mapfile` on an empty string gives a one-element array,
+  so a log nothing had written to read as `0 bytes, all 1 lines` and a blank —
+  and a log nothing wrote to is usually THE answer, so it is named instead.
+  Neither was in this card; both are in the branch.
   **Seven suites and 396 sites left, in the order their blindness has cost the
   most:** `smoke-roster.sh` (105), `pack.sh` (95), `smoke-deploy.sh` (71),
   `deploy/test-provision.sh` (59), `stranger.sh` (31), `smoke-cloudflare.sh`
