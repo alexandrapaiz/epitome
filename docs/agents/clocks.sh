@@ -334,6 +334,7 @@ case "${1:-}" in
 --writable) writable; exit $? ;;
 --answers)  answers_rate "${2:-owner}"; exit $? ;;
 
+
 --self-test)
   # Every branch fired against an input, because a branch nothing has ever hit
   # decides the answer on the day it hits (L42). Each case prints what it
@@ -723,7 +724,38 @@ JSON
         'out=$(bash "$0" --answers owner 2>&1); grep -q "addressed to .owner.: 1" <<<"$out" \
           && grep -q "written by .owner. on this surface: 1" <<<"$out"' "$0"
 
+  # The subject this script was asked about, which until 2026-11-02 it would
+  # take from any word at all. Both refusals are exit 2 and neither of them may
+  # print a verdict, because the sentence that cost something was a VERDICT on
+  # a subject that did not exist: `no clock on #--pr` (L-A113).
+  check "an unknown flag is refused by name"         2 \
+        env CLOCKS_FIXTURE="$tmp/answers-nearmiss.json" bash "$0" --pr
+  check "a non-numeric subject is refused"           2 \
+        env CLOCKS_FIXTURE="$tmp/answers-nearmiss.json" bash "$0" 3hundred
+  check "neither refusal prints a verdict"           0 \
+        env CLOCKS_FIXTURE="$tmp/answers-nearmiss.json" bash -c \
+        'for a in --pr 3hundred; do out=$(bash "$0" "$a" 2>&1); \
+           grep -q "no clock on" <<<"$out" && exit 1; done; exit 0' "$0"
+
   exit $rc ;;
+
+# An argument this script does not know is refused BY NAME, and a pull request
+# number that is not a number is refused the same way (L-A113). Until now
+# `PR=${1:-}` took whatever fell through, so `--pr 300` set PR to the string
+# `--pr`, the forge answered `?` for its state, no ask named it, and the verdict
+# printed was *no clock on #--pr*. That is this instrument's loud-wrong
+# direction: the reader asking it is deciding whether words are under a clock
+# she may not edit, and "no clock" is the answer that releases her to edit them.
+# Found on 2026-11-02 re-measuring incident 61, by a caller that guessed a flag
+# this file never had. A could-not-look is exit 2 here and everywhere (L41).
+--*)
+  printf 'clocks.sh does not have the argument `%s`, and it will not read it as a pull
+request number: a wrong subject answers "no clock" to a reader who is asking
+whether she may edit words under one (L-A113, L41).
+' "$1" >&2
+  printf 'the arguments it does have: <PR-number> | --writable | --answers [SEAT] | --self-test
+' >&2
+  exit 2 ;;
 esac
 
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
@@ -741,6 +773,13 @@ else
 fi
 
 PR=${1:-}
+case "$PR" in
+  ''|*[!0-9]*) [ -z "$PR" ] || {
+      printf 'clocks.sh was given `%s` as a pull request number and it is not one, so it
+refuses rather than answering about an item that does not exist (L-A113, L41).
+' "$PR" >&2
+      exit 2; } ;;
+esac
 # The scope of the answer, printed rather than assumed: a pull request number
 # means nothing without the repository it was issued in (L-A18, L-A47).
 REPO=${REPO:-$(basename -s .git "$(git remote get-url origin 2>/dev/null)" 2>/dev/null)}
