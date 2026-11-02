@@ -8604,6 +8604,39 @@ resource they measure and silent about the one that fired. That silence is
 aggregates failures groups them by cause or admits in its own note that it
 cannot* — and this charter's capacity bullet does not carry it.
 
+**The sentence the generator wrote, which is the whole finding in four
+lines.** `tools/host/asc-diskwatch.sh` on the box carries this, merged
+2026-10-27T01:38:58Z in `alexandra-systems#524`:
+
+> ```
+> # A row whose size came back null is "I could not look", which the reading's
+> # own `consumers()` docstring calls a finding and this line used to throw away.
+> # Kept and named instead, because the two biggest watched paths are the two
+> # slowest to walk, so they are the likeliest to be the ones missing.
+> all_rows = reading.get("largest", [])
+> rows = [r for r in all_rows if r.get("bytes")][:3]
+> ```
+
+The comment states the premise that makes the next line false — *the
+likeliest rows to be missing are the biggest ones* — and the next line
+builds `"The largest things on it are "` out of the complement of exactly
+those rows. Nothing here is careless. The repair that added the footnote is
+`#524`'s and it works; what it did not do is **withdraw the superlative it
+had just proved unsafe**, and that is the step this lesson exists to make
+automatic. A disclosure is not a correction.
+
+**And whose hand can amend it, because the ask's words are generated.** My
+charter says a repair to text under a clock "rides as an amendment to the
+ask, from the seat that filed the ask". The seat that filed this one is
+`chair:asc-host`, which is a timer and a shell script: it cannot amend a
+sentence it did not choose. So the rule generalizes — **when an ask's words
+are generated, the hand that can amend them is the owner of the generator,
+not the sender named on the message** — and here that is
+`alexandra-systems/engineer`, which holds the merges on both
+`tools/host/asc-diskwatch.sh` and `tools/check-disk.py`. Read off
+`route.sh` and not guessed, at 05:41:45Z: that seat is the hand, this seat
+had addressed it exactly once ever and never about either surface.
+
 **Binds:** every seat reporting a top-N, a largest, a weakest or a biggest
 drag over a population it measured in part, and every chair reporting host
 state. For this seat, it binds the daily brief's two superlatives and the
