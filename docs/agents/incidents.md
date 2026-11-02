@@ -5873,3 +5873,105 @@ same crippled fixture independently reproduced `952 commits behind` from the
 host's clone, which is the figure `epitome/engineer` read from the full clone on
 the box and reported on the board at 2026-11-02T01:04:47Z. Two instruments, two
 frames, one number.
+
+## Incident 64 — 2026-11-02 — Four runs in eighty-three minutes handed the owner twenty files no ask had tabled, and produced four pull requests with no disposition any clock can execute: two carry clocks that cannot lawfully expire into a merge, two carry none
+
+**Status: detector shipped on this run's branch, not on `main`.** The one thing
+blocking it is a merge by `epitome/pm`, whose own authority covers every file in
+`#401` — there is no `prompts/` path in it, by construction. The charter half of
+the repair is **not shipped and is not this run's to ship**: `f02cb89` on `#300`
+already carries it under a clock expiring 2026-11-03T23:30:00Z, and a second
+copy would be a proposal beside words already under a clock. Lesson: **L99**.
+Re-measure next run with `bash docs/agents/check.sh` third section against this
+seat's own newest branch, and count instances rather than entries (L20).
+
+**Facts.** Between 2026-10-25T02:23Z and 2026-11-02T02:07Z this seat opened 41
+consecutive pull requests carrying no `prompts/` path, and all 41 merged. At
+02:26Z `#387` carried one. `#390`, `#394` and `#396` followed at 02:39Z,
+03:15Z and 03:49Z, each based on its predecessor per this charter's **One branch
+per seat** bullet, each therefore carrying the same `prompts/exo-agent.md`
+commit without having chosen it. At 03:53:44Z `epitome/pm` declined `#394` in
+writing and named the five files it would have merged that day on its own
+authority.
+
+**Impact, measured rather than described.** The cost is not the delay. It is
+that L-A100 scopes a release on silence to the files the ask tabled, so none of
+the four can be released by silence on any part of it:
+
+```data
+instrument: gh pr view --json files + docs/agents/clocks.sh <n>, one row per branch
+read_at: 2026-11-02T04:25Z
+trunk: 930a702
+pr  head      tabled               untabled  clock                      releasable_by_silence
+387 209aefb0  prompts/exo-agent.md 4         clock 2026-11-04T02:32:00Z  NO — 4 untabled
+390 052b01f9  prompts/exo-agent.md 5         clock 2026-11-04T03:05:00Z  NO — 5 untabled
+394 4cd3373c  prompts/exo-agent.md 5         none                        NO — 5 untabled
+396 4ba13f20  prompts/exo-agent.md 6         none                        NO — 6 untabled
+300 e2417426  prompts/exo-agent.md 0         clock 2026-11-03T23:30:00Z  yes
+312 009e05ff  prompts/exo-agent.md 0         clock 2026-11-03T23:30:00Z  yes
+```
+
+Twenty untabled file-instances. Two clocks with forty-six hours left that
+cannot expire into anything. Two branches with no clock at all. Six distinct
+files held — `docs/agents/clocks.sh`, `idle.sh`, `incidents.md`, `lessons.md`,
+`post.sh` and the new `reach.sh` — every one of them in a hand that merges the
+same day, including the detector written for incident 57.
+
+**Root cause, in the system and not in a run.** Two mechanisms, and only the
+second is new.
+
+*The sentence.* `prompts/exo-agent.md` on `main` says "Start from your own
+newest open pull request, not from `main`, whenever you have one open" with no
+tier qualifier. A run that obeys it after any run has bundled inherits the
+bundle. That is L55's own amendment of 2026-10-24T23:0xZ, which called the same
+sentence "how the seven-link chain this seat spent 2026-10-24 measuring was
+built, one legitimate base at a time."
+
+*The loop.* The repair for that sentence is a `prompts/` path. So it is gated by
+the owner, which is the gate the sentence causes to be inherited, so **the rule
+whose absence produces the bundle is held behind the bundle's own clock** —
+eight days so far. Every run in the gap re-derives the same conclusion from the
+same unamended sentence and adds a link. Nothing in a stateless run can see
+that its base handed it the path rather than that it chose it, which is why
+three of the four are not even corrections anyone could have made at the time.
+
+**Fix shipped: `docs/agents/check.sh`, third section**, in this run's pull
+request. It reads `git diff --name-only` against the trunk, refuses a branch
+whose diff mixes a reserved path with any other, and separately names each
+reserved commit as this run's own or `INHERITED from #<n>` — computed by
+containment in the direction that means base, a pull request whose head this
+branch contains. The first version asked only whether some open pull request
+held the commit, which answers `INHERITED from #394` when run on `#394` itself,
+because a branch is always contained in its own pull request (L-A50).
+
+**Detector checked against real positives before this entry calls it a fix**
+(L-X1 as amended), on four live branches:
+
+```data
+instrument: docs/agents/check.sh, third section, run in a detached worktree per head
+read_at: 2026-11-02T04:2xZ
+387 209aefb0  MIXED 1+4  1b7cecb this run wrote it                       exit 1
+390 052b01f9  MIXED 1+5  1b7cecb INHERITED from #387                     exit 1
+394 4cd3373c  MIXED 1+5  1b7cecb INHERITED from #390 #387               exit 1
+396 4ba13f20  MIXED 1+6  1b7cecb INHERITED from #394 #390 #387           exit 1
+312 009e05ff  one hand, the owner's, nothing rides with it               exit 0
+401 (this)    one hand, local, no reserved path                          exit 0
+```
+
+It answers both ways, and it separates the one run that chose the bundle from
+the three that inherited it — which is the distinction the remedy turns on,
+because a sort can still move `#387`'s commit and nothing can move the other
+three without a re-cut.
+
+**Why this entry ships no charter patch, written down rather than left to be
+inferred (L31).** This charter's own *When a clock is running on words* section
+forbids a second proposal beside text already under a clock, and `f02cb89` is
+exactly that text: the right words, filed by this seat, clock in force until
+2026-11-03T23:30:00Z, applier told five times. The gap between now and that
+hour does not need more words at her tier. It needs a refusal at this seat's
+own tier, which is what shipped.
+
+**Routed**, per *Where a not-landing finding goes*, to `epitome/pm` for the
+move and `alexandra-systems/pm` for the item: four branches with no executable
+disposition, the merge order, and the one owner decision if everything else
+fails.

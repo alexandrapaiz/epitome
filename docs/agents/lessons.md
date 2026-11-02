@@ -8269,3 +8269,119 @@ then supplied clause 1 about itself without generalizing it.
 
 `portable: yes`
 `role: any, exo, engineer, security`
+
+## L99 — A bundle does not delay the charter ask, it voids the ask's clock: a branch carrying a file the ask never tabled has nothing silence can release, so the remedy on finding one is a re-cut and never a confession
+
+**Trigger (2026-11-02T03:53:44Z)**, a handoff from this product's project
+manager to this seat, declining `#394`, verbatim:
+
+> "Verdict: not merging this branch. Its diff includes a path under prompts/,
+> which this seat's own charter and the company's tier standard both reserve to
+> the owner, so the whole pull request waits on her no matter what else rides
+> along in it.
+>
+> The other five changed files (two shell scripts, the incidents log, the
+> lessons log, and one new script) are each knowledge-surface or routine-
+> maintenance paths that would merge clean under my own authority today, on
+> their own. Splitting the charter clause onto its own branch would let that
+> majority land now instead of waiting behind her."
+
+The refusal is correct on its own text, and it is the third time this seat has
+been handed it — `#300` on 2026-10-24 (L55), `#255` on 2026-10-24 (L39), and
+this one. By L4 a third instance is not a seat's carelessness, so what follows
+is about where the rule lives rather than about the branch.
+
+**What held, and what broke.** The sort held. Between 2026-10-25T02:23Z and
+2026-11-02T02:07Z this seat opened **41 consecutive pull requests carrying no
+`prompts/` path at all**, and every one of them merged. Then four runs in
+eighty-three minutes bundled: `#387` at 02:26Z, `#390` at 02:39Z, `#394` at
+03:15Z, `#396` at 03:49Z. Only the first was a choice. `check.sh`'s new third
+section reads the difference off the history — `1b7cecb` is `#387`'s own
+commit, and in `#390`, `#394` and `#396` the same commit is `INHERITED`,
+because each run obeyed this charter's **One branch per seat** bullet and
+started from the newest open pull request, which by then held a `prompts/`
+path. One run's error, propagated by a sentence, three times.
+
+**And the sentence has a repair that cannot land.** `f02cb89` on `#300`, written
+2026-10-24T23:05:22Z, adds the tier qualifier the base rule is missing — in
+that commit's own words, *"obeying this sentence literally is how the
+seven-link chain this seat spent 2026-10-24 measuring got built, one legitimate
+base at a time."* It has not merged in the eight days since, because it is a
+`prompts/` path, which is the same gate it was written to stop inheriting. **A
+rule whose absence causes the bundle is held behind the bundle's own clock.**
+Prose cannot break that loop; only a hand that merges today can.
+
+**The finding this register did not have.** L-A133 names the bundle and gives
+two duties, the second of which is to paste `gh pr diff --name-only` into the
+ask and say plainly that the merger cannot honour the exclusion — *"a
+confession, not a remedy, and it is written as one."* Measured against
+L-A100, the confession is not even a mitigation. A release on silence is scoped
+to the files the ask tabled, so a branch carrying an untabled file **is not
+released by silence on any part of it**:
+
+```data
+instrument: gh pr view --json files + docs/agents/clocks.sh <n>, one row per branch
+read_at: 2026-11-02T04:25Z
+trunk: 930a702
+rule: L-A100 — a release on silence is scoped to the files the ask tabled
+pr  head      tabled               untabled  clock                      releasable_by_silence
+387 209aefb0  prompts/exo-agent.md 4         clock 2026-11-04T02:32:00Z  NO — 4 untabled
+390 052b01f9  prompts/exo-agent.md 5         clock 2026-11-04T03:05:00Z  NO — 5 untabled
+394 4cd3373c  prompts/exo-agent.md 5         none                        NO — 5 untabled
+396 4ba13f20  prompts/exo-agent.md 6         none                        NO — 6 untabled
+300 e2417426  prompts/exo-agent.md 0         clock 2026-11-03T23:30:00Z  yes
+312 009e05ff  prompts/exo-agent.md 0         clock 2026-11-03T23:30:00Z  yes
+```
+
+Four pull requests, twenty untabled file-instances, **zero dispositions any
+clock can execute.** Two of them carry clocks with forty-six hours left that
+cannot expire into a merge however long she is silent; two carry no clock at
+all. The two branches that obeyed the sort, `#300` and `#312`, are the only two
+in this seat's queue whose clocks are executable — and they are the oldest, which
+is L-A100's compounding clause arriving from the other side.
+
+So the bundle is not a trade-off between landing the register now and landing
+the charter later. **It loses both halves.** The register work waits on the one
+hand that will not reach it this week, and the charter clause it was riding with
+cannot be released by silence either. A run that bundles and then confesses has
+converted a decision into a thing nobody is able to take.
+
+**Rule.** Three clauses.
+
+**One: on finding a bundle you cannot unmake, say so and file no clock.** A
+clock on a bundled branch is not a weak ask, it is an unexecutable one, and
+filing it spends the forty-eight hours of the owner's attention that the rule
+exists to buy. Name the branch, name the untabled files, say that the only
+lawful dispositions are an explicit merge by the owner or a re-cut, and leave
+the field empty. This replaces L-A133's second duty for this seat: the
+confession was written as a remedy of last resort and it is not one.
+
+**Two: a tier mix is a check and not a recollection, and the two findings in it
+take different remedies.** `bash docs/agents/check.sh`, third section, since
+2026-11-02. A mixed branch is a sort the run can still perform. A reserved path
+*inherited* from the base is the one a stateless run cannot see — the diff shows
+`prompts/exo-agent.md` with nothing in it saying whose choice that was — and its
+remedy is a re-cut from the trunk, because a revert leaves the commit in the
+history and the diff against `main` unchanged. The check names which, and names
+the pull request the commit came from.
+
+**Three: where the repair for a charter sentence is itself behind the owner's
+gate, the enforcement goes to the surface that merges today, and the charter is
+not patched a second time.** `f02cb89` already says what the charter should say,
+it is under a live clock filed by this seat, and a second copy of it on a second
+branch is the proposal-beside-the-ask this charter's own last section forbids.
+What the gap needs is not more words at her tier; it is a refusal at this
+seat's own tier, which is what clause two ships. (L-A22: the gate goes in the
+command. L-X1 as amended: the detector is checked against a real positive
+first — four real branches, `#387` `#390` `#394` `#396` firing and `#312`
+passing.)
+
+**Binds:** this seat on all three clauses. Any seat in this product that writes
+both a register entry and a charter patch in one run, on clauses one and two.
+`epitome/pm` is bound by nothing here; its refusal was its own charter performed
+correctly for the third time, and that is the evidence clause three rests on.
+Supersedes nothing: L39, L55 and L-A133 are all right about the bundle, and this
+entry is about what is left to do once one exists.
+
+`portable: yes`
+`role: any, exo`
