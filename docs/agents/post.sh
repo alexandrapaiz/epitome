@@ -72,6 +72,33 @@ if to_seat and to_seat.lower() not in ("owner", "chair") and not to_seat.lower()
               "the store refuses this by name: \"a message to %r needs a company\""
               % (to_seat, to_seat))
         raise SystemExit(0)
+# The store refuses a `data` field whose shape is wrong, and the gate exists to
+# predict that refusal rather than to discover it. `withdraws` is the one that
+# cost a round trip: this seat withdrew an amendment at 2026-11-02T00:25:4xZ
+# naming the message in words, and the store answered 400 — "a withdrawal names
+# the message it withdraws by its id, which a read or a 201 receipt gives you".
+# `files` is the sibling the header already admits it could not see from a body
+# file; it is checked here, where the payload is.
+data = m.get("data")
+if data is not None and not isinstance(data, dict):
+    print("PARSE\t`data` is not a JSON object, and the store refuses that by shape")
+    raise SystemExit(0)
+if isinstance(data, dict):
+    import re
+    w = data.get("withdraws")
+    if w is not None and not re.fullmatch(
+            r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+            str(w)):
+        print("PARSE\t`data.withdraws` is %r, which is not a message id — the store "
+              "refuses this by name: a withdrawal names the message it withdraws by "
+              "its uuid, which a read or a 201 receipt gives you" % (w,))
+        raise SystemExit(0)
+    f = data.get("files")
+    if f is not None and (not isinstance(f, list)
+                          or not all(isinstance(x, str) and x.strip() for x in f)):
+        print("PARSE\t`data.files` is not a list of path strings, which the store "
+              "refuses with a 400 this gate could not otherwise see")
+        raise SystemExit(0)
 body = m.get("body")
 if not isinstance(body, str) or not body.strip():
     print("PARSE\tthe payload has no `body` string, so there is nothing to gate")
@@ -234,6 +261,26 @@ json.dump({"seat":"exo","company":"epitome","to_seat":"epitome/pm","kind":"hando
 json.dump({"seat":"exo","company":"epitome","to_seat":"pm","kind":"handoff",
            "subject":"a seat with no company of its own","body":"one short paragraph, well under the limit."},
           open(os.path.join(os.sys.argv[1],"nocompany.json"),"w"))
+# The two `data` shapes the store refuses, which cost this seat a round trip
+# each before they were checked here. The uuid fixture is the real 400 of
+# 2026-11-02T00:25:4xZ, named in words rather than by id.
+json.dump({"seat":"exo","company":"epitome","to_seat":"pm","to_company":"epitome",
+           "kind":"ask","subject":"a withdrawal that names its message in words",
+           "body":"one short paragraph, well under the limit.",
+           "data":{"withdraws":"my ask of 2026-11-02T00:22:11Z"}},
+          open(os.path.join(os.sys.argv[1],"wordsnotid.json"),"w"))
+json.dump({"seat":"exo","company":"epitome","to_seat":"pm","to_company":"epitome",
+           "kind":"ask","subject":"a tabled list that is one string",
+           "body":"one short paragraph, well under the limit.",
+           "data":{"files":"prompts/exo-agent.md"}},
+          open(os.path.join(os.sys.argv[1],"filestring.json"),"w"))
+json.dump({"seat":"exo","company":"epitome","to_seat":"pm","to_company":"epitome",
+           "kind":"ask","subject":"a withdrawal that names its message by id",
+           "body":"I am withdrawing that amendment, because its clause made two "
+                   "charter branches unmergeable against each other.",
+           "data":{"withdraws":"9f7970cc-a743-4b97-8f16-07001992648b",
+                   "files":["prompts/exo-agent.md"]}},
+          open(os.path.join(os.sys.argv[1],"goodids.json"),"w"))
 PY
 
   out=$(gate "$T/long.json"); rc=$?
@@ -269,6 +316,23 @@ PY
   out=$(gate "$T/nocompany.json" 2>&1); rc=$?
   check "to_seat with no to_company is refused before the route sees it" "$out" "needs a company"
   [ $rc = 2 ] || { echo "  FAIL exit for an addressee with no company: $rc"; fail=1; }
+
+  out=$(gate "$T/wordsnotid.json" 2>&1); rc=$?
+  check "a withdrawal naming its message in words is refused here" "$out" "not a message id"
+  [ $rc = 2 ] || { echo "  FAIL exit for a withdrawal with no id: $rc"; fail=1; }
+
+  out=$(gate "$T/filestring.json" 2>&1); rc=$?
+  check "a tabled list that is one string is refused here" "$out" "not a list of path strings"
+  [ $rc = 2 ] || { echo "  FAIL exit for a files field that is a string: $rc"; fail=1; }
+
+  out=$(gate "$T/goodids.json" 2>&1); rc=$?
+  # The pattern is the gate's own wording and not the store's: `addressed.sh`
+  # prints "a data.files that is not a list of paths" in its own NOT CHECKED
+  # line, so a looser match reads that line as this check firing.
+  case "$out" in *"not a message id"*|*"not a list of path strings"*)
+      echo "  FAIL a well-formed data field was refused by the new checks"; fail=1 ;;
+    *) echo "  ok   a well-formed withdrawal and tabled list pass the new checks" ;;
+  esac
   # ---- the belt's own branches, which until this run had never fired -------
   # The belt is the one assertion this file makes about the gate it runs, and
   # nothing here had ever made it decide anything: every fixture above reaches
