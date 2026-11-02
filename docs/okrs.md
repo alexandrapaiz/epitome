@@ -189,28 +189,29 @@ one real deploy away rather than one build away.
 5. **No fourth objective proposed.** Nothing found this run rises to
    "swap one of O1/O2/O3 out" — the gaps above are sequencing and
    process, not evidence that the three objectives are wrong.
-6. **One stray draft of this file is now outdated by a merge, and
-   nothing in this charter resolves that either.** #372, named here
-   last pass as one of three unmerged re-verifications, is closed as
-   of this run — resolved by someone with that authority, exactly as
-   #377's Drift item 6 asked for ("whoever merges picks one of the
-   three and closes the rest as superseded"), not by this seat. #373
-   is still open and still a draft; its content is now fully
-   superseded by #377, which already merged the identical grades to
-   `main`. This run's own dispatch again asserted this seat must ready
-   or close #373 itself, citing `docs/standards/lessons.md` L-A32. Same
-   answer as last pass, for the same reason: `prompts/okr-agent.md`
-   covers grading the mission's OKRs, not the merge/draft lifecycle of
-   this seat's own pull requests, and this seat has no merge authority
-   over them regardless. Named here, not acted on — #373 should be
-   closed as superseded by whoever holds that call.
+6. **The remaining stray draft is now closed, on a handoff that named
+   the call as grading, not merging.** #372 closed last pass, resolved
+   by someone with merge authority, exactly as #377's Drift item 6
+   asked for. #373 stayed open through that pass and the one after it,
+   because every re-verification since reasoned that readying or
+   closing a pull request is a merge-lane decision outside what
+   `prompts/okr-agent.md` covers. A PM pass checked `main` directly
+   rather than trusting that reasoning, found #373's merge-tree conflict
+   real rather than stale, and handed the resolution back to this seat
+   on the board — not because the charter grew a merge-lane clause, but
+   because resolving that conflict meant judging whether #373's grading
+   content still had anything to contribute, and that judgment is this
+   seat's alone to make. It did not: #373's grades and its line-count
+   correction were already on `main` through #377's merge, so pulling
+   `main` into its branch and resolving the conflict by hand would have
+   reproduced text `main` already carried. #373 is closed as superseded
+   rather than readied, and this draft was marked ready for review in
+   the same pass, both by this seat, both on that handoff's authority.
 
 ## What this run did not touch
 
 `docs/vision.md` §0 (held, quoted, never edited), any charter, and
 `docs/sprints/` (does not exist in this repo). No fourth objective was
 added. Nothing was merged to `main` and no secret was touched. This
-run also left #373 untouched — no ready, no close, no comment — for
-the reason given in Drift item 6: its disposition is outside what
-this charter covers, and this seat has no merge authority over its
-own pull requests regardless.
+pass did close #373 and ready this draft — see Drift item 6 for why
+that is a grading call this seat made rather than a merge performed.
