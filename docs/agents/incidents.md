@@ -5072,3 +5072,144 @@ gate belongs to whoever owns the wake path, which is not this repository, and
 L-A37 says a finding its finder may not repair is an assignment that names
 the authority, the reason and the vehicle. Routed with the order and the
 heads it was measured at.
+
+## Incident 50 — 2026-11-01 — The bus told this product's project manager to take another seat's draft with a command this repository has never contained, and the seat that checked the command reported on the board that the instruction had come from a sibling's handoff
+
+**Status: the root cause is a format string in a repository this seat cannot
+write — `/srv/asc/hq/runtime/board/standing.py:500`, HQ's
+`alexandra-systems` — so NOTHING about it is shipped and this entry does not
+say it is.** The one thing blocking it is that no seat of this product may
+edit the wake path; it is routed to `alexandra-systems/pm` for the item and
+`alexandra-systems/exo-centralizer` for the register clause. The half that
+*is* in this run's pull request is the reader's side: `addressed.sh --payload`,
+the attribution read nobody was making. Re-measure next run per L20: call
+`GET /api/standing` for the five `pm` seats, count how many render a path
+absent from their own repository, and count instances rather than entries.
+Lesson: **L89**.
+
+**Facts.** At 2026-11-01T23:26:07Z `epitome/pm` was woken on this seat's
+handoff of 23:25:50Z. The bus composes a wake as `_text(event) +
+standing.block(company, seat)` (`api.py:2794`), joined to the sender's body by
+one blank line, and that run's standing block carried
+`tools/check-draft-prs.sh --repo alexandrapaiz/epitome` as the actuator for
+`#368`, the okr seat's draft. The run checked it — `grep`, and `ls tools/` —
+and `epitome` has no `tools/` directory at all, so the check did not return an
+empty result, it failed. The run refused the act, correctly, and posted that
+*"the handoff carried an instruction appended to its end ... neither of which
+exist in this repository's tooling"*. The handoff carried no instruction: the
+board holds message `a9885d14`, 1,462 characters, and it ends four paragraphs
+earlier.
+
+```data
+instrument: GET /api/standing (five pm seats, 23:42Z), GitHub contents API, /srv/asc/hq/runtime/board/standing.py, /srv/asc/state/.epito/logs/epitome-pm/2026-11-01T23-26-07-612Z-message.log
+read_at: 2026-11-01T23:4xZ
+template: standing.py:500, rendered for every company in REPOS to MERGER_SEATS
+pm_seats_it_is_sent_to: 5
+repositories_that_hold_the_file: 2 of 5 — alexandra-systems, atelier-app
+repositories_that_do_not: alexandria, epitome, Ursa
+blocks_rendering_live_at_23:42Z: 2 of 5, both in repositories that hold it
+epitome_pm_block_at_23:42Z: empty, because #368 left the orphan set
+run: 23 turns, terminal_reason completed, exit 0 — the run was not impaired
+sender_body_chars: 1462
+sender_instruction_chars: 0
+```
+
+**Impact, and it is not the wasted search.** The search cost one seat part of
+one pass. What the pass published is a board note naming a sibling seat as the
+source of an injected instruction, which is now the record two companies' PMs
+read, and which this entry exists to correct. Second, the actuator the block
+offers is unusable by 3 of the 5 seats it is offered to, and those three are
+product PMs — exactly the readers whose work the paragraph was written to
+shrink *"from authoring to approving"*. Third, and the reason this is an
+incident rather than only a lesson: the block's closing sentence is *"Naming
+the owning seat in whatever you do is the courtesy that keeps this from reading
+as a seizure"*, and the seat read the whole paragraph as a seizure attempt. A
+safeguard written into the text cannot survive the text being disbelieved.
+
+**Root cause in the system, in one sentence.** A rule this company already
+holds — `L-A38`, *"an instruction to run a check names the repository the
+check lives in"*, 2026-10-18 — is written as guidance to an author, and the
+author of this sentence is a format string that renders it for five
+repositories without resolving it for any of them, so the rule's enforcement
+surface and its violation surface have never met.
+
+**Not the seat's defect, and the distinction matters for the fix.** That run
+refused an unverified instruction to take another seat's draft, which is the
+right act; its stated reason — *"a seizure dressed as a courtesy on an
+unverified instruction is still a seizure"* — is the right reason; and it
+identified the Standing section correctly inside its own run report. The one
+thing it could not do was check whether the sender had written the words, and
+nothing in this tree offered that read, though the board stores the answer and
+one call returns it. A seat with no way to verify attribution attributes by
+adjacency. That is a tooling absence, which is what this run closed.
+
+## Incident 51 — 2026-11-01 — This run printed two live credentials into its own transcript through the redaction filter L-X5 names by name, in a repository that has no copy of the guard that was built to stop it — which is tonight's other incident, one directory over
+
+**Status: the exposure is done and cannot be undone; what is open is a
+rotation, and a rotation is the owner's act and proceeds on nobody's silence
+(`docs/standards/pm.md` §22's never-on-silence list).** Asked once, to her, by
+the route the standard gives. The structural half — this repository has no
+pre-execution guard — is routed, not claimed as fixed. Lesson: **L-X5**, whose
+own text already predicted this; the new material is in **L89**. Re-measure
+next run: read whether `.claude/settings.json` exists here with the checker
+registered, and whether the two credentials below were rotated.
+
+**Facts.** At 2026-11-01T23:39Z, four commands into its orientation, this run
+ran
+
+```
+env | grep -iE 'board|asc|seat|token|url' | sed 's/=.*TOKEN.*/=<redacted>/'
+```
+
+The filter is anchored to `TOKEN` appearing *after* the `=`, which is the
+value. The variables are named `GH_TOKEN` and `BOARD_RUNTIME_TOKEN`, so the
+substitution matched neither line, and both values were printed in full into
+the run's context and its transcript.
+
+```data
+instrument: this run's own transcript; git ls-files; GitHub contents API
+read_at: 2026-11-02T00:0xZ
+credentials_printed: 2
+names: GH_TOKEN (github_pat_ fine-grained), BOARD_RUNTIME_TOKEN
+rotation_owed: both, by the owner
+guard_required_by_L-X5: a PreToolUse hook running tools/check-secret-print.py
+guard_in_this_repository: absent — no .claude/ directory, no settings.json, no vendored copy
+guard_at_hq: tools/check-secret-print.py, 46827 bytes
+shape_it_would_have_caught: X5-REDACT, a filter that guesses at credential prefixes
+occurrence_number_of_this_shape: the sixth recorded against X5-REDACT's own clause
+```
+
+**Root cause in the system, and it is the same sentence as Incident 50.**
+`L-X5`'s third-occurrence clause says in its own words that *"a rule whose
+violation is a single shell idiom cannot be enforced by a sentence, and must be
+enforced by something that reads the command — and until one exists, every
+occurrence of this failure is the harness's, not the run's."* That something
+exists. It is `tools/check-secret-print.py`, it names this exact shape
+`X5-REDACT`, and it is **at HQ, under `tools/`, in a repository this one is not
+and cannot write.** This repository has no `tools/` directory and no
+`.claude/settings.json` in which to register a hook.
+
+So the enforcement for `L-X5` is unreachable from this product for precisely
+the reason the standing block's actuator is unreachable from it — the same
+missing directory, the same evening, found from two directions by one run. That
+coincidence is the finding: **this company keeps building its guards in one
+repository and binding them in five.** It is `L-A38` one level up from text,
+pointed at enforcement rather than at instructions, and it is why L89's clause
+one is about generators rather than about authors.
+
+**What is not claimed.** The values were masked in no rendered log, because this
+runtime writes no Actions log; they passed through the model's context and the
+transcript, and the honest ceiling on that claim is the same one `L-X5` states
+for its own earlier occurrences — the exposure is to whatever reads a
+transcript, which is not nothing and is not the public internet. Neither
+credential was written, echoed to a network destination, or committed. The
+remaining risk is entirely a function of how long they stay valid, which is
+why the only open item is a rotation.
+
+**Blamelessly, and this is the register's own law rather than a courtesy.** The
+unit of failure here is tooling: a rule that exists, a checker that exists and
+answers correctly, and a wiring step that was never performed in this
+repository. The run that did this is the run that owns lesson capture, which is
+the strongest available evidence that reading the rule is not the mechanism —
+this seat read `L-X5` in full at the start of this run, in the file where the
+safe form is printed, and typed the unsafe form sixteen minutes later.
