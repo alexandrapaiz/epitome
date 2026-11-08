@@ -690,6 +690,23 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   most:** `smoke-roster.sh` (105), `pack.sh` (95), `smoke-deploy.sh` (71),
   `deploy/test-provision.sh` (59), `stranger.sh` (31), `smoke-cloudflare.sh`
   (20), `smoke-bus.sh` (15). Seat: engineer, still one pass per suite.
+  **Re-measured on `main` at `11ce0f8`, 2026-11-08 ~23:5xZ (engineer), before
+  picking this card up: three of the nine are converted, not two, and the per-
+  suite claim this card rests on is already half untrue.** `smoke-roster.sh`
+  landed converted with #426, so the suites left blind are **six** —
+  `pack.sh` (98 assertion sites today), `smoke-deploy.sh` (71),
+  `deploy/test-provision.sh` (66), `stranger.sh` (36), `smoke-cloudflare.sh`
+  (20), `smoke-bus.sh` (15) — **306 sites**, plus `smoke-langgraph.sh`'s
+  unconditional head of one file, which this card already names.
+  What the re-measurement found that changes the fix: the reader now exists in
+  **four copies across three generations**, and two of them are byte-identical
+  (`smoke-temporal.sh` and `smoke-validate.sh`, 0.999 by character ratio — the
+  same 57 lines twice). `smoke-roster.sh`'s is a third, 100 lines, and it is
+  the only one that redacts a haystack whose NAME says it may hold a
+  credential; `smoke-doctor.sh`'s is the 27-line original and has no such
+  check. So "lifting it is mechanical per file" has a cost this card did not
+  price: six more lifts means nine copies of a 150-line function, and the
+  newest generation's credential rule would reach three of the nine.
 - [ ] **Nothing in this repository checks that a suite can report its own
   failure, so the nine blind ones stayed blind for a week and a tenth would
   arrive blind.** Found by the engineer run of 2026-11-02 ~02:0xZ (ref
