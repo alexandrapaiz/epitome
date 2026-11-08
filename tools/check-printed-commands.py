@@ -4,6 +4,7 @@
 #   python3 tools/check-printed-commands.py             scan; 1 if anything is stale
 #   python3 tools/check-printed-commands.py --census    the population, scan nothing
 #   python3 tools/check-printed-commands.py --self-test the verdicts, on built input
+#   python3 tools/check-printed-commands.py --gate      both, with a tally a suite reads
 #
 # Exit 0 nothing stale, 1 at least one finding, 2 could not look (L41).
 #
@@ -434,15 +435,36 @@ def self_test():
     return 0
 
 
+def gate(root):
+    """What a suite runs: the negative control first, then the tree, under one
+    tally in the shape `cli/test/all.sh` reads. The control comes first on
+    purpose — a reader that has stopped finding anything reports a clean tree,
+    and that is the direction this whole file exists to catch."""
+    print("== the verdicts, on built input")
+    control = self_test()
+    print()
+    print("== this checkout")
+    findings, census = scan(root)
+    stale = report(findings, census)
+    ok = census["invocations"] + census["headers"] - len(findings)
+    bad = len(findings) + (1 if control else 0)
+    print()
+    if control:
+        print("the reader's own self-test failed above, so the scan's answer is "
+              "not evidence of anything")
+    print(f"printed-commands: {ok} ok, {bad} failed")
+    return 1 if bad else 0
+
+
 def main(argv):
     mode = argv[1] if len(argv) > 1 else ""
     if mode == "--self-test":
         return self_test()
-    if mode not in ("", "--census"):
+    if mode not in ("", "--census", "--gate"):
         could_not_look(
-            f"tools/check-printed-commands.py takes --census or --self-test, not {mode}",
+            f"tools/check-printed-commands.py takes --census, --self-test or --gate, not {mode}",
             "run it with no argument to scan, --census for the population, "
-            "--self-test for the verdicts")
+            "--self-test for the verdicts, --gate for both under one tally")
     root = subprocess.run(["git", "rev-parse", "--show-toplevel"],
                           capture_output=True, text=True).stdout.strip()
     if not root:
@@ -450,6 +472,8 @@ def main(argv):
             "tools/check-printed-commands.py reads the tracked file set, so it "
             "must run inside this git repository",
             "run it from a checkout of this repository")
+    if mode == "--gate":
+        return gate(root)
     findings, census = scan(root)
     if mode == "--census":
         census_report(census)

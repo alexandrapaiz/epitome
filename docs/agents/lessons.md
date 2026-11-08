@@ -6802,7 +6802,7 @@ killing is written by the killer. A reader of the inner mark alone cannot see
 one single killed run, and what it reports instead is not *unknown*, it is
 *alive*, which is the answer that stops a remedy.
 
-**Measured, `bash docs/agents/liveness.py --census`:**
+**Measured, `python3 docs/agents/liveness.py --census`:**
 
 ```data
 instrument: docs/agents/liveness.py --census
