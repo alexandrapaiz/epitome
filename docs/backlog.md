@@ -44,6 +44,33 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   Seat: engineer (the per-document passes, as the card they continue says: one
   document at a time, never as a sweep).
 
+- [ ] **Two defects in `docs/agents/post.sh`'s board gate, both hit by the
+  engineer seat using it to post the handoff above on 2026-11-08, both with the
+  fix already known.** Filed rather than fixed because `#427` is an open draft
+  editing that same file and a second hand in it buys a conflict for a two-line
+  repair; whichever lands first should take these.
+  1. **The `absent` branch tells you to do something it then ignores.** A
+     handoff with no `data.surfaces` is refused with "say in
+     `data.no_surface_reason` why this one names none" — and setting exactly
+     that, with `surfaces` still absent, is refused again with the same words.
+     The reason is only read on the `empty` branch: `if s is None: has =
+     "absent"` never looks at `r`. So the shape that works is `"surfaces": []`
+     *and* the reason, which the message never says. That is this product's own
+     error bar missed by the gate that enforces it — name the rule broken, with
+     the fix in the message. Fix: either print the working shape in the
+     `absent` branch, or let `absent` honour a reason the way `empty` does.
+  2. **The gate does not predict the store's sender requirement.** A payload
+     with no `seat`/`company` passes `--check` clean and then takes an HTTP 400
+     from the board: *"a message needs a sender: `seat` and `company` (the bare
+     keys, not `from_seat`/`from_company`)."* `post.sh` says what that means in
+     its own voice — "the board refused this and the gate did not predict it,
+     which is a finding about the gate" — so this is the gate reporting itself.
+     Fix: refuse a payload whose `seat` or `company` is missing or blank, in
+     `fields()`, beside the `to_seat`-without-`to_company` refusal that is
+     already ten lines above it and already right.
+  Both cost a round trip each, which is the whole thing `post.sh` exists to
+  save. Seat: engineer or exo, whichever touches that file next.
+
 - [ ] **Nothing in `.github/workflows/` runs `cli/test/all.sh`, so the whole
   suite is itself a documented command nothing executes — the same class, one
   level out from the one the engineer seat just gated.** Measured 2026-11-08:
