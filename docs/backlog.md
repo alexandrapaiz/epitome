@@ -44,6 +44,38 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   Seat: engineer (the per-document passes, as the card they continue says: one
   document at a time, never as a sweep).
 
+- [ ] **`cli/test/selftests.sh` reports `roster.sh` as a FAIL on every box that
+  is not the resident host, because its ledger row records a verdict only that
+  box can produce — the third instance of the exact fault that file was written
+  for.** Measured 2026-11-08 by the engineer seat, which found it as a red in
+  `cli/test/all.sh` and checked whether its own branch caused it before saying
+  anything. It did not: a detached worktree at `origin/main` `11ce0f8`, with
+  nothing of that branch in the checkout, answers identically.
+  `bash cli/test/selftests.sh --only roster.sh` → `2 ok, 1 failed`, both on the
+  branch and on `main`, with the same line: *"the ledger says exit 0 here and 1
+  elsewhere; it answered 1 and 1."*
+  **The cause, read rather than guessed.** `bash docs/agents/roster.sh` answers
+  *"no loaded roster at /srv/asc/roster/epitome — this runs on the box that
+  hosts the seats; from anywhere else the answer is could-not-look and never
+  all-clear"*, exit 2. That is roster.sh behaving exactly as designed, and its
+  own self-test then reads three assertions off a scan that refused:
+  `reachable=<absent> want=yes exit=2` twice, and `exit=2 want=1` once. The
+  ledger row was measured on the host, where the roster is loaded; nowhere else
+  can reproduce it.
+  **Why this is that file's own subject and not a new one.** `selftests.sh`'s
+  header names two tools that "printed self-test FAILED while behaving exactly
+  as designed" — `pointers.sh` and `stage.sh` — and says the general case "is
+  not a third card: it is this file". This is the third instance, and it is
+  sitting inside the file as a ledger row rather than fixed by it: a tool that
+  cannot look should read as unrun or could-not-look, which the gate already
+  has a column for, never as a failing instrument. A seat that reads FAILED
+  from a working instrument distrusts the instrument, which is the sentence
+  that file opens with.
+  The fix is a judgment the gate's own message asks for and this run did not
+  make, having been given another card: either the row names the box it was
+  measured on and the gate skips it elsewhere, or roster.sh's self-test builds
+  the roster it needs instead of borrowing the host's. Seat: engineer.
+
 - [ ] **Two defects in `docs/agents/post.sh`'s board gate, both hit by the
   engineer seat using it to post the handoff above on 2026-11-08, both with the
   fix already known.** Filed rather than fixed because `#427` is an open draft
