@@ -1,7 +1,7 @@
-<!-- vendored-from: standards/pm.md @ 3f09c3d465228441be8b130484701db771971608 -->
+<!-- vendored-from: standards/pm.md @ becae2c223a1a828e4a26ed02c01cb5df67b05db -->
 > **Vendored copy — do not edit here.** Source of truth is
-> `alexandrapaiz/alexandra-systems` `standards/pm.md` at commit `3f09c3d`,
-> vendored 2026-11-01. Changes to a company standard are HQ
+> `alexandrapaiz/alexandra-systems` `standards/pm.md` at commit `becae2c`,
+> vendored 2026-11-08. Changes to a company standard are HQ
 > ADRs (standards/README.md). Deviations for this product belong in this
 > repo's own decisions file, not in this copy.
 <!-- end vendored header -->
@@ -656,7 +656,9 @@ permission the dispatch already uses.
 The company board (board.libraryofalexandria.dev) is the state of the work: items in columns, in sprints, per company; run reports beside them. Every seat reads it at the start of a run and writes to it as it works. Two doors, same surface, same permission line (a seat creates, moves and comments on items and reads them; it never creates or renames a company, a sprint, a column or a view):
 
 - **On the host** (epitod / Temporal runs): the `asc-board` MCP server, loaded with `ASC_SEAT` and `ASC_COMPANY` set by the runtime.
-- **On GitHub runners** (Actions runs): HTTP, with `BOARD_API_URL` and `BOARD_RUNTIME_TOKEN` in the run's environment (names; the values are Actions secrets synced from Infisical). Company names are the repository names: `alexandra-systems`, `alexandria`, `epitome`, `Ursa`, `atelier`, `asc-router`.
+- **On GitHub runners** (Actions runs): HTTP, with `BOARD_API_URL` and `BOARD_RUNTIME_TOKEN` in the run's environment (names; the values are Actions secrets synced from Infisical).
+
+**The companies the board holds, and why this sentence was wrong twice (amended 2026-10-26).** They are exactly these five, spelled as `runtime/board/api.py`'s `Bus.REPOS` keys spell them: `alexandra-systems`, `alexandria`, `epitome`, `Ursa`, `atelier`. A company name is **not** always the repository name, and this paragraph used to say it was: the company the board calls `atelier` lives in the repository `atelier-app`, and `asc-router` is a repository with no seats of its own — HQ's engineer owns it — so it was listed here as a sixth company the fan-out never held. Ursa's engineer counted what the two errors cost on 2026-10-26, over 3,481 rows: of the 60 addressed messages the wake fan-out could not resolve, 5 were written `atelier-app` and 3 `asc-router`, both spellings taken from this list and this rule. The store now resolves a written company through one function on the read path and the wake path alike, so a case variant or a repository name reaches the seat; a company no company holds is still a silent drop on delivery, which is why the spelling here has to be right.
 
 ```bash
 # read the company's board (columns, current sprint, items, recent runs)
@@ -770,7 +772,7 @@ The owner: "can we configure an event bus? i much prefer choreography over orche
 
 **What changes in the daily run.** The dispatch criteria of §11.3 stay for the scheduled runs. An event-driven run is not a dispatch: the open-pull-request stop of §11.4 does not apply to it, because a seat woken by a handoff addressed to it is answering a request, not opening speculative work. A seat that is woken and has nothing to do says so on the board in one line and stops.
 
-**The owner sees it** as the Events feed (`GET /api/events` today; a tab next), each event with where it went and whether it arrived.
+**The owner sees it** as the Events feed (`GET /api/events` today; a tab next), each event with where it went and whether it arrived. **What that read honours** (amended 2026-10-26): `since_hours`, `limit`, `type`, `company`, `seat` (the actor) and `target` (the seat the event was for). Anything else is a `400` naming the list, on the same rule as §15's message read, and for the same reason it was needed there: until this date the route accepted a `company` and a `seat` and silently dropped both, so a two-hour window returned 247 rows unfiltered and the same 247 for a company that cannot exist. A read that answers identically with and without a filter is the proof that nothing filtered, and the owner's own feed was the surface it was hiding on.
 
 **§17 revisions of 2026-10-05.** Three things the first night taught.
 
