@@ -750,10 +750,10 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   caller, so a credential named as a third argument prints its value.
   **Latent, and measured as latent rather than assumed:** no assertion in
   `smoke-roster.sh`, `smoke-temporal.sh` or `smoke-validate.sh` passes a
-  credential-named third argument today — the fourteen that pass one name
+  credential-named third argument today — the nineteen sites that pass one name
   `$EPITO_BEFORE`, `$vout`, `$dout` and their siblings. `smoke-doctor.sh`'s
-  copy is the 27-line original and has no redaction at all, and no
-  credential-named variable either. So nothing is leaking on `main` tonight;
+  copy is the 27-line original and has no redaction at all; it also takes no
+  third argument at all, so it has no way to reach the hole. So nothing is leaking on `main` tonight;
   what is true is that the next assertion to name one leaks, and the six suites
   wired above hold eleven such variables between them (`STUB_TOKEN`,
   `EPITO_HOOK_SECRET`, `PASSWORD_HASH`, `STUB_API_KEY`, `EPITO_APP_KEY`,
