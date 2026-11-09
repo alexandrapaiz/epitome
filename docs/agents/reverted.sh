@@ -26,14 +26,25 @@
 #
 # Needs a full clone. Reads only.
 set -uo pipefail
-cd "$(git rev-parse --show-toplevel)"
+# This file's own absolute path, read before anything cd's anywhere, because
+# the self-test re-invokes this script from inside the fixture it builds. The
+# repository the seat is standing in is NOT where this script lives: resolving
+# it through `git rev-parse --show-toplevel` is what made this self-test report
+# three disagreements about a working instrument in every clone but one.
+SELF=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")
 BASE=${BASE:-origin/main}
 REF=${REF:-HEAD}
 
-if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
-  echo "this clone is shallow, which makes every answer below wrong; unshallowing" >&2
-  git fetch -q --unshallow origin 2>/dev/null || {
-    echo "could not unshallow — refusing rather than answering wrongly" >&2; exit 2; }
+# The scan needs a full clone of THIS repository. The self-test needs neither,
+# and gating it behind them is the stage.sh fault: a precondition for one mode
+# decides the exit code of another (L41 — "could not look" is not "failed").
+if [ "${1-}" != --self-test ]; then
+  cd "$(git rev-parse --show-toplevel)"
+  if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+    echo "this clone is shallow, which makes every answer below wrong; unshallowing" >&2
+    git fetch -q --unshallow origin 2>/dev/null || {
+      echo "could not unshallow — refusing rather than answering wrongly" >&2; exit 2; }
+  fi
 fi
 
 # Three answers and not two (L41). "no reverts in the window" is not "clean".
@@ -108,7 +119,7 @@ selftest() {
   # wrong reason, which is how the first draft of this self-test reported
   # three disagreements against a working instrument (L42 again, same hour).
   cd "$work"
-  verdict() { BASE=trunk REF=$1 bash "$root/docs/agents/reverted.sh" 2>&1 \
+  verdict() { BASE=trunk REF=$1 bash "$SELF" 2>&1 \
     | grep -E '^(RESTORES|unreadable|no revert commit|this branch restores nothing)' | head -1; }
   a=$(verdict carrier); b=$(verdict innocent); c=$(verdict no-such-ref-at-all)
   cd "$root"; rm -rf "$work"
