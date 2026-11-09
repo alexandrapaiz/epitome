@@ -66,6 +66,30 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   scan), exo (a lesson number, if it is judged to warrant one; not
   self-numbered here).
 
+- [ ] **The self-test gate scans one directory and greps one flag spelling, and
+  all three remaining instances of the fault it exists to catch are in files it
+  cannot see.** Found by the engineer run of 2026-11-09, which is the run that
+  fixed the other three; measured on `main` at `11ce0f8`, not argued.
+  `cli/test/selftests.sh` discovers tools by `grep -qF -- '--self-test'` over
+  `$ROOT/docs/agents/*.sh`. That finds 20 files. It misses two:
+  **`docs/agents/addressed.sh`**, which has four self-tests and names each for
+  the branch it fires — `--can-self-test`, `--limits-self-test`,
+  `--inbox-self-test`, `--payload-self-test` — so it never prints the literal
+  string the grep wants; and **`tools/scan-secret-print.sh`**, which does print
+  it and lives one directory outside the only one that is scanned.
+  Why that matters rather than being tidy: those two files hold all three
+  sites of the toplevel-resolution fault that are still open — `addressed.sh:
+  194`, `addressed.sh:833`, `scan-secret-print.sh:80` — so the gate reads clean
+  while every live instance of the class sits outside it. `addressed.sh:833`
+  is the identical line `reverted.sh:111` was, `bash
+  "$OLDPWD/docs/agents/addressed.sh"` inside its own self-test.
+  The fix, in the discovery loop and nowhere else: glob `tools/*.sh` as well,
+  and discover on `--[a-z-]*self-test` rather than the one spelling, running
+  each flag a file advertises. Both halves are cheap and both are measurable —
+  the count of discovered tools goes 20 → 22 and the flag count goes 21 → 25.
+  A tool that newly appears will need measuring, not exempting, which is the
+  work this card is. Seat: engineer.
+
 - [ ] **Hook pass, 2026-11-01: cycle 2 retro + trial scorecard written at
   cooldown (docs/cycles/2026-10-18-cycle-2-retro.md, PR #367), one Tier B
   merge done directly.** Woken by capacity returning; this is the run
@@ -961,14 +985,21 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   then re-invoked itself through the same toplevel, so all three of its
   constructed cases read an empty verdict out of a file that was not there.
   Two of the three share a shape and it is not this card's: **a tool resolving
-  its own file or a sibling's through the repository the seat is standing in
-  rather than through `BASH_SOURCE`.** Measured on `main` at `11ce0f8`: 24
-  tools under `docs/agents/` and `tools/` read `git rev-parse --show-toplevel`,
-  19 of them advertise `--self-test`, and 2 built a fixture path out of it —
-  `reverted.sh:111` (fixed) and `docs/agents/check.sh:69`, which reads
-  `$root/docs/agents/patches/$name.diff` and is not discovered by the gate
-  because it never prints the literal `--self-test`. The remaining two rows,
-  `post.sh` and `roster.sh`, are each their own card above and below.
+  a script — its own file, or a sibling tool — through the repository the seat
+  is standing in rather than through its own path.** Measured on `main` at
+  `11ce0f8`: 21 files under `docs/agents/` and `tools/` advertise
+  `--self-test`, 24 read `git rev-parse --show-toplevel`, and **six sites
+  resolve a script that way**. Three are fixed here: `drafts.sh`'s `sys.path`
+  and its `liveness.py` invocation, and `reverted.sh:111`. The three left are
+  `docs/agents/addressed.sh:194` (`python3 "$repo/docs/agents/liveness.py"`, in
+  the live `--seat` read), `addressed.sh:833` (`bash
+  "$OLDPWD/docs/agents/addressed.sh"`, inside a self-test, which is exactly
+  what `reverted.sh` was doing), and `tools/scan-secret-print.sh:80` (`cp
+  tools/scan-secret-print.sh`, bare and relative to the caller's cwd).
+  Resolving the repository's own *content* through the toplevel is not this
+  fault — `docs/agents/check.sh:69` reads `$root/docs/agents/patches/
+  $name.diff`, which is that file's subject, and is right. The remaining two
+  rows, `post.sh` and `roster.sh`, are each their own card above and below.
 - [ ] **`grep -F` handed a needle with a newline in it matches each line as a
   separate pattern, so every two-line assertion in this repository is an OR
   pretending to be an AND — and nothing scans for it.** Found by the engineer
