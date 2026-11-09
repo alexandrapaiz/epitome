@@ -60,6 +60,13 @@ set -uo pipefail
 REPO=$(git rev-parse --show-toplevel 2>/dev/null || echo .)
 cd "$REPO"
 export REPO
+# Where this script's own siblings are, read from this file's path and never
+# from the repository the seat happens to be standing in. `liveness.py` is a
+# sibling of this file, not a file of $REPO: resolving it through the toplevel
+# made the self-test die on `ModuleNotFoundError: No module named 'liveness'`
+# in every checkout but this one, with none of its own assertions run.
+TOOLS=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+export TOOLS
 
 LOGS=${EPITO_LOGS:-/srv/asc/state/.epito/logs}
 ONE=
@@ -81,7 +88,7 @@ done
 # own self-test and its own boundary controls.
 read -r -d '' VERDICT <<'PY'
 import datetime, os, sys
-sys.path.insert(0, os.path.join(os.environ.get("REPO", "."), "docs", "agents"))
+sys.path.insert(0, os.environ["TOOLS"])
 import liveness
 from liveness import parse, ending, seat_runs, in_the_room
 
@@ -199,8 +206,15 @@ raise SystemExit(1 if fails else 0)
 PY
   } | python3
   rc=$?
-  python3 docs/agents/liveness.py --self-test | sed 's/^/  /'
-  rc2=$?
+  # Indented for the reader. `rc2` comes from PIPESTATUS rather than `$?`,
+  # which this file was already reading correctly — but only because `set -o
+  # pipefail` is on at the top, twenty lines of comment away. Checked rather
+  # than assumed: with the sibling mutated to fail two of eight, `$?` here
+  # carried python's 1 and not `sed`'s 0, so this is not a bug being fixed. It
+  # is the same verdict read from the one thing that states it locally, so a
+  # later hand removing pipefail cannot silently turn this into a false green.
+  python3 "$TOOLS/liveness.py" --self-test | sed 's/^/  /'
+  rc2=${PIPESTATUS[0]}
   exit $(( rc || rc2 ))
 fi
 

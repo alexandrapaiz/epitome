@@ -61,24 +61,34 @@
 # 0 the branch is yours to commit to, 1 it is not or something on it is off
 # `main`, 2 could not look. Ends in a `data` block to paste (L33).
 set -uo pipefail
-cd "$(git rev-parse --show-toplevel)"
 BASE=${BASE:-origin/main}
 SEAT=${SEAT:-epitome-exo}
 
-# A requirement in a comment is not a requirement. The runtime hands this seat
-# a depth-1 single-branch clone, in which `git merge-base` finds no base, a
-# substitution of it silently builds a different command, and every answer
-# below is wrong in a plausible direction (L-A77, incident 13).
-if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
-  echo "this clone is shallow, which makes every answer below wrong; unshallowing" >&2
-  git fetch -q --unshallow origin 2>/dev/null || {
-    echo "could not unshallow — refusing rather than answering wrongly" >&2; exit 2; }
+# EVERY PRECONDITION BELOW IS THE SCAN'S, AND THE SELF-TEST USES NONE OF THEM.
+# `here_verdict` is a pure function of three arguments: it reads no clone, asks
+# no forge, and needs no `main`. Running these four checks before the mode
+# dispatch meant the self-test exited 2 — "could not look: the fetch of main
+# and the pull refs failed" — in every checkout that is not this one, with
+# nine of nine assertions satisfied and none of them printed. A seat reading 2
+# from a working instrument distrusts the instrument (L41: could-not-look is a
+# third answer, and it is an answer about the repository, never about the test).
+if [ "${1-}" != --self-test ]; then
+  cd "$(git rev-parse --show-toplevel)"
+  # A requirement in a comment is not a requirement. The runtime hands this
+  # seat a depth-1 single-branch clone, in which `git merge-base` finds no
+  # base, a substitution of it silently builds a different command, and every
+  # answer below is wrong in a plausible direction (L-A77, incident 13).
+  if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+    echo "this clone is shallow, which makes every answer below wrong; unshallowing" >&2
+    git fetch -q --unshallow origin 2>/dev/null || {
+      echo "could not unshallow — refusing rather than answering wrongly" >&2; exit 2; }
+  fi
+  command -v gh >/dev/null || { echo "could not look: no gh on PATH" >&2; exit 2; }
+  git fetch -q origin main 'refs/pull/*/head:refs/remotes/pull/*' 2>/dev/null \
+    || { echo "could not look: the fetch of main and the pull refs failed" >&2; exit 2; }
+  git rev-parse --verify -q "$BASE" >/dev/null \
+    || { echo "could not look: no such base $BASE" >&2; exit 2; }
 fi
-command -v gh >/dev/null || { echo "could not look: no gh on PATH" >&2; exit 2; }
-git fetch -q origin main 'refs/pull/*/head:refs/remotes/pull/*' 2>/dev/null \
-  || { echo "could not look: the fetch of main and the pull refs failed" >&2; exit 2; }
-git rev-parse --verify -q "$BASE" >/dev/null \
-  || { echo "could not look: no such base $BASE" >&2; exit 2; }
 
 # --here, and the verdict is a pure function of three facts so a test can fire
 # every branch of it on built input (L-X1 as amended: a repair without a
