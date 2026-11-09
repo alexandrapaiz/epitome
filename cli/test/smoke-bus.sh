@@ -34,9 +34,21 @@ E="node $CLI/src/index.js"
 
 pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
-bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
-check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
-step() { printf '\n== %s\n' "$1"; }
+# `bad` and `check` come from one file, not a copy: test/evidence.sh prints the
+# unevaluated test and the document it was asserted against, and its own
+# --self-test is the negative control for that.
+out=""
+EVIDENCE_FALLBACK=out
+. "$CLI/test/evidence.sh"
+# Clearing `out` here is what keeps the fallback honest. Every assertion in
+# this suite reads `$out` through `said`, and `$out` is not in the expression
+# `check` is handed — so the fallback is the only reader that can answer, and
+# without this line it would answer with the previous SECTION's capture when a
+# section asserts before its own `out=$(...)`. Checked before adding it:
+# sections 2, 3 and 4 each set `out` before their first assertion on it, and
+# section 1 makes no `check` call at all — it delegates to test/bus-live.mjs
+# and adds that script's own tallies.
+step() { out=""; printf '\n== %s\n' "$1"; }
 
 # ---- the binary ------------------------------------------------------------
 # $NATS_BIN, then the PATH, then where test/prereqs.sh puts it. Same order and

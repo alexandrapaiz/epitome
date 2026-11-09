@@ -38,6 +38,14 @@
 #      the caller expanded `$DIR`, so no `$NAME` survives to here at all
 # A `$NAME` with no newline in it is a seat name, a count or a path, and it is
 # printed as the note it is rather than as a document.
+#
+# A SUITE HELPER that already holds the haystack as a value — `has <label>
+# <captured> <needle>`, where the needle match happens in the shell and no
+# expression survives — names it the third way, through bash's own dynamic
+# scoping: a `local captured="$2"` in the helper is in scope inside `bad`, so
+# the helper passes the NAME `captured` and the reader resolves it. That is
+# deliberate rather than incidental, and it is written here because it looks
+# like a bug to anyone who reads bash as lexically scoped.
 
 EVIDENCE_LINES="${EPITO_SMOKE_EVIDENCE_LINES:-24}"
 
@@ -85,6 +93,28 @@ may_hold_credential() {
     case "_${n}_" in *_"$w"_*) return 0 ;; esac
   done
   return 1
+}
+
+# Resolve `$NAME` and `${NAME}` inside one token of the expression, by
+# substitution and never by `eval`: the reader is handed a test that just
+# failed, and a reader that EXECUTES it to find out what it looked at can run
+# anything the suite could. Needed because a call site written in SINGLE quotes
+# hands `check` its paths unexpanded — `grep -q x "$ROOT/bundle/agent.js"`
+# arrives with `$ROOT` still in it, so the file branch below saw a token that
+# names nothing readable. All four of the per-suite copies had this hole and
+# none of them showed it, because the suites they were written for quote their
+# call sites the other way and arrive with the path already expanded.
+expand_names() {
+  local tok="$1" name val
+  while [[ "$tok" =~ [$]\{?([A-Za-z_][A-Za-z0-9_]*)\}? ]]; do
+    name="${BASH_REMATCH[1]}"; val="${!name:-}"
+    # An unset name resolves to nothing, which is what the shell would have
+    # done; a name whose value holds a newline is a document and not a path,
+    # and substituting it would build a token no file ever matches.
+    [ "${val#*$'\n'}" = "$val" ] || return 1
+    tok="${tok//"${BASH_REMATCH[0]}"/"$val"}"
+  done
+  printf '%s' "$tok"
 }
 
 # `bad <label> [unevaluated test] [haystack ...]`
@@ -162,10 +192,12 @@ bad()  {
   if [ "$shown" -eq 0 ]; then
     local blob="${test//[\'\"]/ }"; blob="${blob//$'\n'/ }"
     local -a words=(); read -ra words <<<"$blob"
+    local tok
     for w in ${words[@]+"${words[@]}"}; do
-      { [ -f "$w" ] || [ -d "$w" ]; } && [ -r "$w" ] || continue
-      seen=""; for name in ${files[@]+"${files[@]}"}; do [ "$name" = "$w" ] && seen=1; done
-      [ -n "$seen" ] || files+=("$w")
+      case "$w" in *'$'*) tok="$(expand_names "$w")" || continue; [ -n "$tok" ] || continue ;; *) tok="$w" ;; esac
+      { [ -f "$tok" ] || [ -d "$tok" ]; } && [ -r "$tok" ] || continue
+      seen=""; for name in ${files[@]+"${files[@]}"}; do [ "$name" = "$tok" ] && seen=1; done
+      [ -n "$seen" ] || files+=("$tok")
     done
     for w in ${files[@]+"${files[@]}"}; do
       # A directory is read as its listing. An assertion that says a dry run
@@ -259,6 +291,11 @@ want 'a haystack that is empty says so'             "$out" '$EMPTY is empty'
 out="$(bad 'a label' "grep -q needle '$SELF/report.log'" 2>&1)"
 want 'a readable file in the expression is read'     "$out" "$SELF/report.log, 18 bytes, all 3 lines:"
 want '...and printed'                                "$out" '| second'
+
+SELFDIR="$SELF"
+out="$(bad 'a label' 'grep -q needle "$SELFDIR/report.log"' 2>&1)"
+want 'a path still carrying $NAME is resolved, not skipped' "$out" "$SELF/report.log, 18 bytes, all 3 lines:"
+wantnot '...and the expression is never evaluated to find it' "$out" 'the test: grep -q needle /'
 
 out="$(bad 'a label' "[ ! -d '$SELF/adir' ]" 2>&1)"
 want 'a directory is read as its listing'            "$out" "$SELF/adir/ (listing)"
