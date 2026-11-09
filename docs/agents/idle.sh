@@ -78,6 +78,19 @@ if [ "${1:-}" = --self-test ]; then
     echo "  ok   a completed run that quotes a refusal is neither anchor nor count"
   fi
 
+  # The class this reader was wider than, built from the real record that
+  # caught it: 2026-11-02, `epitome-pm` 03-19-22-234Z, terminal_reason
+  # api_error with no `api_error_status`, 17 turns, its content refused rather
+  # than its capacity. The anchor must stay at 01:00:00Z and the count at one.
+  mk d 03-00-00-000 '{"duration_api_ms":1,"terminal_reason":"api_error","subtype":"success","num_turns":17,"type":"result","result":"API Error: safeguards flagged this message"}' 1 17
+  out=$(ASC_LOG_DIR=$t bash "$0" 2026-01-01 2>&1)
+  anchor=$(printf '%s' "$out" | grep "^last run a limit touched")
+  if grep -qE "03:00:00Z|\(2 runs|\(3 runs" <<<"$anchor"; then
+    echo "  FAIL an api_error with no limit status was counted: $anchor"; fail=1
+  else
+    echo "  ok   an api_error carrying no limit status is not a capacity refusal"
+  fi
+
   out=$(ASC_LOG_DIR=$t bash "$0" 2026-01-02 2>&1); rc=$?
   check "a day with no logs refuses to answer" "$out" "no run logs"
   [ $rc -ne 0 ] && echo "  ok   and exits non-zero ($rc)" || { echo "  FAIL it exited 0"; fail=1; }
@@ -141,7 +154,24 @@ def limit_touched(f):
         return False
     return r.get("api_error_status") in (429, 529)
 
+def api_error_not_a_limit(f):
+    """Ends `api_error` and carries no limit status: named, never dropped.
+
+    The class this reader used to swallow is the class it must now say it
+    swallowed, because a class dropped in silence is how the two instruments
+    disagreed without either of them printing a disagreement (L-A88)."""
+    found = RESULT.findall(open(f, errors='replace').read())
+    if not found:
+        return False
+    try:
+        r = json.loads(found[-1])
+    except ValueError:
+        return False
+    return (r.get("terminal_reason") == "api_error"
+            and r.get("api_error_status") not in (429, 529))
+
 ref = [f for f in logs if limit_touched(f)]
+other = [f for f in logs if api_error_not_a_limit(f)]
 
 day0 = dt.datetime.fromisoformat(D).replace(tzinfo=U)
 end  = min(day0 + dt.timedelta(days=1), dt.datetime.now(U))
@@ -157,6 +187,13 @@ dark = sum((b - a).total_seconds() for a, b in gaps)
 span = (end - day0).total_seconds()
 print(f"{D}  {len(logs)} runs  dark {dark/60:.0f} min of {span/60:.0f} elapsed"
       f" ({dark/span*100:.0f}%, a ceiling: a live run's end is read as its last write)")
+
+if other:
+    print(f"not counted above: {len(other)} run(s) ended `api_error` carrying no limit "
+          f"status, which is a refusal of their content and not of this company's "
+          f"capacity, so no dark minute hangs on them — "
+          f"{', '.join(os.path.basename(f) for f in sorted(other)[:3])}"
+          f"{' ...' if len(other) > 3 else ''}")
 
 if ref:
     mark = max(start(f) for f in ref)
