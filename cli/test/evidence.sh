@@ -213,7 +213,19 @@ bad()  {
   # that keep one and clear it per step. Opt-in for the reason in the header.
   if [ "$shown" -eq 0 ] && [ -n "${EVIDENCE_FALLBACK:-}" ]; then
     val="${!EVIDENCE_FALLBACK:-}"
-    if [ -n "$val" ]; then evidence "\$$EVIDENCE_FALLBACK" "$val"; shown=$((shown+1)); fi
+    # Two kinds of suite keep a last-command variable, and they are opposite.
+    # One holds the output; the other holds the PATH the output was written to,
+    # because a suite whose assertions grep a file does that so no captured
+    # text ever reaches `eval` (pack.sh's reason: `epito token --dry-run`
+    # prints `$EPITO_APP_ID_<NAME>` and a `<port>` placeholder, which a `check`
+    # that interpolated its output would hand to the shell to expand). Printing
+    # the second as though it were the first gives a reader one line of path
+    # where the document should be, so the file is read.
+    if [ -n "$val" ] && [ "${val#*$'\n'}" = "$val" ] && [ -f "$val" ] && [ -r "$val" ]; then
+      evidence "$val" "$(cat -- "$val")"; shown=$((shown+1))
+    elif [ -n "$val" ]; then
+      evidence "\$$EVIDENCE_FALLBACK" "$val"; shown=$((shown+1))
+    fi
   fi
   # A single-line haystack printed as a note above IS the answer, so the line
   # below fires only when nothing at all was said — which is honest.
@@ -244,11 +256,11 @@ case "${1:-}" in
   *) printf 'test/evidence.sh: this file is sourced by the suites. To run its own checks:\n\n  bash test/evidence.sh --self-test\n' >&2; exit 2 ;;
 esac
 
-t_pass=0; t_fail=0
-want()    { if [[ "$2" == *"$3"* ]]; then printf '  ok    %s\n' "$1"; t_pass=$((t_pass+1));
-            else printf '  FAIL  %s\n         wanted: %s\n         got:\n%s\n' "$1" "$3" "$(printf '%s\n' "$2" | sed 's/^/           /')"; t_fail=$((t_fail+1)); fi; }
-wantnot() { if [[ "$2" != *"$3"* ]]; then printf '  ok    %s\n' "$1"; t_pass=$((t_pass+1));
-            else printf '  FAIL  %s\n         must not carry: %s\n         got:\n%s\n' "$1" "$3" "$(printf '%s\n' "$2" | sed 's/^/           /')"; t_fail=$((t_fail+1)); fi; }
+t_ok=0; t_bad=0
+want()    { if [[ "$2" == *"$3"* ]]; then printf '  ok    %s\n' "$1"; t_ok=$((t_ok+1));
+            else printf '  FAIL  %s\n         wanted: %s\n         got:\n%s\n' "$1" "$3" "$(printf '%s\n' "$2" | sed 's/^/           /')"; t_bad=$((t_bad+1)); fi; }
+wantnot() { if [[ "$2" != *"$3"* ]]; then printf '  ok    %s\n' "$1"; t_ok=$((t_ok+1));
+            else printf '  FAIL  %s\n         must not carry: %s\n         got:\n%s\n' "$1" "$3" "$(printf '%s\n' "$2" | sed 's/^/           /')"; t_bad=$((t_bad+1)); fi; }
 
 # The suite side of the contract, as small as a suite can be.
 pass=0; fail=0
@@ -317,19 +329,23 @@ want '...and the tail'                               "$out" '| line 40'
 EVIDENCE_FALLBACK=LAST
 out="$(bad 'a label' '[ 1 = 2 ]' 2>&1)"
 want 'a suite that keeps a last-command variable gets it' "$out" '$LAST, 35 bytes, all 2 lines:'
+EVIDENCE_FALLBACK=OUTFILE; OUTFILE="$SELF/report.log"
+out="$(bad 'a label' '[ 1 = 2 ]' 2>&1)"
+want 'a suite whose variable holds a PATH gets the file, not the path' "$out" "$SELF/report.log, 18 bytes, all 3 lines:"
+wantnot '...and not one line of path where the document goes'          "$out" '$OUTFILE is'
 EVIDENCE_FALLBACK=
 
 # The two things the caller actually reads.
 fail=0; out="$(check 'a true test' '[ 1 = 1 ]' 2>&1)"
 want 'check calls ok on a test that passes'          "$out" 'ok   a true test'
 wantnot '...and prints no evidence under a pass'     "$out" 'the test:'
-[ "$fail" = 0 ] && { printf '  ok    ...and leaves the fail counter alone\n'; t_pass=$((t_pass+1)); } \
-                || { printf '  FAIL  a passing check moved the fail counter to %s\n' "$fail"; t_fail=$((t_fail+1)); }
+[ "$fail" = 0 ] && { printf '  ok    ...and leaves the fail counter alone\n'; t_ok=$((t_ok+1)); } \
+                || { printf '  FAIL  a passing check moved the fail counter to %s\n' "$fail"; t_bad=$((t_bad+1)); }
 
 fail=0; out="$(check 'a false test' 'said "$DOC" absent' 2>&1; printf 'fail=%s' "$fail")"
 want 'check hands the test to bad unevaluated'       "$out" 'the test: said "$DOC" absent'
 want '...and counts the failure'                     "$out" 'fail=1'
 
 rm -rf "$SELF"
-printf '\nevidence: %s ok, %s failed\n' "$t_pass" "$t_fail"
-[ "$t_fail" = 0 ] || exit 1
+printf '\nevidence: %s ok, %s failed\n' "$t_ok" "$t_bad"
+[ "$t_bad" = 0 ] || exit 1

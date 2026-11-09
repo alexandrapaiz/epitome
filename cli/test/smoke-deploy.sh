@@ -39,8 +39,57 @@ E="node $CLI/src/index.js"
 
 pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
-bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
-check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# `bad` and `check` come from one file, not a copy: test/evidence.sh prints the
+# unevaluated test and the document it was asserted against. No
+# EVIDENCE_FALLBACK, deliberately: this suite captures $DRY, $OUT, $LEDGER,
+# $TOK and $FUTURE in five different sections, so one fallback could only ever
+# print another section's document. Nearly every assertion in here names its
+# own document in the expression instead -- `said "$OUT" ...`, `cap=$(..)`, or
+# a log path -- and the handful that name none are given one as a third
+# argument.
+. "$CLI/test/evidence.sh"
+
+# THREE ASSERTIONS IN HERE MUST NOT BE READ BY THAT READER, and they are the
+# three that matter most. They are about the token, so the test string itself
+# carries it -- the call site expands `$STUB_TOKEN` into the string before
+# `check` ever sees it -- and the document they look at is the thing they exist
+# to keep off the screen. Measured rather than reasoned: wiring them to `check`
+# and forcing the ledger assertion to fail printed
+# `the test: said "$LEDGER" 'ghs_STUBTOKEN0000...'`, which is the credential on
+# the FAIL line of the assertion whose whole job is to keep it off the FAIL
+# line. On `main` that same failure printed a bare label, so the blindness this
+# branch is removing was the only thing holding it.
+# So these report by COUNT and LINE NUMBER and never by value -- the precedent
+# is `smoke-roster.sh`'s `leak_site`, written for the same three-assertion
+# shape -- and they never hand their expression to `bad`.
+secret_absent() { # <label> <document: a variable NAME or a path> <the secret>
+  local label="$1" where="$2" secret="$3" hay n lines
+  local name="$where" how
+  if [ -f "$where" ]; then
+    hay="$(cat -- "$where")"
+    how="\`grep -nF\` the token out of $where to see where"
+  else
+    hay="${!where:-}"; name="\$$where"
+    # A captured value cannot be grepped after the run, so the instruction is
+    # the one that actually works: this suite keeps its work tree on request.
+    how="re-run with EPITO_SMOKE_KEEP=1 and \`grep -nF\` the token in the kept work tree"
+  fi
+  n=$(grep -cF -- "$secret" <<<"$hay"); [ -n "$n" ] || n=0
+  if [ "$n" = 0 ]; then ok "$label"; return 0; fi
+  fail=$((fail+1)); printf '  FAIL %s\n' "$label"
+  lines=$(grep -c '' <<<"$hay"); [ -n "$lines" ] || lines=0
+  printf '       %s carries it on %s of its %s lines. The value is not printed here, which is this assertion'"'"'s whole point: %s.\n' \
+    "$name" "$n" "$lines" "$how"
+}
+secret_equals() { # <label> <what was captured, by NAME> <the secret>
+  local label="$1" gotname="$2" secret="$3" got
+  got="${!gotname:-}"
+  if [ "$got" = "$secret" ]; then ok "$label"; return 0; fi
+  fail=$((fail+1)); printf '  FAIL %s\n' "$label"
+  printf '       $%s is %s characters and the token the stub issued is %s; they differ%s. Neither is printed here — this assertion is the one that says stdout is the token and nothing else, so a FAIL that printed stdout would print the token.\n' \
+    "$gotname" "${#got}" "${#secret}" \
+    "$([ "${#got}" = "${#secret}" ] && printf ' at the same length, so it is the value and not a stray newline or a prefix' || printf ' in length')"
+}
 # A gate that pipes into `grep -q` can print FAIL for a pattern it MATCHED:
 # quiet grep exits the instant it matches, the producer whose pipe it just
 # closed dies writing into it, and `pipefail` hands that death back as the
@@ -110,7 +159,7 @@ check "the fixture manifest validates" "cap=\$(cd '$WORK' && $E validate) && sai
 step "1. --dry-run: what it would create, without a browser and without a network"
 DRY="$(cd "$WORK" && EPITO_GITHUB_API="http://127.0.0.1:1" $E deploy --dry-run 2>&1)"; rc=$?
 printf '%s\n' "$DRY" | sed 's/^/     | /'
-check "dry run exits 0 with nothing listening anywhere" "[ $rc = 0 ]"
+check "dry run exits 0 with nothing listening anywhere" "[ $rc = 0 ]" DRY
 check "it names the App it would create (name + owner, GitHub's 34-char cap)" "said \"\$DRY\" 'App name:    acme-bot-acme'"
 check "the permissions come from the scopes, not from a form" "said \"\$DRY\" 'permissions: contents:write, pull_requests:write'"
 check "it says where the key would land, and that it would be 0600" "said \"\$DRY\" '.epito/keys/acme-bot.pem (0600)'"
@@ -123,12 +172,12 @@ cp "$WORK/agent.toml" "$ROOT/agent.toml.good"
 sed 's/"github:pull_requests"/"github:packages"/' "$ROOT/agent.toml.good" > "$WORK/agent.toml"
 OUT="$(cd "$WORK" && $E deploy 2>&1)"; rc=$?
 printf '%s\n' "$OUT" | sed 's/^/     | /'
-check "a scope with no mapping refuses, exit 1" "[ $rc = 1 ]"
+check "a scope with no mapping refuses, exit 1" "[ $rc = 1 ]" OUT
 check "  and names the scope, the mapped set, and the fix" "said \"\$OUT\" '\"github:packages\"' && said \"\$OUT\" 'Fix: remove the scope'"
 
 sed '/^model = /d' "$ROOT/agent.toml.good" > "$WORK/agent.toml"
 OUT="$(cd "$WORK" && $E deploy 2>&1)"; rc=$?
-check "a manifest that does not validate deploys nothing, exit 1" "[ $rc = 1 ]"
+check "a manifest that does not validate deploys nothing, exit 1" "[ $rc = 1 ]" OUT
 check "  and says why a broken manifest cannot make a principal" "said \"\$OUT\" 'an invalid manifest deploys nothing'"
 
 sed '/^repo = /d' "$ROOT/agent.toml.good" > "$WORK/agent.toml"
@@ -167,15 +216,15 @@ check "  it named the App and the permissions before sending anyone anywhere" "g
 
 curl -sS "http://127.0.0.1:$DPORT/" > "$ROOT/page.html"
 STATE="$(sed -n 's/.*settings\/apps\/new?state=\([0-9a-f]*\)".*/\1/p' "$ROOT/page.html" | head -1)"
-check "the page posts to GitHub's App-creation form, with a state" "[ ${#STATE} = 64 ]"
+check "the page posts to GitHub's App-creation form, with a state" "[ ${#STATE} = 64 ]" "$ROOT/page.html"
 check "  pre-filled from the manifest: the permissions are in the form" "grep -q 'default_permissions' '$ROOT/page.html' && grep -q 'pull_requests' '$ROOT/page.html'"
 check "  and the redirect comes back to this deploy's own loopback port" "grep -q 'redirect_url&quot;:&quot;http://127.0.0.1:$DPORT/callback' '$ROOT/page.html'"
 check "  the App declares no webhook: it is an identity, not a subscription" "grep -q 'default_events&quot;:\[\]' '$ROOT/page.html' && ! grep -q 'hook_attributes' '$ROOT/page.html'"
 
 CODE="$(curl -sS -o "$ROOT/wrong.html" -w '%{http_code}' "http://127.0.0.1:$DPORT/callback?code=abc123&state=deadbeef")"
-check "a callback with the wrong state is refused (403), not obeyed" "[ '$CODE' = 403 ]"
+check "a callback with the wrong state is refused (403), not obeyed" "[ '$CODE' = 403 ]" "$ROOT/wrong.html"
 check "  and says what was refused and that nothing was created" "grep -q 'state does not match' '$ROOT/wrong.html'"
-check "  and the deploy is still waiting for the real one" "kill -0 $DEPLOY_PID 2>/dev/null"
+check "  and the deploy is still waiting for the real one" "kill -0 $DEPLOY_PID 2>/dev/null" "$DEPLOY_LOG"
 check "  nothing was written by the refused callback" "[ ! -e '$WORK/.epito/keys/acme-bot.pem' ]"
 
 curl -sS "http://127.0.0.1:$DPORT/callback?code=abc123&state=$STATE" > "$ROOT/done.html"
@@ -183,7 +232,7 @@ for _ in $(seq 1 100); do kill -0 $DEPLOY_PID 2>/dev/null || break; sleep 0.1; d
 wait $DEPLOY_PID; rc=$?
 DEPLOY_PID=""
 sed 's/^/     | /' "$DEPLOY_LOG"
-check "the real callback completes the deploy, exit 0" "[ $rc = 0 ]"
+check "the real callback completes the deploy, exit 0" "[ $rc = 0 ]" "$DEPLOY_LOG"
 check "the browser is told the App exists and where its key is" "grep -q 'Its key is on your machine' '$ROOT/done.html'"
 check "the key landed at .epito/keys/acme-bot.pem" "[ -f '$WORK/.epito/keys/acme-bot.pem' ]"
 check "  0600, because it IS the agent's identity" "[ \"\$(ls -l '$WORK/.epito/keys/acme-bot.pem' | cut -c1-10)\" = '-rw-------' ]"
@@ -204,7 +253,7 @@ stop_stub
 start_stub "ok"   # the human has now installed it, so the lookup answers
 OUT="$(cd "$WORK" && EPITO_GITHUB_API="http://127.0.0.1:$GH_PORT" $E deploy 2>&1)"; rc=$?
 printf '%s\n' "$OUT" | sed 's/^/     | /'
-check "the second deploy exits 0" "[ $rc = 0 ]"
+check "the second deploy exits 0" "[ $rc = 0 ]" OUT
 check "  and says plainly that it is updating, not creating" "said \"\$OUT\" 'it does not create a second'"
 check "  it never opened a listener or asked for a browser" "! said \"\$OUT\" 'click Create'"
 check "  exactly ONE App was ever converted, across both deploys" "[ \"\$(grep -c 'conversions' '$GH_LOG')\" = 1 ]"
@@ -215,8 +264,12 @@ audit "the ledger has a second deploy line, created:false" '{"agent":"acme-bot",
 step "6. and then the mint: \`epito token\` uses exactly what deploy wrote"
 TOK="$(cd "$WORK" && EPITO_GITHUB_API="http://127.0.0.1:$GH_PORT" $E token acme-bot 2>"$ROOT/token.err")"; rc=$?
 sed 's/^/     | /' "$ROOT/token.err"
-check "the mint succeeds against the deployed principal, exit 0" "[ $rc = 0 ]"
-check "  stdout is the token and nothing else" "[ '$TOK' = '$STUB_TOKEN' ]"
+# Deliberately `$ROOT/token.err` and NOT `$TOK`: `$TOK` holds the token, and
+# the credential word list test/evidence.sh redacts on carries TOKEN, not
+# TOK — so naming it as the haystack would print it. The stderr of the same
+# command is the document a reader of a non-zero exit actually wants.
+check "the mint succeeds against the deployed principal, exit 0" "[ $rc = 0 ]" "$ROOT/token.err"
+secret_equals "  stdout is the token and nothing else" TOK "$STUB_TOKEN"
 check "  signed with the key deploy wrote — the stub verified the signature" "grep -q '\"jwtOk\":true' '$GH_LOG'"
 check "  and epito found the principal in the file, not in the environment" "grep -q 'minted for acme-bot' '$ROOT/token.err'"
 audit "the mint is in the same ledger as the deploy that made it possible" '{"agent":"acme-bot","action":"mint","repo":"acme/roster","installation":"4242"}'
@@ -229,7 +282,7 @@ step "7. \`epito audit\`: the ledger those two commands just wrote, read back"
 # have, because the fixture was written by the same hand as the assertion.
 LEDGER="$(cd "$WORK" && $E audit 2>&1)"; rc=$?
 printf '%s\n' "$LEDGER" | sed 's/^/     | /'
-check "it reads the real ledger, exit 0" "[ $rc = 0 ]"
+check "it reads the real ledger, exit 0" "[ $rc = 0 ]" LEDGER
 check "  the seat has a row" "said \"\$LEDGER\" '^acme-bot'"
 check "  2 deploys and 1 mint, counted" "said \"\$LEDGER\" -E '^acme-bot +1 +2 '"
 check "  the App id deploy created" "said \"\$LEDGER\" '707070'"
@@ -241,9 +294,9 @@ check "  and the deploy that was not a second App" "said \"\$LEDGER\" 'recorded 
 # real (stub) token on stdout one step ago; the ledger it wrote must not contain
 # it, and the reader must not print it. If this ever fails, `epito audit` is a
 # credential leak with columns.
-check "NO TOKEN in the ledger's output — not the one just minted" "! said \"\$LEDGER\" '$STUB_TOKEN'"
+secret_absent "NO TOKEN in the ledger's output — not the one just minted" LEDGER "$STUB_TOKEN"
 check "  nor any private key material" "! said \"\$LEDGER\" -i 'PRIVATE KEY'"
-check "  and the file itself never held the token either" "! grep -q '$STUB_TOKEN' '$WORK/.epito/audit.jsonl'"
+secret_absent "  and the file itself never held the token either" "$WORK/.epito/audit.jsonl" "$STUB_TOKEN"
 
 check "--action mint shows the mint and says what it left out" \
   "cap=\$(cd '$WORK' && $E audit --action mint) && said \"\$cap\" -E '1 of [0-9]+ lines'"
