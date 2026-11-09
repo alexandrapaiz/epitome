@@ -76,7 +76,18 @@ post.sh|0|1|eight of the assertions read files of THIS repository as their fixtu
 roster.sh|0|1|three of the assertions read the roster of this repository as their fixture
 '
 
-WORK="$(mktemp -d "${TMPDIR:-/tmp}/epito-selftests-XXXXXX")"
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/epito-selftests-XXXXXX")" || WORK=""
+# An empty scratch path is not nowhere, it is HERE. This suite inits a
+# repository under $WORK and then runs every instrument against it with
+# `git -C`; if mktemp was refused, $ELSEWHERE below becomes an absolute
+# /elsewhere and the `rm -rf "$WORK"` in the trap acts on nothing it meant to.
+# That is the fault test/shapes.sh gates on, and this suite does not get to
+# carry it.
+if [ -z "$WORK" ] || [ ! -d "$WORK" ]; then
+  printf 'could not look: no scratch directory under %s, so these self-tests have no repository of their own to run against.\n' "${TMPDIR:-/tmp}" >&2
+  printf 'Fix: free space on that filesystem, or point TMPDIR at one with room. Refusing rather than running instruments against %s.\n' "$(pwd)" >&2
+  exit 2
+fi
 trap 'rm -rf "$WORK"' EXIT
 ELSEWHERE="$WORK/elsewhere"
 mkdir -p "$ELSEWHERE"
