@@ -11,6 +11,13 @@
 # box, and the pitch's definition of done covers them with one.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# `bad` and `check` come from one file, not a copy: cli/test/evidence.sh prints
+# the unevaluated test and the document it was asserted against, and its own
+# --self-test is the negative control for that. Sourced here at file scope so
+# the skip path below gets it; the container half further down cannot, because
+# the only thing mounted into that container is provision-host.sh. That half is
+# still blind, and docs/backlog.md carries the row saying so.
+. "$HERE/../cli/test/evidence.sh"
 # Can this box become root at all? Three answers, not two, because only one of
 # them makes `sudo systemctl start docker` the wrong thing to print:
 #
@@ -101,10 +108,11 @@ every_case_names_a_fix() {
 # These are text checks on `fix_lines`, not another container: the fault they
 # cover was a sentence, and a sentence is checkable anywhere.
 skip_path_checks() {
+  # `pass` and `fail` are local on purpose -- this function reports its own
+  # tally -- and the sourced `bad` increments the one it finds, which is this
+  # one, because bash scopes dynamically.
   local pass=0 fail=0 out
   ok(){ pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
-  bad(){ fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
-  check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 
   echo
   echo "  == the skip path's own checks (what this box can still prove)"

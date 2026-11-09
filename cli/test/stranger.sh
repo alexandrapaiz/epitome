@@ -40,8 +40,12 @@ E="$PREFIX/bin/epito"
 
 pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
-bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
-check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# `bad` and `check` come from one file, not a copy: test/evidence.sh prints the
+# unevaluated test and the document it was asserted against. The fallback is
+# `$OUT`, which in this suite holds a PATH and not the output — see the note
+# under it — and the reader reads the file rather than printing the path.
+EVIDENCE_FALLBACK=OUT
+. "$CLI/test/evidence.sh"
 step() { printf '\n== %s\n' "$1"; }
 
 # Output is data: it goes to a file and every assertion greps the file. (The

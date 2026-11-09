@@ -219,7 +219,7 @@ run_suite() {
   # this list reports as `unrun` with 0 assertions counted, which is the exact
   # false negative the diagnostic below was written for — test/stranger.sh hit
   # it on its first run through here.
-  tally="$(grep -Eo '^(smoke|provision|pack|stranger|shapes|selftests): [0-9]+ ok, [0-9]+ failed' "$log" | tail -1)"
+  tally="$(grep -Eo '^(smoke|provision|pack|stranger|shapes|selftests|evidence): [0-9]+ ok, [0-9]+ failed' "$log" | tail -1)"
   if [ -z "$tally" ]; then
     local p f
     p="$(grep -Eo '^# pass [0-9]+' "$log" | tail -1 | grep -Eo '[0-9]+')"
@@ -280,6 +280,11 @@ run_suite "smoke-langgraph" bash "$CLI/test/smoke-langgraph.sh"
 run_suite "provision-host"  bash "$ROOT/deploy/test-provision.sh"
 run_suite "pack"            bash "$CLI/test/pack.sh"
 run_suite "stranger"        bash "$CLI/test/stranger.sh"
+# The reader six of these suites now share for what a failing assertion looked
+# at. It runs here because a reader that prints nothing passes every suite it is
+# installed in, so its own verdicts are the only thing that can catch it — and
+# an assertion nothing runs looks identical to one that passes.
+run_suite "evidence"        bash "$CLI/test/evidence.sh" --self-test
 
 printf '\n%s\n' "-----------------------------------------------"
 failed=0; incomplete=0

@@ -33,8 +33,14 @@ E="node $CLI/src/index.js"
 
 pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
-bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
-check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# `bad` and `check` come from one file, not a copy: test/evidence.sh prints the
+# unevaluated test and the document it was asserted against. No
+# EVIDENCE_FALLBACK is set, deliberately — this suite captures a different
+# variable per command (`$PAGE`, `$STUB_LOG`, `$SURVIVED`, `$CODE`..) and has
+# no one `out`, so a fallback could only ever print some other section's
+# document under this assertion. Its `check` expressions name the bundle files
+# and the stub log by path instead, which the reader's file branch answers.
+. "$CLI/test/evidence.sh"
 # The substring test happens in this shell, not down a pipe. `printf | grep -qF`
 # forks twice per assertion, and when either half of that pipeline cannot run,
 # its non-zero status is indistinguishable from "the string is not there" — so
@@ -48,8 +54,12 @@ check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 # subprocess at all: no dash is an option, no `*` or `[` in a needle is a glob,
 # and there is nothing transient left to mistake for an absence. (L-A34: an
 # absence is a reading, and this harness now only reports the one it took.)
-has()  { case "$2" in *"$3"*) ok "$1" ;; *) bad "$1" ;; esac; }
-hasnt(){ case "$2" in *"$3"*) bad "$1" ;; *) ok "$1" ;; esac; }
+# These two already HOLD the haystack, as a value, with no expression to read a
+# name out of — so they hand it to `bad` by name through the local below. The
+# `local` is visible inside `bad` because bash scopes dynamically, which
+# test/evidence.sh's header says out loud for the next reader.
+has()  { local captured="$2"; case "$captured" in *"$3"*) ok "$1" ;; *) bad "$1" "a literal substring match for: $3" captured ;; esac; }
+hasnt(){ local captured="$2"; case "$captured" in *"$3"*) bad "$1" "the output must NOT carry: $3" captured ;; *) ok "$1" ;; esac; }
 step() { printf '\n== %s\n' "$1"; }
 
 cleanup() {

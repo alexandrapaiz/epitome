@@ -47,8 +47,12 @@ E="$PREFIX/bin/epito"
 
 pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
-bad()  { fail=$((fail+1)); printf '  FAIL %s\n' "$1"; }
-check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+# `bad` and `check` come from one file, not a copy: test/evidence.sh prints the
+# unevaluated test and the document it was asserted against. The fallback is
+# `$OUT`, which holds a PATH here and not the output, for the reason under it;
+# the reader reads the file rather than printing the path.
+EVIDENCE_FALLBACK=OUT
+. "$CLI/test/evidence.sh"
 step() { printf '\n== %s\n' "$1"; }
 
 # Run the INSTALLED epito and keep its output in a file. A first draft of this

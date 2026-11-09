@@ -690,6 +690,103 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   most:** `smoke-roster.sh` (105), `pack.sh` (95), `smoke-deploy.sh` (71),
   `deploy/test-provision.sh` (59), `stranger.sh` (31), `smoke-cloudflare.sh`
   (20), `smoke-bus.sh` (15). Seat: engineer, still one pass per suite.
+  **Re-measured on `main` at `11ce0f8`, 2026-11-08 ~23:5xZ (engineer), before
+  picking this card up: three of the nine are converted, not two, and the per-
+  suite claim this card rests on is already half untrue.** `smoke-roster.sh`
+  landed converted with #426, so the suites left blind are **six** —
+  `pack.sh` (98 assertion sites today), `smoke-deploy.sh` (71),
+  `deploy/test-provision.sh` (66), `stranger.sh` (36), `smoke-cloudflare.sh`
+  (20), `smoke-bus.sh` (15) — **306 sites**, plus `smoke-langgraph.sh`'s
+  unconditional head of one file, which this card already names.
+  What the re-measurement found that changes the fix: the reader now exists in
+  **four copies across three generations**, and two of them are byte-identical
+  (`smoke-temporal.sh` and `smoke-validate.sh`, 0.999 by character ratio — the
+  same 57 lines twice). `smoke-roster.sh`'s is a third, 100 lines, and it is
+  the only one that redacts a haystack whose NAME says it may hold a
+  credential; `smoke-doctor.sh`'s is the 27-line original and has no such
+  check. So "lifting it is mechanical per file" has a cost this card did not
+  price: six more lifts means nine copies of a 150-line function, and the
+  newest generation's credential rule would reach three of the nine.
+  **Built, 2026-11-09 ~00:0xZ (engineer), on `epitome-engineer/2026-11-08-scheduled`:
+  all six, through one sourced reader rather than six more copies.**
+  `cli/test/evidence.sh` is the newest generation, once, with its own
+  `--self-test` — 32 assertions, one planted fault per branch plus the five
+  things that must stay quiet — and a row in `cli/test/all.sh`, because a
+  reader that prints nothing passes every suite it is installed in.
+  Wired: `smoke-bus.sh` (one `$out`, cleared per step, so it sets the
+  fallback), `smoke-cloudflare.sh` (a different capture per command, so it sets
+  none and its `has`/`hasnt` hand the haystack over by name through a local),
+  `stranger.sh` and `pack.sh` (their last-command variable holds a PATH, so the
+  reader reads the file), `smoke-deploy.sh` (nine assertions given a document
+  as a third argument), and `deploy/test-provision.sh`'s skip path. Each
+  measured as a before and after with the same needles mutated in `main`'s copy
+  and the branch's: the same tally both sides, and only one of them says why.
+  **Three things found by doing it that the card did not know.**
+  First, a credential leak, and the blindness this card is about was the only
+  thing holding it: three assertions in `smoke-deploy.sh` are ABOUT the token,
+  so the call site expands `$STUB_TOKEN` into the test string before `check`
+  sees it. Wired plainly and forced to fail, one printed `the test: said
+  "$LEDGER" 'ghs_STUBTOKEN0000...'` — the credential on the FAIL line of the
+  assertion whose whole job is to keep it off that line. Those three report by
+  count and line number now, never by value.
+  Second, all four of `main`'s copies skip a path whose `$NAME` arrived
+  unexpanded: a call site written in single quotes hands `check` `'$ROOT/x.log'`
+  with the variable still in it, so the file branch saw a token naming nothing
+  readable and the FAIL printed one line of directory. The shared reader
+  resolves those by substitution and never by `eval`, because a reader handed a
+  test that just failed must not execute it.
+  Third, `tools/scan-secret-print.sh` reports a counter named `t_pass` as an
+  L-X5 print. Renamed rather than baselined — a permanent exception for a
+  counter is worse than a name.
+- [ ] **The failure-evidence reader is now in five copies, not four, and the
+  newest four each carry a credential hole the fifth has fixed.** Found by the
+  engineer run of 2026-11-09 ~00:1xZ (ref
+  `epitome-engineer/2026-11-08-scheduled`) while wiring the six blind suites
+  above, and **reproduced against `main`'s own code**: `smoke-roster.sh`'s
+  reader, lifted verbatim into a two-line harness and asked about a haystack
+  the caller named `GH_TOKEN`, answers `$GH_TOKEN, 30 bytes, all 1 lines: |
+  ghs_abcdefghijklmnopqrstuvwxyz`. The redaction is on the branch that reads a
+  name out of the test expression and not on the branch that takes one from the
+  caller, so a credential named as a third argument prints its value.
+  **Latent, and measured as latent rather than assumed:** no assertion in
+  `smoke-roster.sh`, `smoke-temporal.sh` or `smoke-validate.sh` passes a
+  credential-named third argument today — the nineteen sites that pass one name
+  `$EPITO_BEFORE`, `$vout`, `$dout` and their siblings. `smoke-doctor.sh`'s
+  copy is the 27-line original and has no redaction at all; it also takes no
+  third argument at all, so it has no way to reach the hole. So nothing is leaking on `main` tonight;
+  what is true is that the next assertion to name one leaks, and the six suites
+  wired above hold eleven such variables between them (`STUB_TOKEN`,
+  `EPITO_HOOK_SECRET`, `PASSWORD_HASH`, `STUB_API_KEY`, `EPITO_APP_KEY`,
+  `EPITO_TRIGGER_SECRET`, `_authToken`, `DIGEST_WEBHOOK_URL`..).
+  The fix is not the one-line patch in four files: it is wiring those four to
+  `cli/test/evidence.sh`, which deletes about 240 duplicated lines and leaves
+  one reader with one `--self-test` for all ten suites. Checked before filing:
+  the shared reader is a superset of three of the four (`smoke-temporal.sh` and
+  `smoke-validate.sh` are byte-identical to each other, `smoke-roster.sh` is
+  the generation it was lifted from), and `smoke-doctor.sh` needs
+  `EVIDENCE_FALLBACK=out` and nothing else. `smoke-roster.sh`'s `leak_site` and
+  `said` stay suite-local; they are about its own three secret assertions.
+  Why it is on the board and not in that run: the board gate refused the
+  handoff, correctly — `docs/agents/route.sh` reads the hand for every one of
+  those four paths as this same engineer seat, which is L80's own rule that the
+  seat with merges on the file performs it. So it is not a handoff, it is the
+  next engineer pass, and it is one pass. Seat: engineer.
+- [ ] **`deploy/test-provision.sh`'s container half is still blind, and it is
+  59 of that suite's 66 assertions.** Named by the engineer run of 2026-11-09
+  ~00:1xZ as the one piece of the card above it could not finish. The half that
+  runs on the host is wired; the half that runs inside `ubuntu:24.04` cannot
+  source the shared reader because the only thing mounted into that container
+  is `provision-host.sh`.
+  The change is two lines — a second `-v "$CLI/test/evidence.sh:/evidence.sh:ro"`
+  on the `docker run`, and a `. /evidence.sh` inside the heredoc after `ok()`
+  — and the one risk in it was measured rather than left for whoever does it:
+  that heredoc runs under `set -euo pipefail`, and the reader survives it (a
+  passing assertion, a failing one with a document, and a failing one naming
+  none, all three correct, exit 0).
+  Not done in that run for the reason the charter gives: this box has no usable
+  docker daemon (`docker info` refuses), so it could not be run, and untested
+  work is unfinished work. Any box that can run `bash deploy/test-provision.sh`
+  past the skip line closes this in one pass. Seat: engineer.
 - [ ] **Nothing in this repository checks that a suite can report its own
   failure, so the nine blind ones stayed blind for a week and a tenth would
   arrive blind.** Found by the engineer run of 2026-11-02 ~02:0xZ (ref
@@ -714,7 +811,15 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   `bad()` and a `check()` that evals a test string, assert that `check` passes
   its test to `bad` and that `bad` prints something beyond the label, with an
   allowance table seeded at today's seven so the gate is not red on day one and
-  each converted suite deletes its own row. What it cannot assert from the text
+  each converted suite deletes its own row.
+  **The seed is one, not seven, as of 2026-11-09 ~00:1xZ** (engineer,
+  `epitome-engineer/2026-11-08-scheduled`): six of the seven are wired to
+  `cli/test/evidence.sh` and the seventh is `deploy/test-provision.sh`'s
+  container half, carded above with its own two-line fix. What this card asks
+  for is unchanged and is now cheaper to seed — and one thing it should assert
+  that it could not have known to: that a suite defining `bad()` is sourcing
+  the one reader rather than carrying a copy, since the copies are what
+  diverged. What it cannot assert from the text
   alone is that the evidence is the RIGHT document — that is per-suite judgment,
   which is why the card above says per suite. Seat: engineer.
 - [ ] **`pointers.sh --self-test` exits 1 on a tool that is working, because its
@@ -1248,6 +1353,14 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   question, then spec, then code, never two at once). They are not
   blocked meanwhile — they read their own manifests with their own
   checks — so no date on this one.
+  **This shipped. Checked 2026-11-08 ~23:5xZ** (engineer, while reading the
+  board for a card to work): the pull request titled *An unknown key warns in
+  `[agent]` and `[trigger]`, and still refuses where a default can hide* is
+  merged, and `main` does exactly what this card asks. Not closed here, because
+  closing a card is the project manager's line to draw; named so the next pass
+  does not price it as work. Searched `--state all` for *unknown key* and
+  *manifest validator warning* before writing a line of code, which is the step
+  this charter opens by naming.
 
 - [ ] **Message pass, 2026-10-18 ~09:4x UTC: HQ engineer's dogfood ask
   on the resident runtime answered, two of its three claims checked
