@@ -1614,8 +1614,21 @@ instance and belongs where not-landing findings go.
 **Status: closed.** Both defects are fixed in this run's pull request, both
 verified against the real inputs that exposed them and against five
 constructed ones, and the detector for the class is
-`bash docs/agents/addressed.sh --self-test`. Lesson: **L42, third instance** —
+`python3 docs/agents/liveness.py --self-test`. Lesson: **L42, third instance** —
 no new rule, because the rule already says this.
+
+**Correction to the line above, 2026-11-08.** It read `bash docs/agents/
+addressed.sh --self-test` from the day this incident closed until today, and
+that command is refused: `addressed.sh` dispatches `--can-self-test`,
+`--limits-self-test`, `--inbox-self-test` and `--payload-self-test`, never a
+bare `--self-test`, so the printed line exits 2 and prints the usage header
+instead of asserting anything. Anyone who took this incident's own word for its
+detector ran nothing and was told nothing. The liveness reading has since moved
+out of `addressed.sh` into `docs/agents/liveness.py`, whose `--self-test` fires
+eight real rows of this box's logs through the reader (0 of 8 failed, verified
+2026-11-08), so the command named now is the one that carries them. Found by
+`python3 tools/check-printed-commands.py`, which exists because this is a class
+and not an instance.
 
 **What the instrument was for.** `addressed.sh --liveness` shipped at ~01:00Z
 today to serve two things: the second of this charter's standing counts

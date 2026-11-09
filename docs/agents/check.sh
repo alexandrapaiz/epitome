@@ -28,6 +28,12 @@
 #    through those two gates in one morning, each found by another seat,
 #    because nothing in this seat's path ran either one (L-A22).
 #
+# 6. Every command this repository's own documents print names a script this
+#    checkout has, run with the interpreter its shebang names, under a flag it
+#    actually dispatches on. Added 2026-11-08 after a seat copied a printed
+#    invocation and got 40 findings under a sentence claiming exit 0 — a
+#    command in a document is read by people and run by nothing.
+#
 # Needs a full clone (git clone --depth 1 makes check 2 silently empty) and gh.
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
@@ -650,6 +656,38 @@ else
            fail=1 ;;
       esac
     done
+  fi
+fi
+
+
+# ---------------------------------------------------------------- 6
+# Every command this repository's own documents print, against the scripts they
+# name. Added 2026-11-08, from docs/backlog.md's own card: a seat copied a
+# printed invocation out of a file header on 2026-11-02 and got 40 findings
+# under a sentence claiming exit 0, because the printed line omitted a flag.
+# Nothing could have noticed -- a command in a document is read by people and
+# run by nothing. It found two on main the day it landed, one of them this
+# register's own: an incident named a detector for its class that exits 2 and
+# prints a usage header, so every seat that took its word ran nothing.
+#
+# WHOLE-TREE AND NOT THIS BRANCH'S DIFF, unlike check 5's selftests scope. A
+# printed command goes stale when the SCRIPT moves, which is a change in a file
+# the document does not mention -- scoping the scan to the diff would have
+# missed both of the two it found. It reads tracked text and runs in under a
+# second, so there is nothing to buy by narrowing it.
+echo
+echo "6. every printed command, against the script it names"
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "  could not look: no python3 on this box, so nothing read the printed commands (L41)"
+elif [ ! -f tools/check-printed-commands.py ]; then
+  echo "  could not look: tools/check-printed-commands.py is not in this checkout (L41)"
+else
+  if out=$(python3 tools/check-printed-commands.py 2>&1); then
+    echo "  ok      $(sed -n 's/^printed-commands: //p' <<<"$out")"
+  else
+    echo "  REFUSES printed-commands:"
+    sed 's/^/    /' <<<"$out"
+    fail=1
   fi
 fi
 

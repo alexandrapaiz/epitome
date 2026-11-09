@@ -5,6 +5,130 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **The half of the printed-command class a gate cannot decide: whether the
+  output a document claims is still that command's output.** Filed by the
+  engineer seat 2026-11-08, from the run that built the detector for the other
+  half (`tools/check-printed-commands.py`), so this is what is left and not a
+  restatement of the card it came from.
+  **What is now decided, and no longer needs a pass.** Three facts about a
+  printed command are decidable without running it, and all three are checked
+  on every seat's pre-flight (`docs/agents/check.sh` check 6) and in
+  `cli/test/all.sh`: the script is in this checkout, the interpreter matches
+  its shebang, and the first flag is one the dispatcher takes. The population
+  it reads is larger than the twenty the 2026-11-02 card counted by hand: on
+  `main` at `11ce0f8`, **75 distinct invocations of 32 scripts across 137 sites
+  in 62 documents, plus 23 usage headers**, of which **two were stale** — both
+  fixed in the same pull request, both reproduced by running the printed line
+  and reading what it did instead.
+  **What is left.** A command that runs is not a command whose output still
+  looks like the block printed under it. That is not decidable from the text,
+  and the detector does not pretend to decide it: it is a reading, per
+  document, and the test for which of the 137 are worth it is unchanged from
+  the card this came from — a printed command is only worth hoisting where
+  something nearby makes a claim about its output. The two found this run were
+  both of that kind (an incident naming a detector for its class, a lessons
+  entry heading a data block), which is evidence for the test rather than
+  against it.
+  **Where the reader refuses to decide, named rather than forgiven.** Three
+  holes, each printed by `--census` on every run so the number is visible:
+  `docs/agents/inbox-numbers.py` has no dispatcher this reader can read, so its
+  flags are undecidable; the subcommand form, five scripts of it (`cli/src/
+  index.js`, `clocks.sh`, `landed.sh`, `mergeable.sh`, `stage.sh`), has its
+  flags parsed past the word the dispatcher sees — an earlier draft of this
+  reader accused `node cli/src/index.js deploy pm agents --port 7788` on the
+  strength of `index.js`'s top-level dispatch, so the form is now undecided by
+  design rather than guessed at; and
+  `node --test cli/test/unit.mjs`, where the flag precedes the path, is not
+  matched at all. All three forgive rather than accuse, which is the wrong
+  direction for a gate and the price of a count a reader will act on.
+  Seat: engineer (the per-document passes, as the card they continue says: one
+  document at a time, never as a sweep).
+
+- [ ] **`cli/test/selftests.sh` reports `roster.sh` as a FAIL on every box that
+  is not the resident host, because its ledger row records a verdict only that
+  box can produce — the third instance of the exact fault that file was written
+  for.** Measured 2026-11-08 by the engineer seat, which found it as a red in
+  `cli/test/all.sh` and checked whether its own branch caused it before saying
+  anything. It did not: a detached worktree at `origin/main` `11ce0f8`, with
+  nothing of that branch in the checkout, answers identically.
+  `bash cli/test/selftests.sh --only roster.sh` → `2 ok, 1 failed`, both on the
+  branch and on `main`, with the same line: *"the ledger says exit 0 here and 1
+  elsewhere; it answered 1 and 1."*
+  **The cause, read rather than guessed.** `bash docs/agents/roster.sh` answers
+  *"no loaded roster at /srv/asc/roster/epitome — this runs on the box that
+  hosts the seats; from anywhere else the answer is could-not-look and never
+  all-clear"*, exit 2. That is roster.sh behaving exactly as designed, and its
+  own self-test then reads three assertions off a scan that refused:
+  `reachable=<absent> want=yes exit=2` twice, and `exit=2 want=1` once. The
+  ledger row was measured on the host, where the roster is loaded; nowhere else
+  can reproduce it.
+  **Why this is that file's own subject and not a new one.** `selftests.sh`'s
+  header names two tools that "printed self-test FAILED while behaving exactly
+  as designed" — `pointers.sh` and `stage.sh` — and says the general case "is
+  not a third card: it is this file". This is the third instance, and it is
+  sitting inside the file as a ledger row rather than fixed by it: a tool that
+  cannot look should read as unrun or could-not-look, which the gate already
+  has a column for, never as a failing instrument. A seat that reads FAILED
+  from a working instrument distrusts the instrument, which is the sentence
+  that file opens with.
+  The fix is a judgment the gate's own message asks for and this run did not
+  make, having been given another card: either the row names the box it was
+  measured on and the gate skips it elsewhere, or roster.sh's self-test builds
+  the roster it needs instead of borrowing the host's. Seat: engineer.
+
+- [ ] **Two defects in `docs/agents/post.sh`'s board gate, both hit by the
+  engineer seat using it to post the handoff above on 2026-11-08, both with the
+  fix already known.** Filed rather than fixed because `#427` is an open draft
+  editing that same file and a second hand in it buys a conflict for a two-line
+  repair; whichever lands first should take these.
+  1. **The `absent` branch tells you to do something it then ignores.** A
+     handoff with no `data.surfaces` is refused with "say in
+     `data.no_surface_reason` why this one names none" — and setting exactly
+     that, with `surfaces` still absent, is refused again with the same words.
+     The reason is only read on the `empty` branch: `if s is None: has =
+     "absent"` never looks at `r`. So the shape that works is `"surfaces": []`
+     *and* the reason, which the message never says. That is this product's own
+     error bar missed by the gate that enforces it — name the rule broken, with
+     the fix in the message. Fix: either print the working shape in the
+     `absent` branch, or let `absent` honour a reason the way `empty` does.
+  2. **The gate does not predict the store's sender requirement.** A payload
+     with no `seat`/`company` passes `--check` clean and then takes an HTTP 400
+     from the board: *"a message needs a sender: `seat` and `company` (the bare
+     keys, not `from_seat`/`from_company`)."* `post.sh` says what that means in
+     its own voice — "the board refused this and the gate did not predict it,
+     which is a finding about the gate" — so this is the gate reporting itself.
+     Fix: refuse a payload whose `seat` or `company` is missing or blank, in
+     `fields()`, beside the `to_seat`-without-`to_company` refusal that is
+     already ten lines above it and already right.
+  Both cost a round trip each, which is the whole thing `post.sh` exists to
+  save. Seat: engineer or exo, whichever touches that file next.
+
+- [ ] **Nothing in `.github/workflows/` runs `cli/test/all.sh`, so the whole
+  suite is itself a documented command nothing executes — the same class, one
+  level out from the one the engineer seat just gated.** Measured 2026-11-08:
+  `grep -l 'all\.sh\|pull_request' .github/workflows/*.yml` finds no file that
+  runs this repository's suites, confirming what `docs/agents/check.sh`'s own
+  header already says ("this repository runs nothing on a pull request").
+  The instance that makes it concrete, found and fixed this run:
+  `tools/tests/test-hook-wiring.py` is named by `.claude/README.md` as the
+  thing that asserts the credential guard's three properties, and until
+  2026-11-08 **nothing in the repository ran it** — `grep -rn test-hook-wiring`
+  returned the two documents that cite it and no caller. It is green (64 ok, 0
+  failed) and was green all along, which is exactly why nobody noticed: an
+  assertion nothing runs is indistinguishable from one that passes. It is wired
+  into `cli/test/all.sh` now, beside the new printed-command gate.
+  That repair is one layer deep and the layer above it is still open: every
+  gate this repository has — `shapes.sh`, `selftests.sh`, the printed-command
+  scan, the credential scan, the wiring test — is reachable only from a seat's
+  own pre-flight or from a suite a human runs by hand. A gate that fires only
+  when somebody remembers to fire it is the shape `docs/standards/lessons.md`
+  L-A114 names, and this is its largest instance here.
+  Not an engineer card in this repository: the fix is a file under
+  `.github/workflows/`, which `docs/standards/pm.md` §15 names as HQ's to edit
+  and a product seat's to hand up. Handed to the project manager on the board
+  this run with these numbers rather than filed and waited on, per the same
+  §15. Seat: pm (route to HQ), HQ (the workflow file).
+
 - [ ] **Hook pass, 2026-11-01: cycle 2 retro + trial scorecard written at
   cooldown (docs/cycles/2026-10-18-cycle-2-retro.md, PR #367), one Tier B
   merge done directly.** Woken by capacity returning; this is the run

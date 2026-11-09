@@ -219,7 +219,7 @@ run_suite() {
   # this list reports as `unrun` with 0 assertions counted, which is the exact
   # false negative the diagnostic below was written for — test/stranger.sh hit
   # it on its first run through here.
-  tally="$(grep -Eo '^(smoke|provision|pack|stranger|shapes|selftests): [0-9]+ ok, [0-9]+ failed' "$log" | tail -1)"
+  tally="$(grep -Eo '^(smoke|provision|pack|stranger|shapes|selftests|printed-commands|hook-wiring): [0-9]+ ok, [0-9]+ failed' "$log" | tail -1)"
   if [ -z "$tally" ]; then
     local p f
     p="$(grep -Eo '^# pass [0-9]+' "$log" | tail -1 | grep -Eo '[0-9]+')"
@@ -268,6 +268,14 @@ run_suite() {
 # for a fault no suite run can find: a gate carrying the quiet-pipe shape passes.
 run_suite "shapes"          bash "$CLI/test/shapes.sh"
 run_suite "selftests"       bash "$CLI/test/selftests.sh"
+# Two gates that were documented commands and nothing else. `.claude/README.md`
+# says test-hook-wiring.py asserts the credential guard's three properties, and
+# until this line nothing in the repository ran it: `grep -rn test-hook-wiring`
+# found the two documents that cite it and no caller. check-printed-commands.py
+# is the detector for exactly that shape, so running it from a file that does
+# not itself run would have been the first thing it should have caught.
+run_suite "printed-commands" python3 "$ROOT/tools/check-printed-commands.py" --gate
+run_suite "hook-wiring"     python3 "$ROOT/tools/tests/test-hook-wiring.py"
 run_suite "unit"            node --test "$CLI/test/unit.mjs" "$CLI/test/unit-deploy.mjs" "$CLI/test/unit-audit.mjs" "$CLI/test/unit-bus.mjs" "$CLI/test/unit-cloudflare.mjs" "$CLI/test/unit-runreport.mjs" "$CLI/test/unit-envfile.mjs" "$CLI/test/unit-atomic.mjs"
 run_suite "smoke-deploy"    bash "$CLI/test/smoke-deploy.sh"
 run_suite "smoke-cloudflare" bash "$CLI/test/smoke-cloudflare.sh"
