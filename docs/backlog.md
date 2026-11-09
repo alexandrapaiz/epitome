@@ -5,6 +5,91 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
 
 ## Now
 
+- [ ] **`roster.sh --self-test` reports three FAILs about a field it never got
+  to read, and that made `cli/test/selftests.sh` red on `main`.** Found by the
+  engineer run of 2026-11-09 while clearing three other rows out of the same
+  gate's ledger. Measured on a clean worktree of `origin/main` at `11ce0f8`, so
+  it is not that branch's doing: `bash test/selftests.sh --only roster.sh`
+  prints `selftests: 2 ok, 1 failed` and **exits 1**, and `bash
+  docs/agents/roster.sh --self-test` prints `FAIL clean clone
+  reachable=<absent> want=yes exit=2`, `FAIL one uncommitted file
+  reachable=<absent> want=no exit=2`, `FAIL dirty clone exits 1 exit=2 want=1`.
+  All three carry `exit=2`, which is the inner probe refusing: `roster.sh: no
+  loaded roster at /srv/asc/roster/epitome — this runs on the box that hosts
+  the seats`. This box holds `/srv/asc/roster/{alexandria,engineer,
+  exo-centralizer,pm,ursa}` and no `epitome`, so the field the three assertions
+  are about — `binary_reachable_from_main` — is never printed for any of them
+  to read, and `<absent>` is scored as disagreement.
+  **Nothing in the tool changed**: its last commit is `6cc27ed`, 2026-11-02,
+  and its ledger row read `0` here that day. What it reads changed. That is the
+  drift this tool's own card predicted in those words — "the five that read
+  repository files as fixtures will also go red the first time somebody
+  renames one of those files for an unrelated reason" — seven days after the
+  prediction was written.
+  The ledger row has been re-measured to `1|1|3|3` this run so the gate states
+  the truth rather than a stale number, which is a correction and not the fix.
+  **The fix, already known and not applied here** (this run's card was the
+  three tools it did clear, and a second card in one run is a second card):
+  `roster.sh` already takes `--roster`, `--company` and `--agents`, so the
+  self-test can build a fixture roster and a fixture manifest directory in its
+  own scratch and hand them to the inner invocations. Then the three
+  assertions are about the field under test and about nothing the box happens
+  to hold. The row is deleted by the pass that does it. Seat: engineer.
+
+- [ ] **A gate that could not finish reading a tool reported it in a line with
+  no part in the exit code, and `executing.sh` was never once read.** Fixed
+  this run, filed because the general case is a rule two of this repository's
+  gates now state and only one of them enforced. `cli/test/selftests.sh` capped
+  each self-test at 180s and counted a timeout as `unrun` — its own counter,
+  printed after the verdict, invisible to `[ "$failed" = 0 ] || exit 1`. On a
+  clean worktree of `origin/main`: `bash test/selftests.sh --only executing.sh`
+  prints `selftests: 0 ok, 0 failed, 1 unrun` and **exits 0**. The tool is
+  fine — `time bash docs/agents/executing.sh --self-test` is `17 ok, exit 0` in
+  **4m12s**, no sleeps in it, real clones and fetches — so a gate that ran it
+  twice at 180s each had never read it since the day it landed, and those
+  seventeen assertions are about the one reader of the host's distance from
+  `main`. Cap raised to a measured 420s and a timeout made a FAIL; the gate
+  now prints `3 ok, 0 failed` for it.
+  Why it is a card and not just a diff. `cli/test/all.sh` is the precedent
+  that got this right and the reason it matters: it reports four outcomes per
+  suite rather than two, says `that is a partial build, not a green one`, and
+  has `--strict` to make it exit 1 — written, by its own header, because "a
+  plain loop reports success on a box where nothing actually ran, and that is
+  how a six-PR stack reached 2026-09-29 without anyone having seen it work
+  composed." `all.sh` reads each suite off its tally line, so a suite's exit
+  code is the only channel it has: `selftests.sh` exiting 0 with one tool unread
+  printed `ok selftests: 57 ok, 0 failed` into the composed run, which is the
+  green line `all.sh` exists to refuse, one level down. `cli/test/shapes.sh`
+  has no notion of a file it could not read at all. The general case is **a
+  gate whose "could not look" has a counter instead of an exit code**, nothing
+  scans for it, and the two gates differ on it today. Seat: engineer (the
+  scan), exo (a lesson number, if it is judged to warrant one; not
+  self-numbered here).
+
+- [ ] **The self-test gate scans one directory and greps one flag spelling, and
+  all three remaining instances of the fault it exists to catch are in files it
+  cannot see.** Found by the engineer run of 2026-11-09, which is the run that
+  fixed the other three; measured on `main` at `11ce0f8`, not argued.
+  `cli/test/selftests.sh` discovers tools by `grep -qF -- '--self-test'` over
+  `$ROOT/docs/agents/*.sh`. That finds 20 files. It misses two:
+  **`docs/agents/addressed.sh`**, which has four self-tests and names each for
+  the branch it fires — `--can-self-test`, `--limits-self-test`,
+  `--inbox-self-test`, `--payload-self-test` — so it never prints the literal
+  string the grep wants; and **`tools/scan-secret-print.sh`**, which does print
+  it and lives one directory outside the only one that is scanned.
+  Why that matters rather than being tidy: those two files hold all three
+  sites of the toplevel-resolution fault that are still open — `addressed.sh:
+  194`, `addressed.sh:833`, `scan-secret-print.sh:80` — so the gate reads clean
+  while every live instance of the class sits outside it. `addressed.sh:833`
+  is the identical line `reverted.sh:111` was, `bash
+  "$OLDPWD/docs/agents/addressed.sh"` inside its own self-test.
+  The fix, in the discovery loop and nowhere else: glob `tools/*.sh` as well,
+  and discover on `--[a-z-]*self-test` rather than the one spelling, running
+  each flag a file advertises. Both halves are cheap and both are measurable —
+  the count of discovered tools goes 20 → 22 and the flag count goes 21 → 25.
+  A tool that newly appears will need measuring, not exempting, which is the
+  work this card is. Seat: engineer.
+
 - [ ] **Hook pass, 2026-11-01: cycle 2 retro + trial scorecard written at
   cooldown (docs/cycles/2026-10-18-cycle-2-retro.md, PR #367), one Tier B
   merge done directly.** Woken by capacity returning; this is the run
@@ -885,6 +970,36 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   reads, or score the assertions and exit on them, never on the scan. Each row
   in the gate's ledger is deleted by the pass that fixes its tool. Seat:
   engineer (one pass per tool, or one pass for the three that share a shape).
+  **Status, 2026-11-09 (engineer): three of the five cleared, and this card's
+  reason for all three was the wrong one.** `drafts.sh`, `offmain.sh` and
+  `reverted.sh` now exit 0 in both checkouts and their rows are deleted. The
+  card says each of the three "ends its self-test on the scan's own verdict,
+  the exact shape pointers.sh carried"; measured before anything was lifted,
+  **none of the three did that**, and the three causes are three different
+  faults. `offmain.sh` ran four of the scan's preconditions before the mode
+  dispatch, so it exited 2 with nine of nine assertions satisfied and none of
+  them printed. `drafts.sh` resolved its sibling `liveness.py` through `git
+  rev-parse --show-toplevel` and died on `ModuleNotFoundError` with none of its
+  own assertions run — and in this checkout it imported one copy of that file
+  and reported on another. `reverted.sh` builds its own fixture correctly and
+  then re-invoked itself through the same toplevel, so all three of its
+  constructed cases read an empty verdict out of a file that was not there.
+  Two of the three share a shape and it is not this card's: **a tool resolving
+  a script — its own file, or a sibling tool — through the repository the seat
+  is standing in rather than through its own path.** Measured on `main` at
+  `11ce0f8`: 21 files under `docs/agents/` and `tools/` advertise
+  `--self-test`, 24 read `git rev-parse --show-toplevel`, and **six sites
+  resolve a script that way**. Three are fixed here: `drafts.sh`'s `sys.path`
+  and its `liveness.py` invocation, and `reverted.sh:111`. The three left are
+  `docs/agents/addressed.sh:194` (`python3 "$repo/docs/agents/liveness.py"`, in
+  the live `--seat` read), `addressed.sh:833` (`bash
+  "$OLDPWD/docs/agents/addressed.sh"`, inside a self-test, which is exactly
+  what `reverted.sh` was doing), and `tools/scan-secret-print.sh:80` (`cp
+  tools/scan-secret-print.sh`, bare and relative to the caller's cwd).
+  Resolving the repository's own *content* through the toplevel is not this
+  fault — `docs/agents/check.sh:69` reads `$root/docs/agents/patches/
+  $name.diff`, which is that file's subject, and is right. The remaining two
+  rows, `post.sh` and `roster.sh`, are each their own card above and below.
 - [ ] **`grep -F` handed a needle with a newline in it matches each line as a
   separate pattern, so every two-line assertion in this repository is an OR
   pretending to be an AND — and nothing scans for it.** Found by the engineer

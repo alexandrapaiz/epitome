@@ -50,12 +50,28 @@
 # asserted to move EXACTLY as recorded, so a row goes red when the tool changes
 # in either direction, and the row is deleted when the tool is fixed. A tool
 # absent from the ledger is allowed no movement at all. Rows only ever leave.
+#
+# A row records FOUR numbers and not two, because the sentence above was false
+# while it recorded two. post.sh was ledgered on 2026-11-02 with a row whose
+# prose says "eight of the assertions"; it was changed five times in the days
+# after, and on 2026-11-09 the same self-test prints EIGHTEEN FAIL rows in the
+# other checkout. Both exit codes were unmoved, so the row stayed green and
+# this gate had no opinion about a ledgered tool's failure count more than
+# doubling. The scoreboard is the thing a ledgered tool is being watched for.
 set -uo pipefail
 CLI="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ROOT="$(cd "$CLI/.." && pwd)"
 TOOLS="$ROOT/docs/agents"
 LIST=0
 ONLY=
+# Per tool, per checkout. Measured 2026-11-09 rather than guessed: the slowest
+# self-test in the directory is executing.sh at 4m12s — seventeen assertions,
+# no sleeps, real clones and fetches each time — and the cap it was handed was
+# 180s, so it was `unrun` in every run of this gate there has ever been. 420
+# leaves it 2m38s of headroom on the box it was measured on. Overridable so the
+# refusal above can be PERFORMED and not just described — `CAP=1 bash
+# test/selftests.sh --only idle.sh` is the command that proves it fails.
+CAP=${CAP:-420}
 while [ $# -gt 0 ]; do
   case "$1" in
     --list) LIST=1; shift ;;
@@ -64,16 +80,26 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# tool.sh|rc here|rc elsewhere|what moves, measured
-# Measured 2026-11-02 00:2xZ on this branch, one run of each tool in each place.
-# Five of eighteen. Two more were in this table an hour ago and are not now,
-# which is what a row leaving looks like: pointers.sh and stage.sh.
+# tool.sh|rc here|rc elsewhere|FAIL rows here|FAIL rows elsewhere|what moves
+# Measured 2026-11-02 00:2xZ, one run of each tool in each place: five of
+# eighteen. Re-measured 2026-11-09, and three of the five left — drafts.sh,
+# offmain.sh, reverted.sh — which is what a row leaving looks like. Two more
+# left the same way a week earlier: pointers.sh and stage.sh.
+#
+# All three of those rows named the WRONG CAUSE, which is why the fix was three
+# fixes and not one. None of the three ended on the scan's verdict. drafts.sh
+# resolved its sibling `liveness.py` through `git rev-parse --show-toplevel`
+# and died on ModuleNotFoundError with none of its own assertions run;
+# reverted.sh re-invoked itself through the same toplevel, so all three of its
+# constructed cases read an empty verdict from a file that was not there; and
+# offmain.sh ran four of the scan's preconditions — the unshallow, `gh`, the
+# fetch of main and the pull refs, the base ref — before the mode dispatch, so
+# it exited 2 with nine of nine satisfied and none printed. A row in this
+# table is a measurement of the EXIT CODES and is trustworthy as that; its
+# fourth field is a reading of a cause and the next hand should re-derive it.
 LEDGER='
-drafts.sh|0|1|the self-test ends on the verdict of the scan, so a repository with no drafts in it reads as a failing instrument
-offmain.sh|0|2|the same shape, and the second checkout has no origin ref, which the scan reports as could-not-look (exit 2) over whatever the assertions said
-reverted.sh|0|1|the same shape again, on a scan about reverted commits that the other repository does not have
-post.sh|0|1|eight of the assertions read files of THIS repository as their fixtures, so they fail wherever the repository is not
-roster.sh|0|1|three of the assertions read the roster of this repository as their fixture
+post.sh|0|1|0|18|the assertions read files of THIS repository as their fixtures, so they fail wherever the repository is not. Eighteen of them, re-counted 2026-11-09; the row that landed 2026-11-02 said eight and could not have noticed the difference
+roster.sh|1|1|3|3|re-measured 2026-11-09: 1 in BOTH checkouts, and its three assertions now FAIL here too. The probe it re-invokes refuses with could-not-look (exit 2) because this box holds no /srv/asc/roster/epitome, so the field under test, binary_reachable_from_main, is never printed for any of the three to read. This row read 0 here on 2026-11-02, when the box did hold it. Nothing in the tool changed; what it reads did — the exact drift its own card predicted
 '
 
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/epito-selftests-XXXXXX")"
@@ -120,12 +146,22 @@ for f in "$TOOLS"/*.sh; do
   grep -qF -- '--self-test' "$f" || continue
   asked=$((asked + 1))
 
-  here=$( cd "$ROOT" && timeout 180 bash "$f" --self-test 2>&1 ); rc_here=$?
-  away=$( cd "$ELSEWHERE" && timeout 180 bash "$f" --self-test 2>&1 ); rc_away=$?
+  here=$( cd "$ROOT" && timeout "$CAP" bash "$f" --self-test 2>&1 ); rc_here=$?
+  away=$( cd "$ELSEWHERE" && timeout "$CAP" bash "$f" --self-test 2>&1 ); rc_away=$?
   fh=$(fails_in "$here"); fa=$(fails_in "$away")
 
+  # A tool this gate could not finish reading is a tool this gate knows nothing
+  # about, and that is the one thing the file's own rule below forbids: "a run
+  # that asked nothing must not read like a run that found nothing wrong". It
+  # read like one anyway — `unrun` has its own counter, printed after the
+  # verdict, and nothing in the exit code. executing.sh timed out here on every
+  # run from the day this gate landed, so seventeen assertions about the single
+  # reader of the host's distance from main were never once checked by it.
   if [ "$rc_here" = 124 ] || [ "$rc_away" = 124 ]; then
-    printf '  unrun %s — its self-test did not finish inside 180s, so nothing here was asserted about it\n' "$b"
+    bad "$b: its self-test did not finish inside ${CAP}s, so nothing here was asserted about it" \
+      "A gate that cannot read a tool has no opinion about it, and no opinion must not
+read as no finding. Either the tool got slower than $CAP seconds or it hangs;
+measure it (\`time bash docs/agents/$b --self-test\`) and say which."
     unrun=$((unrun + 1))
     continue
   fi
@@ -148,13 +184,18 @@ for f in "$TOOLS"/*.sh; do
 
   # 2. the verdict against the checkout it was run in.
   if row=$(ledger_row "$b"); then
-    IFS='|' read -r _ want_here want_away why <<<"$row"
-    if [ "$rc_here" = "$want_here" ] && [ "$rc_away" = "$want_away" ]; then
-      printf '  known %s: exit %s here, %s elsewhere — %s\n' "$b" "$rc_here" "$rc_away" "$why"
+    IFS='|' read -r _ want_here want_away wantf_here wantf_away why <<<"$row"
+    if [ "$rc_here" = "$want_here" ] && [ "$rc_away" = "$want_away" ] \
+       && [ "$fh" = "$wantf_here" ] && [ "$fa" = "$wantf_away" ]; then
+      printf '  known %s: exit %s here with %s FAIL row(s), %s elsewhere with %s — %s\n' \
+        "$b" "$rc_here" "$fh" "$rc_away" "$fa" "$why"
       ok=$((ok + 1))
     else
-      bad "$b: the ledger says exit $want_here here and $want_away elsewhere; it answered $rc_here and $rc_away" \
-        "The ledger is a measurement, not an exemption. If this tool was fixed, delete its row. If it moved some other way, say which."
+      bad "$b: the ledger says exit $want_here/$want_away with $wantf_here/$wantf_away FAIL rows (here/elsewhere); it answered $rc_here/$rc_away with $fh/$fa" \
+        "The ledger is a measurement, not an exemption. If this tool was fixed, delete its
+row. If it moved some other way, re-measure all four numbers and say which moved —
+a row that records only the exit codes is how post.sh's failure count went from
+eight to eighteen with this gate reading green."
     fi
   elif [ "$rc_here" = "$rc_away" ]; then
     [ "$LIST" = 1 ] && printf '  ok   %s: exit %s in both checkouts\n' "$b" "$rc_here"
