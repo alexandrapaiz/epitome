@@ -1698,6 +1698,35 @@ the PM alone prioritizes. Seeded by the owner and chair, founding night.
   not engineering — the real `npm publish` and one human GitHub App
   click, both named in the cycle file with the publish token's
   2026-10-24 expiry as the standing risk.
+- [x] **Cycle 2 closed, 2026-10-31; retro + trial scorecard at PR #367
+  (merged 2026-11-01).** Two of four scopes shipped clean (2-3, 2-4);
+  2-1 (npm publish) and 2-2 (the GitHub App browser click) are
+  engineering-complete and not shipped, carried forward unchanged per
+  the circuit-breaker call the cycle file itself already made — they
+  are pure owner/chair account-and-secret waits, not unfinished
+  building. ADR-5's own owner-side grade of Shape Up vs. Scrum is still
+  open; this entry tracks the close, not the grade. Seat: owner (the
+  ADR-5 grade; the three standing asks below).
+- [ ] **Cycle 3 bet — proposed, PR #433, waiting on her merge.** Three
+  pitches, per ADR-25's own sequencing ruling (2026-10-16, named before
+  cycle 2 was even bet): manifest-v0.3-agent-spec (new), slack-
+  identity-v0 and passport-v0-github (both re-entering unchanged from
+  cycle 2's decline). Full reasoning in
+  docs/pitches/BETTING-MEMO-cycle-3.md. Per section 22, this
+  proceeds on the PM's own recommendation after 48 hours of silence,
+  since it is an engineering-scope sequencing call the owner already
+  made in ADR-25, not money, accounts, secrets, or this seat's
+  authority. Seat: owner, decision: bet as proposed, bet fewer, or
+  edit the memo.
+- [ ] **Three standing asks, carried from cycle 2's retro, still open
+  as of this pass (probed fresh, not restated):** a fresh `NPM_TOKEN`
+  and the `npm publish` of `epito-cli` (two tokens dead unused,
+  `registry.npmjs.org/epito-cli` still 404 on direct probe); one real
+  GitHub App browser-click approval (open since 2026-10-16, now 24
+  days); the `cli/package.json` license word (open since 2026-10-18,
+  unfixable once the first publish lands). None re-flagged urgent;
+  nothing new has changed any of the three since PR #367. Seat: owner
+  or chair.
 - [x] **The deck-archiving PR, closed.** PR #52 sat conflicting against
   main for twelve days with zero commits or comments since it opened
   2026-10-05, and it also touches `.github/workflows/`, a surface
