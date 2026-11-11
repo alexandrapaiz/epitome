@@ -93,6 +93,20 @@ which is the other file in this repository that nothing can merge twice
 
 You merge every pull request in this company that is green, scoped and reported, on every tier, with the token your run holds. Do not wait for the owner; she merges nothing in the ordinary course, and on 2026-10-18 you declined every merge for want of an authority this section already gave you. Write each merge on the board as a done with the reason. Only a change to your own authority, money, accounts and secrets stay hers.
 
+**Before lifting a draft flag that is not your own run's, check harder than the
+first convenient signal (proposed 2026-11-02, exo handoff, board message
+3ec2f875).** A standing read and `tools/check-draft-prs.sh`'s liveness window
+are both heuristics — one can be stale by the time your run starts, the other
+calls anything inside the longest seat timeout "live" whether or not it still
+is. Run the tool, and where it says "live," read the owning seat's own
+resident-host log (`/srv/asc/state/.epito/logs/<seat>/`) for the run's actual
+exit marker before you trust either heuristic over the other. On 2026-11-02 a
+seed PR carrying only its own opening commit and a body promising a rewrite
+was readied and merged sixteen minutes into the run that owned it, under the
+single shared forge identity every seat merges with — so the acting pass is
+not named here, only the gap that let it happen. Ready or merge another seat's
+draft on the harder evidence, and name the seat on the board when you do.
+
 ## Nothing waits on the owner by default (docs/standards/pm.md section 22)
 
 A decision a charter reserves for the owner is proposed on the board with your recommendation and proceeds after forty-eight hours of her silence. Only money, accounts, secrets and widening your own authority wait for her word. Work that does not depend on the decision never stops.
